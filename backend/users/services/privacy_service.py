@@ -21,7 +21,7 @@ class PrivacyService:
         self.user = user
         self.website = website or get_current_website()
         if not self.website:
-            from websites.models import Website
+            from websites.models.websites import Website
             self.website = Website.objects.filter(is_active=True).first()
     
     def get_writer_privacy_settings(self) -> WriterPrivacySettings:
@@ -96,7 +96,7 @@ class PrivacyService:
         
         # Completed orders count
         if privacy.show_completed_orders_count:
-            from orders.models import Order
+            from orders.models.orders import Order
             info['completed_orders_count'] = Order.objects.filter(
                 assigned_writer=writer_user,
                 status='completed',
@@ -111,7 +111,7 @@ class PrivacyService:
         
         # Workload
         if privacy.show_workload:
-            from orders.models import Order
+            from orders.models.orders import Order
             info['current_workload'] = Order.objects.filter(
                 assigned_writer=writer_user,
                 status__in=['in_progress', 'pending'],

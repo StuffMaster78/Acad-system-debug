@@ -6,7 +6,7 @@ from django.utils.timezone import now
 from datetime import timedelta
 from typing import Tuple, Optional
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus, OrderFlags
 from order_configs.models import EditingRequirementConfig
 

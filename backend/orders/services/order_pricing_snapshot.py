@@ -1,4 +1,5 @@
-from orders.models import Order, OrderPricingSnapshot
+from orders.models.orders import Order
+from orders.models.logs import OrderPricingSnapshot
 from orders.services.pricing_calculator import PricingCalculatorService # assuming you have this
 from django.utils.timezone import now
 

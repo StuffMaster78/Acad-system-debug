@@ -17,9 +17,9 @@ from writer_management.serializers_advance import (
 )
 from writer_management.services.advance_payment_service import AdvancePaymentService
 from writer_management.permissions import IsWriter, IsAdminOrSuperAdmin
-from websites.models import Website
-from notifications_system.services.dispatch import send
-from notifications_system.enums import NotificationType
+from websites.models.websites import Website
+from notifications_system.services.notification_service import NotificationService
+
 
 class WriterAdvancePaymentRequestViewSet(viewsets.ModelViewSet):
     """
@@ -175,20 +175,26 @@ class WriterAdvancePaymentRequestViewSet(viewsets.ModelViewSet):
             admin_users = admin_users.filter(website=website)
         
         for admin in admin_users[:50]:  # Limit to prevent spam
-            send(
-                user=admin,
-                event="writer.advance_request.created",
-                payload={
+            NotificationService.notify(
+                event_key="writer.advance_request.created",
+                recipient=admin,
+                website=website,
+                context={
                     "advance_request_id": advance_request.id,
                     "writer_id": writer_profile.id,
                     "writer_username": writer_profile.user.username,
                     "requested_amount": str(requested_amount),
                     "reason": reason[:100] if reason else None,
                 },
-                website=website,
-                channels=[NotificationType.IN_APP],
-                category="advance_payments",
+                channels=["email", "in_app"],
+                priority="high",
+                is_silent=False,
+                is_critical=False,
+                is_digest=False,
+                is_broadcast=False,
+                digest_group=None,
             )
+
         
         serializer = WriterAdvancePaymentRequestSerializer(advance_request)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -255,19 +261,24 @@ class WriterAdvancePaymentRequestViewSet(viewsets.ModelViewSet):
             advance_request.save()
         
         # Notify writer
-        send(
-            user=advance_request.writer.user,
-            event="writer.advance_request.approved",
-            payload={
+        NotificationService.notify(
+            event_key="writer.advance_request.approved",
+            recipient=advance_request.writer.user,
+            website=advance_request.website,
+            context={
                 "advance_request_id": advance_request.id,
                 "requested_amount": str(advance_request.requested_amount),
                 "approved_amount": str(approved_amount),
                 "is_counteroffer": approved_amount < advance_request.requested_amount,
                 "review_notes": review_notes,
             },
-            website=advance_request.website,
-            channels=[NotificationType.IN_APP, NotificationType.EMAIL],
-            category="advance_payments",
+            channels=["email", "in_app"],
+            priority="high",
+            is_silent=False,
+            is_critical=False,
+            is_digest=False,
+            is_broadcast=False,
+            digest_group=None,
         )
         
         serializer = WriterAdvancePaymentRequestSerializer(advance_request)
@@ -313,18 +324,24 @@ class WriterAdvancePaymentRequestViewSet(viewsets.ModelViewSet):
             advance_request.save()
         
         # Notify writer
-        send(
-            user=advance_request.writer.user,
-            event="writer.advance_request.rejected",
-            payload={
+        NotificationService.notify(
+            event_key="writer.advance_request.rejected",
+            recipient=advance_request.writer.user,
+            website=advance_request.website,
+            context={
                 "advance_request_id": advance_request.id,
                 "requested_amount": str(advance_request.requested_amount),
                 "rejection_reason": review_notes,
             },
-            website=advance_request.website,
-            channels=[NotificationType.IN_APP, NotificationType.EMAIL],
-            category="advance_payments",
+            channels=["email", "in_app"],
+            priority="high",
+            is_silent=False,
+            is_critical=False,
+            is_digest=False,
+            is_broadcast=False,
+            digest_group=None,
         )
+        
         
         serializer = WriterAdvancePaymentRequestSerializer(advance_request)
         return Response(serializer.data)
@@ -384,16 +401,21 @@ class WriterAdvancePaymentRequestViewSet(viewsets.ModelViewSet):
             advance_request.save()
         
         # Notify writer
-        send(
-            user=advance_request.writer.user,
-            event="writer.advance_request.disbursed",
-            payload={
+        NotificationService.notify(
+            event_key="writer.advance_request.disbursed",
+            recipient=advance_request.writer.user,
+            website=advance_request.website,
+            context={
                 "advance_request_id": advance_request.id,
                 "disbursed_amount": str(disbursed_amount),
             },
-            website=advance_request.website,
-            channels=[NotificationType.IN_APP, NotificationType.EMAIL],
-            category="advance_payments",
+            channels=["email", "in_app"],
+            priority="high",
+            is_silent=False,
+            is_critical=False,
+            is_digest=False,
+            is_broadcast=False,
+            digest_group=None,
         )
         
         serializer = WriterAdvancePaymentRequestSerializer(advance_request)

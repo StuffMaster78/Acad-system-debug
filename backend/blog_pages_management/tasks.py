@@ -460,7 +460,7 @@ def recalculate_website_content_metrics():
     Recalculates WebsiteContentMetrics for all websites.
     Runs daily to keep aggregated metrics fresh.
     """
-    from websites.models import Website
+    from websites.models.websites import Website
     from .models.analytics_models import WebsiteContentMetrics
     
     try:
@@ -500,7 +500,7 @@ def recalculate_service_website_content_metrics():
     Recalculates ServiceWebsiteContentMetrics for all websites.
     Runs daily to keep aggregated service page metrics fresh.
     """
-    from websites.models import Website
+    from websites.models.websites import Website
     from service_pages_management.models.enhanced_models import ServiceWebsiteContentMetrics
     
     try:
@@ -542,7 +542,7 @@ def send_content_freshness_reminders():
     Runs weekly.
     """
     from .models.analytics_models import ContentFreshnessReminder, WebsitePublishingTarget
-    from websites.models import Website
+    from websites.models.websites import Website
     from django.contrib.auth import get_user_model
     from notifications_system.models import Notification
     from notifications_system.enums import NotificationType, NotificationCategory, EventType
@@ -626,7 +626,7 @@ def send_monthly_publishing_reminders():
     from django.contrib.auth import get_user_model
     from notifications_system.models import Notification
     from notifications_system.enums import NotificationType, NotificationCategory, EventType
-    from websites.models import Website
+    from websites.models.websites import Website
     
     User = get_user_model()
     
@@ -699,7 +699,7 @@ def send_content_reminder_email_digest():
     Includes stale content and publishing target progress.
     """
     from .models.analytics_models import ContentFreshnessReminder, WebsitePublishingTarget
-    from websites.models import Website
+    from websites.models.websites import Website
     from django.contrib.auth import get_user_model
     from django.core.mail import send_mail
     from django.template.loader import render_to_string

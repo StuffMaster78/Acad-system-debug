@@ -2,7 +2,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from notifications_system.models.notifications import Notification
 from django.contrib.auth import get_user_model
-from websites.models import Website
+from websites.models.websites import Website
 # from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from superadmin_management.tasks import send_email_task  # Celery task for email retry
@@ -64,23 +64,23 @@ class SuperadminNotifier:
             except Exception as e:
                 logger.debug(f"Could not create notification for {superadmin.username}: {e}")
 
-            # Collect emails for batch email sending
-            if superadmin.email:
-                recipient_emails.append(superadmin.email)
+            # # Collect emails for batch email sending
+            # if superadmin.email:
+            #     recipient_emails.append(superadmin.email)
 
-        # Send Email via Celery Task (Retries on Failure)
-        if recipient_emails:
-            try:
-                send_email_task.delay(
-                    subject=f"Superadmin Alert: {title}",
-                    message=message,
-                    recipient_list=recipient_emails
-                )
-            except (ConnectionRefusedError, OSError) as e:
-                # Celery/Redis not available - log but don't fail
-                logger.debug(f"Could not queue email task (Celery/Redis unavailable): {e}")
-            except Exception as e:
-                logger.warning(f"Failed to queue email task: {e}", exc_info=True)
+        # # Send Email via Celery Task (Retries on Failure)
+        # if recipient_emails:
+        #     try:
+        #         send_email_task.delay(
+        #             subject=f"Superadmin Alert: {title}",
+        #             message=message,
+        #             recipient_list=recipient_emails
+        #         )
+        #     except (ConnectionRefusedError, OSError) as e:
+        #         # Celery/Redis not available - log but don't fail
+        #         logger.debug(f"Could not queue email task (Celery/Redis unavailable): {e}")
+        #     except Exception as e:
+        #         logger.warning(f"Failed to queue email task: {e}", exc_info=True)
 
         # # Send WebSocket Notification
         # try:

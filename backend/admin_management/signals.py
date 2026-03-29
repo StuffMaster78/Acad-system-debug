@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.conf import settings
-from orders.models import Dispute
+from orders.models.order_disputes import Dispute
 from .models import BlacklistedUser
 from .services.admin_services import (
     create_admin_profile_if_needed,

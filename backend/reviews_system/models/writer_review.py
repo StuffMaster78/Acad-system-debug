@@ -2,7 +2,7 @@ from django.db import models
 from reviews_system.models.base import ReviewBase
 from django.conf import settings
 from websites.models.websites import Website
-from orders.models import Order
+from orders.models.orders import Order
 from writer_management.models.profile import WriterProfile
 class WriterReview(ReviewBase):
     """Model for reviews written by clients about writers."""

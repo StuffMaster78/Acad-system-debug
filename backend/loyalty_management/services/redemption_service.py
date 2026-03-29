@@ -119,10 +119,26 @@ class RedemptionService:
         
         # Send notification
         try:
-            from notifications_system.services.notification_helper import NotificationHelper
-            NotificationHelper.notify_redemption_approved(
-                redemption_request=redemption,
-                fulfillment_code=redemption.fulfillment_code
+            from notifications_system.services.notification_service import NotificationService
+            NotificationService.notify(
+                event_key="redemption_approved",
+                recipient=redemption.client,
+                website=redemption.website,
+                context={
+                    'item_name': redemption.item.name,
+                    'points_used': redemption.points_used,
+                    'redemption_id': redemption.id,
+                    'redemption_type': redemption.item.redemption_type,
+                    'fulfillment_details': redemption.fulfillment_details,
+                    "fulfilment_code": redemption.fulfillment_code
+                },
+                channels=['email', 'in_app'],
+                priority='high',
+                is_critical=True,
+                is_digest=False,
+                is_silent=False,
+                is_broadcast=False,
+                digest_group=None,
             )
         except Exception:
             # Notification failures shouldn't break redemption flow
@@ -212,10 +228,24 @@ class RedemptionService:
         
         # Send notification
         try:
-            from notifications_system.services.notification_helper import NotificationHelper
-            NotificationHelper.notify_redemption_rejected(
-                redemption_request=redemption,
-                reason=reason
+            from notifications_system.services.notification_service import NotificationService
+            NotificationService.notify(
+                event_key="redemption_rejected",
+                recipient=redemption.client,
+                website=redemption.website,
+                context={
+                    'item_name': redemption.item.name,
+                    'points_used': redemption.points_used,
+                    'redemption_id': redemption.id,
+                    'reason': reason
+                },
+                channels=['email', 'in_app'],
+                priority='high',
+                is_critical=True,
+                is_digest=False,
+                is_silent=False,                
+                is_broadcast=False,
+                digest_group=None,
             )
         except Exception:
             # Notification failures shouldn't break rejection flow

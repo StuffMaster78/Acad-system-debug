@@ -1,6 +1,8 @@
 from decimal import Decimal
+from aiohttp import client
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from numpy.strings import title
 from loyalty_management.models import LoyaltyTransaction, LoyaltyPointsConversionConfig
 from wallet.models import Wallet  # Assume this exists
 from client_management.models import ClientProfile
@@ -98,12 +100,19 @@ class LoyaltyConversionService:
 
         # Send notification
         try:
-            from notifications_system.services.notification_helper import NotificationHelper
-            NotificationHelper.notify_loyalty_points_awarded(
-                client_profile=client_profile,
-                points=points,
-                reason=f"Order #{order.id} completed",
-                total_points=client_profile.loyalty_points
+            from notifications_system.services.notification_service import NotificationService
+            NotificationService.notify(
+                event_key="loyalty_point_awarded",
+                recipient=client_profile,
+                website=order.website,
+                context={
+                    "title": "Loyalty Points Awarded",
+                    "total_points": client_profile.loyalty_points,
+                    "reason": f"Order #{order.id} completed",
+                },
+                channels=["email", "in_app"],
+                priority="normal",
+                is_critical=False,
             )
         except Exception as e:
             import logging
@@ -129,12 +138,20 @@ class LoyaltyConversionService:
 
         # Send notification
         try:
-            from notifications_system.services.notification_helper import NotificationHelper
-            NotificationHelper.notify_loyalty_points_awarded(
-                client_profile=client_profile,
-                points=points,
-                reason=reason,
-                total_points=client_profile.loyalty_points
+            from notifications_system.services.notification_service import NotificationService
+            NotificationService.notify(
+                event_key="loyalty_points_awarded",
+                recipient=client_profile,
+                website=website,
+                context={
+                    "title": "Loyalty Points Awarded",
+                    "points": points,
+                    "reason": reason,
+                    "total_points": client_profile.loyalty_points
+                },
+                channels=["email", "in_app"],
+                priority="normal",
+                is_critical=False
             )
         except Exception as e:
             import logging
@@ -147,11 +164,19 @@ class LoyaltyConversionService:
         # Check if tier was upgraded
         if old_tier != client_profile.tier and client_profile.tier:
             try:
-                from notifications_system.services.notification_helper import NotificationHelper
-                NotificationHelper.notify_tier_upgraded(
-                    client_profile=client_profile,
-                    tier_name=client_profile.tier.name,
-                    perks=client_profile.tier.perks or ""
+                from notifications_system.services.notification_service import NotificationService
+                NotificationService.notify(
+                    event_key="tier_upgraded",
+                    recipient=client_profile,
+                    website=client_profile.website,
+                    context={
+                        "title": "Tier Upgraded",
+                        "tier_name": client_profile.tier.name,
+                        "perks": client_profile.tier.perks or ""
+                    },
+                    channels=["email", "in_app"],
+                    priority="normal",
+                    is_critical=False
                 )
             except Exception as e:
                 import logging
@@ -296,12 +321,20 @@ class LoyaltyConversionService:
             )
 
             # Notify user
-            from notifications_system.utils import send_user_notification
-            send_user_notification(
-                user=client_profile.user,
-                title="Loyalty Points Converted",
-                message=f"{convertible_points} loyalty points were converted to wallet balance.",
-                type="wallet_credit"
+            from notifications_system.services.notification_service import NotificationService
+            NotificationService.notify(
+                event_key="loyalty_points_auto_converted",
+                recipient=client_profile.user,
+                website=website,
+                context={
+                    "title": "Loyalty Points Converted",
+                    "convertible_points": convertible_points,
+                    "message": f"{convertible_points} loyalty points were converted to wallet balance.",
+                    "type": "wallet_credit"
+                },
+                channels=["email", "in_app"],
+                priority="normal",
+                is_critical=False,
             )
 
     @staticmethod

@@ -1,7 +1,7 @@
 from django.utils import timezone
 from django.conf import settings
 from decimal import Decimal, ROUND_HALF_UP
-from orders.models import Order
+from orders.models.orders import Order
 from fines.models import Fine, FinePolicy, FineType, FineStatus
 from fines.services.late_fine_calculation_service import LateFineCalculationService
 from fines.services.fine_type_service import FineTypeService

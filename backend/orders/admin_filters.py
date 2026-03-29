@@ -156,7 +156,7 @@ class RecentlyTransitionedFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         from django.utils import timezone
         from datetime import timedelta
-        from orders.models import OrderTransitionLog
+        from orders.models.orders import OrderTransitionLog
         
         if not self.value():
             return queryset
@@ -265,7 +265,7 @@ class TransitionCountFilter(admin.SimpleListFilter):
         )
 
     def queryset(self, request, queryset):
-        from orders.models import OrderTransitionLog
+        from orders.models.orders import OrderTransitionLog
         from django.db.models import Count
         
         # Annotate queryset with transition count

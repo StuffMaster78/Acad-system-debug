@@ -6,13 +6,18 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
-from websites.models import Website
+from websites.models.websites import Website
 from order_configs.models import (
     PaperType, FormattingandCitationStyle, Subject,
     AcademicLevel, TypeOfWork, EnglishType
 )
-from orders.order_enums import OrderStatus, OrderPaymentStatus, DisputeStatusEnum, SpacingOptions
-from order_payments_management.models import STATUS_CHOICES, PAYMENT_TYPE_CHOICES
+from orders.order_enums import (
+    OrderStatus, OrderPaymentStatus,
+    DisputeStatusEnum, SpacingOptions
+)
+from order_payments_management.models.payments import (
+    STATUS_CHOICES, PAYMENT_TYPE_CHOICES
+)
 from fines.models import FineType, FineStatus
 from class_management.models import ClassDurationOption
 from users.models import User

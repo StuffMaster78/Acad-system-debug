@@ -13,7 +13,8 @@ from django.db.models import Count, Avg
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 
-from orders.models import ReassignmentRequest, Order
+from orders.models.requests import ReassignmentRequest
+from orders.models.orders import Order
 
 User = get_user_model()
 

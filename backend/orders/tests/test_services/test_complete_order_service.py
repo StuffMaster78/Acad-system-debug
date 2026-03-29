@@ -13,7 +13,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from django.core.exceptions import PermissionError
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.complete_order_service import CompleteOrderService
 

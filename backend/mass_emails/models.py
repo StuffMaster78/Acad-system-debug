@@ -88,7 +88,7 @@ class EmailCampaign(models.Model):
         # Ensure website exists for tests
         if not getattr(self, 'website_id', None):
             try:
-                from websites.models import Website
+                from websites.models.websites import Website
                 site = Website.objects.filter(is_active=True).first()
                 if site is None:
                     site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)

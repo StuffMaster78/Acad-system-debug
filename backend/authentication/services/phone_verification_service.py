@@ -27,7 +27,7 @@ class PhoneVerificationService:
         self.user = user
         self.website = website or get_current_website()
         if not self.website:
-            from websites.models import Website
+            from websites.models.websites import Website
             self.website = Website.objects.filter(is_active=True).first()
     
     def generate_verification_code(self) -> str:

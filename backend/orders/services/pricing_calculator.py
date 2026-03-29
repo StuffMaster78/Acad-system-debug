@@ -310,7 +310,7 @@ class PricingCalculatorService:
         """
         Saves or updates a snapshot of the pricing breakdown.
         """
-        from orders.models import OrderPricingSnapshot
+        from orders.models.orders import OrderPricingSnapshot
 
         data = self.calculate_breakdown()
 

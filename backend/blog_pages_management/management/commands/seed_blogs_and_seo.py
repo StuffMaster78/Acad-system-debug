@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.utils.text import slugify
 from django.contrib.auth import get_user_model
-from websites.models import Website
+from websites.models.websites import Website
 from blog_pages_management.models import (
     AuthorProfile, BlogCategory, BlogTag, BlogPost, BlogFAQ,
     BlogSEOMetadata, FAQSchema

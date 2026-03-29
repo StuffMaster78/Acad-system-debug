@@ -6,7 +6,7 @@ import pytest
 from decimal import Decimal
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders import Order
 from fines.models import Fine, FinePolicy, FineType, FineStatus, FineAppeal
 from fines.services.fine_services import FineService
 

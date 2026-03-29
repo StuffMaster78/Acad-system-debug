@@ -14,8 +14,8 @@ from mass_emails.models import EmailCampaign, EmailRecipient, EmailTemplate
 from notifications_system.models.digest_notifications import NotificationDigest
 from notifications_system.models.broadcast_notification import BroadcastNotification
 from notifications_system.services.digest_service import DigestService
-from notifications_system.services.broadcast_services import BroadcastNotificationService
-from websites.models import Website
+from notifications_system.services.broadcast_services import BroadcastService
+from websites.models.websites import Website
 
 User = get_user_model()
 
@@ -288,13 +288,14 @@ class BroadcastMessageManagementViewSet(viewsets.ModelViewSet):
         test_user = request.user
         
         try:
-            BroadcastNotificationService.preview_to_user(
+            BroadcastService.preview_to_user(
                 event=broadcast.event_type,
                 title=broadcast.title,
                 message=broadcast.message,
                 user=test_user,
                 website=broadcast.website,
                 channels=broadcast.channels or ['in_app', 'email'],
+                triggered_by=request.user,
             )
             return Response({"detail": f"Preview sent to {test_user.email}."})
         except Exception as e:

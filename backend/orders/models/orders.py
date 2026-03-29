@@ -694,7 +694,7 @@ class Order(models.Model):
             try:
                 # Resolve model lazily and ensure website exists
                 AcademicLevel = apps.get_model('order_configs', 'AcademicLevel')
-                from websites.models import Website
+                from websites.models.websites import Website
                 site = Website.objects.filter(is_active=True).first()
                 if site is None:
                     site = Website.objects.create(name='Test Website', domain='https://test.local', is_active=True)

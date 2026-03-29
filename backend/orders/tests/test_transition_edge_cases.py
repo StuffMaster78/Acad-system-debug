@@ -10,10 +10,10 @@ from django.db import transaction
 from django.db.models import F
 import threading
 
-from orders.models import Order, OrderTransitionLog
+from orders.models.orders import Order, OrderTransitionLog
 from orders.services.transition_helper import OrderTransitionHelper
 from orders.exceptions import InvalidTransitionError, AlreadyInTargetStatusError
-from websites.models import Website
+from websites.models.websites import Website
 from order_configs.models import PaperType
 
 User = get_user_model()

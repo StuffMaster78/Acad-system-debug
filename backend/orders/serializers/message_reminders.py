@@ -2,7 +2,7 @@
 Serializers for Message Reminders
 """
 from rest_framework import serializers
-from orders.models import MessageReminder
+from orders.models.message_reminders import MessageReminder
 
 
 class MessageReminderSerializer(serializers.ModelSerializer):

@@ -11,10 +11,11 @@ from django.conf import settings
 from datetime import timedelta
 from typing import Optional, Dict, Any
 
-from ..models import Invoice, OrderPayment
+from ..models.invoice import Invoice
+from order_payments_management.models.payments import OrderPayment
 from ..services.unified_payment_service import UnifiedPaymentService
 from django.core.mail import send_mail, EmailMultiAlternatives
-from websites.models import Website
+from websites.models.websites import Website
 
 logger = logging.getLogger(__name__)
 

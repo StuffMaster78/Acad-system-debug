@@ -24,7 +24,7 @@ from .serializers import (
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from authentication.permissions import IsAdminOrSuperAdmin, IsSuperadmin
-from websites.models import Website
+from websites.models.websites import Website
 
 class AcademicLevelViewSet(viewsets.ModelViewSet):
     queryset = AcademicLevel.objects.all()
@@ -668,7 +668,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        from orders.models import Order
+        from orders.models.orders import Order
         from django.db.models import Count, Q
         
         # Get usage counts for each config type
@@ -825,7 +825,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
         Model = model_map[config_type]
         
         # Check for usage before deletion
-        from orders.models import Order
+        from orders.models.orders import Order
         from django.db.models import Q
         
         queryset = Model.objects.filter(id__in=ids)

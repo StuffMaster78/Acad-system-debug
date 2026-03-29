@@ -5,7 +5,7 @@ from django.db.models import Q, Count
 from django.utils import timezone
 from datetime import timedelta
 from support_management.models import OrderDisputeSLA, SupportProfile, SupportWorkloadTracker
-from orders.models import Order, Dispute
+from orders.models.orders import Order, Dispute
 from tickets.models import Ticket
 import logging
 

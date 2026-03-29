@@ -10,7 +10,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Dict, List, Any
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from writer_management.models import WriterProfile
 from writer_wallet.models import WriterPayment

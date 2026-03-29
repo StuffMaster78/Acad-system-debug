@@ -123,7 +123,7 @@ class MFASettings(models.Model):
         website = getattr(user, 'website', None)
         if not website:
             # Try to get website from user's profile or default website
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.first()  # Fallback to first website
         
         if not website:

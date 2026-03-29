@@ -13,7 +13,8 @@ from django.apps import apps
 from authentication.models.otp import OTP
 from authentication.models.magic_links import MagicLink
 from rest_framework.exceptions import AuthenticationFailed
-from websites.models import WebsiteSettings, Website
+from websites.models.websites import Website
+from websites.models.website_settings import WebsiteSettings
 from ipware import get_client_ip # type: ignore
 from authentication.models.logout import LogoutEvent
 from users.models import User

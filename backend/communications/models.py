@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders import Order
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -180,7 +180,7 @@ class CommunicationThread(models.Model):
         if self.thread_type == "special" and self.special_order:
             return f"Special Order #{self.special_order.id} Thread"
         if self.order:
-            return f"Standard Order #{self.order.id} Thread"
+            return f"Standard Order #{self.order.pk} Thread"
         return f"Thread #{self.id}"
     
     class Meta:
@@ -597,7 +597,7 @@ class CommunicationNotification(models.Model):
     message = models.ForeignKey(
         "CommunicationMessage",
         on_delete=models.CASCADE,
-        related_name="notifications",
+        related_name="communications_notifications",
         null=True, blank=True
     )
     notification_text = models.TextField(null=True, blank=True)

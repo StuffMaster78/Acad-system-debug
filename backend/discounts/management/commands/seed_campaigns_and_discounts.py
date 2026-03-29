@@ -5,7 +5,7 @@ Creates campaigns with various statuses and discount codes linked to them.
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from decimal import Decimal
-from websites.models import Website
+from websites.models.websites import Website
 from discounts.models.promotions import PromotionalCampaign
 from discounts.models.discount import Discount
 from discounts.services.discount_generator import DiscountCodeGenerator

@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAdminUser
 
 from ..models.enhanced_models import ServiceWebsiteContentMetrics
 from ..serializers.metrics_serializers import ServiceWebsiteContentMetricsSerializer
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class ServiceWebsiteContentMetricsViewSet(viewsets.ReadOnlyModelViewSet):

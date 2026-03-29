@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 import random
 
-from websites.models import Website
+from websites.models.websites import Website
 from wallet.models import Wallet, WalletTransaction, WithdrawalRequest
 from client_wallet.models import ClientWallet, ClientWalletTransaction
 from writer_wallet.models import (
@@ -14,7 +14,7 @@ from writer_wallet.models import (
     WriterPaymentBatch, PaymentSchedule, ScheduledWriterPayment,
     PaymentOrderRecord, WriterPayment, AdminPaymentAdjustment
 )
-from orders.models import Order
+from orders.models.orders import Order
 from order_payments_management.models import WalletTransaction as OrderPaymentWalletTransaction
 
 User = get_user_model()

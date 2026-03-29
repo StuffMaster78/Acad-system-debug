@@ -2,9 +2,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from orders.models import Order
-from orders.serializers import WriterRequestPreviewSerializer
-from orders.models import WriterRequest
+from orders.models.orders import Order
+from orders.serializers_legacy import WriterRequestPreviewSerializer
+from orders.models.requests import WriterRequest
 from orders.services.writer_request_pricing_service import WriterRequestPricingService
 
 

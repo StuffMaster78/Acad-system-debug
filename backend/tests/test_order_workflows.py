@@ -10,7 +10,7 @@ from tests.factories import (
     ClientUserFactory, WriterUserFactory, OrderFactory,
     WebsiteFactory, WriterProfileFactory
 )
-from orders.models import Order
+from orders.models.orders import Order
 
 
 @pytest.mark.api

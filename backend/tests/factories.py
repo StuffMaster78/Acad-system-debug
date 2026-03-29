@@ -14,8 +14,8 @@ from decimal import Decimal
 from datetime import timedelta
 from faker import Faker
 
-from websites.models import Website
-from orders.models import Order
+from websites.models.websites import Website
+from orders.models.orders import Order
 from client_wallet.models import ClientWallet
 from writer_management.models import WriterProfile
 

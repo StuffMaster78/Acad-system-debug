@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from decimal import Decimal
 from typing import Optional, Tuple
 
-from orders.models import Order
+from orders.models.orders import Order
 from fines.models import FineTypeConfig, Fine, FineStatus
 from fines.services.compensation import adjust_writer_compensation
 from audit_logging.services.audit_log_service import AuditLogService

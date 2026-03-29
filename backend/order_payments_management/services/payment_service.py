@@ -13,10 +13,10 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from ..models import OrderPayment
-from orders.models import Order
+from order_payments_management.models.payments import OrderPayment
+from orders.models.orders import Order
 from discounts.models.discount import Discount
-from notifications_system.services.notification_helper import NotificationHelper
+
 
 # Valid payment methods
 VALID_PAYMENT_METHODS = [
@@ -277,7 +277,7 @@ class OrderPaymentService:
         from client_management.models import ClientProfile
         from loyalty_management.services.loyalty_conversion_service import LoyaltyConversionService
         from loyalty_management.models import LoyaltyPointsConversionConfig
-        from ..models import SplitPayment
+        from ..models.split_payments import SplitPayment
         import logging
         
         logger = logging.getLogger(__name__)

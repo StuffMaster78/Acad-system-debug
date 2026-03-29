@@ -38,7 +38,7 @@ class LatenessFineRuleViewSet(viewsets.ModelViewSet):
         """Set created_by and website."""
         website = get_current_website(self.request)
         if not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
         
         serializer.save(
@@ -106,7 +106,7 @@ class FineTypeConfigViewSet(viewsets.ModelViewSet):
         website = get_current_website(self.request)
         website_id = self.request.data.get('website_id')
         if website_id and not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(id=website_id).first()
         
         serializer.save(

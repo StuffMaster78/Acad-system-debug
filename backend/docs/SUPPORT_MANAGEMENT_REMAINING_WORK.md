@@ -93,7 +93,7 @@ app.conf.beat_schedule = {
 # support_management/signals.py (ENHANCE)
 from django.db.models.signals import post_save, post_delete
 from tickets.models import Ticket
-from orders.models import Dispute, Order
+from orders.models.order_disputes import Dispute, Order
 
 @receiver(post_save, sender=Ticket)
 def update_dashboard_on_ticket_change(sender, instance, **kwargs):

@@ -10,4 +10,4 @@ class OrderPaymentsManagementConfig(AppConfig):
         Imports signals when the app is ready.
         This ensures signals are correctly loaded on startup.
         """
-        import order_payments_management.signals  # ✅ Import signals
+        import order_payments_management.signals 

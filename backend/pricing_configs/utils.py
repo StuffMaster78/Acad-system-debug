@@ -1,5 +1,5 @@
 # utils.py
-from websites.models import Website
+from websites.models.websites import Website
 from rest_framework.exceptions import ValidationError
 # from .utils import get_website_from_request
 

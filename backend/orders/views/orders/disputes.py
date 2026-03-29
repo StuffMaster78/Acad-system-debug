@@ -3,8 +3,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
-from orders.models import Dispute
-from orders.serializers import DisputeSerializer, DisputeWriterResponseSerializer
+from orders.models.order_disputes import Dispute
+from orders.serializers_legacy import DisputeSerializer, DisputeWriterResponseSerializer
 from orders.permissions import IsSuperadminOnly
 from orders.services.disputes import DisputeService, DisputeWriterResponseService
 

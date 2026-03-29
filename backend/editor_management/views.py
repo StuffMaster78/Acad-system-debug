@@ -33,7 +33,7 @@ from .serializers import (
 from .permissions import IsEditor
 from .services.editor_assignment_service import EditorAssignmentService
 from .services.editor_review_service import EditorReviewService
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from authentication.permissions import IsAdminOrSuperAdmin
 

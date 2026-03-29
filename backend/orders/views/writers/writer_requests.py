@@ -6,8 +6,9 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from decimal import Decimal
 
-from orders.models import WriterRequest, Order
-from orders.serializers import WriterRequestSerializer
+from orders.models.orders import Order
+from orders.models.requests import WriterRequest
+from orders.serializers_legacy import WriterRequestSerializer
 from orders.services.writer_request_service import WriterRequestService
 from orders.permissions import IsClientWhoOwnsOrder
 from order_payments_management.services.unified_payment_service import UnifiedPaymentService

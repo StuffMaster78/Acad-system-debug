@@ -4,7 +4,7 @@ from rest_framework import serializers
 from .models import AuditLog, TrustedDevice, BlockedIP, AccountDeletionRequest
 from .models.magic_links import MagicLink
 from rest_framework import serializers
-from websites.models import Website
+from websites.models.websites import Website
 from django.contrib.auth import get_user_model
 from users.models import UserProfile  # Adjusted to import UserProfile from users app
 from .models import AuditLog
@@ -509,7 +509,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         """
         Create and return a new user instance, securely hashing the password.
         """
-        from websites.models import Website
+        from websites.models.websites import Website
         
         # Get or create a default website for registration
         website = Website.objects.filter(is_active=True).first()

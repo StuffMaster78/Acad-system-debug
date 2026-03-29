@@ -10,8 +10,8 @@ from django.contrib.auth import get_user_model
 from datetime import timedelta
 import random
 
-from websites.models import Website
-from orders.models import Order
+from websites.models.websites import Website
+from orders.models.orders import Order
 from communications.models import CommunicationThread, CommunicationMessage
 from communications.services.thread_service import ThreadService
 from communications.services.messages import MessageService

@@ -121,7 +121,7 @@ class AuthenticationService:
         if not website:
             website = getattr(user, 'website', None)
         if not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
         
         if not website:

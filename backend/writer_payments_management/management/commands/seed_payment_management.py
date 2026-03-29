@@ -9,7 +9,7 @@ from django.conf import settings
 from websites.models.websites import Website
 from writer_payments_management.models import WriterPayment
 from writer_management.models import WriterProfile
-from orders.models import Order
+from orders.models.orders import Order
 from special_orders.models import SpecialOrder
 from django.utils import timezone
 from datetime import timedelta

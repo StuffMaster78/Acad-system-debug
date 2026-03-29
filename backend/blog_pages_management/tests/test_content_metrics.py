@@ -4,7 +4,7 @@ Tests for Content Metrics Service.
 from django.test import TestCase
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from websites.models import Website
+from websites.models.websites import Website
 from analytics.models import ContentEvent
 from blog_pages_management.models import BlogPost
 from blog_pages_management.services.content_metrics_service import ContentMetricsService

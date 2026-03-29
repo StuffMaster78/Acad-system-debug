@@ -4,13 +4,11 @@ from django.forms import widgets
 from django.db import models
 from django.utils.html import format_html
 from django.contrib import admin
-from .models import (
-    Order, WriterProgress, Dispute,
-    DisputeWriterResponse, WriterRequest,
-    OrderTransitionLog,
-    OrderPricingSnapshot
-)
-from orders.models import WebhookDeliveryLog
+from orders.models.orders import Order
+from orders.models.writer_progress import WriterProgress
+from orders.models.order_disputes import Dispute, DisputeWriterResponse
+from orders.models.requests import WriterRequest
+from orders.models.logs import OrderTransitionLog, OrderPricingSnapshot
 from orders.admin_filters import (
     StatusGroupFilter,
     CanTransitionToFilter,
@@ -174,17 +172,6 @@ class OrderTransitionLogAdmin(admin.ModelAdmin):
                 log.save()
         self.message_user(request, "Selected logs marked as manual.")
     mark_as_manual.short_description = "Mark selected logs as manual"
-
-@admin.register(WebhookDeliveryLog)
-class WebhookDeliveryLogAdmin(admin.ModelAdmin):
-    list_display = (
-        "event", "user", "success",
-        "status_code", "retry_count", "created_at"
-    )
-    list_filter = ("success", "event", "test_mode")
-    search_fields = ("user__email", "event", "url")
-    readonly_fields = ("request_payload", "response_body", "error_message")
-
 
 @admin.register(OrderPricingSnapshot)
 class OrderPricingSnapshotAdmin(admin.ModelAdmin):

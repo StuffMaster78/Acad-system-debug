@@ -1,12 +1,12 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.conf import settings
 from django.contrib.auth.signals import user_logged_in
-from django.contrib.auth import get_user_model
 from .models import ClientProfile, SuspiciousLogin
 from core.utils.location import get_geolocation_from_ip, get_client_ip
 from django.core.mail import send_mail
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 @receiver(post_save, sender=User)

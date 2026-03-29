@@ -11,7 +11,7 @@ from calendar import monthrange
 from .models import WriterPayment, WriterPayoutRequest, WriterPaymentAdjustment
 from writer_wallet.models import PaymentSchedule, ScheduledWriterPayment
 from writer_management.models import WriterProfile
-from websites.models import Website
+from websites.models.websites import Website
 from admin_management.permissions import IsAdmin
 
 User = settings.AUTH_USER_MODEL

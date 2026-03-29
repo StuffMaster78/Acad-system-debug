@@ -4,6 +4,7 @@ Reminds clients to update their phone number for order coordination and urgent c
 """
 import logging
 from typing import Dict, Any, Optional
+from aiohttp import payload
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from users.models import UserProfile
@@ -152,7 +153,7 @@ class PhoneReminderService:
             from websites.utils import get_current_website
             website = get_current_website()
             if not website:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.filter(is_active=True).first()
         
         if not website:
@@ -168,23 +169,26 @@ class PhoneReminderService:
             return
         
         try:
-            from notifications_system.services.core import NotificationService
-            NotificationService.send_notification(
-                user=user,
-                event='profile.phone_reminder',
-                payload={
-                    'message': (
-                        'Please update your phone number to help us coordinate '
-                        'order fulfillment and contact you urgently when needed.'
-                    ),
+            from notifications_system.services.notification_service import NotificationService
+            NotificationService.notify(
+                event_key="profile.phone_reminder",
+                recipient=user,
+                context={
                     'action_url': '/account/settings',
                     'action_text': 'Update Phone Number',
                     'order_id': order.id if order else None,
+                    "message": (
+                        'Please update your phone number to help us coordinate '
+                        'order fulfillment and contact you urgently when needed.'
+                    ),
                 },
+                channels=["email", "in_app"],
                 website=website,
-                category='profile',
                 priority='medium',
                 is_critical=False,
+                is_broadcast=False,
+                is_digest=False,
+                digest_group=None,
             )
         except Exception as e:
             logger.warning(f"Failed to send phone reminder notification: {e}")

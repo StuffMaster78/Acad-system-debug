@@ -2,7 +2,7 @@ from rest_framework import serializers
 from class_management.models import (
     ClassPurchase, ClassInstallment, ClassBundleConfig, ClassBundle, ClassBundleFile, ExpressClass
 )
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class ClassInstallmentSerializer(serializers.ModelSerializer):

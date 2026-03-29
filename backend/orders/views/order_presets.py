@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from orders.order_presets import OrderPreset
+from orders.models.order_presets import OrderPreset
 from orders.serializers.order_presets import (
     OrderPresetSerializer,
     OrderPresetApplySerializer,
@@ -51,7 +51,7 @@ class OrderPresetViewSet(viewsets.ModelViewSet):
         
         try:
             if target_type == 'draft':
-                from orders.order_drafts import OrderDraft
+                from orders.models.order_drafts import OrderDraft
                 
                 if target_id:
                     draft = OrderDraft.objects.get(
@@ -77,7 +77,7 @@ class OrderPresetViewSet(viewsets.ModelViewSet):
                 })
             
             elif target_type == 'order':
-                from orders.models import Order
+                from orders.models.orders import Order
                 
                 if not target_id:
                     return Response(

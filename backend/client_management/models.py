@@ -1,9 +1,11 @@
+from decimal import Decimal
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils.timezone import now
-# from websites.models import Website
-from orders.models import Order
+# from websites.models.websites import Website
+from orders.models.orders import Order
 from wallet.models import Wallet
 from django.apps import apps
 from django.conf import settings
@@ -110,7 +112,7 @@ class ClientProfile(models.Model):
     total_spent = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        default=0.00,
+        default=Decimal("0.00"),
         help_text=_("Total amount spent by the client.")
     )
     preferred_writers = models.ManyToManyField(

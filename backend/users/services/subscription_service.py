@@ -13,7 +13,7 @@ from users.models.subscriptions import (
     SubscriptionType,
     DeliveryChannel
 )
-from websites.models import Website
+from websites.models.websites import Website
 
 logger = logging.getLogger(__name__)
 

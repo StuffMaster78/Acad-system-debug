@@ -9,7 +9,7 @@ from django.contrib.contenttypes.models import ContentType
 
 from class_management.models import ClassBundle
 from communications.models import CommunicationThread, CommunicationMessage, CommRole
-from websites.models import Website
+from websites.models.websites import Website
 
 logger = logging.getLogger(__name__)
 

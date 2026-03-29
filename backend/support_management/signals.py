@@ -7,9 +7,10 @@ from .models import (
     SupportOrderManagement, SupportWorkloadTracker, PaymentIssueLog, SupportActionLog,
     SupportDashboard
 )
-from websites.models import Website
+from websites.models.websites import Website
 from tickets.models import Ticket
-from orders.models import Dispute, Order
+from orders.models.orders import Order
+from orders.models.order_disputes import Dispute
 from .utils import send_support_notification, update_support_workload
 from django.contrib.auth import get_user_model
 from django.conf import settings
@@ -181,7 +182,7 @@ def update_dashboard_on_dispute_change(sender, instance, created, **kwargs):
                 dashboard.update_dashboard()
 
 
-# 🚀 **1️⃣1️⃣ Auto-Update Dashboard on Order Changes**
+# Auto-Update Dashboard on Order Changes**
 @receiver(post_save, sender=Order)
 def update_dashboard_on_order_change(sender, instance, created, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):

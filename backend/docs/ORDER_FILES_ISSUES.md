@@ -20,7 +20,7 @@ if self.category.is_final_draft and not self.order.is_paid:
     return False
 
 # Option 2: Check via OrderPayment model (more accurate)
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 has_completed_payment = OrderPayment.objects.filter(
     order=self.order,
     status__in=['completed', 'succeeded']

@@ -5,10 +5,10 @@ Creates payments with various statuses, linked to orders and special orders.
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from decimal import Decimal
-from websites.models import Website
+from websites.models.websites import Website
 from writer_payments_management.models import WriterPayment
 from writer_management.models import WriterProfile
-from orders.models import Order
+from orders.models.orders import Order
 from special_orders.models import SpecialOrder
 from users.models import User
 from django.utils import timezone

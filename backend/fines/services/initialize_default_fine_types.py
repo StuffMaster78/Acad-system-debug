@@ -5,7 +5,7 @@ Run this after migrations to create common fine types.
 
 from django.db import transaction
 from fines.models.fine_type_config import FineTypeConfig
-from websites.models import Website
+from websites.models.websites import Website
 
 
 @transaction.atomic

@@ -146,7 +146,7 @@ class CreateCommunicationThreadSerializer(serializers.Serializer):
         """Validate order exists and is accessible."""
         if value is None:
             return None
-        from orders.models import Order
+        from orders.models.orders import Order
         try:
             order = Order.objects.get(id=value)
             return order
@@ -168,7 +168,7 @@ class CreateCommunicationThreadSerializer(serializers.Serializer):
         """Validate website exists if provided."""
         if value is None:
             return None
-        from websites.models import Website
+        from websites.models.websites import Website
         try:
             website = Website.objects.get(id=value)
             return website

@@ -15,7 +15,7 @@ from django.core.cache import cache
 from django.conf import settings
 from django.core.exceptions import OperationalError
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 try:
     from core.services.resilient_db import ResilientDatabaseService

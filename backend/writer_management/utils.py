@@ -1,5 +1,5 @@
 from django.utils import timezone
-from orders.models import Order
+from orders.models.orders import Order
 from users.models import User  # Assuming writers are Users
 from django.db.models import Count, Avg, Q
 

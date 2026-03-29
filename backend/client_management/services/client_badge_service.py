@@ -4,8 +4,8 @@ Service for managing client badge awards and analytics.
 from django.utils.timezone import now
 from loyalty_management.models import ClientBadge
 from client_management.models import ClientProfile
-from orders.models import Order
-from order_payments_management.models import OrderPayment
+from orders.models.orders import Order
+from order_payments_management.models.payments import OrderPayment
 from django.db.models import Count, Sum, Q
 from decimal import Decimal
 import logging

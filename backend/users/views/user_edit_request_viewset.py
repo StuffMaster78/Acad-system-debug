@@ -135,7 +135,7 @@ class UserEditRequestViewSet(viewsets.ViewSet):
         
         website = None
         if website_id:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(id=website_id).first()
         
         requests = UserEditService.get_pending_requests(website=website)

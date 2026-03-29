@@ -41,7 +41,7 @@ python manage.py populate_academic_settings example.com --skip-checks
 
 ```bash
 # Bash loop over every Website in the database
-WEBSITES=$(python manage.py shell --skip-checks -c "from websites.models import Website; print('\n'.join([w.domain for w in Website.objects.all()]))")
+WEBSITES=$(python manage.py shell --skip-checks -c "from websites.models.websites import Website; print('\n'.join([w.domain for w in Website.objects.all()]))")
 for domain in $WEBSITES; do
   echo "Populating: $domain"
   python manage.py populate_academic_settings "$domain" --skip-checks

@@ -5,7 +5,7 @@ class UserActivity(models.Model):
     user = models.ForeignKey(
         "users.User",
         on_delete=models.CASCADE,
-        related_name="activities",
+        related_name="user_related_activities",
     )
 
     activity_type = models.CharField(max_length=100)

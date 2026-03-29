@@ -2,8 +2,9 @@
 Serializers for draft request functionality.
 """
 from rest_framework import serializers
-from orders.models import Order, DraftRequest, DraftFile
-from websites.models import Website
+from orders.models.orders import Order
+from orders.models.drafts import DraftRequest, DraftFile
+from websites.models.websites import Website
 
 
 class DraftFileSerializer(serializers.ModelSerializer):

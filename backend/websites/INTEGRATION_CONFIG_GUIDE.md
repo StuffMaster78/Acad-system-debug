@@ -145,7 +145,7 @@ DELETE /api/v1/websites/integrations/{id}/
 #### Get Integration Credentials
 ```python
 from websites.models_integrations import WebsiteIntegrationConfig
-from websites.models import Website
+from websites.models.websites import Website
 
 website = Website.objects.get(id=1)
 

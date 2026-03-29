@@ -8,7 +8,7 @@ from activity.models import ActivityLog
 from activity.serializers import ActivityLogSerializer
 from activity.serializers_user_feed import UserActivityFeedSerializer
 from activity.filters import ActivityLogFilter
-from orders.models import Order
+from orders.models.orders import Order
 
 
 class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):

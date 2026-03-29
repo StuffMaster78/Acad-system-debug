@@ -10,7 +10,7 @@ from writer_wallet.services.payment_batching_service import PaymentBatchingServi
 from writer_wallet.models import PaymentSchedule, ScheduledWriterPayment, PaymentOrderRecord
 from writer_management.models.profile import WriterProfile
 from writer_wallet.models import WriterWallet
-from websites.models import Website
+from websites.models.websites import Website
 from django.contrib.auth import get_user_model
 
 User = get_user_model()

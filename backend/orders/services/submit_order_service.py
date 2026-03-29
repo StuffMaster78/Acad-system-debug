@@ -1,4 +1,4 @@
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.move_to_editing import MoveOrderToEditingService
 from django.core.exceptions import ObjectDoesNotExist

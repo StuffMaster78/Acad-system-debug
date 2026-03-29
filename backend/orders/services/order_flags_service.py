@@ -8,7 +8,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from orders.order_enums import OrderFlags
-from orders.models import Order  # Adjust path as needed
+from orders.models.orders import Order  # Adjust path as needed
 from users.models import User
 
 

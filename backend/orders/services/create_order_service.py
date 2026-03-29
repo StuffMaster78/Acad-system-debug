@@ -1,7 +1,6 @@
-from orders.models import Order
+from orders.models.orders import Order
 from orders.utils.order_utils import save_order
 from activity.utils.decorators import auto_log_activity
-from notifications_system.services.dispatch  import send
 
 class CreateOrderService:
     """

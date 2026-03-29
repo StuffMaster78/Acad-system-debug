@@ -18,7 +18,7 @@ from loyalty_management.models import (
     ClientBadge
 )
 from client_management.models import ClientProfile
-from orders.models import Order
+from orders.models.orders import Order
 
 
 class LoyaltyAnalyticsService:

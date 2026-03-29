@@ -3,7 +3,7 @@ Helper functions for issuing common fine types.
 These use FineTypeService to issue fines with predefined codes.
 """
 
-from orders.models import Order
+from orders.models.orders import Order
 from fines.services.fine_type_service import FineTypeService
 from django.core.exceptions import ValidationError
 

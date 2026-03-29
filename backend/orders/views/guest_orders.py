@@ -14,9 +14,10 @@ from django.utils.crypto import get_random_string
 from hashlib import sha256
 from datetime import timedelta
 
-from websites.models import Website, GuestAccessToken
+from websites.models.websites import Website
+from websites.models.website_settings import GuestAccessToken
 from client_management.models import ClientProfile
-from orders.models import Order
+from orders.models.orders import Order
 from orders.services.create_order_service import CreateOrderService
 from orders.services.pricing_calculator import PricingCalculatorService
 

@@ -1,4 +1,4 @@
-from orders.models import Order
+from orders.models.orders import Order
 from orders.utils.order_utils import get_order_by_id, save_order
 from celery import current_app
 import logging
@@ -156,23 +156,4 @@ class CompleteOrderService:
             )
 
         self._award_referral_bonus(order)
-
-        # Send notification via Celery
-        if order.client:
-            try:
-                current_app.send_task(
-                    "orders.tasks.send_order_completion_email",
-                    args=[order.client.email, order.client.username, order.id],
-                )
-                logger.info(f"Order completion email task queued for Order {order_id}.")
-            except Exception as e:
-                logger.warning(f"Failed to queue completion email for Order {order_id}: {e}")
-
-        # OrderActionLog.objects.create(
-        #     order=order,
-        #     performed_by=user,
-        #     action="completed",
-        #     notes="Order marked complete via CompleteOrderService"
-        # )
-
         return order

@@ -7,9 +7,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.services.preferred_writer_response import PreferredWriterResponseService
-from orders.serializers import OrderSerializer
+from orders.serializers.orders import OrderSerializer
 
 
 class PreferredWriterResponseViewSet(viewsets.ViewSet):

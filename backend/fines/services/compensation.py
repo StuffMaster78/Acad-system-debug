@@ -1,6 +1,6 @@
 from decimal import Decimal
 from django.db import transaction
-from orders.models import Order
+from orders.models.orders import Order
 
 
 def adjust_writer_compensation(
@@ -29,7 +29,7 @@ def adjust_writer_compensation(
         )
 
     with transaction.atomic():
-        new_comp = order.writer_compensation + amount_change
+        new_comp = (order.writer_compensation + amount_change).quantize(Decimal("0.01"))
 
         # Prevent negative compensation
         order.writer_compensation = max(new_comp, Decimal("0.00"))

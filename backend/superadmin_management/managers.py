@@ -211,7 +211,7 @@ class SuperadminManager:
     @staticmethod
     def notify_admins(title, message):
         """Sends an in-app notification to all Superadmins."""
-        from websites.models import Website
+        from websites.models.websites import Website
         
         admins = User.objects.filter(superadmin_profile__isnull=False)
         # Get default website

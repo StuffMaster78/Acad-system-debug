@@ -4,7 +4,7 @@ Service layer for assigning writers to orders.
 
 from django.db import transaction
 from django.utils import timezone
-from orders.models import Order
+from orders.models.orders import Order
 from writer_management.models import WriterProfile
 from django.core.exceptions import ObjectDoesNotExist
 

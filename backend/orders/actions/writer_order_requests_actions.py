@@ -96,7 +96,7 @@ class RejectWriterRequestAction(BaseOrderAction):
 
         request = self.data.get("request")
         if isinstance(request, int):
-            from orders.models import OrderRequest
+            from orders.models.requests import OrderRequest
             request = OrderRequest.objects.get(id=request)
 
         feedback = self.data.get("feedback", "")
@@ -114,7 +114,7 @@ class AcceptWriterRequestAction(BaseOrderAction):
 
         request = self.data.get("request")
         if isinstance(request, int):
-            from orders.models import OrderRequest
+            from orders.models.requests import OrderRequest
             request = OrderRequest.objects.get(id=request)
 
         service = OrderRequestService(user=self.user)
@@ -131,7 +131,7 @@ class CancelWriterRequestAction(BaseOrderAction):
 
         request = self.data.get("request")
         if isinstance(request, int):
-            from orders.models import OrderRequest
+            from orders.models.requests import OrderRequest
             request = OrderRequest.objects.get(id=request)
 
         service = OrderRequestService(user=self.user)
@@ -227,7 +227,7 @@ class ExpireWriterRequestAction(BaseOrderAction):
 
         request = self.data.get("request")
         if isinstance(request, int):
-            from orders.models import OrderRequest
+            from orders.models.requests import OrderRequest
             request = OrderRequest.objects.get(id=request)
 
         if not request.is_expired():
@@ -266,7 +266,7 @@ class ReopenWriterRequestAction(BaseOrderAction):
 
         request = self.data.get("request")
         if isinstance(request, int):
-            from orders.models import OrderRequest
+            from orders.models.requests import OrderRequest
             request = OrderRequest.objects.get(id=request)
 
         # Ensure the user owns the request

@@ -2,7 +2,8 @@ from datetime import timedelta
 from django.utils import timezone
 from django.db import transaction
 from django.core.exceptions import ObjectDoesNotExist
-from orders.models import Order, PreferredWriterResponse
+from orders.models.orders import Order
+from orders.models.preferred_writer_response import PreferredWriterResponse
 from orders.order_enums import OrderStatus
 
 

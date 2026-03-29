@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from websites.models.websites import Website
 from writer_management.models.profile import WriterProfile
-from orders.models import Order
+from orders.models.orders import Order
 from django.utils.timezone import now
 
 User = get_user_model()

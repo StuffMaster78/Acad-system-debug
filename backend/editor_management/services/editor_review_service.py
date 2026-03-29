@@ -14,10 +14,10 @@ from editor_management.models import (
     EditorReviewSubmission,
     EditorActionLog
 )
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.transition_helper import OrderTransitionHelper
-from notifications_system.services.notification_helper import NotificationHelper
+from notifications_system.services.notification_service import NotificationService
 from audit_logging.services.audit_log_service import AuditLogService
 
 
@@ -62,7 +62,7 @@ class EditorReviewService:
             actor=editor.user,
             action="Editor started review",
             target=task_assignment.order,
-            changes={"review_status": "in_review"},
+            metadata={"review_status": "in_review"},
         )
         
         return task_assignment
@@ -182,17 +182,24 @@ class EditorReviewService:
             
             # Notify client
             if order.client:
-                NotificationHelper.send_notification(
-                    user=order.client,
-                    event="order.reviewed",
-                    payload={
+                NotificationService.notify(
+                    event_key="order.reviewed",
+                    recipient=order.client,
+                    website=order.website,
+                    context={
                         "order_id": order.id,
                         "order_topic": order.topic,
                         "reviewed_by": editor.name,
                         "approved": True,
                         "website_id": order.website_id,
                     },
-                    website=order.website
+                    channels=["email", "in_app"],
+                    priority="high",
+                    is_broadcast=False,
+                    is_critical=True,
+                    is_digest=False,
+                    is_silent=False,
+                    digest_group=None,
                 )
         else:
             # Requires revision - keep in review but mark task appropriately
@@ -219,24 +226,31 @@ class EditorReviewService:
             
             # Notify writer
             if order.assigned_writer:
-                NotificationHelper.send_notification(
-                    user=order.assigned_writer,
-                    event="order.revision_requested",
-                    payload={
+                NotificationService.notify(
+                    event_key="order.revision_requested",
+                    recipient=order.assigned_writer,
+                    website=order.website,
+                    context={
                         "order_id": order.id,
                         "order_topic": order.topic,
                         "revision_notes": revision_notes,
                         "requested_by": editor.name,
                         "website_id": order.website_id,
                     },
-                    website=order.website
+                    channels=["email", "in_app"],
+                    priority="high",
+                    is_broadcast=False,
+                    is_critical=True,
+                    is_digest=False,
+                    is_silent=False,
+                    digest_group=None,
                 )
         
         AuditLogService.log_auto(
             actor=editor.user,
             action="Editor submitted review",
             target=order,
-            changes={
+            metadata={
                 "review_submission_id": review_submission.id,
                 "is_approved": is_approved,
                 "requires_revision": requires_revision,
@@ -298,7 +312,7 @@ class EditorReviewService:
             actor=editor.user,
             action="Editor completed task",
             target=task_assignment.order,
-            changes={"review_status": "completed"},
+            metadata={"review_status": "completed"},
         )
         
         return task_assignment
@@ -345,21 +359,29 @@ class EditorReviewService:
             actor=editor.user,
             action="Editor rejected task",
             target=task_assignment.order,
-            changes={"review_status": "rejected", "reason": reason},
+            metadata={"review_status": "rejected", "reason": reason},
         )
         
         # Notify admin/support
         from users.models import User
         admins = User.objects.filter(role__in=['admin', 'superadmin'], is_active=True)
         for admin in admins:
-            NotificationHelper.send_notification(
+            NotificationService.notify(
                 event_key="editor.task_rejected",
-                user=admin,
+                recipient=admin,
+                website=task_assignment.order.website,
                 context={
                     "order_id": task_assignment.order.id,
                     "editor": editor.name,
                     "reason": reason,
                 },
+                channels=["email", "in_app"],
+                priority="high",
+                is_broadcast=False,
+                is_critical=True,
+                is_digest=False,
+                is_silent=False,
+                digest_group=None,
             )
         
         return task_assignment

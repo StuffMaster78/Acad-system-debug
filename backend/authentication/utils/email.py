@@ -1,5 +1,6 @@
 from django.core.mail import send_mail
-from websites.models import Website, WebsiteSettings
+from websites.models.websites import Website
+from websites.models.website_settings import WebsiteSettings
 from django.conf import settings
 from django.urls import reverse
 import logging

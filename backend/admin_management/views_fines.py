@@ -13,7 +13,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from fines.models import Fine, FineAppeal, FineStatus, FinePolicy
-from fines.serializers import FineSerializer, FineAppealSerializer
+from fines.serializers_legacy import FineSerializer, FineAppealSerializer
 from fines.services.fine_services import FineService
 from authentication.permissions import IsAdminOrSuperAdmin
 

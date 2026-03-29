@@ -26,7 +26,7 @@ from class_management.services.class_bundle_admin import ClassBundleAdminService
 from class_management.services.class_payment_processor import ClassPaymentProcessor
 from class_management.services.class_communication import ClassBundleCommunicationService
 from class_management.services.class_tickets import ClassBundleTicketService
-from websites.models import Website
+from websites.models.websites import Website
 from communications.models import CommRole
 
 logger = logging.getLogger(__name__)

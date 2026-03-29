@@ -26,6 +26,11 @@ class GlobalNotificationSystemSettings(models.Model):
     email_from_name = models.CharField(max_length=255, blank=True)
     email_from_address = models.EmailField(blank=True)
     email_reply_to = models.EmailField(blank=True)
+    email_noreply_address = models.EmailField(
+        blank=True,
+        default="",
+        help_text="Optional no-reply email address for outbound mail.",
+    )
 
     # Email provider override — null means use platform default
     email_provider = models.CharField(

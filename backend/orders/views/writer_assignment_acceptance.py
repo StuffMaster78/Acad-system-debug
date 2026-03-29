@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 
-from orders.models import Order, WriterAssignmentAcceptance
+from orders.models.writer_acceptance import WriterAssignmentAcceptance
 from orders.permissions import IsAssignedWriter
 
 
@@ -123,7 +123,7 @@ class WriterAssignmentAcceptanceViewSet(viewsets.ModelViewSet):
             status='pending'
         ).order_by('-assigned_at')
         
-        from orders.serializers import OrderSerializer
+        from orders.serializers.orders import OrderSerializer
         data = []
         for acceptance in pending:
             data.append({

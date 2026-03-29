@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from orders.models import Order
+    from orders.models.orders import Order
 class ReferralService:
     """
     Service class to handle referral logic including awarding bonuses, applying discounts,

@@ -178,11 +178,24 @@ class TicketViewSet(viewsets.ModelViewSet):
         # Notify ticket creator if they exist and aren't the one closing it
         if ticket.created_by and ticket.created_by != user:
             try:
-                from notifications_system.services.notification_helper import NotificationHelper
-                NotificationHelper.notify_ticket_closed(
-                    ticket=ticket,
-                    closed_by=user,
-                    reason=reason
+                from notifications_system.services.notification_service import NotificationService
+                NotificationService.notify(
+                    event_key="ticket_closed",
+                    recipient=ticket.created_by,
+                    website=ticket.website,
+                    context={
+                        'ticket_id': ticket.id,
+                        'ticket_title': ticket.title,
+                        'closed_by': user.username or user.email,
+                        'reason': reason
+                    },
+                    channels=['email', 'in_app'],
+                    priority='high',
+                    is_critical=True,
+                    is_digest=False,
+                    is_silent=False,
+                    is_broadcast=False,
+                    digest_group=None
                 )
             except Exception as e:
                 log.exception(f"Failed to send ticket closed notification: {e}")
@@ -246,11 +259,24 @@ class TicketViewSet(viewsets.ModelViewSet):
         # Notify ticket creator if they exist
         if ticket.created_by:
             try:
-                from notifications_system.services.notification_helper import NotificationHelper
-                NotificationHelper.notify_ticket_reopened(
-                    ticket=ticket,
-                    reopened_by=user,
-                    reason=reason
+                from notifications_system.services.notification_service import NotificationService
+                NotificationService.notify(
+                    event_key="ticket_reopened",
+                    recipient=ticket.created_by,
+                    website=ticket.website,
+                    context={
+                        'ticket_id': ticket.id,
+                        'ticket_title': ticket.title,
+                        'reopened_by': user.username or user.email,
+                        'reason': reason
+                    },
+                    channels=['email', 'in_app'],
+                    priority='high',
+                    is_critical=True,
+                    is_digest=False,
+                    is_silent=False,
+                    is_broadcast=False,
+                    digest_group=None
                 )
             except Exception as e:
                 log.exception(f"Failed to send ticket reopened notification: {e}")
@@ -324,11 +350,25 @@ class TicketMessageViewSet(viewsets.ModelViewSet):
         )
         # Notify relevant users about the reply
         try:
-            from notifications_system.services.notification_helper import NotificationHelper
-            NotificationHelper.notify_ticket_reply(
-                ticket=ticket,
-                message=message,
-                replier=self.request.user
+            from notifications_system.services.notification_service import NotificationService
+            NotificationService.notify(
+                event_key="ticket_reply",
+                recipient=ticket.created_by,
+                website=ticket.website,
+                context={
+                    'ticket_id': ticket.id,
+                    'ticket_title': ticket.title,
+                    'replier': self.request.user.username or self.request.user.email,
+                    'message': message.content
+                },
+                channels=['email', 'in_app'],
+                triggered_by=self.request.user,
+                priority='high',
+                is_critical=True,
+                is_digest=False,
+                is_silent=False,
+                is_broadcast=False,
+                digest_group=None
             )
         except Exception as e:
             import logging

@@ -9,13 +9,13 @@ logger = logging.getLogger(__name__)
 
 from .models import SuperadminLog
 from .utils import SuperadminNotifier
-from orders.models import Dispute
+from orders.models.order_disputes import Dispute
 from client_management.models import BlacklistedEmail
 
 # from orders.models import FailedPayment
 from admin_management.models import AdminPromotionRequest
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 ### 🔹 1️⃣ Notify Superadmins When a New User is Created
@@ -48,7 +48,7 @@ def notify_superadmins_on_new_user(sender, instance, created, **kwargs):
         try:
             website = getattr(instance, 'website', None)
             if not website:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.filter(is_active=True).first()
             
             if website:
@@ -97,7 +97,7 @@ def notify_user_on_suspension(sender, instance, update_fields=None, **kwargs):
     try:
         website = getattr(instance, 'website', None)
         if not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
         
         if website:
@@ -117,7 +117,7 @@ def notify_user_on_suspension(sender, instance, update_fields=None, **kwargs):
 @receiver(post_save, sender=BlacklistedEmail)
 def notify_superadmins_on_blacklisted_email(sender, instance, **kwargs):
     """Notifies Superadmins when an email is blacklisted."""
-    from websites.models import Website
+    from websites.models.websites import Website
     website = Website.objects.filter(is_active=True).first()
     
     if website:
@@ -149,7 +149,7 @@ def notify_superadmins_on_dispute(sender, instance, created, **kwargs):
         # Get website from order or user
         website = getattr(instance.order, 'website', None) or getattr(instance.user, 'website', None)
         if not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
         
         if website:
@@ -181,7 +181,7 @@ def notify_superadmins_on_admin_promotion_request(sender, instance, created, **k
         # Get website from user
         website = getattr(instance.user, 'website', None)
         if not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
         
         if website:

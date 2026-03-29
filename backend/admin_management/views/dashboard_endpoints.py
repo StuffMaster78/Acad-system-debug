@@ -21,7 +21,8 @@ from datetime import timedelta
 from django.shortcuts import get_object_or_404
 
 from admin_management.permissions import IsAdmin
-from orders.models import Order, Dispute
+from orders.models.orders import Order
+from orders.models.order_disputes import Dispute
 from orders.order_enums import OrderStatus
 from orders.services.status_transition_service import VALID_TRANSITIONS
 from refunds.models import Refund
@@ -1387,7 +1388,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
     def dashboard(self, request):
         """Get comprehensive advanced analytics dashboard."""
         from django.db.models.functions import TruncWeek, TruncMonth, TruncDay
-        from order_payments_management.models import OrderPayment
+        from order_payments_management.models.payments import OrderPayment
         from tickets.models import Ticket
         from writer_management.models.profile import WriterProfile
         

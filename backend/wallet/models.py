@@ -26,7 +26,7 @@ class Wallet(WebsiteSpecificBaseModel):
     balance = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        default=0.0,
+        default=Decimal("0.00"),
         help_text="Current wallet balance."
     )
     last_updated = models.DateTimeField(auto_now=True)

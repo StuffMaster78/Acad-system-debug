@@ -1,14 +1,14 @@
 from django.db import models
 from django.utils.timezone import now, timedelta
 from websites.models.websites import Website
-from orders.models import Order, Dispute
+from orders.models.orders import Order
 from tickets.models import Ticket
 from order_files.models import OrderFile
 from django.conf import settings
 
 from tickets.models import Ticket, TicketMessage
-from orders.models import Dispute
-from orders.models import Order
+from orders.models.order_disputes import Dispute
+from orders.models.orders import Order
 from communications.models import CommunicationMessage, DisputeMessage
 
 User = settings.AUTH_USER_MODEL 

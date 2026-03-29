@@ -83,7 +83,7 @@ class AccountService:
             dict: Success message (always returns success for security)
         """
         if not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = getattr(self.user, 'website', None) or Website.objects.first()
         
         if not website:
@@ -314,7 +314,7 @@ class AccountService:
         if not website:
             website = getattr(self.user, 'website', None)
             if not website:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.first()
         
         if not website:
@@ -395,7 +395,7 @@ class AccountService:
         if not website:
             website = getattr(self.user, 'website', None)
             if not website:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.first()
         
         if not website:

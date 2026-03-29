@@ -16,7 +16,7 @@ from django.core.exceptions import ValidationError, PermissionDenied, ObjectDoes
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models import Order, WriterAssignmentAcceptance, WriterReassignmentLog
+from orders.models.orders import Order, WriterAssignmentAcceptance, WriterReassignmentLog
 from orders.order_enums import OrderStatus
 from orders.services.assignment import OrderAssignmentService
 from writer_management.models import WriterProfile, WriterLevel
@@ -150,7 +150,7 @@ class TestOrderAssignmentService:
         writer_profile.save()
         
         # Create 2 active orders for this writer
-        from orders.models import Order as OrderModel
+        from orders.models.orders import Order as OrderModel
         for i in range(2):
             OrderModel.objects.create(
                 client=order.client,
@@ -186,7 +186,7 @@ class TestOrderAssignmentService:
         writer_profile.save()
         
         # Create 1 active order
-        from orders.models import Order as OrderModel
+        from orders.models.orders import Order as OrderModel
         OrderModel.objects.create(
             client=order.client,
             website=order.website,

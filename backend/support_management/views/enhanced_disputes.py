@@ -14,7 +14,7 @@ from support_management.serializers.enhanced_disputes import (
     DisputeMessageSerializer, DisputeMessageCreateSerializer
 )
 from support_management.permissions import IsSupportAgent
-from orders.models import Order
+from orders.models.orders import Order
 
 
 class OrderDisputeViewSet(viewsets.ModelViewSet):

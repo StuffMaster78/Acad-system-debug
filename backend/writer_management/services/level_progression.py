@@ -91,7 +91,7 @@ class WriterLevelProgressionService:
         Returns:
             dict with writer statistics
         """
-        from orders.models import Order
+        from orders.models.orders import Order
         from writer_management.models.metrics import WriterPerformanceMetrics
         
         # Get latest metrics if available
@@ -137,7 +137,7 @@ class WriterLevelProgressionService:
         
         # Calculate revision rate (orders with revisions)
         # Check OrderTransitionLog to see if order has ever been in a revision status
-        from orders.models import OrderTransitionLog
+        from orders.models.logs import OrderTransitionLog
         revision_statuses = [
             OrderStatus.REVISED.value,
             OrderStatus.ON_REVISION.value,

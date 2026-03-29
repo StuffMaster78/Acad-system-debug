@@ -42,7 +42,7 @@ class LoginSessionService:
             # Try to get website from user or use first active website
             website = getattr(user, 'website', None)
             if not website:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.filter(is_active=True).first()
             if not website:
                 raise ValueError("Cannot create login session: No website available. User must be assigned to a website.")

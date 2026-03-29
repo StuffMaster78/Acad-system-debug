@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 
-from orders.models import WriterRequest, Order
+from orders.models.orders import Order
+from orders.models.requests import WriterRequest
 from audit_logging.services.audit_log_service import AuditLogService
 from orders.services.writer_request_service import WriterRequestService
 

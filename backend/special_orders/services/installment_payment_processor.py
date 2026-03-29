@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from special_orders.models import SpecialOrder, InstallmentPayment
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 from order_payments_management.services.payment_service import OrderPaymentService
 
 logger = logging.getLogger(__name__)

@@ -13,7 +13,7 @@ from django.db.models.functions import Coalesce
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from orders.models import Order, OrderStatus
+from orders.models.orders import Order, OrderStatus
 from writer_management.models.profile import WriterProfile
 from writer_management.models.levels import WriterLevel
 
@@ -343,7 +343,7 @@ class SmartMatchingService:
         
         # Calculate on-time delivery rate
         # Check if orders were submitted on time (use submitted_at if available, otherwise check status transitions)
-        from orders.models import OrderTransitionLog
+        from orders.models.orders import OrderTransitionLog
         from django.utils import timezone
         
         on_time_count = 0

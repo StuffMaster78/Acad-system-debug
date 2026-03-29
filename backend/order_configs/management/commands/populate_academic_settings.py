@@ -4,7 +4,7 @@ Usage: python manage.py populate_academic_settings [website_domain]
 """
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from websites.models import Website
+from websites.models.websites import Website
 from order_configs.models import (
     PaperType, FormattingandCitationStyle, Subject, AcademicLevel,
     TypeOfWork, EnglishType

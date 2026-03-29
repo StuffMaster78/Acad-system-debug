@@ -26,7 +26,7 @@ from loyalty_management.models import (
     RedemptionItem,
     RedemptionRequest
 )
-from websites.models import Website
+from websites.models.websites import Website
 from client_management.models import ClientProfile
 
 User = get_user_model()

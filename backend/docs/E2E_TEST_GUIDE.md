@@ -222,7 +222,7 @@ python3 manage.py shell
 from django.contrib.auth import get_user_model
 from client_management.models import ClientProfile
 from writer_management.models.profile import WriterProfile
-from websites.models import Website
+from websites.models.websites import Website
 
 User = get_user_model()
 

@@ -1,10 +1,12 @@
 from django.contrib import admin
-from .models import (
-    OrderPayment, Refund, PaymentNotification, PaymentLog,
-    PaymentDispute, SplitPayment, AdminLog,
-    PaymentReminderSettings
-)
-# from discounts.models.discount import DiscountUsage
+from orders.models.orders import Order
+from order_payments_management.models.split_payments import SplitPayment
+from order_payments_management.models.payment_dispute import PaymentDispute
+from order_payments_management.models.payments import OrderPayment
+from order_payments_management.models.payment_refund import Refund
+from order_payments_management.models.logs import PaymentLog, AdminLog
+from order_payments_management.models.payment_reminders import PaymentReminderSettings
+from order_payments_management.models.payment_notification import PaymentNotification
 from django.utils import timezone
 
 @admin.register(OrderPayment)
@@ -85,18 +87,6 @@ class PaymentLogAdmin(admin.ModelAdmin):
     list_filter = ("event", "timestamp")
     search_fields = ("payment__transaction_id", "event")
     ordering = ("-timestamp",)
-
-
-# @admin.register(DiscountUsage)
-# class DiscountUsageAdmin(admin.ModelAdmin):
-#     """
-#     Admin panel for tracking discount usage by clients.
-#     """
-#     list_display = ("discount", "user", "order", "special_order", "applied_at")
-#     list_filter = ("discount", "applied_at")
-#     search_fields = ("user__username", "discount__code")
-#     ordering = ("-applied_at",)
-
 
 @admin.register(SplitPayment)
 class SplitPaymentAdmin(admin.ModelAdmin):

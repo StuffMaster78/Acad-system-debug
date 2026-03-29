@@ -6,7 +6,7 @@ from django.db import transaction
 
 from orders.dispatcher import OrderActionDispatcher
 from orders.permissions import IsOrderOwnerOrSupport
-from orders.models import Order
+from orders.models.orders import Order
 from orders.serializers_legacy import OrderSerializer
 from orders.services.order_action_service import OrderActionService
 

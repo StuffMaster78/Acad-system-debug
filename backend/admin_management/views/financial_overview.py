@@ -11,13 +11,13 @@ from django.db.models import Sum, Count, Q, Exists, OuterRef
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
-from orders.models import Order
+from orders.models.orders import Order
 from special_orders.models import SpecialOrder, InstallmentPayment
 from class_management.models import ClassBundle, ClassInstallment
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 from writer_wallet.models import ScheduledWriterPayment, PaymentSchedule
 from writer_management.models.tipping import Tip
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class FinancialOverviewViewSet(ViewSet):

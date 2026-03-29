@@ -233,6 +233,8 @@
           </button>
         </div>
       </div>
+    </div>
+
     <!-- Appeal Details Drawer -->
     <div
     v-if="showAppealDetails"

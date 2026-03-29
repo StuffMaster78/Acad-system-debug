@@ -3,7 +3,7 @@ Management command to ensure universal file categories exist and are available t
 """
 from django.core.management.base import BaseCommand
 from order_files.models import OrderFileCategory
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class Command(BaseCommand):

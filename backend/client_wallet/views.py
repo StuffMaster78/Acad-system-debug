@@ -355,7 +355,7 @@ class AdminWalletManagementViewSet(viewsets.ViewSet):
         )
         
         # Group by website - include all websites even if they have no wallets
-        from websites.models import Website
+        from websites.models.websites import Website
         
         # Get all websites (for superadmin) or admin's website
         if request.user.role == 'superadmin':

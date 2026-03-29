@@ -101,7 +101,7 @@ def create_review_reminders_for_completed_orders():
     Create review reminders when orders are completed.
     This should be called from order completion signals or actions.
     """
-    from orders.models import Order
+    from orders.models.orders import Order
     from orders.order_enums import OrderStatus
     
     try:

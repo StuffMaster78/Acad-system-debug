@@ -1,6 +1,6 @@
 # services/client_feedback_service.py
 
-from orders.models import ClientFeedback
+from orders.models.client_feedback import ClientFeedback
 from audit_logging.services.audit_log_service import AuditLogService
 
 class ClientFeedbackService:
@@ -36,7 +36,7 @@ class ClientFeedbackService:
             actor=client,
             action="SUBMIT_CLIENT_FEEDBACK",
             target="feedback.ClientFeedback",
-            target_id=feedback.id,
+            # target_id=feedback.id,
             metadata={
                 "order_id": order.id,
                 "rating": rating,

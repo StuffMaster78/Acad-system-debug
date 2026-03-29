@@ -8,7 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 from notifications_system.models.broadcast_notification import BroadcastNotification
 from announcements.models import Announcement
-from websites.models import Website
+from websites.models.websites import Website
 from users.models import User
 import random
 

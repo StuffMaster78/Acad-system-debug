@@ -10,7 +10,7 @@ from rest_framework.negotiation import BaseContentNegotiation
 from django.http import StreamingHttpResponse
 from django.db.models import Q, Exists, OuterRef, Prefetch
 
-from orders.models import Order
+from orders.models.orders import Order
 from .models import CommunicationThread, CommunicationMessage
 from .serializers import CommunicationThreadSerializer, CommunicationMessageSerializer
 from .services.messages import MessageService

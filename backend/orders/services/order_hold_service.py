@@ -4,7 +4,7 @@ orders/services/order_hold_service.py
 Service class to handle putting orders on hold and resuming them.
 """
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.utils.order_utils import save_order
 

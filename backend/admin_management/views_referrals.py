@@ -250,7 +250,7 @@ class AdminReferralCodeViewSet(viewsets.ReadOnlyModelViewSet):
         referral_code = self.get_object()
         
         from referrals.models import Referral
-        from orders.models import Order
+        from orders.models.orders import Order
         
         # Get all referrals using this code
         referrals = Referral.objects.filter(
@@ -356,7 +356,7 @@ class AdminReferralCodeViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = self.filter_queryset(self.get_queryset())
         
         from referrals.models import Referral
-        from orders.models import Order
+        from orders.models.orders import Order
         
         # Get codes with most referrals
         top_codes = Referral.objects.values('referral_code').annotate(

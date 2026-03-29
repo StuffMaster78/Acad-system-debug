@@ -6,10 +6,10 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.services.smart_matching_service import SmartMatchingService
 from orders.order_enums import OrderStatus
-from websites.models import Website
+from websites.models.websites import Website
 from order_configs.models import PaperType, Subject, TypeOfWork
 from writer_management.models.profile import WriterProfile
 from writer_management.models.levels import WriterLevel

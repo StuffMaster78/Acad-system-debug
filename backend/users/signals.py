@@ -159,7 +159,7 @@ def create_role_based_profiles(sender, instance, created, **kwargs):
         elif instance.role == 'support':
             try:
                 # Ensure a website exists
-                from websites.models import Website
+                from websites.models.websites import Website
                 site = getattr(instance, 'website', None) or Website.objects.first()
                 if site is None:
                     site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
@@ -238,7 +238,7 @@ def log_user_login(sender, request, user, **kwargs):
     # Get website from user, or try to get from request host, or skip if not available
     website = getattr(user, 'website', None)
     if not website and hasattr(request, 'get_host'):
-        from websites.models import Website
+        from websites.models.websites import Website
         try:
             host = request.get_host().replace("www.", "")
             website = Website.objects.filter(domain=host, is_active=True).first() or \

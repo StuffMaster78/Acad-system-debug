@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from django.utils.timezone import now
-from orders.models import Order
+from orders.models.orders import Order
 from orders.utils.order_utils import save_order
 
 

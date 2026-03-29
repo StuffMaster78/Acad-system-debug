@@ -393,7 +393,7 @@ def enable_db_access_for_all_tests(db):
 @pytest.fixture
 def order(client_user, website):
     """Create a test order."""
-    from orders.models import Order
+    from orders.models.orders import Order
     from datetime import timedelta
     from django.utils import timezone
     
@@ -486,7 +486,7 @@ def other_writer(website):
 @pytest.fixture
 def other_client_order(other_client, website):
     """Create an order for another client."""
-    from orders.models import Order
+    from orders.models.orders import Order
     from datetime import timedelta
     from django.utils import timezone
     

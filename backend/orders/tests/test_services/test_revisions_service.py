@@ -14,7 +14,7 @@ from datetime import timedelta
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 
-from orders.models import Order, OrderTransitionLog
+from orders.models.orders import Order, OrderTransitionLog
 from orders.order_enums import OrderStatus
 from orders.services.revisions import OrderRevisionService
 from order_configs.models import OrderConfig

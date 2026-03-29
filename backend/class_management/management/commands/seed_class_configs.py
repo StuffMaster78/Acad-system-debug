@@ -5,7 +5,7 @@ Creates duration options and bundle configs for all websites.
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from decimal import Decimal
-from websites.models import Website
+from websites.models.websites import Website
 from class_management.models import ClassDurationOption, ClassBundleConfig, ClassBundle
 from users.models import User
 from django.utils import timezone

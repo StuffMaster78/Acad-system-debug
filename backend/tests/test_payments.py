@@ -11,8 +11,8 @@ from tests.factories import (
     ClientUserFactory, OrderFactory, WebsiteFactory,
     ClientWalletFactory
 )
-from orders.models import Order
-from order_payments_management.models import OrderPayment
+from orders.models.orders import Order
+from order_payments_management.models.payments import OrderPayment
 from order_payments_management.services.payment_service import OrderPaymentService
 try:
     from wallet.exceptions import InsufficientWalletBalance

@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from users.models.user_edit_requests import UserEditRequest
 from users.models import User, UserProfile
-from websites.models import Website
+from websites.models.websites import Website
 import logging
 
 logger = logging.getLogger(__name__)
@@ -173,24 +173,28 @@ class UserEditService:
     def _notify_admins(self, edit_request):
         """Notify admins about new edit request."""
         try:
-            from notifications_system.services.core import send_notification
+            from notifications_system.services.notification_service import NotificationService
             from users.models import User
             
             # Get all admins
             admins = User.objects.filter(role__in=['admin', 'superadmin'], is_active=True)
             
             for admin in admins:
-                send_notification(
-                    user=admin,
-                    notification_type='user_edit_request',
-                    title='New User Edit Request',
-                    message=f"User {self.user.email} has requested profile changes: {edit_request.get_changes_summary()}",
+                NotificationService.notify(
+                    event_key="user_edit_request",
+                    recipient=admin,
+                    website=self.website,
+                    context={
+                        "edit_request_id": edit_request.id,
+                        "user_id": self.user.id,
+                        "request_type": edit_request.request_type,
+                    },
                     priority='medium',
-                    metadata={
-                        'edit_request_id': edit_request.id,
-                        'user_id': self.user.id,
-                        'request_type': edit_request.request_type,
-                    }
+                    channels=['email', 'in_app'],
+                    is_critical=True,
+                    is_digest=False,
+                    is_broadcast=False,
+                    digest_group=None,
                 )
         except Exception as e:
             logger.error(f"Error notifying admins about edit request {edit_request.id}: {e}", exc_info=True)

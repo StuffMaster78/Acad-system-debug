@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 
 from .models import SeoPage
 from .serializers import SeoPageSerializer, PublicSeoPageSerializer
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class SeoPageViewSet(viewsets.ModelViewSet):

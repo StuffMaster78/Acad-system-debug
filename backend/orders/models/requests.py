@@ -8,6 +8,7 @@ from orders.order_enums import (
     OrderRequestStatus
 )
 from orders.models.orders import Order
+from websites.models.websites import Website
 
 
 User = settings.AUTH_USER_MODEL 
@@ -296,7 +297,7 @@ class ReassignmentRequest(models.Model):
             self.metadata = metadata
         self.save()
 
- class DraftRequest(models.Model):
+class DraftRequest(models.Model):
     """
     Tracks requests for drafts to see order progress.
     Clients can request if they've paid for Progressive Delivery extra service.

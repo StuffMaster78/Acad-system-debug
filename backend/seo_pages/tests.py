@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.conf import settings
 from rest_framework.test import APIClient
 from rest_framework import status
-from websites.models import Website
+from websites.models.websites import Website
 
 from .models import SeoPage
 

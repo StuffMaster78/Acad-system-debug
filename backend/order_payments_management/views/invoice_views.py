@@ -12,11 +12,11 @@ from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
-from ..models import Invoice
+from ..models.invoice import Invoice
 from ..serializers import InvoiceSerializer, InvoiceCreateSerializer
 from ..services.invoice_service import InvoiceService
 from authentication.permissions import IsSuperadminOrAdmin
-from websites.models import Website
+from websites.models.websites import Website
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +140,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         
         order_id = data.get('order')
         if order_id:
-            from orders.models import Order
+            from orders.models.orders import Order
             try:
                 order = Order.objects.get(id=order_id)
             except Order.DoesNotExist:

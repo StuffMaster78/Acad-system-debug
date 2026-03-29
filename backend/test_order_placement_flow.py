@@ -16,8 +16,8 @@ django.setup()
 from django.test import Client
 from django.conf import settings
 from django.utils import timezone
-from websites.models import Website
-from orders.models import Order
+from websites.models.websites import Website
+from orders.models.orders import Order
 from orders.services.create_order_service import CreateOrderService
 from orders.services.mark_order_as_paid_service import MarkOrderPaidService
 from orders.services.status_transition_service import StatusTransitionService
@@ -27,7 +27,7 @@ from orders.services.complete_order_service import CompleteOrderService
 from orders.services.rate_order_service import RateOrderService
 from orders.services.review_order_service import ReviewOrderService
 from orders.utils.order_utils import save_order
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 from order_configs.models import PaperType, AcademicLevel
 from client_wallet.models import ClientWallet
 

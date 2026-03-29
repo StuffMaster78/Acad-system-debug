@@ -381,7 +381,7 @@ The system supports multiple email service providers for sending emails.
 #### Via Website Integration Config
 
 ```python
-from websites.models import WebsiteIntegrationConfig
+from websites.models.websites import WebsiteIntegrationConfig
 
 # Configure SendGrid
 integration = WebsiteIntegrationConfig.objects.create(
@@ -547,7 +547,7 @@ Authorization: Bearer {token}
 Each website can have its own email configuration:
 
 ```python
-from websites.models import Website
+from websites.models.websites import Website
 
 website = Website.objects.get(id=1)
 
@@ -594,7 +594,7 @@ template = EmailTemplate.objects.create(
 ```python
 from mass_emails.models import EmailCampaign
 from mass_emails.tasks import send_email_campaign
-from websites.models import Website
+from websites.models.websites import Website
 
 website = Website.objects.get(id=1)
 
@@ -638,7 +638,7 @@ campaign.save()
 
 ```python
 from notifications_system.services.broadcast_services import BroadcastNotificationService
-from websites.models import Website
+from websites.models.websites import Website
 
 website = Website.objects.get(id=1)
 

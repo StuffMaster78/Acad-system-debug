@@ -615,7 +615,7 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="orders")
     def dashboard_orders(self, request):
         """Get order management dashboard for support."""
-        from orders.models import Order
+        from orders.models.orders import Order
         from orders.order_enums import OrderStatus
         from orders.serializers import OrderSerializer
         from refunds.models import Refund

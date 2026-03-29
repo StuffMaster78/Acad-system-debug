@@ -61,7 +61,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
             return Response({"error": "Website not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -133,7 +133,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            from websites.models import Website
+            from websites.models.websites import Website
             website_obj = Website.objects.get(id=website)
         except (Website.DoesNotExist, ValueError):
             return Response({"error": "Website not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -174,7 +174,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
             return Response({"error": "Website not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -450,7 +450,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
             return Response({"error": "Website not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -528,7 +528,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            from websites.models import Website
+            from websites.models.websites import Website
             website_obj = Website.objects.get(id=website)
         except (Website.DoesNotExist, ValueError):
             return Response({"error": "Website not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -696,7 +696,7 @@ class ReferralCodeViewSet(viewsets.ModelViewSet):
             website_id = request.query_params.get('website')
             if website_id:
                 try:
-                    from websites.models import Website
+                    from websites.models.websites import Website
                     website = Website.objects.get(id=website_id)
                 except Website.DoesNotExist:
                     return Response({

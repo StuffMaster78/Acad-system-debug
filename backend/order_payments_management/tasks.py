@@ -4,9 +4,11 @@ from datetime import timedelta
 import logging
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import OrderPayment, FailedPayment, PaymentReminderSettings, PaymentLog
+from .models.payments import OrderPayment, FailedPayment
+from .models.payment_reminders import PaymentReminderSettings
 from notifications_system.models.notifications import Notification
-from .models import AdminLog  # Ensure admin logs are properly tracked
+from notifications_system.services.notification_service import NotificationService
+from .models.logs import AdminLog, PaymentLog  # Ensure admin logs are properly tracked
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +31,24 @@ def expire_unpaid_orders():
 
         # Notify affected clients
         for payment in unpaid_orders:
-            Notification.create_notification(
-                user=payment.client,
-                message=f"Your order {payment.order.id if payment.order else 'Special Order'} "
-                        f"has been canceled due to non-payment."
+
+            NotificationService.notify(
+                event_key="order_expired",
+                recipient=payment.client,
+                website=payment.order.website if payment.order else None,
+                context={
+                    "order_id": payment.order.id if payment.order else "Special Order",
+                    "payment_id": payment.id,
+                    "message": f"Your order {payment.order.id if payment.order else 'Special Order'} has been canceled due to non-payment."
+                },
+                channels=["email", "in_app"],
+                priority="high",
+                is_critical=True,
+                is_broadcast=False,
+                is_digest=False,
+                digest_group=None,
+
+
             )
 
             # Log expiration
@@ -91,10 +107,22 @@ def retry_failed_payments():
             failed_payment.save()
 
             if failed_payment.retry_count >= 3:
-                Notification.create_notification(
-                    user=failed_payment.client,
-                    message=f"Your payment attempt for order {failed_payment.payment.order.id if failed_payment.payment.order else 'Special Order'} "
-                            f"has failed after 3 retries. Please contact support."
+                NotificationService.notify(
+                    event_key="payment_failed_final",
+                    recipient=failed_payment.client,
+                    website=failed_payment.payment.order.website if failed_payment.payment.order else None,
+                    context={
+                        "order_id": failed_payment.payment.order.id if failed_payment.payment.order else "Special Order",
+                        "payment_id": failed_payment.payment.id,
+                        "message": f"Your payment attempt for order {failed_payment.payment.order.id if failed_payment.payment.order else 'Special Order'} "
+                                   f"has failed after 3 retries. Please contact support."
+                    },
+                    channels=["email", "in_app"],
+                    priority="high",
+                    is_critical=True,
+                    is_broadcast=False,
+                    is_digest=False,
+                    digest_group=None,
                 )
 
                 PaymentLog.log_event(
@@ -149,10 +177,21 @@ def send_payment_reminders():
         )
 
         # Send in-app notification
-        Notification.create_notification(
-            user=client,
-            message=f"Reminder: Your payment for order {payment.order.id if payment.order else 'Special Order'} "
-                    f"will expire in {hours_left} hours."
+        NotificationService.notify(
+            event_key="payment_reminder",
+            recipient=client,
+            website=payment.order.website if payment.order else None,
+            context={
+                "order_id": payment.order.id if payment.order else "Special Order",
+                "payment_id": payment.id,
+                "message": f"Reminder: Your payment for order {payment.order.id if payment.order else 'Special Order'} will expire in {hours_left} hours."
+            },
+            channels=["email", "in_app"],
+            priority="medium",
+            is_critical=False,
+            is_broadcast=False,
+            is_digest=False,
+            digest_group=None,
         )
 
         logger.info(f"Payment reminder sent to {client.email} for payment {payment.id}")
@@ -164,7 +203,7 @@ def send_deadline_percentage_reminders():
     Sends payment reminders based on deadline percentage.
     Checks all websites and sends reminders when deadline percentage thresholds are met.
     """
-    from websites.models import Website
+    from websites.models.websites import Website
     from .services.payment_reminder_service import PaymentReminderService
     
     websites = Website.objects.filter(is_active=True)
@@ -192,9 +231,9 @@ def send_deletion_messages_for_expired_orders():
     """
     Sends deletion messages for orders that have passed their deadline.
     """
-    from websites.models import Website
+    from websites.models.websites import Website
     from .services.payment_reminder_service import PaymentReminderService
-    from orders.models import Order
+    from orders.models.orders import Order
     
     websites = Website.objects.filter(is_active=True)
     

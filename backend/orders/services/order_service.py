@@ -24,7 +24,7 @@ class OrderService:
         Create a new order and assign initial status based on urgency.
         """
         from orders.services.utils import check_if_urgent
-        from orders.models import Order, OrderStatus
+        from orders.models.orders import Order, OrderStatus
         status = (
             OrderStatus.CRITICAL
             if deadline and check_if_urgent(deadline)
@@ -44,7 +44,7 @@ class OrderService:
         """
         Helper to assert order's current status is in allowed_statuses.
         """
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         if OrderStatus(order.status) not in allowed_statuses:
             allowed_names = [status.name for status in allowed_statuses]
             raise TransitionNotAllowed(
@@ -55,7 +55,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def transition_to_pending(order_id: int):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         allowed = [OrderStatus.UNPAID, OrderStatus.AVAILABLE]
         OrderService._assert_status(order, allowed)
@@ -66,7 +66,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def put_on_hold(order_id: int):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         OrderService._assert_status(order, [OrderStatus.ASSIGNED])
         order.status_enum = OrderStatus.ON_HOLD
@@ -76,7 +76,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def resume_order(order_id: int):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         OrderService._assert_status(order, [OrderStatus.ON_HOLD])
         order.status_enum = OrderStatus.ASSIGNED
@@ -86,7 +86,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def assign_writer(order_id: int, writer):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         OrderService._assert_status(order, [OrderStatus.PENDING])
         order.status_enum = OrderStatus.ASSIGNED
@@ -100,7 +100,7 @@ class OrderService:
         order_id: int, completed_by: Optional[Any] = None,
         completion_notes: Optional[str] = None
     ):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         OrderService._assert_status(order, [OrderStatus.ASSIGNED])
         if completed_by:
@@ -113,7 +113,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def dispute_order(order_id: int):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         allowed = [OrderStatus.ASSIGNED, OrderStatus.REVISION]
         OrderService._assert_status(order, allowed)
@@ -124,7 +124,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def approve_order(order_id: int):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         OrderService._assert_status(order, [OrderStatus.COMPLETED])
         order.status_enum = OrderStatus.APPROVED
@@ -134,7 +134,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def cancel_order(order_id: int):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         disallowed = [OrderStatus.COMPLETED, OrderStatus.ARCHIVED]
         if OrderStatus(order.status) in disallowed:
@@ -148,7 +148,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def archive_order(order_id: int):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         OrderService._assert_status(order, [OrderStatus.COMPLETED])
         order.status_enum = OrderStatus.ARCHIVED
@@ -158,7 +158,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def late_order(order_id: int):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         OrderService._assert_status(order, [OrderStatus.ASSIGNED])
         order.status_enum = OrderStatus.LATE
@@ -168,7 +168,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def revision_order(order_id: int):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         OrderService._assert_status(order, [OrderStatus.ASSIGNED])
         order.status_enum = OrderStatus.REVISION
@@ -178,7 +178,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def review_order(order_id: int):
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         order = _get_order(order_id)
         OrderService._assert_status(order, [OrderStatus.COMPLETED])
         order.status_enum = OrderStatus.REVIEWED
@@ -276,7 +276,7 @@ class OrderService:
         """ Updates the order status to CRITICAL if the deadline is approaching.
         If the deadline is not set, it does nothing.
         """
-        from orders.models import OrderStatus
+        from orders.models.orders import OrderStatus
         if not order.deadline:
             return
         threshold = OrderService.get_critical_threshold()

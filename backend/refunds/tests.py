@@ -3,7 +3,7 @@ from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from django.conf import settings
 from refunds.models import Refund, RefundLog, RefundReceipt
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 from django.utils import timezone
 
 User = settings.AUTH_USER_MODEL

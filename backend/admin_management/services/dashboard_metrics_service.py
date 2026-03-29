@@ -11,7 +11,7 @@ import calendar
 from typing import Dict, List, Any, Optional
 from decimal import Decimal
 from django.conf import settings
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from tickets.models import Ticket
 from communications.models import CommunicationMessage
@@ -163,7 +163,7 @@ class DashboardMetricsService:
         
         # Amount paid today - use OrderPayment model
         try:
-            from order_payments_management.models import OrderPayment
+            from order_payments_management.models.payments import OrderPayment
             # Get payments confirmed today (use confirmed_at if available, otherwise created_at)
             payments_today = OrderPayment.objects.filter(
                 status__in=['completed', 'succeeded'],
@@ -546,7 +546,7 @@ class DashboardMetricsService:
         
         website = getattr(user, 'website', None)
         if website_id:
-            from websites.models import Website
+            from websites.models.websites import Website
             try:
                 website = Website.objects.get(id=website_id)
             except Website.DoesNotExist:

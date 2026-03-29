@@ -9,7 +9,7 @@ from django.db.models import Count, Q
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from orders.models import Order, OrderStatus
+from orders.models.orders import Order, OrderStatus
 from orders.services.assignment import OrderAssignmentService
 from orders.services.auto_assignment_service import AutoAssignmentService
 from writer_management.models.profile import WriterProfile

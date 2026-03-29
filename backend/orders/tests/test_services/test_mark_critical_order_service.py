@@ -11,7 +11,7 @@ import pytest
 from datetime import datetime, timedelta
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.mark_critical_order_service import MarkCriticalOrderService
 from order_configs.models import CriticalDeadlineSetting

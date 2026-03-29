@@ -2,8 +2,7 @@
 
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied, ValidationError
-from notifications_system.enums import NotificationType
-from notifications_system.services.dispatch import send
+from notifications_system.services.notification_service import NotificationService
 from fines.models import (
     Fine,
     FineAppeal,
@@ -50,13 +49,18 @@ class FineAppealService:
     def _notify_user(user, *, event, payload, website):
         if not user:
             return
-        send(
-            user=user,
-            event=event,
-            payload=payload,
+        NotificationService.notify(
+            event_key="fine_appeal_event",
+            recipient=user,
             website=website,
-            channels=[NotificationType.IN_APP, NotificationType.WEBSOCKET],
-            category="fine_appeals",
+            context={"event": event, "payload": payload},
+            channels=["email", "in_app"],
+            priority="high",
+            is_broadcast=False,
+            is_critical=True,
+            is_digest=False,
+            is_silent=False,
+            digest_group=None,
         )
 
     @staticmethod
@@ -156,8 +160,11 @@ class FineAppealService:
             actor=appealed_by,
             action="fine_disputed",
             target=fine,
-            changes={"appeal_reason": reason, "status": FineStatus.DISPUTED},
-            context={"appeal_id": appeal.id},
+            metadata={
+                "appeal_id": appeal.id,
+                "reason": reason,
+                "appeal_status": FineStatus.DISPUTED,   
+            }
         )
 
         FineAppealService._notify_admins(
@@ -217,8 +224,11 @@ class FineAppealService:
             actor=escalated_to,
             action="fine_dispute_escalated",
             target=appeal.fine,
-            changes={"escalated_to": escalated_to.username},
-            context={"appeal_id": appeal.id},
+            metadata={
+                "appeal_id": appeal.id,
+                "escalated_to": escalated_to.username,
+                "escalation_reason": escalation_reason,
+            }
         )
 
         FineAppealService._notify_writer(
@@ -300,11 +310,11 @@ class FineAppealService:
             actor=reviewed_by,
             action="fine_dispute_reviewed",
             target=fine,
-            changes={
+            metadata={
+                "appeal_id": appeal.id,
                 "appeal_accepted": accept,
-                "review_notes": review_notes,
-            },
-            context={"appeal_id": appeal.id},
+                "appeal_review_notes": review_notes,
+            }
         )
 
         decision_message = appeal.resolution_notes

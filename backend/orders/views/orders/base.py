@@ -15,11 +15,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from django.core.exceptions import ValidationError
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderFlags, OrderStatus
 from orders.permissions import IsOrderOwnerOrSupport
-from orders.serializers import OrderSerializer
-from order_payments_management.models import OrderPayment
+from orders.serializers.orders import OrderSerializer
+from order_payments_management.models.payments import OrderPayment
 from orders.exceptions import InvalidTransitionError
 from orders.services.order_deletion_service import (
     ALLOWED_STAFF_ROLES,
@@ -599,7 +599,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         if recently_transitioned:
             from django.utils import timezone
             from datetime import timedelta
-            from orders.models import OrderTransitionLog
+            from orders.models.orders import OrderTransitionLog
             
             period_map = {
                 '1h': timedelta(hours=1),
@@ -1366,11 +1366,19 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 
                 # Send payment notification
                 try:
-                    from notifications_system.services.notification_helper import NotificationHelper
-                    NotificationHelper.notify_order_paid(
-                        order=order,
-                        amount=payment.discounted_amount or payment.amount,
-                        payment_method='wallet'
+                    from notifications_system.services.notification_service import NotificationService
+                    NotificationService.notify(
+                        event_key="order_paid",
+                        recipient=order.client,
+                        website=order.website,
+                        context={
+                            "order": order,
+                            "amount": payment.discounted_amount or payment.amount,
+                            "payment_method": 'wallet'
+                        },
+                        channels=["email", "in_app"],
+                        is_critical=True,
+                        priority="high"
                     )
                 except Exception as e:
                     # Log error but don't fail the payment
@@ -1981,7 +1989,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         
         try:
             from orders.services.auto_assignment_service import AutoAssignmentService
-            from websites.models import Website
+            from websites.models.websites import Website
             
             website = Website.objects.get(id=website_id) if website_id else self.website
             

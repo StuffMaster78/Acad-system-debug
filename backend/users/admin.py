@@ -241,7 +241,7 @@ class CustomUserAdmin(UserAdmin):
         """
         # Assign website for clients/writers if not set
         if (obj.is_client() or obj.is_writer()) and not obj.website:
-            from websites.models import Website
+            from websites.models.websites import Website
             # Try to get website from request host first
             if request:
                 host = request.get_host().replace("www.", "")

@@ -13,7 +13,7 @@ from editor_management.models import (
     EditorReviewSubmission,
     EditorPerformance
 )
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from editor_management.services.performance_calculation_service import (
     EditorPerformanceCalculationService

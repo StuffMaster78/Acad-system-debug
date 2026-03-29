@@ -3,7 +3,7 @@ from typing import Optional, Dict, List
 
 from django.core.exceptions import ValidationError
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.utils.order_utils import (
     get_orders_by_status_older_than,
     save_order
@@ -183,7 +183,7 @@ class StatusTransitionService:
         save_order(order)
 
         # Log to OrderTransitionLog
-        from orders.models import OrderTransitionLog
+        from orders.models.orders import OrderTransitionLog
         OrderTransitionLog.objects.create(
             order=order,
             user=self.user,

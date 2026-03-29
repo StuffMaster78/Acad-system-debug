@@ -1,8 +1,10 @@
+from decimal import Decimal
+
 from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
 from websites.models.websites import Website
-from orders.models import Order  # Linking orders since statuses are tracked there
+from orders.models.orders import Order  # Linking orders since statuses are tracked there
 
 User = settings.AUTH_USER_MODEL 
 
@@ -24,22 +26,22 @@ class WriterWallet(models.Model):
     balance = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        default=0.00
+        default=Decimal('0.00')
     )
     total_earnings = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        default=0.00
+        default=Decimal('0.00')
     )
     total_fines = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        default=0.00
+        default=Decimal('0.00')
     )
     total_adjustments = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        default=0.00
+        default=Decimal('0.00')
     )
     currency = models.CharField(
         max_length=3,
@@ -253,7 +255,7 @@ class PaymentOrderRecord(models.Model):
     )
 
     def __str__(self):
-        return f"Order {self.order.id} - ${self.amount_paid}"
+        return f"Order {self.order.pk} - ${self.amount_paid}"
 
 class WriterPayment(models.Model):
     """

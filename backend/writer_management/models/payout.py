@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from websites.models.websites import Website 
 from writer_management.models.profile import WriterProfile
-from orders.models import Order
+from orders.models.orders import Order
 
 
 

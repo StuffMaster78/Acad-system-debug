@@ -1,7 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone 
-from django.core.mail import send_mail
 from django.utils.text import slugify
 import re  # Fix missing import
 from django.utils.timezone import now  # Fix missing import

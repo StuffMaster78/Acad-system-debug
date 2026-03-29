@@ -9,7 +9,8 @@ from django.db import models, transaction
 from django.utils import timezone
 
 from pricing_configs.models import AdditionalService
-from orders.models import Order, DraftRequest, DraftFile
+from orders.models.orders import Order
+from orders.models.drafts import DraftRequest, DraftFile
 
 
 class Command(BaseCommand):

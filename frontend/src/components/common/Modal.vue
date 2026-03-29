@@ -375,16 +375,20 @@ onUnmounted(() => {
 }
 
 .modal-body-scrollable::-webkit-scrollbar-track {
-  @apply bg-gray-100/50 dark:bg-slate-800/50;
+  background-color: rgb(243 244 246 / 0.5);
   border-radius: 10px;
   margin: 4px;
 }
 
 .modal-body-scrollable::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 hover:bg-gray-400 dark:bg-slate-600 dark:hover:bg-slate-500;
+  background-color: #d1d5db;
   border-radius: 10px;
   border: 2px solid transparent;
   background-clip: padding-box;
+}
+
+.modal-body-scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
 }
 
 /* Fade scrollbar when not hovering */

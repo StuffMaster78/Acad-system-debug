@@ -992,7 +992,7 @@ class AdminNotification(models.Model):
     """Stores notifications for admins about blog deletions."""
     user = models.ForeignKey(
         'users.User', on_delete=models.CASCADE,
-        related_name="notifications"
+        related_name="blog_deletion_notifications"
     )
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)

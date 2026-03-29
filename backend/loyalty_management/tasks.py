@@ -1,6 +1,6 @@
 from celery import shared_task
 from client_management.models import ClientProfile
-from websites.models import Website
+from websites.models.websites import Website
 from loyalty_management.services.loyalty_conversion_service import LoyaltyConversionService
 
 @shared_task

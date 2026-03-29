@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from django.http import Http404
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.utils.order_utils import (
     get_order_by_id,

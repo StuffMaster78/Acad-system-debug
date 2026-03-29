@@ -20,7 +20,7 @@ from ..serializers.metrics_serializers import (
     CategoryPublishingTargetSerializer,
     ContentFreshnessReminderSerializer,
 )
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class WebsiteContentMetricsViewSet(viewsets.ReadOnlyModelViewSet):
@@ -266,7 +266,7 @@ class WebsitePublishingTargetViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
             return Response(
@@ -281,7 +281,7 @@ class WebsitePublishingTargetViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def monthly_stats(self, request):
         """Get monthly publishing stats for all websites."""
-        from websites.models import Website
+        from websites.models.websites import Website
         
         websites = Website.objects.filter(is_active=True)
         stats = []

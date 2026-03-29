@@ -12,7 +12,7 @@ from writer_wallet.models import (
     WriterWallet, WalletTransaction
 )
 from writer_management.models.profile import WriterProfile
-from orders.models import Order
+from orders.models.orders import Order
 from writer_management.models.tipping import Tip
 from fines.models import Fine
 

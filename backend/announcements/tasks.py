@@ -4,7 +4,7 @@ Celery tasks for announcements app.
 from celery import shared_task
 from django.utils import timezone
 from django.db import connection
-from notifications_system.services.broadcast_services import BroadcastNotificationService
+from notifications_system.services.broadcast_services import BroadcastService
 from .models import Announcement
 import logging
 
@@ -41,13 +41,21 @@ def send_scheduled_announcements(self):
                 broadcast = announcement.broadcast
                 
                 # Send the broadcast
-                BroadcastNotificationService.send_broadcast(
-                    event=broadcast.event_type,
+                BroadcastService.send_broadcast(
+                    event_key='broadcast.system_announcement',
                     title=broadcast.title,
                     message=broadcast.message,
                     website=broadcast.website,
                     channels=broadcast.channels or ['in_app', 'email'],
-                    is_test=False
+                    is_critical=False,
+                    is_blocking=False,
+                    priority='medium',
+                    target_roles=broadcast.target_roles,
+                    show_to_all=broadcast.show_to_all,
+                    require_acknowledgement=broadcast.require_acknowledgement,
+                    scheduled_for=broadcast.scheduled_for,
+                    expires_at=broadcast.expires_at,
+                    triggered_by=broadcast.created_by
                 )
                 
                 # Mark as sent

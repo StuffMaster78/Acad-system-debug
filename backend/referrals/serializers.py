@@ -4,7 +4,7 @@ from .models import (
     ReferralBonusDecay, ReferralAbuseFlag
 )
 from users.models import User
-from websites.models import Website
+from websites.models.websites import Website
 from wallet.models import WalletTransaction
 
 class UserSerializer(serializers.ModelSerializer):
@@ -87,7 +87,7 @@ class ReferralCodeSerializer(serializers.ModelSerializer):
         voided_referrals = referrals.filter(is_voided=True).count()
         
         # Get orders placed by referees
-        from orders.models import Order
+        from orders.models.orders import Order
         referee_ids = referrals.values_list('referee_id', flat=True)
         orders_count = Order.objects.filter(
             client_id__in=referee_ids,

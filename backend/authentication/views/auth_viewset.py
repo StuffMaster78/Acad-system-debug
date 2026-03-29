@@ -415,8 +415,8 @@ class AuthenticationViewSet(viewsets.ViewSet):
             
             # Send notification if enabled
             try:
-                from notifications_system.services.core import NotificationService
-                from websites.models import Website
+                from notifications_system.services.notification_service import NotificationService
+                from websites.models.websites import Website
                 
                 # Get user's website or use a default
                 user_website = getattr(request.user, 'website', None)
@@ -427,16 +427,21 @@ class AuthenticationViewSet(viewsets.ViewSet):
                         pass
                 
                 if user_website:
-                    NotificationService.send_notification(
-                        user=request.user,
-                        event="password.changed",
-                        payload={
-                            "title": "Password Changed",
-                            "message": "Your password has been successfully changed. If this wasn't you, please contact support immediately."
-                        },
+                    NotificationService.notify(
+                        event_key="password.changed",
+                        recipient=request.user,
                         website=user_website,
-                        category="security",
-                        priority_label="normal"
+                        context={
+                            "title": "Password Changed",
+                            "new_password": new_password,
+                            "message": "Your password has been changed."
+                        },
+                        channels=["email", "in_app"],
+                        priority="normal",
+                        is_critical=True,
+                        is_broadcast=False,
+                        is_digest=False,
+                        digest_group=None,
                     )
             except Exception as e:
                 # Log but don't fail if notification fails
@@ -472,7 +477,7 @@ class AuthenticationViewSet(viewsets.ViewSet):
             ...
         }
         """
-        from users.serializers import (
+        from users.serializers_legacy import (
             ClientProfileSerializer, WriterProfileSerializer,
             EditorProfileSerializer, SupportProfileSerializer,
             AdminProfileSerializer, SuperadminProfileSerializer
@@ -631,7 +636,7 @@ class AuthenticationViewSet(viewsets.ViewSet):
                 user_website = getattr(user, 'website', None)
                 if not user_website:
                     # Try to get website from user's profile or use first available
-                    from websites.models import Website
+                    from websites.models.websites import Website
                     try:
                         user_website = Website.objects.first()
                     except:
@@ -671,14 +676,16 @@ class AuthenticationViewSet(viewsets.ViewSet):
     def _get_user_data(self, user):
         """Helper method to get user data for response."""
         from users.views import UserViewSet
-        from users.serializers import (
+        from users.serializers_legacy import (
             ClientProfileSerializer, WriterProfileSerializer,
             EditorProfileSerializer, SupportProfileSerializer,
             AdminProfileSerializer, SuperadminProfileSerializer
         )
-        from users.models import (
-            ClientProfile, WriterProfile, EditorProfile, SupportProfile
-        )
+        from client_management.models import ClientProfile
+        from writer_management.models.profile import WriterProfile
+        from editor_management.models import EditorProfile
+        from support_management.models import SupportProfile
+        
         from django.shortcuts import get_object_or_404
         
         profile_map = {

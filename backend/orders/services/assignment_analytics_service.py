@@ -12,12 +12,12 @@ from datetime import timedelta
 from django.db.models import Count, Avg, Q, F, ExpressionWrapper, DurationField, Sum
 from django.db.models.functions import TruncDate, TruncHour
 from django.utils import timezone
-from django.contrib.auth import get_user_model
+from django.conf import settings
+from orders.models.writer_acceptance import WriterAssignmentAcceptance
 
-from orders.models import Order, WriterAssignmentAcceptance, OrderRequest, OrderRequestStatus, OrderStatus
 from writer_management.models.profile import WriterProfile
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class AssignmentAnalyticsService:

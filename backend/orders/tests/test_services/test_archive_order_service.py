@@ -8,7 +8,7 @@ Tests cover:
 """
 import pytest
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.archive_order_service import ArchiveOrderService
 
