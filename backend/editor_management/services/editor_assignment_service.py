@@ -10,9 +10,9 @@ from django.core.exceptions import ValidationError
 from typing import Optional
 
 from editor_management.models import EditorProfile, EditorTaskAssignment
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
-from notifications_system.services.notification_helper import NotificationHelper
+from notifications_system.services.notification_service import NotificationService
 from audit_logging.services.audit_log_service import AuditLogService
 
 
@@ -119,24 +119,32 @@ class EditorAssignmentService:
         
         # Log action
         AuditLogService.log_auto(
-            actor=None,  # System action
             action="Editor task auto-assigned",
+            actor=None,  # System action
             target=order,
-            changes={
+            metadata={
                 "assigned_editor": best_editor.user.username,
                 "assignment_type": "auto",
             },
         )
         
         # Send notification
-        NotificationHelper.send_notification(
+        NotificationService.notify(
             event_key="editor.task_assigned",
-            user=best_editor.user,
+            recipient=best_editor.user,
+            website=website,
             context={
                 "order_id": order.id,
                 "order_topic": order.topic,
                 "assignment_type": "auto",
             },
+            channels=["email", "in_app"],
+            priority="high",
+            is_broadcast=False,
+            is_critical=True,
+            is_digest=False,
+            is_silent=False,
+            digest_group=None,
         )
         
         return assignment
@@ -200,7 +208,7 @@ class EditorAssignmentService:
             actor=assigned_by,
             action="Editor task manually assigned",
             target=order,
-            changes={
+            metadata={
                 "assigned_editor": editor.user.username,
                 "assigned_by": assigned_by.username,
                 "assignment_type": "manual",
@@ -208,15 +216,23 @@ class EditorAssignmentService:
         )
         
         # Send notification
-        NotificationHelper.send_notification(
+        NotificationService.notify(
             event_key="editor.task_assigned",
-            user=editor.user,
+            recipient=editor.user,
+            website=editor.website,
             context={
                 "order_id": order.id,
                 "order_topic": order.topic,
                 "assignment_type": "manual",
                 "assigned_by": assigned_by.username,
             },
+            channels=["email", "in_app"],
+            priority="high",
+            is_broadcast=False,
+            is_critical=True,
+            is_digest=False,
+            is_silent=False,
+            digest_group=None,
         )
         
         return assignment
@@ -297,7 +313,7 @@ class EditorAssignmentService:
             actor=editor.user,
             action="Editor claimed task",
             target=order,
-            changes={
+            metadata={
                 "assigned_editor": editor.user.username,
                 "assignment_type": "claimed",
             },

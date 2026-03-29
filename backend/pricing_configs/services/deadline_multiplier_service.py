@@ -6,7 +6,7 @@ from typing import Optional, List, Dict
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from pricing_configs.models import DeadlineMultiplier
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class DeadlineMultiplierService:

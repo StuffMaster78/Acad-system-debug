@@ -2,7 +2,7 @@
 Service class to manage PredefinedSpecialOrderConfig operations.
 """
 
-from websites.models import Website
+from websites.models.websites import Website
 from special_orders.models import PredefinedSpecialOrderConfig
 
 

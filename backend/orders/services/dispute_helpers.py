@@ -1,26 +1,30 @@
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import Optional
 
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 
-from users.models import User
+from notifications_system.services.notification_service import (
+    NotificationService,
+)
 from orders.services.dispute_enums import DisputeStatus
-from notifications_system.utils import send_website_mail
+
+User = get_user_model()
 
 
 def validate_dispute_status_transition(
-    current_status: str, new_status: str
+    current_status: str,
+    new_status: str,
 ) -> None:
     """
-    Validate if a dispute can transition from current to new status.
+    Validate whether a dispute can move to a new status.
 
     Args:
-        current_status (str): Current dispute status as string.
-        new_status (str): Proposed new status as string.
+        current_status: Current dispute status.
+        new_status: Proposed next status.
 
     Raises:
-        ValidationError: If transition is not allowed.
+        ValidationError: If the transition is not allowed.
     """
     allowed_transitions = {
         DisputeStatus.OPEN.value: [
@@ -40,78 +44,89 @@ def validate_dispute_status_transition(
 
     if new_status not in allowed_transitions.get(current_status, []):
         raise ValidationError(
-            f"Cannot transition dispute from {current_status} to {new_status}."
+            f"Cannot transition dispute from {current_status} to "
+            f"{new_status}."
         )
 
 
 def send_dispute_notification(
     dispute,
-    subject: str,
+    event_key: str,
     message: str,
-    extra_recipients: Optional[List[str]] = None,
+    triggered_by=None,
 ) -> None:
     """
-    Send email notifications related to a dispute.
+    Send dispute notifications through NotificationService.
 
-    Args:
-        dispute (Dispute): Dispute instance.
-        subject (str): Email subject.
-        message (str): Email message.
-        extra_recipients (list[str], optional): Extra email addresses.
+    Recipients:
+    1. Assigned writer, if any
+    2. User who raised the dispute
+    3. Staff users with admin, support, or superadmin role
+    4. Website admin users
     """
     website = dispute.website
-    recipients = set(extra_recipients or [])
+    recipients = {}
 
-    # Include writer
-    if dispute.order.writer and dispute.order.writer.email:
-        recipients.add(dispute.order.writer.email)
+    writer = getattr(dispute.order, "assigned_writer", None)
+    if writer:
+        recipients[writer.id] = writer
 
-    # Include client who raised the dispute
-    if dispute.raised_by and dispute.raised_by.email:
-        recipients.add(dispute.raised_by.email)
+    if dispute.raised_by:
+        recipients[dispute.raised_by.id] = dispute.raised_by
 
-    # Include staff (admin, support, superadmin)
-    staff_emails = User.objects.filter(
-        role__in=["admin", "support", "superadmin"]
-    ).values_list("email", flat=True)
+    staff_users = User.objects.filter(
+        role__in=["admin", "support", "superadmin"],
+        is_active=True,
+    )
 
-    recipients.update(staff_emails)
+    for user in staff_users:
+        recipients[user.id] = user
 
-    # Send to all collected recipients
-    if recipients:
-        send_website_mail(
-            website=website,
-            subject=subject,
-            message=message,
-            recipient_list=list(recipients),
-        )
-
-    # Also send directly to all admins associated with the website
     website_admins = website.get_admin_users()
-    admin_emails = [admin.email for admin in website_admins]
+    for admin in website_admins:
+        recipients[admin.id] = admin
 
-    if admin_emails:
-        send_website_mail(
-            website=website,
-            subject=subject,
-            message=message,
-            recipient_list=admin_emails,
-        )
+    context = {
+        "dispute_id": dispute.id,
+        "order_id": dispute.order.id if dispute.order else None,
+        "status": dispute.status,
+        "message": message,
+        "website_id": website.id if website else None,
+    }
+
+    for recipient in recipients.values():
+        try:
+            NotificationService.notify(
+                event_key=event_key,
+                recipient=recipient,
+                website=website,
+                context=context,
+                channels=["email", "in_app"],
+                triggered_by=triggered_by,
+                priority="high",
+                is_broadcast=False,
+                is_critical=False,
+                is_digest=False,
+                is_silent=False,
+                digest_group=None,
+            )
+        except Exception:
+            continue
 
 
 def calculate_extended_deadline(
     current_deadline: Optional[datetime],
-    extension_days: int
+    extension_days: int,
 ) -> datetime:
     """
     Calculate a new deadline based on an extension.
 
     Args:
-        current_deadline (datetime): The original deadline.
-        extension_days (int): Number of days to extend.
+        current_deadline: The original deadline.
+        extension_days: Number of days to extend.
 
     Returns:
-        datetime: New extended deadline.
+        New extended deadline.
 
     Raises:
         ValidationError: If current deadline is not set.

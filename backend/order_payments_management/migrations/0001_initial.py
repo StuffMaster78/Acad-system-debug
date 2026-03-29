@@ -3,7 +3,7 @@
 import django.utils.timezone
 import order_payments_management.models
 from django.db import migrations, models
-from order_payments_management.models import generate_reference_id
+from order_payments_management.models.payments import generate_reference_id
 
 
 class Migration(migrations.Migration):
@@ -124,7 +124,7 @@ class Migration(migrations.Migration):
             name='PaymentReceipt',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('receipt_number', models.CharField(default=order_payments_management.models.generate_reference_id, max_length=64, unique=True)),
+                ('receipt_number', models.CharField(default=order_payments_management.models.payments.generate_reference_id, max_length=64, unique=True)),
                 ('notes', models.TextField(blank=True)),
                 ('metadata', models.JSONField(blank=True, null=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),

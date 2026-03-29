@@ -7,10 +7,10 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models import Order, WriterAssignmentAcceptance
+from orders.models.orders import Order, WriterAssignmentAcceptance
 from orders.services.bulk_assignment_service import BulkAssignmentService
 from orders.order_enums import OrderStatus
-from websites.models import Website
+from websites.models.websites import Website
 from order_configs.models import PaperType, Subject, TypeOfWork
 from writer_management.models.profile import WriterProfile
 from writer_management.models.levels import WriterLevel

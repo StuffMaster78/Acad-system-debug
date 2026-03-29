@@ -5,10 +5,10 @@ Creates direct tips, order-based tips, and class/task-based tips.
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from decimal import Decimal
-from websites.models import Website
+from websites.models.websites import Website
 from writer_management.models.tipping import Tip
 from writer_management.services.tip_service import TipService
-from orders.models import Order
+from orders.models.orders import Order
 from class_management.models import ClassBundle, ExpressClass
 from users.models import User
 from django.utils import timezone

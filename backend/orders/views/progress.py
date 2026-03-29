@@ -8,7 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Max
 from django.utils import timezone
 
-from orders.models import WriterProgress, Order
+from orders.models.writer_progress import WriterProgress
+from orders.models.orders import Order
 from orders.serializers.progress import WriterProgressSerializer, WriterProgressListSerializer
 from authentication.permissions import IsAdmin, IsSuperadminOrAdmin
 

@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Q
 
-from orders.enhanced_revisions import RevisionRequest
+from orders.models.enhanced_revisions import RevisionRequest
 from orders.serializers.enhanced_revisions import (
     RevisionRequestSerializer,
     RevisionRequestCreateSerializer,

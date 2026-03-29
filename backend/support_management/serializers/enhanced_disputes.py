@@ -3,9 +3,10 @@ Serializers for Enhanced Disputes
 """
 from rest_framework import serializers
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from support_management.models.enhanced_disputes import OrderDispute, DisputeMessage
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 
 class DisputeMessageSerializer(serializers.ModelSerializer):
@@ -66,12 +67,6 @@ class OrderDisputeSerializer(serializers.ModelSerializer):
 class OrderDisputeCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating order disputes."""
     
-    class Meta:
-        model = OrderDispute
-        fields = [
-            'order', 'title', 'description', 'other_party', 'priority'
-        ]
-    
     def validate(self, data):
         """Validate dispute creation."""
         order = data.get('order')
@@ -98,6 +93,12 @@ class OrderDisputeCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         return super().create(validated_data)
+
+    class Meta:
+        model = OrderDispute
+        fields = [
+            'order', 'title', 'description', 'other_party', 'priority'
+        ]
 
 
 class OrderDisputeUpdateSerializer(serializers.ModelSerializer):

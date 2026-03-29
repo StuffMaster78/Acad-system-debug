@@ -16,7 +16,7 @@ from rest_framework.test import force_authenticate
 from rest_framework.request import Request
 from admin_management.views import AdminTipManagementViewSet
 from writer_management.models.tipping import Tip
-from websites.models import Website
+from websites.models.websites import Website
 
 User = settings.AUTH_USER_MODEL
 

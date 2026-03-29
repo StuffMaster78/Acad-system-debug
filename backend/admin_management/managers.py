@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group, Permission
 from django.core.mail import send_mail
 from django.utils.timezone import now, timedelta
 from django.conf import settings
-from notifications_system.services.core import NotificationService  # Integration with Notifications App
+from notifications_system.services.notification_service import NotificationService  # Integration with Notifications App
 
 User = get_user_model()
 
@@ -53,19 +53,25 @@ class AdminManager:
             # Send notification
             website = getattr(admin, 'website', None)
             if not website:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.filter(is_active=True).first()
             if website:
-                NotificationService.send_notification(
-                    user=admin,
-                    event="user.created",
-                    payload={
-                        "username": username,
-                        "role": role,
+                NotificationService.notify(
+                    event_key="user.created",
+                    recipient=user,
+                    website=website,
+                    context={
+                        "user": admin,
+                        "event": "user.created",
                         "message": f"User {username} ({role}) was created successfully.",
                     },
-                    website=website,
-                    category="user"
+                    channels=["email", "in_app"],
+                    priority="high",
+                    is_broadcast=False,
+                    is_critical=True,
+                    is_digest=False,
+                    is_silent=False,
+                    digest_group=None,
                 )
 
             # Email notification
@@ -104,18 +110,24 @@ class AdminManager:
         # Send notification
         website = getattr(user, 'website', None)
         if not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
         if website:
-            NotificationService.send_notification(
-                user=user,
-                event="user.account_suspended",
-                payload={
+            NotificationService.notify(
+                event_key="user.account_suspended",
+                recipient=user,
+                website=website,
+                context={
                     "reason": reason,
                     "message": f"Your account has been suspended. Reason: {reason}.",
                 },
-                website=website,
-                category="security"
+                channels=["email", "in_app"],
+                priority="high",
+                is_broadcast=False,
+                is_critical=True,
+                is_digest=False,
+                is_silent=False,
+                digest_group=None,
             )
 
         return {"message": f"User {user.username} has been suspended."}
@@ -163,19 +175,25 @@ class AdminManager:
         # Send notification
         website = getattr(user, 'website', None)
         if not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
         if website:
-            NotificationService.send_notification(
-                user=user,
-                event="user.probation_started",
-                payload={
+            NotificationService.notify(
+                event_key="user.probation_started",
+                recipient=user,
+                website=website,
+                context={
                     "duration_in_days": duration_in_days,
                     "reason": reason,
                     "message": f"You have been placed on probation for {duration_in_days} days. Reason: {reason}.",
                 },
-                website=website,
-                category="account"
+                channels=["email", "in_app"],
+                priority="high",
+                is_broadcast=False,
+                is_critical=True,
+                is_digest=False,
+                is_silent=False,
+                digest_group=None,
             )
 
         return {"message": f"User {user.username} is now on probation."}
@@ -202,17 +220,23 @@ class AdminManager:
         # Send notification
         website = getattr(user, 'website', None)
         if not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
         if website:
-            NotificationService.send_notification(
-                user=user,
-                event="user.probation_removed",
-                payload={
+            NotificationService.notify(
+                event_key="user.probation_removed",
+                recipient=user,
+                website=website,
+                context={
                     "message": "Your probation has been removed. You are now in good standing.",
                 },
-                website=website,
-                category="account"
+                channels=["email", "in_app"],
+                priority="high",
+                is_broadcast=False,
+                is_critical=True,
+                is_digest=False,
+                is_silent=False,
+                digest_group=None,
             )
 
         return {"message": f"User {user.username} is no longer on probation."}

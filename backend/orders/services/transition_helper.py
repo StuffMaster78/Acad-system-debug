@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 import logging
 
-from orders.models import Order, OrderTransitionLog
+from orders.models.logs import Order, OrderTransitionLog
 from orders.services.status_transition_service import StatusTransitionService, VALID_TRANSITIONS
 from orders.exceptions import InvalidTransitionError, AlreadyInTargetStatusError
 from audit_logging.services.audit_log_service import AuditLogService

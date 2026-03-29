@@ -197,7 +197,7 @@ class FineViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            from orders.models import Order
+            from orders.models.orders import Order
             order = Order.objects.get(id=order_id)
             
             from fines.services.fine_type_service import FineTypeService

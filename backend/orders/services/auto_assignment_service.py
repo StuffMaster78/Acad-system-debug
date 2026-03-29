@@ -10,19 +10,21 @@ Automatically assigns writers to orders based on:
 from decimal import Decimal
 from typing import Optional, List, Dict, Tuple
 from django.db import transaction
+from django.conf import settings
 from django.db.models import Count, Avg, Q, F
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from django.contrib.auth import get_user_model
 
-from orders.models import Order, OrderStatus
+from orders.models.orders import Order, OrderStatus
 from orders.services.assignment import OrderAssignmentService
 from orders.services.order_access_service import OrderAccessService
 from writer_management.models.profile import WriterProfile
 from writer_management.models.levels import WriterLevel
-from notifications_system.services.core import NotificationService
+from notifications_system.services.notification_service import (
+    NotificationService
+)
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class AutoAssignmentService:

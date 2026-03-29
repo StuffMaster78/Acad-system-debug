@@ -1,11 +1,13 @@
+from decimal import Decimal
+
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 import uuid
-from orders.models import Order
+from orders.models.orders import Order
 from websites.models.websites import Website
-from order_payments_management.models import OrderPayment 
+from order_payments_management.models.payments import OrderPayment 
 from django.apps import apps
 import uuid
 
@@ -59,10 +61,10 @@ class Refund(models.Model):
         default=MANUAL
     )
     wallet_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0.0
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
     )
     external_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0.0
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
     )
     refund_method = models.CharField(
         max_length=10, choices=METHOD_CHOICES, default="wallet"
@@ -83,7 +85,7 @@ class Refund(models.Model):
 
     def __str__(self):
         return (
-            f"Refund of ${self.total_amount()} for OrderPayment {self.payment.id}"
+            f"Refund of ${self.total_amount()} for OrderPayment {self.order_payment.pk}"
         )
 
     def total_amount(self):
@@ -94,6 +96,7 @@ class Refund(models.Model):
 
     def save(self, *args, **kwargs):
         # Infer website and client from order_payment if missing
+        from websites.models.websites import Website
         try:
             if not getattr(self, 'website_id', None) and getattr(self, 'order_payment', None):
                 if getattr(self.order_payment, 'website_id', None):

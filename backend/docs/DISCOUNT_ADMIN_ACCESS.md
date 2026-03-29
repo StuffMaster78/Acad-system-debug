@@ -181,7 +181,7 @@ To verify admins can manage settings:
    ```python
    # In Django shell or test
    from discounts.models.discount_configs import DiscountConfig
-   from websites.models import Website
+   from websites.models.websites import Website
    
    website = Website.objects.first()
    config, created = DiscountConfig.objects.get_or_create(

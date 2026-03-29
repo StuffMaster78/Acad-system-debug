@@ -26,13 +26,12 @@ from orders.order_enums import (
     SpacingOptions,
     OrderRequestStatus
 )
+from orders.models.orders import Order
 from django.contrib.postgres.fields import ArrayField
 from django.utils.timezone import now
 from django.utils.text import slugify
 
 User = settings.AUTH_USER_MODEL 
-
-
 
 class OrderTransitionLog(models.Model):
     """
@@ -59,22 +58,6 @@ class OrderTransitionLog(models.Model):
     class Meta:
         ordering = ['-timestamp']
 
-
-class OrderPricingSnapshot(models.Model):
-    """
-    Captures a snapshot of the order's pricing details at a specific time.
-    This is useful for auditing and historical reference.
-    """
-    order = models.OneToOneField(
-        "orders.Order", on_delete=models.CASCADE, related_name="pricing_snapshot"
-    )
-    pricing_data = models.JSONField()
-    calculated_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Pricing Snapshot for Order #{self.order.id} at {self.calculated_at}"
-    
-
 class WriterReassignmentLog(models.Model):
     """
     Logs all writer reassignments for transparency and audit.
@@ -82,36 +65,36 @@ class WriterReassignmentLog(models.Model):
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
-        related_name="reassignment_logs"
+        related_name="reassignment_logs",
     )
     previous_writer = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="reassignments_lost"
+        related_name="reassignments_lost",
     )
     new_writer = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="reassignments_gained"
+        related_name="reassignments_gained",
     )
     reassigned_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="reassignments_made"
+        related_name="reassignments_made",
     )
     reason = models.TextField(
         blank=True,
-        help_text="Optional reason for the reassignment."
+        help_text="Optional reason for the reassignment.",
     )
     created_at = models.DateTimeField(
         default=now,
-        help_text="When the reassignment occurred."
+        help_text="When the reassignment occurred.",
     )
 
     class Meta:
@@ -121,11 +104,6 @@ class WriterReassignmentLog(models.Model):
 
     def __str__(self):
         return f"Order #{self.order.id} reassigned to {self.new_writer}"
-    
-    class Meta:
-        verbose_name = "Order Pricing Snapshot"
-        verbose_name_plural = "Order Pricing Snapshots"
-        ordering = ["-calculated_at"]
 
     
 class OrderPricingSnapshot(models.Model):

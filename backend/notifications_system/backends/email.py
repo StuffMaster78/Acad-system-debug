@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import logging
 
-from notifications_system.backends.base import BaseDeliveryBackend, DeliveryResult
+from notifications_system.backends.base import (
+    BaseDeliveryBackend, DeliveryResult
+)
 
 logger = logging.getLogger(__name__)
 

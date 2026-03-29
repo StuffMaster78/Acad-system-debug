@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 from rest_framework.test import APIClient
 from rest_framework import status
-from websites.models import Website
+from websites.models.websites import Website
 
 User = get_user_model()
 
@@ -101,7 +101,7 @@ def test_order_creation(api_client, users):
     
     # This would test order creation if we have the endpoint
     # For now, just check if models are accessible
-    from orders.models import Order
+    from orders.models.orders import Order
     try:
         order = Order.objects.first()
         print_test("Order Model Accessible", True)
@@ -114,7 +114,7 @@ def test_payment_workflow(api_client, users):
     """Test payment workflow"""
     print("\n💳 Testing Payment Workflow...")
     
-    from order_payments_management.models import OrderPayment
+    from order_payments_management.models.payments import OrderPayment
     try:
         payment = OrderPayment.objects.first()
         print_test("Payment Model Accessible", True)

@@ -5,10 +5,10 @@ Creates invoices with various statuses, purposes, and optional references.
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from decimal import Decimal
-from websites.models import Website
+from websites.models.websites import Website
 from order_payments_management.models import Invoice
 from order_payments_management.services.invoice_service import InvoiceService
-from orders.models import Order
+from orders.models.orders import Order
 from special_orders.models import SpecialOrder
 from users.models import User
 from django.utils import timezone

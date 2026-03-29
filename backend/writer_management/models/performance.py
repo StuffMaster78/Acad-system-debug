@@ -5,7 +5,7 @@ from django.conf import settings
 from websites.models.websites import Website
 from writer_management.models.profile import WriterProfile
 from reviews_system.models.writer_review import WriterReview
-from orders.models import Order
+from orders.models.orders import Order
 
 User = settings.AUTH_USER_MODEL
 

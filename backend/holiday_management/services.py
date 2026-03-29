@@ -209,7 +209,7 @@ class HolidayNotificationService:
     @staticmethod
     def notify_admins_of_upcoming_holidays():
         """Notify admins about upcoming holidays that need attention."""
-        from notifications_system.services.core import NotificationService
+        from notifications_system.services.notification_service import NotificationService
         
         reminders = HolidayReminderService.get_pending_reminders()
         
@@ -232,15 +232,19 @@ class HolidayNotificationService:
                 message += "\n\nA discount code can be auto-generated for this event."
             
             for admin in admins:
-                NotificationService.create_notification(
-                    user=admin,
-                    notification_type='holiday_reminder',
-                    title=f"Special Day Reminder: {special_day.name}",
-                    message=message,
-                    metadata={
+                NotificationService.notify(
+                    event_key="holiday_reminder",
+                    recipient=admin,
+                    website=admin.website,
+                    context={
                         'reminder_id': reminder.id,
                         'special_day_id': special_day.id,
                         'event_date': str(event_date)
-                    }
+                    },
+                    priority="normal",
+                    is_broadcast=True,
+                    is_digest=False,
+                    is_critical=False,
+                    digest_group=None,
                 )
 

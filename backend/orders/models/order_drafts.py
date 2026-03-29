@@ -116,7 +116,7 @@ class OrderDraft(models.Model):
         Convert this draft to an actual order.
         Returns the created Order instance.
         """
-        from orders.models import Order
+        from orders.models.orders import Order
         
         order_data = {
             'website': self.website,

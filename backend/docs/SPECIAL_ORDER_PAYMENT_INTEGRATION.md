@@ -217,7 +217,7 @@ class InstallmentPayment(models.Model):
 ```python
 # In special_orders/services/installment_payment_service.py
 from order_payments_management.services.payment_service import OrderPaymentService
-from orders.models import Order  # We'll need a bridge or adapter
+from orders.models.orders import Order  # We'll need a bridge or adapter
 
 class SpecialOrderInstallmentService:
     @staticmethod
@@ -241,7 +241,7 @@ class SpecialOrderInstallmentService:
         # Option B: Create adapter/bridge to use OrderPaymentService
         
         # For now, create OrderPayment directly:
-        from order_payments_management.models import OrderPayment
+        from order_payments_management.models.payments import OrderPayment
         from decimal import Decimal
         
         payment = OrderPayment.objects.create(

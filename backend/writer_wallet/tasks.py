@@ -2,12 +2,14 @@ from celery import shared_task
 from django.utils.timezone import now, timedelta
 from django.db import transaction
 from django.db.models import Sum
-from django.core.mail import send_mail
 from django.conf import settings
 from .models import (
     PaymentConfirmation, ScheduledWriterPayment,
     WriterWallet, WriterPayment, WriterPaymentBatch,
     WalletTransaction
+)
+from notifications_system.services.notification_service import (
+    NotificationService
 )
 
 
@@ -42,12 +44,22 @@ def send_payment_reminders():
 
     for confirmation in pending_confirmations:
         writer = confirmation.writer_wallet.writer
-        send_mail(
-            subject="Payment Confirmation Reminder",
-            message=f"Dear {writer.username}, please confirm your pending payment.",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[writer.email],
-            fail_silently=True,
+        NotificationService.notify(
+            event_key="payment_confirmation_reminder",
+            website=confirmation.writer_wallet.website,
+            recipient=writer,
+            context={
+                # to be filled
+            },
+            channels=["email", "in_app"],
+            is_critical=True,
+            is_broadcast=False,
+            is_digest=False,
+            is_silent=False,
+            digest_group=None,
+        
+
+            
         )
 
 

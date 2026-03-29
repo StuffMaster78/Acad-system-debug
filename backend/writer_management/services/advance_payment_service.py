@@ -1,10 +1,14 @@
 from decimal import Decimal
 from django.db.models import Sum, Q, F
 from django.utils.timezone import now
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
-from writer_management.services.earnings_calculator import WriterEarningsCalculator
-from writer_management.models.advance_payment import WriterAdvancePaymentRequest, AdvanceDeduction
+from writer_management.services.earnings_calculator import (
+    WriterEarningsCalculator
+)
+from writer_management.models.advance_payment import (
+    WriterAdvancePaymentRequest, AdvanceDeduction
+)
 import logging
 
 logger = logging.getLogger(__name__)

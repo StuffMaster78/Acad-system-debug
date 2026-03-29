@@ -5,7 +5,7 @@ Determines available actions based on order state and automatically triggers tra
 from typing import List, Dict, Optional, Set
 from django.core.exceptions import ValidationError
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.services.status_transition_service import StatusTransitionService, VALID_TRANSITIONS
 
 

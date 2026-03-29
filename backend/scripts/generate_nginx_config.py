@@ -20,7 +20,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings')
 django.setup()
 
-from websites.models import Website
+from websites.models.websites import Website
 
 # Configuration
 WRITER_DOMAIN = os.getenv('WRITER_DOMAIN', 'writers.yourdomain.com')

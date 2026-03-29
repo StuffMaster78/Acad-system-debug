@@ -25,7 +25,7 @@ def get_order_by_id(order_id, user=None, check_soft_deleted=True):
         Http404: If the order does not exist.
     """
     from users.models import User
-    from orders.models import Order
+    from orders.models.orders import Order
     
     # Use the appropriate manager based on check_soft_deleted flag
     if check_soft_deleted:
@@ -106,5 +106,5 @@ def get_orders_by_status_older_than(status: str, cutoff_date: datetime):
     """
     Return QuerySet of orders with given status older than cutoff_date.
     """
-    from orders.models import Order
+    from orders.models.orders import Order
     return Order.objects.filter(status=status, updated_at__lt=cutoff_date)

@@ -1,7 +1,7 @@
 from datetime import timedelta
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
-from orders.models import Order
+from orders.models.orders import Order
 from .utils import get_order_config
 from orders.exceptions import PolicyNotFound
 from orders.order_enums import OrderStatus
@@ -50,7 +50,7 @@ class OrderRevisionService:
         
         # For completed orders, check if within revision period
         # Get completion time from transition log since Order model doesn't have completed_at
-        from orders.models import OrderTransitionLog
+        from orders.models.logs import OrderTransitionLog
         completed_transition = OrderTransitionLog.objects.filter(
             order=self.order,
             new_status=OrderStatus.COMPLETED.value

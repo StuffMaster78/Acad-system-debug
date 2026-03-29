@@ -1,5 +1,7 @@
+from dataclasses import field
+
 from django.utils import timezone
-from orders.models import Order
+from orders.models.orders import Order
 from orders.exceptions import OrderInvalidStateException
 from audit_logging.services.audit_log_service import AuditLogService
 
@@ -25,12 +27,15 @@ class OrderDeadlineService:
 
         try:
             AuditLogService.log_auto(
-                order=order,
-                field="deadline",
-                old_value=old_deadline.isoformat() if old_deadline else None,
-                new_value=new_deadline.isoformat(),
-                changed_by=actor,
-                reason=reason or "Manual deadline update"
+                action="order.deadline_updated",
+                target=order,
+                actor=actor,
+                metadata={
+                    "reason": reason or "Manual deadline update",
+                    field: "deadline",
+                    "old_value": old_deadline.isoformat() if old_deadline else None,
+                    "new_value": new_deadline.isoformat(),
+                },
             )
         except Exception:
             # Do not fail the business operation if audit logging fails in tests

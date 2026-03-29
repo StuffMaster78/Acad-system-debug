@@ -15,7 +15,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from admin_management.permissions import IsAdmin
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from client_management.models import ClientProfile
 

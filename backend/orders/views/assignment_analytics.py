@@ -23,7 +23,7 @@ class AssignmentAnalyticsViewSet(viewsets.ViewSet):
         """Get website from request (header or query param)."""
         website_id = request.META.get('HTTP_X_WEBSITE') or request.query_params.get('website_id')
         if website_id:
-            from websites.models import Website
+            from websites.models.websites import Website
             try:
                 return Website.objects.get(id=website_id)
             except Website.DoesNotExist:

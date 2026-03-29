@@ -1,16 +1,15 @@
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
-from notifications_system.services.core import NotificationService
-from orders.notification_context import build_order_context
+from notifications_system.services.notification_service import NotificationService
 from orders.services.order_access_service import OrderAccessService
 from django.core.exceptions import PermissionDenied
-from orders.models import WriterReassignmentLog
+from orders.models.logs import WriterReassignmentLog
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 class OrderAssignmentService:
     """
@@ -121,7 +120,7 @@ class OrderAssignmentService:
         
         # If reassigning, handle the old assignment acceptance record
         if is_reassignment:
-            from orders.models import WriterAssignmentAcceptance
+            from orders.models.writer_acceptance import WriterAssignmentAcceptance
             # Mark any pending acceptance as rejected (if exists)
             try:
                 old_acceptance = WriterAssignmentAcceptance.objects.get(
@@ -189,7 +188,7 @@ class OrderAssignmentService:
         # Create or update assignment acceptance record
         # Only create acceptance record if we're going to pending_writer_assignment
         # For reassigned orders, we still create the record so writer can accept
-        from orders.models import WriterAssignmentAcceptance
+        from orders.models.writer_acceptance import WriterAssignmentAcceptance
         
         # If reassigning, mark old acceptance as rejected
         if is_reassignment:
@@ -310,21 +309,19 @@ class OrderAssignmentService:
     def _notify_reassignment(self, old_writer, new_writer, reason):
         if old_writer:
             try:
-                NotificationService.send_notification(
-                    user=old_writer,
-                    event="order.reassigned",
-                    payload=build_order_context(
-                        event="order.reassigned",
-                        order=self.order,
-                        actor=getattr(self, "actor", None),
-                        viewer_role="writer",
-                        meta={
-                            "previous_writer_id": getattr(old_writer, "id", None),
-                            "new_writer_id": getattr(new_writer, "id", None),
-                            "reason": reason,
-                        },
-                    ),
+                NotificationService.notify(
+                    event_key="order.reassigned",
+                    recipient=old_writer,
                     website=self.order.website,
+                    context={
+                        "order_id": self.order.id,
+                        "status": self.order.status,
+                        "previous_writer_id": getattr(old_writer, "id", None),
+                        "new_writer_id": getattr(new_writer, "id", None),
+                        "reason": reason,
+                    },
+                    priority="high",
+                    is_critical=True,
                 )
             except Exception:
                 pass

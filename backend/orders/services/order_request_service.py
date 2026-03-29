@@ -1,7 +1,8 @@
 from urllib import request
 from django.core.exceptions import ValidationError
 
-from orders.models import OrderRequest, Order
+from orders.models.orders import Order
+from orders.models.requests import OrderRequest
 from audit_logging.services.audit_log_service import AuditLogService
 from orders.exceptions import (
     OrderTransitionError,
@@ -410,7 +411,7 @@ class OrderRequestService:
         Returns:
             QuerySet[OrderRequest]: All reopened requests for the order.
         """
-        from orders.models import OrderRequest
+        from orders.models.orders import OrderRequest
         from orders.order_enums import OrderRequestStatus
 
         return OrderRequest.objects.filter(

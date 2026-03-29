@@ -24,7 +24,7 @@ from .serializers import (
     BlogClickSerializer, BlogConversionSerializer, SocialPlatformSerializer,
     BlogShareSerializer, BlogShareURLSerializer
 )
-from websites.models import Website
+from websites.models.websites import Website
 from django.http import StreamingHttpResponse
 from .permissions import IsAdminSuperadminEditor
 from rest_framework.decorators import action

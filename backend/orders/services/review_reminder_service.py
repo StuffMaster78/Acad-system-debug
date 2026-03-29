@@ -3,7 +3,8 @@ Service for managing review reminders.
 """
 from django.utils import timezone
 from datetime import timedelta
-from orders.models import ReviewReminder, Order
+from orders.models.review_reminders import ReviewReminder
+from orders.models.orders import Order
 from websites.models import ExternalReviewLink
 
 
@@ -39,7 +40,7 @@ class ReviewReminderService:
     def send_reminder(reminder: ReviewReminder):
         """Send a review reminder notification with external review links."""
         from communications.services.notification_service import NotificationService
-        from notifications_system.services.core import NotificationService as NotifService
+        from notifications_system.services.notification_service import NotificationService as NotifService
         
         reminder.send_reminder()
         
@@ -75,29 +76,35 @@ class ReviewReminderService:
         message = "\n".join(message_parts)
         
         # Send notification with metadata including review links
-        try:
-            NotifService.send_notification(
-                user=reminder.client,
-                notification_type="review_reminder",
-                title="Review Reminder",
-                message=message,
-                metadata={
-                    "order_id": reminder.order.id,
-                    "external_review_links": {
-                        "order": [{"name": link.review_site_name, "url": link.review_url} for link in order_links],
-                        "writer": [{"name": link.review_site_name, "url": link.review_url} for link in writer_links],
-                        "website": [{"name": link.review_site_name, "url": link.review_url} for link in website_links],
-                    }
-                }
+       
+        NotifService.notify(
+            event_key="review_reminder",
+            recipient=reminder.client,
+            website=reminder.order.website,
+            context={
+                "order_id": reminder.order.id,
+                "external_review_links": {
+                    "order": [{"name": link.review_site_name, "url": link.review_url} for link in order_links],
+                    "writer": [{"name": link.review_site_name, "url": link.review_url} for link in writer_links],
+                    "website": [{"name": link.review_site_name, "url": link.review_url} for link in website_links],
+                },
+            },
+            channels=["in_app", "email"],
+            priority="high",
+            is_broadcast=False,
+            is_digest=False,
+            is_critical=True,
+            is_silent=False,
+            digest_group=None,
             )
-        except Exception:
-            # Fallback to basic notification if enhanced service fails
-            NotificationService.send_notification(
-                user=reminder.client,
-                title="Review Reminder",
-                message=message,
-                notification_type="reminder"
-            )
+        # except Exception:
+        #     # Fallback to basic notification if enhanced service fails
+        #     NotificationService.send_notification(
+        #         user=reminder.client,
+        #         title="Review Reminder",
+        #         message=message,
+        #         notification_type="reminder"
+            # )
         
         return reminder
 

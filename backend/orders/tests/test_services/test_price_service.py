@@ -13,7 +13,7 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from django.core.exceptions import ValidationError
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.services.price_service import PriceService
 from discounts.models import Discount
 

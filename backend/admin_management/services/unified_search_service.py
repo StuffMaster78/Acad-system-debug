@@ -7,9 +7,9 @@ from django.db.models.functions import Concat
 from typing import Dict, List, Any, Optional
 from decimal import Decimal
 
-from orders.models import Order
+from orders.models.orders import Order
 from django.conf import settings
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 from communications.models import CommunicationMessage, CommunicationThread
 from client_wallet.models import ClientWalletTransaction
 from writer_wallet.models import WalletTransaction

@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
 from websites.models.websites import Website
-from orders.models import Order
+from orders.models.orders import Order
 
 User = settings.AUTH_USER_MODEL 
 
@@ -416,7 +416,7 @@ class EditorNotification(models.Model):
     editor = models.ForeignKey(
         EditorProfile,
         on_delete=models.CASCADE,
-        related_name="notifications",
+        related_name="editor_based_notifications",
         help_text="The editor receiving the notification."
     )
     message = models.TextField(help_text="Notification message.")
@@ -433,7 +433,7 @@ class EditorNotification(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="notifications",
+        related_name="related_tasks_notifications",
         help_text="Related task assignment, if applicable."
     )
     created_at = models.DateTimeField(

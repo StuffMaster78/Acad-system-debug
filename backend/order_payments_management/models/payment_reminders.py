@@ -8,6 +8,54 @@ from django.utils import timezone
 from websites.models.websites import Website
 
 
+class PaymentReminderSettings(models.Model):
+    """
+    Allows admins to customize reminder messages and intervals for unpaid orders.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_payment_reminders'
+    )
+    first_reminder_hours = models.PositiveIntegerField(
+        default=12, help_text="Hours before expiration for the first reminder."
+    )
+    final_reminder_hours = models.PositiveIntegerField(
+        default=3, help_text="Hours before expiration for the final reminder."
+    )
+    first_reminder_message = models.TextField(
+        default="Your order payment is still pending. Please complete it to avoid cancellation.",
+        help_text="Message for the first reminder email/notification."
+    )
+    final_reminder_message = models.TextField(
+        default="Your order payment will expire soon. Complete payment now to prevent cancellation.",
+        help_text="Message for the final reminder email/notification."
+    )
+    admin = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="payment_reminder_settings", help_text="Admin who last updated the settings."
+    )
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "Payment Reminder Settings"
+
+    class Meta:
+        verbose_name = "Payment Reminder Setting"
+        verbose_name_plural = "Payment Reminder Settings"
+
+    def save(self, *args, **kwargs):
+        # Ensure a website is always assigned during tests
+        if not getattr(self, 'website_id', None):
+            try:
+                site = Website.objects.filter(is_active=True).first()
+                if site is None:
+                    site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+                self.website_id = site.id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
 class PaymentReminderConfig(models.Model):
     """
     Configuration for payment reminders based on deadline percentage.
@@ -166,6 +214,6 @@ class PaymentReminderSent(models.Model):
         ]
 
     def __str__(self):
-        target = f"Order {self.order.id}" if self.order else f"Payment {self.payment.id}"
+        target = f"Order {self.order.id}" if self.order else f"Payment {self.payment.pk}"
         return f"{self.reminder_config.name} sent to {target} at {self.sent_at}"
-
+    

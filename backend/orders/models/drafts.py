@@ -10,7 +10,7 @@ from orders.order_enums import (
     OrderRequestStatus
 )
 from orders.models.orders import Order
-from orders.models.websites import Website
+from websites.models.websites import Website
 
 User = settings.AUTH_USER_MODEL
 

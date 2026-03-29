@@ -25,7 +25,7 @@ from users.utils import (
 )
 from audit_logging.services.audit_log_service import AuditLogService
 
-from .serializers import (
+from .serializers_legacy import (
     UserActivitySerializer,
     ClientProfileSerializer,
     WriterProfileSerializer,
@@ -42,7 +42,7 @@ from editor_management.models import EditorProfile
 from support_management.models import SupportProfile
 from superadmin_management.models import SuperadminProfile
 from admin_management.models import AdminProfile
-from websites.models import Website
+from websites.models.websites import Website
 from users.utils import get_client_ip, generate_otp, send_otp_email, send_otp_sms, verify_totp
 from django.utils.timezone import now, timedelta
 from users.utils import get_client_ip, get_device_info
@@ -1239,7 +1239,7 @@ class AdminProfileRequestViewSet(viewsets.ViewSet):
             user_website = getattr(user, 'website', None)
             if not user_website:
                 # Try to get website from user's profile or use first available
-                from websites.models import Website
+                from websites.models.websites import Website
                 try:
                     user_website = Website.objects.first()
                 except:

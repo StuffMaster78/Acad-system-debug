@@ -15,7 +15,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.submit_order_service import SubmitOrderService
 from unittest.mock import MagicMock

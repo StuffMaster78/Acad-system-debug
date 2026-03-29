@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from orders.models import Order, OrderTransitionLog
+from orders.models.orders import Order, OrderTransitionLog
 from orders.order_enums import OrderStatus
 from orders.services.status_transition_service import StatusTransitionService, VALID_TRANSITIONS
 from orders.exceptions import InvalidTransitionError, AlreadyInTargetStatusError
@@ -194,7 +194,7 @@ class TestStatusTransitionServiceBatchOperations:
     
     def test_move_complete_orders_to_approved(self, order, client_user, website):
         """Test batch moving complete orders to approved."""
-        from orders.models import Order as OrderModel
+        from orders.models.orders import Order as OrderModel
         
         # Create orders in 'complete' status
         cutoff_date = timezone.now() - timedelta(days=1)
@@ -273,7 +273,7 @@ class TestStatusTransitionServicePaymentValidation:
     
     def test_transition_with_completed_payment(self, order, admin_user, writer_user):
         """Test transition works with completed payment."""
-        from order_payments_management.models import OrderPayment
+        from order_payments_management.models.payments import OrderPayment
         
         order.status = OrderStatus.AVAILABLE.value
         order.assigned_writer = writer_user

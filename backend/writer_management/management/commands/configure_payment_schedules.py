@@ -4,7 +4,8 @@ Sets default payment schedules based on website settings or custom rules.
 """
 from django.core.management.base import BaseCommand
 from writer_management.models.profile import WriterProfile
-from websites.models import Website, WebsiteSettings
+from websites.models.websites import Website
+from websites.models.website_settings import WebsiteSettings
 from django.db.models import Q
 
 

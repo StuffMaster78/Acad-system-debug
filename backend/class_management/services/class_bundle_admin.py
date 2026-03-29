@@ -11,9 +11,9 @@ from django.utils import timezone
 from datetime import timedelta
 
 from class_management.models import ClassBundle, ClassInstallment
-from websites.models import Website
+from websites.models.websites import Website
 from discounts.models.discount import Discount
-from notifications_system.services.notification_helper import NotificationHelper
+from notifications_system.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
 
@@ -186,9 +186,22 @@ class ClassBundleAdminService:
             from client_management.models import ClientProfile
             client_profile = ClientProfile.objects.filter(user=client, website=website).first()
             if client_profile:
-                NotificationHelper.notify_class_bundle_created(
-                    class_bundle=bundle,
-                    client_profile=client_profile
+                NotificationService.notify(
+                    event_key="class_bundle_created",
+                    recipient=client_profile.user,
+                    website=website,
+                    context={
+                        'class_bundle': bundle,
+                        'client_profile': client_profile
+                    },
+                    channels=['email', 'in_app'],
+                    priority='high',
+                    is_critical=True,
+                    is_silent=False,
+                    is_digest=False,
+                    is_broadcast=False,
+                    digest_group=None,
+
                 )
         except Exception as e:
             logger.error(f"Failed to send class bundle created notification: {e}")

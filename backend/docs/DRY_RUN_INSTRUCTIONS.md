@@ -132,7 +132,7 @@ To clean up test data after testing:
 ```python
 # In Django shell
 from django.contrib.auth import get_user_model
-from orders.models import Order
+from orders.models.orders import Order
 from communications.models import CommunicationThread
 
 User = get_user_model()

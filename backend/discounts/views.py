@@ -215,7 +215,7 @@ class DiscountViewSet(viewsets.ModelViewSet):
         Bulk generate discount codes for a promotional campaign.
         """
         from discounts.services.discount_generator import DiscountCodeGenerator
-        from websites.models import Website
+        from websites.models.websites import Website
         from django.core.exceptions import ValidationError
         from datetime import datetime
         
@@ -565,7 +565,7 @@ class DiscountAnalyticsView(APIView):
         Get detailed analytics for a specific promotional campaign.
         """
         from django.db.models import Sum, Count, Avg, Q
-        from orders.models import Order
+        from orders.models.orders import Order
         
         try:
             campaign = PromotionalCampaign.objects.get(id=campaign_id)

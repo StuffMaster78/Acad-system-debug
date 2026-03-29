@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from datetime import timedelta
 from django.utils.timezone import now
-from websites.models import Website
+from websites.models.websites import Website
 from .models import (
     ServicePage,
     ServicePageClick,
@@ -92,15 +92,15 @@ class ServicePageSerializer(serializers.ModelSerializer):
         if request and hasattr(request, 'user'):
             user = request.user
             if user.role == 'superadmin':
-                from websites.models import Website
+                from websites.models.websites import Website
                 self.fields['website_id'].queryset = Website.objects.filter(is_active=True, is_deleted=False)
             else:
                 user_website = getattr(user, 'website', None)
                 if user_website:
-                    from websites.models import Website
+                    from websites.models.websites import Website
                     self.fields['website_id'].queryset = Website.objects.filter(id=user_website.id, is_active=True, is_deleted=False)
                 else:
-                    from websites.models import Website
+                    from websites.models.websites import Website
                     self.fields['website_id'].queryset = Website.objects.none()
     
     def get_website(self, obj):

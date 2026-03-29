@@ -56,7 +56,7 @@ class ServicePageViewSet(viewsets.ModelViewSet):
         # Get website
         if website_id:
             try:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.get(id=website_id)
             except Website.DoesNotExist:
                 from rest_framework.exceptions import ValidationError
@@ -93,7 +93,7 @@ class ServicePageViewSet(viewsets.ModelViewSet):
         website_id = self.request.data.get('website_id') or self.request.data.get('website')
         if website_id:
             try:
-                from websites.models import Website
+                from websites.models.websites import Website
                 new_website = Website.objects.get(id=website_id)
             except Website.DoesNotExist:
                 from rest_framework.exceptions import ValidationError
@@ -155,7 +155,7 @@ class ServicePageViewSet(viewsets.ModelViewSet):
     def available_websites(self, request):
         """Get list of websites available for service page creation."""
         from websites.serializers import WebsiteSerializer
-        from websites.models import Website
+        from websites.models.websites import Website
         
         user = request.user
         

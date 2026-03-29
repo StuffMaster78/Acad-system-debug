@@ -1,12 +1,12 @@
 from celery import shared_task
 from core.utils.notifications import send_notification
 from django.utils.timezone import now
-from orders.models import Order
+from orders.models.orders import Order
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 import logging
 from django.utils import timezone
-from orders.models import Order
+from orders.models.orders import Order
 from datetime import timedelta
 from django.db.models import Avg, Count
 from django.conf import settings
@@ -15,17 +15,17 @@ from orders.services.archive_order_service import ArchiveOrderService
 from orders.services.auto_archive_service import AutoArchiveService
 from orders.services.status_transition_service import StatusTransitionService
 
-from orders.models import OrderRequest
+from orders.models.requests import OrderRequest
 from orders.order_enums import OrderRequestStatus
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.workflow.state_machine import GenericStateMachineService
-# from orders.models import OrderReview
+# from orders.models.orders import OrderReview
 from orders.services.order_request_service import OrderRequestService
 from users.models import User
 from websites.models.websites import Website
 from audit_logging.services.audit_log_service import AuditLogEntry
-from orders.models import WriterRequest
+from orders.models.requests import WriterRequest
 from audit_logging.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger(__name__)

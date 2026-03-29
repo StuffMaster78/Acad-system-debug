@@ -37,7 +37,7 @@ class EditorAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
         website_id = request.data.get('website_id')
         
         from authentication.models import User
-        from websites.models import Website
+        from websites.models.websites import Website
         
         try:
             user = User.objects.get(id=user_id)

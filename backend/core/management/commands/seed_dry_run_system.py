@@ -24,9 +24,9 @@ from order_configs.models import (
     EnglishType,
     WriterDeadlineConfig,
 )
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus, SpacingOptions
-from websites.models import Website
+from websites.models.websites import Website
 from pricing_configs.models import PricingConfiguration, AcademicLevelPricing, WriterLevelOptionConfig
 from wallet.models import Wallet
 from writer_management.models.payout import WriterPayment

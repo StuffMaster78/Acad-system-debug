@@ -5,7 +5,7 @@ Creates express classes with various statuses, disciplines, and workloads.
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from decimal import Decimal
-from websites.models import Website
+from websites.models.websites import Website
 from class_management.models import ExpressClass
 from users.models import User
 from django.utils import timezone

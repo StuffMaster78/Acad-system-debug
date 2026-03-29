@@ -7,8 +7,9 @@ from django.db.models.functions import TruncDate, TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models import Order, OrderPricingSnapshot
-from order_payments_management.models import OrderPayment
+from orders.models.orders import Order
+from orders.models.logs import OrderPricingSnapshot
+from order_payments_management.models.payments import OrderPayment
 from pricing_configs.models import PricingConfiguration, AdditionalService
 
 

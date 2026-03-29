@@ -13,7 +13,7 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 
-from orders.models import Order, CancellationRequest
+from orders.models.orders import Order, CancellationRequest
 from orders.order_enums import OrderStatus
 from orders.services.cancel_order_service import CancelOrderService
 

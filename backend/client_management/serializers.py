@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import ClientProfile, SuspiciousLogin, ClientActivityLog, TemporaryPassword, ProfileUpdateRequest
-from loyalty_management.models import LoyaltyTransaction, Milestone
+from loyalty_management.models import ClientBadge, LoyaltyTransaction, Milestone
 from wallet.models import Wallet
 from django.apps import apps
 from decimal import Decimal
@@ -179,6 +179,15 @@ class ClientActionSerializer(serializers.Serializer):
         required=True,
         help_text="The action to perform on the client account."
     )
+
+
+class ClientBadgeSerializer(serializers.ModelSerializer):
+    client_username = serializers.CharField(source='client.user.username', read_only=True)
+    
+    class Meta:
+        model = ClientBadge
+        fields = ['id', 'client', 'client_username', 'badge_name', 'description', 'awarded_at']
+        read_only_fields = ['id', 'awarded_at']
 
 
 class BlacklistedEmailSerializer(serializers.ModelSerializer):

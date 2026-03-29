@@ -6,7 +6,7 @@ from models.payout import WriterPayment
 from writer_management.services.payment_service  import WriterPaymentService
 from decimal import Decimal
 from writer_management.models.profile import WriterProfile
-from websites.models import Website
+from websites.models.websites import Website
 from writer_management.serializers import WriterPaymentSerializer
 
 

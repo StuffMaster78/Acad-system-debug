@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from fines.models import Fine, FineAppeal
-from orders.models import Order
+from orders.models.orders import Order
 from writer_management.models import WriterProfile
 
 

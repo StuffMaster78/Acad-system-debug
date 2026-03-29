@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.permissions import CanExecuteOrderAction
 from authentication.permissions import IsAdminOrSuperAdmin
 from audit_logging.services.audit_log_service import AuditLogService

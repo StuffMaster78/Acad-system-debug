@@ -13,10 +13,10 @@ from unittest.mock import patch, MagicMock
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.mark_order_as_paid_service import MarkOrderPaidService
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 from decimal import Decimal
 
 

@@ -41,7 +41,7 @@ class ThreadService:
                 # Try to get website from order's website_id
                 website_id = getattr(order, 'website_id', None)
                 if website_id:
-                    from websites.models import Website
+                    from websites.models.websites import Website
                     try:
                         website = Website.objects.get(id=website_id)
                     except Website.DoesNotExist:

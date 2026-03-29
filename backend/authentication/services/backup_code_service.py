@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import transaction
 
 from authentication.models.backup_code import BackupCode
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class BackupCodeService:

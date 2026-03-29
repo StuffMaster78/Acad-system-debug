@@ -140,7 +140,7 @@ class WriterCapacity(models.Model):
     
     def update_active_orders_count(self):
         """Update current_active_orders count from database."""
-        from orders.models import Order
+        from orders.models.orders import Order
         count = Order.objects.filter(
             writer=self.writer,
             website=self.website,

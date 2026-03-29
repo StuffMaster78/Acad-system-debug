@@ -12,7 +12,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import patch
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.reopen_order_service import ReopenOrderService
 

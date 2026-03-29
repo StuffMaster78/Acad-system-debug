@@ -15,9 +15,9 @@ from writer_management.models.performance_snapshot import WriterPerformanceSnaps
 # WriterOrderRequest imported inside functions to avoid circular import
 from writer_management.models.payout import WriterPayment, WriterEarningsHistory
 from writer_management.models.badges import WriterBadge, Badge
-from orders.models import Order
+from orders.models.orders import Order
 # WriterRequest imported inside functions to avoid circular import
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 from reviews_system.models.writer_review import WriterReview
 from communications.models import CommunicationThread, CommunicationMessage
 
@@ -424,7 +424,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             requested_order_ids = list(order_requests.values_list('order_id', flat=True))
             
             # Get writer requests (from orders app) - lazy import to avoid circular dependency
-            from orders.models import WriterRequest
+            from orders.models.requests import WriterRequest
             writer_requests = WriterRequest.objects.filter(
                 requested_by_writer=request.user,
                 order__is_paid=True  # Only show requests for paid orders
@@ -1774,7 +1774,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         
         # Import inside function to avoid circular import
         from writer_management.models.requests import WriterOrderRequest
-        from orders.models import WriterRequest
+        from orders.modelsi import WriterRequest
         
         profile = self.get_writer_profile(request)
         if not profile:
@@ -2166,7 +2166,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         # Import required models
         from writer_management.models.payout import WriterPayment
         from special_orders.models import WriterBonus, SpecialOrder
-        from orders.models import Order
+        from orders.models.orders import Order
         
         # Get regular order earnings
         regular_orders = Order.objects.filter(
@@ -2445,7 +2445,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         # Import required models
         from writer_management.models.payout import WriterPayment
         from special_orders.models import WriterBonus, SpecialOrder
-        from orders.models import Order
+        from orders.models.orders import Order
         
         # Collect all earnings records
         earnings_records = []
@@ -2594,7 +2594,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         from writer_management.models.order_priority import (
             WriterOrderPriority
         )
-        from orders.models import Order
+        from orders.models.orders import Order
         
         profile = self.get_writer_profile(request)
         if not profile:
@@ -2697,7 +2697,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         from writer_management.models.order_priority import (
             WriterOrderPriority
         )
-        from orders.models import Order
+        from orders.models.orders import Order
         
         profile = self.get_writer_profile(request)
         if not profile:

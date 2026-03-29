@@ -7,7 +7,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
-from orders.models import Order, WriterAssignmentAcknowledgment
+from orders.models.orders import Order
+from orders.models.writer_acknowledgment import WriterAssignmentAcknowledgment
 from orders.serializers.writer_acknowledgment import WriterAssignmentAcknowledgmentSerializer
 
 

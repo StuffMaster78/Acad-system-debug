@@ -7,8 +7,8 @@ from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models import Order
-from order_payments_management.models import OrderPayment
+from orders.models.orders import Order
+from order_payments_management.models.payments import OrderPayment
 from order_payments_management.services.payment_service import OrderPaymentService
 from client_wallet.models import ClientWallet
 

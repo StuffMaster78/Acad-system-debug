@@ -1,4 +1,4 @@
-from special_orders.models import OrderCompletionLog
+from special_orders.models.orders import OrderCompletionLog
 
 
 class OrderCompletionLogService:

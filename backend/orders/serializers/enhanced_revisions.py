@@ -2,7 +2,7 @@
 Enhanced Revision Request Serializers
 """
 from rest_framework import serializers
-from orders.enhanced_revisions import RevisionRequest
+from orders.models.enhanced_revisions import RevisionRequest
 
 
 class RevisionRequestSerializer(serializers.ModelSerializer):

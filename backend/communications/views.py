@@ -89,7 +89,7 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         role = getattr(user, "role", None)
         
         from django.db.models import Q, Exists, OuterRef
-        from orders.models import Order
+        from orders.models.orders import Order
         
         # Threads where user is a participant (always visible)
         participant_filter = Q(participants=user)
@@ -344,7 +344,7 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            from orders.models import Order
+            from orders.models.orders import Order
             order = Order.objects.get(pk=order_id)
         except Order.DoesNotExist:
             return Response(
@@ -725,7 +725,7 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            from orders.models import Order
+            from orders.models.orders import Order
             order = Order.objects.get(pk=order_id)
         except Order.DoesNotExist:
             return Response(

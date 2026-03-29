@@ -71,7 +71,7 @@ docker-compose logs web --tail 100 | grep -A 20 "Login error"
 ```bash
 docker-compose exec web python manage.py shell -c "
 from django.contrib.auth import get_user_model
-from websites.models import Website
+from websites.models.websites import Website
 User = get_user_model()
 user = User.objects.filter(role='superadmin').first()
 website = Website.objects.filter(is_active=True).first()
@@ -91,7 +91,7 @@ print(f'User profile exists: {hasattr(user, \"user_main_profile\") and user.user
 ```python
 # Assign website to user
 from django.contrib.auth import get_user_model
-from websites.models import Website
+from websites.models.websites import Website
 User = get_user_model()
 user = User.objects.filter(role='superadmin').first()
 website = Website.objects.filter(is_active=True).first()

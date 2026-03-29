@@ -1,8 +1,9 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from .models import Order, Dispute, WriterRequest, OrderRequest
-from notifications_system.services.dispatch import send
-from django.core.mail import send_mail
+from .models.orders import Order
+from .models.requests import OrderRequest, WriterRequest
+from .models.order_disputes import Dispute
+from notifications_system.services.notification_service import NotificationService
 
 @receiver(post_save, sender=Order)
 def handle_order_save(sender, instance, created, **kwargs):
@@ -84,29 +85,22 @@ def notify_writer_on_acceptance(sender, instance, created, **kwargs):
         f"- {domain} Team"
     )
 
-    # System dashboard notification
-    try:
-        send(
-            user=writer,
-            message="Your request to work on an order was accepted! "
-                    f"Click to accept the assignment: {accept_url}",
-            metadata={
-                "order_id": order.id,
-                "website_id": website.id,
-                "expires_at": instance.expires_at.isoformat(),
-            },
-        )
-    except Exception:
-        pass  # Silently fail
-
-    # Email notification
-    try:
-        send_mail(
-            subject,
-            message,
-            f"no-reply@{domain}",
-            [writer.email],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+    NotificationService.notify(
+        event_key="writer_request_accepted",
+        recipient=writer,
+        website=website,
+        context={
+            "order": order,
+            "writer": writer,
+            "dashboard_url": dashboard_url,
+            "accept_url": accept_url
+        },
+        channels=["email", "in_app"],
+        triggered_by=None,
+        is_broadcast=False
+        priority="high",
+        is_digest=False,
+        is_critical=True,
+        is_silent=False
+        digest_group=None
+    )

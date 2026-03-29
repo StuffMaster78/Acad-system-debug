@@ -15,7 +15,7 @@ from django.core.exceptions import OperationalError
 from django.db import transaction
 
 from django.core.exceptions import OperationalError
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.status_transition_service import StatusTransitionService
 from orders.services.assignment import OrderAssignmentService

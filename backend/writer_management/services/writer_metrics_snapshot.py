@@ -7,7 +7,7 @@ from django.utils.timezone import now
 
 from writer_management.models.performance_snapshot import WriterPerformanceSnapshot
 from writer_management.models.profile import WriterProfile
-from orders.models import Order
+from orders.models.orders import Order
 from writer_management.models.payout import WriterPayment
 
 

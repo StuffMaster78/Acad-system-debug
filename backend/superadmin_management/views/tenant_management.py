@@ -13,12 +13,13 @@ from datetime import timedelta
 from django.shortcuts import get_object_or_404
 
 from superadmin_management.permissions import IsSuperadmin
-from websites.models import Website
+from websites.models.websites import Website
 from websites.serializers import WebsiteSerializer
-from orders.models import Order, Dispute
+from orders.models.orders import Order
+from orders.models.order_disputes import Dispute
 from orders.order_enums import OrderStatus
 from users.models import User
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 
 
 class SuperadminTenantManagementViewSet(viewsets.ViewSet):

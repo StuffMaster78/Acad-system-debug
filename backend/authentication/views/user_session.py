@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from authentication.models import UserSession
 from authentication.serializers import UserSessionSerializer
-from websites.models import Website  # or your actual path
+from websites.models.websites import Website  # or your actual path
 from django.utils.timezone import now
 from rest_framework.decorators import action
 

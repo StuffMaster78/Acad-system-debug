@@ -192,12 +192,18 @@ class WriterAssignmentAcceptance(models.Model):
             event_key="order.assignment_rejected",
             recipient=self.assigned_by,
             website=self.website,
-            context=
-            channels= {}
-
-
-            
-            
-            ),
-
+            context={
+                "order_id": self.order.id,
+                "order_title": self.order.title,
+                "writer_username": self.writer.username,
+                "rejection_reason": reason,
+            },
+            channels= ["email", "in_app"],
+            triggered_by=self.writer,
+            priority="high",
+            is_broadcast=False,
+            is_digest=False,
+            is_silent=False,
+            digest_group=None,
         )
+

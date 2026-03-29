@@ -1,20 +1,20 @@
 from rest_framework import serializers
 from django.utils.timezone import now  
-from .models import (
-    Order, Dispute,
-    DisputeWriterResponse,
-    WriterRequest,
-    OrderRequest,
-    OrderTransitionLog,
-    OrderPricingSnapshot,
-    WriterReassignmentLog
+
+from orders.models.orders import Order
+from orders.models.order_disputes import Dispute, DisputeWriterResponse
+from orders.models.requests import WriterRequest, OrderRequest
+from orders.models.logs import (
+    OrderTransitionLog, WriterReassignmentLog,
+    OrderPricingSnapshot
 )
+
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
 from orders.registry.decorator import get_all_registered_actions
 from django.utils import timezone
 from orders.services.revisions import OrderRevisionService
-from orders.models import WebhookDeliveryLog
+
 
 User = get_user_model()
 
@@ -645,18 +645,6 @@ class DeadlineExtensionSerializer(serializers.Serializer):
         if value <= timezone.now():
             raise serializers.ValidationError("Deadline must be in the future.")
         return value
-    
-
-class WebhookDeliveryLogSerializer(serializers.ModelSerializer):
-    user_email = serializers.CharField(source="user.email", read_only=True)
-
-    class Meta:
-        model = WebhookDeliveryLog
-        fields = [
-            "id", "user_email", "event", "url", "success", "status_code",
-            "retry_count", "test_mode", "created_at", "request_payload",
-            "response_body", "error_message"
-        ]
 
 
 class WriterRequestActionSerializer(serializers.Serializer):

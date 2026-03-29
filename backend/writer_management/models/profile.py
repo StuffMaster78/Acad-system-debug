@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
 from websites.models.websites import Website
-from orders.models import Order
+from orders.models.orders import Order
 from wallet.models import Wallet
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify

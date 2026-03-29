@@ -1,8 +1,8 @@
 from django.core.exceptions import ValidationError
-from orders.models import Order
+from orders.models.orders import Order
 from orders.utils.order_utils import get_order_by_id, save_order
 from orders.exceptions import InvalidTransitionError, AlreadyInTargetStatusError
-from notifications_system.services.notification_helper import NotificationHelper
+from notifications_system.services.notification_service import NotificationService
 
 
 class MarkOrderPaidService:
@@ -108,10 +108,17 @@ class MarkOrderPaidService:
             ).order_by('-created_at').first()
             
             if payment:
-                NotificationHelper.notify_order_paid(
-                    order=order,
-                    payment_amount=payment.discounted_amount or payment.amount,
-                    payment_method=payment.payment_method or payment_method or "payment method"
+                NotificationService.notify(
+                    event_key="order_paid",
+                    recipient=order.client,
+                    website=order.website,
+                    context={
+                        "order_id": order.id,
+                        "payment_amount": payment.discounted_amount or payment.amount,
+                        "payment_method": payment.payment_method or payment_method or "payment method",
+                    },
+                    is_critical=True,
+                    priority="high",
                 )
         except Exception as e:
             import logging

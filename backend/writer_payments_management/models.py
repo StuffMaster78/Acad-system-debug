@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from decimal import Decimal
 from typing import Optional
-from orders.models import Order
+from orders.models.orders import Order
 from special_orders.models import SpecialOrder
 from writer_management.models import WriterProfile
 from wallet.models import Wallet, WalletTransaction

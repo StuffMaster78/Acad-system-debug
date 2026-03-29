@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.core.cache import cache
-from orders.models import Order, PreferredWriterResponse
+from orders.models.orders import Order
 from django.contrib.auth import get_user_model
 from pricing_configs.models import PreferredWriterConfig
 

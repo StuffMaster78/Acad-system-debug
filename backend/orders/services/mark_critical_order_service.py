@@ -1,4 +1,4 @@
-from orders.models import Order
+from orders.models.orders import Order
 from orders.utils.order_utils import get_order_by_id, save_order
 from datetime import datetime, timedelta
 from order_configs.models import CriticalDeadlineSetting

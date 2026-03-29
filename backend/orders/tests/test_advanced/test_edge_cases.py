@@ -14,7 +14,7 @@ from decimal import Decimal
 from datetime import timedelta
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.status_transition_service import StatusTransitionService
 from orders.services.price_service import PriceService
@@ -30,7 +30,7 @@ class TestBoundaryConditions:
         order.save()
         
         from orders.services.mark_order_as_paid_service import MarkOrderPaidService
-        from order_payments_management.models import OrderPayment
+        from order_payments_management.models.payments import OrderPayment
         
         # Create payment for zero amount
         OrderPayment.objects.create(

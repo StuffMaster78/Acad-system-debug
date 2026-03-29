@@ -73,7 +73,14 @@ class ApplyDiscountCodeService:
                 context={
                     "order_id": order.id,
                     "error": str(exc)
-                }
+                },
+                channels=["email", "in_app"],
+                priority="high",
+                is_broadcast=True,
+                is_critical=True,
+                is_digest=False,
+                is_silent=False,
+                digest_group=None,
             )
             suggestions = DiscountSuggestionService.get_suggestions(order.website)
             result.update({

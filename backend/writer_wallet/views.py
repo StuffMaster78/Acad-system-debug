@@ -309,7 +309,7 @@ class ScheduledWriterPaymentViewSet(viewsets.ModelViewSet):
         """
         Get detailed breakdown of a specific payment including all orders, tips, and fines.
         """
-        from orders.models import Order
+        from orders.models.orders import Order
         from writer_management.models.tipping import Tip
         from datetime import timedelta
         
@@ -849,7 +849,7 @@ class WriterPaymentRequestViewSet(viewsets.ModelViewSet):
         """
         from writer_wallet.models import WriterWallet
         from writer_management.models.profile import WriterProfile
-        from websites.models import WebsiteSettings
+        from websites.models.websites import WebsiteSettings
         
         try:
             writer_profile = WriterProfile.objects.get(user=request.user)

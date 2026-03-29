@@ -57,7 +57,7 @@ class EditorSessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        from websites.models import Website
+        from websites.models.websites import Website
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -188,7 +188,7 @@ class EditorProductivityMetricsViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        from websites.models import Website
+        from websites.models.websites import Website
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -224,7 +224,7 @@ class EditorProductivityMetricsViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        from websites.models import Website
+        from websites.models.websites import Website
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:

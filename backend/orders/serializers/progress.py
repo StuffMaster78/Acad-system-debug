@@ -2,7 +2,7 @@
 Serializers for writer progress reports.
 """
 from rest_framework import serializers
-from orders.models import WriterProgress
+from orders.models.writer_progress import WriterProgress
 from users.serializers_legacy import SimpleUserSerializer
 
 

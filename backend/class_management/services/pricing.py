@@ -1,6 +1,6 @@
 from decimal import Decimal
 from class_management.models import ClassBundleConfig
-from websites.models import Website
+from websites.models.websites import Website
 
 class InvalidPricingError(Exception):
     """Raised when no price is found for the given combination."""

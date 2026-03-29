@@ -12,7 +12,7 @@ from datetime import timedelta
 from unittest.mock import patch
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.services.order_deadline_service import OrderDeadlineService
 
 

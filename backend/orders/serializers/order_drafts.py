@@ -2,7 +2,7 @@
 Order Drafts Serializers
 """
 from rest_framework import serializers
-from orders.order_drafts import OrderDraft
+from orders.models.order_drafts import OrderDraft
 
 
 class OrderDraftSerializer(serializers.ModelSerializer):

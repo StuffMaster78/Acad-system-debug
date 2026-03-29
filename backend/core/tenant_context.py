@@ -1,6 +1,6 @@
 # core/tenant_context.py
 import contextvars
-from websites.models import Website
+from websites.models.websites import Website
 from celery import shared_task
 
 _current_site = contextvars.ContextVar("current_site", default=None)

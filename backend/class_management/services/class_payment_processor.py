@@ -10,10 +10,10 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from class_management.models import ClassBundle, ClassInstallment, ClassPurchase
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 from order_payments_management.services.payment_service import OrderPaymentService
 from order_payments_management.services.unified_payment_service import UnifiedPaymentService
-from notifications_system.services.notification_helper import NotificationHelper
+from notifications_system.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
 
@@ -120,10 +120,24 @@ class ClassPaymentProcessor:
             
             # Send notification
             try:
-                NotificationHelper.notify_class_deposit_paid(
-                    class_bundle=bundle,
-                    amount=payment.discounted_amount or payment.amount,
-                    balance_remaining=bundle.balance_remaining
+                NotificationService.notify(
+                    event_key="class.deposit.paid",
+                    recipient=client,
+                    website=bundle.website,
+                    context={
+                        "bundle_id": bundle.id,
+                        "bundle_name": f"Class Bundle #{bundle.id}",
+                        "deposit_amount": payment.discounted_amount or payment.amount,
+                        "balance_remaining": bundle.balance_remaining
+                    },
+                    triggered_by=client,
+                    priority="high",
+                    is_broadcast=False,
+                    is_critical=True,
+                    is_digest=False,
+                    is_silent=False,
+                    digest_group=None,
+
                 )
             except Exception as e:
                 logger.error(f"Failed to send deposit paid notification: {e}")
@@ -218,16 +232,27 @@ class ClassPaymentProcessor:
             # Notify if bundle is fully paid
             if bundle.is_fully_paid:
                 try:
-                    NotificationHelper.send_notification(
-                        user=client,
-                        event="class.bundle.completed",
-                        payload={
-                            "bundle_id": bundle.id,
-                            "bundle_name": f"Class Bundle #{bundle.id}",
-                            "number_of_classes": bundle.number_of_classes or 1,
-                            "website_id": bundle.website_id
+                    NotificationService.notify(
+                        event_key="class.bundle.completed",
+                        recipient=client,
+                        website=bundle.website,
+                        context={
+                            "user": client,
+                            "event": "class.bundle.completed",
+                            "payload": {
+                                "bundle_id": bundle.id,
+                                "bundle_name": f"Class Bundle #{bundle.id}",
+                                "number_of_classes": bundle.number_of_classes or 1,
+                                "website_id": bundle.website_id
+                            }
                         },
-                        website=bundle.website
+                        triggered_by=client,
+                        priority="high",
+                        is_broadcast=False,
+                        is_critical=True,
+                        is_digest=False,
+                        is_silent=False,
+                        digest_group=None,
                     )
                 except Exception as e:
                     logger.error(f"Failed to send bundle completed notification: {e}")

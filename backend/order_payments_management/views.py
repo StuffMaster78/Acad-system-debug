@@ -12,11 +12,11 @@ from django.utils import timezone
 from datetime import timedelta
 import logging
 
-from .models import OrderPayment, FailedPayment
+from order_payments_management.models.payments import OrderPayment
 from .serializers import TransactionSerializer
 from .services.payment_service import OrderPaymentService
 from .services.receipt_service import ReceiptService
-from orders.models import Order
+from orders.models.orders import Order
 from authentication.permissions import IsSuperadminOrAdmin
 from rest_framework.permissions import IsAuthenticated
 from client_wallet.models import ClientWalletTransaction
@@ -909,8 +909,11 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
         try:
             payment = OrderPaymentService.create_payment(
                 order=order,
+                client=order.client,
                 payment_method=payment_method,
-                discount_code=discount_code
+                # amount=order.total_price,  # In real implementation, calculate after applying discount
+                discount_code=discount_code,
+                original_amount=order.total_amount
             )
             
             # Process wallet payment immediately
@@ -1029,7 +1032,20 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
 
 
 # Stub viewsets for other payment-related models
-from .models import PaymentNotification, PaymentLog, PaymentDispute, DiscountUsage, AdminLog, PaymentReminderSettings
+from order_payments_management.models.logs import AdminLog, PaymentLog
+from order_payments_management.models.payment_dispute import PaymentDispute
+from order_payments_management.models.payment_refund import Refund
+from order_payments_management.models.payments import (
+    OrderPayment,
+)
+from order_payments_management.models.payment_notification import PaymentNotification
+from order_payments_management.models.payment_reminders import (
+    PaymentReminderConfig,
+    PaymentReminderDeletionMessage,
+    PaymentReminderSent,
+    PaymentReminderSettings
+)
+from discounts.models.discount import  DiscountUsage
 
 class PaymentNotificationViewSet(viewsets.ModelViewSet):
     queryset = PaymentNotification.objects.all()
@@ -1075,7 +1091,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
 from .models.payment_reminders import (
     PaymentReminderConfig,
     PaymentReminderSent,
-    PaymentReminderDeletionMessage
+    PaymentReminderDeletionMessage,
+    PaymentReminderSettings
 )
 from .serializers import (
     PaymentReminderConfigSerializer,

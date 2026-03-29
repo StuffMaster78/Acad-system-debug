@@ -46,7 +46,7 @@ class WriterReward(models.Model):
                 if getattr(self, 'writer', None) and getattr(self.writer, 'website_id', None):
                     self.website_id = self.writer.website_id
                 else:
-                    from websites.models import Website
+                    from websites.models.websites import Website
                     site = Website.objects.filter(is_active=True).first()
                     if site is None:
                         site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)

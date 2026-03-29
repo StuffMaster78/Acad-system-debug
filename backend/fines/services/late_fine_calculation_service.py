@@ -8,7 +8,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional, Tuple
 
 from django.db import models
-from orders.models import Order
+from orders.models.orders import Order
 from fines.models import Fine, FineType, FineStatus
 from fines.models.late_fine_policy import LatenessFineRule
 

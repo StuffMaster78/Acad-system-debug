@@ -8,7 +8,7 @@ from fines.models import (
     FineAppealEvent,
     FineAppealEvidence,
 )
-from orders.models import Order
+from orders.models.orders import Order
 
 User = get_user_model()
 

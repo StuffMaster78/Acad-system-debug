@@ -28,12 +28,12 @@ from django.utils import timezone
 from django.conf import settings
 from django.db import transaction
 from websites.models.websites import Website
-from orders.models import Order
+from orders.models.orders import Order
 from orders.services.create_order_service import CreateOrderService
 from orders.services.assignment import OrderAssignmentService
 from orders.services.submit_order_service import SubmitOrderService
 from orders.services.complete_order_service import CompleteOrderService
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 from order_payments_management.services.payment_service import OrderPaymentService
 from order_configs.models import PaperType, AcademicLevel
 from client_wallet.models import ClientWallet

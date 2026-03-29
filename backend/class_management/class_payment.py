@@ -12,7 +12,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from websites.models import Website
+from websites.models.websites import Website
 
 User = settings.AUTH_USER_MODEL
 

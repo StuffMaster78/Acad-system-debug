@@ -9,7 +9,8 @@ from .models import (
     SupportWorkloadTracker, OrderDisputeSLA, FAQCategory, FAQManagement, 
     SupportDashboard
 )
-from orders.models import Order, Dispute
+from orders.models.orders import Order
+from orders.models.order_disputes import Dispute
 from tickets.models import Ticket
 from order_files.models import OrderFile
 

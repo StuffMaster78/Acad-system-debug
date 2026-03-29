@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAdminUser
 from django.db.models import Count, Q, Sum, Avg
 from django.utils.timezone import now, timedelta
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier, LoyaltyPointsConversionConfig
-from orders.models import Order
+from orders.models.orders import Order
 from referrals.models import Referral
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter

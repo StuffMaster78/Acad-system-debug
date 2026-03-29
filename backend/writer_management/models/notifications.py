@@ -79,7 +79,7 @@ class WriterOrderRequestNotification(models.Model):
     """
     request = models.ForeignKey(
         WriterOrderRequest, on_delete=models.CASCADE,
-        related_name="notifications"
+        related_name="request_notifications"
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
@@ -108,7 +108,7 @@ class WriterOrderTakeNotification(models.Model):
     """
     take = models.ForeignKey(
         WriterOrderTake, on_delete=models.CASCADE,
-        related_name="notifications"
+        related_name="take_order_notifications"
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
@@ -136,7 +136,7 @@ class WriterOrderRequestNotification(models.Model):
     """
     request = models.ForeignKey(
         WriterOrderRequest, on_delete=models.CASCADE,
-        related_name="notifications"
+        related_name="order_requests_notifications"
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
@@ -165,7 +165,7 @@ class WriterOrderTakeNotification(models.Model):
     """
     take = models.ForeignKey(
         WriterOrderTake, on_delete=models.CASCADE,
-        related_name="notifications"
+        related_name="order_taking_notifications"
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
@@ -194,7 +194,7 @@ class WriterOrderHoldNotification(models.Model):
     """
     hold_request = models.ForeignKey(
         WriterOrderHoldRequest, on_delete=models.CASCADE,
-        related_name="notifications"
+        related_name="hold_request_notifications"
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
@@ -223,7 +223,7 @@ class WriterReassignmentNotification(models.Model):
     """
     reassignment_request = models.ForeignKey(
         WriterReassignmentRequest, on_delete=models.CASCADE,
-        related_name="notifications"
+        related_name="reassignment_request_notifications"
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,

@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.db import models
 from django.core.exceptions import ValidationError
 
-from orders.models import Order
+from orders.models.orders import Order
 from fines.models import Fine, FineTypeConfig
 from fines.services.fine_type_service import FineTypeService
 

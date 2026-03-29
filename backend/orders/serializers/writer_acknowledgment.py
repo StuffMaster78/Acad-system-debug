@@ -2,7 +2,7 @@
 Serializers for Writer Assignment Acknowledgment
 """
 from rest_framework import serializers
-from orders.models import WriterAssignmentAcknowledgment
+from orders.models.writer_acknowledgment import WriterAssignmentAcknowledgment
 
 
 class WriterAssignmentAcknowledgmentSerializer(serializers.ModelSerializer):

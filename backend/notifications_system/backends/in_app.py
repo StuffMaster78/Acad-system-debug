@@ -26,7 +26,7 @@ class InAppBackend(BaseDeliveryBackend):
     def send(self) -> DeliveryResult:
         try:
             from notifications_system.models.user_notification_meta import (
-                UserNotificationMeta,
+                UserNotificationMeta
             )
             meta, _ = UserNotificationMeta.objects.get_or_create(
                 user=self.user,

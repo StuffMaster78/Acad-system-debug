@@ -17,10 +17,10 @@ from order_configs.models import (
     EnglishType,
     WriterDeadlineConfig,
 )
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus, SpacingOptions
 from wallet.models import Wallet
-from websites.models import Website
+from websites.models.websites import Website
 from writer_management.models.profile import WriterProfile
 from writer_wallet.models import (
     WriterWallet,

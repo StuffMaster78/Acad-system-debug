@@ -86,7 +86,7 @@ const router = createRouter({
     },
     {
       path: '/',
-      component: () => import('@/layouts/ModernDashboardLayout.vue'),
+      component: () => import('@/layouts/DashboardLayout.vue'),
       redirect: '/dashboard',
       meta: { requiresAuth: true },
       children: [

@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from decimal import Decimal
-from orders.models import Order
+from orders.models.orders import Order
 from client_management.models import ClientProfile
 from .models import Milestone, ClientBadge, LoyaltyTransaction, LoyaltyTier
 

@@ -18,9 +18,7 @@ from writer_management.models.discipline import (
 )
 from writer_management.models.writer_warnings import WriterWarning
 from writer_management.models.rewards import WriterReward
-from writer_management.services.discipline_notification_service import (
-    DisciplineNotificationService,
-)
+
 
 User = get_user_model()
 
@@ -50,7 +48,7 @@ def log_writer_action(sender, instance, created, **kwargs):
         website = getattr(instance, 'website', None)
         if website is None:
             try:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.filter(is_active=True).first()
                 if website is None:
                     website = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)

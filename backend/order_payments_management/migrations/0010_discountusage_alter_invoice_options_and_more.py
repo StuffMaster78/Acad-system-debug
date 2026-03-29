@@ -128,7 +128,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='invoice',
             name='reference_id',
-            field=models.CharField(default=order_payments_management.models.generate_reference_id, help_text='Unique invoice reference number', max_length=64, unique=True),
+            field=models.CharField(default=order_payments_management.models.payments.generate_reference_id, help_text='Unique invoice reference number', max_length=64, unique=True),
         ),
         # Alter fields on orderpayment
         migrations.AlterField(

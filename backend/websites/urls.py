@@ -2,14 +2,14 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views.all_views import (
     WebsiteViewSet, WebsiteActionLogViewSet, WebsiteStaticPageViewSet,
-    TenantBrandingViewSet, TenantFeatureToggleViewSet,
     WebsiteIntegrationConfigViewSet
 )
+from .views.tenant_features import TenantFeatureToggleViewSet, TenantBrandingViewSet
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework.permissions import AllowAny
 
-# ✅ API Documentation (Swagger & ReDoc)
+# API Documentation (Swagger & ReDoc)
 schema_view = get_schema_view(
     openapi.Info(
         title="Website Management API",

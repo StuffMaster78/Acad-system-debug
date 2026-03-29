@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions, filters
 from django_filters.rest_framework import DjangoFilterBackend # type: ignore
-from orders.models import WriterReassignmentLog
-from orders.serializers import (
+from orders.models.logs import WriterReassignmentLog
+from orders.serializers_legacy import (
     WriterReassignmentLogSerializer,
 )
 

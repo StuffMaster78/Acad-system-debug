@@ -5,7 +5,7 @@ Run: python manage.py populate_types_of_work [--website-id=ID] [--all]
 from django.core.management.base import BaseCommand
 from order_configs.models import TypeOfWork
 from order_configs.services.comprehensive_types_of_work import COMPREHENSIVE_TYPES_OF_WORK
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class Command(BaseCommand):

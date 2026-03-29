@@ -10,8 +10,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 
 from admin_management.services.export_service import ExportService
-from orders.models import Order
-from order_payments_management.models import OrderPayment
+from orders.models.orders import Order
+from order_payments_management.models.payments import OrderPayment
 from users.models import User
 from authentication.permissions import IsAdmin, IsSuperadminOrAdmin
 

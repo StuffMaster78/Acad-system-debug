@@ -12,7 +12,7 @@ from order_configs.models import (
     PaperType, FormattingandCitationStyle, Subject, AcademicLevel,
     TypeOfWork, EnglishType
 )
-from websites.models import Website
+from websites.models.websites import Website
 
 
 # ==================== GENERAL DEFAULTS ====================

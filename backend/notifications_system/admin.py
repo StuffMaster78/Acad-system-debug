@@ -213,18 +213,38 @@ class DeliveryAdmin(admin.ModelAdmin):
 @admin.register(NotificationLog)
 class NotificationLogAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'user', 'event_key', 'channel',
-        'status', 'is_successful', 'attempt_number',
-        'error_code', 'attempted_at',
+        'id',
+        'user',
+        'event_key',
+        'channel',
+        'status',
+        'is_successful',
+        'attempt_number',
+        'error_code',
+        'attempted_at',
     )
     list_filter = ('status', 'channel', 'is_successful')
-    search_fields = ('event_key', 'user__email', 'error_code', 'provider_msg_id')
+    search_fields = ('event_key', 'user__email', 'error_code')
     date_hierarchy = 'attempted_at'
     readonly_fields = (
-        'user', 'website', 'notification',
-        'event_key', 'channel', 'status',
-        'is_successful', 'attempt_number',
-        'error_code', 'error_detail', 'provider_msg_id',
+        'user',
+        'website',
+        'notification',
+        'delivery',
+        'group',
+        'event_key',
+        'channel',
+        'priority',
+        'status',
+        'response_code',
+        'response_message',
+        'error_code',
+        'error_detail',
+        'email_subject',
+        'email_body',
+        'payload',
+        'attempt_number',
+        'is_successful',
         'attempted_at',
     )
 
@@ -410,14 +430,17 @@ class RoleNotificationPreferenceAdmin(admin.ModelAdmin):
 @admin.register(NotificationPreferenceProfile)
 class NotificationPreferenceProfileAdmin(admin.ModelAdmin):
     list_display = (
-        'name', 'website',
-        'email_enabled', 'in_app_enabled',
-        'dnd_enabled', 'digest_enabled',
-        'is_default', 'is_active',
+        'name',
+        'website',
+        'email_enabled',
+        'in_app_enabled',
+        'dnd_enabled',
+        'digest_enabled',
+        'is_default',
         'updated_at',
     )
     search_fields = ('name', 'website__domain')
-    list_filter = ('website', 'is_default', 'is_active')
+    list_filter = ('website', 'is_default')
     readonly_fields = ('created_at', 'updated_at')
 
     actions = ['apply_to_all_users_in_role']
@@ -550,7 +573,7 @@ class GlobalNotificationSystemSettingsAdmin(admin.ModelAdmin):
     )
     search_fields = ('website__domain', 'email_from_address')
     list_filter = ('email_provider', 'email_enabled', 'in_app_enabled')
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('updated_at',)
 
     fieldsets = (
         ('Website', {

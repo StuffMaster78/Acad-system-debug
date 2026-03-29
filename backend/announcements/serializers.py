@@ -151,7 +151,7 @@ class AnnouncementCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Create announcement with linked broadcast."""
-        from notifications_system.services.broadcast_services import BroadcastNotificationService
+        from notifications_system.services.broadcast_services import BroadcastService
 
         # Extract broadcast fields
         title = validated_data.pop('title')
@@ -167,7 +167,7 @@ class AnnouncementCreateSerializer(serializers.ModelSerializer):
         # Get website
         request = self.context.get('request')
         if website_id:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.get(id=website_id)
         else:
             website = getattr(request.user, 'website', None)
@@ -190,14 +190,23 @@ class AnnouncementCreateSerializer(serializers.ModelSerializer):
 
         # Send immediately if not scheduled
         if not scheduled_for:
-            from notifications_system.services.broadcast_services import BroadcastNotificationService
-            BroadcastNotificationService.send_broadcast(
-                event=broadcast.event_type,
-                title=broadcast.title,
+            from notifications_system.services.broadcast_services import BroadcastService
+            BroadcastService.send_broadcast(
+                event_key='broadcast.system_announcement',
+                title=title,
                 message=broadcast.message,
                 website=broadcast.website,
                 channels=broadcast.channels or ['in_app', 'email'],
-                is_test=False
+                is_critical=False,
+                is_blocking=False,
+                priority='medium',
+                target_roles=broadcast.target_roles,
+                show_to_all=broadcast.show_to_all,
+                require_acknowledgement=broadcast.require_acknowledgement,
+                scheduled_for=broadcast.scheduled_for,
+                expires_at=broadcast.expires_at,
+                triggered_by=broadcast.created_by
+
             )
             broadcast.sent_at = timezone.now()
             broadcast.save(update_fields=['sent_at'])

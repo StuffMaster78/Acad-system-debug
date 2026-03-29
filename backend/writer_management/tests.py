@@ -9,7 +9,7 @@ from .models import (
     WriterReward, Probation, WriterPenalty, WriterSuspension, WriterSupportTicket,
     WriterDeadlineExtensionRequest, WriterOrderHoldRequest, WriterOrderReopenRequest
 )
-from orders.models import Order
+from orders.models.orders import Order
 
 User = get_user_model()
 

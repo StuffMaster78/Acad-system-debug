@@ -1,15 +1,15 @@
 from django.test import TestCase
-from django.contrib.auth import get_user_model
-from .models import Order
+from django.conf import settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.urls import reverse
-from orders.models import Order
+from orders.models.orders import Order
 from users.models import User
 from datetime import timedelta
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
+
 class OrderDeadlineExtensionTests(APITestCase):
     def setUp(self):
         self.client_user = User.objects.create_user(email="client@example.com", role="client")

@@ -1,10 +1,12 @@
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from django.db import transaction
 from typing import Optional
 from django.utils import timezone
 
-from websites.models import Website
-from orders.models import Dispute, DisputeWriterResponse, Order
+from websites.models.websites import Website
+from orders.models.order_disputes import Dispute, DisputeWriterResponse
+from orders.models.orders import Order
 from users.models import User
 from orders.services.dispute_enums import DisputeStatus, ResolutionOutcome
 from orders.services.dispute_helpers import (
@@ -75,14 +77,14 @@ class DisputeService:
             }
         )
 
-        send_dispute_notification(
-            dispute,
-            subject="New Dispute Raised",
-            message=(
-                f"A dispute has been raised for Order #{order.id}. "
-                "Admin attention required."
-            ),
-        )
+        # send_dispute_notification(
+        #     dispute,
+        #     subject="New Dispute Raised",
+        #     message=(
+        #         f"A dispute has been raised for Order #{order.id}. "
+        #         "Admin attention required."
+        #     ),
+        # )
 
         return dispute
 
@@ -121,11 +123,11 @@ class DisputeService:
         # We don't automatically change order status when dispute status changes
         # Order status should remain 'disputed' until dispute is resolved
 
-        send_dispute_notification(
-            self.dispute,
-            subject=f"Dispute status updated to {new_status.upper()}",
-            message=note or f"The dispute was updated by {updated_by.email}."
-        )
+        # send_dispute_notification(
+        #     self.dispute,
+        #     subject=f"Dispute status updated to {new_status.upper()}",
+        #     message=note or f"The dispute was updated by {updated_by.email}."
+        # )
 
     @transaction.atomic
     def resolve_dispute(
@@ -257,15 +259,15 @@ class DisputeService:
         self.dispute.save()
         self.order.save()
 
-        send_dispute_notification(
-            self.dispute,
-            subject="Dispute Resolved",
-            message=(
-                f"Dispute for Order #{self.order.id} resolved: "
-                f"{resolution_outcome.replace('_', ' ').title()}."
-            ),
-            website=website
-        )
+        # send_dispute_notification(
+        #     self.dispute,
+        #     subject="Dispute Resolved",
+        #     message=(
+        #         f"Dispute for Order #{self.order.id} resolved: "
+        #         f"{resolution_outcome.replace('_', ' ').title()}."
+        #     ),
+        #     website=website
+        # )
 
         # log_dispute_resolution(
         #     dispute=self.dispute,

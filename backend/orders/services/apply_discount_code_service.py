@@ -9,8 +9,7 @@ from discounts.services import DiscountEngine
 from discounts.services.discount_suggestions import DiscountSuggestionService
 from discounts.services.discount_hints import DiscountHintService
 from discounts.services.discount_usage_tracker import DiscountUsageTracker
-from notifications_system.services.dispatch import send
-
+from notifications_system.services.notification_service import NotificationService
 from activity.utils.logger_safe import safe_log_activity
 
 logger = logging.getLogger(__name__)
@@ -128,12 +127,21 @@ class ApplyDiscountCodeService:
             logger.exception(
                 f"Critical error applying discounts on order {order.id}: {exc}"
             )
-            send(
-                event_key="discount.error",
+            NotificationService.notify(
+                event_key="discount_application_failed",
+                recipient=order.website.admin_user,
+                website=order.website,
                 context={
                     "order_id": order.id,
                     "error": str(exc),
-                }
+                },
+                channels=["email", "in_app"],
+                is_critical=True,
+                priority="high",
+                is_broadcast=False,
+                is_silent=False,
+                is_digest=False,
+                digest_group=None
             )
 
             suggestions = DiscountSuggestionService.get_suggestions(order.website)

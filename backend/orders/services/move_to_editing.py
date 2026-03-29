@@ -2,7 +2,7 @@
 Service class to handle transition of an order to 'under_editing' status.
 """
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.utils.order_utils import save_order
 from audit_logging.services.audit_log_service import AuditLogService

@@ -18,7 +18,3 @@ class OrderReview(ReviewBase):
         on_delete=models.CASCADE,
         related_name="order_reviews"
     )
-
-    class Meta:
-        unique_together = ("reviewer", "order")
-        ordering = ["-submitted_at"]

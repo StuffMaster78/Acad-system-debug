@@ -7,7 +7,7 @@ from .models import (
     BlogABTest, SocialPlatform, BlogShare,
     AdminNotification
 )
-from websites.models import Website
+from websites.models.websites import Website
 from django.utils.text import slugify
 import re
 from datetime import timedelta

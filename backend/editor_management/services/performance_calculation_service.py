@@ -14,7 +14,7 @@ from editor_management.models import (
     EditorTaskAssignment,
     EditorReviewSubmission
 )
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 
 

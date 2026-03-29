@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models import Order
+from orders.models.orders import Order
 from fines.models import Fine, FinePolicy, FineType, FineStatus
 from fines.services.fine_services import FineService
 

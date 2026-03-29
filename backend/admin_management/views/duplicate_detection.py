@@ -70,7 +70,7 @@ class DuplicateAccountDetectionViewSet(viewsets.ViewSet):
                 for w in dup.get('websites', []):
                     if w:
                         if isinstance(w, int):
-                            from websites.models import Website
+                            from websites.models.websites import Website
                             try:
                                 website_obj = Website.objects.get(id=w)
                                 website_data.append({'id': website_obj.id, 'name': website_obj.name})

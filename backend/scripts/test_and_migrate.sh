@@ -162,7 +162,7 @@ except Exception as e:
     print(f'❌ Fines models: {e}')
 
 try:
-    from orders.models import Order
+    from orders.models.orders import Order
     print('✅ Orders models imported')
 except Exception as e:
     errors.append(f'Orders: {e}')

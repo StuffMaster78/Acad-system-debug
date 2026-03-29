@@ -9,11 +9,11 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db.models import Q
 
-from websites.models import Website
-from orders.models import Order
+from websites.models.websites import Website
+from orders.models.orders import Order
 from special_orders.models import SpecialOrder, WriterBonus
 from class_management.models import ClassBundle, ClassPurchase
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 from client_wallet.models import ClientWallet, ClientWalletTransaction
 from wallet.models import Wallet, WalletTransaction as OldWalletTransaction
 from writer_wallet.models import WriterWallet, WalletTransaction as WriterWalletTransaction

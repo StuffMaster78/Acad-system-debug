@@ -16,7 +16,7 @@ python manage.py migrate --noinput --verbosity=0
 # Create test website if needed
 echo "🌐 Creating test website..."
 python manage.py shell << EOF
-from websites.models import Website
+from websites.models.websites import Website
 Website.objects.get_or_create(
     domain="test.local",
     defaults={

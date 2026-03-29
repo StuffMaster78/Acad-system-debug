@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q, Avg
-from orders.models import Order
+from orders.models.orders import Order
 from writer_management.models import WriterProfile
 from admin_management.permissions import IsAdmin
 

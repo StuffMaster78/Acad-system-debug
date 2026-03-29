@@ -7,7 +7,7 @@ from django.db import transaction
 from django.conf import settings
 from referrals.models import ReferralCode
 from referrals.services.referral_service import ReferralService
-from websites.models import Website
+from websites.models.websites import Website
 import logging
 
 logger = logging.getLogger(__name__)

@@ -107,7 +107,7 @@ class Dispute(models.Model):
         uses the unified transition helper and central business rules.
         """
         from orders.services.disputes import DisputeService
-        from websites.models import Website
+        from websites.models.websites import Website
 
         website: Website = self.website
         service = DisputeService(dispute=self)

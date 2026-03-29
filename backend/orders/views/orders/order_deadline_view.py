@@ -3,8 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
-from orders.models import Order
-from orders.serializers import DeadlineExtensionSerializer
+from orders.models.orders import Order
+from orders.serializers_legacy import DeadlineExtensionSerializer
 from orders.services.order_deadline_service import OrderDeadlineService
 from orders.permissions import IsOrderOwnerOrSupport
 

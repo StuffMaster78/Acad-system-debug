@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions
-from orders.models import OrderTransitionLog
-from orders.serializers import OrderTransitionLogSerializer
+from orders.models.logs import OrderTransitionLog
+from orders.serializers_legacy import OrderTransitionLogSerializer
 
 class OrderTransitionLogListView(generics.ListAPIView):
     permission_classes = [permissions.IsAdminUser]

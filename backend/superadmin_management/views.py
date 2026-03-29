@@ -16,15 +16,16 @@ from .serializers import SuperadminProfileSerializer, UserSerializer, Superadmin
 from .permissions import IsSuperadmin
 from .managers import SuperadminManager
 from .pagination import SuperadminPagination , SuperadminLogCursorPagination
-from orders.models import Order, Dispute
-from order_payments_management.models import OrderPayment
+from orders.models.orders import Order
+from orders.models.order_disputes import Dispute
+from order_payments_management.models.payments import OrderPayment
 from notifications_system.models.notifications import Notification
 from django_filters import rest_framework as filters
 from django.core.cache import cache
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
-from websites.models import Website
+from websites.models.websites import Website
 from tickets.models import Ticket
 from writer_management.models.tipping import Tip
 

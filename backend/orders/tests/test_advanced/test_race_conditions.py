@@ -15,11 +15,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from decimal import Decimal
 
 from decimal import Decimal
-from orders.models import Order, WriterAssignmentAcceptance
+from orders.models.orders import Order, WriterAssignmentAcceptance
 from orders.order_enums import OrderStatus
 from orders.services.assignment import OrderAssignmentService
 from orders.services.status_transition_service import StatusTransitionService
-from order_payments_management.models import OrderPayment
+from order_payments_management.models.payments import OrderPayment
 
 
 @pytest.mark.django_db

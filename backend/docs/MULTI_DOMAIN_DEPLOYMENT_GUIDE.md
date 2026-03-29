@@ -627,7 +627,7 @@ Create a script to generate certificates for all active websites:
 
 # Get all active website domains from database
 python manage.py shell << EOF
-from websites.models import Website
+from websites.models.websites import Website
 domains = Website.objects.filter(is_active=True, is_deleted=False).values_list('domain', flat=True)
 for domain_url in domains:
     domain = domain_url.replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0]
@@ -707,7 +707,7 @@ Before deploying, you need to create at least one Website in the database:
 docker-compose -f docker-compose.prod.yml exec web python manage.py shell
 
 # In shell:
-from websites.models import Website
+from websites.models.websites import Website
 Website.objects.create(
     name="Client 1",
     domain="https://client1.com",
@@ -722,7 +722,7 @@ Create `websites/management/commands/create_initial_websites.py`:
 
 ```python
 from django.core.management.base import BaseCommand
-from websites.models import Website
+from websites.models.websites import Website
 
 class Command(BaseCommand):
     help = 'Create initial websites'

@@ -139,7 +139,7 @@ class WriterPortfolio(models.Model):
     
     def update_statistics(self):
         """Update portfolio statistics from orders and feedback."""
-        from orders.models import Order
+        from orders.models.orders import Order
         from writer_management.models.feedback import FeedbackHistory
         
         # Total orders completed

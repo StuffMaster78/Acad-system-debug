@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models import Order
+from orders.models.orders import Order
 from order_payments_management.models.payment_reminders import (
     PaymentReminderConfig,
     PaymentReminderSent

@@ -1,4 +1,4 @@
-from .models import Website
+from .models.websites import Website
 
 
 def get_primary_website():

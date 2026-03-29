@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.db import connection
 from django.db.models import Count, Sum
 from django.conf import settings
-from orders.models import Order
+from orders.models.orders import Order
 from communications.models import CommunicationThread
 from admin_management.views import AdminDashboardView
 from client_management.views_dashboard import ClientDashboardViewSet
@@ -113,7 +113,7 @@ class TestDashboardCaching(TestCase):
     def setUp(self):
         """Set up test environment."""
         cache.clear()
-        from websites.models import Website
+        from websites.models.websites import Website
         
         User = settings.AUTH_USER_MODEL
         self.website = Website.objects.create(

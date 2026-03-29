@@ -4,10 +4,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from decimal import Decimal
 from writer_management.models.order_dispute import OrderDispute
-from writer_management.models.webhook_settings import (
-    WebhookSettings, WebhookPlatform
-)
-from orders.order_enums import WebhookEvent
+
 from writer_management.models.levels import (
     WriterLevel, WriterLevelHistory
 )
@@ -16,7 +13,7 @@ from writer_management.models.messages import (
     WriterMessageThread, WriterMessage
 )
 from writer_management.models.tipping import Tip
-from orders.models import Order
+from orders.models.orders import Order
 from writer_management.models.payout import WriterPayment, WriterPayoutPreference, WriterEarningsHistory
 from writer_management.models.profile import WriterProfile
 from writer_management.models.requests import (
@@ -66,14 +63,13 @@ from writer_management.models.requests import WriterOrderRequest, WriterOrderTak
 from writer_management.models.configs import WriterConfig
 from writer_management.models.tipping import Tip
 from writer_management.models.payout import WriterPayoutPreference
-# from writer_management.models.webhook import WebhookSettings, WebhookPlatform
 from writer_management.models.payout import CurrencyConversionRate
 from writer_management.models.performance_snapshot import WriterPerformanceSnapshot
 from writer_management.models.writer_warnings import WriterWarning
 from writer_management.models.status import WriterStatus
 from writer_management.services.status_service import WriterStatusService
 from writer_management.models.badges import WriterBadge
-from websites.models import Website
+from websites.models.websites import Website
 
 
 User = get_user_model()
@@ -575,31 +571,6 @@ class WriterMessageSerializer(serializers.ModelSerializer):
         model = WriterMessage
         fields = '__all__'
 
-class WebhookSettingsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WebhookSettings
-        fields = [
-            "id",
-            "platform",
-            "webhook_url",
-            "enabled",
-            "subscribed_events",
-            "is_active",
-            "updated_at",
-        ]
-        read_only_fields = ["id", "updated_at"]
-
-    def validate_platform(self, value):
-        if value not in WebhookPlatform.values:
-            raise serializers.ValidationError("Invalid platform selected.")
-        return value
-
-    def validate_subscribed_events(self, value):
-        invalid = [v for v in value if v not in WebhookEvent.values]
-        if invalid:
-            raise serializers.ValidationError(f"Invalid events: {', '.join(invalid)}")
-        return value
-
 
 class TipCreateSerializer(serializers.ModelSerializer):
     """
@@ -924,7 +895,7 @@ class WriterPaymentViewSerializer(serializers.Serializer):
         """Get earnings from regular orders (excluding installments).
         Uses admin-set writer_compensation if available, otherwise falls back to level-based calculation.
         """
-        from orders.models import Order
+        from orders.models.orders import Order
         from writer_management.services.earnings_calculator import WriterEarningsCalculator
         
         writer_profile = obj

@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from orders.permissions import IsStaffOrRequestOwner
 
-from orders.models import OrderRequest
-from orders.serializers import OrderRequestSerializer, WriterRequestActionSerializer
+from orders.models.requests import OrderRequest
+from orders.serializers_legacy import OrderRequestSerializer, WriterRequestActionSerializer
 from orders.registry.decorator import get_registered_action as get_action_by_name
 
 class OrderRequestViewSet(viewsets.ReadOnlyModelViewSet):
@@ -43,7 +43,7 @@ class OrderRequestViewSet(viewsets.ReadOnlyModelViewSet):
         if not order_id:
             return Response({"detail": "Missing order_id."}, status=400)
 
-        from orders.models import Order
+        from orders.models.orders import Order
         order = Order.objects.get(id=order_id)
 
         result = serializer.execute(user=request.user, order=order)

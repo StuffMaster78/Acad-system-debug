@@ -3,8 +3,9 @@ Service for managing message reminders.
 """
 from django.utils import timezone
 from datetime import timedelta
-from orders.models import MessageReminder, Order
-
+from conftest import website
+from orders.models.message_reminders import MessageReminder
+from orders.models.orders import Order
 
 class MessageReminderService:
     """Service for managing message reminders."""
@@ -40,7 +41,7 @@ class MessageReminderService:
     @staticmethod
     def send_reminder(reminder: MessageReminder):
         """Send a reminder notification."""
-        from communications.services.notification_service import NotificationService
+        from notifications_system.services.notification_service import NotificationService
         
         reminder.send_reminder()
         
@@ -52,11 +53,22 @@ class MessageReminderService:
         }.get(reminder.reminder_type, 'You have a message')
         
         message = f"{reminder_text} for order #{reminder.order.id}."
-        NotificationService.send_notification(
-            user=reminder.user,
-            title="Message Reminder",
-            message=message,
-            notification_type="reminder"
+        NotificationService.notify(
+            event_key="message_reminder",
+            recipient=reminder.user,
+            website=website,
+            context={
+                "order_id": reminder.order.id,
+                "reminder_type": reminder.reminder_type,
+                "message_id": reminder.message.id if reminder.message else None
+            },
+            channels=["email", "in_app"],
+            is_broadcast=False,
+            priority="high",
+            is_digest=False,
+            is_silent=False,
+            is_critical=reminder.reminder_type == 'urgent',
+            digest_group=f"message_reminders_{reminder.user.id}"
         )
         
         return reminder

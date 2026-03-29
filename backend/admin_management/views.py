@@ -24,7 +24,8 @@ from admin_management.serializers import (
     SuspendUserSerializer,
 )
 from .permissions import IsAdmin, IsSuperAdmin
-from orders.models import Order, Dispute
+from orders.models.orders import Order
+from orders.models.order_disputes import Dispute
 from admin_management.services.blacklist_service import BlacklistService
 from admin_management.services.admin_profile_service import  AdminProfileService
 from .serializers import (
@@ -363,7 +364,7 @@ class AdminDashboardView(viewsets.ViewSet):
         
         # Payment Statistics
         try:
-            from order_payments_management.models import OrderPayment
+            from order_payments_management.models.payments import OrderPayment
             payment_stats = OrderPayment.objects.aggregate(
                 total_payments=Count("id"),
                 completed_payments=Count("id", filter=Q(status="completed")),
@@ -565,7 +566,7 @@ class AdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         from .serializers import AdminPlaceOrderSerializer
-        from orders.models import Order
+        from orders.models.orders import Order
         from orders.order_enums import OrderStatus
         from django.db import transaction
         
@@ -924,7 +925,7 @@ class AdminDisputeManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get dispute statistics dashboard."""
-        from orders.models import Dispute
+        from orders.models.order_disputes import Dispute
         from orders.order_enums import DisputeStatusEnum
         from django.db.models import Count, Q
         from django.utils import timezone
@@ -1004,7 +1005,7 @@ class AdminDisputeManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='pending')
     def pending_disputes(self, request):
         """Get pending disputes queue."""
-        from orders.models import Dispute
+        from orders.models.order_disputes import Dispute
         from orders.order_enums import DisputeStatusEnum
         from orders.serializers import DisputeSerializer
         
@@ -1026,7 +1027,7 @@ class AdminDisputeManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get dispute analytics and trends."""
-        from orders.models import Dispute
+        from orders.models.order_disputes import Dispute
         from django.db.models import Count, Avg
         from django.utils import timezone
         from datetime import timedelta
@@ -1927,7 +1928,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get order statistics dashboard."""
-        from orders.models import Order
+        from orders.models.orders import Order
         from orders.order_enums import OrderStatus
         from django.db.models import Count, Sum, Avg, Q
         from django.utils import timezone
@@ -2016,7 +2017,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get order analytics and trends."""
-        from orders.models import Order
+        from orders.models.orders import Order
         from django.db.models import Count, Sum, Avg, Q
         from django.utils import timezone
         from datetime import timedelta
@@ -2123,7 +2124,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='assignment-queue')
     def assignment_queue(self, request):
         """Get orders needing assignment."""
-        from orders.models import Order
+        from orders.models.orders import Order
         from orders.serializers import OrderSerializer
         from orders.order_enums import OrderStatus
         
@@ -2157,7 +2158,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='overdue')
     def overdue_orders(self, request):
         """Get overdue orders."""
-        from orders.models import Order
+        from orders.models.orders import Order
         from orders.serializers import OrderSerializer
         from django.utils import timezone
         
@@ -2188,7 +2189,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='stuck')
     def stuck_orders(self, request):
         """Get stuck orders (no progress for extended period)."""
-        from orders.models import Order
+        from orders.models.orders import Order
         from orders.serializers import OrderSerializer
         from django.utils import timezone
         from datetime import timedelta
@@ -2231,7 +2232,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], url_path='bulk-assign')
     def bulk_assign(self, request):
         """Bulk assign orders to writers."""
-        from orders.models import Order
+        from orders.models.orders import Order
         from orders.services.assignment import OrderAssignmentService
         from django.contrib.auth import get_user_model
         from django.core.exceptions import ValidationError
@@ -2294,7 +2295,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], url_path='bulk-action')
     def bulk_action(self, request):
         """Perform bulk actions on orders."""
-        from orders.models import Order
+        from orders.models.orders import Order
         from orders.order_enums import OrderStatus
         
         order_ids = request.data.get('order_ids', [])
@@ -2350,7 +2351,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['get'], url_path='timeline')
     def order_timeline(self, request, pk=None):
         """Get order timeline/history."""
-        from orders.models import Order, OrderTransitionLog, WriterReassignmentLog
+        from orders.models.orders import Order, OrderTransitionLog, WriterReassignmentLog
         from orders.serializers import OrderSerializer
         
         order = get_object_or_404(Order, id=pk)
@@ -2796,7 +2797,7 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
                 )
             
             try:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.get(id=website_id)
             except Website.DoesNotExist:
                 return Response(
@@ -3192,7 +3193,7 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
                 )
             
             try:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.get(id=website_id)
                 duration = ClassDurationOption.objects.get(id=duration_id)
             except Website.DoesNotExist:

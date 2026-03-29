@@ -5,7 +5,7 @@ from rest_framework import serializers
 from mass_emails.models import EmailCampaign, EmailRecipient
 from notifications_system.models.digest_notifications import NotificationDigest
 from notifications_system.models.broadcast_notification import BroadcastNotification
-from websites.models import Website
+from websites.models.websites import Website
 from django.contrib.auth import get_user_model
 
 User = get_user_model()

@@ -12,7 +12,7 @@ from tests.factories import (
     WebsiteFactory, WriterProfileFactory
 )
 from writer_management.models import WriterProfile, WriterOrderRequest, WriterOrderTake
-from orders.models import Order
+from orders.models.orders import Order
 
 
 @pytest.mark.api

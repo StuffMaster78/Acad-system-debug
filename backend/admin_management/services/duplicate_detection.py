@@ -11,7 +11,7 @@ from datetime import timedelta
 from django.utils import timezone
 import re
 
-User = settings.AUSTH_USER_MODEL
+User = get_user_model()
 
 
 class DuplicateAccountDetectionService:
@@ -196,7 +196,7 @@ class DuplicateAccountDetectionService:
     @staticmethod
     def detect_by_payment_methods():
         """Detect accounts sharing payment methods (cards, PayPal, etc.)."""
-        from order_payments_management.models import OrderPayment
+        from order_payments_management.models.payments import OrderPayment
         from client_wallet.models import WalletTransaction
         
         duplicates = []

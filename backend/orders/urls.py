@@ -9,10 +9,6 @@ from .views.orders.actions import OrderActionView
 from orders.views.orders.transition_log import OrderTransitionLogListView
 from .views.orders.order_request_viewset import OrderRequestViewSet
 from orders.views.orders.order_deadline_view import ExtendOrderDeadlineView
-from orders.views.orders.test_webhook_view import TestWebhookView
-from orders.views.orders.webhook_preview_view import WebhookPreviewView
-from orders.views.orders.retry_webhook_view import RetryWebhookView
-from orders.views.orders.webhook_delivery_log_view import WebhookDeliveryLogListView
 from orders.views.writers.writer_requests_preview import WriterRequestPreviewView
 from orders.views.orders.editing_admin import OrderEditingAdminView
 from orders.views.progress import WriterProgressViewSet
@@ -84,23 +80,6 @@ urlpatterns = [
         OrderActionView.as_view(),
         name='order-action-target-detail'
     ),
-    path("webhooks/test/", TestWebhookView.as_view(), name="webhook-test"),
-    path(
-        "webhooks/preview/<int:order_id>/",
-        WebhookPreviewView.as_view(),
-        name="webhook-preview"
-    ),
-    path(
-        "webhooks/retry/<int:log_id>/",
-        RetryWebhookView.as_view(),
-        name="webhook-retry"
-    ),
-    path("admin/webhook-logs/", WebhookDeliveryLogListView.as_view()),
-    path(
-        "admin/webhook-logs/<int:log_id>/retry/",
-        RetryWebhookView.as_view()
-    ),
-
     path(
         "writer-request/preview/",
         WriterRequestPreviewView.as_view(),

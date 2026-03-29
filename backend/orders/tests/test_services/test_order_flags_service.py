@@ -13,7 +13,7 @@ import pytest
 from datetime import timedelta
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderFlags
 from orders.services.order_flags_service import OrderFlagsService
 

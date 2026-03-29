@@ -12,7 +12,7 @@ django.setup()
 
 from order_payments_management.models import Invoice
 from order_payments_management.services.invoice_service import InvoiceService
-from websites.models import Website
+from websites.models.websites import Website
 from users.models import User
 from django.utils import timezone
 from datetime import timedelta

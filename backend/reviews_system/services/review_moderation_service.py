@@ -2,7 +2,7 @@ from django.utils import timezone
 from reviews_system.models.website_review import WebsiteReview
 from reviews_system.models.writer_review import WriterReview
 from reviews_system.models.order_review import OrderReview
-from notifications_system.services.core import NotificationService
+from notifications_system.services.notification_service import NotificationService
 
 class ReviewModerationService:
     """
@@ -96,11 +96,22 @@ class ReviewModerationService:
             review.moderated_at = timezone.now()
             review.save(update_fields=["is_approved", "moderated_at"])
 
-        NotificationService.send_notification(
+        NotificationService.notify(
+            event_key="review.approved",
             recipient=review.user,
-            title="Review Approved",
-            message=f"Your {ReviewModerationService._get_review_type(review)} review has been approved and is now visible.",
-            category="reviews"
+            website=review.website,
+            context={
+                "review_id": review.id,
+                "review_type": ReviewModerationService._get_review_type(review),
+                "title": "Review Approved",
+                "message": "Your review {review_type} has been approved and is now visible.",
+            },
+            channels=["email", "in_app"],
+            priority="medium",
+            is_broadcast=False,
+            is_critical=False,
+            is_digest=False,
+            digest_group=None,
         )
 
     @staticmethod

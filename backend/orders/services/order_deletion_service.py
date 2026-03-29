@@ -5,9 +5,9 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus  # you already have this
-from websites.models import Website
+from websites.models.websites import Website
 
 
 ALLOWED_STAFF_ROLES = {"superadmin", "admin", "support"}

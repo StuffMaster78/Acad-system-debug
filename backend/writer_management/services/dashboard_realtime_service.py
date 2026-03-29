@@ -6,7 +6,8 @@ from decimal import Decimal
 from django.utils import timezone
 from django.db.models import Q
 
-from orders.models import Order, WriterRequest
+from orders.models.orders import Order
+from orders.models.requests import WriterRequest
 from writer_management.models.requests import WriterOrderRequest
 from writer_management.models.configs import WriterLevelConfig
 from writer_management.models.metrics import WriterPerformanceMetrics

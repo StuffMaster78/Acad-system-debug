@@ -7,7 +7,7 @@ from datetime import timedelta
 from django.db.models import Count, Q, Avg, Max, Sum
 from django.core.cache import cache
 from django.db import connection
-from orders.models import Order
+from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from django.conf import settings
 from writer_management.models import WriterProfile

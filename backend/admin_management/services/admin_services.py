@@ -4,7 +4,7 @@ from django.apps import apps
 from django.db import transaction
 from django.conf import settings
 from admin_management.models import AdminProfile, BlacklistedUser
-from orders.models import Dispute
+from orders.models.order_disputes import Dispute
 from admin_management.models import AdminActivityLog
 from notifications_system.services.notification_service import NotificationService
 from users.services.group_service import UserGroupService
@@ -61,7 +61,7 @@ def notify_superadmins_new_admin(user):
     if user.role == "admin":
         website = getattr(user, 'website', None)
         if not website:
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
         if not website:
             return  # Cannot send notification without website
@@ -102,7 +102,7 @@ def log_user_suspension_if_changed(user, previous_state):
 def notify_superadmins_blacklist(blacklisted_user):
     website = getattr(blacklisted_user, 'website', None)
     if not website:
-        from websites.models import Website
+        from websites.models.websites import Website
         website = Website.objects.filter(is_active=True).first()
     if not website:
         return  # Cannot send notification without website
@@ -131,7 +131,7 @@ def notify_admins_new_dispute(dispute):
     
     website = getattr(dispute.order, 'website', None)
     if not website:
-        from websites.models import Website
+        from websites.models.websites import Website
         website = Website.objects.filter(is_active=True).first()
     if not website:
         return  # Cannot send notification without website

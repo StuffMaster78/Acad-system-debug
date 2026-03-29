@@ -6,8 +6,10 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-from orders.models import Order, WriterProgress
-from notifications_system.services.core import NotificationService
+from conftest import website
+from orders.models.orders import Order
+from orders.models.writer_progress import WriterProgress
+from notifications_system.services.notification_service import NotificationService
 
 
 @shared_task
@@ -76,6 +78,7 @@ def _send_reminder(order, milestone_percentage):
     
     # Check if we've already sent a reminder for this milestone recently (within 24 hours)
     from notifications_system.models import Notification
+    from websites.models.websites import Website
     recent_reminder = Notification.objects.filter(
         user=writer,
         event='progress_reminder',
@@ -86,18 +89,21 @@ def _send_reminder(order, milestone_percentage):
         return
     
     # Send notification
-    NotificationService.send_notification(
-        user=writer,
-        event='progress_reminder',
-        payload={
+    NotificationService.notify(
+        event_key="writer_progress_reminder",
+        recipient=writer,
+        website=order.website,
+        context={
             'order_id': order.id,
             'order_topic': order.topic,
             'milestone_percentage': milestone_percentage,
             'deadline': order.writer_deadline.isoformat() if order.writer_deadline else None,
         },
-        website=order.website,
-        category='reminder',
-        priority=5,
-        channels=['in_app'],
+        priority="normal",
+        channels=["email", "in_app"],
+        is_silent=False,
+        is_broadcast=False,
+        is_digest=False,
+        digest_group=None,
     )
 

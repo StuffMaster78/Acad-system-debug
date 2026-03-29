@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from refunds.models import Refund
 from writer_payments_management.models import WriterPayment
 from writer_management.models import WriterLevel
-from order_payments_management.models import AdminLog, PaymentLog
+from order_payments_management.models.logs import AdminLog, PaymentLog
 from refunds.models import RefundLog
 from discounts.services.discount_usage_tracker import DiscountUsageTracker
 from refunds.models import RefundReceipt

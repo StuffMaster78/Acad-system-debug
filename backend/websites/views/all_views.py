@@ -6,7 +6,7 @@ from drf_yasg import openapi
 from websites.models.websites import Website
 from websites.models.action_log import WebsiteActionLog
 from websites.models.website_settings import  WebsiteTermsAcceptance
-from websites.models.static_pages import WebsiteStaticPage,
+from websites.models.static_pages import WebsiteStaticPage
 from websites.models_integrations import WebsiteIntegrationConfig
 from rest_framework.permissions import AllowAny
 from websites.serializers.all_serializers import (

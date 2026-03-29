@@ -1,5 +1,5 @@
 # from notifications_system.services.dispatcher import notify_user, notify_users
-# from orders.models import Order
+# from orders.models.orders import Order
 # from discounts.models import Discount
 
 

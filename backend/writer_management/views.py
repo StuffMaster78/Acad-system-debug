@@ -65,7 +65,7 @@ from writer_management.models.tickets import (
     WriterSupportTicket
 )
 
-from orders.models import Order
+from orders.models.orders import Order
 from writer_management.models.order_dispute import OrderDispute
 from activity.utils.logger_safe import safe_log_activity
 from notifications_system.services.dispatch import send
@@ -208,7 +208,7 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
         """
         Get the current writer's own profile with hierarchy details.
         """
-        from websites.models import Website
+        from websites.models.websites import Website
         
         # Check if user is authenticated first
         if not request.user or not request.user.is_authenticated:
@@ -662,7 +662,7 @@ class WriterOrderTakeViewSet(viewsets.ModelViewSet):
         """
         from django.db import transaction
         from orders.order_enums import OrderStatus
-        from orders.models import Order
+        from orders.models.orders import Order
         
         writer = self.request.user.writer_profile
         order = serializer.validated_data.get('order')
@@ -2115,7 +2115,7 @@ class WriterResourceCategoryViewSet(viewsets.ModelViewSet):
             if hasattr(user, 'website') and user.website:
                 serializer.validated_data['website'] = user.website
             elif hasattr(user, 'website_id') and user.website_id:
-                from websites.models import Website
+                from websites.models.websites import Website
                 try:
                     serializer.validated_data['website'] = Website.objects.get(id=user.website_id)
                 except Website.DoesNotExist:
@@ -2175,7 +2175,7 @@ class WriterResourceViewSet(viewsets.ModelViewSet):
             if hasattr(user, 'website') and user.website:
                 serializer.validated_data['website'] = user.website
             elif hasattr(user, 'website_id') and user.website_id:
-                from websites.models import Website
+                from websites.models.websites import Website
                 try:
                     serializer.validated_data['website'] = Website.objects.get(id=user.website_id)
                 except Website.DoesNotExist:

@@ -1,5 +1,6 @@
 from django.db.models import Count, Q, F
-from orders.models import Order, OrderInterest
+from orders.models.orders import Order
+from orders.models.requests import OrderRequest
 from writer_management.models import WriterProfile
 from django.contrib.auth import get_user_model
 
@@ -24,7 +25,7 @@ class WriterAvailabilityService:
         Returns:
             QuerySet[User]: Eligible users
         """
-        interested_writer_ids = OrderInterest.objects.filter(
+        interested_writer_ids = OrderRequest.objects.filter(
             order=order
         ).values_list("writer_id", flat=True)
 

@@ -15,7 +15,8 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models import Order, OrderRequest, OrderRequestStatus, OrderStatus
+from orders.models.orders import Order, OrderStatus
+from orders.models.requests import OrderRequest, OrderRequestStatus
 from writer_management.models.profile import WriterProfile
 from writer_management.models.levels import WriterLevel
 

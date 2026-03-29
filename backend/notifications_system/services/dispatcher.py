@@ -174,7 +174,6 @@ class NotificationDispatcher:
                 website=website,
                 event_key=event_key,
                 payload=context,
-                notification=notification,
                 digest_group=digest_group,
             )
             logger.info(
@@ -294,7 +293,8 @@ class NotificationDispatcher:
 
         # --- Queue send task
         from notifications_system.tasks.send import send_channel_notification
-        send_channel_notification.delay(delivery.id)
+        
+        send_channel_notification().delay(delivery_id=delivery.id)
 
         logger.info(
             "_queue_channel_delivery() queued: "

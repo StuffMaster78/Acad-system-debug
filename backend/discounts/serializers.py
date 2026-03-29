@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models.discount import Discount, DiscountUsage
-from websites.models import Website
+from websites.models.websites import Website
 from users.models import User
 from .models.promotions import PromotionalCampaign
 from .models.stacking import DiscountStackingRule
@@ -160,7 +160,7 @@ class PromotionalCampaignSerializer(serializers.ModelSerializer):
         """
         Custom create method to handle creation of promotional campaign.
         """
-        from websites.models import Website
+        from websites.models.websites import Website
         if 'website' not in validated_data or validated_data.get('website') is None:
             site = Website.objects.filter(is_active=True).first()
             if site is None:
@@ -218,7 +218,7 @@ class SeasonalEventAPISerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'start_date', 'end_date', 'website', 'is_active']
 
     def create(self, validated_data):
-        from websites.models import Website
+        from websites.models.websites import Website
         if 'website' not in validated_data or validated_data.get('website') is None:
             site = Website.objects.filter(is_active=True).first()
             if site is None:
@@ -290,7 +290,7 @@ class ApplyDiscountSerializer(serializers.Serializer):
     )
 
     def validate(self, data):
-        from orders.models import Order  # Avoid circular import
+        from orders.models.orders import Order  # Avoid circular import
 
         try:
             order = Order.objects.get(id=data['order_id'])

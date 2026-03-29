@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from orders.models import Order
+from orders.models.orders import Order
 from websites.models.websites import Website
 
 User = settings.AUTH_USER_MODEL 
@@ -174,7 +174,7 @@ class OrderFile(models.Model):
         # Clients can't download Final Drafts until payment is complete
         if self.category and self.category.is_final_draft:
             # Check payment status via OrderPayment or is_paid field
-            from order_payments_management.models import OrderPayment
+            from order_payments_management.models.payments import OrderPayment
             has_completed_payment = OrderPayment.objects.filter(
                 order=self.order,
                 status__in=['completed', 'succeeded']
@@ -195,7 +195,7 @@ class OrderFile(models.Model):
     def __str__(self):
         category_name = self.category.name if self.category else "Uncategorized"
         status_label = " (Final)" if self.is_final_paper else f" (v{self.version})"
-        return f"{category_name} - Order {self.order.id}{status_label}"
+        return f"{category_name} - Order {self.order.pk}{status_label}"
     
     def save(self, *args, **kwargs):
         """Auto-increment version and handle Final Paper marking."""
@@ -230,7 +230,7 @@ class OrderFile(models.Model):
     def is_latest_version(self):
         """Check if this is the latest version for the order."""
         latest = OrderFile.objects.filter(order=self.order).order_by('-version').first()
-        return latest and latest.id == self.id
+        return latest and latest.pk == self.pk
 
 
 class FileDownloadLog(models.Model):
@@ -342,7 +342,7 @@ class ExternalFileLink(models.Model):
     )
 
     def __str__(self):
-        return f"External Link - Order {self.order.id}"
+        return f"External Link - Order {self.order.pk}"
 
 
 class ExtraServiceFile(models.Model):
@@ -382,7 +382,7 @@ class ExtraServiceFile(models.Model):
 
     def __str__(self):
         category_name = self.category.name if self.category else "Unknown"
-        return f"Extra Service File - {category_name} (Order {self.order.id})"
+        return f"Extra Service File - {category_name} (Order {self.order.pk})"
 
 
 class StyleReferenceFile(models.Model):
@@ -456,9 +456,10 @@ class StyleReferenceFile(models.Model):
         ]
         verbose_name = "Style Reference File"
         verbose_name_plural = "Style Reference Files"
-    
+
+
     def __str__(self):
-        return f"Style Reference - {self.get_reference_type_display()} (Order {self.order.id})"
+        return f"Style Reference - {self.get_reference_type_display()} (Order {self.order.pk})"
     
     def save(self, *args, **kwargs):
         """Auto-set file_name and file_size if not provided."""

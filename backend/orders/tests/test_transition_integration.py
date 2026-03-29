@@ -9,9 +9,9 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from orders.models import Order, OrderTransitionLog
+from orders.models.orders import Order, OrderTransitionLog
 from orders.services.transition_helper import OrderTransitionHelper
-from websites.models import Website
+from websites.models.websites import Website
 from order_configs.models import PaperType
 
 User = get_user_model()

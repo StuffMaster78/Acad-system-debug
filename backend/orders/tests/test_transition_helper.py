@@ -6,14 +6,14 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders import Order
 from orders.services.transition_helper import (
     OrderTransitionHelper,
     InvalidTransitionError,
     AlreadyInTargetStatusError
 )
 from orders.exceptions import InvalidTransitionError as InvalidTransitionErrorException
-from websites.models import Website
+from websites.models.websites import Website
 from order_configs.models import PaperType
 
 User = get_user_model()
@@ -181,7 +181,7 @@ class OrderTransitionHelperTestCase(TestCase):
     
     def test_transition_logging(self):
         """Test that transitions are logged to OrderTransitionLog."""
-        from orders.models import OrderTransitionLog
+        from orders.models.orders import OrderTransitionLog
         
         initial_count = OrderTransitionLog.objects.count()
         

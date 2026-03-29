@@ -5,7 +5,7 @@ Creates predefined order configs, duration options, estimated settings, and samp
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from decimal import Decimal
-from websites.models import Website
+from websites.models.websites import Website
 from special_orders.models import (
     PredefinedSpecialOrderConfig,
     PredefinedSpecialOrderDuration,

@@ -1,23 +1,29 @@
 from django.db import models
 from rest_framework import serializers
 from django.utils import timezone
-from .models import (
-    OrderPayment, Refund, PaymentNotification, PaymentLog,
-    PaymentDispute, DiscountUsage, SplitPayment, AdminLog,
-    PaymentReminderSettings, Invoice
-)
+
+
 from .models.payment_reminders import (
     PaymentReminderConfig,
     PaymentReminderSent,
-    PaymentReminderDeletionMessage
+    PaymentReminderDeletionMessage,
+    PaymentReminderSettings
 )
-from discounts.models import Discount
-from .models import RequestPayment
+from .models.payments import OrderPayment
+from .models.invoice import Invoice
+from  .models.payment_refund import Refund
+from .models.payment_dispute import PaymentDispute
+from .models.payment_notification import PaymentNotification
+from .models.logs import PaymentLog, AdminLog
+from .models.split_payments import SplitPayment
+
+from discounts.models.discount import DiscountUsage
+from .models.payment_request import RequestPayment
 
 # Import models for default querysets in Invoice serializers
-from websites.models import Website
+from websites.models.websites import Website
 from users.models import User
-from orders.models import Order
+from orders.models.orders import Order
 from special_orders.models import SpecialOrder
 from class_management.models import ClassPurchase
 
@@ -344,7 +350,7 @@ class PaymentDisputeSerializer(serializers.ModelSerializer):
     """Serializer for handling client payment disputes."""
     client = serializers.StringRelatedField(read_only=True)
     # Allow website to be omitted; model.save will infer
-    from websites.models import Website as _Website  # local import to avoid circular
+    from websites.models.websites import Website as _Website  # local import to avoid circular
     website = serializers.PrimaryKeyRelatedField(queryset=_Website.objects.all(), required=False, allow_null=True)
 
     class Meta:
@@ -792,7 +798,7 @@ class InvoiceCreateSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         
         # Import models - must be done here to avoid circular imports
-        from websites.models import Website
+        from websites.models.websites import Website
         from users.models import User
         
         if request and hasattr(request, 'user'):
