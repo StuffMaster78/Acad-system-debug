@@ -54,7 +54,11 @@ class UserEditService:
         ]
     
     @transaction.atomic
-    def create_edit_request(self, field_changes, request_type='profile_update', reason=''):
+    def create_edit_request(
+        self, field_changes,
+        request_type='profile_update',
+        reason=''
+    ):
         """
         Create an edit request for fields requiring approval.
         

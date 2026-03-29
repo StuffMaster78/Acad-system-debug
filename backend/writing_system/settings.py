@@ -141,6 +141,7 @@ INSTALLED_APPS = [
     # Core Project Apps
     'core',
     'websites',
+    'accounts',
     'audit_logging',
     'users',
     'authentication',
