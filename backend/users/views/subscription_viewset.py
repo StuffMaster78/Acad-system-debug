@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.core.exceptions import ValidationError
 
-from users.services.subscription_service import SubscriptionService
+from users.services.services_legacy.subscription_service import SubscriptionService
 from users.serializers.subscriptions import (
     ClientSubscriptionSerializer,
     SubscriptionPreferenceSerializer,
