@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 
 from users.models.user_edit_requests import UserEditRequest
-from users.services.user_edit_service import UserEditService
+from users.services.services_legacy.user_edit_service import UserEditService
 from users.serializers.user_edit_requests import (
     UserEditRequestSerializer,
     CreateUserEditRequestSerializer

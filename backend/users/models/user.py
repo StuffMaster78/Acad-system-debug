@@ -1,74 +1,75 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
-from django.contrib.auth.models import AbstractUser, PermissionsMixin
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 
 from users.managers import ActiveManager, CustomUserManager
-from users.mixins import (
-    ApprovalMixin,
-    DeletionMixin,
-    DisciplineMixin,
-    GeoDetectionMixin,
-    ImpersonationMixin,
-    LoginSecurityMixin,
-    MFAMixin,
-    NotificationPreferenceMixin,
-    RoleMixin,
-    SessionTrackingMixin,
-    TimestampMixin,
-    TrustedDeviceMixin,
-    UserReferenceMixin,
-)
-
-if TYPE_CHECKING:
-    from django.contrib.auth.models import UserManager
 
 
-class User(  # pyright: ignore[reportIncompatibleVariableOverride]
-    AbstractUser,
-    PermissionsMixin,
-    RoleMixin,
-    MFAMixin,
-    NotificationPreferenceMixin,
-    LoginSecurityMixin,
-    ImpersonationMixin,
-    UserReferenceMixin,
-    DeletionMixin,
-    DisciplineMixin,
-    GeoDetectionMixin,
-    TimestampMixin,
-    SessionTrackingMixin,
-    TrustedDeviceMixin,
-    ApprovalMixin,
-):
-    email = models.EmailField(unique=True)
-    email_verified = models.BooleanField(default=False)
+class UserRole(models.TextChoices):
+    """Temporary role choices for the user model."""
 
-    notification_profile = models.ForeignKey(
-        "notifications_system.NotificationPreferenceProfile",
+    SUPERADMIN = "superadmin", "Super Admin"
+    ADMIN = "admin", "Admin"
+    EDITOR = "editor", "Editor"
+    SUPPORT = "support", "Support"
+    WRITER = "writer", "Writer"
+    CLIENT = "client", "Client"
+
+
+class User(AbstractUser):
+    """
+    Core identity model.
+
+    Keep this model small and boring.
+    Do not store auth security state, privacy state, or subscription state
+    here.
+    """
+
+    email = models.EmailField(
+        unique=True,
+        db_index=True,
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=UserRole.choices,
+        default=UserRole.CLIENT,
+        db_index=True,
+    )
+    website = models.ForeignKey(
+        "websites.Website",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name="users",
     )
-
-    is_available = models.BooleanField(default=True)
-
-    website = models.ForeignKey(
-        "websites.Website",
-        related_name="website_users",
-        on_delete=models.SET_NULL,
-        null=True,
+    phone_number = models.CharField(
+        max_length=32,
         blank=True,
     )
+    email_verified = models.BooleanField(default=False)
+    phone_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 
-    objects = cast("UserManager[User]", CustomUserManager())
-    active_users = ActiveManager()
+    objects = cast(UserManager["User"], CustomUserManager())
+    active_objects = ActiveManager()
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "User"
+        verbose_name_plural = "Users"
 
     def __str__(self) -> str:
-        return f"{self.username} ({self.role})"
+        return self.email or self.username
+
+    @property
+    def full_name(self) -> str:
+        """Return full name or fall back to username."""
+        full_name = f"{self.first_name} {self.last_name}".strip()
+        return full_name or self.username

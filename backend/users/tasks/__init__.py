@@ -1,3 +1,5 @@
-# Import tasks from submodules to ensure they're registered with Celery
-from .deletion import cleanup_soft_deleted_models  # noqa: F401
+from .profile_reminders import send_missing_phone_reminders
 
+__all__ = [
+    "send_missing_phone_reminders",
+]

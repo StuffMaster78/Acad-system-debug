@@ -1,7 +1,11 @@
-"""
-User services package.
-"""
-from .group_service import UserGroupService
-from .account_service import AccountService
+from .profile_completeness_service import ProfileCompletenessService
+from .profile_reminder_service import ProfileReminderService
+from .profile_service import ProfileService
+from .profile_update_service import ProfileUpdateService
 
-__all__ = ['UserGroupService', 'AccountService']
+__all__ = [
+    "ProfileCompletenessService",
+    "ProfileReminderService",
+    "ProfileService",
+    "ProfileUpdateService",
+]
