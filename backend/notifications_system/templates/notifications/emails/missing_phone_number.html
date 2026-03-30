@@ -1,0 +1,77 @@
+i{% extends "notifications/emails/base.html" %}
+
+{% block content %}
+
+<div style="text-align: center; padding: 20px 0;">
+    <h1 style="color: #2563eb; margin: 0 0 20px 0;">
+        Complete Your Profile
+    </h1>
+</div>
+
+<div style="padding: 20px 0;">
+
+    <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+        Hi {{ user.get_full_name|default:user.username }},
+    </p>
+
+    <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+        We noticed that your profile does not have a phone number yet.
+        Adding your phone number helps keep your account information complete
+        and may improve communication when needed.
+        NB: We use your phone number only for SMS services for quicker communication
+        allowing us to clarify things related to your order and nothing else.
+    </p>
+
+    {% if message %}
+    <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+        {{ message|linebreaks }}
+    </p>
+    {% endif %}
+
+    {% if profile_url %}
+    <div style="text-align: center; margin: 30px 0;">
+        <a
+            href="{{ profile_url }}"
+            style="
+                display: inline-block;
+                background-color: #2563eb;
+                color: #ffffff;
+                text-decoration: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+            "
+        >
+            Update Profile
+        </a>
+    </div>
+    {% endif %}
+
+    <div
+        style="
+            background-color: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 16px;
+            margin: 24px 0;
+            border-radius: 6px;
+        "
+    >
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #1f2937;">
+            Missing field:
+            <strong>Phone number</strong>
+        </p>
+    </div>
+
+    <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+        If you have already added your phone number, you can ignore this
+        message.
+    </p>
+
+    <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+        Thank you.
+    </p>
+
+</div>
+
+{% endblock %}
