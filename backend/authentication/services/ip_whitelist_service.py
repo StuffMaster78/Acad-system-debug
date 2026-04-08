@@ -1,204 +1,256 @@
 """
-IP Whitelist Service
-Manages user-controlled IP whitelisting.
-"""
-import logging
-from typing import List, Optional
-from django.core.exceptions import ValidationError
-from django.db import IntegrityError
-from authentication.models.account_security import IPWhitelist, UserIPWhitelistSettings
-from websites.utils import get_current_website
+IP whitelist service.
 
-logger = logging.getLogger(__name__)
+Handle user-managed IP whitelist settings and login restriction checks
+for a specific website context.
+"""
+
+from typing import Any
+
+from django.db import transaction
+from django.utils import timezone
+
+from authentication.models.ip_whitelist import (
+    IPWhitelist,
+    UserIPWhitelistSettings,
+)
 
 
 class IPWhitelistService:
     """
-    Service for managing IP whitelist for users.
+    Manage IP whitelist settings and entries for a user on a website.
     """
-    
-    def __init__(self, user, website=None):
-        self.user = user
-        self.website = website or get_current_website()
-        if not self.website:
-            from websites.models.websites import Website
-            self.website = Website.objects.filter(is_active=True).first()
-    
-    def get_or_create_settings(self) -> UserIPWhitelistSettings:
-        """Get or create IP whitelist settings for user."""
-        if not self.website:
-            raise ValueError("Website context required for IP whitelist")
-        
-        # Since UserIPWhitelistSettings has OneToOneField on user, there can only be one per user
-        # Try to get existing record first (by user only, since that's the unique constraint)
-        try:
-            settings = UserIPWhitelistSettings.objects.get(user=self.user)
-            # Update website if it changed (though this shouldn't happen often)
-            if settings.website != self.website:
-                settings.website = self.website
-                settings.save(update_fields=['website'])
-            return settings
-        except UserIPWhitelistSettings.DoesNotExist:
-            # Record doesn't exist, try to create it
-            try:
-                settings = UserIPWhitelistSettings.objects.create(
-                    user=self.user,
-                    website=self.website,
-                    is_enabled=False,
-                    allow_emergency_bypass=True,
-                )
-                return settings
-            except IntegrityError:
-                # Race condition: another request created it between our get() and create()
-                # The IntegrityError means the record exists (unique constraint violation)
-                # Retry the get - we need to refresh from a new transaction
-                logger.warning(f"Race condition detected for UserIPWhitelistSettings (user={self.user.id}), retrying get")
-                # Get the record in a new transaction (the failed transaction was rolled back)
-                # Since IntegrityError occurred, the record must exist
-                settings = UserIPWhitelistSettings.objects.get(user=self.user)
-                # Update website if needed
-                if settings.website != self.website:
-                    settings.website = self.website
-                    settings.save(update_fields=['website'])
-                return settings
-    
-    def is_enabled(self) -> bool:
-        """Check if IP whitelist is enabled for user."""
-        settings = self.get_or_create_settings()
-        return settings.is_enabled
-    
-    def is_ip_whitelisted(self, ip_address: str) -> bool:
+
+    def __init__(self, user, website):
         """
-        Check if IP address is whitelisted.
-        
+        Initialize the IP whitelist service.
+
         Args:
-            ip_address: IP address to check
-        
+            user: User instance.
+            website: Website instance.
+
+        Raises:
+            ValueError: If website is not provided.
+        """
+        if website is None:
+            raise ValueError(
+                "Website context is required for IP whitelist."
+            )
+
+        self.user = user
+        self.website = website
+
+    def get_or_create_settings(self) -> UserIPWhitelistSettings:
+        """
+        Get or create whitelist settings for the user and website.
+
         Returns:
-            True if whitelisted or whitelist not enabled, False otherwise
+            UserIPWhitelistSettings instance.
+        """
+        settings_obj, _ = (
+            UserIPWhitelistSettings.objects.get_or_create(
+                user=self.user,
+                website=self.website,
+                defaults={
+                    "is_enabled": False,
+                    "allow_emergency_bypass": True,
+                },
+            )
+        )
+        return settings_obj
+
+    def is_enabled(self) -> bool:
+        """
+        Determine whether IP whitelisting is enabled.
+
+        Returns:
+            True if enabled, otherwise False.
+        """
+        return bool(self.get_or_create_settings().is_enabled)
+
+    def is_ip_whitelisted(
+        self,
+        *,
+        ip_address: str | None,
+    ) -> bool:
+        """
+        Determine whether an IP address is whitelisted.
+
+        Args:
+            ip_address: IP address to check.
+
+        Returns:
+            True if the whitelist is disabled or the IP is whitelisted,
+            otherwise False.
         """
         if not self.is_enabled():
-            return True  # Whitelist not enabled, allow all
-        
-        if not self.website:
             return True
-        
+
+        if not ip_address:
+            return False
+
         return IPWhitelist.objects.filter(
             user=self.user,
             website=self.website,
             ip_address=ip_address,
-            is_active=True
+            is_active=True,
         ).exists()
-    
-    def add_ip(self, ip_address: str, label: str = "") -> IPWhitelist:
+
+    @transaction.atomic
+    def add_ip(
+        self,
+        *,
+        ip_address: str,
+        label: str = "",
+    ) -> IPWhitelist:
         """
-        Add IP address to whitelist.
-        
+        Add or reactivate an IP whitelist entry.
+
         Args:
-            ip_address: IP address to whitelist
-            label: Optional label for the IP
-        
+            ip_address: IP address to whitelist.
+            label: Optional label for the IP.
+
         Returns:
-            Created IPWhitelist instance
+            IPWhitelist instance.
         """
-        if not self.website:
-            raise ValueError("Website context required")
-        
-        whitelist_entry, created = IPWhitelist.objects.get_or_create(
+        entry, created = IPWhitelist.objects.get_or_create(
             user=self.user,
             website=self.website,
             ip_address=ip_address,
             defaults={
-                'label': label,
-                'is_active': True,
-            }
+                "label": label,
+                "is_active": True,
+            },
         )
-        
-        if not created:
-            # Reactivate if it was deactivated
-            whitelist_entry.is_active = True
-            whitelist_entry.label = label or whitelist_entry.label
-            whitelist_entry.save()
-        
-        return whitelist_entry
-    
-    def remove_ip(self, ip_address: str):
-        """Remove IP address from whitelist."""
-        if not self.website:
-            return
-        
-        IPWhitelist.objects.filter(
-            user=self.user,
-            website=self.website,
-            ip_address=ip_address
-        ).update(is_active=False)
-    
-    def get_whitelisted_ips(self) -> List[IPWhitelist]:
-        """Get all whitelisted IPs for user."""
-        if not self.website:
-            return []
-        
-        return list(IPWhitelist.objects.filter(
-            user=self.user,
-            website=self.website,
-            is_active=True
-        ).order_by('-created_at'))
-    
-    def enable_whitelist(self):
-        """Enable IP whitelist for user."""
-        settings = self.get_or_create_settings()
-        settings.is_enabled = True
-        settings.save(update_fields=['is_enabled'])
-    
-    def disable_whitelist(self):
-        """Disable IP whitelist for user."""
-        settings = self.get_or_create_settings()
-        settings.is_enabled = False
-        settings.save(update_fields=['is_enabled'])
-    
-    def update_last_used(self, ip_address: str):
-        """Update last used timestamp for IP."""
-        if not self.website:
-            return
-        
-        from django.utils import timezone
-        IPWhitelist.objects.filter(
-            user=self.user,
-            website=self.website,
-            ip_address=ip_address
-        ).update(last_used=timezone.now())
-    
-    def check_login_allowed(self, ip_address: str) -> dict:
-        """
-        Check if login is allowed from IP address.
-        
-        Args:
-            ip_address: IP address attempting login
-        
-        Returns:
-            Dict with allowed status and reason
-        """
-        if not self.is_enabled():
-            return {'allowed': True, 'reason': 'whitelist_disabled'}
-        
-        if self.is_ip_whitelisted(ip_address):
-            self.update_last_used(ip_address)
-            return {'allowed': True, 'reason': 'ip_whitelisted'}
-        
-        # Check emergency bypass
-        settings = self.get_or_create_settings()
-        if settings.allow_emergency_bypass:
-            return {
-                'allowed': False,
-                'reason': 'ip_not_whitelisted',
-                'emergency_bypass_available': True,
-                'message': 'Login from this IP is not allowed. Use emergency bypass via email verification.'
-            }
-        
-        return {
-            'allowed': False,
-            'reason': 'ip_not_whitelisted',
-            'emergency_bypass_available': False,
-            'message': 'Login from this IP is not allowed. Please contact support.'
-        }
 
+        if not created:
+            entry.is_active = True
+            if label:
+                entry.label = label
+            entry.save(update_fields=["is_active", "label"])
+
+        return entry
+
+    @transaction.atomic
+    def remove_ip(
+        self,
+        *,
+        ip_address: str,
+    ) -> int:
+        """
+        Deactivate an IP whitelist entry.
+
+        Args:
+            ip_address: IP address to deactivate.
+
+        Returns:
+            Number of updated rows.
+        """
+        return IPWhitelist.objects.filter(
+            user=self.user,
+            website=self.website,
+            ip_address=ip_address,
+            is_active=True,
+        ).update(is_active=False)
+
+    def get_whitelisted_ips(self) -> list[IPWhitelist]:
+        """
+        Retrieve active whitelist entries.
+
+        Returns:
+            List of active IPWhitelist records.
+        """
+        return list(
+            IPWhitelist.objects.filter(
+                user=self.user,
+                website=self.website,
+                is_active=True,
+            ).order_by("-created_at")
+        )
+
+    @transaction.atomic
+    def enable_whitelist(self) -> UserIPWhitelistSettings:
+        """
+        Enable IP whitelisting for the user and website.
+
+        Returns:
+            Updated UserIPWhitelistSettings instance.
+        """
+        settings_obj = self.get_or_create_settings()
+        settings_obj.is_enabled = True
+        settings_obj.save(update_fields=["is_enabled"])
+        return settings_obj
+
+    @transaction.atomic
+    def disable_whitelist(self) -> UserIPWhitelistSettings:
+        """
+        Disable IP whitelisting for the user and website.
+
+        Returns:
+            Updated UserIPWhitelistSettings instance.
+        """
+        settings_obj = self.get_or_create_settings()
+        settings_obj.is_enabled = False
+        settings_obj.save(update_fields=["is_enabled"])
+        return settings_obj
+
+    @transaction.atomic
+    def mark_ip_used(
+        self,
+        *,
+        ip_address: str,
+    ) -> int:
+        """
+        Update the last-used timestamp for a whitelist entry.
+
+        Args:
+            ip_address: IP address used during login.
+
+        Returns:
+            Number of updated rows.
+        """
+        return IPWhitelist.objects.filter(
+            user=self.user,
+            website=self.website,
+            ip_address=ip_address,
+            is_active=True,
+        ).update(last_used_at=timezone.now())
+
+    def check_login_allowed(
+        self,
+        *,
+        ip_address: str | None,
+    ) -> dict[str, Any]:
+        """
+        Determine whether login is allowed from a given IP address.
+
+        Args:
+            ip_address: Source IP address.
+
+        Returns:
+            Structured login-allowance result.
+        """
+        settings_obj = self.get_or_create_settings()
+
+        if not settings_obj.is_enabled:
+            return {
+                "allowed": True,
+                "reason": "whitelist_disabled",
+                "emergency_bypass_available": False,
+            }
+
+        if ip_address and self.is_ip_whitelisted(ip_address=ip_address):
+            self.mark_ip_used(ip_address=ip_address)
+            return {
+                "allowed": True,
+                "reason": "ip_whitelisted",
+                "emergency_bypass_available": False,
+            }
+
+        return {
+            "allowed": False,
+            "reason": "ip_not_whitelisted",
+            "emergency_bypass_available": bool(
+                settings_obj.allow_emergency_bypass
+            ),
+        }

@@ -1,169 +1,180 @@
 """
-Security Questions Service
-Manages security questions for account recovery.
-"""
-import logging
-from typing import List, Optional
-from django.core.exceptions import ValidationError
-from django.contrib.auth.hashers import make_password
-from authentication.models.security_questions import SecurityQuestion, UserSecurityQuestion
-from websites.utils import get_current_website
+Security Questions Service.
 
-logger = logging.getLogger(__name__)
+Manage security questions for account recovery.
+"""
+
+from typing import List
+
+from django.core.exceptions import ValidationError
+from django.db import transaction
+
+from authentication.models.security_questions import (
+    SecurityQuestion,
+    UserSecurityQuestion,
+)
+from authentication.services.security_event_service import (
+    SecurityEventService,
+)
+from authentication.models.security_events import SecurityEvent
 
 
 class SecurityQuestionsService:
     """
-    Service for managing security questions.
+    Manage security questions for a user within a website.
     """
-    
+
     MIN_QUESTIONS = 2
     MAX_QUESTIONS = 5
-    
-    def __init__(self, user, website=None):
+
+    def __init__(self, user, website):
+        if website is None:
+            raise ValueError("Website context is required")
+
         self.user = user
-        self.website = website or get_current_website()
-        if not self.website:
-            from websites.models.websites import Website
-            self.website = Website.objects.filter(is_active=True).first()
-    
+        self.website = website
+
     def get_available_questions(self) -> List[SecurityQuestion]:
-        """Get available security questions."""
-        return list(SecurityQuestion.objects.filter(is_active=True).order_by('question_text'))
-    
+        return list(
+            SecurityQuestion.objects.filter(is_active=True)
+            .order_by("question_text")
+        )
+
     def get_user_questions(self) -> List[UserSecurityQuestion]:
-        """Get user's security questions."""
-        if not self.website:
-            return []
-        
-        return list(UserSecurityQuestion.objects.filter(
-            user=self.user,
-            website=self.website,
-            is_active=True
-        ).select_related('question'))
-    
-    def set_security_questions(self, questions_data: List[dict]) -> List[UserSecurityQuestion]:
-        """
-        Set security questions for user.
-        
-        Args:
-            questions_data: List of dicts with 'question_id' or 'custom_question' and 'answer'
-        
-        Returns:
-            List of created UserSecurityQuestion instances
-        """
-        if not self.website:
-            raise ValueError("Website context required")
-        
+        return list(
+            UserSecurityQuestion.objects.filter(
+                user=self.user,
+                website=self.website,
+                is_active=True,
+            ).select_related("question")
+        )
+
+    @transaction.atomic
+    def set_security_questions(
+        self,
+        questions_data: List[dict],
+    ) -> List[UserSecurityQuestion]:
         if len(questions_data) < self.MIN_QUESTIONS:
-            raise ValidationError(f"At least {self.MIN_QUESTIONS} security questions are required")
-        
+            raise ValidationError(
+                f"At least {self.MIN_QUESTIONS} questions required"
+            )
+
         if len(questions_data) > self.MAX_QUESTIONS:
-            raise ValidationError(f"Maximum {self.MAX_QUESTIONS} security questions allowed")
-        
-        # Deactivate existing questions
+            raise ValidationError(
+                f"Maximum {self.MAX_QUESTIONS} questions allowed"
+            )
+
+        # deactivate existing
         UserSecurityQuestion.objects.filter(
             user=self.user,
-            website=self.website
+            website=self.website,
         ).update(is_active=False)
-        
-        created_questions = []
-        question_ids_used = set()
-        
+
+        created = []
+        used_ids = set()
+
         for q_data in questions_data:
-            question_id = q_data.get('question_id')
-            custom_question = q_data.get('custom_question', '').strip()
-            answer = q_data.get('answer', '').strip()
-            
-            if not answer:
-                raise ValidationError("Answer is required for all security questions")
-            
-            if not question_id and not custom_question:
-                raise ValidationError("Either question_id or custom_question is required")
-            
-            # Validate answer length
+            question_id = q_data.get("question_id")
+            answer = (q_data.get("answer") or "").strip()
+
+            if not question_id:
+                raise ValidationError("question_id is required")
+
+            if question_id in used_ids:
+                raise ValidationError("Duplicate questions not allowed")
+
+            used_ids.add(question_id)
+
             if len(answer) < 3:
-                raise ValidationError("Answer must be at least 3 characters long")
-            
-            # Get or create question
-            if question_id:
-                if question_id in question_ids_used:
-                    raise ValidationError("Duplicate questions are not allowed")
-                question_ids_used.add(question_id)
-                
-                try:
-                    question = SecurityQuestion.objects.get(id=question_id, is_active=True)
-                except SecurityQuestion.DoesNotExist:
-                    raise ValidationError(f"Invalid question ID: {question_id}")
-            else:
-                question = None
-                if len(custom_question) < 10:
-                    raise ValidationError("Custom question must be at least 10 characters long")
-            
-            # Create user security question
-            user_question = UserSecurityQuestion.objects.create(
+                raise ValidationError("Answer too short")
+
+            try:
+                question = SecurityQuestion.objects.get(
+                    id=question_id,
+                    is_active=True,
+                )
+            except SecurityQuestion.DoesNotExist:
+                raise ValidationError("Invalid question")
+
+            uq = UserSecurityQuestion.objects.create(
                 user=self.user,
                 website=self.website,
                 question=question,
-                custom_question=custom_question if custom_question else '',
-                is_active=True
+                is_active=True,
             )
-            
-            # Set encrypted answer
-            user_question.set_answer(answer)
-            user_question.save()
-            
-            created_questions.append(user_question)
-        
-        return created_questions
-    
+
+            uq.set_answer(answer)
+            uq.save()
+
+            created.append(uq)
+
+        SecurityEventService.log(
+            user=self.user,
+            website=self.website,
+            event_type=SecurityEvent.EventType.PROFILE_UPDATED,
+            metadata={"action": "security_questions_set"},
+        )
+
+        return created
+
     def verify_answers(self, answers: List[dict]) -> bool:
-        """
-        Verify security question answers.
-        
-        Args:
-            answers: List of dicts with 'question_id' and 'answer'
-        
-        Returns:
-            True if all answers are correct
-        """
-        if not self.website:
-            return False
-        
         user_questions = self.get_user_questions()
-        
+
         if len(answers) != len(user_questions):
             return False
-        
-        # Create a map of question IDs to user questions
-        question_map = {q.question.id if q.question else None: q for q in user_questions}
-        
-        correct_count = 0
+
+        question_map = {
+            q.question.pk: q for q in user_questions
+        }
+
+        correct = 0
+
         for answer_data in answers:
-            question_id = answer_data.get('question_id')
-            answer = answer_data.get('answer', '').strip()
-            
-            user_question = question_map.get(question_id)
-            if not user_question:
+            qid = answer_data.get("question_id")
+            answer = (answer_data.get("answer") or "").strip()
+
+            uq = question_map.get(qid)
+            if not uq:
                 continue
-            
-            if user_question.verify_answer(answer):
-                correct_count += 1
-        
-        # Require all answers to be correct
-        return correct_count == len(user_questions)
-    
+
+            if uq.verify_answer(answer):
+                correct += 1
+            else:
+                uq.failed_attempts += 1
+                uq.save(update_fields=["failed_attempts"])
+
+        success = correct == len(user_questions)
+
+        SecurityEventService.log(
+            user=self.user,
+            website=self.website,
+            event_type=(
+                SecurityEvent.EventType.PROFILE_UPDATED
+                if success
+                else SecurityEvent.EventType.SUSPICIOUS_ACTIVITY
+            ),
+            severity=(
+                SecurityEvent.Severity.LOW
+                if success
+                else SecurityEvent.Severity.MEDIUM
+            ),
+            is_suspicious=not success,
+            metadata={
+                "action": "security_questions_verification",
+                "correct_answers": correct,
+                "total": len(user_questions),
+            },
+        )
+
+        return success
+
     def can_use_for_recovery(self) -> bool:
-        """Check if user has enough security questions set up."""
-        return len(self.get_user_questions()) >= self.MIN_QUESTIONS
-    
-    def delete_all_questions(self):
-        """Delete all security questions for user."""
-        if not self.website:
-            return
-        
+        return (
+            len(self.get_user_questions()) >= self.MIN_QUESTIONS
+        )
+
+    def delete_all_questions(self) -> None:
         UserSecurityQuestion.objects.filter(
             user=self.user,
-            website=self.website
+            website=self.website,
         ).delete()
-

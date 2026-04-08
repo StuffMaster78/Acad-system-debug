@@ -1,494 +1,657 @@
-"""
-Unified authentication service for production-grade login/logout/impersonation.
-Provides consistent, secure, and scalable authentication operations.
-"""
-import logging
-from typing import Optional, Dict, Any
-from django.contrib.auth import authenticate, get_user_model
-from django.utils import timezone
-from django.core.exceptions import ValidationError, PermissionDenied
-from django.db import transaction
+from typing import Any
+
+from django.contrib.auth import authenticate
+from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.exceptions import TokenError
 
-from authentication.services.failed_login_attempts import FailedLoginService
-from authentication.services.login_session_service import LoginSessionService
+from authentication.services.login_security_service import (
+    LoginSecurityService,
+)
+from authentication.services.login_session_service import (
+    LoginSessionService,
+)
+from authentication.services.mfa_orchestration_service import (
+    MFAOrchestrationService,
+)
 from authentication.utils.ip import get_client_ip
-from authentication.models import FailedLoginAttempt
-from websites.utils import get_current_website
+from authentication.services.auth_notification_bridge_service import (
+    AuthNotificationBridgeService
+)
+from authentication.services.mfa_challenge_service import (
+    MFAChallengeService
+)
+from authentication.services.device_fingerprint_service import (
+    DeviceFingerprintService
+)
+from authentication.services.device_security_alert_service import (
+    DeviceSecurityAlertService
+)
+from authentication.models.mfa_device import MFADevice
 
-logger = logging.getLogger(__name__)
-User = get_user_model()
-
+from authentication.services.account_suspension_service import (
+    AccountSuspensionService
+)
 
 class AuthenticationService:
     """
-    Production-grade authentication service.
-    Handles login, logout, session management, and security features.
+    Handle top-level authentication workflows.
+
+    This service coordinates the login process by:
+        - validating credentials
+        - enforcing access gates
+        - checking lockout policy
+        - deciding whether MFA is required
+        - creating authenticated sessions when login succeeds
+
+    Lower-level responsibilities such as session creation, failed-login
+    tracking, and MFA challenges are delegated to dedicated services.
     """
+    @classmethod
+    def _should_force_mfa_for_risk(
+        cls,
+        *,
+        user,
+        website,
+        request=None,
+    ) -> bool:
+        """
+        Determine whether MFA should be forced based on device
+        fingerprint risk.
+
+        Args:
+            user: User instance.
+            website: Website or tenant context.
+            request: Optional HTTP request object.
+
+        Returns:
+            True if MFA should be forced for this login attempt,
+            otherwise False.
+        """
+        fingerprint_data = cls._extract_fingerprint_data(request)
+
+        if fingerprint_data is None:
+            return False
+
+        raw_fingerprint_data = fingerprint_data.get(
+            "raw_fingerprint_data",
+        )
+        if not raw_fingerprint_data:
+            return False
+
+        fingerprint_service = DeviceFingerprintService(
+            user=user,
+            website=website,
+        )
+
+        try:
+            fingerprint_hash = fingerprint_service.hash_fingerprint_data(
+                raw_fingerprint_data,
+            )
+        except ValueError:
+            return False
+
+        risk_result = fingerprint_service.evaluate_risk(
+            fingerprint_hash=fingerprint_hash,
+        )
+
+        return bool(risk_result["is_high_risk"])
+    
+    @classmethod
+    def _get_login_risk_context(
+        cls,
+        *,
+        user,
+        website,
+        request=None,
+    ) -> dict[str, Any]:
+        """
+        Build risk context for the current login request.
+
+        Args:
+            user: User instance.
+            website: Website or tenant context.
+            request: Optional HTTP request object.
+
+        Returns:
+            A dictionary containing fingerprint hash, risk score,
+            and whether MFA should be forced.
+        """
+        fingerprint_data = cls._extract_fingerprint_data(request)
+
+        if fingerprint_data is None:
+            return {
+                "fingerprint_hash": None,
+                "score": 0.0,
+                "is_high_risk": False,
+            }
+
+        raw_fingerprint_data = fingerprint_data.get(
+            "raw_fingerprint_data",
+        )
+        if not raw_fingerprint_data:
+            return {
+                "fingerprint_hash": None,
+                "score": 0.0,
+                "is_high_risk": False,
+            }
+
+        fingerprint_service = DeviceFingerprintService(
+            user=user,
+            website=website,
+        )
+
+        try:
+            fingerprint_hash = fingerprint_service.hash_fingerprint_data(
+                raw_fingerprint_data,
+            )
+        except ValueError:
+            return {
+                "fingerprint_hash": None,
+                "score": 0.0,
+                "is_high_risk": False,
+            }
+
+        risk_result = fingerprint_service.evaluate_risk(
+            fingerprint_hash=fingerprint_hash,
+        )
+
+        return {
+            "fingerprint_hash": fingerprint_hash,
+            "score": float(risk_result["score"]),
+            "is_high_risk": bool(risk_result["is_high_risk"]),
+        }
+    
+    @classmethod
+    def _is_trusted_device_for_request(
+        cls,
+        *,
+        user,
+        website,
+        request=None,
+    ) -> bool:
+        """
+        Determine whether the current request comes from a trusted
+        device fingerprint.
+
+        Args:
+            user: User instance.
+            website: Website or tenant context.
+            request: Optional HTTP request object.
+
+        Returns:
+            True if the request fingerprint matches a trusted
+            fingerprint record, otherwise False.
+        """
+        fingerprint_data = cls._extract_fingerprint_data(request)
+
+        if fingerprint_data is None:
+            return False
+
+        raw_fingerprint_data = fingerprint_data.get(
+            "raw_fingerprint_data",
+        )
+        if not raw_fingerprint_data:
+            return False
+
+        fingerprint_service = DeviceFingerprintService(
+            user=user,
+            website=website,
+        )
+
+        try:
+            fingerprint_hash = fingerprint_service.hash_fingerprint_data(
+                raw_fingerprint_data,
+            )
+        except ValueError:
+            return False
+
+        fingerprint = fingerprint_service.get_fingerprint_by_hash(
+            fingerprint_hash=fingerprint_hash,
+        )
+
+        if fingerprint is None:
+            return False
+
+        return bool(fingerprint.is_trusted)
     
     @staticmethod
-    @transaction.atomic
-    def login(
+    def _extract_fingerprint_data(
         request,
+    ) -> dict[str, Any] | None:
+        """
+        Extract fingerprint-related data from the request.
+
+        Args:
+            request: HTTP request object.
+
+        Returns:
+            Fingerprint payload dictionary, or None if fingerprint
+            data is unavailable.
+        """
+        if request is None:
+            return None
+
+        raw_fingerprint_data = request.headers.get(
+            "X-Device-Fingerprint",
+        )
+
+        if not raw_fingerprint_data:
+            return None
+
+        return {
+            "raw_fingerprint_data": raw_fingerprint_data,
+            "user_agent": request.headers.get("User-Agent", ""),
+            "ip_address": get_client_ip(request),
+        }
+
+    @staticmethod
+    def _get_user_agent(request) -> str:
+        """
+        Extract the user agent string from a request.
+
+        Args:
+            request: HTTP request object.
+
+        Returns:
+            User agent string, or an empty string if unavailable.
+        """
+        if request is None:
+            return ""
+
+        return request.headers.get("User-Agent", "")
+
+    @staticmethod
+    def _get_device_info(request) -> dict[str, Any]:
+        """
+        Build device information from the request.
+
+        Args:
+            request: HTTP request object.
+
+        Returns:
+            Dictionary containing basic device metadata.
+        """
+        if request is None:
+            return {}
+
+        return {
+            "user_agent": request.headers.get("User-Agent", ""),
+            "device": request.headers.get("X-Device", ""),
+        }
+
+    @staticmethod
+    def _check_access_gates(user) -> None:
+        """
+        Enforce account-level access gates before login.
+
+        Args:
+            user: Authenticated user instance.
+
+        Raises:
+            ValidationError: If the account is not allowed to log in.
+        """
+        if not user.is_active:
+            raise ValidationError(
+                "This account is disabled. Please contact support."
+            )
+
+    @classmethod
+    def login_with_password(
+        cls,
+        *,
         email: str,
         password: str,
-        remember_me: bool = False,
-        device_info: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        website,
+        request=None,
+    ) -> dict[str, Any]:
         """
-        Authenticate user and create session.
-        
+        Authenticate a user with email and password.
+
+        Flow:
+            1. Check lockout status
+            2. Authenticate credentials
+            3. Record failed attempts if authentication fails
+            4. Enforce access gates
+            5. Decide whether MFA is required
+            6. If MFA is not required, create session and issue tokens
+
         Args:
-            request: HTTP request object
-            email: User email
-            password: User password
-            remember_me: Whether to extend session duration
-            device_info: Optional device information dict
-        
+            email: User email address.
+            password: Submitted password.
+            website: Tenant or website context.
+            request: Optional HTTP request object.
+
         Returns:
-            Dict with tokens, user info, and session details
-        
+            A dictionary describing the next authentication step.
+
+            On direct success:
+                {
+                    "authenticated": True,
+                    "mfa_required": False,
+                    "access": "...",
+                    "refresh": "...",
+                    "session_id": "...",
+                    "user": {...},
+                }
+
+            On MFA-required:
+                {
+                    "authenticated": False,
+                    "mfa_required": True,
+                    "mfa": {...},
+                    "user_id": ...,
+                }
+
         Raises:
-            ValidationError: For invalid credentials or locked account
+            ValidationError: If credentials are invalid or the account
+                is locked out or inactive.
         """
-        website = get_current_website(request)
-        ip_address = get_client_ip(request)
-        user_agent = request.headers.get("User-Agent", "")
-        
-        # Authenticate user
-        user = authenticate(request=request, username=email, password=password)
-        
-        if not user:
-            # Try to find user by email to log failed attempt (even if password is wrong)
-            failed_attempts_remaining = None
-            try:
-                user_for_logging = User.objects.get(email=email)
-                # Log failed attempt only if user exists and website exists
-                if user_for_logging and website:
-                    FailedLoginService.log(
-                        user=user_for_logging,
-                        website=website,
-                        ip=ip_address,
-                        user_agent=user_agent
-                    )
-                    
-                    # Log security event for failed login
-                    from authentication.models.security_events import SecurityEvent
-                    try:
-                        SecurityEvent.log_event(
-                            user=user_for_logging,
-                            website=website,
-                            event_type='login_failed',
-                            severity='medium',
-                            is_suspicious=False,
-                            ip_address=ip_address,
-                            user_agent=user_agent,
-                            metadata={'email_attempted': email}
-                        )
-                    except Exception as e:
-                        logger.warning(f"Failed to log security event: {e}")
-                    
-                    # Get attempts remaining for user-friendly error
-                    from authentication.services.smart_lockout_service import SmartLockoutService
-                    smart_lockout = SmartLockoutService(user=user_for_logging, website=website)
-                    lockout_info = smart_lockout.get_lockout_info(ip_address, False)
-                    failed_attempts_remaining = lockout_info.get('attempts_remaining', 5)
-            except User.DoesNotExist:
-                # User doesn't exist, skip logging failed attempt
-                pass
-            
-            # User-friendly error message
-            if failed_attempts_remaining is not None and failed_attempts_remaining > 0:
-                error_msg = f"The email or password you entered is incorrect. {failed_attempts_remaining} attempts remaining before your account is temporarily locked."
-                guidance = "Forgot your password? Click here to reset it."
-            else:
-                error_msg = "The email or password you entered is incorrect."
-                guidance = "Please check your credentials and try again."
-            
-            raise ValidationError({
-                "error": "Invalid credentials",
-                "message": error_msg,
-                "guidance": guidance,
-                "attempts_remaining": failed_attempts_remaining
-            })
-        
-        # Check if account is active
-        if not user.is_active:
-            raise ValidationError("Account is disabled. Please contact support.")
-        
-        # Ensure website exists - use user's website or get first active website
-        if not website:
-            website = getattr(user, 'website', None)
-        if not website:
-            from websites.models.websites import Website
-            website = Website.objects.filter(is_active=True).first()
-        
-        if not website:
+        ip_address = get_client_ip(request) if request else None
+        user_agent = cls._get_user_agent(request)
+
+        if LoginSecurityService.is_ip_blocked(
+            website=website,
+            ip_address=ip_address,
+        ):
             raise ValidationError(
-                "No active website found. Please contact support to set up your account."
+                "This IP address is temporarily blocked. Please try again later."
             )
+
+        candidate_user = LoginSecurityService.get_user_by_email(
+            email=email,
+        )
+
+        if candidate_user is not None:
+            active_lockout = LoginSecurityService.get_active_lockout(
+                user=candidate_user,
+                website=website,
+            )
+            if active_lockout is not None:
+                raise ValidationError(
+                    active_lockout.reason
+                    or "This account is temporarily locked."
+                )
+
+        user = authenticate(
+            request=request,
+            username=email,
+            password=password,
+        )
+
+        if user is None:
+            if candidate_user is not None:
+                is_trusted_device = cls._is_trusted_device_for_request(
+                    user=candidate_user,
+                    website=website,
+                    request=request,
+                )
+
+                LoginSecurityService.record_failed_login_and_enforce(
+                    user=candidate_user,
+                    website=website,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    is_trusted_device=is_trusted_device,
+                )
+
+            raise ValidationError("Invalid email or password.")
         
-        # Check account suspension
-        from authentication.services.account_suspension_service import AccountSuspensionService
-        suspension_service = AccountSuspensionService(user=user, website=website)
+        suspension_service = AccountSuspensionService(
+            user=candidate_user,
+            website=website,
+        )
         if suspension_service.is_suspended():
-            suspension_info = suspension_service.get_suspension_info()
-            raise ValidationError({
-                "error": "Account suspended",
-                "message": "Your account has been suspended. Please contact support.",
-                "suspension_info": suspension_info
-            })
-        
-        # Check IP whitelist
-        from authentication.services.ip_whitelist_service import IPWhitelistService
-        ip_whitelist_service = IPWhitelistService(user=user, website=website)
-        ip_check = ip_whitelist_service.check_login_allowed(ip_address)
-        if not ip_check.get('allowed', True):
-            if ip_check.get('emergency_bypass_available', False):
-                raise ValidationError({
-                    "error": "IP not whitelisted",
-                    "message": ip_check.get('message'),
-                    "emergency_bypass_available": True
-                })
-            else:
-                raise ValidationError({
-                    "error": "IP not whitelisted",
-                    "message": ip_check.get('message')
-                })
-        
-        # Check password expiration
-        from authentication.services.password_expiration_service import PasswordExpirationService
-        expiration_service = PasswordExpirationService(user=user, website=website)
-        expiration_status = expiration_service.check_expiration_status()
-        if expiration_status.get('is_expired', False):
-            raise ValidationError({
-                "error": "Password expired",
-                "requires_password_change": True,
-                "expiration_info": expiration_status,
-                "message": "Your password has expired. Please change it to continue."
-            })
-        
-        # Check for account lockout using Smart Lockout Service
-        from authentication.services.smart_lockout_service import SmartLockoutService
-        from authentication.models.devices import TrustedDevice
-        
-        # Check if device is trusted
-        device_fingerprint = request.data.get('device_fingerprint') or request.headers.get('X-Device-Fingerprint')
-        is_trusted_device = False
-        if device_fingerprint:
-            is_trusted_device = TrustedDevice.objects.filter(
+            raise ValidationError(
+                "This account is suspended for this website."
+            )
+
+        cls._check_access_gates(user)
+
+        LoginSecurityService.clear_failed_logins(
+            user=user,
+            website=website,
+        )
+
+        policy_requires_mfa = MFAOrchestrationService.is_mfa_required(
+            user=user,
+            website=website,
+        )
+
+        risk_context = cls._get_login_risk_context(
+            user=user,
+            website=website,
+            request=request,
+        )
+
+        risk_requires_mfa = risk_context["is_high_risk"]
+
+        if (
+            risk_requires_mfa
+            and risk_context["fingerprint_hash"]
+        ):
+            DeviceSecurityAlertService.evaluate_and_alert_if_risky(
                 user=user,
                 website=website,
-                device_token=device_fingerprint,
-                expires_at__gt=timezone.now()
-            ).exists()
-        
-        smart_lockout = SmartLockoutService(user=user, website=website)
-        should_lock, lockout_reason = smart_lockout.should_lockout(ip_address, is_trusted_device)
-        
-        if should_lock:
-            lockout_info = smart_lockout.get_lockout_info(ip_address, is_trusted_device)
-            raise ValidationError({
-                "error": "Account temporarily locked",
-                "message": lockout_reason,
-                "lockout_until": lockout_info.get('lockout_until'),
-                "lockout_duration_minutes": lockout_info.get('lockout_duration_minutes'),
-                "unlock_options": lockout_info.get('unlock_options'),
-                "guidance": "You can request an unlock via email or wait for the lockout period to expire."
-            })
-        
-        # Check account suspension
-        suspension_service = AccountSuspensionService(user=user, website=website)
-        if suspension_service.is_suspended():
-            suspension_info = suspension_service.get_suspension_info()
-            raise ValidationError({
-                "error": "Account suspended",
-                "message": "Your account has been suspended. Please contact support.",
-                "suspension_info": suspension_info
-            })
-        
-        # Check IP whitelist
-        ip_whitelist_service = IPWhitelistService(user=user, website=website)
-        ip_check = ip_whitelist_service.check_login_allowed(ip_address)
-        if not ip_check.get('allowed', True):
-            if ip_check.get('emergency_bypass_available', False):
-                raise ValidationError({
-                    "error": "IP not whitelisted",
-                    "message": ip_check.get('message'),
-                    "emergency_bypass_available": True
-                })
-            else:
-                raise ValidationError({
-                    "error": "IP not whitelisted",
-                    "message": ip_check.get('message')
-                })
-        
-        # Check password expiration
-        from authentication.services.password_expiration_service import PasswordExpirationService
-        expiration_service = PasswordExpirationService(user=user, website=website)
-        expiration_status = expiration_service.check_expiration_status()
-        if expiration_status.get('is_expired', False):
-            raise ValidationError({
-                "error": "Password expired",
-                "requires_password_change": True,
-                "expiration_info": expiration_status,
-                "message": "Your password has expired. Please change it to continue."
-            })
-        
-        # Check for impersonation (prevent impersonating while impersonating)
-        # Only block if the user is actually authenticated and impersonating
-        # If user is not authenticated (fresh login), clear stale impersonation session
-        if hasattr(request, 'session') and request.session.get('_impersonator_id'):
-            # If user is not authenticated, this is a stale session - clear it
-            if not request.user.is_authenticated:
-                request.session.pop('_impersonator_id', None)
-                request.session.pop('_impersonator_email', None)
-                request.session.pop('_impersonator_role', None)
-                request.session.pop('_impersonation_started_at', None)
-                request.session.save()
-                logger.info("Cleared stale impersonation session during login")
-            else:
-                # User is authenticated and impersonating - block login
-                raise PermissionDenied(
-                    "Cannot login while impersonating another user. "
-                    "End impersonation first."
+                fingerprint_service=DeviceFingerprintService(
+                    user=user,
+                    website=website,
+                ),
+                fingerprint_hash=risk_context["fingerprint_hash"],
+                ip_address=ip_address,
+                metadata={
+                    "stage": "pre_mfa_login",
+                    "email": email,
+                },
+            )
+
+        if policy_requires_mfa or risk_requires_mfa:
+            mfa_result = MFAOrchestrationService.begin_mfa_for_login(
+                user=user,
+                website=website,
+                request=request,
+            )
+
+            if mfa_result["method"] in {
+                MFADevice.Method.EMAIL,
+                MFADevice.Method.SMS,
+            }:
+                AuthNotificationBridgeService.send_mfa_challenge_notification(
+                    user=user,
+                    website=website,
+                    device_method=mfa_result["method"],
+                    raw_code=mfa_result["raw_code"],
+                    device_name=mfa_result["device_name"],
+                    expiry_minutes=MFAChallengeService.DEFAULT_EXPIRY_MINUTES,
+                    email=mfa_result["delivery"].get("email", ""),
+                    phone_number=mfa_result["delivery"].get(
+                        "phone_number",
+                        "",
+                    ),
                 )
-        
-        # Ensure user profile exists
-        if not hasattr(user, 'user_main_profile') or user.user_main_profile is None:
-            from users.models import UserProfile
-            UserProfile.objects.get_or_create(user=user, defaults={'avatar': 'avatars/universal.png'})
-        
-        # Enforce session limits before creating new session
-        from authentication.services.session_limit_service import SessionLimitService
-        session_limit_service = SessionLimitService(user=user, website=website)
-        session_limit_service.enforce_session_limit()
-        
-        # Create login session (website is now guaranteed to exist)
+
+            safe_mfa_response = (
+                AuthNotificationBridgeService.build_safe_mfa_response(
+                    method=mfa_result["method"],
+                    device_id=mfa_result["device_id"],
+                    device_name=mfa_result["device_name"],
+                    challenge_id=mfa_result.get("challenge_id"),
+                    email=mfa_result["delivery"].get("email", ""),
+                    phone_number=mfa_result["delivery"].get(
+                        "phone_number",
+                        "",
+                    ),
+                )
+            )
+
+            return {
+                "authenticated": False,
+                "mfa_required": True,
+                "mfa_reason": (
+                    "risk_based"
+                    if risk_requires_mfa and not policy_requires_mfa
+                    else "policy"
+                ),
+                "mfa": safe_mfa_response,
+                "user_id": user.pk,
+                "risk": {
+                    "is_high_risk": risk_requires_mfa,
+                    "score": risk_context["score"],
+                },
+            }
+
+        refresh = RefreshToken.for_user(user)
+
         session = LoginSessionService.start_session(
             user=user,
             website=website,
             ip=ip_address,
             user_agent=user_agent,
-            device_info=device_info
+            device_info=cls._get_device_info(request),
         )
-        
-        # Enforce session limit after creating session (revoke oldest if needed)
-        session_limit_service.enforce_session_limit(session)
-        
-        # Check for 2FA requirement
-        # Try both methods of checking 2FA
-        is_2fa_enabled = False
-        if hasattr(user, 'user_main_profile') and user.user_main_profile:
-            is_2fa_enabled = getattr(user.user_main_profile, 'is_2fa_enabled', False)
-        if not is_2fa_enabled:
-            is_2fa_enabled = getattr(user, 'is_mfa_enabled', False)
-        
-        if is_2fa_enabled:
-            return {
-                "requires_2fa": True,
-                "session_id": str(session.id),
-                "message": "2FA verification required."
-            }
-        
-        # Generate JWT tokens
-        refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
-        refresh_token = str(refresh)
-        
-        # Set session expiry based on remember_me
-        if remember_me and hasattr(request, 'session'):
-            request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days
-        elif hasattr(request, 'session'):
-            request.session.set_expiry(60 * 60 * 24)  # 24 hours
-        
-        # Update last login
-        user.last_login = timezone.now()
-        user.save(update_fields=['last_login'])
-        
-        # Log security event
-        from authentication.models.security_events import SecurityEvent
-        try:
-            SecurityEvent.log_event(
-                user=user,
-                website=website,
-                event_type='login',
-                severity='low',
-                is_suspicious=False,
-                ip_address=ip_address,
-                user_agent=user_agent,
-                device=device_info.get('device_name') if device_info else None,
-                metadata={'remember_me': remember_me}
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log security event: {e}")
-        
-        # Clear failed login attempts on successful login
-        try:
-            FailedLoginService(user=user, website=website).clear_attempts()
-        except Exception as e:
-            logger.warning(f"Failed to clear failed attempts: {e}")
-        
-        return {
-            "access": access_token,
-            "refresh": refresh_token,
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "username": user.username,
-                "full_name": user.get_full_name(),
-                "role": getattr(user, 'role', None),
-            },
-            "session_id": str(session.id),
-            "expires_in": 3600 if not remember_me else 60 * 60 * 24 * 30
-        }
-    
-    @staticmethod
-    def verify_2fa(user, session_id: str, totp_code: str) -> Dict[str, Any]:
-        """
-        Verify 2FA code and complete login.
-        
-        Args:
-            user: User instance
-            session_id: Login session ID
-            totp_code: TOTP verification code
-        
-        Returns:
-            Dict with tokens and user info
-        
-        Raises:
-            ValidationError: If 2FA code is invalid
-        """
-        if not hasattr(user, 'mfa_secret') or not user.mfa_secret:
-            raise ValidationError("2FA is not enabled for this account.")
-        
-        # Verify TOTP code
-        import pyotp
-        totp = pyotp.TOTP(user.mfa_secret)
-        
-        if not totp.verify(totp_code, valid_window=1):
-            raise ValidationError("Invalid 2FA code.")
-        
-        # Generate tokens
-        refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
-        refresh_token = str(refresh)
-        
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "username": user.username,
-                "full_name": user.get_full_name(),
-                "role": getattr(user, 'role', None),
-            },
-        }
-    
-    @staticmethod
-    @transaction.atomic
-    def logout(request, user, logout_all: bool = False) -> Dict[str, Any]:
-        """
-        Logout user and invalidate session/tokens.
-        
-        Args:
-            request: HTTP request object
-            user: User instance
-            logout_all: If True, logout from all devices
-        
-        Returns:
-            Dict with logout confirmation
-        """
-        website = get_current_website(request)
-        
-        # End impersonation if active
-        if hasattr(request, 'session') and request.session.get('_impersonator_id'):
-            try:
-                from authentication.services.impersonation_service import ImpersonationService
-                service = ImpersonationService(request, website)
-                service.end_impersonation()
-                logger.info(f"Ended impersonation during logout for admin {user.id}")
-            except Exception as e:
-                logger.warning(f"Failed to end impersonation during logout: {e}")
-        
-        # Revoke login sessions
-        if logout_all:
-            LoginSessionService.revoke_all_sessions(user=user, website=website)
-            message = "Logged out from all devices."
-        else:
-            session_id = getattr(request, 'session_id', None)
-            LoginSessionService.revoke_session(user=user, session_id=session_id, website=website)
-            message = "Logged out successfully."
-        
-        # Clear session
-        if hasattr(request, 'session'):
-            request.session.flush()
-        
-        # Log logout event
-        try:
-            from authentication.services.logout_event_service import LogoutEventService
-            LogoutEventService.log_event(
-                user=user,
-                website=website,
-                ip_address=get_client_ip(request),
-                user_agent=request.headers.get('User-Agent', ''),
-                reason="user_initiated"
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log logout event: {e}")
-        
-        return {
-            "success": True,
-            "message": message
-        }
-    
-    @staticmethod
-    def refresh_token(refresh_token_str: str) -> Dict[str, Any]:
-        """
-        Refresh access token using refresh token.
-        
-        Args:
-            refresh_token_str: Refresh token string
-        
-        Returns:
-            Dict with new access token
-        
-        Raises:
-            ValidationError: If refresh token is invalid
-        """
-        try:
-            refresh = RefreshToken(refresh_token_str)
-            access_token = str(refresh.access_token)
-            
-            return {
-                "access_token": access_token,
-                "expires_in": 3600,
-            }
-        except TokenError as e:
-            raise ValidationError("Invalid or expired refresh token.")
-    
-    @staticmethod
-    def validate_user_access(user, website) -> bool:
-        """
-        Validate that user has access to the website/tenant.
-        
-        Args:
-            user: User instance
-            website: Website instance
-        
-        Returns:
-            bool: True if user has access
-        """
-        # Superadmins have access to all websites
-        if hasattr(user, 'role') and user.role == 'superadmin':
-            return True
-        
-        # Check if user belongs to this website
-        if hasattr(user, 'website') and user.website == website:
-            return True
-        
-        # Additional tenant access checks can be added here
-        return False
 
+        cls._handle_device_fingerprint(
+            user=user,
+            website=website,
+            request=request,
+        )
+
+        return {
+            "authenticated": True,
+            "mfa_required": False,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "session_id": str(session.pk),
+            "user": {
+                "id": user.pk,
+                "email": getattr(user, "email", ""),
+                "username": getattr(user, "username", ""),
+                "role": getattr(user, "role", None),
+            },
+        }
+
+    @classmethod
+    def complete_mfa_login(
+        cls,
+        *,
+        user,
+        website,
+        code: str,
+        request=None,
+        device_id: int | None = None,
+    ) -> dict[str, Any]:
+        """
+        Complete a login flow after MFA verification.
+
+        Args:
+            user: User instance.
+            website: Tenant or website context.
+            code: Submitted MFA code.
+            request: Optional HTTP request object.
+            device_id: Optional MFA device ID.
+
+        Returns:
+            A dictionary containing authentication tokens, session data,
+            and user information.
+
+        Raises:
+            ValidationError: If MFA verification fails or access is
+                denied.
+        """
+        cls._check_access_gates(user)
+
+        MFAOrchestrationService.verify_login_mfa(
+            user=user,
+            website=website,
+            code=code,
+            device_id=device_id,
+        )
+
+        refresh = RefreshToken.for_user(user)
+        ip_address = get_client_ip(request) if request else None
+        user_agent = cls._get_user_agent(request)
+
+        session = LoginSessionService.start_session(
+            user=user,
+            website=website,
+            ip=ip_address,
+            user_agent=user_agent,
+            device_info=cls._get_device_info(request),
+        )
+
+        cls._handle_device_fingerprint(
+            user=user,
+            website=website,
+            request=request,
+        )
+
+        return {
+            "authenticated": True,
+            "mfa_required": False,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "session_id": str(session.pk),
+            "user": {
+                "id": user.pk,
+                "email": getattr(user, "email", ""),
+                "username": getattr(user, "username", ""),
+                "role": getattr(user, "role", None),
+            },
+        }
+    
+    @classmethod
+    def _handle_device_fingerprint(
+        cls,
+        *,
+        user,
+        website,
+        request=None,
+    ) -> None:
+        """
+        Process device fingerprint updates and suspicious activity
+        checks after a successful authentication event.
+
+        Args:
+            user: Authenticated user instance.
+            website: Website or tenant context.
+            request: Optional HTTP request object.
+        """
+        fingerprint_data = cls._extract_fingerprint_data(request)
+
+        if fingerprint_data is None:
+            return
+
+        fingerprint_service = DeviceFingerprintService(
+            user=user,
+            website=website,
+        )
+
+        fingerprint = fingerprint_service.create_or_update_fingerprint(
+            fingerprint_data=fingerprint_data,
+        )
+
+        suspicious_findings = (
+            fingerprint_service.find_suspicious_fingerprints(
+                current_ip=fingerprint_data.get("ip_address"),
+                current_user_agent=fingerprint_data.get("user_agent"),
+                exclude_fingerprint_hash=fingerprint.fingerprint_hash,
+            )
+        )
+
+        if suspicious_findings:
+            DeviceSecurityAlertService.process_suspicious_fingerprints(
+                user=user,
+                website=website,
+                suspicious_findings=suspicious_findings,
+                ip_address=fingerprint_data.get("ip_address"),
+            )
+
+        DeviceSecurityAlertService.evaluate_and_alert_if_risky(
+            user=user,
+            website=website,
+            fingerprint_service=fingerprint_service,
+            fingerprint_hash=fingerprint.fingerprint_hash,
+            ip_address=fingerprint_data.get("ip_address"),
+            metadata={
+                "user_agent": fingerprint_data.get("user_agent", ""),
+            },
+        )

@@ -1,188 +1,260 @@
 """
-Session Limit Service
-Manages concurrent session limits and enforcement.
-"""
-import logging
-from typing import Optional, List
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.db import IntegrityError
-from authentication.models.login import LoginSession
-from authentication.models.session_limits import SessionLimitPolicy
-from websites.utils import get_current_website
+Session limit service.
 
-logger = logging.getLogger(__name__)
+Manage concurrent session limits and enforcement for a user on a
+website.
+"""
+
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Q
+from django.utils.timezone import now
+
+from authentication.models.login_session import LoginSession
+from authentication.models.session_limits import SessionLimitPolicy
+from authentication.models.security_events import SecurityEvent
+from authentication.services.security_event_service import (
+    SecurityEventService,
+)
+from authentication.services.account_access_policy_service import (
+    AccountAccessPolicyService
+)
 
 
 class SessionLimitService:
     """
-    Service for managing concurrent session limits.
+    Manage concurrent session limit policy and enforcement.
     """
-    
+
     DEFAULT_MAX_SESSIONS = 3
-    
-    def __init__(self, user, website=None):
+
+    def __init__(self, user, website):
+        """
+        Initialize the session limit service.
+
+        Args:
+            user: User instance.
+            website: Website instance.
+
+        Raises:
+            ValueError: If website is not provided.
+        """
+        if website is None:
+            raise ValueError(
+                "Website context is required for session limits."
+            )
+
         self.user = user
-        self.website = website or get_current_website()
-        if not self.website:
-            from websites.models.websites import Website
-            self.website = Website.objects.filter(is_active=True).first()
-    
+        self.website = website
+
     def get_or_create_policy(self) -> SessionLimitPolicy:
-        """Get or create session limit policy for user."""
-        if not self.website:
-            raise ValueError("Website context required for session limit policy")
-        
-        # Since SessionLimitPolicy has OneToOneField on user, there can only be one per user
-        # Try to get existing record first (by user only, since that's the unique constraint)
-        try:
-            policy = SessionLimitPolicy.objects.get(user=self.user)
-            # Update website if it changed (though this shouldn't happen often)
-            if policy.website != self.website:
-                policy.website = self.website
-                policy.save(update_fields=['website'])
-            return policy
-        except SessionLimitPolicy.DoesNotExist:
-            # Record doesn't exist, try to create it
-            try:
-                policy = SessionLimitPolicy.objects.create(
-                    user=self.user,
-                    website=self.website,
-                    max_concurrent_sessions=self.DEFAULT_MAX_SESSIONS,
-                    allow_unlimited_trusted=False,
-                    revoke_oldest_on_limit=True,
-                )
-                return policy
-            except IntegrityError:
-                # Race condition: another request created it between our get() and create()
-                # The IntegrityError means the record exists (unique constraint violation)
-                # Retry the get - we need to refresh from a new transaction
-                logger.warning(f"Race condition detected for SessionLimitPolicy (user={self.user.id}), retrying get")
-                # Get the record in a new transaction (the failed transaction was rolled back)
-                # Since IntegrityError occurred, the record must exist
-                policy = SessionLimitPolicy.objects.get(user=self.user)
-                # Update website if needed
-                if policy.website != self.website:
-                    policy.website = self.website
-                    policy.save(update_fields=['website'])
-                return policy
-    
-    def get_active_sessions(self) -> List[LoginSession]:
-        """Get all active sessions for user."""
-        if not self.website:
-            return []
-        
-        qs = LoginSession.objects.filter(
+        """
+        Get or create the user's session limit policy.
+
+        Returns:
+            SessionLimitPolicy instance.
+        """
+        AccountAccessPolicyService.validate_auth_access(
             user=self.user,
             website=self.website,
-            is_active=True,
-        ).exclude(
-            expires_at__lte=timezone.now()
         )
-        return list(qs.order_by('last_activity'))
-    
-    def get_active_session_count(self) -> int:
-        """Get count of active sessions."""
-        return len(self.get_active_sessions())
-    
-    def enforce_session_limit(self, new_session: LoginSession = None) -> Optional[LoginSession]:
+        policy, _ = SessionLimitPolicy.objects.get_or_create(
+            user=self.user,
+            website=self.website,
+            defaults={
+                "max_concurrent_sessions": self.DEFAULT_MAX_SESSIONS,
+                "allow_unlimited_trusted": False,
+                "revoke_oldest_on_limit": True,
+            },
+        )
+        return policy
+
+    def get_active_sessions(self) -> list[LoginSession]:
         """
-        Enforce session limit by revoking oldest sessions if needed.
-        
-        Args:
-            new_session: New session being created (optional)
-        
+        Get currently active sessions for the user.
+
         Returns:
-            Revoked session if one was revoked, None otherwise
+            List of active LoginSession records ordered oldest first.
+        """
+        queryset = LoginSession.objects.filter(
+            user=self.user,
+            website=self.website,
+            revoked_at__isnull=True,
+        ).filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=now())
+        ).order_by("logged_in_at")
+
+        return list(queryset)
+
+    def get_active_session_count(self) -> int:
+        """
+        Get the number of active sessions.
+
+        Returns:
+            Number of active sessions.
+        """
+        return len(self.get_active_sessions())
+
+    @transaction.atomic
+    def enforce_session_limit(
+        self,
+        *,
+        new_session: LoginSession | None = None,
+        is_trusted_device: bool = False,
+    ) -> LoginSession | None:
+        """
+        Enforce the user's concurrent session limit.
+
+        Args:
+            new_session: Optional newly created session.
+            is_trusted_device: Whether the current device is trusted.
+
+        Returns:
+            Revoked LoginSession if one was revoked, otherwise None.
+
+        Raises:
+            ValidationError: If session limit is exceeded and policy
+                forbids auto-revocation.
         """
         policy = self.get_or_create_policy()
-        
-        # Check if unlimited for trusted devices
-        if policy.allow_unlimited_trusted and new_session:
-            from authentication.models.devices import TrustedDevice
-            device_token = getattr(new_session, 'device_token', None)
-            if device_token:
-                is_trusted = TrustedDevice.objects.filter(
-                    user=self.user,
-                    website=self.website,
-                    device_token=device_token,
-                    expires_at__gt=timezone.now()
-                ).exists()
-                if is_trusted:
-                    return None  # No limit for trusted devices
-        
+
+        if (
+            policy.allow_unlimited_trusted
+            and is_trusted_device
+        ):
+            return None
+
         active_sessions = self.get_active_sessions()
         max_sessions = policy.max_concurrent_sessions
-        
-        if len(active_sessions) >= max_sessions:
-            if policy.revoke_oldest_on_limit:
-                # Revoke oldest session
-                oldest_session = active_sessions[0]
-                oldest_session.revoke()
-                
-                # Log security event
-                from authentication.models.security_events import SecurityEvent
-                try:
-                    SecurityEvent.log_event(
-                        user=self.user,
-                        website=self.website,
-                        event_type='session_revoked_limit',
-                        severity='low',
-                        is_suspicious=False,
-                        metadata={
-                            'reason': 'session_limit_reached',
-                            'max_sessions': max_sessions,
-                            'revoked_session_id': str(oldest_session.id),
-                        }
-                    )
-                except Exception as e:
-                    logger.warning(f"Failed to log security event: {e}")
-                
-                return oldest_session
-            else:
-                # Don't revoke, just prevent new session
-                raise ValidationError(
-                    f"Maximum number of concurrent sessions ({max_sessions}) reached. "
-                    "Please logout from another device or contact support."
-                )
-        
-        return None
-    
+
+        if len(active_sessions) < max_sessions:
+            return None
+
+        if not policy.revoke_oldest_on_limit:
+            raise ValidationError(
+                f"Maximum number of concurrent sessions "
+                f"({max_sessions}) reached."
+            )
+
+        oldest_session = active_sessions[0]
+
+        if (
+            new_session is not None
+            and oldest_session.pk == new_session.pk
+            and len(active_sessions) == 1
+        ):
+            return None
+
+        oldest_session.revoke()
+
+        SecurityEventService.log(
+            user=self.user,
+            website=self.website,
+            event_type=SecurityEvent.EventType.SESSION_REVOKED,
+            severity=SecurityEvent.Severity.LOW,
+            metadata={
+                "reason": "session_limit_reached",
+                "max_sessions": max_sessions,
+                "revoked_session_id": oldest_session.pk,
+                "new_session_id": new_session.pk if new_session else None,
+            },
+        )
+
+        return oldest_session
+
+    @transaction.atomic
+    def validate_can_start_session(
+        self,
+        *,
+        is_trusted_device: bool = False,
+    ) -> None:
+        """
+        Validate whether a new session may be started without creating
+        it yet.
+
+        Args:
+            is_trusted_device: Whether the current device is trusted.
+
+        Raises:
+            ValidationError: If a new session cannot be started.
+        """
+        policy = self.get_or_create_policy()
+
+        if (
+            policy.allow_unlimited_trusted
+            and is_trusted_device
+        ):
+            return
+
+        active_count = self.get_active_session_count()
+
+        if (
+            active_count >= policy.max_concurrent_sessions
+            and not policy.revoke_oldest_on_limit
+        ):
+            raise ValidationError(
+                f"Maximum number of concurrent sessions "
+                f"({policy.max_concurrent_sessions}) reached."
+            )
+
+    @transaction.atomic
     def update_policy(
         self,
-        max_concurrent_sessions: int = None,
-        allow_unlimited_trusted: bool = None,
-        revoke_oldest_on_limit: bool = None
-    ):
+        *,
+        max_concurrent_sessions: int | None = None,
+        allow_unlimited_trusted: bool | None = None,
+        revoke_oldest_on_limit: bool | None = None,
+    ) -> SessionLimitPolicy:
         """
-        Update session limit policy.
-        
+        Update the user's session limit policy.
+
         Args:
-            max_concurrent_sessions: Maximum concurrent sessions allowed
-            allow_unlimited_trusted: Allow unlimited sessions from trusted devices
-            revoke_oldest_on_limit: Revoke oldest session when limit reached
+            max_concurrent_sessions: New max concurrent session count.
+            allow_unlimited_trusted: Whether trusted devices bypass
+                session limits.
+            revoke_oldest_on_limit: Whether to revoke the oldest session
+                automatically when the limit is reached.
+
+        Returns:
+            Updated SessionLimitPolicy instance.
         """
         policy = self.get_or_create_policy()
-        
+
         if max_concurrent_sessions is not None:
             policy.max_concurrent_sessions = max_concurrent_sessions
+
         if allow_unlimited_trusted is not None:
             policy.allow_unlimited_trusted = allow_unlimited_trusted
+
         if revoke_oldest_on_limit is not None:
             policy.revoke_oldest_on_limit = revoke_oldest_on_limit
-        
+
+        policy.full_clean()
         policy.save()
-    
+
+        return policy
+
     def get_session_limit_info(self) -> dict:
-        """Get session limit information for user."""
+        """
+        Get current session-limit information for the user.
+
+        Returns:
+            Dictionary of current policy and active-session counts.
+        """
         policy = self.get_or_create_policy()
         active_count = self.get_active_session_count()
-        
-        return {
-            'max_concurrent_sessions': policy.max_concurrent_sessions,
-            'active_sessions': active_count,
-            'remaining_sessions': max(0, policy.max_concurrent_sessions - active_count),
-            'allow_unlimited_trusted': policy.allow_unlimited_trusted,
-            'revoke_oldest_on_limit': policy.revoke_oldest_on_limit,
-        }
 
+        return {
+            "max_concurrent_sessions": policy.max_concurrent_sessions,
+            "active_sessions": active_count,
+            "remaining_sessions": max(
+                0,
+                policy.max_concurrent_sessions - active_count,
+            ),
+            "allow_unlimited_trusted": (
+                policy.allow_unlimited_trusted
+            ),
+            "revoke_oldest_on_limit": (
+                policy.revoke_oldest_on_limit
+            ),
+        }

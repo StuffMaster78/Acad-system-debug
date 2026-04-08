@@ -1,102 +1,127 @@
-import hashlib
-import secrets
 from typing import List
 
-from django.utils import timezone
-from django.conf import settings
 from django.db import transaction
 
 from authentication.models.backup_code import BackupCode
-from websites.models.websites import Website
+from authentication.services.token_service import TokenService
 
 
 class BackupCodeService:
     """
-    Handles generation, validation, and usage of MFA backup codes.
+    Handle generation, validation, and consumption of MFA backup codes.
+
+    Backup codes are single-use fallback credentials for multi-factor
+    authentication. Raw codes are generated once, shown to the user,
+    and never stored directly in the database.
     """
+
+    DEFAULT_CODE_COUNT = 10
+    CODE_TOKEN_BYTES = 6
 
     def __init__(self, user, website):
         """
+        Initialize the backup code service.
+
         Args:
-            user (User): The account holder.
-            website (Website): The tenant context.
+            user: The account holder.
+            website: The tenant or website context.
         """
         self.user = user
         self.website = website
 
-    def _hash_code(self, code: str) -> str:
+    @staticmethod
+    def _generate_plaintext_code() -> str:
         """
-        Hashes a backup code using SHA-256.
+        Generate a secure backup code.
+
+        Returns:
+            A URL-safe backup code string.
+        """
+        return TokenService.generate_token(nbytes=6)
+
+    @staticmethod
+    def _hash_code(code: str) -> str:
+        """
+        Hash a backup code before persistence.
 
         Args:
-            code (str): Plaintext backup code.
+            code: Plaintext backup code.
 
         Returns:
-            str: SHA-256 hash of the code.
+            A hexadecimal SHA-256 hash of the backup code.
         """
-        return hashlib.sha256(code.encode()).hexdigest()
+        return TokenService.hash_value(code)
 
-    def _generate_plaintext_code(self) -> str:
+    @transaction.atomic
+    def generate_backup_codes(
+        self,
+        count: int = DEFAULT_CODE_COUNT,
+    ) -> List[str]:
         """
-        Generates a secure random backup code.
+        Generate and store a new set of backup codes for the user.
 
-        Returns:
-            str: A 12-digit numeric code (can adjust format).
-        """
-        return secrets.token_hex(6)  # 12-character hex string
-
-    def generate_backup_codes(self, count: int = 10) -> List[str]:
-        """
-        Generates and stores backup codes for the user.
+        Existing backup codes for the same user and website are removed
+        before the new set is created.
 
         Args:
-            count (int): Number of codes to generate.
+            count: Number of backup codes to generate.
 
         Returns:
-            List[str]: Plaintext backup codes (to show user once).
+            A list of plaintext backup codes. These should be shown to
+            the user once and not stored elsewhere in plaintext.
         """
-        plaintext_codes = []
+        plaintext_codes: List[str] = []
 
-        with transaction.atomic():
-            BackupCode.objects.filter(
-                user=self.user,
-                website=self.website
-            ).delete()
+        BackupCode.objects.filter(
+            user=self.user,
+            website=self.website,
+        ).delete()
 
-            for _ in range(count):
-                code = self._generate_plaintext_code()
-                hashed = self._hash_code(code)
+        backup_code_objects = []
 
-                BackupCode.objects.create(
+        for _ in range(count):
+            code = self._generate_plaintext_code()
+            code_hash = self._hash_code(code)
+
+            plaintext_codes.append(code)
+            backup_code_objects.append(
+                BackupCode(
                     user=self.user,
                     website=self.website,
-                    code_hash=hashed
+                    code_hash=code_hash,
                 )
-                plaintext_codes.append(code)
+            )
+
+        BackupCode.objects.bulk_create(backup_code_objects)
 
         return plaintext_codes
 
-    def validate_code(self, code: str) -> bool:
+    @transaction.atomic
+    def validate_code(
+        self,
+        code: str,
+    ) -> bool:
         """
-        Validates a submitted backup code.
+        Validate and consume a submitted backup code.
 
         Args:
-            code (str): The plaintext backup code.
+            code: The plaintext backup code submitted by the user.
 
         Returns:
-            bool: Whether the code is valid and unused.
+            True if the backup code is valid and successfully consumed.
+            False otherwise.
         """
-        hashed = self._hash_code(code)
+        code_hash = self._hash_code(code)
 
-        try:
-            backup_code = BackupCode.objects.get(
-                user=self.user,
-                website=self.website,
-                code_hash=hashed,
-                used=False
-            )
-        except BackupCode.DoesNotExist:
+        backup_code = BackupCode.objects.filter(
+            user=self.user,
+            website=self.website,
+            code_hash=code_hash,
+            used_at__isnull=True,
+        ).first()
+
+        if backup_code is None:
             return False
 
-        backup_code.mark_used()
+        backup_code.mark_as_used()
         return True

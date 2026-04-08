@@ -1,43 +1,67 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 
 class BackupCode(models.Model):
     """
-    Stores backup codes for 2FA as a fallback when other MFA methods are unavailable.
+    Represent a single-use backup code for multi-factor authentication.
+
+    Backup codes are used as a fallback authentication method when
+    other MFA mechanisms are unavailable.
+
+    Raw codes must never be stored. Only hashed values are persisted.
     """
+
     user = models.ForeignKey(
-        "users.User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="backup_codes"
+        related_name="backup_codes",
     )
     website = models.ForeignKey(
         "websites.Website",
         on_delete=models.CASCADE,
-        related_name="backup_codes"
+        related_name="backup_codes",
     )
-    code = models.CharField(
-        max_length=32,
-        help_text="One-time backup code"
-    )
-    used = models.BooleanField(
-        default=False,
-        help_text="Has this code been used?"
+    code_hash = models.CharField(
+        max_length=255,
+        help_text="SHA-256 hash of the backup code.",
     )
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
     used_at = models.DateTimeField(
-        blank=True,
         null=True,
-        help_text="Timestamp when the code was used"
+        blank=True,
+        help_text="Timestamp when the code was used.",
     )
 
-    def mark_as_used(self):
-        """Mark the backup code as used and record the timestamp."""
-        self.used = True
-        self.used_at = timezone.now()
-        self.save()
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "website"]),
+        ]
+        verbose_name = "Backup Code"
+        verbose_name_plural = "Backup Codes"
 
-    def __str__(self):
-        return f"BackupCode for {self.user.email} ({'Used' if self.used else 'Unused'})"
+    def __str__(self) -> str:
+        """
+        Return a human-readable representation of the backup code.
+        """
+        status = "used" if self.is_used else "unused"
+        return f"Backup code for {self.user} ({status})"
+
+    @property
+    def is_used(self) -> bool:
+        """
+        Return whether this backup code has already been used.
+        """
+        return self.used_at is not None
+
+    def mark_as_used(self) -> None:
+        """
+        Mark the backup code as used.
+        """
+        if self.used_at is None:
+            self.used_at = timezone.now()
+            self.save(update_fields=["used_at"])

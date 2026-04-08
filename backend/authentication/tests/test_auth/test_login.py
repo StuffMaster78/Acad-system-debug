@@ -22,8 +22,8 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.services.auth_service import AuthenticationService
-from authentication.models.login import LoginSession
-from authentication.models.failed_logins import FailedLoginAttempt
+from authentication.models.login_session import LoginSession
+from authentication.models.failed_login_attempts import FailedLoginAttempt
 
 User = get_user_model()
 
@@ -193,7 +193,7 @@ class TestLoginSecurity:
     
     def test_login_with_account_lockout(self, client_user, website, mock_request):
         """Test login fails when account is locked."""
-        from authentication.models.lockout import AccountLockout
+        from authentication.models.account_lockout import AccountLockout
         from django.utils import timezone
         from datetime import timedelta
         
@@ -325,7 +325,7 @@ class TestLoginEdgeCases:
     
     def test_login_enforces_session_limit(self, client_user, website, mock_request):
         """Test login enforces session limits."""
-        from authentication.models.login import LoginSession
+        from authentication.models.login_session import LoginSession
         import uuid
         
         # Create multiple sessions with unique tokens

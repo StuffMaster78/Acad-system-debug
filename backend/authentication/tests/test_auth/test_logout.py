@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.services.auth_service import AuthenticationService
-from authentication.models.login import LoginSession
+from authentication.models.login_session import LoginSession
 from authentication.models.logout import LogoutEvent
 
 User = get_user_model()

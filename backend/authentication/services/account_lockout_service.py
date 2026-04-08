@@ -1,6 +1,6 @@
 from django.utils.timezone import now
 from django.utils import timezone
-from authentication.models.lockout import AccountLockout
+from authentication.models.account_lockout import AccountLockout
 
 
 class AccountLockoutService:

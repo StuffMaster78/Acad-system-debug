@@ -1,433 +1,461 @@
 """
-Email Change Service
-Manages email change requests with verification.
+Email change service.
+
+Handle email change request workflows including request creation,
+approval, token verification, completion, and cancellation.
 """
+
 import logging
-import secrets
-from typing import Optional, Dict, Any
-from django.utils import timezone
+from typing import Optional, Any
+
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from authentication.models.account_security import EmailChangeRequest
-from websites.utils import get_current_website
+from django.db import transaction
+from django.utils import timezone
+
+from authentication.models.email_change_request import (
+    EmailChangeRequest,
+)
+from authentication.services.token_service import TokenService
+
 
 logger = logging.getLogger(__name__)
-User = get_user_model()
 
 
 class EmailChangeService:
     """
-    Service for managing email change requests with verification.
+    Manage secure email change request workflows for a user on a
+    website.
     """
-    
-    TOKEN_EXPIRY_HOURS = 24
-    
-    def __init__(self, user, website=None):
-        self.user = user
-        self.website = website or get_current_website()
-        if not self.website:
-            from websites.models.websites import Website
-            self.website = Website.objects.filter(is_active=True).first()
-    
-    def request_email_change(self, new_email: str, require_old_email_confirmation: bool = True) -> EmailChangeRequest:
+
+    DEFAULT_EXPIRY_HOURS = 24
+
+    def __init__(self, user, website):
         """
-        Request email change.
-        
+        Initialize the email change service.
+
         Args:
-            new_email: New email address
-            require_old_email_confirmation: Whether to require old email confirmation
-        
-        Returns:
-            Created EmailChangeRequest instance
-        
+            user: User instance.
+            website: Website instance.
+
         Raises:
-            ValidationError: If email is invalid or already in use
+            ValueError: If website is not provided.
         """
-        if not self.website:
-            raise ValueError("Website context required")
-        
-        # Validate new email
-        if new_email.lower() == self.user.email.lower():
-            raise ValidationError("New email must be different from current email")
-        
-        # Check if email is already in use
-        if User.objects.filter(email__iexact=new_email).exclude(id=self.user.id).exists():
-            raise ValidationError("This email address is already in use")
-        
-        # Only clients can request email changes (not admins setting it for them)
-        if self.user.role not in ['client', 'customer']:
-            raise ValidationError("Only clients can request email changes. Please contact support.")
-        
-        # Cancel any existing pending requests
-        EmailChangeRequest.objects.filter(
-            user=self.user,
-            website=self.website,
-            status__in=['pending', 'admin_approved', 'email_verified']
-        ).update(status='cancelled')
-        
-        # Generate tokens
-        verification_token = secrets.token_urlsafe(32)
-        old_email_token = secrets.token_urlsafe(32) if require_old_email_confirmation else None
-        
-        # Create request (status: pending, requires admin approval)
-        expires_at = timezone.now() + timezone.timedelta(hours=self.TOKEN_EXPIRY_HOURS)
-        request = EmailChangeRequest.objects.create(
+        if website is None:
+            raise ValueError(
+                "Website context is required for email change."
+            )
+
+        self.user = user
+        self.website = website
+
+    @transaction.atomic
+    def create_request(
+        self,
+        *,
+        new_email: str,
+        require_old_email_confirmation: bool = True,
+    ) -> tuple[EmailChangeRequest, str, Optional[str]]:
+        """
+        Create a new email change request.
+
+        Args:
+            new_email: New email address requested.
+            require_old_email_confirmation: Whether old email
+                confirmation is required.
+
+        Returns:
+            Tuple of:
+                - EmailChangeRequest instance
+                - raw new-email verification token
+                - raw old-email confirmation token or None
+
+        Raises:
+            ValidationError: If the request is invalid.
+        """
+        self._validate_new_email(new_email=new_email)
+
+        self._cancel_existing_active_requests()
+
+        raw_new_token, new_email_token_hash = (
+            TokenService.generate_hashed_token()
+        )
+
+        raw_old_token = None
+        old_email_token_hash = None
+
+        if require_old_email_confirmation:
+            raw_old_token, old_email_token_hash = (
+                TokenService.generate_hashed_token()
+            )
+
+        request_obj = EmailChangeRequest.objects.create(
             user=self.user,
             website=self.website,
             old_email=self.user.email,
             new_email=new_email,
-            verification_token=verification_token,
-            old_email_verification_token=old_email_token,
-            status='pending',  # Requires admin approval
-            expires_at=expires_at,
+            new_email_token_hash=new_email_token_hash,
+            old_email_token_hash=old_email_token_hash,
+            status=EmailChangeRequest.Status.PENDING,
+            expires_at=TokenService.build_expiry(
+                hours=self.DEFAULT_EXPIRY_HOURS,
+            ),
         )
-        
-        # Send notification to admins (not verification email yet - wait for approval)
-        self._notify_admins_of_request(request)
-        
-        # Log security event
-        from authentication.models.security_events import SecurityEvent
-        try:
-            SecurityEvent.log_event(
-                user=self.user,
-                website=self.website,
-                event_type='email_change_requested',
-                severity='high',
-                is_suspicious=False,
-                metadata={
-                    'old_email': self.user.email,
-                    'new_email': new_email,
-                }
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log security event: {e}")
-        
-        return request
-    
-    def approve_email_change(self, admin_user, rejection_reason: str = None) -> bool:
+
+        self._log_security_event(
+            event_type="email_change_requested",
+            severity="high",
+            metadata={
+                "old_email": self.user.email,
+                "new_email": new_email,
+            },
+        )
+
+        return request_obj, raw_new_token, raw_old_token
+
+    @transaction.atomic
+    def approve_request(
+        self,
+        *,
+        request_obj: EmailChangeRequest,
+        approved_by,
+    ) -> EmailChangeRequest:
         """
-        Admin approves or rejects email change request.
-        
+        Approve an email change request.
+
         Args:
-            admin_user: Admin user approving/rejecting
-            rejection_reason: Reason for rejection (if rejecting)
-        
+            request_obj: EmailChangeRequest instance.
+            approved_by: Admin approving the request.
+
         Returns:
-            True if approved, False if rejected
+            Updated EmailChangeRequest instance.
+
+        Raises:
+            ValidationError: If the request cannot be approved.
         """
-        if not self.website:
-            raise ValueError("Website context required")
-        
-        # Check admin permissions
-        if admin_user.role not in ['admin', 'superadmin']:
-            raise ValidationError("Only admins can approve email changes")
-        
-        pending_request = EmailChangeRequest.objects.filter(
+        if request_obj.is_expired:
+            request_obj.status = EmailChangeRequest.Status.CANCELLED
+            request_obj.save(update_fields=["status"])
+            raise ValidationError("Email change request has expired.")
+
+        if request_obj.status != EmailChangeRequest.Status.PENDING:
+            raise ValidationError(
+                "Only pending email change requests can be approved."
+            )
+
+        request_obj.status = EmailChangeRequest.Status.ADMIN_APPROVED
+        request_obj.approved_by = approved_by
+        request_obj.approved_at = timezone.now()
+        request_obj.save(
+            update_fields=["status", "approved_by", "approved_at"],
+        )
+
+        self._log_security_event(
+            event_type="email_change_approved",
+            severity="high",
+            metadata={
+                "old_email": request_obj.old_email,
+                "new_email": request_obj.new_email,
+                "approved_by": getattr(approved_by, "email", ""),
+            },
+        )
+
+        return request_obj
+
+    @transaction.atomic
+    def reject_request(
+        self,
+        *,
+        request_obj: EmailChangeRequest,
+        rejection_reason: str,
+    ) -> EmailChangeRequest:
+        """
+        Reject an email change request.
+
+        Args:
+            request_obj: EmailChangeRequest instance.
+            rejection_reason: Reason for rejection.
+
+        Returns:
+            Updated EmailChangeRequest instance.
+        """
+        request_obj.status = EmailChangeRequest.Status.REJECTED
+        request_obj.rejection_reason = rejection_reason
+        request_obj.save(
+            update_fields=["status", "rejection_reason"],
+        )
+        return request_obj
+
+    @transaction.atomic
+    def verify_new_email(
+        self,
+        *,
+        raw_token: str,
+    ) -> EmailChangeRequest:
+        """
+        Verify the new email address using the new-email token.
+
+        Args:
+            raw_token: Raw verification token.
+
+        Returns:
+            Updated EmailChangeRequest instance.
+
+        Raises:
+            ValidationError: If the token is invalid or unusable.
+        """
+        token_hash = TokenService.hash_value(raw_token)
+
+        request_obj = EmailChangeRequest.objects.filter(
             user=self.user,
             website=self.website,
-            status='pending'
-        ).order_by('-created_at').first()
-        
-        if not pending_request:
-            raise ValidationError("No pending email change request found")
-        
-        if pending_request.is_expired:
-            pending_request.status = 'cancelled'
-            pending_request.save()
-            raise ValidationError("Email change request has expired")
-        
-        if rejection_reason:
-            # Reject request
-            pending_request.status = 'rejected'
-            pending_request.rejection_reason = rejection_reason
-            pending_request.save()
-            
-            # Notify user of rejection
-            self._send_rejection_email(pending_request, rejection_reason)
-            return False
-        else:
-            # Approve request
-            pending_request.status = 'admin_approved'
-            pending_request.admin_approved = True
-            pending_request.approved_by = admin_user
-            pending_request.approved_at = timezone.now()
-            pending_request.save()
-            
-            # Now send verification email to new email
-            self._send_verification_emails(pending_request)
-            
-            # Log security event
-            from authentication.models.security_events import SecurityEvent
-            try:
-                SecurityEvent.log_event(
-                    user=self.user,
-                    website=self.website,
-                    event_type='email_change_approved',
-                    severity='high',
-                    is_suspicious=False,
-                    metadata={
-                        'old_email': pending_request.old_email,
-                        'new_email': pending_request.new_email,
-                        'approved_by': admin_user.email,
-                    }
+            new_email_token_hash=token_hash,
+        ).order_by("-created_at").first()
+
+        if request_obj is None:
+            raise ValidationError("Invalid verification token.")
+
+        if request_obj.is_expired:
+            raise ValidationError("Verification token has expired.")
+
+        if request_obj.status != EmailChangeRequest.Status.ADMIN_APPROVED:
+            raise ValidationError(
+                "Email change request must be admin-approved first."
+            )
+
+        request_obj.status = EmailChangeRequest.Status.NEW_EMAIL_VERIFIED
+        request_obj.save(update_fields=["status"])
+
+        if not request_obj.old_email_token_hash:
+            self.complete_email_change(request_obj=request_obj)
+
+        return request_obj
+
+    @transaction.atomic
+    def confirm_old_email(
+        self,
+        *,
+        raw_token: str,
+    ) -> EmailChangeRequest:
+        """
+        Confirm the old email address using the old-email token.
+
+        Args:
+            raw_token: Raw confirmation token.
+
+        Returns:
+            Updated EmailChangeRequest instance.
+
+        Raises:
+            ValidationError: If the token is invalid or unusable.
+        """
+        token_hash = TokenService.hash_value(raw_token)
+
+        request_obj = EmailChangeRequest.objects.filter(
+            user=self.user,
+            website=self.website,
+            old_email_token_hash=token_hash,
+        ).order_by("-created_at").first()
+
+        if request_obj is None:
+            raise ValidationError("Invalid confirmation token.")
+
+        if request_obj.is_expired:
+            raise ValidationError("Confirmation token has expired.")
+
+        if request_obj.status != EmailChangeRequest.Status.NEW_EMAIL_VERIFIED:
+            raise ValidationError(
+                "New email must be verified before old email confirmation."
+            )
+
+        request_obj.status = EmailChangeRequest.Status.OLD_EMAIL_CONFIRMED
+        request_obj.save(update_fields=["status"])
+
+        self.complete_email_change(request_obj=request_obj)
+
+        return request_obj
+
+    @transaction.atomic
+    def complete_email_change(
+        self,
+        *,
+        request_obj: EmailChangeRequest,
+    ) -> EmailChangeRequest:
+        """
+        Complete an email change request.
+
+        Args:
+            request_obj: EmailChangeRequest instance.
+
+        Returns:
+            Updated EmailChangeRequest instance.
+
+        Raises:
+            ValidationError: If the request is not ready to complete.
+        """
+        if request_obj.old_email_token_hash:
+            if request_obj.status != EmailChangeRequest.Status.OLD_EMAIL_CONFIRMED:
+                raise ValidationError(
+                    "Old email confirmation is still required."
                 )
-            except Exception as e:
-                logger.warning(f"Failed to log security event: {e}")
-            
-            return True
-    
-    def verify_new_email(self, token: str) -> bool:
-        """
-        Verify new email address.
-        
-        Args:
-            token: Verification token from email
-        
-        Returns:
-            True if verified successfully
-        
-        Raises:
-            ValidationError: If token is invalid or expired
-        """
-        if not self.website:
-            raise ValueError("Website context required")
-        
-        try:
-            request = EmailChangeRequest.objects.get(
-                user=self.user,
-                website=self.website,
-                verification_token=token,
-                status='admin_approved'  # Must be approved first
-            )
-        except EmailChangeRequest.DoesNotExist:
-            raise ValidationError("Invalid or expired verification token. Please ensure your request has been approved by an admin.")
-        
-        if request.is_expired:
-            raise ValidationError("Verification token has expired")
-        
-        if not request.admin_approved:
-            raise ValidationError("Email change request must be approved by an admin before verification")
-        
-        # Mark as verified and update status
-        request.verified = True
-        request.status = 'email_verified'
-        request.save(update_fields=['verified', 'status'])
-        
-        # If old email confirmation not required, complete change immediately
-        # Otherwise, wait for old email confirmation
-        if not request.old_email_verification_token:
-            self._complete_email_change(request)
-        
-        return True
-    
-    def confirm_old_email(self, token: str) -> bool:
-        """
-        Confirm old email address (if required).
-        
-        Args:
-            token: Old email confirmation token
-        
-        Returns:
-            True if confirmed successfully
-        
-        Raises:
-            ValidationError: If token is invalid
-        """
-        if not self.website:
-            raise ValueError("Website context required")
-        
-        try:
-            request = EmailChangeRequest.objects.get(
-                user=self.user,
-                website=self.website,
-                old_email_verification_token=token,
-                status='email_verified',  # New email must be verified first
-                old_email_confirmed=False
-            )
-        except EmailChangeRequest.DoesNotExist:
-            raise ValidationError("Invalid confirmation token")
-        
-        if request.is_expired:
-            raise ValidationError("Confirmation token has expired")
-        
-        # Mark old email as confirmed
-        request.old_email_confirmed = True
-        request.save(update_fields=['old_email_confirmed'])
-        
-        # Complete email change
-        self._complete_email_change(request)
-        
-        return True
-    
-    def _complete_email_change(self, request: EmailChangeRequest):
-        """Complete email change process."""
-        # Update user email
+        else:
+            if request_obj.status != EmailChangeRequest.Status.NEW_EMAIL_VERIFIED:
+                raise ValidationError(
+                    "New email verification is still required."
+                )
+
         old_email = self.user.email
-        self.user.email = request.new_email
-        self.user.email_verified = False  # Require re-verification of new email
-        self.user.save(update_fields=['email', 'email_verified'])
-        
-        # Mark request as completed
-        request.status = 'completed'
-        request.completed_at = timezone.now()
-        request.save(update_fields=['status', 'completed_at'])
-        
-        # Send confirmation email to new email
-        self._send_change_confirmation_email(request.new_email, old_email)
-        
-        # Log security event
-        from authentication.models.security_events import SecurityEvent
-        try:
-            SecurityEvent.log_event(
-                user=self.user,
-                website=self.website,
-                event_type='email_changed',
-                severity='high',
-                is_suspicious=False,
-                metadata={
-                    'old_email': old_email,
-                    'new_email': request.new_email,
-                }
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log security event: {e}")
-    
-    def _notify_admins_of_request(self, request: EmailChangeRequest):
-        """Notify admins of email change request."""
-        from users.models import User
-        admins = User.objects.filter(
-            role__in=['admin', 'superadmin'],
-            is_active=True
+        self.user.email = request_obj.new_email
+
+        if hasattr(self.user, "email_verified"):
+            self.user.email_verified = False
+            self.user.save(update_fields=["email", "email_verified"])
+        else:
+            self.user.save(update_fields=["email"])
+
+        request_obj.status = EmailChangeRequest.Status.COMPLETED
+        request_obj.completed_at = timezone.now()
+        request_obj.save(update_fields=["status", "completed_at"])
+
+        self._log_security_event(
+            event_type="email_changed",
+            severity="high",
+            metadata={
+                "old_email": old_email,
+                "new_email": request_obj.new_email,
+            },
         )
-        
-        admin_emails = [admin.email for admin in admins if admin.email]
-        
-        if admin_emails:
-            admin_url = f"{settings.FRONTEND_URL}/admin/email-changes/{request.id}/"
-            send_mail(
-                subject=f"Email Change Request - {request.user.email}",
-                message=f"""
-                A client has requested to change their email address.
-                
-                User: {request.user.email} (ID: {request.user.id})
-                Old Email: {request.old_email}
-                New Email: {request.new_email}
-                
-                Please review and approve/reject this request:
-                {admin_url}
-                
-                Request expires at: {request.expires_at}
-                """,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=admin_emails,
-                fail_silently=False,
-            )
-    
-    def _send_rejection_email(self, request: EmailChangeRequest, reason: str):
-        """Send rejection email to user."""
-        send_mail(
-            subject="Email Change Request Rejected",
-            message=f"""
-            Your email change request has been rejected.
-            
-            Reason: {reason}
-            
-            If you believe this is an error, please contact support.
-            """,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[request.user.email],
-            fail_silently=False,
-        )
-    
-    def _send_verification_emails(self, request: EmailChangeRequest):
-        """Send verification emails to old and new email addresses."""
-        # Send to new email
-        verification_url = f"{settings.FRONTEND_URL}/verify-email-change?token={request.verification_token}"
-        
-        send_mail(
-            subject="Verify Your New Email Address",
-            message=f"""
-            You have requested to change your email address.
-            
-            Please click the link below to verify your new email address:
-            {verification_url}
-            
-            This link will expire in {self.TOKEN_EXPIRY_HOURS} hours.
-            
-            If you did not request this change, please ignore this email or contact support.
-            """,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[request.new_email],
-            fail_silently=False,
-        )
-        
-        # Send notification to old email
-        if request.old_email_verification_token:
-            confirmation_url = f"{settings.FRONTEND_URL}/confirm-email-change?token={request.old_email_verification_token}"
-            
-            send_mail(
-                subject="Email Change Request - Action Required",
-                message=f"""
-                A request has been made to change your email address from {request.old_email} to {request.new_email}.
-                
-                If this was you, please confirm by clicking the link below:
-                {confirmation_url}
-                
-                If you did not request this change, please contact support immediately.
-                """,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[request.old_email],
-                fail_silently=False,
-            )
-    
-    def _send_change_confirmation_email(self, new_email: str, old_email: str):
-        """Send confirmation email after email change is completed."""
-        send_mail(
-            subject="Email Address Changed Successfully",
-            message=f"""
-            Your email address has been successfully changed from {old_email} to {new_email}.
-            
-            If you did not make this change, please contact support immediately.
-            """,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[new_email],
-            fail_silently=False,
-        )
-    
-    def cancel_request(self):
-        """Cancel pending email change request."""
-        if not self.website:
-            return
-        
-        EmailChangeRequest.objects.filter(
-            user=self.user,
-            website=self.website,
-            verified=False
-        ).update(verified=True)  # Mark as cancelled
-    
+
+        return request_obj
+
+    @transaction.atomic
+    def cancel_request(
+        self,
+        *,
+        request_obj: EmailChangeRequest,
+    ) -> EmailChangeRequest:
+        """
+        Cancel an email change request.
+
+        Args:
+            request_obj: EmailChangeRequest instance.
+
+        Returns:
+            Updated EmailChangeRequest instance.
+        """
+        request_obj.status = EmailChangeRequest.Status.CANCELLED
+        request_obj.save(update_fields=["status"])
+        return request_obj
+
     def get_pending_request(self) -> Optional[EmailChangeRequest]:
-        """Get pending email change request if any."""
-        if not self.website:
-            return None
-        
+        """
+        Retrieve the most recent active email change request.
+
+        Returns:
+            EmailChangeRequest instance or None.
+        """
         return EmailChangeRequest.objects.filter(
             user=self.user,
             website=self.website,
-            status__in=['pending', 'admin_approved', 'email_verified'],
-            expires_at__gt=timezone.now()
-        ).order_by('-created_at').first()
-    
-    def get_all_requests(self, status_filter: str = None):
-        """Get all email change requests (for admins)."""
-        if not self.website:
-            return EmailChangeRequest.objects.none()
-        
-        queryset = EmailChangeRequest.objects.filter(website=self.website)
-        
+            status__in=[
+                EmailChangeRequest.Status.PENDING,
+                EmailChangeRequest.Status.ADMIN_APPROVED,
+                EmailChangeRequest.Status.NEW_EMAIL_VERIFIED,
+            ],
+            expires_at__gt=timezone.now(),
+        ).order_by("-created_at").first()
+
+    def get_all_requests(self, status_filter: str | None = None):
+        """
+        Retrieve email change requests for the website.
+
+        Args:
+            status_filter: Optional status filter.
+
+        Returns:
+            QuerySet of EmailChangeRequest records.
+        """
+        queryset = EmailChangeRequest.objects.filter(
+            website=self.website,
+        )
+
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-        
-        return queryset.order_by('-created_at')
 
+        return queryset.order_by("-created_at")
+
+    def _validate_new_email(self, *, new_email: str) -> None:
+        """
+        Validate a requested new email address.
+
+        Args:
+            new_email: New email address.
+
+        Raises:
+            ValidationError: If invalid.
+        """
+        if new_email.lower() == self.user.email.lower():
+            raise ValidationError(
+                "New email must be different from current email."
+            )
+
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+
+        if User.objects.filter(email__iexact=new_email).exclude(
+            pk=self.user.pk,
+        ).exists():
+            raise ValidationError(
+                "This email address is already in use."
+            )
+
+    def _cancel_existing_active_requests(self) -> int:
+        """
+        Cancel any existing active requests for the user and website.
+
+        Returns:
+            Number of cancelled requests.
+        """
+        return EmailChangeRequest.objects.filter(
+            user=self.user,
+            website=self.website,
+            status__in=[
+                EmailChangeRequest.Status.PENDING,
+                EmailChangeRequest.Status.ADMIN_APPROVED,
+                EmailChangeRequest.Status.NEW_EMAIL_VERIFIED,
+            ],
+        ).update(status=EmailChangeRequest.Status.CANCELLED)
+
+    def _log_security_event(
+        self,
+        *,
+        event_type: str,
+        severity: str,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """
+        Best-effort security event logging.
+
+        Args:
+            event_type: Security event type.
+            severity: Event severity.
+            metadata: Optional event metadata.
+        """
+        try:
+            from authentication.models.security_events import SecurityEvent
+
+            SecurityEvent.log_event(
+                user=self.user,
+                website=self.website,
+                event_type=event_type,
+                severity=severity,
+                is_suspicious=False,
+                metadata=metadata or {},
+            )
+        except Exception as exc:
+            logger.warning(
+                "Failed to log security event for user=%s website=%s: %s",
+                getattr(self.user, "pk", None),
+                getattr(self.website, "pk", None),
+                exc,
+            )

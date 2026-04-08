@@ -1,47 +1,157 @@
 from celery import shared_task
-from django.core.mail import send_mail
 from django.utils import timezone
-from authentication.models.otp import OTP
-from authentication.models.magic_links import MagicLink
-from django.utils.timezone import now
-from authentication.models.deletion_requests import AccountDeletionRequest
-from authentication.models.magic_links import MagicLink
 
-# Asynchronous task for sending email
-@shared_task
-def send_email_async(subject, message, sender_email, receiver_email):
-    send_mail(
-        subject, message, sender_email,
-        [receiver_email], fail_silently=False
-    )
+from authentication.models.account_deletion_request import (
+    AccountDeletionRequest,
+)
+from authentication.models.account_unlock_request import (
+    AccountUnlockRequest,
+)
+from authentication.models.impersonation_token import ImpersonationToken
+from authentication.models.otp_code import OTPCode
+from authentication.models.password_reset_request import PasswordResetRequest
+from authentication.models.registration_token import RegistrationToken
+from authentication.services.account_deletion_service import (
+    AccountDeletionService,
+)
 
-# Cleanup Expired OTPs and Magic Links (Scheduled Cleanup Task)
-@shared_task
-def cleanup_expired_otp_and_magic_links():
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def cleanup_expired_impersonation_tokens_task(self) -> int:
     """
-    Cleanup expired OTPs and MagicLinks from the database.
-    This task can be scheduled periodically (e.g., every hour).
+    Delete expired impersonation tokens.
     """
-    OTP.objects.filter(expiration_time__lt=timezone.now()).delete()
-    MagicLink.objects.filter(expiration_time__lt=timezone.now()).delete()
+    deleted_count, _ = ImpersonationToken.objects.filter(
+        expires_at__lt=timezone.now(),
+    ).delete()
+    return deleted_count
 
 
-@shared_task
-def purge_expired_deletions():
-    expired_requests = AccountDeletionRequest.objects.filter(
-        status=AccountDeletionRequest.CONFIRMED,
-        scheduled_deletion_time__lte=now()
-    )
-    for req in expired_requests:
-        req.user.delete()
-        req.delete()
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def cleanup_expired_otps_task(self) -> int:
+    """
+    Delete expired OTP codes.
+    """
+    deleted_count, _ = OTPCode.objects.filter(
+        expires_at__lt=timezone.now(),
+    ).delete()
+    return deleted_count
 
-@shared_task
-def cleanup_expired_magic_links():
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def cleanup_expired_password_reset_requests_task(self) -> int:
     """
-    Deletes all expired magic links.
+    Delete expired password reset requests.
     """
-    expired_links = MagicLink.objects.filter(expires_at__lt=now())
-    count = expired_links.count()
-    expired_links.delete()
-    return f"Deleted {count} expired magic links"
+    deleted_count, _ = PasswordResetRequest.objects.filter(
+        expires_at__lt=timezone.now(),
+    ).delete()
+    return deleted_count
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def cleanup_expired_registration_tokens_task(self) -> int:
+    """
+    Delete expired registration tokens.
+    """
+    deleted_count, _ = RegistrationToken.objects.filter(
+        expires_at__lt=timezone.now(),
+    ).delete()
+    return deleted_count
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def cleanup_expired_account_unlock_requests_task(self) -> int:
+    """
+    Delete expired account unlock requests.
+    """
+    deleted_count, _ = AccountUnlockRequest.objects.filter(
+        expires_at__lt=timezone.now(),
+    ).delete()
+    return deleted_count
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def finalize_scheduled_account_deletions_task(self) -> int:
+    """
+    Move scheduled deletion requests into retained state after the undo
+    window expires.
+    """
+    count = 0
+
+    requests = AccountDeletionRequest.objects.filter(
+        status=AccountDeletionRequest.Status.SCHEDULED,
+        scheduled_deletion_at__isnull=False,
+        scheduled_deletion_at__lte=timezone.now(),
+    ).select_related("user", "website")
+
+    for request_obj in requests:
+        service = AccountDeletionService(
+            user=request_obj.user,
+            website=request_obj.website,
+        )
+        service.perform_soft_delete(request_obj=request_obj)
+        count += 1
+
+    return count
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def purge_retained_account_deletions_task(self) -> int:
+    """
+    Mark retained deletion requests as purged once retention expires.
+
+    Replace this later with hard delete or anonymization if needed.
+    """
+    count = 0
+
+    requests = AccountDeletionRequest.objects.filter(
+        status=AccountDeletionRequest.Status.RETAINED,
+        retained_until__isnull=False,
+        retained_until__lte=timezone.now(),
+    ).select_related("user", "website")
+
+    for request_obj in requests:
+        service = AccountDeletionService(
+            user=request_obj.user,
+            website=request_obj.website,
+        )
+        service.mark_purged(request_obj=request_obj)
+        count += 1
+
+    return count

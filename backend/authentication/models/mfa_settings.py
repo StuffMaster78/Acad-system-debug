@@ -1,162 +1,87 @@
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User
-from django.core.validators import RegexValidator
-from django.utils import timezone
-from django.db import IntegrityError
-import logging
 
-logger = logging.getLogger(__name__)
 
 class MFASettings(models.Model):
     """
-    Stores MFA settings for users, such as which MFA method is selected.
+    Store MFA preferences and enforcement settings for a user within
+    a website context.
+
+    This model holds policy and preference data only. Device-specific
+    secrets, challenge codes, recovery tokens, and backup codes should
+    live in dedicated models.
     """
-    MFA_METHODS = (
-        ('qr_code', 'QR Code (TOTP)'),
-        ('email', 'Email Verification'),
-        ('sms', 'SMS Verification'),
-    )
-    user = models.OneToOneField(
-        'users.User',
-        on_delete=models.CASCADE
+
+    class MFAMethod(models.TextChoices):
+        TOTP = "totp", "Authenticator App"
+        EMAIL = "email", "Email Verification"
+        SMS = "sms", "SMS Verification"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="mfa_settings",
     )
     website = models.ForeignKey(
-        'websites.Website',
+        "websites.Website",
         on_delete=models.CASCADE,
-        related_name='mfa_settings'
+        related_name="mfa_settings",
     )
-    is_mfa_enabled = models.BooleanField(
-        default=False
+    is_enabled = models.BooleanField(
+        default=False,
+        help_text="Whether MFA is enabled for this user.",
     )
-    mfa_method = models.CharField(
-        max_length=50,
-        choices=MFA_METHODS,
-        blank=True,
-        null=True
+    is_required = models.BooleanField(
+        default=False,
+        help_text="Whether MFA is mandatory for this user.",
     )
-    mfa_phone_number = models.CharField(
-        max_length=15,
+    preferred_method = models.CharField(
+        max_length=32,
+        choices=MFAMethod.choices,
         blank=True,
         null=True,
-        validators=[
-            RegexValidator(
-                regex=r'^\+?1?\d{9,15}$',
-                message=(
-                    "Phone number must be in format: '+999999999'. "
-                    "Up to 15 digits allowed."
-                )
-            )
+        help_text="Preferred MFA method for the user.",
+    )
+    allow_totp = models.BooleanField(
+        default=True,
+        help_text="Whether TOTP authenticator apps are allowed.",
+    )
+    allow_email = models.BooleanField(
+        default=True,
+        help_text="Whether email-based MFA is allowed.",
+    )
+    allow_sms = models.BooleanField(
+        default=False,
+        help_text="Whether SMS-based MFA is allowed.",
+    )
+    remember_device_days = models.PositiveIntegerField(
+        default=30,
+        help_text="Number of days to remember trusted devices.",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "MFA Settings"
+        verbose_name_plural = "MFA Settings"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "website"],
+                name="unique_mfa_settings_per_user_per_website",
+            ),
         ]
-    )
-    
-    mfa_email_verified = models.BooleanField(
-        default=False
-    )
+        indexes = [
+            models.Index(fields=["website", "is_enabled"]),
+            models.Index(fields=["user", "website"]),
+        ]
 
-     # TOTP secret key
-    mfa_secret = models.CharField(
-        max_length=255, 
-        blank=True,
-        null=True
-    )
-     # Temporary OTPs for email/sms
-    otp_code = models.CharField(
-        max_length=6,
-        blank=True,
-        null=True
-    )
-    otp_expires_at = models.DateTimeField(
-        blank=True,
-        null=True
-    )
-    mfa_recovery_token = models.CharField(
-        max_length=64,
-        blank=True,
-        null=True
-    )
-    mfa_recovery_expires = models.DateTimeField(
-        blank=True,
-        null=True
-    )
-
-     # Recovery codes
-    backup_codes = models.JSONField(
-        default=list, blank=True
-    )
-
-    def __str__(self):
-        return f"MFA settings for {self.user.username}"
-
-    def save(self, *args, **kwargs):
+    def __str__(self) -> str:
         """
-        Clears the recovery token if it's expired before saving.
+        Return a human-readable representation of the MFA settings.
         """
-        # Ensure that the recovery token is removed if expired
-        if self.mfa_recovery_expires and self.mfa_recovery_expires < timezone.now():
-            self.mfa_recovery_token = None
-            self.mfa_recovery_expires = None
-        super().save(*args, **kwargs)
-
-    def is_otp_valid(self):
-        """
-        Checks if the current OTP is still valid.
-
-        Returns:
-            bool: True if OTP is valid, False otherwise.
-        """
-        if self.otp_expires_at and self.otp_code:
-            return self.otp_expires_at > timezone.now()
-        return False
-
-    @classmethod
-    def get_or_create_for_user(cls, user):
-        """
-        Get or create MFASettings for a user, ensuring website is set.
-        
-        Args:
-            user: User instance
-            
-        Returns:
-            tuple: (MFASettings instance, created boolean)
-        """
-        # Get user's website
-        website = getattr(user, 'website', None)
-        if not website:
-            # Try to get website from user's profile or default website
-            from websites.models.websites import Website
-            website = Website.objects.first()  # Fallback to first website
-        
-        if not website:
-            raise ValueError("User must have a website associated for MFA settings.")
-        
-        # Since MFASettings has OneToOneField on user, there can only be one per user
-        # Try to get existing record first (by user only, since that's the unique constraint)
-        try:
-            mfa_settings = cls.objects.get(user=user)
-            created = False
-            # Update website if it changed (though this shouldn't happen often)
-            if mfa_settings.website != website:
-                mfa_settings.website = website
-                mfa_settings.save(update_fields=['website'])
-            return mfa_settings, created
-        except cls.DoesNotExist:
-            # Record doesn't exist, try to create it
-            try:
-                mfa_settings = cls.objects.create(
-                    user=user,
-                    website=website
-                )
-                return mfa_settings, True
-            except IntegrityError:
-                # Race condition: another request created it between our get() and create()
-                # The IntegrityError means the record exists (unique constraint violation)
-                # Retry the get - we need to refresh from a new transaction
-                logger.warning(f"Race condition detected for MFASettings (user={user.id}), retrying get")
-                # Get the record in a new transaction (the failed transaction was rolled back)
-                # Since IntegrityError occurred, the record must exist
-                mfa_settings = cls.objects.get(user=user)
-                # Update website if needed
-                if mfa_settings.website != website:
-                    mfa_settings.website = website
-                    mfa_settings.save(update_fields=['website'])
-                return mfa_settings, False
+        return f"MFA settings for {self.user} on {self.website}"
