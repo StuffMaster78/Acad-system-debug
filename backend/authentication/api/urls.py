@@ -1,0 +1,342 @@
+from django.urls import path
+
+from authentication.api.views.auth_views import LoginView
+from authentication.api.views.device_views import (
+    DeviceFingerprintListView,
+    TrustDeviceView,
+    UntrustDeviceView,
+)
+from authentication.api.views.security_event_views import (
+    SecurityEventListView,
+)
+from authentication.api.views.session_views import (
+    RevokeAllSessionsView,
+    RevokeSessionView,
+    SessionListView,
+    CurrentSessionView,
+    ExtendSessionView,
+)
+from authentication.api.views.account_deletion_views import (
+    AccountDeletionConfirmView,
+    AccountDeletionRequestView,
+    CancelAccountDeletionView,
+    AccountDeletionStateView,
+)
+from authentication.api.views.mfa_views import (
+    MFAStateView,
+    MFADeviceListView,
+    MFAChallengeView,
+    MFAVerifyView,
+    BackupCodeGenerateView,
+    MFAActivateDeviceView,
+    MFADeactivateDeviceView,
+    MFARegisterDeviceView,
+    MFASetPrimaryDeviceView,
+    MFAVerifyDeviceView,
+)
+from authentication.api.views.password_views import (
+    ChangePasswordView,
+    ResetPasswordConfirmView,
+    ResetPasswordRequestView,
+)
+from authentication.api.views.otp_views import (
+    OTPCreateView,
+    OTPListView,
+    OTPVerifyView,
+)
+from authentication.api.views.registration_views import (
+    RegistrationConfirmView,
+    RegistrationRequestView,
+)
+from authentication.api.views.impersonation_views import (
+    ImpersonationCreateTokenView,
+    ImpersonationEndView,
+    ImpersonationStartView,
+    ImpersonationStatusView,
+)
+from authentication.api.views.token_views import (
+    SessionAwareTokenRefreshView
+)
+from authentication.api.views.admin_security_views import (
+    AdminKickoutUserView,
+    AdminUnlockUserView,
+)
+from authentication.api.views.lockout_views import (
+    LockoutStatusView,
+)
+from authentication.api.views.logout_views import (
+    LogoutAllOthersView,
+    LogoutView,
+)
+from authentication.api.views.registration_support_views import (
+    RegistrationResendView,
+)
+from authentication.api.views.password_reset_support_view import (
+    PasswordResetValidateTokenView,
+)
+from authentication.api.views.unlock_account_views import (
+    AccountUnlockConfirmView,
+    AccountUnlockRequestView,
+)
+from authentication.api.views.magic_link_views import (
+    MagicLinkConfirmView,
+    MagicLinkRequestView,
+)
+from authentication.api.views.support_auth_link_views import (
+    AdminGenerateUserMagicLinkView,
+    AdminGenerateUserPasswordResetLinkView,
+)
+
+urlpatterns = [
+    path(
+        "login/", 
+        LoginView.as_view(), 
+        name="auth-login"
+    ),
+    path(
+        "sessions/", 
+        SessionListView.as_view(), 
+        name="session-list"
+    ),
+    path(
+        "sessions/revoke/",
+        RevokeSessionView.as_view(),
+        name="session-revoke",
+    ),
+    path(
+        "sessions/revoke-all/",
+        RevokeAllSessionsView.as_view(),
+        name="session-revoke-all",
+    ),
+    path(
+        "sessions/current/",
+        CurrentSessionView.as_view(),
+        name="current-session",
+    ),
+    path(
+        "sessions/extend/",
+        ExtendSessionView.as_view(),
+        name="extend-session",
+    ),
+    path(
+        "devices/",
+        DeviceFingerprintListView.as_view(),
+        name="device-fingerprint-list",
+    ),
+    path(
+        "devices/trust/",
+        TrustDeviceView.as_view(),
+        name="device-trust",
+    ),
+    path(
+        "security-events/",
+        SecurityEventListView.as_view(),
+        name="security-event-list",
+    ),
+    path(
+        "mfa/state/",
+        MFAStateView.as_view(), 
+        name="mfa-state"
+    ),
+    path(
+        "mfa/devices/",
+        MFADeviceListView.as_view(), 
+        name="mfa-device-list"
+    ),
+    path(
+        "mfa/challenge/",
+        MFAChallengeView.as_view(), 
+        name="mfa-challenge"
+    ),
+    path(
+        "mfa/verify/",
+        MFAVerifyView.as_view(), 
+        name="mfa-verify"
+    ),
+
+    path(
+        "password/change/",
+        ChangePasswordView.as_view(),
+        name="password-change"
+    ),
+    path(
+        "password/reset/request/",
+        ResetPasswordRequestView.as_view(),
+        name="password-reset-request",
+    ),
+    path(
+        "password/reset/confirm/",
+        ResetPasswordConfirmView.as_view(),
+        name="password-reset-confirm",
+    ),
+    path(
+        "account-deletion/",
+        AccountDeletionStateView.as_view(),
+        name="account-deletion-state",
+    ),
+    path(
+        "account-deletion/request/",
+        AccountDeletionRequestView.as_view(),
+        name="account-deletion-request",
+    ),
+    path(
+        "account-deletion/confirm/",
+        AccountDeletionConfirmView.as_view(),
+        name="account-deletion-confirm",
+    ),
+    path(
+        "account-deletion/cancel/",
+        CancelAccountDeletionView.as_view(),
+        name="account-deletion-cancel",
+    ),
+        path(
+        "devices/untrust/",
+        UntrustDeviceView.as_view(),
+        name="device-untrust",
+    ),
+    path(
+        "mfa/devices/register/",
+        MFARegisterDeviceView.as_view(),
+        name="mfa-device-register",
+    ),
+    path(
+        "mfa/devices/set-primary/",
+        MFASetPrimaryDeviceView.as_view(),
+        name="mfa-device-set-primary",
+    ),
+    path(
+        "mfa/devices/deactivate/",
+        MFADeactivateDeviceView.as_view(),
+        name="mfa-device-deactivate",
+    ),
+    path(
+        "mfa/devices/activate/",
+        MFAActivateDeviceView.as_view(),
+        name="mfa-device-activate",
+    ),
+    path(
+        "mfa/backup-codes/generate/",
+        BackupCodeGenerateView.as_view(),
+        name="mfa-backup-codes-generate",
+    ),
+    path(
+        "otp/",
+        OTPListView.as_view(), 
+        name="otp-list"
+    ),
+    path(
+        "otp/create/",
+        OTPCreateView.as_view(), 
+        name="otp-create"
+    ),
+    path(
+        "otp/verify/",
+        OTPVerifyView.as_view(), 
+        name="otp-verify"
+    ),
+    path(
+        "register/",
+        RegistrationRequestView.as_view(),
+        name="registration-request",
+        ),
+    path(
+        "register/confirm/",
+        RegistrationConfirmView.as_view(),
+        name="registration-confirm",
+        ),
+    path(
+        "impersonation/token/",
+        ImpersonationCreateTokenView.as_view(),
+        name="impersonation-create-token",
+    ),
+    path(
+        "impersonation/start/",
+        ImpersonationStartView.as_view(),
+        name="impersonation-start",
+    ),
+    path(
+        "impersonation/end/",
+        ImpersonationEndView.as_view(),
+        name="impersonation-end",
+    ),
+    path(
+        "impersonation/status/",
+        ImpersonationStatusView.as_view(),
+        name="impersonation-status",
+    ),
+    path(
+        "token/refresh/",
+        SessionAwareTokenRefreshView.as_view(),
+        name="token-refresh",
+    ),
+        path(
+        "lockout-status/",
+        LockoutStatusView.as_view(),
+        name="lockout-status",
+    ),
+    path(
+        "logout/",
+        LogoutView.as_view(),
+        name="logout",
+    ),
+    path(
+        "logout-all-others/",
+        LogoutAllOthersView.as_view(),
+        name="logout-all-others",
+    ),
+    path(
+        "admin/users/<int:user_id>/unlock/",
+        AdminUnlockUserView.as_view(),
+        name="admin-unlock-user",
+    ),
+    path(
+        "admin/users/<int:user_id>/kickout/",
+        AdminKickoutUserView.as_view(),
+        name="admin-kickout-user",
+    ),
+    path(
+        "register/resend/",
+        RegistrationResendView.as_view(),
+        name="registration-resend",
+    ),
+    path(
+        "password/reset/validate-token/",
+        PasswordResetValidateTokenView.as_view(),
+        name="password-reset-validate-token",
+    ),
+    path(
+        "unlock/request/",
+        AccountUnlockRequestView.as_view(),
+        name="account-unlock-request",
+    ),
+    path(
+        "unlock/confirm/",
+        AccountUnlockConfirmView.as_view(),
+        name="account-unlock-confirm",
+    ),
+    path(
+        "mfa/devices/verify/",
+        MFAVerifyDeviceView.as_view(),
+        name="mfa-device-verify",
+    ),
+        path(
+        "magic-link/request/",
+        MagicLinkRequestView.as_view(),
+        name="magic-link-request",
+    ),
+    path(
+        "magic-link/confirm/",
+        MagicLinkConfirmView.as_view(),
+        name="magic-link-confirm",
+    ),
+    path(
+        "admin/users/<int:user_id>/magic-link/",
+        AdminGenerateUserMagicLinkView.as_view(),
+        name="admin-generate-user-magic-link",
+    ),
+    path(
+        "admin/users/<int:user_id>/password-reset-link/",
+        AdminGenerateUserPasswordResetLinkView.as_view(),
+        name="admin-generate-user-password-reset-link",
+    ),
+]
