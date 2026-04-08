@@ -3,7 +3,7 @@
 from authentication.services.otp_service import OTPService
 from authentication.services.registration_token_service import RegistrationTokenService
 from authentication.services.registration_token_emailer import RegistrationEmailService
-from authentication.models.activation import EmailVerification
+from authentication.models.email_verification import EmailVerification
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 

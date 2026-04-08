@@ -1,95 +1,440 @@
 from django.contrib import admin
-from django.utils.html import format_html
-from django.urls import reverse
-from django.contrib.admin.sites import NotRegistered
 
-from authentication.models.mfa_settings import MFASettings
-from authentication.models.sessions import UserSession
-from authentication.models.tokens import SecureToken
-from authentication.models.register import RegistrationToken
+from authentication.models.account_deletion_request import (
+    AccountDeletionRequest,
+)
+from authentication.models.account_unlock_request import (
+    AccountUnlockRequest,
+)
 from authentication.models.backup_code import BackupCode
-from authentication.models.audit import AuditLog
+from authentication.models.device_fingerprinting import DeviceFingerprint
+from authentication.models.impersonation_log import ImpersonationLog
+from authentication.models.impersonation_token import ImpersonationToken
+from authentication.models.login_session import LoginSession
+from authentication.models.mfa_device import MFADevice
+from authentication.models.mfa_settings import MFASettings
+from authentication.models.otp_code import OTPCode
+from authentication.models.password_reset_request import PasswordResetRequest
+from authentication.models.registration_token import RegistrationToken
+from authentication.models.security_events import SecurityEvent
+
+
+@admin.register(LoginSession)
+class LoginSessionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "website",
+        "session_type",
+        "ip_address",
+        "device_name",
+        "logged_in_at",
+        "last_activity_at",
+        "expires_at",
+        "revoked_at",
+        "is_active_display",
+    )
+    list_filter = (
+        "session_type",
+        "website",
+        "logged_in_at",
+        "expires_at",
+        "revoked_at",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+        "ip_address",
+        "device_name",
+        "fingerprint_hash",
+    )
+    readonly_fields = (
+        "logged_in_at",
+        "last_activity_at",
+        "expires_at",
+        "revoked_at",
+    )
+
+    @admin.display(boolean=True, description="Is active")
+    def is_active_display(self, obj):
+        return obj.is_active
+
+
+@admin.register(DeviceFingerprint)
+class DeviceFingerprintAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "website",
+        "device_name",
+        "ip_address",
+        "is_trusted",
+        "trust_score",
+        "login_count",
+        "last_seen_at",
+        "created_at",
+    )
+    list_filter = (
+        "website",
+        "is_trusted",
+        "created_at",
+        "last_seen_at",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+        "device_name",
+        "ip_address",
+        "fingerprint_hash",
+    )
+    readonly_fields = (
+        "fingerprint_hash",
+        "created_at",
+        "last_seen_at",
+    )
 
 
 @admin.register(MFASettings)
 class MFASettingsAdmin(admin.ModelAdmin):
-    """
-    Admin interface for managing MFA settings for users.
-    """
     list_display = (
-        'user', 'is_mfa_enabled', 'mfa_method',
-        'mfa_phone_number', 'mfa_email_verified'
+        "id",
+        "user",
+        "website",
+        "is_enabled",
+        "preferred_method",
+        "skip_on_trusted",
+        "updated_at",
     )
-    search_fields = ('user__email', 'mfa_method')
-    list_filter = ('is_mfa_enabled', 'mfa_method')
+    list_filter = (
+        "website",
+        "is_enabled",
+        "preferred_method",
+        "skip_on_trusted",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+    )
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+    )
 
 
-@admin.register(AuditLog)
-class AuditLogAdmin(admin.ModelAdmin):
+@admin.register(MFADevice)
+class MFADeviceAdmin(admin.ModelAdmin):
     list_display = (
-        "id", "event", "linked_user", "ip_address", "device",
-        "timestamp", "highlighted",
+        "id",
+        "user",
+        "website",
+        "name",
+        "method",
+        "is_primary",
+        "is_verified",
+        "is_active",
+        "created_at",
+        "updated_at",
     )
-    list_filter = ("event", "timestamp", "user__is_active")
-    search_fields = ("event", "user__email", "ip_address", "device", "location")
-    ordering = ("-timestamp",)
-
-    def linked_user(self, obj):
-        if obj.user:
-            url = reverse("admin:users_user_change", args=[obj.user.id])
-            return format_html('<a href="{}">{}</a>', url, obj.user.email)
-        return "Anonymous"
-
-    def highlighted(self, obj):
-        event = obj.event.lower()
-        if event.startswith("failed"):
-            return format_html(
-                '<span style="color: red; font-weight: bold;">{}</span>', obj.event
-            )
-        elif event.startswith("success"):
-            return format_html(
-                '<span style="color: green; font-weight: bold;">{}</span>', obj.event
-            )
-        return obj.event
-
-    linked_user.short_description = "User"
-    highlighted.short_description = "Event (highlighted)"
-
-
-@admin.register(SecureToken)
-class SecureTokenAdmin(admin.ModelAdmin):
-    list_display = (
-        'user', 'purpose', 'is_active', 'created_at', 'expires_at'
+    list_filter = (
+        "website",
+        "method",
+        "is_primary",
+        "is_verified",
+        "is_active",
     )
-    list_filter = ('purpose', 'is_active')
-    search_fields = ('user__email',)
-    ordering = ('-created_at',)
-
-
-@admin.register(UserSession)
-class UserSessionAdmin(admin.ModelAdmin):
-    list_display = (
-        'user', 'session_key', 'ip_address', 'device_type',
-        'created_at', 'last_activity', 'expires_at', 'is_active'
+    search_fields = (
+        "user__email",
+        "user__username",
+        "name",
+        "email",
+        "phone_number",
     )
-    search_fields = ('user__email', 'ip_address', 'device_type', 'session_key')
-    list_filter = ('is_active',)
-    ordering = ('-last_activity',)
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+    )
 
 
 @admin.register(BackupCode)
 class BackupCodeAdmin(admin.ModelAdmin):
     list_display = (
-        'user', 'used', 'created_at', 'used_at'
+        "id",
+        "user",
+        "website",
+        "used_at",
+        "created_at",
     )
-    search_fields = ('user__email',)
-    list_filter = ('used',)
+    list_filter = (
+        "website",
+        "used_at",
+        "created_at",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+    )
+    readonly_fields = (
+        "code_hash",
+        "used_at",
+        "created_at",
+    )
+
+
+@admin.register(OTPCode)
+class OTPCodeAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "website",
+        "purpose",
+        "expires_at",
+        "used_at",
+        "attempts",
+        "max_attempts",
+        "created_at",
+        "is_valid_display",
+    )
+    list_filter = (
+        "website",
+        "purpose",
+        "used_at",
+        "created_at",
+        "expires_at",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+    )
+    readonly_fields = (
+        "code_hash",
+        "created_at",
+    )
+
+    @admin.display(boolean=True, description="Is valid")
+    def is_valid_display(self, obj):
+        return obj.is_valid
+
+
+@admin.register(PasswordResetRequest)
+class PasswordResetRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "website",
+        "expires_at",
+        "used_at",
+        "created_at",
+        "is_valid_display",
+    )
+    list_filter = (
+        "website",
+        "used_at",
+        "created_at",
+        "expires_at",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+    )
+    readonly_fields = (
+        "token_hash",
+        "otp_hash",
+        "created_at",
+    )
+
+    @admin.display(boolean=True, description="Is valid")
+    def is_valid_display(self, obj):
+        return obj.is_valid
 
 
 @admin.register(RegistrationToken)
 class RegistrationTokenAdmin(admin.ModelAdmin):
     list_display = (
-        'user', 'token', 'is_used', 'created_at', 'expires_at'
+        "id",
+        "user",
+        "website",
+        "expires_at",
+        "used_at",
+        "created_at",
+        "is_valid_display",
     )
-    search_fields = ('user__email', 'token')
-    list_filter = ('is_used',)
+    list_filter = (
+        "website",
+        "used_at",
+        "created_at",
+        "expires_at",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+    )
+    readonly_fields = (
+        "token_hash",
+        "created_at",
+    )
+
+    @admin.display(boolean=True, description="Is valid")
+    def is_valid_display(self, obj):
+        return obj.is_valid
+
+
+@admin.register(AccountUnlockRequest)
+class AccountUnlockRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "website",
+        "expires_at",
+        "used_at",
+        "created_at",
+        "is_valid_display",
+    )
+    list_filter = (
+        "website",
+        "used_at",
+        "created_at",
+        "expires_at",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+    )
+    readonly_fields = (
+        "token_hash",
+        "created_at",
+    )
+
+    @admin.display(boolean=True, description="Is valid")
+    def is_valid_display(self, obj):
+        return obj.is_valid
+
+
+@admin.register(AccountDeletionRequest)
+class AccountDeletionRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "website",
+        "status",
+        "requested_at",
+        "confirmed_at",
+        "scheduled_deletion_at",
+        "retained_until",
+        "completed_at",
+        "purged_at",
+    )
+    list_filter = (
+        "website",
+        "status",
+        "requested_at",
+        "scheduled_deletion_at",
+        "retained_until",
+        "completed_at",
+        "purged_at",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+        "reason",
+    )
+    readonly_fields = (
+        "requested_at",
+        "confirmed_at",
+        "access_revoked_at",
+        "scheduled_deletion_at",
+        "retained_until",
+        "completed_at",
+        "purged_at",
+    )
+
+
+@admin.register(ImpersonationToken)
+class ImpersonationTokenAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "admin_user",
+        "target_user",
+        "website",
+        "created_at",
+        "expires_at",
+        "used_at",
+        "is_valid_display",
+    )
+    list_filter = (
+        "website",
+        "created_at",
+        "expires_at",
+        "used_at",
+    )
+    search_fields = (
+        "admin_user__email",
+        "target_user__email",
+    )
+    readonly_fields = (
+        "token_hash",
+        "created_at",
+        "used_at",
+    )
+
+    @admin.display(boolean=True, description="Is valid")
+    def is_valid_display(self, obj):
+        return obj.is_valid
+
+
+@admin.register(ImpersonationLog)
+class ImpersonationLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "admin_user",
+        "target_user",
+        "website",
+        "action",
+        "ip_address",
+        "created_at",
+    )
+    list_filter = (
+        "website",
+        "action",
+        "created_at",
+    )
+    search_fields = (
+        "admin_user__email",
+        "target_user__email",
+        "reason",
+        "ip_address",
+    )
+    readonly_fields = (
+        "created_at",
+    )
+
+
+@admin.register(SecurityEvent)
+class SecurityEventAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "website",
+        "event_type",
+        "severity",
+        "is_suspicious",
+        "ip_address",
+        "created_at",
+    )
+    list_filter = (
+        "website",
+        "event_type",
+        "severity",
+        "is_suspicious",
+        "created_at",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+        "ip_address",
+        "location",
+        "device",
+    )
+    readonly_fields = (
+        "created_at",
+        "metadata",
+    )

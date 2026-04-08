@@ -1,313 +1,485 @@
 import hashlib
 import json
+from typing import Any
+
+from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.utils import timezone
-from authentication.models.fingerprinting import DeviceFingerprint
-from django.core.mail import send_mail
-from authentication.models.security_alert_log import SecurityAlertLog 
-from authentication.models.emails_log import EmailNotificationLog
-from authentication.services.alert_service import AdminAlertService
+
+from authentication.models.device_fingerprinting import (
+    DeviceFingerprint,
+)
+from authentication.services.auth_service import AuthenticationService
 
 class DeviceFingerprintService:
     """
-    Manages device fingerprints, trust decisions, and risk scoring.
+    Handle device fingerprint persistence, trust state, and risk
+    evaluation for a user within a website context.
+
+    This service is responsible for:
+        - creating or updating fingerprint records
+        - managing trust state
+        - calculating simple risk scores
+        - identifying suspicious device activity
+
+    Notification delivery and alert logging should be handled by a
+    separate alert or notification service.
     """
 
-    AUTO_TRUST_AFTER = 3
+    DEFAULT_AUTO_TRUST_AFTER_LOGINS = 5
+    
 
-    def __init__(self, user, website, trust_after_logins=5):
+    def __init__(
+        self,
+        user,
+        website,
+        trust_after_logins: int | None = None,
+    ):
         """
-        Initialize the service with user and tenant context.
+        Initialize the device fingerprint service.
 
         Args:
-            user (User): The user tied to the fingerprint.
-            website (Website): Tenant context for multitenancy.
-            trust_after_logins (int): Logins required to auto-trust.
+            user: The user tied to the fingerprint.
+            website: The tenant or website context.
+            trust_after_logins: Number of successful logins required
+                before a device is auto-trusted.
         """
         self.user = user
         self.website = website
-        self.trust_after_logins = trust_after_logins
-
-    def create_or_update_fingerprint(self, fingerprint_data):
-        """
-        Create or update a fingerprint.
-
-        Args:
-            fingerprint_data (dict): Includes 'user_agent', 'ip_address',
-                and 'raw_fingerprint_data'.
-
-        Returns:
-            DeviceFingerprint: The updated or created fingerprint.
-        """
-        fingerprint_hash = self._hash_fingerprint_data(
-            fingerprint_data.get("raw_fingerprint_data")
+        if website is None:
+            raise ValidationError("Website context is required.")
+        self.trust_after_logins = (
+            trust_after_logins
+            or self.DEFAULT_AUTO_TRUST_AFTER_LOGINS
         )
 
-        fp, created = DeviceFingerprint.objects.get_or_create(
+    @staticmethod
+    def hash_fingerprint_data(raw_data: dict[str, Any] | str) -> str:
+        """
+        Hash raw fingerprint data using SHA-256.
+
+        Args:
+            raw_data: Raw fingerprint payload as a dictionary or string.
+
+        Returns:
+            SHA-256 hash of the normalized fingerprint data.
+
+        Raises:
+            ValueError: If raw fingerprint data is empty.
+        """
+        if not raw_data:
+            raise ValueError("Fingerprint data cannot be empty.")
+
+        if isinstance(raw_data, dict):
+            raw_data = json.dumps(raw_data, sort_keys=True)
+
+        return hashlib.sha256(raw_data.encode("utf-8")).hexdigest()
+
+
+    @transaction.atomic
+    def create_or_update_fingerprint(
+        self,
+        fingerprint_data: dict[str, Any],
+    ) -> DeviceFingerprint:
+        """
+        Create or update a device fingerprint record.
+
+        Args:
+            fingerprint_data: Fingerprint payload including:
+                - raw_fingerprint_data
+                - user_agent
+                - device_name
+                - ip_address
+
+        Returns:
+            The created or updated DeviceFingerprint instance.
+        """
+        fingerprint_hash = fingerprint_data.get("fingerprint_hash")
+
+        if not fingerprint_hash:
+            raw_data = fingerprint_data.get("raw_fingerprint_data")
+            if raw_data is None:
+                raise ValueError("Missing raw_fingerprint_data")
+            fingerprint_hash = self.hash_fingerprint_data(raw_data)
+
+        fingerprint, _ = DeviceFingerprint.objects.get_or_create(
             user=self.user,
             website=self.website,
             fingerprint_hash=fingerprint_hash,
             defaults={
                 "user_agent": fingerprint_data.get("user_agent", ""),
-                "ip_address": fingerprint_data.get("ip_address", ""),
-                "trusted": False,
-            }
+                "ip_address": fingerprint_data.get("ip_address"),
+                "device_name": fingerprint_data.get("device_name"),
+                "is_trusted": False,
+                "login_count": 0,
+                "last_seen_at": timezone.now(),
+            },
         )
 
-        fp.last_seen = timezone.now()
+        fingerprint.user_agent = fingerprint_data.get("user_agent", "")
+        fingerprint.ip_address = fingerprint_data.get("ip_address")
+        fingerprint.device_name = fingerprint_data.get("device_name")
+        fingerprint.last_seen_at = timezone.now()
+        fingerprint.login_count += 1
 
-        if created:
-            fp.login_count = 1
-        else:
-            fp.login_count = getattr(fp, "login_count", 0) + 1
-            if fp.login_count >= self.AUTO_TRUST_AFTER:
-                fp.trusted = True
+        if (
+            not fingerprint.is_trusted
+            and fingerprint.login_count >= self.trust_after_logins
+        ):
+            fingerprint.is_trusted = True
 
-        fp.save()
-        return fp
+        fingerprint.save(
+            update_fields=[
+                "user_agent",
+                "ip_address",
+                "device_name",
+                "last_seen_at",
+                "login_count",
+                "is_trusted",
+            ],
+        )
 
-    def mark_trusted(self, fingerprint_hash, revoke_others=True):
+        return fingerprint
+    
+    @classmethod
+    def is_trusted_device(
+        cls,
+        *,
+        user,
+        website,
+        request=None,
+    ) -> bool:
         """
-        Trust a fingerprint and optionally revoke others.
+        Determine whether the current request belongs to a trusted
+        device fingerprint.
 
         Args:
-            fingerprint_hash (str): The fingerprint hash to trust.
-            revoke_others (bool): Revoke trust from other devices.
+            user: User instance.
+            website: Website instance.
+            request: Optional HTTP request.
 
         Returns:
-            bool: True if trust was applied, False if not found.
+            True if trusted fingerprint exists, otherwise False.
         """
-        try:
-            fp = DeviceFingerprint.objects.get(
-                user=self.user,
-                website=self.website,
-                fingerprint_hash=fingerprint_hash
-            )
-            fp.trusted = True
-            fp.save()
+        service = cls(user=user, website=website)
+        fingerprint_data = AuthenticationService._extract_fingerprint_data(request=request)
 
-            if revoke_others:
-                self.revoke_other_trust(fingerprint_hash)
-
-            return True
-        except DeviceFingerprint.DoesNotExist:
+        if not fingerprint_data:
             return False
 
-    def check_and_autotrust(self, fingerprint_hash, login_count):
-        """
-        Auto-trust device if login count exceeds threshold.
+        raw_fingerprint_data = fingerprint_data.get("raw_fingerprint_data")
+        if not raw_fingerprint_data:
+            return False
 
-        Args:
-            fingerprint_hash (str): Fingerprint hash.
-            login_count (int): Number of logins from this fingerprint.
-
-        Returns:
-            bool: True if trusted, False otherwise.
-        """
-        if login_count >= self.trust_after_logins:
-            return self.mark_trusted(fingerprint_hash)
-        return False
-
-    def calculate_risk_score(self, fingerprint_hash):
-        """
-        Compute a risk score for the device.
-
-        Args:
-            fingerprint_hash (str): The fingerprint hash.
-
-        Returns:
-            float: Risk score from 0.0 (low) to 1.0 (high).
-        """
         try:
-            fp = DeviceFingerprint.objects.get(
-                user=self.user,
-                website=self.website,
-                fingerprint_hash=fingerprint_hash
+            fingerprint_hash = service.hash_fingerprint_data(
+                raw_fingerprint_data,
             )
+        except ValueError:
+            return False
 
-            age_hours = (
-                timezone.now() - fp.created_at
-            ).total_seconds() / 3600
+        fingerprint = service.get_fingerprint_by_hash(
+            fingerprint_hash=fingerprint_hash,
+        )
 
-            if fp.trusted:
-                return max(0.0, 0.3 - min(age_hours, 48) / 160)
+        if fingerprint is None:
+            return False
 
-            return min(1.0, 0.6 + min(age_hours, 24) / 48)
-
-        except DeviceFingerprint.DoesNotExist:
-            return 1.0
-
-    def revoke_other_trust(self, current_fingerprint_hash):
+        return bool(fingerprint.is_trusted)
+    
+    @transaction.atomic
+    def create_fingerprint(
+        self,
+        *,
+        fingerprint_hash: str,
+        ip_address: str | None = None,
+        user_agent: str = "",
+        device_name: str | None = None,
+    ) -> DeviceFingerprint:
         """
-        Untrust all other fingerprints except the current one.
-
-        Args:
-            current_fingerprint_hash (str): Fingerprint to retain trust.
+        Create a new fingerprint record.
         """
-        DeviceFingerprint.objects.filter(
+        return DeviceFingerprint.objects.create(
             user=self.user,
             website=self.website,
-            trusted=True
-        ).exclude(
-            fingerprint_hash=current_fingerprint_hash
-        ).update(trusted=False)
-
-    @staticmethod
-    def _hash_fingerprint_data(raw_data):
+            fingerprint_hash=fingerprint_hash,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            device_name=device_name,
+            is_trusted=False,
+            login_count=1,
+            last_seen_at=timezone.now(),
+        )
+    
+    @classmethod
+    def resolve_or_create(
+        cls,
+        *,
+        user,
+        website,
+        request=None,
+    ) -> DeviceFingerprint:
         """
-        Hash raw fingerprint data using SHA-256.
+        Resolve an existing fingerprint for the request or create one.
 
         Args:
-            raw_data (dict or str): JSON string or dict.
+            user: User instance.
+            website: Website instance.
+            request: Optional HTTP request.
 
         Returns:
-            str: Hashed string.
+            DeviceFingerprint instance.
         """
-        if isinstance(raw_data, dict):
-            raw_data = json.dumps(raw_data, sort_keys=True)
-        return hashlib.sha256(raw_data.encode()).hexdigest()
+        if request is None:
+            raise ValidationError("Fingerprint request is required.")
 
-    @staticmethod
-    def flag_suspicious_devices(
+        service = cls(user=user, website=website)
+        fingerprint_data = AuthenticationService._extract_fingerprint_data(request=request)
+
+        if not fingerprint_data:
+            raise ValidationError("Fingerprint data is required.")
+
+        raw_fingerprint_data = fingerprint_data.get("raw_fingerprint_data")
+        if not raw_fingerprint_data:
+            raise ValidationError("Fingerprint data is required.")
+
+        fingerprint_hash = service.hash_fingerprint_data(
+            raw_fingerprint_data,
+        )
+        
+        return service.create_or_update_fingerprint(
+                {
+                    "fingerprint_hash": fingerprint_hash,
+                    "ip_address": request.META.get("REMOTE_ADDR"),
+                    "user_agent": request.headers.get("User-Agent", ""),
+                    "device_name": fingerprint_data.get("device_name"),
+                }
+            )
+
+    @transaction.atomic
+    def mark_trusted(
         self,
-        current_ip=None,
-        current_user_agent=None
-    ):
+        *,
+        fingerprint_hash: str,
+        revoke_others: bool = True,
+    ) -> bool:
         """
-        Detect potentially suspicious fingerprints based
-        on IP or user-agent anomalies.
+        Mark a fingerprint as trusted.
 
         Args:
-            current_ip (str, optional): Current IP address.
-            current_user_agent (str, optional): Current user-agent string.
+            fingerprint_hash: Fingerprint hash to trust.
+            revoke_others: Whether to revoke trust from all other
+                fingerprints for the user on the website.
 
         Returns:
-            list[DeviceFingerprint]: List of suspicious fingerprints.
+            True if the fingerprint was found and trusted,
+            otherwise False.
         """
-        suspicious = []
+        fingerprint = DeviceFingerprint.objects.filter(
+            user=self.user,
+            website=self.website,
+            fingerprint_hash=fingerprint_hash,
+        ).first()
+
+        if fingerprint is None:
+            return False
+
+        if hasattr(fingerprint, "mark_as_trusted"):
+            fingerprint.mark_as_trusted()
+        else:
+            fingerprint.is_trusted = True
+            fingerprint.save(update_fields=["is_trusted"])
+
+        if revoke_others:
+            self.revoke_other_trust(
+                current_fingerprint_hash=fingerprint_hash,
+            )
+
+        return True
+
+    @transaction.atomic
+    def revoke_other_trust(
+        self,
+        *,
+        current_fingerprint_hash: str,
+    ) -> int:
+        """
+        Revoke trust from all other trusted fingerprints.
+
+        Args:
+            current_fingerprint_hash: Fingerprint hash that should
+                remain trusted.
+
+        Returns:
+            Number of updated fingerprint records.
+        """
+        updated_count = DeviceFingerprint.objects.filter(
+            user=self.user,
+            website=self.website,
+            is_trusted=True,
+        ).exclude(
+            fingerprint_hash=current_fingerprint_hash,
+        ).update(is_trusted=False)
+
+        return updated_count
+
+    def calculate_risk_score(
+        self,
+        *,
+        fingerprint_hash: str,
+    ) -> float:
+        """
+        Calculate a simple risk score for a fingerprint.
+
+        Args:
+            fingerprint_hash: Fingerprint hash to evaluate.
+
+        Returns:
+            Risk score from 0.0 to 1.0.
+        """
+        fingerprint = DeviceFingerprint.objects.filter(
+            user=self.user,
+            website=self.website,
+            fingerprint_hash=fingerprint_hash,
+        ).first()
+
+        if fingerprint is None:
+            return 1.0
+
+        age_hours = (
+            timezone.now() - fingerprint.created_at
+        ).total_seconds() / 3600
+
+        if fingerprint.is_trusted:
+            return max(0.0, 0.3 - min(age_hours, 48) / 160)
+
+        return min(1.0, 0.6 + min(age_hours, 24) / 48)
+
+    def find_suspicious_fingerprints(
+        self,
+        *,
+        current_ip: str | None = None,
+        current_user_agent: str | None = None,
+        exclude_fingerprint_hash: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Identify suspicious fingerprints based on simple anomalies.
+
+        Args:
+            current_ip: Current request IP address.
+            current_user_agent: Current request user agent.
+
+        Returns:
+            A list of suspicious fingerprint findings. Each entry
+            includes the fingerprint, reasons, and severity score.
+        """
+        suspicious: list[dict[str, Any]] = []
 
         fingerprints = DeviceFingerprint.objects.filter(
             user=self.user,
-            website=self.website
+            website=self.website,
         )
 
-        for fp in fingerprints:
-            reasons = []
-            severity = 0
+        if exclude_fingerprint_hash:
+            fingerprints = fingerprints.exclude(
+                fingerprint_hash=exclude_fingerprint_hash,
+            )
 
-            if current_ip and fp.ip_address != current_ip:
+        for fingerprint in fingerprints:
+            reasons: list[str] = []
+            severity = 0.0
+
+            if current_ip and fingerprint.ip_address != current_ip:
                 reasons.append("IP mismatch")
                 severity += 0.5
 
-            if current_user_agent and (
-                current_user_agent.lower() not in fp.user_agent.lower()
+            if (
+                current_user_agent
+                and current_user_agent.lower()
+                not in (fingerprint.user_agent or  "").lower()
             ):
                 reasons.append("User-Agent mismatch")
                 severity += 0.4
 
-            if not fp.trusted:
+            if not fingerprint.is_trusted:
                 reasons.append("Untrusted device")
                 severity += 0.3
 
             if reasons:
-                suspicious.append({
-                    "fingerprint": fp,
-                    "reasons": reasons,
-                    "severity": round(min(severity, 1.0), 2),
-                })
+                suspicious.append(
+                    {
+                        "fingerprint": fingerprint,
+                        "reasons": reasons,
+                        "severity": round(min(severity, 1.0), 2),
+                    }
+                )
 
         return suspicious
-    
-    @staticmethod
-    def alert_user_of_suspicious_login(user, reasons, website):
+
+    def evaluate_risk(
+        self,
+        *,
+        fingerprint_hash: str,
+    ) -> dict[str, float | bool]:
         """
-        Notify user of suspicious login activity.
+        Evaluate the risk level for a fingerprint.
 
         Args:
-            user (User): The affected user.
-            reasons (list[str]): Reasons for the suspicion.
-            website (Website): Context for multitenant alerting.
-        """
-        subject = "Suspicious Login Attempt Detected"
-        message = (
-            "We noticed something unusual about a recent login to your account.\n\n"
-            "Reasons:\n" + "\n".join(f"- {reason}" for reason in reasons) +
-            "\n\nIf this wasn't you, please secure your account immediately."
-        )
-
-        send_mail(
-            subject,
-            message,
-            from_email="security@yourapp.com",
-            recipient_list=[user.email]
-        )
-
-        # Optional: log it
-        EmailNotificationLog.objects.create(
-            user=user,
-            event="suspicious_login",
-            recipient_email=user.email,
-        )
-
-    @staticmethod
-    def alert_and_log_suspicious_activity(
-        user,
-        website,
-        suspicious_fps
-    ):
-        """
-        Alert user and optionally log suspicious fingerprint events.
-        """
-        for s in suspicious_fps:
-            fingerprint = s["fingerprint"]
-            reasons = s["reasons"]
-            severity = s["severity"]
-
-            # Save to log if model is in use
-            SecurityAlertLog.objects.create(
-                user=user,
-                website=website,
-                fingerprint=fingerprint,
-                reasons="\n".join(reasons),
-                severity=severity
-            )
-
-            # Email alert if severity is high
-            if severity >= 0.6:
-                send_mail(
-                    subject="⚠️ Suspicious Login Attempt Detected",
-                    message=(
-                        "Hey, we noticed something odd about your recent login:\n\n"
-                        "Reasons:\n" + "\n".join(f"- {r}" for r in reasons) +
-                        "\n\nIf this wasn’t you, please change your password ASAP."
-                    ),
-                    from_email="security@yourapp.com",
-                    recipient_list=[user.email]
-                )
-
-                EmailNotificationLog.objects.create(
-                    user=user,
-                    event="suspicious_login",
-                    recipient_email=user.email
-                )
-
-    def evaluate_and_alert_if_risky(self, fingerprint_hash, ip_address):
-        """
-        Evaluate risk and alert if threshold breached.
-
-        Args:
-            fingerprint_hash (str): Hash of fingerprint.
-            ip_address (str): IP address of request.
+            fingerprint_hash: Fingerprint hash to evaluate.
 
         Returns:
-            float: Calculated risk score.
+            A dictionary containing the numeric score and whether
+            the fingerprint is considered high risk.
         """
-        score = self.calculate_risk_score(fingerprint_hash)
-        if score >= 0.8:
-            reason = "High risk score"
-            AdminAlertService.send_suspicious_login_alert(
-                user=self.user,
-                ip=ip_address,
-                reason=reason,
-                website=self.website
-            )
-        return score
+        score = self.calculate_risk_score(
+            fingerprint_hash=fingerprint_hash,
+        )
+
+        return {
+            "score": score,
+            "is_high_risk": score >= 0.8,
+        }
+    
+
+    def get_fingerprint_by_hash(
+        self,
+        *,
+        fingerprint_hash: str,
+    ) -> DeviceFingerprint | None:
+        """
+        Retrieve a fingerprint by its hash.
+
+        Args:
+            fingerprint_hash: Fingerprint hash.
+
+        Returns:
+            Matching DeviceFingerprint or None.
+        """
+        return DeviceFingerprint.objects.filter(
+            user=self.user,
+            website=self.website,
+            fingerprint_hash=fingerprint_hash,
+        ).first()
+    
+
+
+    @transaction.atomic
+    def mark_untrusted(
+        self,
+        *,
+        fingerprint_hash: str,
+    ) -> bool:
+        """
+        Mark a fingerprint as untrusted.
+        """
+        fingerprint = DeviceFingerprint.objects.filter(
+            user=self.user,
+            website=self.website,
+            fingerprint_hash=fingerprint_hash,
+        ).first()
+
+        if fingerprint is None:
+            return False
+
+        fingerprint.mark_as_untrusted()
+        return True

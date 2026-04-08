@@ -1,212 +1,530 @@
 """
-Smart Password Policy Service - Context-aware password validation.
-"""
-import re
-import logging
-from typing import Dict, Any, List
-from django.core.exceptions import ValidationError
+Smart password policy service.
 
-logger = logging.getLogger(__name__)
+Provide context-aware password validation, feedback, and strength
+scoring for registration, password changes, resets, and admin actions.
+"""
+
+import re
+from typing import Any
 
 
 class SmartPasswordPolicy:
     """
-    Context-aware password policy that adapts requirements based on:
-    - Context (registration, password_change, password_reset, admin_action)
-    - User risk profile
-    - Recent security events
+    Context-aware password policy.
+
+    This policy adapts validation based on:
+        - operation context
+        - user-derived identifiers
+        - common-password checks
+        - predictable password patterns
     """
-    
-    # Common passwords list (top 1000 most common)
-    COMMON_PASSWORDS = [
-        'password', '123456', '123456789', '12345678', '12345',
-        '1234567', '1234567890', 'qwerty', 'abc123', 'monkey',
-        '1234567', 'letmein', 'trustno1', 'dragon', 'baseball',
-        'iloveyou', 'master', 'sunshine', 'ashley', 'bailey',
-        'passw0rd', 'shadow', '123123', '654321', 'superman',
-        'qazwsx', 'michael', 'football', 'welcome', 'jesus',
-        'ninja', 'mustang', 'password1', '123qwe', 'admin',
-    ]
-    
+
+    class Context:
+        REGISTRATION = "registration"
+        PASSWORD_CHANGE = "password_change"
+        PASSWORD_RESET = "password_reset"
+        ADMIN_ACTION = "admin_action"
+
+    COMMON_PASSWORDS = {
+        "password",
+        "123456",
+        "123456789",
+        "12345678",
+        "12345",
+        "1234567",
+        "1234567890",
+        "qwerty",
+        "abc123",
+        "monkey",
+        "letmein",
+        "trustno1",
+        "dragon",
+        "baseball",
+        "iloveyou",
+        "master",
+        "sunshine",
+        "ashley",
+        "bailey",
+        "passw0rd",
+        "shadow",
+        "123123",
+        "654321",
+        "superman",
+        "qazwsx",
+        "michael",
+        "football",
+        "welcome",
+        "jesus",
+        "ninja",
+        "mustang",
+        "password1",
+        "123qwe",
+        "admin",
+    }
+
+    SPECIAL_CHAR_PATTERN = r'[!@#$%^&*(),.?":{}|<>]'
+    CONTEXTS = {
+        Context.REGISTRATION,
+        Context.PASSWORD_CHANGE,
+        Context.PASSWORD_RESET,
+        Context.ADMIN_ACTION,
+    }
+
     def validate_password(
         self,
         password: str,
         user=None,
-        context: str = 'registration',
-        email: str = None
-    ) -> Dict[str, Any]:
+        context: str = Context.REGISTRATION,
+        email: str | None = None,
+        banned_fragments: list[str] | None = None,
+    ) -> dict[str, Any]:
         """
-        Validate password based on context.
-        
+        Validate a password for a given context.
+
         Args:
-            password: Password to validate
-            user: User object (optional, for risk assessment)
-            context: Validation context ('registration', 'password_change', 'password_reset', 'admin_action')
-            email: User email (for checking against breaches)
-        
+            password: Password to validate.
+            user: Optional user object for personalized checks.
+            context: Validation context.
+            email: Optional email address.
+            banned_fragments: Optional forbidden substrings.
+
         Returns:
-            Dict with validation results, errors, strength, and suggestions
+            Validation result dictionary containing:
+                - valid
+                - errors
+                - warnings
+                - strength
+                - strength_label
+                - suggestions
+                - meets_requirements
         """
-        errors = []
-        warnings = []
-        
-        # Base requirements (always required)
-        if len(password) < 8:
-            errors.append("Password must be at least 8 characters long")
-        
-        # Context-based requirements
-        if context in ['password_change', 'admin_action']:
-            # Stricter for sensitive operations
-            if not re.search(r'[A-Z]', password):
-                errors.append("Password must contain at least one uppercase letter")
-            if not re.search(r'[a-z]', password):
-                errors.append("Password must contain at least one lowercase letter")
-            if not re.search(r'\d', password):
-                errors.append("Password must contain at least one number")
-            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-                warnings.append("Consider adding a special character for stronger security")
-        
-        elif context == 'registration':
-            # Moderate requirements for new accounts
-            if len(password) < 8:
-                errors.append("Password must be at least 8 characters")
-            # Suggest but don't require complexity
-            if len(password) < 12 and not any(c.isupper() for c in password):
-                warnings.append("Consider using a mix of uppercase and lowercase letters")
-        
-        # Check against common passwords
-        if self.is_common_password(password):
-            errors.append("This password is too common. Please choose a stronger, unique password.")
-        
-        # Check if password contains email/username
-        if email and email.split('@')[0].lower() in password.lower():
-            warnings.append("Avoid using your email address in your password")
-        
-        if user and hasattr(user, 'username') and user.username.lower() in password.lower():
-            warnings.append("Avoid using your username in your password")
-        
-        # Check for repeated characters
-        if re.search(r'(.)\1{3,}', password):
-            warnings.append("Avoid using the same character repeated many times")
-        
-        # Check for sequential characters
-        if self.has_sequential_chars(password):
-            warnings.append("Avoid using sequential characters (e.g., '12345', 'abcde')")
-        
-        # Calculate strength
-        strength = self.calculate_strength(password)
-        
-        # Generate suggestions
-        suggestions = self.get_suggestions(password, errors, warnings)
-        
+        if context not in self.CONTEXTS:
+            context = self.Context.REGISTRATION
+
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        normalized_password = password.strip()
+
+        if not normalized_password:
+            return {
+                "valid": False,
+                "errors": ["Password cannot be empty."],
+                "warnings": [],
+                "strength": 0,
+                "strength_label": "Very Weak",
+                "suggestions": ["Enter a password."],
+                "meets_requirements": False,
+            }
+
+        self._apply_base_rules(
+            password=normalized_password,
+            errors=errors,
+        )
+
+        self._apply_context_rules(
+            password=normalized_password,
+            context=context,
+            errors=errors,
+            warnings=warnings,
+        )
+
+        self._apply_predictability_checks(
+            password=normalized_password,
+            user=user,
+            email=email,
+            banned_fragments=banned_fragments or [],
+            errors=errors,
+            warnings=warnings,
+        )
+
+        strength = self.calculate_strength(normalized_password)
+
+        suggestions = self.get_suggestions(
+            password=normalized_password,
+            errors=errors,
+            warnings=warnings,
+        )
+
+        deduped_errors = self._dedupe(errors)
+        deduped_warnings = self._dedupe(warnings)
+
         return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "warnings": warnings,
+            "valid": len(deduped_errors) == 0,
+            "errors": deduped_errors,
+            "warnings": deduped_warnings,
             "strength": strength,
             "strength_label": self.get_strength_label(strength),
             "suggestions": suggestions,
-            "meets_requirements": len(errors) == 0
+            "meets_requirements": len(deduped_errors) == 0,
         }
-    
+
+    def enforce(
+        self,
+        password: str,
+        user=None,
+        context: str = Context.REGISTRATION,
+        email: str | None = None,
+        banned_fragments: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Validate password and raise if requirements are not met.
+
+        Args:
+            password: Password to validate.
+            user: Optional user object.
+            context: Validation context.
+            email: Optional email address.
+            banned_fragments: Optional forbidden substrings.
+
+        Returns:
+            Validation result dictionary.
+
+        Raises:
+            ValueError: If password validation fails.
+        """
+        result = self.validate_password(
+            password=password,
+            user=user,
+            context=context,
+            email=email,
+            banned_fragments=banned_fragments,
+        )
+
+        if not result["valid"]:
+            raise ValueError(result["errors"])
+
+        return result
+
     def calculate_strength(self, password: str) -> int:
         """
-        Calculate password strength (0-100).
-        
+        Calculate password strength score from 0 to 100.
+
+        Args:
+            password: Password to score.
+
         Returns:
-            Strength score from 0-100
+            Integer strength score.
         """
         score = 0
-        
-        # Length (40 points max)
-        if len(password) >= 8:
+
+        length = len(password)
+
+        if length >= 8:
             score += 20
-        if len(password) >= 12:
+        if length >= 12:
+            score += 15
+        if length >= 16:
             score += 10
-        if len(password) >= 16:
+
+        if re.search(r"[a-z]", password):
             score += 10
-        
-        # Complexity (40 points max)
-        if re.search(r'[a-z]', password):
+        if re.search(r"[A-Z]", password):
             score += 10
-        if re.search(r'[A-Z]', password):
+        if re.search(r"\d", password):
             score += 10
-        if re.search(r'\d', password):
+        if re.search(self.SPECIAL_CHAR_PATTERN, password):
             score += 10
-        if re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-            score += 10
-        
-        # Uniqueness (20 points max)
+
         if not self.is_common_password(password):
             score += 10
         if not self.has_sequential_chars(password):
             score += 5
-        if not re.search(r'(.)\1{2,}', password):  # No repeated chars
+        if not self.has_repeated_chars(password):
             score += 5
-        
+        if " " not in password and length >= 14:
+            score += 5
+
         return min(score, 100)
-    
+
     def get_strength_label(self, strength: int) -> str:
-        """Get human-readable strength label."""
+        """
+        Convert numeric strength to label.
+
+        Args:
+            strength: Strength score.
+
+        Returns:
+            Human-readable strength label.
+        """
         if strength < 30:
             return "Very Weak"
-        elif strength < 50:
+        if strength < 50:
             return "Weak"
-        elif strength < 70:
+        if strength < 70:
             return "Fair"
-        elif strength < 90:
+        if strength < 90:
             return "Good"
-        else:
-            return "Strong"
-    
-    def is_common_password(self, password: str) -> bool:
-        """Check if password is in common passwords list."""
-        password_lower = password.lower()
-        return password_lower in [p.lower() for p in self.COMMON_PASSWORDS]
-    
-    def has_sequential_chars(self, password: str) -> bool:
-        """Check for sequential characters (e.g., '12345', 'abcde')."""
-        password_lower = password.lower()
-        
-        # Check numeric sequences
-        for i in range(len(password_lower) - 3):
-            substr = password_lower[i:i+4]
-            if substr.isdigit():
-                digits = [int(c) for c in substr]
-                if all(digits[j] == digits[0] + j for j in range(len(digits))):
-                    return True
-        
-        # Check alphabetic sequences
-        for i in range(len(password_lower) - 3):
-            substr = password_lower[i:i+4]
-            if substr.isalpha():
-                ords = [ord(c) for c in substr]
-                if all(ords[j] == ords[0] + j for j in range(len(ords))):
-                    return True
-        
-        return False
-    
-    def get_suggestions(self, password: str, errors: List[str], warnings: List[str]) -> List[str]:
-        """Generate password improvement suggestions."""
-        suggestions = []
-        
-        if len(password) < 12:
-            suggestions.append("Use at least 12 characters for better security")
-        
-        if not re.search(r'[A-Z]', password):
-            suggestions.append("Add uppercase letters")
-        
-        if not re.search(r'[a-z]', password):
-            suggestions.append("Add lowercase letters")
-        
-        if not re.search(r'\d', password):
-            suggestions.append("Add numbers")
-        
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-            suggestions.append("Add special characters (!@#$%^&*)")
-        
-        if self.is_common_password(password):
-            suggestions.append("Avoid common words and phrases")
-        
-        return suggestions[:5]  # Limit to 5 suggestions
+        return "Strong"
 
+    def is_common_password(self, password: str) -> bool:
+        """
+        Check if password is in common-password list.
+
+        Args:
+            password: Password to test.
+
+        Returns:
+            True if common, otherwise False.
+        """
+        return password.lower() in self.COMMON_PASSWORDS
+
+    def has_sequential_chars(self, password: str) -> bool:
+        """
+        Check for ascending or descending character sequences.
+
+        Examples:
+            1234, 4321, abcd, dcba
+
+        Args:
+            password: Password to inspect.
+
+        Returns:
+            True if a sequential pattern exists, otherwise False.
+        """
+        password_lower = password.lower()
+
+        for i in range(len(password_lower) - 3):
+            chunk = password_lower[i:i + 4]
+
+            if chunk.isdigit():
+                digits = [int(c) for c in chunk]
+                if self._is_step_sequence(digits):
+                    return True
+
+            if chunk.isalpha():
+                codes = [ord(c) for c in chunk]
+                if self._is_step_sequence(codes):
+                    return True
+
+        return False
+
+    def has_repeated_chars(self, password: str) -> bool:
+        """
+        Check for repeated characters appearing too many times.
+
+        Args:
+            password: Password to inspect.
+
+        Returns:
+            True if repeated-character pattern exists.
+        """
+        return bool(re.search(r"(.)\1{2,}", password))
+
+    def get_suggestions(
+        self,
+        password: str,
+        errors: list[str],
+        warnings: list[str],
+    ) -> list[str]:
+        """
+        Generate improvement suggestions.
+
+        Args:
+            password: Password being evaluated.
+            errors: Validation errors.
+            warnings: Validation warnings.
+
+        Returns:
+            List of improvement suggestions.
+        """
+        suggestions: list[str] = []
+
+        if len(password) < 12:
+            suggestions.append("Use at least 12 characters.")
+
+        if not re.search(r"[A-Z]", password):
+            suggestions.append("Add uppercase letters.")
+
+        if not re.search(r"[a-z]", password):
+            suggestions.append("Add lowercase letters.")
+
+        if not re.search(r"\d", password):
+            suggestions.append("Add numbers.")
+
+        if not re.search(self.SPECIAL_CHAR_PATTERN, password):
+            suggestions.append("Add special characters.")
+
+        if self.is_common_password(password):
+            suggestions.append("Avoid common words and passwords.")
+
+        if self.has_sequential_chars(password):
+            suggestions.append("Avoid sequences like 1234 or abcd.")
+
+        if self.has_repeated_chars(password):
+            suggestions.append("Avoid repeated characters.")
+
+        return self._dedupe(suggestions)[:5]
+
+    def _apply_base_rules(
+        self,
+        *,
+        password: str,
+        errors: list[str],
+    ) -> None:
+        """
+        Apply rules that always matter.
+
+        Args:
+            password: Password to validate.
+            errors: Mutable list of errors.
+        """
+        if len(password) < 8:
+            errors.append("Password must be at least 8 characters long.")
+
+        if self.is_common_password(password):
+            errors.append(
+                "This password is too common. Please choose a "
+                "stronger, unique password."
+            )
+
+    def _apply_context_rules(
+        self,
+        *,
+        password: str,
+        context: str,
+        errors: list[str],
+        warnings: list[str],
+    ) -> None:
+        """
+        Apply context-sensitive password rules.
+
+        Args:
+            password: Password to validate.
+            context: Validation context.
+            errors: Mutable list of errors.
+            warnings: Mutable list of warnings.
+        """
+        if context in {
+            self.Context.PASSWORD_CHANGE,
+            self.Context.PASSWORD_RESET,
+            self.Context.ADMIN_ACTION,
+        }:
+            if not re.search(r"[A-Z]", password):
+                errors.append(
+                    "Password must contain at least one uppercase letter."
+                )
+            if not re.search(r"[a-z]", password):
+                errors.append(
+                    "Password must contain at least one lowercase letter."
+                )
+            if not re.search(r"\d", password):
+                errors.append(
+                    "Password must contain at least one number."
+                )
+            if not re.search(self.SPECIAL_CHAR_PATTERN, password):
+                warnings.append(
+                    "Consider adding a special character for "
+                    "stronger security."
+                )
+
+        elif context == self.Context.REGISTRATION:
+            if len(password) < 12:
+                warnings.append(
+                    "Consider using at least 12 characters."
+                )
+            if not any(c.isupper() for c in password):
+                warnings.append(
+                    "Consider mixing uppercase and lowercase letters."
+                )
+
+    def _apply_predictability_checks(
+        self,
+        *,
+        password: str,
+        user,
+        email: str | None,
+        banned_fragments: list[str],
+        errors: list[str],
+        warnings: list[str],
+    ) -> None:
+        """
+        Apply predictability and identity-based checks.
+
+        Args:
+            password: Password to validate.
+            user: Optional user object.
+            email: Optional email address.
+            banned_fragments: Additional forbidden fragments.
+            errors: Mutable list of errors.
+            warnings: Mutable list of warnings.
+        """
+        lowered_password = password.lower()
+
+        fragments: list[str] = []
+
+        if email:
+            email_name = email.split("@")[0].strip().lower()
+            if email_name:
+                fragments.append(email_name)
+
+        if user is not None:
+            username = getattr(user, "username", None)
+            first_name = getattr(user, "first_name", None)
+            last_name = getattr(user, "last_name", None)
+
+            for value in [username, first_name, last_name]:
+                if value:
+                    fragments.append(str(value).strip().lower())
+
+        for fragment in banned_fragments:
+            if fragment:
+                fragments.append(str(fragment).strip().lower())
+
+        for fragment in fragments:
+            if len(fragment) >= 3 and fragment in lowered_password:
+                warnings.append(
+                    f"Avoid using personal or predictable text like "
+                    f"'{fragment}' in your password."
+                )
+
+        if self.has_repeated_chars(password):
+            warnings.append(
+                "Avoid using the same character repeatedly."
+            )
+
+        if self.has_sequential_chars(password):
+            warnings.append(
+                "Avoid sequential characters like 1234 or abcd."
+            )
+
+    @staticmethod
+    def _is_step_sequence(values: list[int]) -> bool:
+        """
+        Check whether values form an ascending or descending sequence.
+
+        Args:
+            values: List of numeric values.
+
+        Returns:
+            True if values step consistently by +1 or -1.
+        """
+        if len(values) < 2:
+            return False
+
+        diffs = [values[i + 1] - values[i] for i in range(len(values) - 1)]
+        return all(diff == 1 for diff in diffs) or all(
+            diff == -1 for diff in diffs
+        )
+
+    @staticmethod
+    def _dedupe(items: list[str]) -> list[str]:
+        """
+        Remove duplicates while preserving order.
+
+        Args:
+            items: List of strings.
+
+        Returns:
+            Deduplicated list.
+        """
+        seen = set()
+        deduped = []
+
+        for item in items:
+            if item not in seen:
+                seen.add(item)
+                deduped.append(item)
+
+        return deduped

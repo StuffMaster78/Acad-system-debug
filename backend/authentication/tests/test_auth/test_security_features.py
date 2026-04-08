@@ -15,10 +15,10 @@ from unittest.mock import patch, MagicMock
 from django.utils import timezone
 from datetime import timedelta
 
-from authentication.models.failed_logins import FailedLoginAttempt
-from authentication.models.lockout import AccountLockout
+from authentication.models.failed_login_attempts import FailedLoginAttempt
+from authentication.models.account_lockout import AccountLockout
 from authentication.models.blocked_ips import BlockedIP
-from authentication.models.login import LoginSession
+from authentication.models.login_session import LoginSession
 from authentication.services.smart_lockout_service import SmartLockoutService
 from authentication.services.failed_login_attempts import FailedLoginService
 

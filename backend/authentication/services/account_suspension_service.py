@@ -1,161 +1,280 @@
 """
-Account Suspension Service
-Manages user-initiated account suspension.
+Account suspension service.
+
+Handle website-scoped account suspension workflows such as suspension,
+reactivation, scheduled reactivation checks, and active-session
+revocation.
 """
+
 import logging
-from typing import Optional
+from typing import Any
+
+from django.db import transaction
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.db import IntegrityError
-from authentication.models.account_security import AccountSuspension
-from authentication.models.login import LoginSession
-from websites.utils import get_current_website
+
+from authentication.models.account_suspension import (
+    AccountSuspension,
+)
+from authentication.models.login_session import LoginSession
+
 
 logger = logging.getLogger(__name__)
 
 
 class AccountSuspensionService:
     """
-    Service for managing user-initiated account suspension.
+    Manage website-scoped account suspension workflows.
     """
-    
-    def __init__(self, user, website=None):
-        self.user = user
-        self.website = website or get_current_website()
-        if not self.website:
-            from websites.models.websites import Website
-            self.website = Website.objects.filter(is_active=True).first()
-    
-    def get_or_create_suspension(self) -> AccountSuspension:
-        """Get or create account suspension record."""
-        if not self.website:
-            raise ValueError("Website context required for account suspension")
-        
-        # Since AccountSuspension has OneToOneField on user, there can only be one per user
-        # Try to get existing record first (by user only, since that's the unique constraint)
-        try:
-            suspension = AccountSuspension.objects.get(user=self.user)
-            # Update website if it changed (though this shouldn't happen often)
-            if suspension.website != self.website:
-                suspension.website = self.website
-                suspension.save(update_fields=['website'])
-            return suspension
-        except AccountSuspension.DoesNotExist:
-            # Record doesn't exist, try to create it
-            try:
-                suspension = AccountSuspension.objects.create(
-                    user=self.user,
-                    website=self.website,
-                    is_suspended=False,
-                )
-                return suspension
-            except IntegrityError:
-                # Race condition: another request created it between our get() and create()
-                # The IntegrityError means the record exists (unique constraint violation)
-                # Retry the get - we need to refresh from a new transaction
-                logger.warning(f"Race condition detected for AccountSuspension (user={self.user.id}), retrying get")
-                # Get the record in a new transaction (the failed transaction was rolled back)
-                # Since IntegrityError occurred, the record must exist
-                suspension = AccountSuspension.objects.get(user=self.user)
-                # Update website if needed
-                if suspension.website != self.website:
-                    suspension.website = self.website
-                    suspension.save(update_fields=['website'])
-                return suspension
-    
-    def suspend(self, reason: str = "", scheduled_reactivation=None):
+
+    def __init__(self, user, website):
         """
-        Suspend user account.
-        
+        Initialize the account suspension service.
+
         Args:
-            reason: Reason for suspension (user-provided)
-            scheduled_reactivation: Optional datetime for automatic reactivation
+            user: User instance.
+            website: Website instance.
+
+        Raises:
+            ValueError: If website is not provided.
+        """
+        if website is None:
+            raise ValueError(
+                "Website context is required for account suspension."
+            )
+
+        self.user = user
+        self.website = website
+
+    def get_or_create_suspension(self) -> AccountSuspension:
+        """
+        Get or create the suspension record for the user and website.
+
+        Returns:
+            AccountSuspension instance.
+        """
+        suspension, _ = AccountSuspension.objects.get_or_create(
+            user=self.user,
+            website=self.website,
+            defaults={
+                "is_suspended": False,
+            },
+        )
+        return suspension
+
+    @transaction.atomic
+    def suspend(
+        self,
+        *,
+        reason: str = "",
+        suspension_type: str = (
+            AccountSuspension.SuspensionType.USER_INITIATED
+        ),
+        scheduled_reactivation_at=None,
+        revoke_sessions: bool = True,
+    ) -> AccountSuspension:
+        """
+        Suspend the user's account for the current website.
+
+        Args:
+            reason: Reason for suspension.
+            suspension_type: Suspension type value.
+            scheduled_reactivation_at: Optional scheduled reactivation
+                datetime.
+            revoke_sessions: Whether to revoke active login sessions.
+
+        Returns:
+            Updated AccountSuspension instance.
         """
         suspension = self.get_or_create_suspension()
-        suspension.suspend(reason, scheduled_reactivation)
-        
-        # Revoke all active sessions
-        self._revoke_all_sessions()
-        
-        # Log security event
-        from authentication.models.security_events import SecurityEvent
-        try:
-            SecurityEvent.log_event(
-                user=self.user,
-                website=self.website,
-                event_type='account_suspended',
-                severity='medium',
-                is_suspicious=False,
-                metadata={
-                    'reason': reason,
-                    'scheduled_reactivation': scheduled_reactivation.isoformat() if scheduled_reactivation else None,
-                    'user_initiated': True,
-                }
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log security event: {e}")
-    
-    def reactivate(self):
-        """Reactivate suspended account."""
+
+        suspension.is_suspended = True
+        suspension.suspension_reason = reason
+        suspension.suspension_type = suspension_type
+        suspension.suspended_at = timezone.now()
+        suspension.scheduled_reactivation_at = (
+            scheduled_reactivation_at
+        )
+        suspension.reactivated_at = None
+        suspension.save(
+            update_fields=[
+                "is_suspended",
+                "reason",
+                "suspension_type",
+                "suspended_at",
+                "scheduled_reactivation_at",
+                "reactivated_at",
+            ],
+        )
+
+        if revoke_sessions:
+            self.revoke_all_sessions()
+
+        self._log_security_event(
+            event_type="account_suspended",
+            severity="medium",
+            metadata={
+                "reason": reason,
+                "scheduled_reactivation_at": (
+                    scheduled_reactivation_at.isoformat()
+                    if scheduled_reactivation_at
+                    else None
+                ),
+                "suspension_type": suspension_type,
+            },
+        )
+
+        return suspension
+
+    @transaction.atomic
+    def reactivate(self) -> AccountSuspension:
+        """
+        Reactivate the user's account for the current website.
+
+        Returns:
+            Updated AccountSuspension instance.
+        """
         suspension = self.get_or_create_suspension()
-        suspension.reactivate()
-        
-        # Log security event
-        from authentication.models.security_events import SecurityEvent
-        try:
-            SecurityEvent.log_event(
-                user=self.user,
-                website=self.website,
-                event_type='account_reactivated',
-                severity='low',
-                is_suspicious=False,
-                metadata={
-                    'user_initiated': True,
-                }
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log security event: {e}")
-    
+
+        suspension.is_suspended = False
+        suspension.reactivated_at = timezone.now()
+        suspension.save(
+            update_fields=["is_suspended", "reactivated_at"],
+        )
+
+        self._log_security_event(
+            event_type="account_reactivated",
+            severity="low",
+            metadata={
+                "user_initiated": True,
+            },
+        )
+
+        return suspension
+
     def is_suspended(self) -> bool:
-        """Check if account is currently suspended."""
+        """
+        Determine whether the user's account is currently suspended.
+
+        Returns:
+            True if suspended, otherwise False.
+        """
         suspension = self.get_or_create_suspension()
-        
-        # Check scheduled reactivation
-        if suspension.is_suspended and suspension.scheduled_reactivation:
-            suspension.check_scheduled_reactivation()
+
+        if (
+            suspension.is_suspended
+            and suspension.scheduled_reactivation_at
+            and timezone.now() >= suspension.scheduled_reactivation_at
+        ):
+            self.reactivate()
             suspension.refresh_from_db()
-        
-        return suspension.is_suspended
-    
-    def check_scheduled_reactivation(self):
-        """Check and process scheduled reactivation."""
+
+        return bool(suspension.is_suspended)
+
+    @transaction.atomic
+    def check_scheduled_reactivation(self) -> bool:
+        """
+        Check whether scheduled reactivation should occur now.
+
+        Returns:
+            True if reactivation occurred, otherwise False.
+        """
         suspension = self.get_or_create_suspension()
-        if suspension.check_scheduled_reactivation():
-            logger.info(f"Account {self.user.email} automatically reactivated")
-    
-    def _revoke_all_sessions(self):
-        """Revoke all active sessions for user."""
-        if not self.website:
-            return
-        
+
+        if (
+            suspension.is_suspended
+            and suspension.scheduled_reactivation_at
+            and timezone.now() >= suspension.scheduled_reactivation_at
+        ):
+            self.reactivate()
+            logger.info(
+                "Account %s automatically reactivated on website %s",
+                getattr(self.user, "email", self.user.pk),
+                getattr(self.website, "pk", None),
+            )
+            return True
+
+        return False
+
+    def revoke_all_sessions(self) -> int:
+        """
+        Revoke all active login sessions for the user on the website.
+
+        Returns:
+            Number of revoked sessions.
+        """
         active_sessions = LoginSession.objects.filter(
             user=self.user,
             website=self.website,
-            is_active=True
+            is_active=True,
         )
-        
+
+        count = 0
         for session in active_sessions:
             session.revoke()
-    
-    def get_suspension_info(self) -> dict:
-        """Get suspension information."""
+            count += 1
+
+        return count
+
+    def get_suspension_info(self) -> dict[str, Any]:
+        """
+        Return suspension details for the user and website.
+
+        Returns:
+            Dictionary of suspension information.
+        """
         suspension = self.get_or_create_suspension()
-        
+
         return {
-            'is_suspended': suspension.is_suspended,
-            'suspended_at': suspension.suspended_at.isoformat() if suspension.suspended_at else None,
-            'suspension_reason': suspension.suspension_reason,
-            'scheduled_reactivation': suspension.scheduled_reactivation.isoformat() if suspension.scheduled_reactivation else None,
-            'reactivated_at': suspension.reactivated_at.isoformat() if suspension.reactivated_at else None,
+            "is_suspended": suspension.is_suspended,
+            "suspended_at": (
+                suspension.suspended_at.isoformat()
+                if suspension.suspended_at
+                else None
+            ),
+            "reason": suspension.suspension_reason,
+            "suspension_type": suspension.suspension_type,
+            "scheduled_reactivation_at": (
+                suspension.scheduled_reactivation_at.isoformat()
+                if suspension.scheduled_reactivation_at
+                else None
+            ),
+            "reactivated_at": (
+                suspension.reactivated_at.isoformat()
+                if suspension.reactivated_at
+                else None
+            ),
         }
 
+    def _log_security_event(
+        self,
+        *,
+        event_type: str,
+        severity: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        """
+        Best-effort security event logging.
+
+        Args:
+            event_type: Security event type.
+            severity: Security event severity.
+            metadata: Optional event metadata.
+        """
+        try:
+            from authentication.models.security_events import SecurityEvent
+
+            SecurityEvent.log_event(
+                user=self.user,
+                website=self.website,
+                event_type=event_type,
+                severity=severity,
+                is_suspicious=False,
+                metadata=metadata or {},
+            )
+        except Exception as exc:
+            logger.warning(
+                "Failed to log security event for user=%s website=%s: %s",
+                getattr(self.user, "pk", None),
+                getattr(self.website, "pk", None),
+                exc,
+            )

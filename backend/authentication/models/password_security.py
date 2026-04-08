@@ -6,7 +6,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from websites.models.websites import Website
+from django.core.exceptions import ValidationError
 
 
 class PasswordHistory(models.Model):
@@ -40,6 +40,12 @@ class PasswordHistory(models.Model):
             models.Index(fields=['user', '-created_at']),
             models.Index(fields=['website', 'user']),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "website", "password_hash"],
+                name="unique_password_hash_per_user_website"
+            )
+        ]
         verbose_name = _("Password History")
         verbose_name_plural = _("Password Histories")
     
@@ -51,10 +57,10 @@ class PasswordExpirationPolicy(models.Model):
     """
     Tracks password expiration for users.
     """
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='password_expiration_policy',
+        related_name='password_expiration_policies',
         help_text=_("User whose password expiration is tracked")
     )
     website = models.ForeignKey(
@@ -90,8 +96,18 @@ class PasswordExpirationPolicy(models.Model):
             models.Index(fields=['user', 'password_changed_at']),
             models.Index(fields=['website', 'user']),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "website"],
+                name="unique_password_expiration_policy_per_user_website",
+            )
+        ]
         verbose_name = _("Password Expiration Policy")
         verbose_name_plural = _("Password Expiration Policies")
+    
+    def clean(self):
+        if self.expires_in_days < 0:
+            raise ValidationError("expires_in_days must be >= 0")
     
     @property
     def expires_at(self):
@@ -143,10 +159,16 @@ class PasswordExpirationPolicy(models.Model):
         return f"Password policy for {self.user.email} - {status}"
 
 
+
 class PasswordBreachCheck(models.Model):
     """
     Tracks password breach checks and results.
     """
+    class Action(models.TextChoices):
+        NONE = "none", "No Action"
+        WARNED = "warned", "User Warned"
+        FORCED_CHANGE = "forced_change", "Password Change Forced"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -177,11 +199,7 @@ class PasswordBreachCheck(models.Model):
     )
     action_taken = models.CharField(
         max_length=50,
-        choices=[
-            ('none', 'No Action'),
-            ('warned', 'User Warned'),
-            ('forced_change', 'Password Change Forced'),
-        ],
+        choices=Action.choices,
         default='none',
         help_text=_("Action taken based on breach check")
     )

@@ -49,3 +49,4 @@ class ImpersonationMiddleware(MiddlewareMixin):
         
         return None
 
+    

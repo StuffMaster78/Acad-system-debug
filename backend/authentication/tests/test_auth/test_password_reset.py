@@ -17,7 +17,7 @@ from datetime import timedelta
 from django.core.exceptions import ValidationError
 
 from authentication.services.password_reset_service import PasswordResetService
-from authentication.models.password_reset import PasswordResetRequest
+from authentication.models.password_reset_request import PasswordResetRequest
 
 
 @pytest.mark.django_db
