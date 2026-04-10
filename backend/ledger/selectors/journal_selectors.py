@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from django.db.models import QuerySet
 
-from ledger.models import JournalEntry, JournalLine
+from ledger.models.journal_entry import JournalEntry
+from ledger.models.journal_line import JournalLine
 
 
 class JournalSelectors:

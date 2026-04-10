@@ -37,7 +37,7 @@ class LedgerAccountModelTests(TestCase):
             code="PLATFORM_CASH",
             name="Platform Cash",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
             status=LedgerAccountStatus.ACTIVE,
         )
 
@@ -49,7 +49,7 @@ class LedgerAccountModelTests(TestCase):
             code="ACTIVE_ACC",
             name="Active Account",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
             status=LedgerAccountStatus.ACTIVE,
         )
         archived_account = LedgerAccount.objects.create(
@@ -57,7 +57,7 @@ class LedgerAccountModelTests(TestCase):
             code="ARCHIVED_ACC",
             name="Archived Account",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
             status=LedgerAccountStatus.ARCHIVED,
         )
 
@@ -70,7 +70,7 @@ class LedgerAccountModelTests(TestCase):
             code="UNIQUE_CODE",
             name="First Account",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
         )
 
         with self.assertRaises(Exception):
@@ -79,7 +79,7 @@ class LedgerAccountModelTests(TestCase):
                 code="UNIQUE_CODE",
                 name="Second Account",
                 account_type=LedgerAccountType.ASSET,
-                currency="KES",
+                currency="USD",
             )
 
 
@@ -102,7 +102,7 @@ class JournalEntryModelTests(TestCase):
             entry_number="JE-001",
             entry_type=LedgerEntryType.WALLET_TOP_UP,
             status=JournalEntryStatus.DRAFT,
-            currency="KES",
+            currency="USD",
         )
 
         self.assertEqual(str(entry), "JE-001 | draft")
@@ -113,7 +113,7 @@ class JournalEntryModelTests(TestCase):
             entry_number="JE-002",
             entry_type=LedgerEntryType.WALLET_TOP_UP,
             status=JournalEntryStatus.DRAFT,
-            currency="KES",
+            currency="USD",
         )
 
         entry.mark_posted()
@@ -127,7 +127,7 @@ class JournalEntryModelTests(TestCase):
             entry_number="JE-003",
             entry_type=LedgerEntryType.WALLET_TOP_UP,
             status=JournalEntryStatus.POSTED,
-            currency="KES",
+            currency="USD",
             posted_at=timezone.now(),
         )
 
@@ -141,7 +141,7 @@ class JournalEntryModelTests(TestCase):
             entry_number="JE-004",
             entry_type=LedgerEntryType.WALLET_TOP_UP,
             status=JournalEntryStatus.POSTED,
-            currency="KES",
+            currency="USD",
             posted_at=None,
         )
 
@@ -154,7 +154,7 @@ class JournalEntryModelTests(TestCase):
             entry_number="JE-005",
             entry_type=LedgerEntryType.WALLET_TOP_UP,
             status=JournalEntryStatus.POSTED,
-            currency="KES",
+            currency="USD",
             posted_at=timezone.now(),
         )
 
@@ -166,14 +166,14 @@ class JournalEntryModelTests(TestCase):
             entry_number="JE-006",
             entry_type=LedgerEntryType.WALLET_TOP_UP,
             status=JournalEntryStatus.DRAFT,
-            currency="KES",
+            currency="USD",
         )
         posted_entry = JournalEntry.objects.create(
             website=self.website,
             entry_number="JE-007",
             entry_type=LedgerEntryType.WALLET_TOP_UP,
             status=JournalEntryStatus.POSTED,
-            currency="KES",
+            currency="USD",
             posted_at=timezone.now(),
         )
         reversed_entry = JournalEntry.objects.create(
@@ -181,7 +181,7 @@ class JournalEntryModelTests(TestCase):
             entry_number="JE-008",
             entry_type=LedgerEntryType.WALLET_TOP_UP,
             status=JournalEntryStatus.REVERSED,
-            currency="KES",
+            currency="USD",
         )
 
         self.assertTrue(draft_entry.is_draft)
@@ -212,14 +212,14 @@ class JournalLineModelTests(TestCase):
             entry_number="JE-LINE-001",
             entry_type=LedgerEntryType.WALLET_TOP_UP,
             status=JournalEntryStatus.DRAFT,
-            currency="KES",
+            currency="USD",
         )
         self.account = LedgerAccount.objects.create(
             website=self.website,
             code="PLATFORM_CASH",
             name="Platform Cash",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
         )
 
     def test_journal_line_str(self) -> None:
@@ -229,7 +229,7 @@ class JournalLineModelTests(TestCase):
             ledger_account=self.account,
             entry_side=EntrySide.DEBIT,
             amount=Decimal("100.00"),
-            currency="KES",
+            currency="USD",
         )
 
         self.assertEqual(str(line), "debit | 100.00")
@@ -241,7 +241,7 @@ class JournalLineModelTests(TestCase):
             ledger_account=self.account,
             entry_side=EntrySide.DEBIT,
             amount=Decimal("0.00"),
-            currency="KES",
+            currency="USD",
         )
 
         with self.assertRaises(ValidationError):
@@ -254,7 +254,7 @@ class JournalLineModelTests(TestCase):
             ledger_account=self.account,
             entry_side="sideways",
             amount=Decimal("100.00"),
-            currency="KES",
+            currency="USD",
         )
 
         with self.assertRaises(ValidationError):
@@ -280,7 +280,7 @@ class JournalLineModelTests(TestCase):
             ledger_account=self.account,
             entry_side=EntrySide.DEBIT,
             amount=Decimal("100.00"),
-            currency="KES",
+            currency="USD",
         )
 
         with self.assertRaises(ValidationError):
@@ -293,7 +293,7 @@ class JournalLineModelTests(TestCase):
             ledger_account=self.account,
             entry_side=EntrySide.DEBIT,
             amount=Decimal("50.00"),
-            currency="KES",
+            currency="USD",
         )
         credit_line = JournalLine.objects.create(
             website=self.website,
@@ -301,7 +301,7 @@ class JournalLineModelTests(TestCase):
             ledger_account=self.account,
             entry_side=EntrySide.CREDIT,
             amount=Decimal("50.00"),
-            currency="KES",
+            currency="USD",
         )
 
         self.assertTrue(debit_line.is_debit)
@@ -327,7 +327,7 @@ class HoldRecordModelTests(TestCase):
             code="CLIENT_WALLET_LIABILITY",
             name="Client Wallet Liability",
             account_type=LedgerAccountType.LIABILITY,
-            currency="KES",
+            currency="USD",
         )
 
     def test_hold_record_status_properties(self) -> None:
@@ -336,7 +336,7 @@ class HoldRecordModelTests(TestCase):
             ledger_account=self.account,
             user=self.user,
             amount=Decimal("500.00"),
-            currency="KES",
+            currency="USD",
             status=HoldStatus.ACTIVE,
         )
 
@@ -353,7 +353,7 @@ class HoldRecordModelTests(TestCase):
             ledger_account=self.account,
             user=self.user,
             amount=Decimal("400.00"),
-            currency="KES",
+            currency="USD",
             status=HoldStatus.ACTIVE,
         )
 
@@ -368,7 +368,7 @@ class HoldRecordModelTests(TestCase):
             ledger_account=self.account,
             user=self.user,
             amount=Decimal("400.00"),
-            currency="KES",
+            currency="USD",
             status=HoldStatus.ACTIVE,
         )
 
@@ -383,7 +383,7 @@ class HoldRecordModelTests(TestCase):
             ledger_account=self.account,
             user=self.user,
             amount=Decimal("0.00"),
-            currency="KES",
+            currency="USD",
             status=HoldStatus.ACTIVE,
         )
 
@@ -409,7 +409,7 @@ class ReconciliationRecordModelTests(TestCase):
             website=self.website,
             user=self.user,
             status=ReconciliationStatus.UNRECONCILED,
-            currency="KES",
+            currency="USD",
             expected_amount=Decimal("1000.00"),
             matched_amount=Decimal("0.00"),
             variance_amount=Decimal("0.00"),
@@ -427,7 +427,7 @@ class ReconciliationRecordModelTests(TestCase):
             website=self.website,
             user=self.user,
             status=ReconciliationStatus.UNRECONCILED,
-            currency="KES",
+            currency="USD",
             expected_amount=Decimal("1000.00"),
             matched_amount=Decimal("0.00"),
             variance_amount=Decimal("0.00"),
@@ -446,7 +446,7 @@ class ReconciliationRecordModelTests(TestCase):
             website=self.website,
             user=self.user,
             status=ReconciliationStatus.UNRECONCILED,
-            currency="KES",
+            currency="USD",
             expected_amount=Decimal("1000.00"),
             actual_amount=Decimal("700.00"),
             matched_amount=Decimal("0.00"),
@@ -464,7 +464,7 @@ class ReconciliationRecordModelTests(TestCase):
             website=self.website,
             user=self.user,
             status=ReconciliationStatus.MISMATCHED,
-            currency="KES",
+            currency="USD",
             expected_amount=Decimal("1000.00"),
             actual_amount=Decimal("800.00"),
             matched_amount=Decimal("800.00"),
@@ -482,7 +482,7 @@ class ReconciliationRecordModelTests(TestCase):
             website=self.website,
             user=self.user,
             status=ReconciliationStatus.UNRECONCILED,
-            currency="KES",
+            currency="USD",
             expected_amount=Decimal("0.00"),
             matched_amount=Decimal("0.00"),
             variance_amount=Decimal("0.00"),
@@ -496,7 +496,7 @@ class ReconciliationRecordModelTests(TestCase):
             website=self.website,
             user=self.user,
             status=ReconciliationStatus.UNRECONCILED,
-            currency="KES",
+            currency="USD",
             expected_amount=Decimal("100.00"),
             actual_amount=Decimal("-1.00"),
             matched_amount=Decimal("0.00"),
@@ -511,7 +511,7 @@ class ReconciliationRecordModelTests(TestCase):
             website=self.website,
             user=self.user,
             status=ReconciliationStatus.UNRECONCILED,
-            currency="KES",
+            currency="USD",
             expected_amount=Decimal("100.00"),
             matched_amount=Decimal("-1.00"),
             variance_amount=Decimal("0.00"),
@@ -525,7 +525,7 @@ class ReconciliationRecordModelTests(TestCase):
             website=self.website,
             user=self.user,
             status=ReconciliationStatus.RESOLVED,
-            currency="KES",
+            currency="USD",
             expected_amount=Decimal("100.00"),
             matched_amount=Decimal("100.00"),
             variance_amount=Decimal("0.00"),

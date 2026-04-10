@@ -27,7 +27,7 @@ class HoldLedgerServiceTests(TestCase):
             code="CLIENT_WALLET_LIABILITY",
             name="Client Wallet Liability",
             account_type=LedgerAccountType.LIABILITY,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
 
@@ -58,7 +58,7 @@ class HoldLedgerServiceTests(TestCase):
             ledger_account=self.account,
             user=self.user,
             amount=Decimal("300.00"),
-            currency="KES",
+            currency="USD",
         )
 
         released_hold = HoldLedgerService.release_hold(hold=hold)
@@ -72,7 +72,7 @@ class HoldLedgerServiceTests(TestCase):
             ledger_account=self.account,
             user=self.user,
             amount=Decimal("300.00"),
-            currency="KES",
+            currency="USD",
         )
 
         captured_hold = HoldLedgerService.capture_hold(hold=hold)
@@ -86,7 +86,7 @@ class HoldLedgerServiceTests(TestCase):
             ledger_account=self.account,
             user=self.user,
             amount=Decimal("300.00"),
-            currency="KES",
+            currency="USD",
             status=HoldStatus.RELEASED,
         )
 

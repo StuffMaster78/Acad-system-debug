@@ -6,7 +6,9 @@ from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
 from ledger.constants import EntrySide, JournalEntryStatus
-from ledger.models import AccountBalanceSnapshot, JournalLine, LedgerAccount
+from ledger.models.account_balance_snapshot import AccountBalanceSnapshot
+from ledger.models.journal_line import JournalLine
+from ledger.models.ledger_account import LedgerAccount
 
 
 class BalanceSelectors:
@@ -75,7 +77,7 @@ class BalanceSelectors:
         *,
         website,
         wallet_reference: str,
-        currency: str = "KES",
+        currency: str = "USD",
     ) -> Decimal:
         total = (
             JournalLine.objects.filter(
@@ -95,7 +97,7 @@ class BalanceSelectors:
         *,
         website,
         wallet_reference: str,
-        currency: str = "KES",
+        currency: str = "USD",
     ) -> Decimal:
         total = (
             JournalLine.objects.filter(

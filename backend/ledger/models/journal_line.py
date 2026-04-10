@@ -45,7 +45,7 @@ class JournalLine(models.Model):
     )
     currency = models.CharField(
         max_length=10,
-        default="KES",
+        default="USD",
     )
     description = models.TextField(
         blank=True,

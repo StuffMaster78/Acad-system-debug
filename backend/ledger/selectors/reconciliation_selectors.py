@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.db.models import QuerySet
 
-from ledger.models import ReconciliationRecord
+from ledger.models.reconciliation_record import ReconciliationRecord
 from ledger.constants import ReconciliationStatus
 
 class ReconciliationSelectors:

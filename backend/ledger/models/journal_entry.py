@@ -59,7 +59,7 @@ class JournalEntry(models.Model):
     )
     currency = models.CharField(
         max_length=10,
-        default="KES",
+        default="USD",
         help_text="ISO currency code for all lines in this entry.",
     )
     description = models.TextField(

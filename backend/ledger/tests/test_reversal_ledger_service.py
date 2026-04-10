@@ -37,7 +37,7 @@ class ReversalLedgerServiceTests(TestCase):
             code="PLATFORM_CASH",
             name="Platform Cash",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
         self.wallet_liability_account = LedgerAccount.objects.create(
@@ -45,7 +45,7 @@ class ReversalLedgerServiceTests(TestCase):
             code="CLIENT_WALLET_LIABILITY",
             name="Client Wallet Liability",
             account_type=LedgerAccountType.LIABILITY,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
 
@@ -90,7 +90,7 @@ class ReversalLedgerServiceTests(TestCase):
             entry_number="JE-DRAFT-1",
             entry_type=LedgerEntryType.WALLET_TOP_UP,
             status=JournalEntryStatus.DRAFT,
-            currency="KES",
+            currency="USD",
         )
 
         with self.assertRaises(LedgerReversalError):

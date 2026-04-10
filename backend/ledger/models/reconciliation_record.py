@@ -54,7 +54,7 @@ class ReconciliationRecord(models.Model):
     )
     currency = models.CharField(
         max_length=10,
-        default="KES",
+        default="USD",
     )
     expected_amount = models.DecimalField(
         max_digits=12,

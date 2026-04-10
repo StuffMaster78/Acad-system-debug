@@ -32,7 +32,7 @@ class WalletLedgerServiceTests(TestCase):
             code="GATEWAY_CLEARING",
             name="Gateway Clearing",
             account_type=LedgerAccountType.CLEARING,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
         self.client_wallet_liability = LedgerAccount.objects.create(
@@ -40,7 +40,7 @@ class WalletLedgerServiceTests(TestCase):
             code="CLIENT_WALLET_LIABILITY",
             name="Client Wallet Liability",
             account_type=LedgerAccountType.LIABILITY,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
         self.platform_cash = LedgerAccount.objects.create(
@@ -48,7 +48,7 @@ class WalletLedgerServiceTests(TestCase):
             code="PLATFORM_CASH",
             name="Platform Cash",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
         self.refund_reserve = LedgerAccount.objects.create(
@@ -56,7 +56,7 @@ class WalletLedgerServiceTests(TestCase):
             code="REFUND_RESERVE",
             name="Refund Reserve",
             account_type=LedgerAccountType.LIABILITY,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
 

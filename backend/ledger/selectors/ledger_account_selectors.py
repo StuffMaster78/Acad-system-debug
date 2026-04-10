@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.db.models import QuerySet
 
 from ledger.constants import LedgerAccountStatus
-from ledger.models import LedgerAccount
+from ledger.models.ledger_account import LedgerAccount
 
 
 class LedgerAccountSelectors:
