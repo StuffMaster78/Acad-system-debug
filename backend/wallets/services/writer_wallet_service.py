@@ -24,7 +24,7 @@ class WriterWalletService:
         *,
         website: Any,
         writer: Any,
-        currency: str = "KES",
+        currency: str = "USD",
     ) -> Wallet:
         return WalletService.get_writer_wallet(
             website=website,

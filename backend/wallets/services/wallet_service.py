@@ -59,7 +59,7 @@ class WalletService:
         website: Any,
         owner_user: Any,
         wallet_type: str,
-        currency: str = "KES",
+        currency: str = "USD",
     ) -> Wallet:
         wallet, _ = Wallet.objects.get_or_create(
             website=website,
@@ -225,7 +225,7 @@ class WalletService:
         website: Any,
         owner_user: Any,
         wallet_type: str,
-        currency: str = "KES",
+        currency: str = "USD",
     ) -> Wallet:
         return WalletService.get_wallet_queryset().get(
             website=website,
@@ -239,7 +239,7 @@ class WalletService:
         *,
         website: Any,
         owner_user: Any,
-        currency: str = "KES",
+        currency: str = "USD",
     ) -> Wallet:
         return WalletService.get_or_create_wallet(
             website=website,
@@ -253,7 +253,7 @@ class WalletService:
         *,
         website: Any,
         owner_user: Any,
-        currency: str = "KES",
+        currency: str = "USD",
     ) -> Wallet:
         return WalletService.get_or_create_wallet(
             website=website,
