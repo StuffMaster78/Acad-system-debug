@@ -1,0 +1,18 @@
+from datetime import timedelta
+
+DEFAULT_CURRENCY = "USD"
+
+# Payment intent expiry
+PAYMENT_INTENT_EXPIRY_MINUTES = 30
+
+# Retry / verification configs
+MAX_WEBHOOK_RETRIES = 5
+WEBHOOK_RETRY_DELAY_SECONDS = 30
+
+# Pending resolution
+PENDING_PAYMENT_TIMEOUT_MINUTES = 60
+
+# Reconciliation
+RECONCILIATION_BATCH_SIZE = 100
+
+PENDING_PAYMENT_RESOLUTION_BATCH_SIZE = 100
