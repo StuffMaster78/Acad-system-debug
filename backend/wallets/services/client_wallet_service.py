@@ -24,7 +24,7 @@ class ClientWalletService:
         *,
         website: Any,
         client: Any,
-        currency: str = "KES",
+        currency: str = "USD",
     ) -> Wallet:
         return WalletService.get_client_wallet(
             website=website,
@@ -232,7 +232,7 @@ class ClientWalletService:
         website: Any,
         client: Any,
         total_amount: Decimal,
-        currency: str = "KES",
+        currency: str = "USD",
     ) -> dict[str, Decimal | bool]:
         wallet = ClientWalletService.get_wallet(
             website=website,

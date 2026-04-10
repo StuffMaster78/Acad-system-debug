@@ -23,7 +23,7 @@ class MyWalletView(generics.RetrieveAPIView):
         user = cast(Any, request.user)
 
         wallet_type = request.query_params.get("wallet_type", "client")
-        currency = request.query_params.get("currency", "KES")
+        currency = request.query_params.get("currency", "USD")
 
         return WalletService.get_or_create_wallet(
             website=user.website,
@@ -42,7 +42,7 @@ class MyWalletEntryListView(generics.ListAPIView):
         user = cast(Any, request.user)
 
         wallet_type = request.query_params.get("wallet_type", "client")
-        currency = request.query_params.get("currency", "KES")
+        currency = request.query_params.get("currency", "USD")
 
         wallet = WalletService.get_or_create_wallet(
             website=user.website,
@@ -69,7 +69,7 @@ class MyWalletHoldListView(generics.ListAPIView):
         user = cast(Any, request.user)
 
         wallet_type = request.query_params.get("wallet_type", "client")
-        currency = request.query_params.get("currency", "KES")
+        currency = request.query_params.get("currency", "USD")
 
         wallet = WalletService.get_or_create_wallet(
             website=user.website,
