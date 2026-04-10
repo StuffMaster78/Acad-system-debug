@@ -27,7 +27,7 @@ class BalanceServiceTests(TestCase):
             code="PLATFORM_CASH",
             name="Platform Cash",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
         self.wallet_liability_account = LedgerAccount.objects.create(
@@ -35,7 +35,7 @@ class BalanceServiceTests(TestCase):
             code="CLIENT_WALLET_LIABILITY",
             name="Client Wallet Liability",
             account_type=LedgerAccountType.LIABILITY,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
 

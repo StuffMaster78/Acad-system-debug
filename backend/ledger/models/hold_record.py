@@ -57,7 +57,7 @@ class HoldRecord(models.Model):
     )
     currency = models.CharField(
         max_length=10,
-        default="KES",
+        default="USD",
     )
     status = models.CharField(
         max_length=20,

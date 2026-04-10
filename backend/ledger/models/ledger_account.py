@@ -39,7 +39,7 @@ class LedgerAccount(models.Model):
     )
     currency = models.CharField(
         max_length=10,
-        default="KES",
+        default="USD",
         help_text="ISO currency code, e.g. KES, USD.",
     )
     status = models.CharField(

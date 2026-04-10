@@ -32,7 +32,7 @@ class PayoutLedgerServiceTests(TestCase):
             code="PLATFORM_REVENUE",
             name="Platform Revenue",
             account_type=LedgerAccountType.REVENUE,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
         self.writer_payable = LedgerAccount.objects.create(
@@ -40,7 +40,7 @@ class PayoutLedgerServiceTests(TestCase):
             code="WRITER_PAYABLE",
             name="Writer Payable",
             account_type=LedgerAccountType.LIABILITY,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
         self.platform_cash = LedgerAccount.objects.create(
@@ -48,7 +48,7 @@ class PayoutLedgerServiceTests(TestCase):
             code="PLATFORM_CASH",
             name="Platform Cash",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
         self.fines_recovery = LedgerAccount.objects.create(
@@ -56,7 +56,7 @@ class PayoutLedgerServiceTests(TestCase):
             code="FINES_RECOVERY",
             name="Fines Recovery",
             account_type=LedgerAccountType.REVENUE,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
 

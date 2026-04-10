@@ -36,7 +36,7 @@ class JournalPostingServiceTests(TestCase):
             code="PLATFORM_CASH",
             name="Platform Cash",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
         self.wallet_liability_account = LedgerAccount.objects.create(
@@ -44,7 +44,7 @@ class JournalPostingServiceTests(TestCase):
             code="CLIENT_WALLET_LIABILITY",
             name="Client Wallet Liability",
             account_type=LedgerAccountType.LIABILITY,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
 
@@ -52,7 +52,7 @@ class JournalPostingServiceTests(TestCase):
         entry = JournalPostingService.post_entry(
             website=self.website,
             entry_type=LedgerEntryType.WALLET_TOP_UP,
-            currency="KES",
+            currency="USD",
             description="Wallet top up",
             triggered_by=self.user,
             lines=[
@@ -81,7 +81,7 @@ class JournalPostingServiceTests(TestCase):
             JournalPostingService.post_entry(
                 website=self.website,
                 entry_type=LedgerEntryType.WALLET_TOP_UP,
-                currency="KES",
+                currency="USD",
                 lines=[
                     JournalLineInput(
                         ledger_account=self.cash_account,
@@ -104,7 +104,7 @@ class JournalPostingServiceTests(TestCase):
             JournalPostingService.post_entry(
                 website=self.website,
                 entry_type=LedgerEntryType.WALLET_TOP_UP,
-                currency="KES",
+                currency="USD",
                 lines=[
                     JournalLineInput(
                         ledger_account=self.cash_account,
@@ -129,7 +129,7 @@ class JournalPostingServiceTests(TestCase):
             code="FOREIGN_CASH",
             name="Foreign Cash",
             account_type=LedgerAccountType.ASSET,
-            currency="KES",
+            currency="USD",
             is_system_account=True,
         )
 
@@ -137,7 +137,7 @@ class JournalPostingServiceTests(TestCase):
             JournalPostingService.post_entry(
                 website=self.website,
                 entry_type=LedgerEntryType.WALLET_TOP_UP,
-                currency="KES",
+                currency="USD",
                 lines=[
                     JournalLineInput(
                         ledger_account=foreign_account,
@@ -166,7 +166,7 @@ class JournalPostingServiceTests(TestCase):
             JournalPostingService.post_entry(
                 website=self.website,
                 entry_type=LedgerEntryType.WALLET_TOP_UP,
-                currency="KES",
+                currency="USD",
                 lines=[
                     JournalLineInput(
                         ledger_account=usd_account,
