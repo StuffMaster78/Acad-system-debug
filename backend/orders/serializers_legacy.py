@@ -2,9 +2,9 @@ from rest_framework import serializers
 from django.utils.timezone import now  
 
 from orders.models.orders import Order
-from orders.models.order_disputes import Dispute, DisputeWriterResponse
-from orders.models.requests import WriterRequest, OrderRequest
-from orders.models.logs import (
+from orders.models.legacy_models.order_disputes import Dispute, DisputeWriterResponse
+from orders.models.legacy_models.requests import WriterRequest, OrderRequest
+from orders.models.legacy_models.logs import (
     OrderTransitionLog, WriterReassignmentLog,
     OrderPricingSnapshot
 )

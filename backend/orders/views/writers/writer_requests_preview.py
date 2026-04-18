@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from orders.models.orders import Order
 from orders.serializers_legacy import WriterRequestPreviewSerializer
-from orders.models.requests import WriterRequest
+from orders.models.legacy_models.requests import WriterRequest
 from orders.services.writer_request_pricing_service import WriterRequestPricingService
 
 

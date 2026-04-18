@@ -1,5 +1,5 @@
 from rest_framework import generics, permissions
-from orders.models.logs import OrderTransitionLog
+from orders.models.legacy_models.logs import OrderTransitionLog
 from orders.serializers_legacy import OrderTransitionLogSerializer
 
 class OrderTransitionLogListView(generics.ListAPIView):

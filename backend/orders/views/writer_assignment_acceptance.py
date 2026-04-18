@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 
-from orders.models.writer_acceptance import WriterAssignmentAcceptance
+from orders.models.legacy_models.writer_acceptance import WriterAssignmentAcceptance
 from orders.permissions import IsAssignedWriter
 
 

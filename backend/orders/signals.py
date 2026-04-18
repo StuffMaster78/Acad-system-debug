@@ -1,8 +1,8 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from .models.orders import Order
-from .models.requests import OrderRequest, WriterRequest
-from .models.order_disputes import Dispute
+from .models.legacy_models.requests import OrderRequest, WriterRequest
+from .models.legacy_models.order_disputes import Dispute
 from notifications_system.services.notification_service import NotificationService
 
 @receiver(post_save, sender=Order)

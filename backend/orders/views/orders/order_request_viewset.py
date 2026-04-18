@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from orders.permissions import IsStaffOrRequestOwner
 
-from orders.models.requests import OrderRequest
+from orders.models.legacy_models.requests import OrderRequest
 from orders.serializers_legacy import OrderRequestSerializer, WriterRequestActionSerializer
 from orders.registry.decorator import get_registered_action as get_action_by_name
 

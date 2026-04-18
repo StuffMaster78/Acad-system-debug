@@ -2,7 +2,7 @@
 Serializers for order templates.
 """
 from rest_framework import serializers
-from orders.models.order_template import OrderTemplate
+from orders.models.legacy_models.order_template import OrderTemplate
 from orders.serializers.orders import OrderSerializer
 
 

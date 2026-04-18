@@ -7,7 +7,7 @@ from django.db import transaction
 from decimal import Decimal
 
 from orders.models.orders import Order
-from orders.models.requests import WriterRequest
+from orders.models.legacy_models.requests import WriterRequest
 from orders.serializers_legacy import WriterRequestSerializer
 from orders.services.writer_request_service import WriterRequestService
 from orders.permissions import IsClientWhoOwnsOrder

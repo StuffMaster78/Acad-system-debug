@@ -7,8 +7,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from orders.models.orders import Order
-from orders.models.requests import DraftRequest
-from orders.models.drafts import DraftFile
+from orders.models.legacy_models.requests import DraftRequest
+from orders.models.legacy_models.drafts import DraftFile
 from orders.serializers.draft_requests import (
     DraftRequestSerializer, DraftRequestCreateSerializer, DraftFileSerializer
 )

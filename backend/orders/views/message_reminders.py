@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from orders.models.message_reminders import MessageReminder
+from orders.models.legacy_models.message_reminders import MessageReminder
 from orders.serializers.message_reminders import MessageReminderSerializer
 
 
