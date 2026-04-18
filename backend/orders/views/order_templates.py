@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models.order_template import OrderTemplate
+from orders.models.legacy_models.order_template import OrderTemplate
 from orders.serializers.order_templates import (
     OrderTemplateSerializer,
     OrderTemplateCreateSerializer,

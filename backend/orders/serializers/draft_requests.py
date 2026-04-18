@@ -3,7 +3,7 @@ Serializers for draft request functionality.
 """
 from rest_framework import serializers
 from orders.models.orders import Order
-from orders.models.drafts import DraftRequest, DraftFile
+from orders.models.legacy_models.drafts import DraftRequest, DraftFile
 from websites.models.websites import Website
 
 

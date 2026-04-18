@@ -15,7 +15,7 @@ from orders.services.archive_order_service import ArchiveOrderService
 from orders.services.auto_archive_service import AutoArchiveService
 from orders.services.status_transition_service import StatusTransitionService
 
-from orders.models.requests import OrderRequest
+from orders.models.legacy_models.requests import OrderRequest
 from orders.order_enums import OrderRequestStatus
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus
@@ -25,7 +25,7 @@ from orders.services.order_request_service import OrderRequestService
 from users.models import User
 from websites.models.websites import Website
 from audit_logging.services.audit_log_service import AuditLogEntry
-from orders.models.requests import WriterRequest
+from orders.models.legacy_models.requests import WriterRequest
 from audit_logging.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger(__name__)

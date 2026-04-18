@@ -2,7 +2,7 @@
 Order Presets Serializers
 """
 from rest_framework import serializers
-from orders.models.order_presets import OrderPreset
+from orders.models.legacy_models.order_presets import OrderPreset
 
 
 class OrderPresetSerializer(serializers.ModelSerializer):

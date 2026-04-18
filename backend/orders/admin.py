@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from django import forms
 from django.forms import widgets
@@ -5,10 +7,10 @@ from django.db import models
 from django.utils.html import format_html
 from django.contrib import admin
 from orders.models.orders import Order
-from orders.models.writer_progress import WriterProgress
-from orders.models.order_disputes import Dispute, DisputeWriterResponse
-from orders.models.requests import WriterRequest
-from orders.models.logs import OrderTransitionLog, OrderPricingSnapshot
+from orders.models.legacy_models.writer_progress import WriterProgress
+from orders.models.legacy_models.order_disputes import Dispute, DisputeWriterResponse
+from orders.models.legacy_models.requests import WriterRequest
+from orders.models.legacy_models.logs import OrderTransitionLog, OrderPricingSnapshot
 from orders.admin_filters import (
     StatusGroupFilter,
     CanTransitionToFilter,
@@ -16,6 +18,13 @@ from orders.admin_filters import (
     NeedsAttentionFilter,
     TransitionCountFilter,
 )
+from orders.models.legacy_models.unpaid_order_message import (
+    UnpaidOrderMessage,
+)
+from orders.models.legacy_models.unpaid_order_message_dispatch import (
+    UnpaidOrderMessageDispatch,
+)
+
 
 class PrettyJSONWidget(widgets.Textarea):
     def format_value(self, value):
@@ -198,3 +207,70 @@ class OrderPricingSnapshotAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+    
+@admin.register(UnpaidOrderMessage)
+class UnpaidOrderMessageAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for unpaid order reminder messages.
+    """
+
+    list_display = (
+        "id",
+        "website",
+        "name",
+        "sequence_number",
+        "interval_hours",
+        "is_active",
+        "cancel_order_after_send",
+    )
+    list_filter = (
+        "website",
+        "is_active",
+        "cancel_order_after_send",
+    )
+    search_fields = (
+        "name",
+        "subject",
+        "message",
+    )
+    ordering = (
+        "website",
+        "sequence_number",
+        "interval_hours",
+        "id",
+    )
+
+
+@admin.register(UnpaidOrderMessageDispatch)
+class UnpaidOrderMessageDispatchAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for unpaid order reminder dispatch logs.
+    """
+
+    list_display = (
+        "id",
+        "website",
+        "order",
+        "unpaid_order_message",
+        "recipient_email",
+        "status",
+        "scheduled_for",
+        "sent_at",
+    )
+    list_filter = (
+        "website",
+        "status",
+    )
+    search_fields = (
+        "recipient_email",
+        "subject_snapshot",
+        "message_snapshot",
+    )
+    ordering = ("-created_at", "-id")
+    readonly_fields = (
+        "created_at",
+        "attempted_at",
+        "sent_at",
+        "failed_at",
+        "cancelled_at",
+    )
