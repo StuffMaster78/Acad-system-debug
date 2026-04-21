@@ -25,6 +25,7 @@ class MockPaymentProvider(BasePaymentProvider):
         reference = getattr(payment_intent, "provider_reference", None) or str(uuid4())
 
         return ProviderCheckoutResult(
+            success=True,
             provider_name=self.provider_name,
             provider_reference=reference,
             checkout_url="https://example.com/mock-checkout",
@@ -39,7 +40,7 @@ class MockPaymentProvider(BasePaymentProvider):
         headers: dict[str, Any],
     ) -> ProviderWebhookVerificationResult:
         return ProviderWebhookVerificationResult(
-            is_valid=True,
+            is_verified=True,
         )
 
     def parse_webhook(
@@ -59,6 +60,7 @@ class MockPaymentProvider(BasePaymentProvider):
             status=str(payload.get("status", "success")),
             amount=Decimal(str(amount_value)),
             currency=currency,
+            reference=str(payload.get("reference"))
             provider_transaction_id=provider_transaction_id,
             provider_reference=provider_reference,
             raw_payload=payload,

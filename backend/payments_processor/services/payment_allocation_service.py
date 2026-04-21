@@ -16,7 +16,9 @@ from payments_processor.exceptions import PaymentError
 from payments_processor.models import PaymentAllocation
 from payments_processor.services.payment_intent_service import PaymentIntentService
 from payments_processor.utils.references import generate_payment_reference
-from wallets.models import Wallet
+from wallets.services.wallet_hold_service import WalletHoldService
+from wallets.models.wallet import Wallet
+from wallets.services.client_wallet_service import ClientWalletService
 
 
 class PaymentAllocationService:
@@ -29,7 +31,7 @@ class PaymentAllocationService:
     def create_allocations_for_payable(
         cls,
         *,
-        customer,
+        client,
         payable,
         purpose: str,
         total_amount: Decimal,
@@ -52,8 +54,8 @@ class PaymentAllocationService:
 
         metadata = metadata or {}
 
-        wallet = cls._get_client_wallet(customer=customer, currency=currency)
-        wallet_available = cls._get_wallet_available_balance(wallet=wallet)
+        wallet = ClientWalletService._get_client_wallet(client=client, currency=currency)
+        wallet_available = ClientWalletService._get_wallet_available_balance(wallet=wallet)
 
         wallet_amount = min(wallet_available, total_amount)
         external_amount = total_amount - wallet_amount
@@ -63,7 +65,7 @@ class PaymentAllocationService:
 
         if wallet_amount > Decimal("0.00"):
             wallet_allocation = cls._create_wallet_allocation(
-                customer=customer,
+                client=client,
                 payable=payable,
                 wallet=wallet,
                 amount=wallet_amount,
@@ -80,7 +82,7 @@ class PaymentAllocationService:
                 )
 
             intent_result = PaymentIntentService.create_intent(
-                customer=customer,
+                client=client,
                 provider=provider,
                 purpose=purpose,
                 amount=external_amount,
@@ -92,7 +94,7 @@ class PaymentAllocationService:
             payment_intent = intent_result["payment_intent"]
 
             external_allocation = cls._create_external_allocation(
-                customer=customer,
+                client=client,
                 payable=payable,
                 payment_intent=payment_intent,
                 amount=external_amount,
@@ -121,43 +123,12 @@ class PaymentAllocationService:
             "provider_data": {},
         }
 
-    @staticmethod
-    def _get_client_wallet(
-        *,
-        customer,
-        currency: str,
-    ) -> Wallet | None:
-        """
-        Return the customer's stored value wallet if it exists.
-        """
-        return (
-            Wallet.objects.filter(
-                owner=customer,
-                wallet_type="client_stored_value",
-                currency=currency,
-                status="active",
-            )
-            .first()
-        )
-
-    @staticmethod
-    def _get_wallet_available_balance(
-        *,
-        wallet: Wallet | None,
-    ) -> Decimal:
-        """
-        Return available wallet balance or zero if wallet does not exist.
-        """
-        if wallet is None:
-            return Decimal("0.00")
-
-        return wallet.available_balance_cached
 
     @classmethod
     def _create_wallet_allocation(
         cls,
         *,
-        customer,
+        client,
         payable,
         wallet: Wallet | None,
         amount: Decimal,
@@ -166,10 +137,18 @@ class PaymentAllocationService:
         metadata: dict[str, Any],
     ) -> PaymentAllocation:
         """
-        Create a wallet allocation, reserved if external payment is also needed.
+        Create wallet allocation backed by a WalletHold.
         """
         if wallet is None:
-            raise PaymentError("Wallet allocation requested without a wallet.")
+            raise PaymentError("Wallet allocation requires a wallet.")
+
+        wallet_hold = WalletHoldService.create_hold(
+            website=wallet.website,
+            wallet=wallet,
+            amount=amount,
+            reference=generate_payment_reference(prefix="hold"),
+            reason="payment_allocation",
+        )
 
         status = (
             PaymentAllocationStatus.RESERVED
@@ -177,26 +156,25 @@ class PaymentAllocationService:
             else PaymentAllocationStatus.PENDING
         )
 
-        allocation = PaymentAllocation.objects.create(
+        return PaymentAllocation.objects.create(
             reference=generate_payment_reference(prefix="alloc"),
-            customer=customer,
+            website=wallet.website,
+            client=client,
             payable_content_type=ContentType.objects.get_for_model(payable),
             payable_object_id=payable.pk,
             allocation_type=PaymentAllocationType.WALLET,
             status=status,
             currency=currency,
             amount=amount,
-            wallet=wallet,
+            wallet_hold=wallet_hold,
             metadata=metadata,
         )
-
-        return allocation
 
     @classmethod
     def _create_external_allocation(
         cls,
         *,
-        customer,
+        client,
         payable,
         payment_intent,
         amount: Decimal,
@@ -208,7 +186,8 @@ class PaymentAllocationService:
         """
         return PaymentAllocation.objects.create(
             reference=generate_payment_reference(prefix="alloc"),
-            customer=customer,
+            website=payment_intent.website,
+            client=client,
             payable_content_type=ContentType.objects.get_for_model(payable),
             payable_object_id=payable.pk,
             allocation_type=PaymentAllocationType.EXTERNAL_PAYMENT,

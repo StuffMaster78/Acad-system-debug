@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from decimal import Decimal
+from typing import Any, cast
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, transaction as db_transaction
 from django.utils import timezone
 
 from payments_processor.enums import (
@@ -24,17 +25,42 @@ from payments_processor.selectors.payment_intent_selectors import (
 from payments_processor.services.payment_transaction_service import (
     PaymentTransactionService,
 )
+from payments_processor.tasks.payment_application_tasks import (
+    apply_payment_intent_task,
+)
+from payments_processor.validators.webhook_validators import (
+    validate_signature_verified,
+    validate_webhook_event_id,
+    validate_webhook_event_type,
+    validate_webhook_payload,
+    validate_webhook_provider,
+    validate_webhook_status_transition,
+)
 
 
 class WebhookProcessingService:
     """
-    Handles provider webhook verification, deduplication, transaction recording,
-    and payment intent state updates.
+    Handle provider webhook verification, deduplication, transaction
+    recording, and payment intent state updates.
     """
 
-    SUCCESS_STATUSES = {"successful", "success", "succeeded", "completed", "paid"}
-    FAILED_STATUSES = {"failed", "error", "cancelled", "canceled"}
-    PENDING_STATUSES = {"pending", "processing"}
+    SUCCESS_STATUSES = {
+        "successful",
+        "success",
+        "succeeded",
+        "completed",
+        "paid",
+    }
+    FAILED_STATUSES = {
+        "failed",
+        "error",
+        "cancelled",
+        "canceled",
+    }
+    PENDING_STATUSES = {
+        "pending",
+        "processing",
+    }
 
     @classmethod
     def process_webhook(
@@ -45,72 +71,92 @@ class WebhookProcessingService:
         headers: dict[str, Any],
     ) -> dict[str, Any]:
         """
-        Process a webhook from a provider.
-
-        Returns a normalized result describing what happened.
+        Process a webhook from a provider and enqueue internal payment
+        application on success.
         """
+        validate_webhook_provider(provider_key)
+        validate_webhook_payload(payload)
+
         provider = get_provider(provider_key)
 
-        is_verified = provider.verify_webhook(payload, headers)
-        if not is_verified:
-            raise PaymentVerificationError(
-                f"Webhook verification failed for provider '{provider_key}'."
-            )
+        verification_result = provider.verify_webhook(payload, headers)
+        validate_signature_verified(verification_result.is_verified)
 
         normalized_event = provider.parse_webhook(payload)
 
-        event_id = str(normalized_event.get("event_id") or "")
-        event_type = str(normalized_event.get("event_type") or "")
-        reference = str(normalized_event.get("reference") or "")
-        raw_status = str(normalized_event.get("status") or "").lower().strip()
+        event_id = normalized_event.event_id
+        event_type = normalized_event.event_type
+        reference = normalized_event.reference
+        raw_status = normalized_event.status.lower().strip()
 
-        if not event_id:
-            raise PaymentVerificationError(
-                "Webhook event is missing a provider event ID."
-            )
+        validate_webhook_event_id(event_id)
+        validate_webhook_event_type(event_type)
 
         if not reference:
             raise PaymentVerificationError(
                 "Webhook event is missing a payment reference."
             )
 
-        with transaction.atomic():
-            webhook_event = cls._create_webhook_event(
-                provider=provider_key,
-                event_id=event_id,
-                event_type=event_type,
-                payload=payload,
-                signature_verified=True,
-            )
-
+        with db_transaction.atomic():
             payment_intent = get_payment_intent_by_reference(reference)
             if payment_intent is None:
+                webhook_event = cls._create_webhook_event(
+                    provider=provider_key,
+                    event_id=event_id,
+                    event_type=event_type,
+                    payload=payload,
+                    signature_verified=True,
+                )
                 cls._mark_webhook_failed(
                     webhook_event=webhook_event,
                     error_message=(
-                        f"No payment intent found for reference '{reference}'."
+                        f"No payment intent found for reference "
+                        f"'{reference}'."
                     ),
                 )
                 raise PaymentIntentNotFoundError(
                     f"No payment intent found for reference '{reference}'."
                 )
 
-            transaction_kind = cls._resolve_transaction_kind(event_type=event_type)
-            transaction_status = cls._resolve_transaction_status(raw_status=raw_status)
+            webhook_event = cls._create_webhook_event(
+                provider=provider_key,
+                event_id=event_id,
+                event_type=event_type,
+                payload=payload,
+                signature_verified=True,
+                payment_intent=payment_intent,
+            )
+
+            transaction_kind = cls._resolve_transaction_kind(
+                event_type=event_type,
+            )
+            transaction_status = cls._resolve_transaction_status(
+                raw_status=raw_status,
+            )
             payment_intent_status = cls._resolve_payment_intent_status(
                 raw_status=raw_status,
                 current_status=payment_intent.status,
             )
+
+            validate_webhook_status_transition(
+                current_status=payment_intent.status,
+                new_status=payment_intent_status,
+            )
+
+            amount = normalized_event.amount or payment_intent.amount
+            currency = (
+                normalized_event.currency or payment_intent.currency
+            ).upper()
 
             PaymentTransactionService.create_transaction(
                 payment_intent=payment_intent,
                 provider=provider_key,
                 kind=transaction_kind,
                 status=transaction_status,
-                amount=normalized_event.get("amount") or payment_intent.amount,
-                currency=normalized_event.get("currency") or payment_intent.currency,
-                provider_transaction_id=str(
-                    normalized_event.get("provider_transaction_id") or ""
+                amount=amount,
+                currency=currency,
+                provider_transaction_id=(
+                    normalized_event.provider_transaction_id
                 ),
                 provider_event_id=event_id,
                 raw_payload=payload,
@@ -122,6 +168,14 @@ class WebhookProcessingService:
             )
 
             cls._mark_webhook_processed(webhook_event=webhook_event)
+
+            if payment_intent.status == PaymentIntentStatus.SUCCEEDED:
+                payment_task = cast(Any, apply_payment_intent_task)
+
+                def enqueue_payment_application() -> None:
+                    payment_task.delay(payment_intent.pk)
+
+                db_transaction.on_commit(enqueue_payment_application)
 
         return {
             "provider": provider_key,
@@ -144,22 +198,32 @@ class WebhookProcessingService:
         event_type: str,
         payload: dict[str, Any],
         signature_verified: bool,
+        payment_intent: Any | None = None,
     ) -> ProviderWebhookEvent:
         """
-        Create a webhook inbox record and block duplicates by unique constraint.
+        Create a webhook inbox record and block duplicates by unique
+        constraint.
         """
+        create_kwargs: dict[str, Any] = {
+            "provider": provider,
+            "event_id": event_id,
+            "event_type": event_type,
+            "signature_verified": signature_verified,
+            "payload": payload,
+            "processing_status": WebhookProcessingStatus.RECEIVED,
+        }
+
+        if payment_intent is not None:
+            create_kwargs["payment_intent"] = payment_intent
+            if hasattr(payment_intent, "website"):
+                create_kwargs["website"] = payment_intent.website
+
         try:
-            return ProviderWebhookEvent.objects.create(
-                provider=provider,
-                event_id=event_id,
-                event_type=event_type,
-                signature_verified=signature_verified,
-                payload=payload,
-                processing_status=WebhookProcessingStatus.RECEIVED,
-            )
+            return ProviderWebhookEvent.objects.create(**create_kwargs)
         except IntegrityError as exc:
             raise DuplicatePaymentEventError(
-                f"Duplicate webhook event '{provider}:{event_id}' received."
+                f"Duplicate webhook event '{provider}:{event_id}' "
+                f"received."
             ) from exc
 
     @staticmethod
@@ -275,18 +339,23 @@ class WebhookProcessingService:
     @staticmethod
     def _update_payment_intent(
         *,
-        payment_intent,
+        payment_intent: Any,
         new_status: str,
     ) -> None:
         """
         Update payment intent status safely.
         """
-        update_fields = ["status", "updated_at"]
+        update_fields = ["updated_at"]
 
-        payment_intent.status = new_status
+        if new_status != payment_intent.status:
+            payment_intent.status = new_status
+            update_fields.append("status")
 
-        if new_status == PaymentIntentStatus.SUCCEEDED:
-            payment_intent.paid_at = timezone.now()
-            update_fields.append("paid_at")
+            if (
+                new_status == PaymentIntentStatus.SUCCEEDED
+                and payment_intent.paid_at is None
+            ):
+                payment_intent.paid_at = timezone.now()
+                update_fields.append("paid_at")
 
         payment_intent.save(update_fields=update_fields)

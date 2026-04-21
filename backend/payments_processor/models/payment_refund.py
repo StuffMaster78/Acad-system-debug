@@ -1,23 +1,30 @@
+from decimal import Decimal
+
+from django.core.exceptions import ValidationError
 from django.db import models
 
-from payments_processor.constants import DEFAULT_CURRENCY
+from payments_processor.constants import DEFAULT_CURRENCY, ZERO_DECIMAL
 from payments_processor.enums import PaymentRefundStatus, RefundDestination
 
 
 class PaymentRefund(models.Model):
     """
-    Represents a payment-side refund execution record.
-    This tracks refund execution on the gateway side.
+    Payment rail refund execution record.
+    This is not refund approval workflow.
     """
 
+    website = models.ForeignKey(
+        "websites.Website",
+        on_delete=models.PROTECT,
+        related_name="payment_refunds",
+    )
     payment_intent = models.ForeignKey(
-        "payments.PaymentIntent",
+        "payments_processor.PaymentIntent",
         on_delete=models.PROTECT,
         related_name="refunds",
     )
-
     payment_transaction = models.ForeignKey(
-        "payments.PaymentTransaction",
+        "payments_processor.PaymentTransaction",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -36,14 +43,16 @@ class PaymentRefund(models.Model):
         choices=RefundDestination.choices,
         default=RefundDestination.ORIGINAL_METHOD,
     )
-
     status = models.CharField(
         max_length=32,
         choices=PaymentRefundStatus.choices,
         default=PaymentRefundStatus.REQUESTED,
     )
 
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+    )
     currency = models.CharField(
         max_length=10,
         default=DEFAULT_CURRENCY,
@@ -60,13 +69,17 @@ class PaymentRefund(models.Model):
     metadata = models.JSONField(default=dict, blank=True)
 
     requested_at = models.DateTimeField(auto_now_add=True)
-    processed_at = models.DateTimeField(null=True, blank=True)
+    processed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
 
     class Meta:
+        ordering = ("-requested_at",)
         indexes = [
-            models.Index(fields=["payment_intent", "requested_at"]),
-            models.Index(fields=["status"]),
+            models.Index(fields=["website", "payment_intent", "requested_at"]),
             models.Index(fields=["provider", "provider_refund_id"]),
+            models.Index(fields=["status"]),
         ]
 
     def __str__(self) -> str:

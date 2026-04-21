@@ -12,14 +12,17 @@ class ProviderCheckoutResult:
     Result returned when initializing a payment with a provider.
     """
 
+    success: bool
     provider_name: str
     provider_reference: str
     checkout_url: str | None = None
     payment_url: str | None = None
+    status: str = ""
     access_code: str | None = None
     client_secret: str | None = None
     expires_at: Any | None = None
     raw_response: dict[str, Any] = field(default_factory=dict)
+    error_message: str = ""
 
 
 @dataclass(slots=True)
@@ -28,9 +31,9 @@ class ProviderWebhookVerificationResult:
     Result of webhook signature / authenticity verification.
     """
 
-    is_valid: bool
-    error_message: str = ""
-
+    is_verified: bool
+    error_message: str = "" 
+    raw_response: dict[str, Any] = field(default_factory=dict)
 
 @dataclass(slots=True)
 class ProviderWebhookEvent:
@@ -41,10 +44,11 @@ class ProviderWebhookEvent:
     event_id: str
     event_type: str
     status: str
-    amount: Decimal
-    currency: str
-    provider_transaction_id: str
-    provider_reference: str
+    reference: str
+    amount: Decimal | None = None
+    currency: str = ""
+    provider_transaction_id: str = ""
+    provider_event_id: str = ""
     raw_payload: dict[str, Any] = field(default_factory=dict)
 
 
@@ -53,14 +57,16 @@ class ProviderRefundResult:
     """
     Result returned when a refund is initiated or confirmed.
     """
-
-    provider_name: str
-    provider_reference: str
-    refund_reference: str
+    success: bool
     status: str
     amount: Decimal
     currency: str
+    provider_name: str
+    provider_refund_id: str = ""
+    provider_transaction_id: str = ""
+    reference: str = ""
     raw_response: dict[str, Any] = field(default_factory=dict)
+    error_message: str = ""
 
 
 @dataclass(slots=True)
@@ -70,13 +76,17 @@ class ProviderPaymentVerificationResult:
     Useful for reconciliation jobs.
     """
 
-    provider_name: str
-    provider_reference: str
-    provider_transaction_id: str
+    success: bool
     status: str
     amount: Decimal
     currency: str
+    provider_name: str
+    provider_reference: str
+    provider_transaction_id: str
+    provider_event_id: str = ""
+    reference: str = ""
     raw_response: dict[str, Any] = field(default_factory=dict)
+    error_message: str = ""
 
 
 class BasePaymentProvider(ABC):
@@ -130,6 +140,7 @@ class BasePaymentProvider(ABC):
     def refund_payment(
         self,
         payment_intent: Any,
+        *,
         amount: Decimal | None = None,
     ) -> ProviderRefundResult:
         """

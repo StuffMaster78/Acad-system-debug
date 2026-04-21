@@ -5,6 +5,7 @@ from django.utils import timezone
 from payments_processor.enums import PaymentIntentStatus
 from payments_processor.exceptions import PaymentError
 from payments_processor.models import PaymentIntent
+from payments_processor.enums import PaymentApplicationStatus
 
 
 class PaymentApplicationGuardService:
@@ -15,41 +16,65 @@ class PaymentApplicationGuardService:
     @staticmethod
     def can_apply(payment_intent: PaymentIntent) -> bool:
         """
-        Check if a payment is eligible for internal application.
+        Check if payment is eligible for application.
         """
         if payment_intent.status != PaymentIntentStatus.SUCCEEDED:
             return False
 
-        if payment_intent.metadata.get("applied", False):
+        if (
+            payment_intent.application_status
+            == PaymentApplicationStatus.APPLIED
+        ):
             return False
 
         return True
 
     @staticmethod
-    def mark_as_applied(payment_intent: PaymentIntent) -> PaymentIntent:
+    def mark_as_applied(
+        payment_intent: PaymentIntent,
+    ) -> PaymentIntent:
         """
-        Mark payment as applied internally.
+        Mark payment as applied.
         """
-        if payment_intent.metadata.get("applied", False):
+        if (
+            payment_intent.application_status
+            == PaymentApplicationStatus.APPLIED
+        ):
             raise PaymentError(
                 f"Payment '{payment_intent.reference}' already applied."
             )
 
-        metadata = payment_intent.metadata or {}
-        metadata["applied"] = True
-        metadata["applied_at"] = timezone.now().isoformat()
-
-        payment_intent.metadata = metadata
-        payment_intent.save(update_fields=["metadata", "updated_at"])
+        payment_intent.application_status = (
+            PaymentApplicationStatus.APPLIED
+        )
+        payment_intent.application_error = ""
+        payment_intent.save(
+            update_fields=[
+                "application_status",
+                "application_error",
+                "updated_at",
+            ]
+        )
 
         return payment_intent
 
     @staticmethod
-    def ensure_not_applied(payment_intent: PaymentIntent) -> None:
+    def mark_as_failed(
+        *,
+        payment_intent: PaymentIntent,
+        error: str,
+    ) -> None:
         """
-        Raise if payment already applied.
+        Mark application as failed.
         """
-        if payment_intent.metadata.get("applied", False):
-            raise PaymentError(
-                f"Payment '{payment_intent.reference}' already applied."
-            )
+        payment_intent.application_status = (
+            PaymentApplicationStatus.APPLICATION_FAILED
+        )
+        payment_intent.application_error = error
+        payment_intent.save(
+            update_fields=[
+                "application_status",
+                "application_error",
+                "updated_at",
+            ]
+        )

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
-from django.db import transaction
+from django.db import transaction as db_transaction
 from django.utils import timezone
 
 from payments_processor.enums import (
@@ -11,19 +11,26 @@ from payments_processor.enums import (
     PaymentRefundStatus,
     RefundDestination,
 )
-from payments_processor.exceptions import PaymentError, RefundExecutionError
+from payments_processor.exceptions import (
+    PaymentError,
+    RefundExecutionError,
+)
 from payments_processor.models import PaymentIntent, PaymentRefund
 from payments_processor.providers.registry import get_provider
+from payments_processor.tasks.refund_tasks import apply_refund_task
 
 
 class RefundExecutionService:
     """
-    Executes refunds through external payment providers and records
-    payment-side refund execution history.
+    Execute provider-side refunds and persist refund state.
+
+    This service only handles external provider execution and local refund
+    tracking. Internal wallet and ledger reversal is delegated to the
+    refund application flow.
     """
 
     @classmethod
-    @transaction.atomic
+    @db_transaction.atomic
     def execute_refund(
         cls,
         *,
@@ -33,10 +40,7 @@ class RefundExecutionService:
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
-        Execute a refund through the provider and create a PaymentRefund record.
-
-        This service is for provider-side refund execution only.
-        It does not apply internal refund side effects.
+        Execute a refund through the provider and persist refund state.
         """
         metadata = metadata or {}
 
@@ -46,9 +50,26 @@ class RefundExecutionService:
             destination=destination,
         )
 
-        refund = PaymentRefund.objects.create(
+        existing = PaymentRefund.objects.filter(
             payment_intent=payment_intent,
-            provider=payment_intent.provider,
+            amount=amount,
+            status__in=[
+                PaymentRefundStatus.SUCCEEDED,
+                PaymentRefundStatus.PENDING,
+            ],
+        ).first()
+
+        if existing is not None:
+            return {
+                "refund": existing,
+                "provider_data": existing.raw_payload,
+                "idempotent": True,
+            }
+
+        refund = PaymentRefund.objects.create(
+            website=payment_intent.website,
+            payment_intent=payment_intent,
+            provider=str(payment_intent.provider),
             destination=destination,
             status=PaymentRefundStatus.REQUESTED,
             amount=amount,
@@ -56,23 +77,17 @@ class RefundExecutionService:
             metadata=metadata,
         )
 
-        provider_adapter = get_provider(payment_intent.provider)
+        provider = get_provider(str(payment_intent.provider))
 
         try:
-            provider_response = provider_adapter.refund_payment(
+            provider_response = provider.refund_payment(
                 payment_intent,
                 amount=amount,
             )
         except Exception as exc:
-            refund.status = PaymentRefundStatus.FAILED
-            refund.failure_message = str(exc)
-            refund.processed_at = timezone.now()
-            refund.save(
-                update_fields=[
-                    "status",
-                    "failure_message",
-                    "processed_at",
-                ]
+            cls._mark_refund_failed(
+                refund=refund,
+                message=str(exc),
             )
             raise RefundExecutionError(
                 f"Refund execution failed for payment "
@@ -105,21 +120,22 @@ class RefundExecutionService:
             PaymentIntentStatus.PARTIALLY_REFUNDED,
         }:
             raise PaymentError(
-                f"Payment '{payment_intent.reference}' is not refundable "
-                f"from status '{payment_intent.status}'."
+                f"Payment '{payment_intent.reference}' is not refundable."
             )
 
         if amount <= Decimal("0.00"):
             raise PaymentError("Refund amount must be greater than zero.")
 
-        refundable_amount = payment_intent.amount - payment_intent.amount_refunded
-        if amount > refundable_amount:
+        refundable = payment_intent.amount - payment_intent.amount_refunded
+        if amount > refundable:
             raise PaymentError(
-                f"Refund amount exceeds refundable balance for payment "
-                f"'{payment_intent.reference}'."
+                "Refund amount exceeds refundable balance."
             )
 
-        if destination not in RefundDestination.values:
+        valid_destinations = {
+            choice[0] for choice in RefundDestination.choices
+        }
+        if destination not in valid_destinations:
             raise PaymentError(
                 f"Unsupported refund destination '{destination}'."
             )
@@ -130,20 +146,23 @@ class RefundExecutionService:
         *,
         refund: PaymentRefund,
         payment_intent: PaymentIntent,
-        provider_response: dict[str, Any],
+        provider_response: Any,
     ) -> None:
         """
-        Apply provider refund response to local payment refund state.
+        Apply provider refund response to local refund state.
         """
-        status = str(provider_response.get("status") or "").lower().strip()
+        status = str(
+            getattr(provider_response, "status", "") or ""
+        ).lower().strip()
+
         provider_refund_id = str(
-            provider_response.get("provider_refund_id")
-            or provider_response.get("refund_id")
+            getattr(provider_response, "provider_refund_id", "")
+            or getattr(provider_response, "refund_id", "")
             or ""
-        )
+        ).strip()
 
         refund.provider_refund_id = provider_refund_id
-        refund.raw_payload = provider_response
+        refund.raw_payload = cls._to_dict(provider_response)
 
         if status in {"succeeded", "success", "completed"}:
             refund.status = PaymentRefundStatus.SUCCEEDED
@@ -161,6 +180,13 @@ class RefundExecutionService:
                 payment_intent=payment_intent,
                 refund_amount=refund.amount,
             )
+
+            refund_task = cast(Any, apply_refund_task)
+
+            def enqueue_refund_application() -> None:
+                refund_task.delay(refund.pk)
+
+            db_transaction.on_commit(enqueue_refund_application)
             return
 
         if status in {"pending", "processing"}:
@@ -176,17 +202,29 @@ class RefundExecutionService:
             )
             return
 
-        refund.status = PaymentRefundStatus.FAILED
-        refund.failure_message = str(
-            provider_response.get("failure_message")
-            or provider_response.get("message")
-            or "Refund execution failed."
+        cls._mark_refund_failed(
+            refund=refund,
+            message=str(
+                getattr(provider_response, "failure_message", "")
+                or getattr(provider_response, "message", "")
+                or "Refund execution failed."
+            ),
         )
+
+    @staticmethod
+    def _mark_refund_failed(
+        *,
+        refund: PaymentRefund,
+        message: str,
+    ) -> None:
+        """
+        Mark refund as failed.
+        """
+        refund.status = PaymentRefundStatus.FAILED
+        refund.failure_message = message
         refund.processed_at = timezone.now()
         refund.save(
             update_fields=[
-                "provider_refund_id",
-                "raw_payload",
                 "status",
                 "failure_message",
                 "processed_at",
@@ -200,14 +238,16 @@ class RefundExecutionService:
         refund_amount: Decimal,
     ) -> None:
         """
-        Update payment intent aggregate refund state after successful refund.
+        Update aggregate refund state on the payment intent.
         """
         payment_intent.amount_refunded += refund_amount
 
         if payment_intent.amount_refunded >= payment_intent.amount:
             payment_intent.status = PaymentIntentStatus.REFUNDED
         else:
-            payment_intent.status = PaymentIntentStatus.PARTIALLY_REFUNDED
+            payment_intent.status = (
+                PaymentIntentStatus.PARTIALLY_REFUNDED
+            )
 
         payment_intent.save(
             update_fields=[
@@ -216,3 +256,13 @@ class RefundExecutionService:
                 "updated_at",
             ]
         )
+
+    @staticmethod
+    def _to_dict(source: Any) -> dict[str, Any]:
+        """
+        Convert provider response to a dictionary for persistence.
+        """
+        if isinstance(source, dict):
+            return source
+
+        return dict(vars(source))

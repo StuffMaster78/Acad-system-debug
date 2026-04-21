@@ -3,14 +3,16 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Optional
 
-from django.db.models import Sum
+from django.db.models import QuerySet, Sum
 from django.db.models.functions import Coalesce
 
 from payments_processor.enums import PaymentRefundStatus
 from payments_processor.models import PaymentRefund
 
 
-def get_payment_refund_by_id(refund_id: int) -> Optional[PaymentRefund]:
+def get_payment_refund_by_id(
+    refund_id: int,
+) -> Optional[PaymentRefund]:
     """
     Return a payment refund by primary key.
     """
@@ -19,7 +21,7 @@ def get_payment_refund_by_id(refund_id: int) -> Optional[PaymentRefund]:
             "payment_intent",
             "payment_transaction",
         )
-        .filter(id=refund_id)
+        .filter(pk=refund_id)
         .first()
     )
 
@@ -45,7 +47,9 @@ def get_payment_refund_by_provider_refund_id(
     )
 
 
-def get_refunds_for_payment_intent(payment_intent_id: int):
+def get_refunds_for_payment_intent(
+    payment_intent_id: int,
+) -> QuerySet[PaymentRefund]:
     """
     Return all refunds for a payment intent, newest first.
     """
@@ -58,7 +62,9 @@ def get_refunds_for_payment_intent(payment_intent_id: int):
     )
 
 
-def get_successful_refunds_for_payment_intent(payment_intent_id: int):
+def get_successful_refunds_for_payment_intent(
+    payment_intent_id: int,
+) -> QuerySet[PaymentRefund]:
     """
     Return successful refunds for a payment intent.
     """
@@ -77,24 +83,24 @@ def get_total_successful_refund_amount_for_payment_intent(
     """
     Return the total successful refunded amount for a payment intent.
     """
-    total = (
-        PaymentRefund.objects.filter(
-            payment_intent_id=payment_intent_id,
-            status=PaymentRefundStatus.SUCCEEDED,
+    aggregate_result = PaymentRefund.objects.filter(
+        payment_intent_id=payment_intent_id,
+        status=PaymentRefundStatus.SUCCEEDED,
+    ).aggregate(
+        total=Coalesce(
+            Sum("amount"),
+            Decimal("0.00"),
         )
-        .aggregate(
-            total=Coalesce(
-                Sum("amount"),
-                Decimal("0.00"),
-            )
-        )
-        .get("total", Decimal("0.00"))
     )
 
-    return Decimal(total)
+    total = aggregate_result.get("total")
+    if total is None:
+        return Decimal("0.00")
+
+    return Decimal(str(total))
 
 
-def get_pending_refunds():
+def get_pending_refunds() -> QuerySet[PaymentRefund]:
     """
     Return all refunds still pending provider completion.
     """

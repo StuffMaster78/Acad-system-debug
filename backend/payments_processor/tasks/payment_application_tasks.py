@@ -21,25 +21,30 @@ from payments_processor.services.payment_application_service import (
 logger = logging.getLogger(__name__)
 
 
-def _resolve_payable_total_amount(payment_intent) -> Decimal:
+def _resolve_payable_total_amount(payment_intent: Any) -> Decimal:
     """
     Resolve the total amount required to settle the payable.
 
-    For now:
-    1. prefer explicit metadata override
-    2. otherwise use payable.total_amount / payable.amount / payment_intent.amount
+    Resolution order:
+    1. explicit metadata override
+    2. payable.total_amount
+    3. payable.amount
+    4. payable.price
+    5. payment_intent.amount
     """
-    metadata = payment_intent.metadata or {}
+    metadata = getattr(payment_intent, "metadata", {}) or {}
 
     if "payable_total_amount" in metadata:
         return Decimal(str(metadata["payable_total_amount"]))
 
-    payable = payment_intent.payable
+    payable = getattr(payment_intent, "payable", None)
     if payable is not None:
         if hasattr(payable, "total_amount"):
             return Decimal(str(payable.total_amount))
+
         if hasattr(payable, "amount"):
             return Decimal(str(payable.amount))
+
         if hasattr(payable, "price"):
             return Decimal(str(payable.price))
 
@@ -52,13 +57,16 @@ def _resolve_payable_total_amount(payment_intent) -> Decimal:
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-def apply_payment_intent_task(self, payment_intent_id: int) -> dict[str, Any]:
+def apply_payment_intent_task(
+    self,
+    payment_intent_id: int,
+) -> dict[str, Any]:
     """
     Apply a successful payment intent internally.
 
     Safe to retry because:
-    1. PaymentApplicationGuardService prevents double application
-    2. Allocation application is idempotent
+    1. payment application guard prevents double application
+    2. allocation application is idempotent
     """
     payment_intent = get_payment_intent_by_id(payment_intent_id)
     if payment_intent is None:
@@ -68,7 +76,8 @@ def apply_payment_intent_task(self, payment_intent_id: int) -> dict[str, Any]:
 
     if payment_intent.status != PaymentIntentStatus.SUCCEEDED:
         logger.info(
-            "Skipping application for payment intent '%s' because status is '%s'.",
+            "Skipping application for payment intent '%s' because "
+            "status is '%s'.",
             payment_intent.reference,
             payment_intent.status,
         )
@@ -86,6 +95,11 @@ def apply_payment_intent_task(self, payment_intent_id: int) -> dict[str, Any]:
         }
 
     total_amount = _resolve_payable_total_amount(payment_intent)
+    if total_amount <= Decimal("0.00"):
+        raise PaymentError(
+            f"Resolved payable total amount is invalid for payment "
+            f"'{payment_intent.reference}'."
+        )
 
     payment_intent.application_status = PaymentApplicationStatus.APPLYING
     payment_intent.application_attempts += 1
@@ -123,6 +137,8 @@ def apply_payment_intent_task(self, payment_intent_id: int) -> dict[str, Any]:
             exc,
         )
         raise
+
+    payment_intent.refresh_from_db(fields=["application_status"])
 
     return {
         "payment_intent_id": payment_intent.pk,
