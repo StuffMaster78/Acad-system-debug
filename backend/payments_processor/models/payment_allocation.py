@@ -1,8 +1,12 @@
+from decimal import Decimal
+
+from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.db import models
 
-from payments_processor.constants import DEFAULT_CURRENCY
+from payments_processor.constants import DEFAULT_CURRENCY, ZERO_DECIMAL
 from payments_processor.enums import (
     PaymentAllocationStatus,
     PaymentAllocationType,
@@ -12,20 +16,31 @@ from payments_processor.enums import (
 class PaymentAllocation(models.Model):
     """
     Represents one funding portion for a payable.
-    Used for hybrid wallet plus gateway settlement.
+
+    Wallet allocation should be backed by a WalletHold.
+    External allocation should be backed by a PaymentIntent.
     """
 
-    reference = models.CharField(max_length=64, unique=True)
-
-    customer = models.ForeignKey(
-        "users.User",
+    website = models.ForeignKey(
+        "websites.Website",
         on_delete=models.PROTECT,
         related_name="payment_allocations",
+    )
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="payment_allocations",
+    )
+
+    reference = models.CharField(
+        max_length=64,
+        unique=True,
     )
 
     payable_content_type = models.ForeignKey(
         ContentType,
         on_delete=models.PROTECT,
+        related_name="payment_allocation_payables",
     )
     payable_object_id = models.PositiveBigIntegerField()
     payable = GenericForeignKey(
@@ -37,7 +52,6 @@ class PaymentAllocation(models.Model):
         max_length=32,
         choices=PaymentAllocationType.choices,
     )
-
     status = models.CharField(
         max_length=32,
         choices=PaymentAllocationStatus.choices,
@@ -48,32 +62,38 @@ class PaymentAllocation(models.Model):
         max_length=10,
         default=DEFAULT_CURRENCY,
     )
-
     amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
     )
 
-    wallet = models.ForeignKey(
-        "wallets.Wallet",
+    wallet_hold = models.OneToOneField(
+        "wallets.WalletHold",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name="payment_allocations",
+        related_name="payment_allocation",
     )
-
     payment_intent = models.OneToOneField(
-        "payments.PaymentIntent",
+        "payments_processor.PaymentIntent",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name="allocation",
     )
 
-    reserved_at = models.DateTimeField(null=True, blank=True)
-    applied_at = models.DateTimeField(null=True, blank=True)
-    released_at = models.DateTimeField(null=True, blank=True)
-    failed_at = models.DateTimeField(null=True, blank=True)
+    applied_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    released_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    failed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
 
     failure_reason = models.TextField(blank=True, default="")
     metadata = models.JSONField(default=dict, blank=True)
@@ -82,8 +102,9 @@ class PaymentAllocation(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        ordering = ("created_at",)
         indexes = [
-            models.Index(fields=["customer", "created_at"]),
+            models.Index(fields=["website", "customer", "created_at"]),
             models.Index(fields=["allocation_type", "status"]),
             models.Index(fields=["payable_content_type", "payable_object_id"]),
         ]

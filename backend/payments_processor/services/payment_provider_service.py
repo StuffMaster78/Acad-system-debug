@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from payments_processor.providers import get_provider
+from payments_processor.providers.registry import get_provider
 from payments_processor.providers.base import (
     ProviderCheckoutResult,
     ProviderPaymentVerificationResult,
@@ -23,23 +23,44 @@ class PaymentProviderService:
 
     @staticmethod
     def get_provider_for_intent(payment_intent: Any):
-        provider_name = str(getattr(payment_intent, "provider_name", "")).strip()
+        """
+        Resolve provider adapter for a payment intent.
+
+        Supports both `provider` and legacy `provider_name` attributes.
+        """
+        provider_name = str(
+            getattr(payment_intent, "provider", "")
+            or getattr(payment_intent, "provider_name", "")
+            or ""
+        ).strip()
 
         if not provider_name:
-            raise ValueError("Payment intent is missing provider_name.")
+            raise ValueError("Payment intent is missing provider.")
 
         return get_provider(provider_name)
 
     @staticmethod
-    def create_payment(payment_intent: Any) -> ProviderCheckoutResult:
-        provider = PaymentProviderService.get_provider_for_intent(payment_intent)
+    def create_payment(
+        payment_intent: Any,
+    ) -> ProviderCheckoutResult:
+        """
+        Initialize provider-side payment.
+        """
+        provider = PaymentProviderService.get_provider_for_intent(
+            payment_intent
+        )
         return provider.create_payment(payment_intent)
 
     @staticmethod
     def verify_payment(
         payment_intent: Any,
     ) -> ProviderPaymentVerificationResult:
-        provider = PaymentProviderService.get_provider_for_intent(payment_intent)
+        """
+        Verify payment directly with the provider.
+        """
+        provider = PaymentProviderService.get_provider_for_intent(
+            payment_intent
+        )
         return provider.verify_payment(payment_intent)
 
     @staticmethod
@@ -47,8 +68,16 @@ class PaymentProviderService:
         payment_intent: Any,
         amount: Decimal | None = None,
     ) -> ProviderRefundResult:
-        provider = PaymentProviderService.get_provider_for_intent(payment_intent)
-        return provider.refund_payment(payment_intent, amount=amount)
+        """
+        Execute provider-side refund.
+        """
+        provider = PaymentProviderService.get_provider_for_intent(
+            payment_intent
+        )
+        return provider.refund_payment(
+            payment_intent,
+            amount=amount,
+        )
 
     @staticmethod
     def verify_webhook(
@@ -57,6 +86,9 @@ class PaymentProviderService:
         payload: dict[str, Any],
         headers: dict[str, Any],
     ) -> ProviderWebhookVerificationResult:
+        """
+        Verify webhook signature and authenticity.
+        """
         provider = get_provider(provider_name)
         return provider.verify_webhook(payload, headers)
 
@@ -66,5 +98,8 @@ class PaymentProviderService:
         provider_name: str,
         payload: dict[str, Any],
     ) -> ProviderWebhookEvent:
+        """
+        Parse raw webhook payload into normalized provider event.
+        """
         provider = get_provider(provider_name)
         return provider.parse_webhook(payload)

@@ -1,6 +1,8 @@
 from datetime import timedelta
+from decimal import Decimal
 
 DEFAULT_CURRENCY = "USD"
+ZERO_DECIMAL = Decimal("0.00")
 
 # Payment intent expiry
 PAYMENT_INTENT_EXPIRY_MINUTES = 30
@@ -14,5 +16,4 @@ PENDING_PAYMENT_TIMEOUT_MINUTES = 60
 
 # Reconciliation
 RECONCILIATION_BATCH_SIZE = 100
-
 PENDING_PAYMENT_RESOLUTION_BATCH_SIZE = 100

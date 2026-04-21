@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from decimal import Decimal
+from typing import Any, TypedDict, cast
 
-from django.db import transaction
+from django.db import transaction as db_transaction
 from django.utils import timezone
 
 from payments_processor.enums import (
@@ -10,7 +11,7 @@ from payments_processor.enums import (
     PaymentTransactionKind,
     PaymentTransactionStatus,
 )
-from payments_processor.exceptions import PaymentError, PaymentVerificationError
+from payments_processor.exceptions import PaymentVerificationError
 from payments_processor.models import PaymentIntent
 from payments_processor.providers.registry import get_provider
 from payments_processor.selectors.payment_transaction_selectors import (
@@ -19,20 +20,54 @@ from payments_processor.selectors.payment_transaction_selectors import (
 from payments_processor.services.payment_transaction_service import (
     PaymentTransactionService,
 )
+from payments_processor.tasks.payment_application_tasks import (
+    apply_payment_intent_task,
+)
+from payments_processor.validators.webhook_validators import (
+    validate_webhook_status_transition,
+)
+
+
+class VerificationResponse(TypedDict):
+    """
+    Normalized provider verification payload.
+    """
+
+    status: str
+    amount: Decimal
+    currency: str
+    provider_transaction_id: str
+    provider_event_id: str
+    reference: str
+    raw_response: dict[str, Any]
 
 
 class PaymentVerificationService:
     """
-    Verifies payment status directly with the provider and updates
-    local records safely.
+    Verify payment status directly with the provider and update local
+    records safely.
     """
 
-    SUCCESS_STATUSES = {"successful", "success", "succeeded", "completed", "paid"}
-    FAILED_STATUSES = {"failed", "error", "cancelled", "canceled"}
-    PENDING_STATUSES = {"pending", "processing"}
+    SUCCESS_STATUSES = {
+        "successful",
+        "success",
+        "succeeded",
+        "completed",
+        "paid",
+    }
+    FAILED_STATUSES = {
+        "failed",
+        "error",
+        "cancelled",
+        "canceled",
+    }
+    PENDING_STATUSES = {
+        "pending",
+        "processing",
+    }
 
     @classmethod
-    @transaction.atomic
+    @db_transaction.atomic
     def verify_payment_intent(
         cls,
         *,
@@ -40,41 +75,49 @@ class PaymentVerificationService:
         create_transaction: bool = True,
     ) -> dict[str, Any]:
         """
-        Verify a payment intent directly with the provider.
-
-        Returns:
-            {
-                "payment_intent": PaymentIntent,
-                "verified_status": str,
-                "transaction_status": str,
-                "provider_data": dict,
-                "requires_internal_application": bool,
-            }
+        Verify a payment intent directly with the provider and enqueue
+        internal application on success.
         """
-        if not payment_intent.provider:
+        provider_key = str(payment_intent.provider or "").strip()
+        if not provider_key:
             raise PaymentVerificationError(
                 "Payment intent has no provider configured."
             )
 
-        provider_adapter = get_provider(payment_intent.provider)
+        provider_adapter = get_provider(provider_key)
 
         try:
-            provider_response = provider_adapter.verify_payment(payment_intent)
+            provider_response = provider_adapter.verify_payment(
+                payment_intent
+            )
         except Exception as exc:
             raise PaymentVerificationError(
-                f"Provider verification failed for '{payment_intent.reference}'."
+                f"Provider verification failed for "
+                f"'{payment_intent.reference}'."
             ) from exc
 
-        normalized = cls._normalize_provider_verification_response(
-            payment_intent=payment_intent,
-            provider_response=provider_response,
-        )
+        normalized: VerificationResponse = {
+            "status": provider_response.status.lower().strip(),
+            "amount": provider_response.amount,
+            "currency": provider_response.currency.upper(),
+            "provider_transaction_id": provider_response.provider_transaction_id,
+            "provider_event_id": provider_response.provider_event_id,
+            "reference": provider_response.reference or payment_intent.reference,
+            "raw_response": provider_response.raw_response,
+        }
 
         raw_status = normalized["status"]
-        transaction_status = cls._resolve_transaction_status(raw_status=raw_status)
+        transaction_status = cls._resolve_transaction_status(
+            raw_status=raw_status,
+        )
         payment_intent_status = cls._resolve_payment_intent_status(
             raw_status=raw_status,
             current_status=payment_intent.status,
+        )
+
+        validate_webhook_status_transition(
+            current_status=payment_intent.status,
+            new_status=payment_intent_status,
         )
 
         if create_transaction:
@@ -89,6 +132,14 @@ class PaymentVerificationService:
             new_status=payment_intent_status,
         )
 
+        if payment_intent.status == PaymentIntentStatus.SUCCEEDED:
+            payment_task = cast(Any, apply_payment_intent_task)
+
+            def enqueue_payment_application() -> None:
+                payment_task.delay(payment_intent.pk)
+
+            db_transaction.on_commit(enqueue_payment_application)
+
         return {
             "payment_intent": payment_intent,
             "verified_status": payment_intent.status,
@@ -99,66 +150,26 @@ class PaymentVerificationService:
             ),
         }
 
-    @classmethod
-    def _normalize_provider_verification_response(
-        cls,
-        *,
-        payment_intent: PaymentIntent,
-        provider_response: dict[str, Any],
-    ) -> dict[str, Any]:
-        """
-        Normalize provider verification response into a stable structure.
-        """
-        status = str(provider_response.get("status") or "").lower().strip()
-        if not status:
-            raise PaymentVerificationError(
-                f"Provider verification returned no status for "
-                f"'{payment_intent.reference}'."
-            )
-
-        amount = provider_response.get("amount", payment_intent.amount)
-        currency = str(
-            provider_response.get("currency") or payment_intent.currency
-        ).upper()
-
-        provider_transaction_id = str(
-            provider_response.get("provider_transaction_id")
-            or provider_response.get("transaction_id")
-            or ""
-        )
-
-        provider_event_id = str(provider_response.get("provider_event_id") or "")
-        reference = str(provider_response.get("reference") or payment_intent.reference)
-
-        return {
-            "status": status,
-            "amount": amount,
-            "currency": currency,
-            "provider_transaction_id": provider_transaction_id,
-            "provider_event_id": provider_event_id,
-            "reference": reference,
-            "raw_response": provider_response,
-        }
 
     @classmethod
     def _record_verification_transaction_if_needed(
         cls,
         *,
         payment_intent: PaymentIntent,
-        normalized: dict[str, Any],
+        normalized: VerificationResponse,
         transaction_status: str,
     ) -> None:
         """
-        Create a verification transaction record if one does not already exist
-        for the provider transaction ID.
+        Create a verification transaction record if one does not already
+        exist for the provider transaction ID.
         """
-        provider_transaction_id = normalized.get("provider_transaction_id") or ""
-        provider_event_id = normalized.get("provider_event_id") or ""
+        provider_transaction_id = normalized["provider_transaction_id"]
+        provider_event_id = normalized["provider_event_id"]
 
         existing_transaction = None
         if provider_transaction_id:
             existing_transaction = get_transaction_by_provider_transaction_id(
-                provider=payment_intent.provider,
+                provider=str(payment_intent.provider),
                 provider_transaction_id=provider_transaction_id,
             )
 
@@ -167,14 +178,14 @@ class PaymentVerificationService:
 
         PaymentTransactionService.create_transaction(
             payment_intent=payment_intent,
-            provider=payment_intent.provider,
-            kind=PaymentTransactionKind.CHARGE,
+            provider=str(payment_intent.provider),
+            kind=PaymentTransactionKind.VERIFICATION,
             status=transaction_status,
             amount=normalized["amount"],
             currency=normalized["currency"],
             provider_transaction_id=provider_transaction_id,
             provider_event_id=provider_event_id,
-            raw_payload=normalized.get("raw_response") or {},
+            raw_payload=normalized["raw_response"],
             occurred_at=timezone.now(),
         )
 
@@ -185,7 +196,8 @@ class PaymentVerificationService:
         raw_status: str,
     ) -> str:
         """
-        Resolve normalized provider status into internal transaction status.
+        Resolve normalized provider status into internal transaction
+        status.
         """
         if raw_status in cls.SUCCESS_STATUSES:
             return PaymentTransactionStatus.SUCCEEDED
@@ -209,7 +221,8 @@ class PaymentVerificationService:
         current_status: str,
     ) -> str:
         """
-        Resolve normalized provider status into internal payment intent status.
+        Resolve normalized provider status into internal payment intent
+        status.
         """
         if raw_status in cls.SUCCESS_STATUSES:
             return PaymentIntentStatus.SUCCEEDED
@@ -229,19 +242,26 @@ class PaymentVerificationService:
         new_status: str,
     ) -> None:
         """
-        Update payment intent status safely.
+        Update payment intent status and verification metadata safely.
         """
-        if new_status == payment_intent.status:
-            return
+        update_fields = [
+            "verification_attempts",
+            "last_verified_at",
+            "updated_at",
+        ]
 
-        update_fields = ["status", "updated_at"]
-        payment_intent.status = new_status
+        payment_intent.verification_attempts += 1
+        payment_intent.last_verified_at = timezone.now()
 
-        if (
-            new_status == PaymentIntentStatus.SUCCEEDED
-            and payment_intent.paid_at is None
-        ):
-            payment_intent.paid_at = timezone.now()
-            update_fields.append("paid_at")
+        if new_status != payment_intent.status:
+            payment_intent.status = new_status
+            update_fields.append("status")
+
+            if (
+                new_status == PaymentIntentStatus.SUCCEEDED
+                and payment_intent.paid_at is None
+            ):
+                payment_intent.paid_at = timezone.now()
+                update_fields.append("paid_at")
 
         payment_intent.save(update_fields=update_fields)

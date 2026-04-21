@@ -2,7 +2,9 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 
+from payments_processor.constants import DEFAULT_CURRENCY, ZERO_DECIMAL
 from payments_processor.constants import DEFAULT_CURRENCY
 from payments_processor.enums import (
     PaymentApplicationStatus,
@@ -15,10 +17,17 @@ from payments_processor.enums import (
 class PaymentIntent(models.Model):
     """
     Represents an external payment collection attempt.
+    This is provider rail truth, not settlement truth.
     """
-
-    reference = models.CharField(max_length=64, unique=True)
-
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.PROTECT,
+        related_name="payment_intents"
+    )
+    reference = models.CharField(
+        max_length=64,
+        unique=True,
+    )
     client = models.ForeignKey(
         "users.User",
         on_delete=models.PROTECT,
@@ -105,13 +114,40 @@ class PaymentIntent(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["reference"]),
+            models.Index(fields=["website", "reference"]),
             models.Index(fields=["provider", "provider_intent_id"]),
             models.Index(fields=["status"]),
             models.Index(fields=["application_status"]),
             models.Index(fields=["purpose"]),
-            models.Index(fields=["customer", "created_at"]),
+            models.Index(fields=["website", "client", "created_at"]),
         ]
+        constraints = [
+                models.CheckConstraint(
+                    check=models.Q(amount__gt=ZERO_DECIMAL),
+                    name="ppi_amount_gt_zero",
+                ),
+                models.CheckConstraint(
+                    check=models.Q(amount_refunded__gte=ZERO_DECIMAL),
+                    name="ppi_amount_refunded_gte_zero",
+                ),
+            ]
+        
+    def clean(self) -> None:
+        super().clean()
+
+        if self.amount_refunded > self.amount:
+            raise ValidationError(
+                {"amount_refunded": "Refunded amount cannot exceed payment amount."}
+            )
+
+        if bool(self.payable_content_type) != bool(self.payable_object_id):
+            raise ValidationError(
+                "Both payable_content_type and payable_object_id must be set together."
+            )
+
+    @property
+    def refundable_amount(self) -> Decimal:
+        return self.amount - self.amount_refunded
 
     def __str__(self) -> str:
         return f"{self.reference} [{self.status}]"

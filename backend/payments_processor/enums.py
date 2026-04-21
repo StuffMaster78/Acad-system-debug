@@ -3,10 +3,10 @@ from django.db import models
 
 class PaymentProvider(models.TextChoices):
     STRIPE = "stripe", "Stripe"
-    PAYPAL = "paypal", "PayPal"
-    FLUTTERWAVE = "flutterwave", "Flutterwave"
-    BANK = "bank", "Bank"
-    MANUAL = "manual", "Manual"
+    # PAYPAL = "paypal", "PayPal"
+    # FLUTTERWAVE = "flutterwave", "Flutterwave"
+    # BANK = "bank", "Bank"
+    # MANUAL = "manual", "Manual"
 
 
 class PaymentIntentStatus(models.TextChoices):
@@ -31,6 +31,7 @@ class PaymentTransactionKind(models.TextChoices):
     REVERSAL = "reversal", "Reversal"
     WEBHOOK_EVENT = "webhook_event", "Webhook Event"
     MANUAL_CONFIRMATION = "manual_confirmation", "Manual Confirmation"
+    VERIFICATION = "verification", "Verification"
 
 
 class PaymentTransactionStatus(models.TextChoices):
@@ -63,6 +64,10 @@ class PaymentIntentPurpose(models.TextChoices):
     BUNDLE_PURCHASE = "bundle_purchase", "Bundle Purchase"
     WALLET_TOP_UP = "wallet_top_up", "Wallet Top Up"
     TIP = "tip", "Tip"
+    INVOICE = "invoice", "Invoice"
+    EXTRA_ORDER_CHARGE = "extra_order_charge", "Extra Order Charge"
+    MANUAL_BILLING = "manual_billing", "Manual Billing"
+    BILLING_PAYMENT_REQUEST = "billing_payment_request", "Billing Payment Request"
 
 class PaymentAllocationType(models.TextChoices):
     WALLET = "wallet", "Wallet"

@@ -19,14 +19,19 @@ from payments_processor.utils.references import generate_payment_reference
 
 class PaymentIntentService:
     """
-    Handles creation and initialization of payment intents.
+    Handle creation and initialization of payment intents.
+
+    This service creates a local payment intent record, initializes the
+    checkout flow with the selected provider, persists provider
+    identifiers, and returns both the local intent and provider checkout
+    data.
     """
 
     @staticmethod
     @transaction.atomic
     def create_intent(
         *,
-        customer,
+        client,
         provider: str,
         purpose: str,
         amount,
@@ -38,14 +43,41 @@ class PaymentIntentService:
         """
         Create a payment intent and initialize it with the provider.
 
+        Args:
+            client:
+                Client associated with the payment intent.
+            provider:
+                Provider key used to initialize checkout.
+            purpose:
+                Business purpose of the payment intent.
+            amount:
+                Amount to be collected.
+            currency:
+                Currency code for the payment.
+            payable:
+                Optional payable domain object linked to the payment.
+            metadata:
+                Optional structured metadata stored on the intent.
+            reference_prefix:
+                Prefix used when generating the payment reference.
+
         Returns:
-            {
-                "payment_intent": PaymentIntent,
-                "provider_data": dict,
-            }
+            dict[str, Any]:
+                A dictionary containing:
+                    payment_intent:
+                        The created local PaymentIntent instance.
+                    provider_data:
+                        The structured provider checkout result returned
+                        by the provider adapter.
+
+        Raises:
+            PaymentError:
+                Raised when the amount is invalid.
         """
         if amount is None or amount <= 0:
-            raise PaymentError("Payment amount must be greater than zero.")
+            raise PaymentError(
+                "Payment amount must be greater than zero."
+            )
 
         reference = generate_payment_reference(prefix=reference_prefix)
         expires_at = timezone.now() + timedelta(
@@ -54,7 +86,7 @@ class PaymentIntentService:
 
         payment_intent = PaymentIntent.objects.create(
             reference=reference,
-            customer=customer,
+            client=client,
             purpose=purpose,
             provider=provider,
             status=PaymentIntentStatus.CREATED,
@@ -68,9 +100,12 @@ class PaymentIntentService:
         provider_adapter = get_provider(provider)
         provider_response = provider_adapter.create_payment(payment_intent)
 
-        provider_intent_id = str(
-            provider_response.get("provider_intent_id") or ""
-        )
+        provider_intent_id = provider_response.provider_reference
+
+        if not provider_intent_id:
+            raise PaymentError(
+                "Provider response missing provider_reference."
+            )
 
         payment_intent.provider_intent_id = provider_intent_id
         payment_intent.status = PaymentIntentStatus.PENDING
@@ -91,6 +126,19 @@ class PaymentIntentService:
     def expire_intent(*, payment_intent: PaymentIntent) -> PaymentIntent:
         """
         Mark a payment intent as expired.
+
+        Args:
+            payment_intent:
+                Payment intent instance to expire.
+
+        Returns:
+            PaymentIntent:
+                Updated expired payment intent.
+
+        Raises:
+            PaymentError:
+                Raised when the payment intent is already completed or
+                refunded.
         """
         if payment_intent.status in {
             PaymentIntentStatus.SUCCEEDED,
@@ -109,9 +157,23 @@ class PaymentIntentService:
     def cancel_intent(*, payment_intent: PaymentIntent) -> PaymentIntent:
         """
         Mark a payment intent as canceled.
+
+        Args:
+            payment_intent:
+                Payment intent instance to cancel.
+
+        Returns:
+            PaymentIntent:
+                Updated canceled payment intent.
+
+        Raises:
+            PaymentError:
+                Raised when the payment intent is already successful.
         """
         if payment_intent.status == PaymentIntentStatus.SUCCEEDED:
-            raise PaymentError("Cannot cancel a successful payment intent.")
+            raise PaymentError(
+                "Cannot cancel a successful payment intent."
+            )
 
         payment_intent.status = PaymentIntentStatus.CANCELED
         payment_intent.save(update_fields=["status", "updated_at"])
