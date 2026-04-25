@@ -8,7 +8,7 @@ from django.core.management.base import BaseCommand
 from django.db import models, transaction
 from django.utils import timezone
 
-from pricing_configs.models import AdditionalService
+from order_pricing_core.models import AdditionalService
 from orders.models.orders import Order
 from orders.models.legacy_models.drafts import DraftRequest, DraftFile
 

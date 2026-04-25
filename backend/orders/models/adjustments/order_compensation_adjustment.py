@@ -10,6 +10,9 @@ from orders.enums import (
     OrderCompensationAdjustmentStatus,
     OrderCompensationAdjustmentType,
 )
+from orders.models.orders.enums import (
+    OrderScopeUnitType,
+)
 from websites.models.websites import Website
 
 
@@ -64,6 +67,15 @@ class OrderCompensationAdjustment(models.Model):
         decimal_places=2,
         default=Decimal("0.00"),
         help_text="Quantity delta associated with compensation.",
+    )
+    unit_type = models.CharField(
+        max_length=32,
+        choices=OrderScopeUnitType.choices,
+        default=OrderScopeUnitType.OTHER,
+        help_text=(
+            "Unit type for the compensation quantity delta"
+            "(e.g. Slides, Diagrams, Design, Pages)."
+        ),
     )
     amount_delta = models.DecimalField(
         max_digits=12,

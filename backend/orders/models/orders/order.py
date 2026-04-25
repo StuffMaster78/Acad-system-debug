@@ -11,9 +11,11 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from orders.enums import (
+    OrderScopeUnitType,
     OrderStatus,
     OrderVisibilityMode,
     PreferredWriterStatus,
+    OrderPaymentStatus,
 )
 from websites.models.websites import Website
 if TYPE_CHECKING:
@@ -181,7 +183,7 @@ class Order(models.Model):
         help_text="Requested English variant.",
     )
     writer_level = models.ForeignKey(
-        "pricing_configs.WriterLevelOptionConfig",
+        "order_pricing_core.WriterLevelRate",
         on_delete=models.SET_NULL,
         related_name="orders",
         null=True,
@@ -264,15 +266,47 @@ class Order(models.Model):
         default=Decimal("0.00"),
         help_text="Current commercial total for the order.",
     )
+    amount_paid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    currency = models.CharField(max_length=8, default="USD")
+    payment_status = models.CharField(
+        choices=OrderPaymentStatus.choices,
+        max_length=32,
+        default=OrderPaymentStatus.UNPAID,
+    )
     writer_compensation = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=Decimal("0.00"),
         help_text="Current writer compensation summary.",
     )
-    is_paid = models.BooleanField(
+    pricing_snapshot = models.ForeignKey(
+        "order_pricing_core.PricingSnapshot",
+        on_delete=models.PROTECT,
+        related_name="orders",
+        null=True,
+        blank=True,
+        help_text=(
+            "Current upstream pricing-core snapshot used for the order's "
+            "present commercial state."
+        ),
+    )
+    service_family = models.CharField(
+        max_length=32,
+        blank=True,
+        help_text="Pricing service family used to create the order.",
+    )
+    service_code = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Pricing service code used to create the order.",
+    )
+    is_composite = models.BooleanField(
         default=False,
-        help_text="Whether the base order receivable is fully settled.",
+        help_text="Whether this order contains multiple commercial items.",
     )
     is_urgent = models.BooleanField(
         default=False,
@@ -296,6 +330,20 @@ class Order(models.Model):
     order_instructions = models.TextField(
         help_text="Detailed instructions for the order.",
     )
+    submitted_for_qa_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    qa_approved_at = models.DateTimeField(null=True, blank=True)
+    qa_returned_at = models.DateTimeField(null=True, blank=True)
+    qa_review_note = models.TextField(blank=True, default="")
+    qa_reviewed_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="qa_reviewed_orders",
+    )   
     completed_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -399,11 +447,40 @@ class Order(models.Model):
         blank=True,
         help_text="When the order was explicitly or automatically approved.",
     )
+    unit_type = models.CharField(
+        max_length=32,
+        blank=True,
+        choices=OrderScopeUnitType.choices,
+        default=OrderScopeUnitType.PAGE,
+        help_text=" Primary Unit type for the order scope (e.g. Pages, Slides, Diagrams).",
+    )
+    base_quantity = models.PositiveIntegerField(
+        default=0,
+        help_text=(
+            "Base quantity of the order scope"
+            "(e.g. number of pages or slides originally ordered)."
+        ),
+    )
 
     archived_at = models.DateTimeField(
         null=True,
         blank=True,
         help_text="When the order was archived.",
+    )
+    last_writer_acknowledgement_reminder_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the last reminder was sent to the assigned writer to acknowledge the order.",
+    )
+    last_operational_writer_reminder_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the last operational reminder was sent to the assigned writer.",
+    )
+    last_approval_reminder_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the last reminder was sent to the client to approve the order.",
     )
 
     last_writer_acknowledged_at = models.DateTimeField(
@@ -426,7 +503,8 @@ class Order(models.Model):
             models.Index(fields=["client", "status"]),
             models.Index(fields=["visibility_mode", "status"]),
             models.Index(fields=["preferred_writer", "status"]),
-            models.Index(fields=["status", "is_paid"]),
+            models.Index(fields=["status", "payment_status"]),
+            models.Index(fields=["website", "payment_status"]),
             models.Index(fields=["website", "is_deleted"]),
             models.Index(fields=["created_at"]),
         ]
@@ -436,6 +514,10 @@ class Order(models.Model):
                 name="orders_order_total_price_gte_zero",
             ),
             models.CheckConstraint(
+                condition=models.Q(amount_paid__gte=0),
+                name="orders_order_amount_paid_gte_zero",
+            ),
+            models.CheckConstraint(
                 condition=models.Q(writer_compensation__gte=0),
                 name="orders_order_writer_comp_gte_zero",
             ),
@@ -443,6 +525,7 @@ class Order(models.Model):
                 condition=models.Q(preferred_writer_fee_amount__gte=0),
                 name="orders_order_pref_fee_gte_zero",
             ),
+            
         ]
 
     def __str__(self) -> str:
@@ -507,6 +590,31 @@ class Order(models.Model):
         if current is None:
             return None
         return current.writer
+    
+    @property
+    def remaining_balance(self) -> Decimal:
+        """
+        Return the remaining unpaid balance for the order.
+
+        Returns:
+            Decimal:
+                Remaining balance, never below zero.
+        """
+        remaining = self.total_price - self.amount_paid
+        if remaining < Decimal("0.00"):
+            return Decimal("0.00")
+        return remaining
+
+    @property
+    def is_fully_paid(self) -> bool:
+        """
+        Return whether the order is fully funded.
+
+        Returns:
+            bool:
+                True when amount_paid covers total_price.
+        """
+        return self.amount_paid >= self.total_price
 
     def clean(self) -> None:
         """

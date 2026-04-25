@@ -11,6 +11,7 @@ from orders.models.orders.order_reassignment_request import (
     OrderReassignmentRequest,
 )
 from .order_flag import OrderFlag
+from .order_item import OrderItem
 __all__ = [
     "Order",
     "OrderAssignment",
@@ -21,4 +22,5 @@ __all__ = [
     "OrderTimelineEvent",
     "OrderReassignmentRequest",
     "OrderFlag",
+    "OrderItem",
 ]

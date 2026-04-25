@@ -96,7 +96,7 @@ class TestPriceService:
     @patch('orders.services.price_service.calculate_total_price')
     def test_add_extra_service(self, mock_calculate, order):
         """Test adding extra service updates price."""
-        from pricing_configs.models import AdditionalService
+        from order_pricing_core.models import AdditionalService
         
         # Create extra service
         extra_service = AdditionalService.objects.create(
@@ -156,7 +156,7 @@ class TestPriceServiceEdgeCases:
     
     def test_add_multiple_extra_services(self, order):
         """Test adding multiple extra services."""
-        from pricing_configs.models import AdditionalService
+        from order_pricing_core.models import AdditionalService
         
         service1 = AdditionalService.objects.create(
             name="Service 1",

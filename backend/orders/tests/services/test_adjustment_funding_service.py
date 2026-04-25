@@ -4,8 +4,10 @@ from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from typing import Any, cast
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase
+from orders.services.adjustment_funding_service import AdjustmentFundingService
 
 from orders.models.orders.constants import (
     ORDER_ADJUSTMENT_EVENT_BILLING_CREATED,
@@ -464,3 +466,182 @@ class AdjustmentFundingServiceTests(SimpleTestCase):
             "Amount must be greater than zero.",
         ):
             AdjustmentFundingService._validate_amount(Decimal("-1.00"))
+
+    def _request(
+        self,
+        *,
+        status: str = "accepted",
+    ) -> Any:
+        return cast(
+            Any,
+            SimpleNamespace(
+                pk=1,
+                website=SimpleNamespace(pk=10),
+                order=SimpleNamespace(pk=100),
+                status=status,
+                is_counter_final=False,
+                funded_at=None,
+                save=lambda *args, **kwargs: None,
+            ),
+        )
+
+    def _funding(
+        self,
+        *,
+        request_status: str = "accepted",
+        amount_paid: Decimal = Decimal("0.00"),
+        amount_expected: Decimal = Decimal("100.00"),
+    ) -> Any:
+        adjustment_request = self._request(status=request_status)
+        return cast(
+            Any,
+            SimpleNamespace(
+                pk=2,
+                website=adjustment_request.website,
+                adjustment_request=adjustment_request,
+                amount_paid=amount_paid,
+                amount_expected=amount_expected,
+                status="payment_intent_created",
+                funded_at=None,
+                external_reference="",
+                save=lambda *args, **kwargs: None,
+            ),
+        )
+
+    def test_ensure_request_can_enter_funding_accepts_accepted(self) -> None:
+        AdjustmentFundingService._ensure_request_can_enter_funding(
+            self._request(status="accepted")
+        )
+
+    def test_ensure_request_can_enter_funding_accepts_client_countered(
+        self,
+    ) -> None:
+        AdjustmentFundingService._ensure_request_can_enter_funding(
+            self._request(status="client_countered")
+        )
+
+    def test_ensure_request_can_enter_funding_rejects_pending(self) -> None:
+        with self.assertRaises(ValidationError):
+            AdjustmentFundingService._ensure_request_can_enter_funding(
+                self._request(status="pending_client_response")
+            )
+
+    @patch(
+        "orders.services.adjustment_funding_service."
+        "AdjustmentScopeApplicationService.apply_funded_adjustment"
+    )
+    @patch(
+        "orders.services.adjustment_funding_service."
+        "AdjustmentFundingService._create_event"
+    )
+    @patch(
+        "orders.services.adjustment_funding_service."
+        "AdjustmentFundingService._lock_request"
+    )
+    @patch(
+        "orders.services.adjustment_funding_service."
+        "AdjustmentFundingService._lock_funding"
+    )
+    def test_apply_payment_marks_accepted_request_funded_and_applies(
+        self,
+        mock_lock_funding: Any,
+        mock_lock_request: Any,
+        mock_create_event: Any,
+        mock_apply: Any,
+    ) -> None:
+        funding = self._funding(request_status="accepted")
+        mock_lock_funding.return_value = funding
+        mock_lock_request.return_value = funding.adjustment_request
+
+        result = AdjustmentFundingService.apply_payment(
+            funding=funding,
+            amount=Decimal("100.00"),
+            external_reference="pay_123",
+            triggered_by=None,
+        )
+
+        self.assertEqual(result.status, "funded")
+        self.assertEqual(funding.adjustment_request.status, "funded")
+        self.assertFalse(funding.adjustment_request.is_counter_final)
+        mock_apply.assert_called_once()
+
+    @patch(
+        "orders.services.adjustment_funding_service."
+        "AdjustmentScopeApplicationService.apply_funded_adjustment"
+    )
+    @patch(
+        "orders.services.adjustment_funding_service."
+        "AdjustmentFundingService._create_event"
+    )
+    @patch(
+        "orders.services.adjustment_funding_service."
+        "AdjustmentFundingService._lock_request"
+    )
+    @patch(
+        "orders.services.adjustment_funding_service."
+        "AdjustmentFundingService._lock_funding"
+    )
+    def test_apply_payment_marks_countered_request_counter_funded_final(
+        self,
+        mock_lock_funding: Any,
+        mock_lock_request: Any,
+        mock_create_event: Any,
+        mock_apply: Any,
+    ) -> None:
+        funding = self._funding(request_status="client_countered")
+        mock_lock_funding.return_value = funding
+        mock_lock_request.return_value = funding.adjustment_request
+
+        result = AdjustmentFundingService.apply_payment(
+            funding=funding,
+            amount=Decimal("100.00"),
+            external_reference="pay_456",
+            triggered_by=None,
+        )
+
+        self.assertEqual(result.status, "funded")
+        self.assertEqual(
+            funding.adjustment_request.status,
+            "counter_funded_final",
+        )
+        self.assertTrue(funding.adjustment_request.is_counter_final)
+        mock_apply.assert_called_once()
+
+    @patch(
+        "orders.services.adjustment_funding_service."
+        "AdjustmentFundingService._create_event"
+    )
+    @patch(
+        "orders.services.adjustment_funding_service."
+        "AdjustmentFundingService._lock_funding"
+    )
+    def test_apply_payment_handles_partial_payment(
+        self,
+        mock_lock_funding: Any,
+        mock_create_event: Any,
+    ) -> None:
+        funding = self._funding(
+            request_status="accepted",
+            amount_paid=Decimal("0.00"),
+            amount_expected=Decimal("100.00"),
+        )
+        mock_lock_funding.return_value = funding
+
+        result = AdjustmentFundingService.apply_payment(
+            funding=funding,
+            amount=Decimal("40.00"),
+            external_reference="pay_partial",
+            triggered_by=None,
+        )
+
+        self.assertEqual(result.status, "partially_funded")
+        self.assertEqual(result.amount_paid, Decimal("40.00"))
+
+    def test_apply_payment_rejects_zero_amount(self) -> None:
+        funding = self._funding()
+
+        with self.assertRaises(ValidationError):
+            AdjustmentFundingService.apply_payment(
+                funding=funding,
+                amount=Decimal("0.00"),
+            )

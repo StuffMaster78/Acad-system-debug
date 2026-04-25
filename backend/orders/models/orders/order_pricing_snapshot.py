@@ -28,6 +28,13 @@ class OrderPricingSnapshot(models.Model):
         related_name="pricing_snapshots",
         help_text="Order this pricing snapshot belongs to.",
     )
+    source_pricing_snapshot = models.ForeignKey(
+        "order_pricing_core.PricingSnapshot",
+        on_delete=models.PROTECT,
+        related_name="order_snapshots",
+        null=True,
+        blank=True,
+    )
     is_current = models.BooleanField(
         default=True,
         help_text="Whether this is the current active snapshot.",
@@ -95,6 +102,11 @@ class OrderPricingSnapshot(models.Model):
             models.Index(fields=["order", "is_current"]),
         ]
         constraints = [
+            models.UniqueConstraint(
+                fields=["order"],
+                condition=models.Q(is_current=True),
+                name="unique_current_order_pricing_snapshot",
+            ),
             models.CheckConstraint(
                 condition=models.Q(subtotal_amount__gte=0),
                 name="orders_price_snap_subtotal_gte_zero",

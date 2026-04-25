@@ -2,12 +2,13 @@
 Service for managing deadline percentage-based payment reminders.
 """
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import logging
 
 from django.utils import timezone
+from django.db.models import QuerySet
 
-from orders.models.orders import Order
+from orders.models.orders.order import Order
 from order_payments_management.models.payment_reminders import (
     PaymentReminderConfig,
     PaymentReminderDeletionMessage,
@@ -67,7 +68,7 @@ class PaymentReminderService:
     def get_orders_needing_reminders(
         website,
         current_time=None,
-    ) -> List[Order]:
+    ) -> List[dict[str, Any]]:
         """
         Get orders that need reminders sent based on deadline percentage.
 
@@ -341,7 +342,7 @@ class PaymentReminderService:
                         exc,
                     )
 
-            logger.info("Deletion message sent for order %s", order.id)
+            logger.info("Deletion message sent for order %s", order.pk)
             return True
 
         except Exception as exc:
@@ -352,7 +353,7 @@ class PaymentReminderService:
     def get_orders_past_deadline(
         website,
         current_time=None,
-    ) -> List[Order]:
+    ) -> QuerySet[Order]:
         """
         Get orders that are past their deadline and need deletion messages.
 

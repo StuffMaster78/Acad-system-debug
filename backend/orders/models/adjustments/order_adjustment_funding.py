@@ -63,6 +63,11 @@ class OrderAdjustmentFunding(models.Model):
         blank=True,
         help_text="External payment intent reference.",
     )
+    external_reference = models.CharField(
+        max_length=128,
+        blank=True,
+        default="",
+    )
     funding_reference = models.CharField(
         max_length=128,
         blank=True,
@@ -95,6 +100,11 @@ class OrderAdjustmentFunding(models.Model):
         blank=True,
         help_text="When funding fully completed.",
     )
+    last_funding_reminder_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the last funding reminder was sent.",
+    )
     metadata = models.JSONField(
         default=dict,
         blank=True,
@@ -113,7 +123,7 @@ class OrderAdjustmentFunding(models.Model):
         """
         Configure indexes for funding records.
         """
-
+        db_table = "orders_order_adjustment_funding"
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "status"]),

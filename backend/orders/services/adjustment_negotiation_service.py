@@ -1,413 +1,446 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 
-from orders.models.adjustments.order_adjustment_event import (
-    OrderAdjustmentEvent,
-)
 from orders.models.adjustments.order_adjustment_proposal import (
     OrderAdjustmentProposal,
 )
 from orders.models.adjustments.order_adjustment_request import (
     OrderAdjustmentRequest,
 )
-from orders.models.orders.order import Order
 from orders.models.orders.constants import (
-    ORDER_ADJUSTMENT_EVENT_ACCEPTED,
-    ORDER_ADJUSTMENT_EVENT_CANCELLED,
-    ORDER_ADJUSTMENT_EVENT_CLIENT_COUNTERED,
-    ORDER_ADJUSTMENT_EVENT_DECLINED,
-    ORDER_ADJUSTMENT_EVENT_EXPIRED,
-    ORDER_ADJUSTMENT_EVENT_PROPOSAL_CREATED,
-    ORDER_ADJUSTMENT_EVENT_REQUEST_CREATED,
+    ORDER_ADJUSTMENT_KIND_EXTRA_SERVICE,
+    ORDER_ADJUSTMENT_KIND_SCOPE_INCREMENT,
     ORDER_ADJUSTMENT_PROPOSAL_ROLE_CLIENT,
     ORDER_ADJUSTMENT_PROPOSAL_ROLE_STAFF,
-    ORDER_ADJUSTMENT_PROPOSAL_ROLE_SYSTEM,
     ORDER_ADJUSTMENT_PROPOSAL_ROLE_WRITER,
     ORDER_ADJUSTMENT_PROPOSAL_TYPE_CLIENT_COUNTER,
     ORDER_ADJUSTMENT_PROPOSAL_TYPE_FINAL_AGREEMENT,
     ORDER_ADJUSTMENT_PROPOSAL_TYPE_STAFF_OVERRIDE,
     ORDER_ADJUSTMENT_PROPOSAL_TYPE_SYSTEM_QUOTE,
     ORDER_ADJUSTMENT_STATUS_ACCEPTED,
-    ORDER_ADJUSTMENT_STATUS_CANCELLED,
     ORDER_ADJUSTMENT_STATUS_CLIENT_COUNTERED,
-    ORDER_ADJUSTMENT_STATUS_DECLINED,
-    ORDER_ADJUSTMENT_STATUS_EXPIRED,
     ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE,
+    ORDER_POST_COUNTER_ESCALATION_REASON_SCOPE_UNACCEPTABLE,
 )
+from orders.validators.adjustment_validators import AdjustmentValidator
 
 
 class AdjustmentNegotiationService:
     """
-    Own negotiation workflow for commercial order adjustments.
+    Own proposal-backed adjustment negotiation.
     """
 
     @classmethod
     @transaction.atomic
-    def create_request_with_system_quote(
+    def create_scope_increment_request(
         cls,
         *,
-        order: Order,
-        requested_by: Any,
+        website,
+        order,
+        requested_by,
         adjustment_type: str,
-        reason: str,
-        quoted_amount: Decimal,
-        scope_summary: str,
-        triggered_by: Optional[Any] = None,
+        unit_type: str,
+        requested_quantity: int,
+        title: str,
+        description: str = "",
+        writer_justification: str = "",
+        client_visible_note: str = "",
+        pricing_result: dict,
+        source_pricing_snapshot=None,
+        expires_at=None,
     ) -> OrderAdjustmentRequest:
         """
-        Create an adjustment request and its initial system quote.
+        Create writer or staff initiated scope increment request.
         """
-        locked_order = cls._lock_order(order)
+        current_quantity = getattr(order, "base_quantity", 0)
+        AdjustmentValidator.validate_scope_increment(
+            current_quantity=current_quantity,
+            requested_quantity=requested_quantity,
+            unit_type=unit_type,
+        )
 
-        cls._validate_actor_website(actor=requested_by, order=locked_order)
-        cls._validate_amount(quoted_amount)
+        quantity_delta = requested_quantity - current_quantity
+        request_amount = Decimal(str(pricing_result.get("total_price", "0.00")))
+        writer_amount = Decimal(
+            str(pricing_result.get("writer_compensation_amount", "0.00"))
+        )
 
         adjustment_request = OrderAdjustmentRequest.objects.create(
-            website=locked_order.website,
-            order=locked_order,
+            website=website,
+            order=order,
             requested_by=requested_by,
             adjustment_type=adjustment_type,
-            reason=reason,
+            adjustment_kind=ORDER_ADJUSTMENT_KIND_SCOPE_INCREMENT,
+            unit_type=unit_type,
+            title=title,
+            description=description,
+            writer_justification=writer_justification,
+            client_visible_note=client_visible_note,
+            current_quantity=current_quantity,
+            requested_quantity=requested_quantity,
+            quantity_delta=quantity_delta,
+            request_total_amount=request_amount,
+            request_writer_compensation_amount=writer_amount,
+            request_pricing_payload=pricing_result,
+            source_pricing_snapshot=source_pricing_snapshot,
             status=ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE,
-            metadata={
-                "scope_summary": scope_summary,
-                "requested_by_id": getattr(requested_by, "pk", None),
-            },
+            expires_at=expires_at,
         )
 
-        cls._create_event(
+        proposal = cls._create_proposal(
             adjustment_request=adjustment_request,
-            event_type=ORDER_ADJUSTMENT_EVENT_REQUEST_CREATED,
-            actor=triggered_by or requested_by,
-            metadata={
-                "adjustment_type": adjustment_type,
-                "reason": reason,
-            },
-        )
-
-        cls._create_proposal(
-            adjustment_request=adjustment_request,
+            proposed_by=requested_by,
+            proposal_role=ORDER_ADJUSTMENT_PROPOSAL_ROLE_WRITER,
             proposal_type=ORDER_ADJUSTMENT_PROPOSAL_TYPE_SYSTEM_QUOTE,
-            proposed_by_role=ORDER_ADJUSTMENT_PROPOSAL_ROLE_SYSTEM,
-            amount=quoted_amount,
-            notes="Initial system quote",
-            actor=triggered_by or requested_by,
-            metadata={
-                "scope_summary": scope_summary,
+            amount=request_amount,
+            unit_type=unit_type,
+            adjustment_kind=ORDER_ADJUSTMENT_KIND_SCOPE_INCREMENT,
+            reason=writer_justification,
+            scope_payload={
+                "current_quantity": current_quantity,
+                "requested_quantity": requested_quantity,
+                "quantity_delta": quantity_delta,
+                "unit_type": unit_type,
             },
+            pricing_snapshot_payload=pricing_result,
         )
 
+        typed_request = cast(Any, adjustment_request)
+        typed_request.current_proposal = proposal
+        typed_request.save(update_fields=["current_proposal", "updated_at"])
         return adjustment_request
 
     @classmethod
     @transaction.atomic
-    def create_staff_override_proposal(
+    def create_extra_service_request(
         cls,
         *,
-        adjustment_request: OrderAdjustmentRequest,
-        proposed_by: Any,
-        amount: Decimal,
-        notes: str,
-        triggered_by: Optional[Any] = None,
-    ) -> OrderAdjustmentProposal:
+        website,
+        order,
+        requested_by,
+        extra_service_code: str,
+        title: str,
+        description: str = "",
+        writer_justification: str = "",
+        client_visible_note: str = "",
+        pricing_result: dict,
+        source_pricing_snapshot=None,
+        expires_at=None,
+    ) -> OrderAdjustmentRequest:
         """
-        Create a staff override proposal on an open adjustment request.
+        Create an extra service adjustment request.
         """
-        locked_request = cls._lock_request(adjustment_request)
-
-        cls._ensure_request_open_for_negotiation(locked_request)
-        cls._validate_actor_website(
-            actor=proposed_by,
-            order=locked_request.order,
+        AdjustmentValidator.validate_extra_service(
+            extra_service_code=extra_service_code,
         )
-        cls._validate_amount(amount)
+
+        amount = Decimal(str(pricing_result.get("total_price", "0.00")))
+        writer_amount = Decimal(
+            str(pricing_result.get("writer_compensation_amount", "0.00"))
+        )
+
+        adjustment_request = OrderAdjustmentRequest.objects.create(
+            website=website,
+            order=order,
+            requested_by=requested_by,
+            adjustment_type="extra_service",
+            adjustment_kind=ORDER_ADJUSTMENT_KIND_EXTRA_SERVICE,
+            unit_type=getattr(order, "unit_type", "other"),
+            extra_service_code=extra_service_code,
+            title=title,
+            description=description,
+            writer_justification=writer_justification,
+            client_visible_note=client_visible_note,
+            current_quantity=0,
+            requested_quantity=1,
+            quantity_delta=1,
+            request_total_amount=amount,
+            request_writer_compensation_amount=writer_amount,
+            request_pricing_payload=pricing_result,
+            source_pricing_snapshot=source_pricing_snapshot,
+            status=ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE,
+            expires_at=expires_at,
+        )
 
         proposal = cls._create_proposal(
-            adjustment_request=locked_request,
-            proposal_type=ORDER_ADJUSTMENT_PROPOSAL_TYPE_STAFF_OVERRIDE,
-            proposed_by_role=ORDER_ADJUSTMENT_PROPOSAL_ROLE_STAFF,
+            adjustment_request=adjustment_request,
+            proposed_by=requested_by,
+            proposal_role=ORDER_ADJUSTMENT_PROPOSAL_ROLE_WRITER,
+            proposal_type=ORDER_ADJUSTMENT_PROPOSAL_TYPE_SYSTEM_QUOTE,
             amount=amount,
-            notes=notes,
-            actor=triggered_by or proposed_by,
-            metadata={},
-        )
-
-        locked_request.status = ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE
-        locked_request.save(
-            update_fields=[
-                "status",
-                "updated_at",
-            ]
-        )
-        return proposal
-
-    @classmethod
-    @transaction.atomic
-    def counter_by_client(
-        cls,
-        *,
-        adjustment_request: OrderAdjustmentRequest,
-        client: Any,
-        amount: Decimal,
-        notes: str,
-        triggered_by: Optional[Any] = None,
-    ) -> OrderAdjustmentProposal:
-        """
-        Record a client counter proposal.
-        """
-        locked_request = cls._lock_request(adjustment_request)
-
-        cls._ensure_request_open_for_negotiation(locked_request)
-        cls._validate_actor_website(actor=client, order=locked_request.order)
-        cls._validate_amount(amount)
-
-        proposal = cls._create_proposal(
-            adjustment_request=locked_request,
-            proposal_type=ORDER_ADJUSTMENT_PROPOSAL_TYPE_CLIENT_COUNTER,
-            proposed_by_role=ORDER_ADJUSTMENT_PROPOSAL_ROLE_CLIENT,
-            amount=amount,
-            notes=notes,
-            actor=triggered_by or client,
-            metadata={},
-        )
-
-        locked_request.status = ORDER_ADJUSTMENT_STATUS_CLIENT_COUNTERED
-        locked_request.save(
-            update_fields=[
-                "status",
-                "updated_at",
-            ]
-        )
-
-        cls._create_event(
-            adjustment_request=locked_request,
-            event_type=ORDER_ADJUSTMENT_EVENT_CLIENT_COUNTERED,
-            actor=triggered_by or client,
-            metadata={
-                "proposal_id": proposal.pk,
-                "amount": str(amount),
+            unit_type=adjustment_request.unit_type,
+            adjustment_kind=ORDER_ADJUSTMENT_KIND_EXTRA_SERVICE,
+            reason=writer_justification,
+            scope_payload={
+                "extra_service_code": extra_service_code,
+                "unit_type": adjustment_request.unit_type,
             },
+            pricing_snapshot_payload=pricing_result,
         )
-        return proposal
+
+        typed_request = cast(Any, adjustment_request)
+        typed_request.current_proposal = proposal
+        typed_request.save(update_fields=["current_proposal", "updated_at"])
+        return adjustment_request
 
     @classmethod
     @transaction.atomic
-    def accept_request(
+    def client_counter_scope_increment(
         cls,
         *,
         adjustment_request: OrderAdjustmentRequest,
-        accepted_by: Any,
-        final_amount: Decimal,
-        notes: str = "",
-        triggered_by: Optional[Any] = None,
-    ) -> OrderAdjustmentProposal:
+        countered_quantity: int,
+        countered_note: str,
+        pricing_result: dict,
+        counter_pricing_snapshot=None,
+        countered_by=None,
+    ) -> OrderAdjustmentRequest:
         """
-        Accept an adjustment request and create the final agreement proposal.
+        Record client counter for a scope increment request.
         """
         locked_request = cls._lock_request(adjustment_request)
 
-        cls._ensure_request_open_for_negotiation(locked_request)
-        cls._validate_actor_website(
-            actor=accepted_by,
-            order=locked_request.order,
-        )
-        cls._validate_amount(final_amount)
+        if locked_request.adjustment_kind != ORDER_ADJUSTMENT_KIND_SCOPE_INCREMENT:
+            raise ValidationError("Only scope increment requests can be quantity-countered.")
 
-        final_proposal = cls._create_proposal(
-            adjustment_request=locked_request,
-            proposal_type=ORDER_ADJUSTMENT_PROPOSAL_TYPE_FINAL_AGREEMENT,
-            proposed_by_role=ORDER_ADJUSTMENT_PROPOSAL_ROLE_CLIENT,
-            amount=final_amount,
-            notes=notes or "Final agreement accepted",
-            actor=triggered_by or accepted_by,
-            metadata={},
+        if locked_request.status != ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE:
+            raise ValidationError("Only pending requests can be countered.")
+
+        AdjustmentValidator.validate_counter_quantity(
+            current_quantity=locked_request.current_quantity,
+            requested_quantity=locked_request.requested_quantity,
+            countered_quantity=countered_quantity,
         )
+
+        cls._deactivate_current_proposal(locked_request)
+
+        counter_delta = countered_quantity - locked_request.current_quantity
+        counter_amount = Decimal(str(pricing_result.get("total_price", "0.00")))
+        writer_amount = Decimal(
+            str(pricing_result.get("writer_compensation_amount", "0.00"))
+        )
+
+        proposal = cls._create_proposal(
+            adjustment_request=locked_request,
+            proposed_by=countered_by,
+            proposal_role=ORDER_ADJUSTMENT_PROPOSAL_ROLE_CLIENT,
+            proposal_type=ORDER_ADJUSTMENT_PROPOSAL_TYPE_CLIENT_COUNTER,
+            amount=counter_amount,
+            unit_type=locked_request.unit_type,
+            adjustment_kind=ORDER_ADJUSTMENT_KIND_SCOPE_INCREMENT,
+            reason=countered_note,
+            scope_payload={
+                "current_quantity": locked_request.current_quantity,
+                "countered_quantity": countered_quantity,
+                "counter_quantity_delta": counter_delta,
+                "unit_type": locked_request.unit_type,
+            },
+            pricing_snapshot_payload=pricing_result,
+        )
+
+        locked_request.countered_quantity = countered_quantity
+        locked_request.countered_note = countered_note
+        locked_request.countered_by = countered_by
+        locked_request.countered_at = timezone.now()
+        locked_request.counter_total_amount = counter_amount
+        locked_request.counter_writer_compensation_amount = writer_amount
+        locked_request.counter_pricing_payload = pricing_result
+        locked_request.counter_pricing_snapshot = counter_pricing_snapshot
+        locked_request.status = ORDER_ADJUSTMENT_STATUS_CLIENT_COUNTERED
+        typed_request = cast(Any, locked_request)
+        typed_request.current_proposal = proposal
+        typed_request.save()
+        return locked_request
+
+    @classmethod
+    @transaction.atomic
+    def client_accept_extra_service(
+        cls,
+        *,
+        adjustment_request: OrderAdjustmentRequest,
+        accepted_by=None,
+    ) -> OrderAdjustmentRequest:
+        """
+        Accept extra service request and prepare it for funding.
+        """
+        locked_request = cls._lock_request(adjustment_request)
+
+        if locked_request.adjustment_kind != ORDER_ADJUSTMENT_KIND_EXTRA_SERVICE:
+            raise ValidationError("Only extra service requests use this accept path.")
+
+        if locked_request.status != ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE:
+            raise ValidationError("Only pending requests can be accepted.")
 
         locked_request.status = ORDER_ADJUSTMENT_STATUS_ACCEPTED
+        locked_request.accepted_at = timezone.now()
+        locked_request.reviewed_by = accepted_by
+        locked_request.accepted_proposal = locked_request.current_proposal
         locked_request.save(
             update_fields=[
                 "status",
+                "accepted_at",
+                "reviewed_by",
+                "accepted_proposal",
                 "updated_at",
             ]
         )
-
-        cls._create_event(
-            adjustment_request=locked_request,
-            event_type=ORDER_ADJUSTMENT_EVENT_ACCEPTED,
-            actor=triggered_by or accepted_by,
-            metadata={
-                "proposal_id": final_proposal.pk,
-                "final_amount": str(final_amount),
-            },
-        )
-        return final_proposal
+        return locked_request
 
     @classmethod
     @transaction.atomic
-    def decline_request(
+    def client_accept_scope_request(
         cls,
         *,
         adjustment_request: OrderAdjustmentRequest,
-        declined_by: Any,
+        accepted_by=None,
+    ) -> OrderAdjustmentRequest:
+        """
+        Accept original scope increment request without countering.
+        """
+        locked_request = cls._lock_request(adjustment_request)
+
+        if locked_request.adjustment_kind != ORDER_ADJUSTMENT_KIND_SCOPE_INCREMENT:
+            raise ValidationError("Only scope increment requests use this path.")
+
+        if locked_request.status != ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE:
+            raise ValidationError("Only pending requests can be accepted.")
+
+        locked_request.status = ORDER_ADJUSTMENT_STATUS_ACCEPTED
+        locked_request.accepted_at = timezone.now()
+        locked_request.reviewed_by = accepted_by
+        locked_request.accepted_proposal = locked_request.current_proposal
+        locked_request.save(
+            update_fields=[
+                "status",
+                "accepted_at",
+                "reviewed_by",
+                "accepted_proposal",
+                "updated_at",
+            ]
+        )
+        return locked_request
+
+    @classmethod
+    @transaction.atomic
+    def writer_escalate_after_funded_counter(
+        cls,
+        *,
+        adjustment_request: OrderAdjustmentRequest,
+        writer,
         reason: str,
-        triggered_by: Optional[Any] = None,
-    ) -> OrderAdjustmentRequest:
+    ):
         """
-        Decline an open adjustment request.
+        Escalate execution after client-funded counter was already applied.
         """
         locked_request = cls._lock_request(adjustment_request)
 
-        cls._ensure_request_open_for_negotiation(locked_request)
-        cls._validate_actor_website(
-            actor=declined_by,
-            order=locked_request.order,
-        )
-
-        locked_request.status = ORDER_ADJUSTMENT_STATUS_DECLINED
+        locked_request.escalated_after_counter = True
+        locked_request.escalation_reason = reason
         locked_request.save(
             update_fields=[
-                "status",
+                "escalated_after_counter",
+                "escalation_reason",
                 "updated_at",
             ]
         )
 
-        cls._create_event(
-            adjustment_request=locked_request,
-            event_type=ORDER_ADJUSTMENT_EVENT_DECLINED,
-            actor=triggered_by or declined_by,
-            metadata={
-                "reason": reason,
-            },
+        from orders.services.order_reassignment_service import (
+            OrderReassignmentService,
+        )
+
+        return OrderReassignmentService.request_reassignment(
+            order=locked_request.order,
+            requested_by=writer,
+            requester_role=ORDER_ADJUSTMENT_PROPOSAL_ROLE_WRITER,
+            reason=ORDER_POST_COUNTER_ESCALATION_REASON_SCOPE_UNACCEPTABLE,
+            internal_notes=reason,
+            triggered_by="adjustment_negotiation_service.writer_escalate_after_funded_counter",
+        )
+
+    @classmethod
+    @transaction.atomic
+    def staff_resolve_post_counter_escalation(
+        cls,
+        *,
+        adjustment_request: OrderAdjustmentRequest,
+        resolution: str,
+        note: str,
+        resolved_by,
+    ) -> OrderAdjustmentRequest:
+        """
+        Resolve post-counter escalation.
+        """
+        locked_request = cls._lock_request(adjustment_request)
+
+        if not locked_request.escalated_after_counter:
+            raise ValidationError("Adjustment has no post-counter escalation.")
+
+        locked_request.resolved_by = resolved_by
+        locked_request.resolved_at = timezone.now()
+        locked_request.reviewed_by = resolved_by
+        locked_request.save(
+            update_fields=[
+                "resolved_by",
+                "resolved_at",
+                "reviewed_by",
+                "updated_at",
+            ]
         )
         return locked_request
 
     @classmethod
-    @transaction.atomic
-    def cancel_request(
+    def _create_proposal(
         cls,
         *,
-        adjustment_request: OrderAdjustmentRequest,
-        cancelled_by: Any,
+        adjustment_request,
+        proposed_by,
+        proposal_role: str,
+        proposal_type: str,
+        amount: Decimal,
+        unit_type: str,
+        adjustment_kind: str,
         reason: str,
-        triggered_by: Optional[Any] = None,
-    ) -> OrderAdjustmentRequest:
+        scope_payload: dict,
+        pricing_snapshot_payload: dict,
+    ) -> OrderAdjustmentProposal:
         """
-        Cancel an open adjustment request.
+        Create proposal row for negotiation ledger.
         """
-        locked_request = cls._lock_request(adjustment_request)
-
-        cls._ensure_request_open_for_negotiation(locked_request)
-        cls._validate_actor_website(
-            actor=cancelled_by,
-            order=locked_request.order,
+        typed_request = cast(Any, adjustment_request)
+        return OrderAdjustmentProposal.objects.create(
+            website=adjustment_request.website,
+            adjustment_request=adjustment_request,
+            proposed_by=proposed_by,
+            proposal_role=proposal_role,
+            proposal_type=proposal_type,
+            currency=getattr(adjustment_request.order, "currency", "USD"),
+            amount=amount,
+            unit_type=unit_type,
+            adjustment_kind=adjustment_kind,
+            reason=reason,
+            scope_payload=scope_payload,
+            pricing_snapshot_payload=pricing_snapshot_payload,
+            is_active=True,
+            supersedes_proposal=typed_request.current_proposal,
         )
 
-        locked_request.status = ORDER_ADJUSTMENT_STATUS_CANCELLED
-        locked_request.save(
-            update_fields=[
-                "status",
-                "updated_at",
-            ]
-        )
-
-        cls._create_event(
-            adjustment_request=locked_request,
-            event_type=ORDER_ADJUSTMENT_EVENT_CANCELLED,
-            actor=triggered_by or cancelled_by,
-            metadata={
-                "reason": reason,
-            },
-        )
-        return locked_request
-
     @classmethod
-    @transaction.atomic
-    def expire_request(
-        cls,
-        *,
-        adjustment_request: OrderAdjustmentRequest,
-        triggered_by: Optional[Any] = None,
-    ) -> OrderAdjustmentRequest:
+    def _deactivate_current_proposal(cls, adjustment_request) -> None:
         """
-        Expire an open adjustment request.
+        Mark current proposal inactive before creating a new proposal.
         """
-        locked_request = cls._lock_request(adjustment_request)
+        proposal = adjustment_request.current_proposal
+        if proposal is None:
+            return
 
-        cls._ensure_request_open_for_negotiation(locked_request)
-
-        locked_request.status = ORDER_ADJUSTMENT_STATUS_EXPIRED
-        locked_request.save(
-            update_fields=[
-                "status",
-                "updated_at",
-            ]
-        )
-
-        cls._create_event(
-            adjustment_request=locked_request,
-            event_type=ORDER_ADJUSTMENT_EVENT_EXPIRED,
-            actor=triggered_by,
-            metadata={},
-        )
-        return locked_request
-
-    @classmethod
-    def _ensure_request_open_for_negotiation(
-        cls,
-        adjustment_request: OrderAdjustmentRequest,
-    ) -> None:
-        """
-        Ensure adjustment request is still negotiable.
-        """
-        allowed_statuses = {
-            ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE,
-            ORDER_ADJUSTMENT_STATUS_CLIENT_COUNTERED,
-        }
-        if adjustment_request.status not in allowed_statuses:
-            raise ValidationError(
-                "Only open adjustment requests can be negotiated."
-            )
-
-    @classmethod
-    def _validate_amount(cls, amount: Decimal) -> None:
-        """
-        Ensure a proposal amount is valid.
-        """
-        if amount <= 0:
-            raise ValidationError(
-                "Adjustment amount must be greater than zero."
-            )
-
-    @classmethod
-    def _validate_actor_website(
-        cls,
-        *,
-        actor: Any,
-        order: Order,
-    ) -> None:
-        """
-        Ensure actor belongs to the same tenant as the order.
-        """
-        actor_website_id = getattr(actor, "website_id", None)
-        if (
-            actor_website_id is not None
-            and actor_website_id != order.website.pk
-        ):
-            raise ValidationError(
-                "Actor website must match order website."
-            )
-
-    @classmethod
-    def _lock_order(cls, order: Order) -> Order:
-        """
-        Lock and reload an order inside a transaction.
-        """
-        return Order.objects.select_for_update().get(pk=order.pk)
+        proposal.is_active = False
+        proposal.save(update_fields=["is_active"])
 
     @classmethod
     def _lock_request(
@@ -415,66 +448,8 @@ class AdjustmentNegotiationService:
         adjustment_request: OrderAdjustmentRequest,
     ) -> OrderAdjustmentRequest:
         """
-        Lock and reload an adjustment request inside a transaction.
+        Lock and reload adjustment request.
         """
         return OrderAdjustmentRequest.objects.select_for_update().get(
-            pk=adjustment_request.pk
-        )
-
-    @classmethod
-    def _create_proposal(
-        cls,
-        *,
-        adjustment_request: OrderAdjustmentRequest,
-        proposal_type: str,
-        proposed_by_role: str,
-        amount: Decimal,
-        notes: str,
-        actor: Optional[Any],
-        metadata: dict,
-    ) -> OrderAdjustmentProposal:
-        """
-        Create an adjustment proposal and its creation event.
-        """
-        proposal = OrderAdjustmentProposal.objects.create(
-            website=adjustment_request.website,
-            adjustment_request=adjustment_request,
-            proposal_type=proposal_type,
-            proposed_by_role=proposed_by_role,
-            amount=amount,
-            notes=notes,
-            metadata=metadata,
-        )
-
-        cls._create_event(
-            adjustment_request=adjustment_request,
-            event_type=ORDER_ADJUSTMENT_EVENT_PROPOSAL_CREATED,
-            actor=actor,
-            metadata={
-                "proposal_id": proposal.pk,
-                "proposal_type": proposal_type,
-                "proposed_by_role": proposed_by_role,
-                "amount": str(amount),
-            },
-        )
-        return proposal
-
-    @classmethod
-    def _create_event(
-        cls,
-        *,
-        adjustment_request: OrderAdjustmentRequest,
-        event_type: str,
-        actor: Optional[Any],
-        metadata: dict,
-    ) -> OrderAdjustmentEvent:
-        """
-        Create an adjustment event.
-        """
-        return OrderAdjustmentEvent.objects.create(
-            website=adjustment_request.website,
-            adjustment_request=adjustment_request,
-            event_type=event_type,
-            actor=actor,
-            metadata=metadata,
+            pk=adjustment_request.pk,
         )

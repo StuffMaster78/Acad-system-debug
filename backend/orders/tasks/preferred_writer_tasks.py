@@ -9,7 +9,12 @@ from django.utils import timezone
 from notifications_system.services.notification_service import (
     NotificationService,
 )
-from orders.models import Order, OrderInterest
+from orders.models.orders.order import Order
+from orders.models.orders.order_interest import OrderInterest
+from orders.models.orders.enums import (
+    OrderStatus,
+    PreferredWriterStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +143,7 @@ def expire_preferred_writer_invitations(self) -> dict[str, int]:
             )
 
             order = interest.order
-            order.preferred_writer_status = "expired"
+            order.preferred_writer_status = PreferredWriterStatus.EXPIRED
             order.save(
                 update_fields=[
                     "preferred_writer_status",
@@ -182,8 +187,8 @@ def fallback_expired_preferred_writer_orders_to_pool(
     failed = 0
 
     queryset = Order.objects.filter(
-        status="ready_for_staffing",
-        preferred_writer_status="expired",
+        status=OrderStatus.READY_FOR_STAFFING,
+        preferred_writer_status=PreferredWriterStatus.EXPIRED,
     ).select_related(
         "website",
         "client",
@@ -194,7 +199,7 @@ def fallback_expired_preferred_writer_orders_to_pool(
         scanned += 1
         try:
             order.visibility_mode = "pool"
-            order.preferred_writer_status = "fallback_to_pool"
+            order.preferred_writer_status = PreferredWriterStatus.FALLBACK_TO_POOL
             order.save(
                 update_fields=[
                     "visibility_mode",
@@ -255,9 +260,9 @@ def send_preferred_writer_staff_visibility_reminders(
     failed = 0
 
     queryset = Order.objects.filter(
-        status="ready_for_staffing",
+        status=OrderStatus.READY_FOR_STAFFING,
         visibility_mode="preferred_writer_only",
-        preferred_writer_status="invited",
+        preferred_writer_status=PreferredWriterStatus.INVITED,
     ).select_related(
         "website",
         "client",

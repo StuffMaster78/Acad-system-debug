@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework.permissions import BasePermission
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 
 class BaseTenantPermission(BasePermission):
@@ -34,7 +36,11 @@ class IsStaffUser(BasePermission):
 
     message = "Only staff users can perform this action."
 
-    def has_permission(self, request, view) -> bool:
+    def has_permission(
+        self,
+        request: Request,
+        view: APIView,
+    ) -> Any:
         return bool(
             request.user
             and getattr(request.user, "is_authenticated", False)
@@ -51,13 +57,19 @@ class IsWriterUser(BasePermission):
 
     message = "Only writers can perform this action."
 
-    def has_permission(self, request, view) -> bool:
+    def has_permission(
+        self,
+        request: Request,
+        view: APIView,
+    ) -> Any:
         return bool(
             request.user
             and getattr(request.user, "is_authenticated", False)
         )
-    
+
+
 # Action Permissions
+
 
 class CanRouteOrderToStaffing(BaseTenantPermission):
     """
@@ -66,12 +78,17 @@ class CanRouteOrderToStaffing(BaseTenantPermission):
 
     message = "You are not allowed to route this order to staffing."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and getattr(request.user, "is_staff", False)
         )
-    
+
 
 class CanExpressInterest(BaseTenantPermission):
     """
@@ -80,12 +97,17 @@ class CanExpressInterest(BaseTenantPermission):
 
     message = "You cannot express interest in this order."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and not getattr(request.user, "is_staff", False)
         )
-    
+
 
 class CanWithdrawInterest(BaseTenantPermission):
     """
@@ -94,13 +116,18 @@ class CanWithdrawInterest(BaseTenantPermission):
 
     message = "You cannot withdraw this interest."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and getattr(obj, "writer_id", None)
             == getattr(request.user, "pk", None)
         )
-    
+
 
 class CanTakeOrder(BaseTenantPermission):
     """
@@ -109,7 +136,12 @@ class CanTakeOrder(BaseTenantPermission):
 
     message = "You cannot take this order."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and not getattr(request.user, "is_staff", False)
@@ -123,12 +155,17 @@ class CanAssignFromInterest(BaseTenantPermission):
 
     message = "You cannot assign this interest."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and getattr(request.user, "is_staff", False)
         )
-    
+
 
 class CanAssignDirect(BaseTenantPermission):
     """
@@ -137,7 +174,12 @@ class CanAssignDirect(BaseTenantPermission):
 
     message = "You cannot assign this order."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and getattr(request.user, "is_staff", False)
@@ -151,13 +193,18 @@ class CanAcceptPreferredWriter(BaseTenantPermission):
 
     message = "You are not the invited preferred writer."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and getattr(obj, "writer_id", None)
             == getattr(request.user, "pk", None)
         )
-    
+
 
 class CanDeclinePreferredWriter(BaseTenantPermission):
     """
@@ -166,13 +213,18 @@ class CanDeclinePreferredWriter(BaseTenantPermission):
 
     message = "You are not the invited preferred writer."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and getattr(obj, "writer_id", None)
             == getattr(request.user, "pk", None)
         )
-    
+
 
 class CanReleaseToPool(BaseTenantPermission):
     """
@@ -181,7 +233,12 @@ class CanReleaseToPool(BaseTenantPermission):
 
     message = "You cannot release this order to pool."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and getattr(request.user, "is_staff", False)

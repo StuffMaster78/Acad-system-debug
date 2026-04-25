@@ -1164,7 +1164,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             if data.get("preferred_writer_id"):
                 temp.preferred_writer_id = int(data["preferred_writer_id"])
             if data.get("writer_level_id"):
-                from pricing_configs.models import WriterLevelOptionConfig
+                from order_pricing_core.models import WriterLevelOptionConfig
                 try:
                     temp.writer_level = WriterLevelOptionConfig.objects.get(id=int(data["writer_level_id"]))
                 except WriterLevelOptionConfig.DoesNotExist:
@@ -1173,7 +1173,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             # Handle extra services - calculate price manually since we can't save M2M on unsaved order
             extra_services_price = Decimal("0.00")
             if data.get("extra_services"):
-                from pricing_configs.models import AdditionalService
+                from order_pricing_core.models import AdditionalService
                 service_ids = data["extra_services"]
                 if isinstance(service_ids, list):
                     services = AdditionalService.objects.filter(id__in=service_ids, is_active=True)
@@ -1248,7 +1248,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         writers = User.objects.filter(id__in=writer_ids).select_related('writer_profile')
         
         # Get preferred writer costs
-        from pricing_configs.models import PreferredWriterConfig
+        from order_pricing_core.models import PreferredWriterConfig
         website = getattr(request.user, 'website', None)
         writer_data = []
         for writer in writers:
@@ -1602,7 +1602,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         
         try:
             with transaction.atomic():
-                from pricing_configs.models import AdditionalService
+                from order_pricing_core.models import AdditionalService
                 from orders.services.pricing_calculator import PricingCalculatorService
                 
                 # Get the services

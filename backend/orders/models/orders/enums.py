@@ -8,26 +8,26 @@ class OrderStatus(models.TextChoices):
     Represent the main order lifecycle states.
 
     These states describe the broad lifecycle of the order itself.
-    They do not try to encode every staffing, revision, adjustment, or
+    They do not encode every staffing, revision, adjustment, or
     deletion subworkflow.
     """
 
     CREATED = "created", "Created"
     UNPAID = "unpaid", "Unpaid"
+    PENDING_PAYMENT = "pending_payment", "Pending Payment"
+    PAID = "paid", "Paid"
     READY_FOR_STAFFING = (
         "ready_for_staffing",
         "Ready for Staffing",
     )
-    PAID = "paid", "Paid"
     IN_PROGRESS = "in_progress", "In Progress"
     ON_HOLD = "on_hold", "On Hold"
-    DISPUTED = "disputed", "Disputed"
+    QA_REVIEW = "qa_review", "QA Review"
     SUBMITTED = "submitted", "Submitted"
     COMPLETED = "completed", "Completed"
-    QA_REVIEW = "qa_review", "QA Review"
+    DISPUTED = "disputed", "Disputed"
     CANCELLED = "cancelled", "Cancelled"
     ARCHIVED = "archived", "Archived"
-
 
 
 class OrderVisibilityMode(models.TextChoices):
@@ -41,6 +41,15 @@ class OrderVisibilityMode(models.TextChoices):
         "preferred_writer_only",
         "Preferred Writer Only",
     )
+
+
+class OrderSpacingOptions(models.TextChoices):
+    """
+    Represent spacing options for an order.
+    """
+
+    SINGLE_SPACING = "single_spacing", "Single Spacing"
+    DOUBLE_SPACING = "double_spacing", "Double Spacing"
 
 
 class PreferredWriterStatus(models.TextChoices):
@@ -131,42 +140,34 @@ class OrderTimelineEventType(models.TextChoices):
     CREATED = "created", "Created"
     PAID = "paid", "Paid"
     POOL_OPENED = "pool_opened", "Pool Opened"
+
     PREFERRED_WRITER_INVITED = (
         "preferred_writer_invited",
         "Preferred Writer Invited",
+    )
+    PREFERRED_WRITER_ACCEPTED = (
+        "preferred_writer_accepted",
+        "Preferred Writer Accepted",
     )
     PREFERRED_WRITER_DECLINED = (
         "preferred_writer_declined",
         "Preferred Writer Declined",
     )
-    INTEREST_CREATED = "interest_created", "Interest Created"
-    ASSIGNED = "assigned", "Assigned"
-    REASSIGNED = "reassigned", "Reassigned"
-    HOLD_REQUESTED = "hold_requested", "Hold Requested"
-    HOLD_ACTIVATED = "hold_activated", "Hold Activated"
-    HOLD_RELEASED = "hold_released", "Hold Released"
-    SUBMITTED = "submitted", "Submitted"
-    COMPLETED = "completed", "Completed"
-    REOPENED = "reopened", "Reopened"
-    DISPUTED = "disputed", "Disputed"
-    CANCELLED = "cancelled", "Cancelled"
-    SOFT_DELETED = "soft_deleted", "Soft Deleted"
-    RESTORED = "restored", "Restored"
-    ADJUSTMENT_CREATED = "adjustment_created", "Adjustment Created"
-    ADJUSTMENT_FUNDED = "adjustment_funded", "Adjustment Funded"
-    INTEREST_WITHDRAWN = "interest_withdrawn", "Interest Withdrawn"
-    PREFERRED_WRITER_ACCEPTED = (
-        "preferred_writer_accepted",
-        "Preferred Writer Accepted",
-    )
     PREFERRED_WRITER_EXPIRED = (
         "preferred_writer_expired",
         "Preferred Writer Expired",
     )
+
+    INTEREST_CREATED = "interest_created", "Interest Created"
+    INTEREST_WITHDRAWN = "interest_withdrawn", "Interest Withdrawn"
+
+    ASSIGNED = "assigned", "Assigned"
+    REASSIGNED = "reassigned", "Reassigned"
     RETURNED_TO_POOL = "returned_to_pool", "Returned To Pool"
+
     REASSIGNMENT_REQUESTED = (
-    "reassignment_requested",
-    "Reassignment Requested",
+        "reassignment_requested",
+        "Reassignment Requested",
     )
     REASSIGNMENT_REJECTED = (
         "reassignment_rejected",
@@ -176,15 +177,32 @@ class OrderTimelineEventType(models.TextChoices):
         "reassignment_cancelled",
         "Reassignment Cancelled",
     )
-    ARCHIVED = "archived", "Archived"
+
+    HOLD_REQUESTED = "hold_requested", "Hold Requested"
+    HOLD_ACTIVATED = "hold_activated", "Hold Activated"
+    HOLD_RELEASED = "hold_released", "Hold Released"
+
     WRITER_ACKNOWLEDGED = (
         "writer_acknowledged",
         "Writer Acknowledged",
     )
-    APPROVED = (
-        "approved",
-        "Approved",
-    )
+
+    SUBMITTED = "submitted", "Submitted"
+    APPROVED = "approved", "Approved"
+    COMPLETED = "completed", "Completed"
+    REOPENED = "reopened", "Reopened"
+
+    DISPUTED = "disputed", "Disputed"
+    CANCELLED = "cancelled", "Cancelled"
+    ARCHIVED = "archived", "Archived"
+
+    SOFT_DELETED = "soft_deleted", "Soft Deleted"
+    RESTORED = "restored", "Restored"
+
+    ADJUSTMENT_CREATED = "adjustment_created", "Adjustment Created"
+    ADJUSTMENT_FUNDED = "adjustment_funded", "Adjustment Funded"
+
+
 class OrderRevisionStatus(models.TextChoices):
     """
     Represent free revision lifecycle states.
@@ -221,6 +239,11 @@ class OrderAdjustmentType(models.TextChoices):
     PAGE_INCREASE = "page_increase", "Page Increase"
     SLIDE_INCREASE = "slide_increase", "Slide Increase"
     DEADLINE_DECREASE = "deadline_decrease", "Deadline Decrease"
+    DIAGRAM_INCREASE = "diagram_increase", "Diagram Increase"
+    DESIGN_CONCEPT_INCREASE = (
+        "design_concept_increase",
+        "Design Concept Increase",
+    )
     EXTRA_SERVICE = "extra_service", "Extra Service"
     PAID_REVISION = "paid_revision", "Paid Revision"
     SCOPE_EXPANSION = "scope_expansion", "Scope Expansion"
@@ -239,9 +262,16 @@ class OrderAdjustmentStatus(models.TextChoices):
     CLIENT_COUNTERED = "client_countered", "Client Countered"
     ACCEPTED = "accepted", "Accepted"
     DECLINED = "declined", "Declined"
-    CANCELLED = "cancelled", "Cancelled"
     FUNDING_PENDING = "funding_pending", "Funding Pending"
     FUNDED = "funded", "Funded"
+    COUNTER_FUNDED_FINAL = (
+        "counter_funded_final",
+        "Counter Funded Final",
+    )
+    APPROVED_BY_STAFF = "approved_by_staff", "Approved By Staff"
+    REJECTED_BY_CLIENT = "rejected_by_client", "Rejected By Client"
+    REJECTED_BY_STAFF = "rejected_by_staff", "Rejected By Staff"
+    CANCELLED = "cancelled", "Cancelled"
     EXPIRED = "expired", "Expired"
     REVERSED = "reversed", "Reversed"
 
@@ -322,8 +352,11 @@ class OrderAdjustmentFundingStatus(models.TextChoices):
     )
     PARTIALLY_FUNDED = "partially_funded", "Partially Funded"
     FUNDED = "funded", "Funded"
+    FAILED = "failed", "Failed"
     CANCELLED = "cancelled", "Cancelled"
     EXPIRED = "expired", "Expired"
+    REFUNDED = "refunded", "Refunded"
+    WAIVED = "waived", "Waived"
     REVERSED = "reversed", "Reversed"
 
 
@@ -348,5 +381,46 @@ class OrderCompensationAdjustmentType(models.TextChoices):
     SLIDE_DELTA = "slide_delta", "Slide Delta"
     EXTRA_SERVICE = "extra_service", "Extra Service"
     DEADLINE_DELTA = "deadline_delta", "Deadline Delta"
+    DIAGREAM_DELTA = "diagram_delta", "Diagram Delta"
+    DESIGN_CONCEPT_DELTA = (
+        "design_concept_delta", "Design Concept Delta"
+    )
     PAID_REVISION = "paid_revision", "Paid Revision"
     OTHER = "other", "Other"
+
+
+class OrderPostCounterEscalationReason(models.TextChoices):
+    """
+    Represent post-counter escalation reasons.
+    """
+
+    SCOPE_UNACCEPTABLE = (
+        "counter_scope_unacceptable",
+        "Counter Scope Unacceptable",
+    )
+
+
+class OrderPaymentStatus(models.TextChoices):
+    """
+    Represent payment states for orders.
+    """
+
+    UNPAID = "unpaid", "Unpaid"
+    PARTIALLY_PAID = "partially_paid", "Partially Paid"
+    FULLY_PAID = "fully_paid", "Fully Paid"
+    REFUNDED = "refunded", "Refunded"
+
+
+class OrderScopeUnitType(models.TextChoices):
+    """
+    Represent the type of scope unit for an order.
+    """
+
+    PAGE = "page", "Page"
+    SLIDE = "slide", "Slide"
+    DESIGN_CONCEPT = "design_concept", "Design Concept"
+    DIAGRAM = "diagram","Diagram"
+    SECTION = "section", "Section"
+    DEADLINE = "deadline", "Deadline"
+    OTHER = "other", "Other"
+    

@@ -5,7 +5,7 @@ from typing import Any
 from django.db import transaction
 from django.utils import timezone
 
-from orders.models import Order
+from orders.models.orders.order import Order
 from orders.models.orders.order_flag import OrderFlag
 
 

@@ -2,44 +2,36 @@ from __future__ import annotations
 
 from django.urls import path
 
-from orders.api.views.adjustments.adjustment_negotiation_views import (
-    AdjustmentAcceptView,
-    AdjustmentCancelView,
-    AdjustmentCounterView,
-    AdjustmentCreateView,
-    AdjustmentDeclineView,
-    AdjustmentStaffOverrideView,
+from orders.api.views.adjustments.client_counter_scope_views import (
+    ClientCounterScopeIncrementView,
+)
+from orders.api.views.adjustments.extra_service_adjustment_views import (
+    ClientAcceptExtraServiceView,
+    CreateExtraServiceAdjustmentView,
+)
+from orders.api.views.adjustments.scope_increment_adjustment_views import (
+    CreateScopeIncrementAdjustmentView,
 )
 
 urlpatterns = [
     path(
-        "orders/<int:order_id>/adjustments/",
-        AdjustmentCreateView.as_view(),
-        name="adjustment-create",
+        "orders/<int:order_id>/adjustments/scope-increment/",
+        CreateScopeIncrementAdjustmentView.as_view(),
+        name="order-adjustment-scope-increment-create",
     ),
     path(
-        "adjustments/<int:adjustment_id>/counter/",
-        AdjustmentCounterView.as_view(),
-        name="adjustment-counter",
+        "orders/<int:order_id>/adjustments/extra-service/",
+        CreateExtraServiceAdjustmentView.as_view(),
+        name="order-adjustment-extra-service-create",
     ),
     path(
-        "adjustments/<int:adjustment_id>/accept/",
-        AdjustmentAcceptView.as_view(),
-        name="adjustment-accept",
+        "orders/adjustments/<int:adjustment_id>/counter-scope/",
+        ClientCounterScopeIncrementView.as_view(),
+        name="order-adjustment-counter-scope",
     ),
     path(
-        "adjustments/<int:adjustment_id>/decline/",
-        AdjustmentDeclineView.as_view(),
-        name="adjustment-decline",
-    ),
-    path(
-        "adjustments/<int:adjustment_id>/cancel/",
-        AdjustmentCancelView.as_view(),
-        name="adjustment-cancel",
-    ),
-    path(
-        "adjustments/<int:adjustment_id>/staff-override/",
-        AdjustmentStaffOverrideView.as_view(),
-        name="adjustment-staff-override",
+        "orders/adjustments/<int:adjustment_id>/accept-extra-service/",
+        ClientAcceptExtraServiceView.as_view(),
+        name="order-adjustment-accept-extra-service",
     ),
 ]

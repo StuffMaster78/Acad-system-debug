@@ -16,6 +16,7 @@ from orders.models.orders.constants import (
     ORDER_REVISION_STATUS_PENDING,
     ORDER_STATUS_COMPLETED,
     ORDER_STATUS_IN_PROGRESS,
+    ORDER_STATUS_SUBMITTED,
 )
 from orders.services.revision_orchestration_service import (
     RevisionOrchestrationService,
@@ -33,12 +34,16 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
         *,
         status: str = ORDER_STATUS_COMPLETED,
         completed_at=None,
+        submitted_at=None,
+        approved_at=None,
     ) -> MagicMock:
         order = MagicMock()
         order.pk = 100
         order.website = self.website
         order.status = status
-        order.completed_at = completed_at or timezone.now()
+        order.completed_at = completed_at
+        order.submitted_at = submitted_at
+        order.approved_at = approved_at
         return order
 
     def _make_revision_request(self, *, order) -> MagicMock:
@@ -84,7 +89,8 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
         mock_create_free_revision_request,
     ) -> None:
         order = self._make_order(
-            completed_at=timezone.now() - timedelta(days=2)
+            status=ORDER_STATUS_COMPLETED,
+            completed_at=timezone.now() - timedelta(days=2),
         )
         revision_request = self._make_revision_request(order=order)
 
@@ -139,7 +145,8 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
         mock_create_free_revision_request,
     ) -> None:
         order = self._make_order(
-            completed_at=timezone.now() - timedelta(days=2)
+            status=ORDER_STATUS_COMPLETED,
+            completed_at=timezone.now() - timedelta(days=2),
         )
         adjustment_request = self._make_adjustment_request(order=order)
 
@@ -195,8 +202,9 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
         mock_create_free_revision_request,
     ) -> None:
         order = self._make_order(
+            status=ORDER_STATUS_COMPLETED,
             completed_at=timezone.now()
-            - timedelta(days=FREE_REVISION_WINDOW_DAYS + 1)
+            - timedelta(days=FREE_REVISION_WINDOW_DAYS + 1),
         )
         adjustment_request = self._make_adjustment_request(order=order)
 
@@ -229,7 +237,10 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
         mock_create_revision_event,
         mock_revision_request_create,
     ) -> None:
-        order = self._make_order()
+        order = self._make_order(
+            status=ORDER_STATUS_COMPLETED,
+            completed_at=timezone.now(),
+        )
         revision_request = self._make_revision_request(order=order)
 
         mock_revision_request_create.return_value = revision_request
@@ -264,7 +275,10 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
         self,
         mock_adjustment_request_create,
     ) -> None:
-        order = self._make_order()
+        order = self._make_order(
+            status=ORDER_STATUS_COMPLETED,
+            completed_at=timezone.now(),
+        )
         adjustment_request = self._make_adjustment_request(order=order)
 
         mock_adjustment_request_create.return_value = adjustment_request
@@ -299,11 +313,28 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
             "out_of_scope",
         )
 
-    def test_is_free_revision_eligible_returns_true_within_scope_and_window(
+    def test_is_free_revision_eligible_returns_true_within_scope_and_window_for_completed(
         self,
     ) -> None:
         order = self._make_order(
-            completed_at=timezone.now() - timedelta(days=2)
+            status=ORDER_STATUS_COMPLETED,
+            completed_at=timezone.now() - timedelta(days=2),
+        )
+
+        result = RevisionOrchestrationService._is_free_revision_eligible(
+            order=order,
+            is_within_original_scope=True,
+        )
+
+        self.assertTrue(result)
+
+    def test_is_free_revision_eligible_returns_true_within_scope_and_window_for_submitted(
+        self,
+    ) -> None:
+        order = self._make_order(
+            status=ORDER_STATUS_SUBMITTED,
+            completed_at=None,
+            submitted_at=timezone.now() - timedelta(days=2),
         )
 
         result = RevisionOrchestrationService._is_free_revision_eligible(
@@ -317,7 +348,8 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
         self,
     ) -> None:
         order = self._make_order(
-            completed_at=timezone.now() - timedelta(days=2)
+            status=ORDER_STATUS_COMPLETED,
+            completed_at=timezone.now() - timedelta(days=2),
         )
 
         result = RevisionOrchestrationService._is_free_revision_eligible(
@@ -331,8 +363,9 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
         self,
     ) -> None:
         order = self._make_order(
+            status=ORDER_STATUS_COMPLETED,
             completed_at=timezone.now()
-            - timedelta(days=FREE_REVISION_WINDOW_DAYS + 1)
+            - timedelta(days=FREE_REVISION_WINDOW_DAYS + 1),
         )
 
         result = RevisionOrchestrationService._is_free_revision_eligible(
@@ -342,10 +375,30 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
 
         self.assertFalse(result)
 
-    def test_build_paid_revision_reject_reason_returns_order_not_completed(
+    def test_is_free_revision_eligible_returns_false_when_reference_time_missing(
         self,
     ) -> None:
-        order = self._make_order(completed_at=None)
+        order = self._make_order(
+            status=ORDER_STATUS_SUBMITTED,
+            completed_at=None,
+            submitted_at=None,
+        )
+
+        result = RevisionOrchestrationService._is_free_revision_eligible(
+            order=order,
+            is_within_original_scope=True,
+        )
+
+        self.assertFalse(result)
+
+    def test_build_paid_revision_reject_reason_returns_reference_time_missing(
+        self,
+    ) -> None:
+        order = self._make_order(
+            status=ORDER_STATUS_SUBMITTED,
+            completed_at=None,
+            submitted_at=None,
+        )
 
         result = (
             RevisionOrchestrationService._build_paid_revision_reject_reason(
@@ -354,13 +407,14 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
             )
         )
 
-        self.assertEqual(result, "order_not_completed")
+        self.assertEqual(result, "revision_reference_time_missing")
 
     def test_build_paid_revision_reject_reason_returns_out_of_scope(
         self,
     ) -> None:
         order = self._make_order(
-            completed_at=timezone.now() - timedelta(days=2)
+            status=ORDER_STATUS_COMPLETED,
+            completed_at=timezone.now() - timedelta(days=2),
         )
 
         result = (
@@ -376,8 +430,9 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
         self,
     ) -> None:
         order = self._make_order(
+            status=ORDER_STATUS_COMPLETED,
             completed_at=timezone.now()
-            - timedelta(days=FREE_REVISION_WINDOW_DAYS + 1)
+            - timedelta(days=FREE_REVISION_WINDOW_DAYS + 1),
         )
 
         result = (
@@ -389,30 +444,100 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
 
         self.assertEqual(result, "free_revision_window_expired")
 
-    def test_ensure_order_can_accept_revision_rejects_non_completed_order(
+    @patch(
+        "orders.services.revision_orchestration_service."
+        "OrderRevisionRequest.objects.select_for_update"
+    )
+    def test_ensure_order_can_accept_revision_rejects_invalid_status(
         self,
+        mock_select_for_update,
     ) -> None:
         order = self._make_order(status=ORDER_STATUS_IN_PROGRESS)
 
+        mock_select_for_update.return_value.filter.return_value.exists.return_value = (
+            False
+        )
+
         with self.assertRaisesMessage(
             ValidationError,
-            "Only completed orders can enter revision routing.",
+            "Only submitted or completed orders can enter revision routing.",
         ):
             RevisionOrchestrationService._ensure_order_can_accept_revision(
                 order
             )
 
-    def test_ensure_order_can_accept_revision_rejects_missing_completed_at(
+    @patch(
+        "orders.services.revision_orchestration_service."
+        "OrderRevisionRequest.objects.select_for_update"
+    )
+    def test_ensure_order_can_accept_revision_rejects_approved_order(
         self,
+        mock_select_for_update,
     ) -> None:
         order = self._make_order(
             status=ORDER_STATUS_COMPLETED,
-            completed_at=None,
+            completed_at=timezone.now(),
+            approved_at=timezone.now(),
+        )
+
+        mock_select_for_update.return_value.filter.return_value.exists.return_value = (
+            False
         )
 
         with self.assertRaisesMessage(
             ValidationError,
-            "Completed orders must have completed_at.",
+            "Approved orders cannot be revised.",
+        ):
+            RevisionOrchestrationService._ensure_order_can_accept_revision(
+                order
+            )
+
+    @patch(
+        "orders.services.revision_orchestration_service."
+        "OrderRevisionRequest.objects.select_for_update"
+    )
+    def test_ensure_order_can_accept_revision_rejects_duplicate_pending_revision(
+        self,
+        mock_select_for_update,
+    ) -> None:
+        order = self._make_order(
+            status=ORDER_STATUS_COMPLETED,
+            completed_at=timezone.now(),
+        )
+
+        mock_select_for_update.return_value.filter.return_value.exists.return_value = (
+            True
+        )
+
+        with self.assertRaisesMessage(
+            ValidationError,
+            "Order already has a pending revision request.",
+        ):
+            RevisionOrchestrationService._ensure_order_can_accept_revision(
+                order
+            )
+
+    @patch(
+        "orders.services.revision_orchestration_service."
+        "OrderRevisionRequest.objects.select_for_update"
+    )
+    def test_ensure_order_can_accept_revision_rejects_missing_reference_time(
+        self,
+        mock_select_for_update,
+    ) -> None:
+        order = self._make_order(
+            status=ORDER_STATUS_SUBMITTED,
+            completed_at=None,
+            submitted_at=None,
+        )
+
+        mock_select_for_update.return_value.filter.return_value.exists.return_value = (
+            False
+        )
+
+        with self.assertRaisesMessage(
+            ValidationError,
+            "Submitted or completed orders must have a revision reference time.",
         ):
             RevisionOrchestrationService._ensure_order_can_accept_revision(
                 order
@@ -421,7 +546,10 @@ class RevisionOrchestrationServiceTests(SimpleTestCase):
     def test_validate_actor_website_raises_for_cross_tenant_actor(
         self,
     ) -> None:
-        order = self._make_order()
+        order = self._make_order(
+            status=ORDER_STATUS_COMPLETED,
+            completed_at=timezone.now(),
+        )
         foreign_actor = SimpleNamespace(pk=99, website_id=999)
 
         with self.assertRaisesMessage(

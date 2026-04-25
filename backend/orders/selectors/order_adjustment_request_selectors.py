@@ -359,3 +359,42 @@ class OrderAdjustmentRequestSelector:
             adjustment_request.billing_payment_request is not None
             or adjustment_request.invoice is not None
         )
+    @staticmethod
+    def get_counterable_adjustments(
+        *, website
+    ) -> QuerySet[OrderAdjustmentRequest]:
+        """
+
+        """
+        return OrderAdjustmentRequest.objects.filter(
+            website=website,
+            status="pending_client_response",
+        ).select_related("order", "requested_by")
+
+    @staticmethod
+    def get_funded_final_adjustments(
+        *, website
+    ) -> QuerySet[OrderAdjustmentRequest]:
+        return OrderAdjustmentRequest.objects.filter(
+            website=website,
+            status="counter_funded_final",
+        ).select_related("order", "requested_by", "countered_by")
+
+    @staticmethod
+    def get_post_counter_escalations(
+        *, website
+    ) -> QuerySet[OrderAdjustmentRequest]:
+        return OrderAdjustmentRequest.objects.filter(
+            website=website,
+            escalated_after_counter=True,
+        ).select_related("order", "requested_by", "resolved_by")
+
+    @staticmethod
+    def get_staff_review_required_adjustments(
+        *, website
+    ) -> QuerySet[OrderAdjustmentRequest]:
+        return OrderAdjustmentRequest.objects.filter(
+            website=website,
+            escalated_after_counter=True,
+            resolved_at__isnull=True,
+        ).select_related("order", "requested_by")

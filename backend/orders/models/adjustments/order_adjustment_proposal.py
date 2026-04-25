@@ -7,6 +7,7 @@ from django.db import models
 from orders.enums import (
     OrderAdjustmentProposalRole,
     OrderAdjustmentProposalType,
+    OrderScopeUnitType,
 )
 from websites.models.websites import Website
 
@@ -48,6 +49,20 @@ class OrderAdjustmentProposal(models.Model):
         max_length=32,
         choices=OrderAdjustmentProposalType.choices,
         help_text="Type of commercial proposal.",
+    )
+    unit_type = models.CharField(
+        max_length=32,
+        choices=OrderScopeUnitType.choices,
+        default=OrderScopeUnitType.OTHER,
+        help_text=(
+            "Unit type for the proposed adjustment"
+            "(e.g. Slides, Diagrams, Design, Pages)."
+        ),
+    )
+    adjustment_kind = models.CharField(
+        max_length=32,
+        blank=True,
+        help_text="Kind of adjustment (e.g. Credit, Refund, Rebill).",
     )
     currency = models.CharField(
         max_length=8,

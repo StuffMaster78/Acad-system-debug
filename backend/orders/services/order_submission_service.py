@@ -17,7 +17,13 @@ from orders.models.orders.constants import (
     ORDER_TIMELINE_EVENT_REOPENED,
     ORDER_TIMELINE_EVENT_SUBMITTED,
 )
-
+from orders.services.policies.order_status_transition_policy import (
+    validate_status_transition,
+)
+from orders.models.orders.enums import OrderStatus
+from orders.services.order_transition_service import (
+    OrderTransitionService,
+)
 
 class OrderSubmissionService:
     """
@@ -67,6 +73,11 @@ class OrderSubmissionService:
             raise ValidationError(
                 "Only the current assigned writer can submit the order."
             )
+        
+        validate_status_transition(
+            from_status=locked_order.status,
+            to_status=ORDER_STATUS_SUBMITTED,
+        )
 
         locked_order.status = ORDER_STATUS_SUBMITTED
         locked_order.submitted_at = timezone.now()
@@ -87,7 +98,48 @@ class OrderSubmissionService:
             },
         )
         return locked_order
+    @classmethod
+    @transaction.atomic
+    def submit_directly_to_client(
+        cls,
+        *,
+        order,
+        submitted_by,
+    ):
+        """
+        Submit order directly to client when QA is not required.
+        """
+        if order.status != OrderStatus.IN_PROGRESS:
+            raise ValidationError(
+                "Only in-progress orders can be submitted."
+            )
 
+        return OrderTransitionService.mark_submitted(
+            order=order,
+            actor=submitted_by,
+        )
+
+    @classmethod
+    @transaction.atomic
+    def submit_to_qa(
+        cls,
+        *,
+        order,
+        submitted_by,
+    ):
+        """
+        Submit order to QA review.
+        """
+        if order.status != OrderStatus.IN_PROGRESS:
+            raise ValidationError(
+                "Only in-progress orders can be submitted to QA."
+            )
+
+        return OrderTransitionService.mark_qa_review(
+            order=order,
+            actor=submitted_by,
+        )
+    
     @classmethod
     @transaction.atomic
     def complete_order(
@@ -131,6 +183,11 @@ class OrderSubmissionService:
 
         cls._ensure_can_complete(locked_order)
         cls._validate_actor_website(actor=completed_by, order=locked_order)
+
+        validate_status_transition(
+            from_status=locked_order.status,
+            to_status=ORDER_STATUS_COMPLETED,
+        )
 
         locked_order.status = ORDER_STATUS_COMPLETED
         locked_order.completed_at = timezone.now()
@@ -185,6 +242,11 @@ class OrderSubmissionService:
         locked_order = cls._lock_order(order)
 
         cls._ensure_can_complete(locked_order)
+
+        validate_status_transition(
+            from_status=locked_order.status,
+            to_status=ORDER_STATUS_COMPLETED,
+        )
 
         locked_order.status = ORDER_STATUS_COMPLETED
         locked_order.completed_at = timezone.now()
@@ -251,6 +313,11 @@ class OrderSubmissionService:
                 "A current assignment is required to reopen the order."
             )
 
+        validate_status_transition(
+            from_status=locked_order.status,
+            to_status=ORDER_STATUS_IN_PROGRESS,
+        )
+                
         locked_order.status = ORDER_STATUS_IN_PROGRESS
         locked_order.save(
             update_fields=[
