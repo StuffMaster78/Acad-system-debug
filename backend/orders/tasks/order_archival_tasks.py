@@ -8,6 +8,7 @@ from orders.models.orders.order import Order
 from orders.services.order_archival_service import (
     OrderArchivalService,
 )
+from orders.models.orders.enums import OrderStatus
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ def auto_archive_eligible_orders(self) -> dict[str, int]:
     failed = 0
 
     queryset = Order.objects.filter(
-        status="completed",
+        status=OrderStatus.COMPLETED,
         archived_at__isnull=True,
     ).only(
         "id",

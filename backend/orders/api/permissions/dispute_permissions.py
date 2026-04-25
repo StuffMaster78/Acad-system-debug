@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework.permissions import BasePermission
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 
 class BaseDisputeTenantPermission(BasePermission):
@@ -28,7 +30,12 @@ class CanOpenDispute(BaseDisputeTenantPermission):
 
     message = "You are not allowed to open a dispute for this order."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         if not self._same_tenant(request.user, obj):
             return False
 
@@ -56,7 +63,12 @@ class CanEscalateDispute(BaseDisputeTenantPermission):
 
     message = "You are not allowed to escalate this dispute."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and getattr(request.user, "is_staff", False)
@@ -70,7 +82,12 @@ class CanResolveDispute(BaseDisputeTenantPermission):
 
     message = "You are not allowed to resolve this dispute."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and getattr(request.user, "is_staff", False)
@@ -84,7 +101,12 @@ class CanCloseDispute(BaseDisputeTenantPermission):
 
     message = "You are not allowed to close this dispute."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         return (
             self._same_tenant(request.user, obj)
             and getattr(request.user, "is_staff", False)

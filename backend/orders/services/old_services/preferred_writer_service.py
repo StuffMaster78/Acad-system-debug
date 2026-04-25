@@ -4,7 +4,7 @@ from django.db import transaction
 from django.core.cache import cache
 from orders.models.orders import Order
 from django.contrib.auth import get_user_model
-from pricing_configs.models import PreferredWriterConfig
+from order_pricing_core.models import PreferredWriterConfig
 
 User = get_user_model()
 

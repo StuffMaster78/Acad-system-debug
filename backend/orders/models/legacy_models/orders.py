@@ -15,7 +15,7 @@ from websites.models.websites import Website
 from discounts.models.discount import Discount
 from order_configs.models import WriterDeadlineConfig
 from order_configs.models import AcademicLevel
-from pricing_configs.models import PricingConfiguration
+from order_pricing_core.models import PricingConfiguration
 from django.core.exceptions import ValidationError
 
 from orders.services.pricing_calculator import PricingCalculatorService
@@ -767,7 +767,7 @@ class Order(models.Model):
                     # This allows orders to be created before pricing config is set up
                     if not self.total_price:
                         # Set a default price based on pages if available
-                        from pricing_configs.models import PricingConfiguration
+                        from order_pricing_core.models import PricingConfiguration
                         config = PricingConfiguration.objects.filter(
                             website=self.website
                         ).first()

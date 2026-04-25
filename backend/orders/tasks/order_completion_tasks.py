@@ -14,6 +14,10 @@ from orders.services.order_approval_service import (
 from orders.services.order_archival_service import (
     OrderArchivalService,
 )
+from orders.services.order_reminder_service import (
+    OrderReminderService,
+)
+from orders.models.orders.enums import OrderStatus
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +42,7 @@ def auto_approve_eligible_orders(self) -> dict[str, int]:
     failed = 0
 
     queryset = Order.objects.filter(
-        status="submitted",
+        status=OrderStatus.SUBMITTED,
         approved_at__isnull=True,
     ).only(
         "id",
@@ -63,7 +67,7 @@ def auto_approve_eligible_orders(self) -> dict[str, int]:
         except Exception:
             failed += 1
             logger.exception(
-                "Failed to auto approve order.",
+                "Failed to auto approve eligible order.",
                 extra={"order_id": order.pk},
             )
 
@@ -94,7 +98,7 @@ def send_completion_approval_reminders(self) -> dict[str, int]:
     failed = 0
 
     queryset = Order.objects.filter(
-        status="submitted",
+        status=OrderStatus.SUBMITTED,
         approved_at__isnull=True,
     ).select_related(
         "website",
@@ -104,28 +108,32 @@ def send_completion_approval_reminders(self) -> dict[str, int]:
     for order in queryset.iterator(chunk_size=200):
         scanned += 1
         try:
-            client = getattr(order, "client", None)
-            if client is None:
-                continue
-
-            submitted_at = getattr(order, "submitted_at", None)
-            submitted_at_iso = (
-                submitted_at.isoformat()
-                if submitted_at is not None
-                else None
-            )
-
-            NotificationService.notify(
-                event_key="order.completion.approval_reminder",
-                recipient=client,
-                website=order.website,
-                context={
-                    "order_id": order.pk,
-                    "submitted_at": submitted_at_iso,
-                },
+            was_sent = OrderReminderService.send_approval_reminder(
+                order=order,
                 triggered_by=None,
             )
-            reminded += 1
+            if was_sent:
+                client = getattr(order, "client", None)
+                if client is None:
+                        continue
+
+                submitted_at = getattr(order, "submitted_at", None)
+                submitted_at_iso = (
+                    submitted_at.isoformat()
+                    if submitted_at is not None
+                    else None
+                )
+                NotificationService.notify(
+                    event_key="order.completion.approval_reminder",
+                    recipient=client,
+                    website=order.website,
+                    context={
+                        "order_id": order.pk,
+                        "submitted_at": submitted_at_iso,
+                    },
+                triggered_by=None,
+            )
+                reminded += 1
         except Exception:
             failed += 1
             logger.exception(

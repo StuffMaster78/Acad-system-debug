@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework.permissions import BasePermission
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 
 class CanViewOrderLifecycle(BasePermission):
@@ -13,7 +15,12 @@ class CanViewOrderLifecycle(BasePermission):
 
     message = "You are not allowed to view this order lifecycle."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         user = request.user
 
         order_website = getattr(obj, "website", None)

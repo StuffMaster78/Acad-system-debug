@@ -11,6 +11,7 @@ from orders.services.order_approval_service import (
 from orders.services.order_reminder_service import (
     OrderReminderService,
 )
+from orders.models.orders.enums import OrderStatus
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def auto_approve_eligible_orders(self) -> dict[str, int]:
     failed = 0
 
     queryset = Order.objects.filter(
-        status="submitted",
+        status=OrderStatus.SUBMITTED,
         approved_at__isnull=True,
     ).only(
         "id",
@@ -93,7 +94,7 @@ def send_order_approval_reminders(self) -> dict[str, int]:
     failed = 0
 
     queryset = Order.objects.filter(
-        status="submitted",
+        status=OrderStatus.SUBMITTED,
         approved_at__isnull=True,
     ).select_related(
         "website",

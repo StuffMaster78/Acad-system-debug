@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import datetime
 
 
-from authentication.models import AuditLog
+from authentication.models. import AuditLog
 
 logger = logging.getLogger(__name__)
 

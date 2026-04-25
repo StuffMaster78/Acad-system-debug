@@ -6,7 +6,10 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from orders.models import Order, OrderTimelineEvent
+from orders.models.orders.order import Order
+from orders.models.orders.order_timeline_event import (
+    OrderTimelineEvent,
+)
 from orders.models.orders.constants import ORDER_STATUS_IN_PROGRESS
 
 

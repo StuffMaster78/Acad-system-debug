@@ -6,7 +6,10 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from orders.models import Order, OrderTimelineEvent
+from orders.models.orders.order import Order
+from orders.models.orders.order_timeline_event import (
+    OrderTimelineEvent,
+)
 from orders.models.orders.constants import (
     ORDER_ASSIGNMENT_STATUS_RELEASED,
     ORDER_STATUS_CANCELLED,
@@ -18,7 +21,9 @@ from orders.services.policies.order_cancellation_policy import (
 from orders.services.staffing.order_staffing_store import (
     OrderStaffingStore,
 )
-
+from orders.services.policies.order_status_transition_policy import (
+    validate_status_transition,
+)
 
 class OrderCancellationService:
     """
@@ -64,6 +69,11 @@ class OrderCancellationService:
         cls._validate_actor_website(actor=cancelled_by, order=locked_order)
         cls._validate_refund_destination(
             refund_destination=refund_destination
+        )
+
+        validate_status_transition(
+            from_status=locked_order.status,
+            to_status=ORDER_STATUS_CANCELLED,
         )
 
         current_assignment = OrderStaffingStore.get_current_assignment(

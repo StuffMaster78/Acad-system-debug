@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework.permissions import BasePermission
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 
 class BaseRevisionTenantPermission(BasePermission):
@@ -28,7 +30,12 @@ class CanRequestRevision(BaseRevisionTenantPermission):
 
     message = "You are not allowed to request revision for this order."
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ) -> Any:
         if not self._same_tenant(request.user, obj):
             return False
 

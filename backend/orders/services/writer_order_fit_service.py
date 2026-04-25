@@ -5,8 +5,10 @@ from typing import Any
 
 from django.core.exceptions import ValidationError
 
-from orders.models import Order
-from orders.services.order_flagging_service import OrderFlaggingService
+from orders.models.orders.order import Order
+from orders.services.order_flagging_service import (
+    OrderFlaggingService,
+)
 
 
 @dataclass(frozen=True)

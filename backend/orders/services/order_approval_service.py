@@ -7,7 +7,10 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from orders.models import Order, OrderTimelineEvent
+from orders.models.orders.order import Order
+from orders.models.orders.order_timeline_event import (
+    OrderTimelineEvent,
+)
 from orders.models.orders.constants import (
     FREE_REVISION_WINDOW_DAYS,
     ORDER_STATUS_COMPLETED,
@@ -25,7 +28,7 @@ class OrderApprovalService:
         3. Timeline event creation for approval milestones.
 
     Approval is a post-completion milestone.
-    Reviews, ratungs, and tips can happen after approval.
+    Reviews, ratings, and tips can happen after approval.
     """
 
     AUTO_APPROVAL_WINDOW_DAYS = FREE_REVISION_WINDOW_DAYS
@@ -135,10 +138,10 @@ class OrderApprovalService:
                 "approval_mode": "auto",
                 "approved_at": approved_at.isoformat(),
                    "completed_at": (
-                    locked_order.completed_at.isoformat()
-                    if locked_order.completed_at is not None
-                    else None
-                ),
+                        locked_order.completed_at.isoformat()
+                        if locked_order.completed_at is not None
+                        else None
+                    ),
             },
         )
         return locked_order
@@ -156,9 +159,6 @@ class OrderApprovalService:
             bool:
                 True when the order can be auto approved.
         """
-        # if order.status != ORDER_STATUS_SUBMITTED:
-        #     return False
-        
         if order.status != ORDER_STATUS_COMPLETED:
             return False
 

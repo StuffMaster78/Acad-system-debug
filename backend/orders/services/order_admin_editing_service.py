@@ -6,7 +6,10 @@ from typing import Any, Optional
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from orders.models import Order, OrderTimelineEvent
+from orders.models.orders.order import Order
+from orders.models.orders.order_timeline_event import (
+    OrderTimelineEvent,
+)
 from orders.services.order_flagging_service import OrderFlaggingService
 
 

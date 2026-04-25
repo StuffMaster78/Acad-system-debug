@@ -68,6 +68,11 @@ class OrderInterest(models.Model):
         blank=True,
         help_text="When the interest was withdrawn.",
     )
+    last_preferred_writer_reminder_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the last preferred writer reminder was sent.",
+    )
     metadata = models.JSONField(
         default=dict,
         blank=True,

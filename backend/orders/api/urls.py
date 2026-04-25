@@ -14,4 +14,10 @@ urlpatterns = [
     path("", include("orders.api.urls.lifecycle")),
     path("", include("orders.api.urls.approval")),
     path("", include("orders.api.urls.monitoring")),
+    path("", include("orders.api.urls.order_action_urls")),
+    path("", include("orders.api.urls.order_creation_urls")),
+    path("", include("orders.api.urls.order_ops_dashboard")),
+    path("", include("orders.api.urls.order_qa_urls")),
+    path("", include("orders.api.urls.draft_urls")),
+    path("", include("orders.api.urls.progressive_delivery_urls")),
 ]

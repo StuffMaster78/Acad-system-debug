@@ -49,7 +49,9 @@ from orders.models.orders.constants import (
     PREFERRED_WRITER_STATUS_INVITED,
     PREFERRED_WRITER_STATUS_NOT_REQUESTED,
 )
-
+from orders.services.policies.order_status_transition_policy import (
+    validate_status_transition,
+)
 
 class OrderStaffingService:
     """
@@ -163,15 +165,11 @@ class OrderStaffingService:
 
         cls._validate_writer_website(writer=writer, order=locked_order)
 
-        existing_interest = (
-            OrderInterest.objects.select_for_update()
-            .filter(
-                order=locked_order,
-                writer=writer,
-                status=ORDER_INTEREST_STATUS_PENDING,
-            )
-            .first()
+        existing_interest = cls._get_pending_interest(
+            order=locked_order,
+            writer=writer,
         )
+
         if existing_interest is not None:
             raise ValidationError(
                 "Writer already has a pending interest for this order."
@@ -302,15 +300,10 @@ class OrderStaffingService:
         cls._ensure_no_current_assignment(locked_order)
         cls._validate_writer_website(writer=writer, order=locked_order)
 
-        existing_interest = (
-            OrderInterest.objects.select_for_update()
-            .filter(
-                order=locked_order,
-                writer=writer,
-                interest_type=ORDER_INTEREST_TYPE_REQUEST_TAKE,
-                status=ORDER_INTEREST_STATUS_PENDING,
-            )
-            .first()
+        existing_interest = cls._get_pending_interest(
+            order=locked_order,
+            writer=writer,
+            interest_type=ORDER_INTEREST_TYPE_REQUEST_TAKE,
         )
 
         if existing_interest is None:
@@ -532,23 +525,11 @@ class OrderStaffingService:
         cls._ensure_no_current_assignment(locked_order)
         cls._validate_writer_website(writer=writer, order=locked_order)
 
-        if locked_interest.writer != writer:
-            raise ValidationError(
-                "Only the invited writer can accept this invitation."
-            )
-
-        if (
-            locked_interest.interest_type
-            != ORDER_INTEREST_TYPE_PREFERRED_WRITER_INVITATION
-        ):
-            raise ValidationError(
-                "Interest is not a preferred writer invitation."
-            )
-
-        if locked_interest.status != ORDER_INTEREST_STATUS_PENDING:
-            raise ValidationError(
-                "Only pending preferred writer invitations can be accepted."
-            )
+        cls._ensure_pending_preferred_invitation_for_writer(
+            interest=locked_interest,
+            writer=writer,
+            action="accept",
+        )
 
         locked_interest.status = ORDER_INTEREST_STATUS_ACCEPTED
         locked_interest.reviewed_by = triggered_by or writer
@@ -619,23 +600,11 @@ class OrderStaffingService:
         locked_interest = cls._lock_interest(interest)
         locked_order = cls._lock_order(locked_interest.order)
 
-        if locked_interest.writer != writer:
-            raise ValidationError(
-                "Only the invited writer can decline this invitation."
-            )
-
-        if (
-            locked_interest.interest_type
-            != ORDER_INTEREST_TYPE_PREFERRED_WRITER_INVITATION
-        ):
-            raise ValidationError(
-                "Interest is not a preferred writer invitation."
-            )
-
-        if locked_interest.status != ORDER_INTEREST_STATUS_PENDING:
-            raise ValidationError(
-                "Only pending preferred writer invitations can be declined."
-            )
+        cls._ensure_pending_preferred_invitation_for_writer(
+            interest=locked_interest,
+            writer=writer,
+            action="decline",
+        )
 
         locked_interest.status = ORDER_INTEREST_STATUS_DECLINED
         locked_interest.reviewed_by = triggered_by or writer
@@ -801,7 +770,7 @@ class OrderStaffingService:
             raise ValidationError(
                 "Cannot return an order to the pool without an assignment."
             )
-
+        
         current_assignment.status = ORDER_ASSIGNMENT_STATUS_RELEASED
         current_assignment.is_current = False
         current_assignment.released_at = timezone.now()
@@ -814,6 +783,11 @@ class OrderStaffingService:
                 "release_reason",
                 "updated_at",
             ]
+        )
+
+        validate_status_transition(
+            from_status=locked_order.status,
+            to_status=ORDER_STATUS_READY_FOR_STAFFING,
         )
 
         locked_order.status = ORDER_STATUS_READY_FOR_STAFFING
@@ -1052,12 +1026,17 @@ class OrderStaffingService:
             metadata:
                 Structured metadata for the timeline event.
         """
+        validate_status_transition(
+            from_status=order.status,
+            to_status=ORDER_STATUS_IN_PROGRESS,
+        )
         order.status = ORDER_STATUS_IN_PROGRESS
         order.visibility_mode = ORDER_VISIBILITY_HIDDEN
         if order.preferred_writer_status == PREFERRED_WRITER_STATUS_INVITED:
             order.preferred_writer_status = (
                 PREFERRED_WRITER_STATUS_ACCEPTED
             )
+        
         order.save(
             update_fields=[
                 "status",
@@ -1293,3 +1272,87 @@ class OrderStaffingService:
             actor=actor,
             metadata=metadata,
         )
+    
+    @classmethod
+    def _get_pending_interest(
+        cls,
+        *,
+        order: Order,
+        writer: Any,
+        interest_type: Optional[str] = None,
+    ) -> Optional[OrderInterest]:
+        """
+        Return a pending interest for a writer on an order.
+
+        Args:
+            order:
+                Order being checked.
+            writer:
+                Writer being checked.
+            interest_type:
+                Optional specific interest type filter.
+
+        Returns:
+            Optional[OrderInterest]:
+                Pending interest if one exists.
+        """
+        queryset = OrderInterest.objects.select_for_update().filter(
+            order=order,
+            writer=writer,
+            status=ORDER_INTEREST_STATUS_PENDING,
+        )
+
+        if interest_type is not None:
+            queryset = queryset.filter(interest_type=interest_type)
+
+        return queryset.first()
+    
+
+    @classmethod
+    def _ensure_pending_preferred_invitation_for_writer(
+        cls,
+        *,
+        interest: OrderInterest,
+        writer: Any,
+        action: str,
+    ) -> None:
+        """
+        Ensure the provided interest is a valid pending preferred writer
+        invitation for the given writer.
+
+        This validation enforces:
+            1. The interest belongs to the provided writer.
+            2. The interest is of type preferred writer invitation.
+            3. The interest is still pending.
+
+        Args:
+            interest:
+                Interest record being validated.
+            writer:
+                Writer performing the action.
+            action:
+                Human readable action (e.g. "accept", "decline") used
+                to tailor validation error messages.
+
+        Raises:
+            ValidationError:
+                Raised when the interest does not represent a valid
+                pending preferred writer invitation for the writer.
+        """
+        if interest.writer != writer:
+            raise ValidationError(
+                f"Only the invited writer can {action} this invitation."
+            )
+
+        if (
+            interest.interest_type
+            != ORDER_INTEREST_TYPE_PREFERRED_WRITER_INVITATION
+        ):
+            raise ValidationError(
+                "Interest is not a preferred writer invitation."
+            )
+
+        if interest.status != ORDER_INTEREST_STATUS_PENDING:
+            raise ValidationError(
+                f"Only pending preferred writer invitations can be {action}."
+            )

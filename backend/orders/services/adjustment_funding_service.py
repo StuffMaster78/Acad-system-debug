@@ -19,6 +19,12 @@ from orders.models.adjustments.order_adjustment_request import (
 from orders.models.adjustments.order_compensation_adjustment import (
     OrderCompensationAdjustment,
 )
+from orders.services.adjustment_negotiation_service import (
+    AdjustmentNegotiationService,
+)
+from orders.services.adjustment_scope_application_service import (
+    AdjustmentScopeApplicationService,
+)
 from orders.models.orders.constants import (
     ORDER_ADJUSTMENT_EVENT_BILLING_CREATED,
     ORDER_ADJUSTMENT_EVENT_COMPENSATION_CREATED,
@@ -32,6 +38,8 @@ from orders.models.orders.constants import (
     ORDER_ADJUSTMENT_FUNDING_STATUS_PAYMENT_INTENT_CREATED,
     ORDER_ADJUSTMENT_FUNDING_STATUS_PAYMENT_REQUEST_CREATED,
     ORDER_ADJUSTMENT_STATUS_ACCEPTED,
+    ORDER_ADJUSTMENT_STATUS_CLIENT_COUNTERED,
+    ORDER_ADJUSTMENT_STATUS_COUNTER_FUNDED_FINAL,
     ORDER_ADJUSTMENT_STATUS_FUNDED,
     ORDER_ADJUSTMENT_STATUS_FUNDING_PENDING,
     ORDER_COMPENSATION_ADJUSTMENT_STATUS_PENDING,
@@ -63,6 +71,7 @@ class AdjustmentFundingService:
         cls._validate_amount(amount_expected)
 
         existing_funding = cls._get_funding_record(locked_request)
+        
         if existing_funding is not None:
             raise ValidationError(
                 "Adjustment request already has a funding record."
@@ -78,6 +87,7 @@ class AdjustmentFundingService:
             amount_paid=Decimal("0.00"),
             metadata={},
         )
+        
 
         locked_request.status = ORDER_ADJUSTMENT_STATUS_FUNDING_PENDING
         locked_request.save(
@@ -254,11 +264,22 @@ class AdjustmentFundingService:
         locked_request = cls._lock_request(
             locked_funding.adjustment_request
         )
-        locked_request.status = ORDER_ADJUSTMENT_STATUS_FUNDED
+        final_status = ORDER_ADJUSTMENT_STATUS_FUNDED
+        if locked_request.status == ORDER_ADJUSTMENT_STATUS_CLIENT_COUNTERED:
+            # If the request was client-countered, we move it to accepted
+            # status instead of funded, as the client counteroffer is no
+            # longer valid but the original offer is still accepted.
+            final_status = ORDER_ADJUSTMENT_STATUS_COUNTER_FUNDED_FINAL
+            locked_request.is_counter_final = True
+            
+        locked_request.status = final_status
+        locked_request.funded_at = locked_funding.funded_at
         locked_request.save(
             update_fields=[
                 "status",
                 "updated_at",
+                "is_counter_final",
+                "funded_at",
             ]
         )
 
@@ -282,14 +303,21 @@ class AdjustmentFundingService:
             metadata={
                 "funding_id": locked_funding.pk,
                 "funded_at": (
-                    funded_at.isoformat()
+                    locked_funding.funded_at.isoformat()
+                    if locked_funding.funded_at is not None
+                    else ""
                 ),
+                "final_status": final_status,
+                "amount_applied": str(amount),
+                "amount_paid": str(new_amount_paid),
+                "amount_expected": str(locked_funding.amount_expected),
+                "external_reference": external_reference,
+            
             },
         )
 
-        cls._create_compensation_adjustment(
+        AdjustmentScopeApplicationService.apply_funded_adjustment(
             adjustment_request=locked_request,
-            amount=locked_funding.amount_expected,
             triggered_by=triggered_by,
         )
 
@@ -334,11 +362,18 @@ class AdjustmentFundingService:
     ) -> None:
         """
         Ensure the adjustment request is accepted and ready for funding.
+        The scope of the adjustment should have already been finalized
+        at this point, so we only allow requests in accepted or
+        client-countered status to enter funding.
         """
-        if adjustment_request.status != ORDER_ADJUSTMENT_STATUS_ACCEPTED:
+        if adjustment_request.status not in {
+            ORDER_ADJUSTMENT_STATUS_ACCEPTED,
+            ORDER_ADJUSTMENT_STATUS_CLIENT_COUNTERED,
+        }:
             raise ValidationError(
-                "Only accepted adjustment requests can enter funding."
+                "Only accepted  or client-countered adjustment requests can enter funding."
             )
+        
 
     @classmethod
     def _validate_amount(cls, amount: Decimal) -> None:

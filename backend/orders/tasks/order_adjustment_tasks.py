@@ -8,7 +8,7 @@ from django.utils import timezone
 from notifications_system.services.notification_service import (
     NotificationService,
 )
-from orders.models import OrderAdjustmentFunding, OrderAdjustmentRequest
+from orders.models.adjustments import OrderAdjustmentFunding, OrderAdjustmentRequest
 
 logger = logging.getLogger(__name__)
 

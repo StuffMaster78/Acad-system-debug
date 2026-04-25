@@ -62,7 +62,7 @@ class RevisionOrchestrationService:
 
         Args:
             order:
-                Completed order being reviewed for revision.
+                Submitted or completed order being reviewed for revision.
             requested_by:
                 Actor requesting the revision.
             reason:
@@ -120,9 +120,10 @@ class RevisionOrchestrationService:
         Determine whether the revision qualifies as free.
 
         Free revision requires:
-            1. Order completed_at exists
-            2. Request falls within the configured window
-            3. Request stays within original scope
+            1. A revision reference time exists
+                (completed_at or submitted_at).
+            2. Request falls within the configured window.
+            3. Request stays within original scope.
         """
         reference_time = (
             order.completed_at
@@ -253,7 +254,32 @@ class RevisionOrchestrationService:
             )
         if getattr(order, "approved_at", None) is not None:
             raise ValidationError(
-                "Approved orders cannot be revised unless overridden."
+                "Approved orders cannot be revised."
+            )
+        
+        existing_open_paid_revision_adjustment = (
+            OrderAdjustmentRequest.objects.select_for_update()
+            .filter(
+                order=order,
+                adjustment_type=ORDER_ADJUSTMENT_TYPE_PAID_REVISION,
+                status=ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE,
+            )
+            .exists()
+        )
+
+        if existing_open_paid_revision_adjustment:
+            raise ValidationError(
+                "Order already has a pending paid revision adjustment."
+            )
+        
+        existing_open_revision = OrderRevisionRequest.objects.select_for_update().filter(
+            order=order,
+            status=ORDER_REVISION_STATUS_PENDING,
+        ).exists()
+
+        if existing_open_revision:
+            raise ValidationError(
+                "Order already has a pending revision request."
             )
         
         reference_time = (

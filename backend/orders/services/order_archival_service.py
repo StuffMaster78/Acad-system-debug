@@ -1,16 +1,32 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional
+from typing import Optional, Any
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from orders.models import Order, OrderTimelineEvent
+from orders.models.orders.order import Order
+from orders.models.orders.order_timeline_event import (
+    OrderTimelineEvent,
+)
+from orders.models.disputes.order_dispute import OrderDispute
+from orders.models.revisions.order_revision_request import (
+    OrderRevisionRequest,
+)
+from orders.models.adjustments.order_adjustment_request import (
+    OrderAdjustmentRequest,
+)
 from orders.models.orders.constants import (
     ORDER_STATUS_ARCHIVED,
     ORDER_STATUS_COMPLETED,
+    ORDER_REVISION_STATUS_PENDING,
+    ORDER_ADJUSTMENT_TYPE_PAID_REVISION,
+    ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE,
+)
+from orders.services.policies.order_status_transition_policy import (
+    validate_status_transition,
 )
 
 
@@ -26,8 +42,9 @@ class OrderArchivalService:
     Notes:
         1. Archival is a lifecycle transition, so it belongs in orders.
         2. This service should not archive orders with unresolved work
-           such as open disputes or pending reassignment requests. Those
-           checks can be expanded later as the system matures.
+           such as active disputes or pending revisions,
+           or pending paid revision adjustments.
+           Those checks can be expanded later as the system matures.
     """
 
     AUTO_ARCHIVE_WINDOW_DAYS = 30
@@ -39,7 +56,9 @@ class OrderArchivalService:
         cls,
         *,
         order: Order,
-        triggered_by=None,
+        archived_by: Optional[Any] = None,
+        triggered_by: Optional[Any] = None,
+        reason: str = "",
     ) -> Order:
         """
         Explicitly archive an eligible order.
@@ -59,11 +78,27 @@ class OrderArchivalService:
                 Raised when the order cannot be archived.
         """
         locked_order = cls._lock_order(order)
-        cls._ensure_can_archive(locked_order)
 
-        archived_at = timezone.now()
-        locked_order.archived_at = archived_at
+        cls._ensure_can_archive(locked_order)
+        if archived_by is not None:
+            cls._validate_actor_website(
+                actor=archived_by,
+                order=locked_order,
+            )
+
+        validate_status_transition(
+            from_status=locked_order.status,
+            to_status=ORDER_STATUS_ARCHIVED,
+        )
+
+        cls._ensure_no_active_dispute(order=locked_order)
+        cls._ensure_no_pending_revision(order=locked_order)
+        cls._ensure_no_pending_paid_revision_adjustment(
+            order=locked_order,
+        )
+        
         locked_order.status = ORDER_STATUS_ARCHIVED
+        locked_order.archived_at = timezone.now()
         locked_order.save(
             update_fields=[
                 "archived_at",
@@ -75,10 +110,11 @@ class OrderArchivalService:
         cls._create_timeline_event(
             order=locked_order,
             event_type=cls.TIMELINE_EVENT_ARCHIVED,
-            actor=triggered_by,
+            actor=triggered_by or archived_by,
             metadata={
-                "archived_at": archived_at.isoformat(),
+                "archived_by_id": getattr(archived_by, "pk", None),
                 "archive_mode": "explicit",
+                "reason": reason,
             },
         )
         return locked_order
@@ -89,7 +125,7 @@ class OrderArchivalService:
         cls,
         *,
         order: Order,
-        triggered_by=None,
+        triggered_by: Optional[Any] = None,
     ) -> Order:
         """
         Automatically archive an eligible completed order.
@@ -110,6 +146,17 @@ class OrderArchivalService:
         """
         locked_order = cls._lock_order(order)
         cls._ensure_can_auto_archive(locked_order)
+
+        validate_status_transition(
+            from_status=locked_order.status,
+            to_status=ORDER_STATUS_ARCHIVED,
+        )
+
+        cls._ensure_no_active_dispute(order=locked_order)
+        cls._ensure_no_pending_revision(order=locked_order)
+        cls._ensure_no_pending_paid_revision_adjustment(
+            order=locked_order,
+        )
 
         archived_at = timezone.now()
         locked_order.archived_at = archived_at
@@ -159,6 +206,29 @@ class OrderArchivalService:
         completed_at = getattr(order, "completed_at", None)
         if completed_at is None:
             return False
+        
+        active_dispute_exists = OrderDispute.objects.filter(
+            order=order,
+            is_active=True,
+        ).exists()
+        if active_dispute_exists:
+            return False
+
+        pending_revision_exists = OrderRevisionRequest.objects.filter(
+            order=order,
+            status=ORDER_REVISION_STATUS_PENDING,
+        ).exists()
+        if pending_revision_exists:
+            return False
+
+        pending_adjustment_exists = OrderAdjustmentRequest.objects.filter(
+            order=order,
+            adjustment_type=ORDER_ADJUSTMENT_TYPE_PAID_REVISION,
+            status=ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE,
+        ).exists()
+        if pending_adjustment_exists:
+            return False
+
 
         archive_after = completed_at + timedelta(
             days=cls.AUTO_ARCHIVE_WINDOW_DAYS
@@ -184,6 +254,11 @@ class OrderArchivalService:
         if order.status != ORDER_STATUS_COMPLETED:
             raise ValidationError(
                 "Only completed orders can be archived."
+            )
+        
+        if getattr(order, "completed_at", None) is None:
+            raise ValidationError(
+                "Completed orders must have completed_at."
             )
 
         if getattr(order, "archived_at", None) is not None:
@@ -232,7 +307,7 @@ class OrderArchivalService:
         *,
         order: Order,
         event_type: str,
-        actor,
+        actor: Optional[Any],
         metadata: dict,
     ) -> OrderTimelineEvent:
         """
@@ -259,3 +334,70 @@ class OrderArchivalService:
             actor=actor,
             metadata=metadata,
         )
+    
+
+    # ----------------------------
+    # Helpers
+    # ----------------------------
+    @staticmethod
+    def _validate_actor_website(
+        *,
+        actor: Any,
+        order: Order,
+    ) -> None:
+        """
+        Validates a matching tenancy (based on website)
+        for the order to archive.
+        """
+        actor_website_id = getattr(actor, "website_id", None)
+        if (
+            actor_website_id is not None
+            and actor_website_id != order.website.pk
+        ):
+            raise ValidationError(
+                "Actor website must match order website."
+            )
+
+    @classmethod
+    def _ensure_no_active_dispute(cls, *, order: Order) -> None:
+        """
+        Ensures the order does not have an active dispute.
+        """
+        active_dispute_exists = OrderDispute.objects.filter(
+            order=order,
+            is_active=True,
+        ).exists()
+        if active_dispute_exists:
+            raise ValidationError(
+                "Cannot archive order with active dispute."
+            )
+
+    @classmethod
+    def _ensure_no_pending_revision(cls, *, order: Order) -> None:
+        """
+        Ensures the order does not have a pending revision.
+        """
+        pending_revision_exists = OrderRevisionRequest.objects.filter(
+            order=order,
+            status=ORDER_REVISION_STATUS_PENDING,
+        ).exists()
+        if pending_revision_exists:
+            raise ValidationError(
+                "Cannot archive order with pending revision."
+            )
+
+    @classmethod
+    def _ensure_no_pending_paid_revision_adjustment(cls, *, order: Order) -> None:
+        """
+        Ensures the order does not have a pending
+        revision awaiting adjustment payment.
+        """
+        pending_adjustment_exists = OrderAdjustmentRequest.objects.filter(
+            order=order,
+            adjustment_type=ORDER_ADJUSTMENT_TYPE_PAID_REVISION,
+            status=ORDER_ADJUSTMENT_STATUS_PENDING_CLIENT_RESPONSE,
+        ).exists()
+        if pending_adjustment_exists:
+            raise ValidationError(
+                "Cannot archive order with pending paid revision adjustment."
+            )

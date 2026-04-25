@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from django.utils import timezone
 
-from orders.models.orders import Order
+from orders.models.orders.order import Order
 from orders.models.orders.constants import (
     ORDER_STATUS_IN_PROGRESS,
     ORDER_STATUS_ON_HOLD,

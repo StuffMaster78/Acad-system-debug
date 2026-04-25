@@ -4,7 +4,7 @@ from functools import lru_cache
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from discounts.services.discount_engine import DiscountEngine
-from pricing_configs.services.deadline_multiplier_service import DeadlineMultiplierService 
+from order_pricing_core.services.deadline_multiplier_service import DeadlineMultiplierService 
 
 class PricingCalculatorService:
     """
@@ -147,7 +147,7 @@ class PricingCalculatorService:
             Decimal: Additional fee for the preferred writer.
         """
         if self.order.preferred_writer:
-            from pricing_configs.models import PreferredWriterConfig
+            from order_pricing_core.models import PreferredWriterConfig
             try:
                 pref = PreferredWriterConfig.objects.get(
                     website=self.website
