@@ -1,0 +1,99 @@
+from django.urls import path
+
+from files_management.api.views.admin_views import (
+    AdminDeletionRequestApproveView,
+    AdminDeletionRequestCompleteView,
+    AdminDeletionRequestListView,
+    AdminDeletionRequestRejectView,
+    AdminExternalFileLinkApproveView,
+    AdminExternalFileLinkRejectView,
+    AdminFileAccessGrantCreateView,
+    AdminFileAccessGrantRevokeView,
+    AdminFilePolicyDetailView,
+    AdminFilePolicyListCreateView,
+    AdminQuarantineReleaseView,
+)
+from files_management.api.views.admin_extra_views import (
+    AdminExternalLinkListCreateView,
+    AdminFileListView,
+    AdminFileReplaceView,
+    CMSFileUploadView,
+)
+
+urlpatterns = [
+    path(
+        "external-links/<int:link_id>/approve/",
+        AdminExternalFileLinkApproveView.as_view(),
+        name="admin-external-link-approve",
+    ),
+    path(
+        "external-links/<int:link_id>/reject/",
+        AdminExternalFileLinkRejectView.as_view(),
+        name="admin-external-link-reject",
+    ),
+    path(
+        "deletion-requests/",
+        AdminDeletionRequestListView.as_view(),
+        name="admin-file-deletion-requests",
+    ),
+    path(
+        "deletion-requests/<int:request_id>/approve/",
+        AdminDeletionRequestApproveView.as_view(),
+        name="admin-file-deletion-request-approve",
+    ),
+    path(
+        "deletion-requests/<int:request_id>/reject/",
+        AdminDeletionRequestRejectView.as_view(),
+        name="admin-file-deletion-request-reject",
+    ),
+    path(
+        "deletion-requests/<int:request_id>/complete/",
+        AdminDeletionRequestCompleteView.as_view(),
+        name="admin-file-deletion-request-complete",
+    ),
+    path(
+        "policies/",
+        AdminFilePolicyListCreateView.as_view(),
+        name="admin-file-policy-list-create",
+    ),
+    path(
+        "policies/<int:policy_id>/",
+        AdminFilePolicyDetailView.as_view(),
+        name="admin-file-policy-detail",
+    ),
+    path(
+        "access-grants/",
+        AdminFileAccessGrantCreateView.as_view(),
+        name="admin-file-access-grant-create",
+    ),
+    path(
+        "access-grants/<int:grant_id>/revoke/",
+        AdminFileAccessGrantRevokeView.as_view(),
+        name="admin-file-access-grant-revoke",
+    ),
+    path(
+        "files/<int:file_id>/release-quarantine/",
+        AdminQuarantineReleaseView.as_view(),
+        name="admin-file-release-quarantine",
+    ),
+    path(
+        "files/",
+        AdminFileListView.as_view(),
+        name="admin-file-list",
+    ),
+    path(
+        "files/<int:attachment_id>/replace/",
+        AdminFileReplaceView.as_view(),
+        name="admin-file-replace",
+    ),
+    path(
+        "external-links/",
+        AdminExternalLinkListCreateView.as_view(),
+        name="admin-external-link-list-create",
+    ),
+    path(
+        "cms/upload/",
+        CMSFileUploadView.as_view(),
+        name="cms-file-upload",
+    ),
+]
