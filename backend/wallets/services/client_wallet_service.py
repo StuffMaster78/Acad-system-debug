@@ -3,7 +3,6 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any, cast
 
-from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from notifications_system.services.notification_service import NotificationService
@@ -15,10 +14,17 @@ from wallets.services.wallet_ledger_integration_service import (
 )
 from wallets.services.wallet_service import WalletService
 
-UserModel = get_user_model()
-
 
 class ClientWalletService:
+    """
+    Client wallet orchestration service.
+
+    This service coordinates wallet mutation, ledger posting,
+    hold lifecycle, and notifications.
+
+    Tenant must always be passed explicitly as website.
+    """
+
     @staticmethod
     def get_wallet(
         *,
@@ -31,6 +37,40 @@ class ClientWalletService:
             owner_user=client,
             currency=currency,
         )
+
+    @staticmethod
+    def _link_entry_to_journal(*, entry: Any, journal_entry: Any) -> None:
+        entry.ledger_transaction = journal_entry
+        entry.save(update_fields=["ledger_transaction", "updated_at"])
+
+    @staticmethod
+    def _notify_client(
+        *,
+        event_key: str,
+        client: Any,
+        website: Any,
+        wallet: Wallet,
+        amount: Decimal,
+        journal_entry: Any,
+        triggered_by: Any | None,
+        extra_context: dict[str, Any] | None = None,
+    ) -> None:
+        try:
+            NotificationService.notify(
+                event_key=event_key,
+                recipient=client,
+                website=website,
+                context={
+                    "amount": str(amount),
+                    "currency": wallet.currency,
+                    "wallet_id": cast(Any, wallet).id,
+                    "journal_entry_id": cast(Any, journal_entry).id,
+                    **(extra_context or {}),
+                },
+                triggered_by=triggered_by,
+            )
+        except Exception:
+            pass
 
     @staticmethod
     @transaction.atomic
@@ -74,24 +114,21 @@ class ClientWalletService:
             reference_id=reference_id,
             metadata=metadata,
         )
-        cast(Any, entry).ledger_transaction = journal_entry
-        entry.save(update_fields=["ledger_transaction", "updated_at"])
 
-        try:
-            NotificationService.notify(
-                event_key="wallet.client.funded",
-                recipient=client,
-                website=website,
-                context={
-                    "amount": str(amount),
-                    "currency": wallet.currency,
-                    "wallet_id": cast(Any, wallet).id,
-                    "journal_entry_id": journal_entry.id,
-                },
-                triggered_by=created_by,
-            )
-        except Exception:
-            pass
+        ClientWalletService._link_entry_to_journal(
+            entry=entry,
+            journal_entry=journal_entry,
+        )
+
+        ClientWalletService._notify_client(
+            event_key="wallet.client.funded",
+            client=client,
+            website=website,
+            wallet=wallet,
+            amount=amount,
+            journal_entry=journal_entry,
+            triggered_by=created_by,
+        )
 
         wallet.refresh_from_db()
         return wallet
@@ -106,7 +143,7 @@ class ClientWalletService:
         created_by: Any | None = None,
         description: str = "Refund credited to wallet",
         reference: str = "",
-        reference_type: str = "",
+        reference_type: str = "refund",
         reference_id: str = "",
         metadata: dict[str, Any] | None = None,
     ) -> Wallet:
@@ -138,24 +175,21 @@ class ClientWalletService:
             reference_id=reference_id,
             metadata=metadata,
         )
-        cast(Any, entry).ledger_transaction = journal_entry
-        entry.save(update_fields=["ledger_transaction", "updated_at"])
 
-        try:
-            NotificationService.notify(
-                event_key="wallet.client.refunded",
-                recipient=client,
-                website=website,
-                context={
-                    "amount": str(amount),
-                    "currency": wallet.currency,
-                    "wallet_id": cast(Any, wallet).id,
-                    "journal_entry_id": journal_entry.id,
-                },
-                triggered_by=created_by,
-            )
-        except Exception:
-            pass
+        ClientWalletService._link_entry_to_journal(
+            entry=entry,
+            journal_entry=journal_entry,
+        )
+
+        ClientWalletService._notify_client(
+            event_key="wallet.client.refunded",
+            client=client,
+            website=website,
+            wallet=wallet,
+            amount=amount,
+            journal_entry=journal_entry,
+            triggered_by=created_by,
+        )
 
         wallet.refresh_from_db()
         return wallet
@@ -203,25 +237,22 @@ class ClientWalletService:
             metadata=metadata,
             allow_negative=False,
         )
-        cast(Any, entry).ledger_transaction = journal_entry
-        entry.save(update_fields=["ledger_transaction", "updated_at"])
 
-        try:
-            NotificationService.notify(
-                event_key="wallet.client.debited",
-                recipient=client,
-                website=website,
-                context={
-                    "amount": str(amount),
-                    "currency": wallet.currency,
-                    "wallet_id": cast(Any, wallet).id,
-                    "reference": reference,
-                    "journal_entry_id": journal_entry.id,
-                },
-                triggered_by=created_by,
-            )
-        except Exception:
-            pass
+        ClientWalletService._link_entry_to_journal(
+            entry=entry,
+            journal_entry=journal_entry,
+        )
+
+        ClientWalletService._notify_client(
+            event_key="wallet.client.debited",
+            client=client,
+            website=website,
+            wallet=wallet,
+            amount=amount,
+            journal_entry=journal_entry,
+            triggered_by=created_by,
+            extra_context={"reference": reference},
+        )
 
         wallet.refresh_from_db()
         return wallet
@@ -239,6 +270,7 @@ class ClientWalletService:
             client=client,
             currency=currency,
         )
+
         return WalletService.prepare_split_amounts(
             wallet=wallet,
             total_amount=total_amount,
@@ -262,6 +294,7 @@ class ClientWalletService:
             website=website,
             client=client,
         )
+
         return WalletHoldService.create_hold(
             wallet=wallet,
             amount=amount,
@@ -343,3 +376,32 @@ class ClientWalletService:
             "is_fully_covered": is_fully_covered,
             "wallet_hold": hold,
         }
+
+    @staticmethod
+    def get_available_balance(
+        *,
+        website: Any,
+        client: Any,
+        currency: str = "USD",
+    ) -> Decimal:
+        wallet = ClientWalletService.get_wallet(
+            website=website,
+            client=client,
+            currency=currency,
+        )
+        return Decimal(str(wallet.available_balance))
+
+    @staticmethod
+    def has_sufficient_balance(
+        *,
+        website: Any,
+        client: Any,
+        amount: Decimal,
+        currency: str = "USD",
+    ) -> bool:
+        available_balance = ClientWalletService.get_available_balance(
+            website=website,
+            client=client,
+            currency=currency,
+        )
+        return available_balance >= amount

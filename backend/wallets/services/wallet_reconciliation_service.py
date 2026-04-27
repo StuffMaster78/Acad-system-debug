@@ -11,13 +11,17 @@ from django.utils import timezone
 from audit_logging.services.audit_log_service import AuditLogService
 from ledger.constants import JournalEntryStatus
 from ledger.models.journal_line import JournalLine
-from wallets.constants import WalletHoldStatus
+from wallets.constants import WalletHoldStatus, WalletType
 from wallets.exceptions import WalletReconciliationError
 from wallets.models import Wallet, WalletEntry, WalletHold
 
 
-@dataclass
+@dataclass(frozen=True)
 class WalletReconciliationResult:
+    """
+    Immutable reconciliation report for one wallet.
+    """
+
     wallet_id: int
     website_id: int
     currency: str
@@ -47,48 +51,64 @@ class WalletReconciliationResult:
 
 class WalletReconciliationService:
     """
-    Reconciles wallet state against three sources:
+    Reconciles wallet cached state against wallet entries, active holds,
+    and posted ledger journal lines.
 
-    1. WalletEntry chain
-       Used to validate available balance continuity for wallet-local activity.
+    Sources of truth:
+        WalletEntry:
+            Expected available balance.
 
-    2. Active WalletHold rows
-       Used to validate pending balance.
+        WalletHold:
+            Expected pending/held balance.
 
-    3. Ledger journal lines
-       Used to validate total wallet liability projection.
+        Ledger:
+            Expected total wallet liability.
 
     Important:
-    Ledger usually reflects the platform liability to the wallet owner, so the
-    ledger comparison is made against:
-
-        available_balance + pending_balance
-
-    not just available_balance.
+        This service must never infer tenant from a user.
+        Tenant comes from wallet.website or an explicit website argument.
     """
+
+    ENTRY_SIDE_DEBIT = "debit"
+    ENTRY_SIDE_CREDIT = "credit"
 
     @staticmethod
     def _decimal(value: Decimal | None) -> Decimal:
+        """
+        Normalize nullable aggregate results to Decimal zero.
+        """
         return value if value is not None else Decimal("0.00")
 
     @staticmethod
     def _wallet_total_balance(*, wallet: Wallet) -> Decimal:
+        """
+        Return the wallet's total projected balance.
+        """
         return wallet.available_balance + wallet.pending_balance
 
     @staticmethod
     def _get_latest_entry(*, wallet: Wallet) -> WalletEntry | None:
+        """
+        Return the latest wallet entry for balance projection.
+        """
         return (
-            WalletEntry.objects.filter(wallet=wallet)
+            WalletEntry.objects.filter(
+                wallet=wallet,
+                website=wallet.website,
+            )
             .order_by("-created_at", "-id")
             .first()
         )
 
     @staticmethod
     def _wallet_liability_account_code(*, wallet_type: str) -> str:
-        if wallet_type == "client":
+        """
+        Resolve the ledger liability account for a wallet type.
+        """
+        if wallet_type == WalletType.CLIENT:
             return "CLIENT_WALLET_LIABILITY"
 
-        if wallet_type == "writer":
+        if wallet_type == WalletType.WRITER:
             return "WRITER_WALLET_LIABILITY"
 
         raise WalletReconciliationError(
@@ -96,18 +116,39 @@ class WalletReconciliationService:
         )
 
     @staticmethod
+    def _assert_wallet_belongs_to_website(
+        *,
+        wallet: Wallet,
+        website: Any,
+    ) -> None:
+        """
+        Ensure reconciliation is tenant safe.
+        """
+        if getattr(wallet, "website_id", None) != getattr(website, "id", None):
+            raise WalletReconciliationError(
+                "Wallet does not belong to the provided website."
+            )
+
+    @staticmethod
     def get_active_hold_total(*, wallet: Wallet) -> Decimal:
+        """
+        Sum active holds for this wallet.
+        """
         aggregate = WalletHold.objects.filter(
             wallet=wallet,
+            website=wallet.website,
             status=WalletHoldStatus.ACTIVE,
         ).aggregate(total=Sum("amount"))
 
         return WalletReconciliationService._decimal(
-            cast(Any, aggregate).get("total")
+            cast(Any, aggregate).get("total"),
         )
 
     @staticmethod
     def get_expected_pending_balance_from_holds(*, wallet: Wallet) -> Decimal:
+        """
+        Return expected pending balance from active holds.
+        """
         return WalletReconciliationService.get_active_hold_total(wallet=wallet)
 
     @staticmethod
@@ -115,24 +156,32 @@ class WalletReconciliationService:
         *,
         wallet: Wallet,
     ) -> Decimal:
-        latest_entry = WalletReconciliationService._get_latest_entry(wallet=wallet)
+        """
+        Return expected available balance from the latest wallet entry.
+        """
+        latest_entry = WalletReconciliationService._get_latest_entry(
+            wallet=wallet,
+        )
+
         if latest_entry is None:
             return Decimal("0.00")
+
         return latest_entry.balance_after
 
     @staticmethod
     def get_expected_total_balance_from_ledger(*, wallet: Wallet) -> Decimal:
         """
-        Computes net liability for this wallet from posted journal lines.
+        Compute net wallet liability from posted journal lines.
 
-        debit decreases liability
-        credit increases liability
+        Debit decreases liability.
+        Credit increases liability.
 
-        Net liability = credits - debits
+        Net liability = credits - debits.
         """
-
-        account_code = WalletReconciliationService._wallet_liability_account_code(
-            wallet_type=wallet.wallet_type
+        account_code = (
+            WalletReconciliationService._wallet_liability_account_code(
+                wallet_type=wallet.wallet_type,
+            )
         )
 
         base_queryset = JournalLine.objects.filter(
@@ -146,27 +195,33 @@ class WalletReconciliationService:
         debit_total = WalletReconciliationService._decimal(
             cast(
                 Any,
-                base_queryset.filter(entry_side="debit").aggregate(
-                    total=Sum("amount")
-                ),
-            ).get("total")
+                base_queryset.filter(
+                    entry_side=WalletReconciliationService.ENTRY_SIDE_DEBIT,
+                ).aggregate(total=Sum("amount")),
+            ).get("total"),
         )
 
         credit_total = WalletReconciliationService._decimal(
             cast(
                 Any,
-                base_queryset.filter(entry_side="credit").aggregate(
-                    total=Sum("amount")
-                ),
-            ).get("total")
+                base_queryset.filter(
+                    entry_side=WalletReconciliationService.ENTRY_SIDE_CREDIT,
+                ).aggregate(total=Sum("amount")),
+            ).get("total"),
         )
 
         return credit_total - debit_total
 
     @staticmethod
     def validate_entry_chain(*, wallet: Wallet) -> tuple[bool, list[str]]:
+        """
+        Validate that wallet entry balance_before/balance_after chain is intact.
+        """
         entries = list(
-            WalletEntry.objects.filter(wallet=wallet).order_by("created_at", "id")
+            WalletEntry.objects.filter(
+                wallet=wallet,
+                website=wallet.website,
+            ).order_by("created_at", "id"),
         )
 
         if not entries:
@@ -177,54 +232,64 @@ class WalletReconciliationService:
         previous_entry_id: int | None = None
 
         for entry in entries:
+            entry_id = cast(Any, entry).id
+
             if entry.amount <= Decimal("0.00"):
                 errors.append(
-                    f"Entry {cast(Any, entry).id} has non positive amount "
-                    f"{entry.amount}."
+                    f"Entry {entry_id} has non-positive amount {entry.amount}."
                 )
 
-            if previous_after is not None and entry.balance_before != previous_after:
+            if (
+                previous_after is not None
+                and entry.balance_before != previous_after
+            ):
                 errors.append(
                     "Entry chain break between "
-                    f"{previous_entry_id} and {cast(Any, entry).id}: "
+                    f"{previous_entry_id} and {entry_id}: "
                     f"expected balance_before {previous_after}, "
                     f"got {entry.balance_before}."
                 )
 
             previous_after = entry.balance_after
-            previous_entry_id = cast(Any, entry).id
+            previous_entry_id = entry_id
 
         return len(errors) == 0, errors
 
     @staticmethod
     def reconcile_wallet(*, wallet: Wallet) -> WalletReconciliationResult:
+        """
+        Reconcile one wallet and return a report.
+
+        This method does not mutate state.
+        """
         expected_pending = (
-            WalletReconciliationService.get_expected_pending_balance_from_holds(
-                wallet=wallet
-            )
+            WalletReconciliationService
+            .get_expected_pending_balance_from_holds(wallet=wallet)
         )
         expected_available = (
-            WalletReconciliationService.get_expected_available_balance_from_latest_entry(
-                wallet=wallet
-            )
+            WalletReconciliationService
+            .get_expected_available_balance_from_latest_entry(wallet=wallet)
         )
         expected_total_from_ledger = (
-            WalletReconciliationService.get_expected_total_balance_from_ledger(
-                wallet=wallet
-            )
+            WalletReconciliationService
+            .get_expected_total_balance_from_ledger(wallet=wallet)
         )
 
         entry_chain_is_consistent, entry_chain_errors = (
             WalletReconciliationService.validate_entry_chain(wallet=wallet)
         )
-        latest_entry = WalletReconciliationService._get_latest_entry(wallet=wallet)
+        latest_entry = WalletReconciliationService._get_latest_entry(
+            wallet=wallet,
+        )
         active_hold_total = WalletReconciliationService.get_active_hold_total(
-            wallet=wallet
+            wallet=wallet,
         )
 
         actual_available = wallet.available_balance
         actual_pending = wallet.pending_balance
-        actual_total = WalletReconciliationService._wallet_total_balance(wallet=wallet)
+        actual_total = WalletReconciliationService._wallet_total_balance(
+            wallet=wallet,
+        )
 
         return WalletReconciliationResult(
             wallet_id=cast(Any, wallet).id,
@@ -249,10 +314,13 @@ class WalletReconciliationService:
             entry_chain_is_consistent=entry_chain_is_consistent,
             entry_chain_errors=entry_chain_errors,
             active_hold_total=active_hold_total,
-            latest_entry_id=cast(Any, latest_entry).id if latest_entry else None,
+            latest_entry_id=(
+                cast(Any, latest_entry).id if latest_entry is not None else None
+            ),
             ledger_account_code=(
-                WalletReconciliationService._wallet_liability_account_code(
-                    wallet_type=wallet.wallet_type
+                WalletReconciliationService
+                ._wallet_liability_account_code(
+                    wallet_type=wallet.wallet_type,
                 )
             ),
             checked_at=timezone.now(),
@@ -260,7 +328,11 @@ class WalletReconciliationService:
 
     @staticmethod
     def wallet_has_drift(*, wallet: Wallet) -> bool:
+        """
+        Return whether wallet state differs from expected projections.
+        """
         result = WalletReconciliationService.reconcile_wallet(wallet=wallet)
+
         return not (
             result.available_balance_matches_entries
             and result.pending_balance_matches_holds
@@ -269,19 +341,31 @@ class WalletReconciliationService:
         )
 
     @staticmethod
-    def reconcile_website_wallets(*, website: Any) -> list[WalletReconciliationResult]:
-        wallets = Wallet.objects.filter(website=website).select_related("website")
+    def reconcile_website_wallets(
+        *,
+        website: Any,
+    ) -> list[WalletReconciliationResult]:
+        """
+        Reconcile all wallets for a website.
+        """
+        wallets = Wallet.objects.filter(
+            website=website,
+        ).select_related("website")
+
         return [
             WalletReconciliationService.reconcile_wallet(wallet=wallet)
             for wallet in wallets
         ]
 
     @staticmethod
-    def get_wallets_with_drift(*, website: Any | None = None) -> list[Wallet]:
-        queryset = Wallet.objects.all()
+    def get_wallets_with_drift(*, website: Any) -> list[Wallet]:
+        """
+        Return drifted wallets for one tenant.
 
-        if website is not None:
-            queryset = queryset.filter(website=website)
+        Website is required intentionally. We do not support global drift scans
+        here because this service should stay tenant explicit.
+        """
+        queryset = Wallet.objects.filter(website=website)
 
         drifted_wallets: list[Wallet] = []
         for wallet in queryset.iterator():
@@ -299,21 +383,24 @@ class WalletReconciliationService:
         reason: str = "Wallet reconciliation repair",
     ) -> WalletReconciliationResult:
         """
-        Repairs wallet cached balances using:
-        - latest wallet entry for available balance
-        - active holds for pending balance
+        Repair wallet cached balances from wallet-local projections.
 
-        Important:
-        This method does NOT rewrite ledger.
-        It repairs wallet projection state only.
+        Repairs:
+            available_balance from latest wallet entry
+            pending_balance from active holds
+
+        Does not:
+            rewrite ledger
+            rewrite wallet entries
         """
-
-        locked_wallet = Wallet.objects.select_for_update().get(
-            id=cast(Any, wallet).id
+        locked_wallet = (
+            Wallet.objects.select_for_update()
+            .select_related("website")
+            .get(id=cast(Any, wallet).id)
         )
 
         result_before = WalletReconciliationService.reconcile_wallet(
-            wallet=locked_wallet
+            wallet=locked_wallet,
         )
 
         if not result_before.entry_chain_is_consistent:
@@ -337,39 +424,32 @@ class WalletReconciliationService:
                 "pending_balance",
                 "last_activity_at",
                 "updated_at",
-            ]
+            ],
         )
 
-        try:
-            cast(Any, AuditLogService).log_action(
-                action="wallet.reconciliation.repaired",
-                actor=repaired_by,
-                target=locked_wallet,
-                website=locked_wallet.website,
-                metadata={
-                    "wallet_id": cast(Any, locked_wallet).id,
-                    "reason": reason,
-                    "old_available_balance": str(old_available),
-                    "new_available_balance": str(locked_wallet.available_balance),
-                    "old_pending_balance": str(old_pending),
-                    "new_pending_balance": str(locked_wallet.pending_balance),
-                    "ledger_expected_total_balance": str(
-                        result_before.expected_total_balance_from_ledger
-                    ),
-                },
-            )
-        except Exception:
-            pass
+        WalletReconciliationService._log_repair_audit(
+            repaired_by=repaired_by,
+            wallet=locked_wallet,
+            reason=reason,
+            old_available=old_available,
+            old_pending=old_pending,
+            result_before=result_before,
+        )
 
-        return WalletReconciliationService.reconcile_wallet(wallet=locked_wallet)
+        return WalletReconciliationService.reconcile_wallet(
+            wallet=locked_wallet,
+        )
 
     @staticmethod
     def get_summary_for_website(*, website: Any) -> dict[str, Any]:
+        """
+        Return reconciliation health summary for one website.
+        """
         results = WalletReconciliationService.reconcile_website_wallets(
-            website=website
+            website=website,
         )
 
-        drifted_wallets = [
+        drifted_results = [
             result
             for result in results
             if not (
@@ -383,8 +463,44 @@ class WalletReconciliationService:
         return {
             "website_id": website.id,
             "total_wallets": len(results),
-            "drifted_wallets_count": len(drifted_wallets),
-            "healthy_wallets_count": len(results) - len(drifted_wallets),
-            "drifted_wallet_ids": [result.wallet_id for result in drifted_wallets],
+            "drifted_wallets_count": len(drifted_results),
+            "healthy_wallets_count": len(results) - len(drifted_results),
+            "drifted_wallet_ids": [
+                result.wallet_id for result in drifted_results
+            ],
             "checked_at": timezone.now(),
         }
+
+    @staticmethod
+    def _log_repair_audit(
+        *,
+        repaired_by: Any | None,
+        wallet: Wallet,
+        reason: str,
+        old_available: Decimal,
+        old_pending: Decimal,
+        result_before: WalletReconciliationResult,
+    ) -> None:
+        """
+        Best-effort audit logging for wallet repair.
+        """
+        try:
+            cast(Any, AuditLogService).log_action(
+                action="wallet.reconciliation.repaired",
+                actor=repaired_by,
+                target=wallet,
+                website=wallet.website,
+                metadata={
+                    "wallet_id": cast(Any, wallet).id,
+                    "reason": reason,
+                    "old_available_balance": str(old_available),
+                    "new_available_balance": str(wallet.available_balance),
+                    "old_pending_balance": str(old_pending),
+                    "new_pending_balance": str(wallet.pending_balance),
+                    "ledger_expected_total_balance": str(
+                        result_before.expected_total_balance_from_ledger
+                    ),
+                },
+            )
+        except Exception:
+            pass
