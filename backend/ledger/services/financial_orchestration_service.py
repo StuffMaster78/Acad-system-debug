@@ -6,12 +6,12 @@ from typing import Any
 
 from django.db import transaction
 
+from ledger.services.balance_service import BalanceService
 from ledger.services.payment_processor_ledger_service import (
     PaymentProcessorLedgerService,
 )
 from ledger.services.wallet_ledger_service import WalletLedgerService
 from ledger.services.writer_ledger_service import WriterLedgerService
-from ledger.services.balance_service import BalanceService
 
 
 @dataclass(frozen=True)
@@ -27,19 +27,32 @@ class TipSplit:
 
 class FinancialOrchestrationService:
     """
-    Coordinate multi-step financial flows across ledger services.
+    Coordinate multi-step financial ledger flows.
 
     Domain apps decide the business outcome first.
-    This service then coordinates the matching ledger effects.
+    This service only coordinates matching ledger effects.
     """
+
+    ZERO = Decimal("0")
 
     @staticmethod
     def _validate_amount(amount: Decimal, field_name: str) -> None:
         """
         Validate that an amount is positive.
         """
-        if amount <= 0:
-            raise ValueError(f"{field_name} must be greater than zero")
+        if amount <= FinancialOrchestrationService.ZERO:
+            raise ValueError(f"{field_name} must be greater than zero.")
+
+    @staticmethod
+    def _validate_optional_positive_amount(
+        amount: Decimal | None,
+        field_name: str,
+    ) -> None:
+        """
+        Validate optional amount only when supplied.
+        """
+        if amount is not None and amount < FinancialOrchestrationService.ZERO:
+            raise ValueError(f"{field_name} cannot be negative.")
 
     @staticmethod
     def _validate_tip_split(tip_split: TipSplit) -> None:
@@ -50,33 +63,49 @@ class FinancialOrchestrationService:
             tip_split.total_tip_amount,
             "total_tip_amount",
         )
+        FinancialOrchestrationService._validate_amount(
+            tip_split.writer_share,
+            "writer_share",
+        )
 
-        if tip_split.writer_share <= 0:
-            raise ValueError("writer_share must be greater than zero")
-
-        if tip_split.platform_share < 0:
-            raise ValueError("platform_share cannot be negative")
+        if tip_split.platform_share < FinancialOrchestrationService.ZERO:
+            raise ValueError("platform_share cannot be negative.")
 
         if (
             tip_split.writer_share + tip_split.platform_share
             != tip_split.total_tip_amount
         ):
             raise ValueError(
-                "writer_share plus platform_share must equal total_tip_amount"
+                "writer_share plus platform_share must equal "
+                "total_tip_amount."
             )
+
+    @staticmethod
+    def _merge_metadata(
+        *,
+        base: dict[str, Any] | None,
+        extra: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Merge metadata safely without mutating caller-provided dictionaries.
+        """
+        return {
+            **(base or {}),
+            **extra,
+        }
 
     @staticmethod
     @transaction.atomic
     def tip_writer_from_wallet(
         *,
-        website,
+        website: Any,
         wallet_reference: str,
         client_id: str,
         writer_reference: str,
         writer_id: str,
         tip_split: TipSplit,
         tip_reference: str,
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -111,17 +140,17 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def refund_client_to_wallet(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         wallet_reference: str,
         client_id: str,
         refund_id: str,
         reason: str,
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
-        Refund a client internally by crediting stored wallet value.
+        Refund a client internally by crediting wallet value.
         """
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
@@ -140,7 +169,7 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def refund_client_externally(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         refund_id: str,
         payment_intent_reference: str,
@@ -148,7 +177,7 @@ class FinancialOrchestrationService:
         related_object_type: str,
         related_object_id: str,
         reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -173,7 +202,7 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def support_cancel_and_credit_wallet(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         wallet_reference: str,
         client_id: str,
@@ -181,7 +210,7 @@ class FinancialOrchestrationService:
         related_object_type: str,
         related_object_id: str,
         reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -206,7 +235,7 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def support_debit_wallet_for_service(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         wallet_reference: str,
         client_id: str,
@@ -214,7 +243,7 @@ class FinancialOrchestrationService:
         related_object_type: str,
         related_object_id: str,
         reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -239,14 +268,14 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def accrue_writer_earning(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         writer_reference: str,
         writer_id: str,
         related_object_type: str,
         related_object_id: str,
         reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -270,13 +299,13 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def apply_writer_bonus(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         writer_reference: str,
         writer_id: str,
         reason: str,
         reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -299,13 +328,13 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def apply_writer_fine(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         writer_reference: str,
         writer_id: str,
         fine_id: str,
         reason: str,
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -328,13 +357,13 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def increase_writer_balance(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         writer_reference: str,
         writer_id: str,
         reason: str,
         reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -357,13 +386,13 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def decrease_writer_balance(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         writer_reference: str,
         writer_id: str,
         reason: str,
         reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -386,13 +415,13 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def payout_writer(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         writer_reference: str,
         writer_id: str,
         payout_id: str,
         external_reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -415,7 +444,7 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def resolve_dispute_for_client_with_wallet_refund(
         *,
-        website,
+        website: Any,
         refund_amount: Decimal,
         wallet_reference: str,
         client_id: str,
@@ -426,7 +455,7 @@ class FinancialOrchestrationService:
         writer_id: str = "",
         writer_recovery_reason: str = "",
         writer_recovery_reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -436,6 +465,10 @@ class FinancialOrchestrationService:
         FinancialOrchestrationService._validate_amount(
             refund_amount,
             "refund_amount",
+        )
+        FinancialOrchestrationService._validate_optional_positive_amount(
+            writer_recovery_amount,
+            "writer_recovery_amount",
         )
 
         wallet_refund_entry = WalletLedgerService.post_dispute_wallet_refund(
@@ -450,8 +483,7 @@ class FinancialOrchestrationService:
         )
 
         writer_recovery_entry = None
-
-        if writer_recovery_amount and writer_recovery_amount > 0:
+        if writer_recovery_amount and writer_recovery_amount > Decimal("0"):
             writer_recovery_entry = (
                 WriterLedgerService.post_writer_earning_recovery(
                     website=website,
@@ -474,7 +506,7 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def resolve_dispute_for_client_with_external_refund(
         *,
-        website,
+        website: Any,
         refund_amount: Decimal,
         refund_id: str,
         payment_intent_reference: str,
@@ -486,7 +518,7 @@ class FinancialOrchestrationService:
         writer_id: str = "",
         writer_recovery_reason: str = "",
         writer_recovery_reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
@@ -496,6 +528,10 @@ class FinancialOrchestrationService:
         FinancialOrchestrationService._validate_amount(
             refund_amount,
             "refund_amount",
+        )
+        FinancialOrchestrationService._validate_optional_positive_amount(
+            writer_recovery_amount,
+            "writer_recovery_amount",
         )
 
         external_refund_entry = (
@@ -513,8 +549,7 @@ class FinancialOrchestrationService:
         )
 
         writer_recovery_entry = None
-
-        if writer_recovery_amount and writer_recovery_amount > 0:
+        if writer_recovery_amount and writer_recovery_amount > Decimal("0"):
             writer_recovery_entry = (
                 WriterLedgerService.post_writer_earning_recovery(
                     website=website,
@@ -537,18 +572,17 @@ class FinancialOrchestrationService:
     @transaction.atomic
     def restore_writer_after_dispute_win(
         *,
-        website,
+        website: Any,
         amount: Decimal,
         writer_reference: str,
         writer_id: str,
         reason: str,
         reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
-        Restore writer balance after a dispute is resolved in writer's
-        favor.
+        Restore writer balance after dispute resolution in writer's favor.
         """
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
@@ -563,22 +597,21 @@ class FinancialOrchestrationService:
             metadata=metadata,
         )
 
-
     @staticmethod
     @transaction.atomic
     def settle_writer_payout(
         *,
-        website,
+        website: Any,
         writer_reference: str,
         writer_id: str,
         payout_id: str,
         gross_payout_amount: Decimal,
         external_reference: str = "",
-        triggered_by=None,
+        triggered_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         """
-        Settle a writer payout by first applying any outstanding recovery,
+        Settle a writer payout by applying outstanding recovery first,
         then posting cash payout for the net amount.
         """
         FinancialOrchestrationService._validate_amount(
@@ -597,7 +630,7 @@ class FinancialOrchestrationService:
         recovery_entry = None
         payout_entry = None
 
-        if recovery_to_apply > Decimal("0.00"):
+        if recovery_to_apply > Decimal("0"):
             recovery_entry = (
                 WriterLedgerService.post_writer_recovery_applied_to_payout(
                     website=website,
@@ -610,7 +643,7 @@ class FinancialOrchestrationService:
                 )
             )
 
-        if net_payout_amount > Decimal("0.00"):
+        if net_payout_amount > Decimal("0"):
             payout_entry = WriterLedgerService.post_writer_payout(
                 website=website,
                 amount=net_payout_amount,
@@ -619,12 +652,14 @@ class FinancialOrchestrationService:
                 payout_id=payout_id,
                 external_reference=external_reference,
                 triggered_by=triggered_by,
-                metadata={
-                    "gross_payout_amount": str(gross_payout_amount),
-                    "recovery_applied": str(recovery_to_apply),
-                    "net_payout_amount": str(net_payout_amount),
-                    **(metadata or {}),
-                },
+                metadata=FinancialOrchestrationService._merge_metadata(
+                    base=metadata,
+                    extra={
+                        "gross_payout_amount": str(gross_payout_amount),
+                        "recovery_applied": str(recovery_to_apply),
+                        "net_payout_amount": str(net_payout_amount),
+                    },
+                ),
             )
 
         return {

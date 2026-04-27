@@ -132,7 +132,7 @@ class LedgerEntryType(models.TextChoices):
     DISPUTE_HOLD = "dispute_hold", "Dispute Hold"
     DISPUTE_RELEASE = "dispute_release", "Dispute Release"
     DISPUTE_REVERSAL = "dispute_reversal", "Dispute Reversal"
-
+    REVERSAL = "reversal", "Reversal"
     MANUAL_ADJUSTMENT = "manual_adjustment", "Manual Adjustment"
 
 

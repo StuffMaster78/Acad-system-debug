@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from django.db import transaction
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
 
+from audit_logging.services.audit_log_service import AuditLogService
 from ledger.constants import HoldStatus
 from ledger.exceptions import LedgerHoldError
 from ledger.models.hold_record import HoldRecord
@@ -13,7 +16,12 @@ from ledger.models.ledger_account import LedgerAccount
 
 class HoldLedgerService:
     """
-    Handle fund reservations before final capture or release.
+    Handle ledger-level fund reservations before final capture,
+    release, cancellation, or expiry.
+
+    Important:
+        This service manages ledger hold records only.
+        It does not mutate wallet balances directly.
     """
 
     @staticmethod
@@ -21,22 +29,23 @@ class HoldLedgerService:
         """
         Validate that a hold amount is positive.
         """
-        if amount <= Decimal("0.00"):
-            raise LedgerHoldError(
-                "Hold amount must be greater than zero."
-            )
+        if amount <= Decimal("0"):
+            raise LedgerHoldError("Hold amount must be greater than zero.")
 
     @staticmethod
     def _validate_account_context(
         *,
-        website,
+        website: Any,
         ledger_account: LedgerAccount,
         currency: str,
     ) -> None:
         """
-        Validate tenant and currency consistency for a hold account.
+        Validate tenant and currency consistency for the ledger account.
         """
-        if ledger_account.website.id != website.id:
+        account_website_id = getattr(ledger_account, "website_id", None)
+        website_id = getattr(website, "id", None)
+
+        if account_website_id != website_id:
             raise LedgerHoldError(
                 "Ledger account must belong to the same website."
             )
@@ -47,26 +56,100 @@ class HoldLedgerService:
             )
 
     @staticmethod
+    def _get_hold_for_update(*, hold_id: int) -> HoldRecord:
+        """
+        Lock a hold row before mutating it.
+
+        This prevents race conditions such as release and capture
+        happening at the same time.
+        """
+        return (
+            HoldRecord.objects.select_for_update()
+            .select_related("website", "ledger_account", "journal_entry", "user")
+            .get(id=hold_id)
+        )
+
+    @staticmethod
+    def _assert_hold_account_context(*, hold: HoldRecord) -> None:
+        """
+        Ensure the hold's ledger account still belongs to the hold tenant
+        and uses the hold currency.
+        """
+        HoldLedgerService._validate_account_context(
+            website=hold.website,
+            ledger_account=hold.ledger_account,
+            currency=hold.currency,
+        )
+
+    @staticmethod
+    def _log_action(
+        *,
+        action: str,
+        hold: HoldRecord,
+        actor: Any | None = None,
+        extra_metadata: dict[str, Any] | None = None,
+    ) -> None:
+        """
+        Best-effort audit logging for ledger hold lifecycle changes.
+        """
+        try:
+            cast(Any, AuditLogService).log_action(
+                action=action,
+                actor=actor or hold.user,
+                target=hold,
+                website=hold.website,
+                metadata={
+                    "hold_id": cast(Any, hold).id,
+                    "ledger_account_id": getattr(
+                        hold,
+                        "ledger_account_id",
+                        None,
+                    ),
+                    "journal_entry_id": getattr(
+                        hold,
+                        "journal_entry_id",
+                        None,
+                    ),
+                    "amount": str(hold.amount),
+                    "currency": hold.currency,
+                    "status": hold.status,
+                    "reference": hold.reference,
+                    "wallet_reference": hold.wallet_reference,
+                    "payment_intent_reference": (
+                        hold.payment_intent_reference
+                    ),
+                    "related_object_type": hold.related_object_type,
+                    "related_object_id": hold.related_object_id,
+                    **(extra_metadata or {}),
+                },
+            )
+        except Exception:
+            pass
+
+    @staticmethod
     @transaction.atomic
     def create_hold(
         *,
-        website,
+        website: Any,
         ledger_account: LedgerAccount,
         amount: Decimal,
         currency: str = "USD",
-        user=None,
-        journal_entry=None,
+        user: Any | None = None,
+        journal_entry: Any | None = None,
         reference: str = "",
         reason: str = "",
         wallet_reference: str = "",
         payment_intent_reference: str = "",
         related_object_type: str = "",
         related_object_id: str = "",
-        expires_at=None,
+        expires_at: Any | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> HoldRecord:
         """
-        Create a new active hold record.
+        Create a new active ledger hold.
+
+        The hold is tenant-scoped by website and tied to a tenant-scoped
+        ledger account.
         """
         HoldLedgerService._validate_amount(amount)
         HoldLedgerService._validate_account_context(
@@ -75,7 +158,7 @@ class HoldLedgerService:
             currency=currency,
         )
 
-        return HoldRecord.objects.create(
+        hold = HoldRecord.objects.create(
             website=website,
             ledger_account=ledger_account,
             journal_entry=journal_entry,
@@ -92,102 +175,162 @@ class HoldLedgerService:
             metadata=metadata or {},
         )
 
+        HoldLedgerService._log_action(
+            action="ledger.hold.created",
+            hold=hold,
+            actor=user,
+        )
+        return hold
+
     @staticmethod
     @transaction.atomic
-    def release_hold(*, hold: HoldRecord) -> HoldRecord:
+    def release_hold(
+        *,
+        hold: HoldRecord,
+        released_by: Any | None = None,
+    ) -> HoldRecord:
         """
-        Release an active hold.
+        Release an active ledger hold.
         """
-        if hold.status != HoldStatus.ACTIVE:
-            raise LedgerHoldError(
-                "Only active holds can be released."
-            )
+        locked_hold = HoldLedgerService._get_hold_for_update(
+            hold_id=cast(Any, hold).id,
+        )
+        HoldLedgerService._assert_hold_account_context(hold=locked_hold)
 
-        hold.mark_released()
-        hold.save(
+        if locked_hold.status != HoldStatus.ACTIVE:
+            raise LedgerHoldError("Only active holds can be released.")
+
+        locked_hold.mark_released()
+        locked_hold.save(
             update_fields=[
                 "status",
                 "released_at",
                 "updated_at",
             ],
         )
-        return hold
+
+        HoldLedgerService._log_action(
+            action="ledger.hold.released",
+            hold=locked_hold,
+            actor=released_by,
+        )
+        return locked_hold
 
     @staticmethod
     @transaction.atomic
-    def capture_hold(*, hold: HoldRecord) -> HoldRecord:
+    def capture_hold(
+        *,
+        hold: HoldRecord,
+        captured_by: Any | None = None,
+    ) -> HoldRecord:
         """
-        Capture an active hold.
+        Capture an active ledger hold.
         """
-        if hold.status != HoldStatus.ACTIVE:
-            raise LedgerHoldError(
-                "Only active holds can be captured."
-            )
+        locked_hold = HoldLedgerService._get_hold_for_update(
+            hold_id=cast(Any, hold).id,
+        )
+        HoldLedgerService._assert_hold_account_context(hold=locked_hold)
 
-        hold.mark_captured()
-        hold.save(
+        if locked_hold.status != HoldStatus.ACTIVE:
+            raise LedgerHoldError("Only active holds can be captured.")
+
+        locked_hold.mark_captured()
+        locked_hold.save(
             update_fields=[
                 "status",
                 "captured_at",
                 "updated_at",
             ],
         )
-        return hold
+
+        HoldLedgerService._log_action(
+            action="ledger.hold.captured",
+            hold=locked_hold,
+            actor=captured_by,
+        )
+        return locked_hold
 
     @staticmethod
     @transaction.atomic
-    def cancel_hold(*, hold: HoldRecord) -> HoldRecord:
+    def cancel_hold(
+        *,
+        hold: HoldRecord,
+        cancelled_by: Any | None = None,
+    ) -> HoldRecord:
         """
-        Cancel a non-final hold.
+        Cancel a non-final ledger hold.
         """
-        if hold.is_final:
-            raise LedgerHoldError(
-                "Final holds cannot be cancelled."
-            )
+        locked_hold = HoldLedgerService._get_hold_for_update(
+            hold_id=cast(Any, hold).id,
+        )
+        HoldLedgerService._assert_hold_account_context(hold=locked_hold)
 
-        hold.mark_cancelled()
-        hold.save(
+        if locked_hold.is_final:
+            raise LedgerHoldError("Final holds cannot be cancelled.")
+
+        locked_hold.mark_cancelled()
+        locked_hold.save(
             update_fields=[
                 "status",
                 "cancelled_at",
                 "updated_at",
             ],
         )
-        return hold
+
+        HoldLedgerService._log_action(
+            action="ledger.hold.cancelled",
+            hold=locked_hold,
+            actor=cancelled_by,
+        )
+        return locked_hold
 
     @staticmethod
     @transaction.atomic
-    def expire_hold(*, hold: HoldRecord) -> HoldRecord:
+    def expire_hold(
+        *,
+        hold: HoldRecord,
+        expired_by: Any | None = None,
+    ) -> HoldRecord:
         """
-        Expire a non-final hold.
+        Expire a non-final ledger hold.
         """
-        if hold.is_final:
-            raise LedgerHoldError(
-                "Final holds cannot be expired."
-            )
-
-        hold.mark_expired()
-        hold.save(
-            update_fields=[
-                "status",
-                "updated_at",
-            ],
+        locked_hold = HoldLedgerService._get_hold_for_update(
+            hold_id=cast(Any, hold).id,
         )
-        return hold
+        HoldLedgerService._assert_hold_account_context(hold=locked_hold)
+
+        if locked_hold.is_final:
+            raise LedgerHoldError("Final holds cannot be expired.")
+
+        locked_hold.mark_expired()
+
+        update_fields = [
+            "status",
+            "updated_at",
+        ]
+
+        if hasattr(locked_hold, "expired_at"):
+            update_fields.append("expired_at")
+
+        locked_hold.save(update_fields=update_fields)
+
+        HoldLedgerService._log_action(
+            action="ledger.hold.expired",
+            hold=locked_hold,
+            actor=expired_by,
+        )
+        return locked_hold
 
     @staticmethod
     def get_active_holds_total(
         *,
-        website,
+        website: Any,
         wallet_reference: str,
         currency: str = "USD",
     ) -> Decimal:
         """
-        Return the total amount of active holds for a wallet reference.
+        Return the total active ledger holds for a wallet reference.
         """
-        from django.db.models import Sum
-        from django.db.models.functions import Coalesce
-
         total = (
             HoldRecord.objects.filter(
                 website=website,
@@ -195,7 +338,8 @@ class HoldLedgerService:
                 currency=currency,
                 status=HoldStatus.ACTIVE,
             ).aggregate(
-                total=Coalesce(Sum("amount"), Decimal("0.00"))
+                total=Coalesce(Sum("amount"), Decimal("0")),
             )["total"]
         )
-        return total
+
+        return cast(Decimal, total)

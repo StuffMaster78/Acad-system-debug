@@ -1,24 +1,46 @@
+from __future__ import annotations
+
 from typing import Any, cast
 
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 
+from core.utils.request_context import get_request_website
+from ledger.api.permissions.permissions import CanViewLedger
 from ledger.api.serializers import JournalEntrySerializer
 from ledger.models import JournalEntry
-from users.models import User
 
 
 class JournalEntryListView(generics.ListAPIView):
+    """
+    List tenant-scoped journal entries.
+
+    Tenant source:
+        request.website, resolved by middleware.
+
+    Security:
+        Only internal users with ledger.view may access this endpoint.
+    """
+
     serializer_class = JournalEntrySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        CanViewLedger,
+    ]
 
     def get_queryset(self):
+        """
+        Return journal entries for the resolved tenant.
+
+        Query filters are allowed only after tenant scoping has already
+        been applied. This prevents cross-tenant financial data exposure.
+        """
         request = cast(Request, self.request)
-        user = cast(User, request.user)
+        website = get_request_website(request)
 
         queryset = JournalEntry.objects.filter(
-            website=user.website,
+            website=website,
         ).order_by("-created_at")
 
         entry_type = request.query_params.get("entry_type")
@@ -62,16 +84,26 @@ class JournalEntryListView(generics.ListAPIView):
 
 
 class JournalEntryDetailView(generics.RetrieveAPIView):
+    """
+    Retrieve one tenant-scoped journal entry.
+    """
+
     serializer_class = JournalEntrySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        CanViewLedger,
+    ]
     lookup_field = "id"
 
     def get_queryset(self):
+        """
+        Return only journal entries for the resolved tenant.
+        """
         request = cast(Request, self.request)
-        user = cast(User, request.user)
+        website = get_request_website(request)
 
         queryset = JournalEntry.objects.filter(
-            website=user.website,
+            website=website,
         )
 
         return cast(Any, queryset)
