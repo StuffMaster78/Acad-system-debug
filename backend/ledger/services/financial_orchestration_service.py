@@ -111,6 +111,15 @@ class FinancialOrchestrationService:
         """
         Deduct a client wallet tip and allocate it to writer and platform.
         """
+        FinancialOrchestrationService._validate_client_context(
+            wallet_reference=wallet_reference,
+            client_id=client_id,
+        )
+
+        FinancialOrchestrationService._validate_writer_context(
+            writer_reference=writer_reference,
+            writer_id=writer_id,
+        )
         FinancialOrchestrationService._validate_tip_split(tip_split)
 
         WalletLedgerService.post_wallet_tip_deduction(
@@ -152,6 +161,10 @@ class FinancialOrchestrationService:
         """
         Refund a client internally by crediting wallet value.
         """
+        FinancialOrchestrationService._validate_client_context(
+            wallet_reference=wallet_reference,
+            client_id=client_id,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return WalletLedgerService.post_dispute_wallet_refund(
@@ -183,6 +196,10 @@ class FinancialOrchestrationService:
         """
         Refund a client externally through the payment processor.
         """
+        FinancialOrchestrationService._validate_external_context(
+            payment_intent_reference=payment_intent_reference,
+            external_reference=external_reference,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return PaymentProcessorLedgerService.post_external_refund(
@@ -216,6 +233,10 @@ class FinancialOrchestrationService:
         """
         Credit wallet after cancellation or support-approved restoration.
         """
+        FinancialOrchestrationService._validate_client_context(
+            wallet_reference=wallet_reference,
+            client_id=client_id,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return WalletLedgerService.post_cancellation_wallet_credit(
@@ -249,6 +270,10 @@ class FinancialOrchestrationService:
         """
         Debit wallet for a support-mediated extra service or charge.
         """
+        FinancialOrchestrationService._validate_client_context(
+            wallet_reference=wallet_reference,
+            client_id=client_id,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return WalletLedgerService.post_extra_service_wallet_debit(
@@ -281,6 +306,10 @@ class FinancialOrchestrationService:
         """
         Accrue writer earnings after a valid earning event is confirmed.
         """
+        FinancialOrchestrationService._validate_writer_context(
+            writer_reference=writer_reference,
+            writer_id=writer_id,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return WriterLedgerService.post_writer_earning_accrual(
@@ -311,6 +340,10 @@ class FinancialOrchestrationService:
         """
         Apply a bonus to writer payable.
         """
+        FinancialOrchestrationService._validate_writer_context(
+            writer_reference=writer_reference,
+            writer_id=writer_id,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return WriterLedgerService.post_writer_bonus(
@@ -340,6 +373,10 @@ class FinancialOrchestrationService:
         """
         Apply a fine that reduces writer payable.
         """
+        FinancialOrchestrationService._validate_writer_context(
+            writer_reference=writer_reference,
+            writer_id=writer_id,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return WriterLedgerService.post_writer_fine(
@@ -369,6 +406,10 @@ class FinancialOrchestrationService:
         """
         Increase writer balance through a manual adjustment.
         """
+        FinancialOrchestrationService._validate_writer_context(
+            writer_reference=writer_reference,
+            writer_id=writer_id,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return WriterLedgerService.post_writer_earning_restoration(
@@ -398,6 +439,10 @@ class FinancialOrchestrationService:
         """
         Decrease writer balance through a manual adjustment.
         """
+        FinancialOrchestrationService._validate_writer_context(
+            writer_reference=writer_reference,
+            writer_id=writer_id,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return WriterLedgerService.post_writer_earning_recovery(
@@ -427,6 +472,10 @@ class FinancialOrchestrationService:
         """
         Post a writer payout after payout execution is confirmed.
         """
+        FinancialOrchestrationService._validate_writer_context(
+            writer_reference=writer_reference,
+            writer_id=writer_id,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return WriterLedgerService.post_writer_payout(
@@ -462,6 +511,10 @@ class FinancialOrchestrationService:
         Resolve a client-winning dispute with a wallet refund and optional
         writer recovery.
         """
+        FinancialOrchestrationService._validate_client_context(
+            wallet_reference=wallet_reference,
+            client_id=client_id,
+        )
         FinancialOrchestrationService._validate_amount(
             refund_amount,
             "refund_amount",
@@ -470,6 +523,11 @@ class FinancialOrchestrationService:
             writer_recovery_amount,
             "writer_recovery_amount",
         )
+        if writer_recovery_amount and writer_recovery_amount > Decimal("0"):
+            FinancialOrchestrationService._validate_writer_context(
+                writer_reference=writer_reference,
+                writer_id=writer_id,
+            )
 
         wallet_refund_entry = WalletLedgerService.post_dispute_wallet_refund(
             website=website,
@@ -481,6 +539,7 @@ class FinancialOrchestrationService:
             triggered_by=triggered_by,
             metadata=metadata,
         )
+
 
         writer_recovery_entry = None
         if writer_recovery_amount and writer_recovery_amount > Decimal("0"):
@@ -525,6 +584,10 @@ class FinancialOrchestrationService:
         Resolve a client-winning dispute with an external refund and
         optional writer recovery.
         """
+        FinancialOrchestrationService._validate_external_context(
+            payment_intent_reference=payment_intent_reference,
+            external_reference=external_reference,
+        )
         FinancialOrchestrationService._validate_amount(
             refund_amount,
             "refund_amount",
@@ -534,6 +597,12 @@ class FinancialOrchestrationService:
             "writer_recovery_amount",
         )
 
+        if writer_recovery_amount and writer_recovery_amount > Decimal("0"):
+            FinancialOrchestrationService._validate_writer_context(
+                writer_reference=writer_reference,
+                writer_id=writer_id,
+            )
+            
         external_refund_entry = (
             PaymentProcessorLedgerService.post_external_refund(
                 website=website,
@@ -584,6 +653,10 @@ class FinancialOrchestrationService:
         """
         Restore writer balance after dispute resolution in writer's favor.
         """
+        FinancialOrchestrationService._validate_writer_context(
+            writer_reference=writer_reference,
+            writer_id=writer_id,
+        )
         FinancialOrchestrationService._validate_amount(amount, "amount")
 
         return WriterLedgerService.post_writer_earning_restoration(
@@ -614,6 +687,10 @@ class FinancialOrchestrationService:
         Settle a writer payout by applying outstanding recovery first,
         then posting cash payout for the net amount.
         """
+        FinancialOrchestrationService._validate_writer_context(
+            writer_reference=writer_reference,
+            writer_id=writer_id,
+        )
         FinancialOrchestrationService._validate_amount(
             gross_payout_amount,
             "gross_payout_amount",
@@ -670,3 +747,50 @@ class FinancialOrchestrationService:
             "recovery_entry": recovery_entry,
             "payout_entry": payout_entry,
         }
+
+    @staticmethod
+    def _require_str(value: str, field_name: str) -> None:
+        """
+        Ensure a required string field is present.
+        """
+        if not value or not value.strip():
+            raise ValueError(f"{field_name} is required.")
+
+    @staticmethod
+    def _validate_client_context(
+        *,
+        wallet_reference: str,
+        client_id: str,
+    ) -> None:
+        FinancialOrchestrationService._require_str(
+            wallet_reference, "wallet_reference"
+        )
+        FinancialOrchestrationService._require_str(
+            client_id, "client_id"
+        )
+
+    @staticmethod
+    def _validate_writer_context(
+        *,
+        writer_reference: str,
+        writer_id: str,
+    ) -> None:
+        FinancialOrchestrationService._require_str(
+            writer_reference, "writer_reference"
+        )
+        FinancialOrchestrationService._require_str(
+            writer_id, "writer_id"
+        )
+
+    @staticmethod
+    def _validate_external_context(
+        *,
+        payment_intent_reference: str,
+        external_reference: str,
+    ) -> None:
+        FinancialOrchestrationService._require_str(
+            payment_intent_reference, "payment_intent_reference"
+        )
+        FinancialOrchestrationService._require_str(
+            external_reference, "external_reference"
+        )

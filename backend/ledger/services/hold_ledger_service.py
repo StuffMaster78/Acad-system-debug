@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from typing import Any, cast
+from django.utils import timezone
 
 from django.db import transaction
 from django.db.models import Sum
@@ -13,6 +14,7 @@ from ledger.exceptions import LedgerHoldError
 from ledger.models.hold_record import HoldRecord
 from ledger.models.ledger_account import LedgerAccount
 
+from ledger.services.balance_service import BalanceService
 
 class HoldLedgerService:
     """
@@ -80,6 +82,19 @@ class HoldLedgerService:
             ledger_account=hold.ledger_account,
             currency=hold.currency,
         )
+
+    @staticmethod
+    def _validate_expiry(expires_at: Any | None) -> None:
+        """
+        Ensure hold expiry is in the future.
+        """
+        if expires_at is None:
+            return
+
+        if expires_at <= timezone.now():
+            raise LedgerHoldError(
+                "Hold expiry must be in the future."
+            )
 
     @staticmethod
     def _log_action(
@@ -152,11 +167,24 @@ class HoldLedgerService:
         ledger account.
         """
         HoldLedgerService._validate_amount(amount)
+
         HoldLedgerService._validate_account_context(
             website=website,
             ledger_account=ledger_account,
             currency=currency,
         )
+
+        HoldLedgerService._validate_expiry(expires_at)
+
+        available_balance = BalanceService.get_available_balance(
+            account=ledger_account,
+            wallet_reference=wallet_reference,
+        )
+
+        if amount > available_balance:
+            raise LedgerHoldError(
+                "Insufficient available balance for hold."
+            )
 
         hold = HoldRecord.objects.create(
             website=website,
@@ -181,6 +209,33 @@ class HoldLedgerService:
             actor=user,
         )
         return hold
+    
+    @staticmethod
+    def _raise_if_expired_active_hold(
+        *,
+        hold: HoldRecord,
+    ) -> None:
+        """
+        Mark expired active holds as expired and block further mutation.
+        """
+        if hold.status != HoldStatus.ACTIVE:
+            return
+
+        if hold.expires_at is None:
+            return
+
+        if hold.expires_at > timezone.now():
+            return
+
+        hold.mark_expired()
+        hold.save(
+            update_fields=[
+                "status",
+                "updated_at",
+            ],
+        )
+
+        raise LedgerHoldError("Hold has already expired.")
 
     @staticmethod
     @transaction.atomic
@@ -196,6 +251,7 @@ class HoldLedgerService:
             hold_id=cast(Any, hold).id,
         )
         HoldLedgerService._assert_hold_account_context(hold=locked_hold)
+        HoldLedgerService._raise_if_expired_active_hold(hold=locked_hold)
 
         if locked_hold.status != HoldStatus.ACTIVE:
             raise LedgerHoldError("Only active holds can be released.")
@@ -230,6 +286,7 @@ class HoldLedgerService:
             hold_id=cast(Any, hold).id,
         )
         HoldLedgerService._assert_hold_account_context(hold=locked_hold)
+        HoldLedgerService._raise_if_expired_active_hold(hold=locked_hold)
 
         if locked_hold.status != HoldStatus.ACTIVE:
             raise LedgerHoldError("Only active holds can be captured.")
@@ -264,6 +321,7 @@ class HoldLedgerService:
             hold_id=cast(Any, hold).id,
         )
         HoldLedgerService._assert_hold_account_context(hold=locked_hold)
+        HoldLedgerService._raise_if_expired_active_hold(hold=locked_hold)
 
         if locked_hold.is_final:
             raise LedgerHoldError("Final holds cannot be cancelled.")
