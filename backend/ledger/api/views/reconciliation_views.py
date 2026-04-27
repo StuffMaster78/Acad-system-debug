@@ -1,24 +1,40 @@
+from __future__ import annotations
+
 from typing import Any, cast
 
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 
+from core.utils.request_context import get_request_website
+from ledger.api.permissions.permissions import CanViewLedger
 from ledger.api.serializers import ReconciliationSerializer
 from ledger.models import ReconciliationRecord
-from users.models import User
 
 
 class ReconciliationRecordListView(generics.ListAPIView):
+    """
+    List tenant-scoped reconciliation records.
+
+    Reconciliation records are financial-control records, so the tenant
+    filter is applied before any user-controlled query filters.
+    """
+
     serializer_class = ReconciliationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        CanViewLedger,
+    ]
 
     def get_queryset(self):
+        """
+        Return reconciliation records for request.website only.
+        """
         request = cast(Request, self.request)
-        user = cast(User, request.user)
+        website = get_request_website(request)
 
         queryset = ReconciliationRecord.objects.filter(
-            website=user.website,
+            website=website,
         ).order_by("-created_at")
 
         status_value = request.query_params.get("status")
@@ -58,16 +74,26 @@ class ReconciliationRecordListView(generics.ListAPIView):
 
 
 class ReconciliationRecordDetailView(generics.RetrieveAPIView):
+    """
+    Retrieve one tenant-scoped reconciliation record.
+    """
+
     serializer_class = ReconciliationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        CanViewLedger,
+    ]
     lookup_field = "id"
 
     def get_queryset(self):
+        """
+        Return only reconciliation records for request.website.
+        """
         request = cast(Request, self.request)
-        user = cast(User, request.user)
+        website = get_request_website(request)
 
         queryset = ReconciliationRecord.objects.filter(
-            website=user.website,
+            website=website,
         )
 
         return cast(Any, queryset)

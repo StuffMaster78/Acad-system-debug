@@ -17,7 +17,7 @@ from ledger.models.ledger_account import LedgerAccount
 @dataclass(frozen=True)
 class JournalLineInput:
     """
-    Immutable input used to build journal lines for a journal entry.
+    Immutable input used to build journal lines.
     """
 
     ledger_account: LedgerAccount
@@ -35,7 +35,15 @@ class JournalLineInput:
 class JournalPostingService:
     """
     Create and post balanced journal entries atomically.
+
+    Core invariants:
+        - Debits must equal credits
+        - All accounts must belong to same tenant
+        - Currency must match
+        - Entry is immutable once posted
     """
+
+    ZERO = Decimal("0")
 
     @staticmethod
     def _validate_lines(
@@ -44,31 +52,28 @@ class JournalPostingService:
         currency: str,
         lines: list[JournalLineInput],
     ) -> None:
-        """
-        Validate line inputs before persisting a journal entry.
-        """
         if not lines:
             raise LedgerPostingError(
                 "Journal entry must have at least one line."
             )
 
-        debit_total = Decimal("0.00")
-        credit_total = Decimal("0.00")
+        debit_total = JournalPostingService.ZERO
+        credit_total = JournalPostingService.ZERO
 
         for line in lines:
-            if line.amount <= Decimal("0.00"):
+            if line.amount <= JournalPostingService.ZERO:
                 raise LedgerPostingError(
                     "Journal line amount must be greater than zero."
                 )
 
-            if line.ledger_account.website.id != website.id:
+            if getattr(line.ledger_account, "website_id", None) != getattr(website, "id", None):
                 raise LedgerPostingError(
-                    "All ledger accounts must belong to the same website."
+                    "Ledger account must belong to the same website."
                 )
 
             if line.ledger_account.currency != currency:
                 raise LedgerPostingError(
-                    "All ledger accounts must match the journal currency."
+                    "Ledger account currency must match entry currency."
                 )
 
             if line.entry_side == EntrySide.DEBIT:
@@ -77,22 +82,20 @@ class JournalPostingService:
                 credit_total += line.amount
             else:
                 raise LedgerPostingError(
-                    f"Invalid entry side: {line.entry_side}."
+                    f"Invalid entry side: {line.entry_side}"
                 )
 
         if debit_total != credit_total:
             raise LedgerPostingError(
-                "Unbalanced entry. "
-                f"Debits={debit_total}, Credits={credit_total}."
+                f"Unbalanced entry. Debits={debit_total}, Credits={credit_total}"
             )
 
     @staticmethod
     def _build_entry_number(*, website) -> str:
         """
-        Build a unique human-readable entry number.
+        Generate a reasonably unique entry number.
         """
-        timestamp = timezone.now().strftime("%Y%m%d%H%M%S%f")
-        return f"JE-{website.id}-{timestamp}"
+        return f"JE-{website.id}-{timezone.now().timestamp()}"
 
     @staticmethod
     @transaction.atomic
@@ -114,9 +117,6 @@ class JournalPostingService:
         effective_at=None,
         metadata: dict[str, Any] | None = None,
     ) -> JournalEntry:
-        """
-        Create a draft journal entry before lines are attached.
-        """
         return JournalEntry.objects.create(
             website=website,
             entry_number=JournalPostingService._build_entry_number(
@@ -146,9 +146,11 @@ class JournalPostingService:
         journal_entry: JournalEntry,
         lines: list[JournalLineInput],
     ) -> list[JournalLine]:
-        """
-        Persist journal lines for a draft journal entry.
-        """
+        if journal_entry.status != JournalEntryStatus.DRAFT:
+            raise LedgerPostingError(
+                "Cannot add lines to a non-draft journal entry."
+            )
+
         created_lines: list[JournalLine] = []
 
         for line in lines:
@@ -165,7 +167,7 @@ class JournalPostingService:
                 payment_intent_reference=line.payment_intent_reference,
                 related_object_type=line.related_object_type,
                 related_object_id=line.related_object_id,
-                metadata=dict(line.metadata),
+                metadata=dict(line.metadata or {}),
             )
             created_lines.append(created_line)
 
@@ -192,9 +194,7 @@ class JournalPostingService:
         effective_at=None,
         metadata: dict[str, Any] | None = None,
     ) -> JournalEntry:
-        """
-        Validate, create, populate, and post a journal entry.
-        """
+
         JournalPostingService._validate_lines(
             website=website,
             currency=currency,
@@ -224,8 +224,12 @@ class JournalPostingService:
             lines=lines,
         )
 
+        if entry.status != JournalEntryStatus.DRAFT:
+            raise LedgerPostingError("Entry must be in draft before posting.")
+
         entry.mark_posted()
         entry.full_clean()
+
         entry.save(
             update_fields=[
                 "status",
@@ -244,11 +248,9 @@ class JournalPostingService:
         entry: JournalEntry,
         reason: str,
     ) -> JournalEntry:
-        """
-        Mark an entry as failed with a failure reason.
-        """
         entry.status = JournalEntryStatus.FAILED
         entry.failure_reason = reason
+
         entry.save(
             update_fields=[
                 "status",
@@ -256,4 +258,5 @@ class JournalPostingService:
                 "updated_at",
             ],
         )
+
         return entry

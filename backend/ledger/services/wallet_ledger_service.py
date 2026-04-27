@@ -3,7 +3,10 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
+from django.db import transaction
+
 from ledger.constants import EntrySide, LedgerEntryType, SourceApp
+from ledger.models import JournalEntry
 from ledger.services.account_service import AccountService
 from ledger.services.journal_posting_service import (
     JournalLineInput,
@@ -15,21 +18,37 @@ class WalletLedgerService:
     """
     Handle client stored value flows.
 
-    Important:
-    - Wallet does not move platform cash directly
-    - Wallet represents internal platform credit
-    - Revenue is not recognized here
+    Wallet credit is internal platform value.
+    Revenue is not recognized here.
     """
 
+    DEFAULT_CURRENCY = "USD"
+    ZERO = Decimal("0.00")
+
     @staticmethod
-    def _validate_amount(amount: Decimal) -> None:
+    def _validate_amount(*, amount: Decimal) -> None:
         """
         Validate that an amount is positive.
         """
-        if amount <= 0:
-            raise ValueError("Amount must be greater than zero")
+        if amount <= WalletLedgerService.ZERO:
+            raise ValueError("Amount must be greater than zero.")
 
     @staticmethod
+    def _merge_metadata(
+        *,
+        base: dict[str, Any] | None,
+        extra: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Merge metadata without mutating caller-provided dictionaries.
+        """
+        return {
+            **extra,
+            **(base or {}),
+        }
+
+    @staticmethod
+    @transaction.atomic
     def post_wallet_top_up(
         *,
         website,
@@ -40,14 +59,15 @@ class WalletLedgerService:
         external_reference: str = "",
         triggered_by=None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> JournalEntry:
         """
         Record wallet top up.
 
-        This increases client stored value after money has already entered
-        the platform.
+        Accounting:
+            Dr Platform Cash
+            Cr Client Platform Credit
         """
-        WalletLedgerService._validate_amount(amount)
+        WalletLedgerService._validate_amount(amount=amount)
 
         platform_cash = AccountService.get_system_account(
             website=website,
@@ -63,13 +83,23 @@ class WalletLedgerService:
                 ledger_account=platform_cash,
                 entry_side=EntrySide.DEBIT,
                 amount=amount,
+                description="Wallet top-up cash received.",
                 wallet_reference=wallet_reference,
+                payment_intent_reference=payment_intent_reference,
+                metadata={
+                    "external_reference": external_reference,
+                },
             ),
             JournalLineInput(
                 ledger_account=client_credit,
                 entry_side=EntrySide.CREDIT,
                 amount=amount,
+                description="Client wallet credited.",
                 wallet_reference=wallet_reference,
+                payment_intent_reference=payment_intent_reference,
+                metadata={
+                    "external_reference": external_reference,
+                },
             ),
         ]
 
@@ -77,20 +107,30 @@ class WalletLedgerService:
             website=website,
             entry_type=LedgerEntryType.CLIENT_WALLET_TOP_UP,
             lines=lines,
+            currency=WalletLedgerService.DEFAULT_CURRENCY,
             description="Client wallet top up recorded.",
+            reference=payment_intent_reference or wallet_reference,
             source_app=SourceApp.WALLETS,
             source_model="User",
             source_object_id=client_id,
             external_reference=external_reference,
             payment_intent_reference=payment_intent_reference,
             triggered_by=triggered_by,
-            metadata={
-                "client_id": client_id,
-                **(metadata or {}),
-            },
+            metadata=WalletLedgerService._merge_metadata(
+                base=metadata,
+                extra={
+                    "client_id": client_id,
+                    "wallet_reference": wallet_reference,
+                    "payment_intent_reference": (
+                        payment_intent_reference
+                    ),
+                    "external_reference": external_reference,
+                },
+            ),
         )
 
     @staticmethod
+    @transaction.atomic
     def post_wallet_spend(
         *,
         website,
@@ -103,14 +143,15 @@ class WalletLedgerService:
         payment_intent_reference: str = "",
         triggered_by=None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> JournalEntry:
         """
         Record wallet spend.
 
-        This consumes client stored value and credits an internal
-        consumption account. It does not recognize new revenue.
+        Accounting:
+            Dr Client Platform Credit
+            Cr Client Credit Consumption
         """
-        WalletLedgerService._validate_amount(amount)
+        WalletLedgerService._validate_amount(amount=amount)
 
         client_credit = AccountService.get_system_account(
             website=website,
@@ -126,13 +167,21 @@ class WalletLedgerService:
                 ledger_account=client_credit,
                 entry_side=EntrySide.DEBIT,
                 amount=amount,
+                description="Client wallet value consumed.",
                 wallet_reference=wallet_reference,
+                payment_intent_reference=payment_intent_reference,
+                related_object_type=related_object_type,
+                related_object_id=related_object_id,
             ),
             JournalLineInput(
                 ledger_account=credit_consumption,
                 entry_side=EntrySide.CREDIT,
                 amount=amount,
+                description="Wallet consumption recorded.",
                 wallet_reference=wallet_reference,
+                payment_intent_reference=payment_intent_reference,
+                related_object_type=related_object_type,
+                related_object_id=related_object_id,
             ),
         ]
 
@@ -140,20 +189,27 @@ class WalletLedgerService:
             website=website,
             entry_type=LedgerEntryType.CLIENT_WALLET_SPEND,
             lines=lines,
+            currency=WalletLedgerService.DEFAULT_CURRENCY,
             description="Client wallet spend recorded.",
-            reference=reference,
+            reference=reference or wallet_reference,
             source_app=SourceApp.WALLETS,
             source_model=related_object_type,
             source_object_id=related_object_id,
             payment_intent_reference=payment_intent_reference,
             triggered_by=triggered_by,
-            metadata={
-                "client_id": client_id,
-                **(metadata or {}),
-            },
+            metadata=WalletLedgerService._merge_metadata(
+                base=metadata,
+                extra={
+                    "client_id": client_id,
+                    "wallet_reference": wallet_reference,
+                    "related_object_type": related_object_type,
+                    "related_object_id": related_object_id,
+                },
+            ),
         )
 
     @staticmethod
+    @transaction.atomic
     def post_support_wallet_credit(
         *,
         website,
@@ -166,14 +222,15 @@ class WalletLedgerService:
         reference: str = "",
         triggered_by=None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> JournalEntry:
         """
-        Record support credit to wallet.
+        Record support wallet credit.
 
-        Used when support restores value to the client wallet after a
-        cancellation, adjustment, or goodwill action.
+        Accounting:
+            Dr Manual Adjustments
+            Cr Client Platform Credit
         """
-        WalletLedgerService._validate_amount(amount)
+        WalletLedgerService._validate_amount(amount=amount)
 
         manual_adjustments = AccountService.get_system_account(
             website=website,
@@ -190,12 +247,18 @@ class WalletLedgerService:
                 entry_side=EntrySide.DEBIT,
                 amount=amount,
                 description=reason,
+                wallet_reference=wallet_reference,
+                related_object_type=related_object_type,
+                related_object_id=related_object_id,
             ),
             JournalLineInput(
                 ledger_account=client_credit,
                 entry_side=EntrySide.CREDIT,
                 amount=amount,
                 description=reason,
+                wallet_reference=wallet_reference,
+                related_object_type=related_object_type,
+                related_object_id=related_object_id,
             ),
         ]
 
@@ -203,20 +266,27 @@ class WalletLedgerService:
             website=website,
             entry_type=LedgerEntryType.CLIENT_WALLET_SUPPORT_CREDIT,
             lines=lines,
+            currency=WalletLedgerService.DEFAULT_CURRENCY,
             description=reason,
-            reference=reference,
+            reference=reference or wallet_reference,
             source_app=SourceApp.ADMIN,
             source_model=related_object_type,
             source_object_id=related_object_id,
             triggered_by=triggered_by,
-            metadata={
-                "client_id": client_id,
-                "adjustment_direction": "credit",
-                **(metadata or {}),
-            },
+            metadata=WalletLedgerService._merge_metadata(
+                base=metadata,
+                extra={
+                    "client_id": client_id,
+                    "wallet_reference": wallet_reference,
+                    "adjustment_direction": "credit",
+                    "related_object_type": related_object_type,
+                    "related_object_id": related_object_id,
+                },
+            ),
         )
 
     @staticmethod
+    @transaction.atomic
     def post_support_wallet_debit(
         *,
         website,
@@ -229,14 +299,15 @@ class WalletLedgerService:
         reference: str = "",
         triggered_by=None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> JournalEntry:
         """
-        Record support debit from wallet.
+        Record support wallet debit.
 
-        Used when support deducts client wallet value for an extra service
-        or another agreed internal charge.
+        Accounting:
+            Dr Client Platform Credit
+            Cr Manual Adjustments
         """
-        WalletLedgerService._validate_amount(amount)
+        WalletLedgerService._validate_amount(amount=amount)
 
         client_credit = AccountService.get_system_account(
             website=website,
@@ -253,12 +324,18 @@ class WalletLedgerService:
                 entry_side=EntrySide.DEBIT,
                 amount=amount,
                 description=reason,
+                wallet_reference=wallet_reference,
+                related_object_type=related_object_type,
+                related_object_id=related_object_id,
             ),
             JournalLineInput(
                 ledger_account=manual_adjustments,
                 entry_side=EntrySide.CREDIT,
                 amount=amount,
                 description=reason,
+                wallet_reference=wallet_reference,
+                related_object_type=related_object_type,
+                related_object_id=related_object_id,
             ),
         ]
 
@@ -266,20 +343,27 @@ class WalletLedgerService:
             website=website,
             entry_type=LedgerEntryType.CLIENT_WALLET_SUPPORT_DEBIT,
             lines=lines,
+            currency=WalletLedgerService.DEFAULT_CURRENCY,
             description=reason,
-            reference=reference,
+            reference=reference or wallet_reference,
             source_app=SourceApp.ADMIN,
             source_model=related_object_type,
             source_object_id=related_object_id,
             triggered_by=triggered_by,
-            metadata={
-                "client_id": client_id,
-                "adjustment_direction": "debit",
-                **(metadata or {}),
-            },
+            metadata=WalletLedgerService._merge_metadata(
+                base=metadata,
+                extra={
+                    "client_id": client_id,
+                    "wallet_reference": wallet_reference,
+                    "adjustment_direction": "debit",
+                    "related_object_type": related_object_type,
+                    "related_object_id": related_object_id,
+                },
+            ),
         )
 
     @staticmethod
+    @transaction.atomic
     def post_wallet_refund(
         *,
         website,
@@ -291,14 +375,15 @@ class WalletLedgerService:
         reference: str = "",
         triggered_by=None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> JournalEntry:
         """
-        Record refund to wallet.
+        Record internal wallet refund.
 
-        This restores client stored value internally. It is used when the
-        refund destination is wallet, not external processor.
+        Accounting:
+            Dr Manual Adjustments
+            Cr Client Platform Credit
         """
-        WalletLedgerService._validate_amount(amount)
+        WalletLedgerService._validate_amount(amount=amount)
 
         manual_adjustments = AccountService.get_system_account(
             website=website,
@@ -315,12 +400,18 @@ class WalletLedgerService:
                 entry_side=EntrySide.DEBIT,
                 amount=amount,
                 description=reason,
+                wallet_reference=wallet_reference,
+                related_object_type="Refund",
+                related_object_id=refund_id,
             ),
             JournalLineInput(
                 ledger_account=client_credit,
                 entry_side=EntrySide.CREDIT,
                 amount=amount,
                 description=reason,
+                wallet_reference=wallet_reference,
+                related_object_type="Refund",
+                related_object_id=refund_id,
             ),
         ]
 
@@ -328,20 +419,25 @@ class WalletLedgerService:
             website=website,
             entry_type=LedgerEntryType.CLIENT_WALLET_REFUND,
             lines=lines,
+            currency=WalletLedgerService.DEFAULT_CURRENCY,
             description=reason,
             reference=reference or refund_id,
             source_app=SourceApp.REFUNDS,
             source_model="Refund",
             source_object_id=refund_id,
             triggered_by=triggered_by,
-            metadata={
-                "client_id": client_id,
-                "refund_id": refund_id,
-                **(metadata or {}),
-            },
+            metadata=WalletLedgerService._merge_metadata(
+                base=metadata,
+                extra={
+                    "client_id": client_id,
+                    "wallet_reference": wallet_reference,
+                    "refund_id": refund_id,
+                },
+            ),
         )
 
     @staticmethod
+    @transaction.atomic
     def post_wallet_tip_deduction(
         *,
         website,
@@ -352,14 +448,15 @@ class WalletLedgerService:
         tip_reference: str,
         triggered_by=None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> JournalEntry:
         """
-        Record wallet tip deduction.
+        Deduct wallet value for a tip.
 
-        This deducts client stored value and moves the amount into tip
-        allocation clearing for writer and platform distribution.
+        Accounting:
+            Dr Client Platform Credit
+            Cr Tip Allocation Clearing
         """
-        WalletLedgerService._validate_amount(amount)
+        WalletLedgerService._validate_amount(amount=amount)
 
         client_credit = AccountService.get_system_account(
             website=website,
@@ -375,11 +472,19 @@ class WalletLedgerService:
                 ledger_account=client_credit,
                 entry_side=EntrySide.DEBIT,
                 amount=amount,
+                description="Client wallet tip deducted.",
+                wallet_reference=wallet_reference,
+                related_object_type="Tip",
+                related_object_id=tip_reference,
             ),
             JournalLineInput(
                 ledger_account=tip_clearing,
                 entry_side=EntrySide.CREDIT,
                 amount=amount,
+                description="Tip moved to allocation clearing.",
+                wallet_reference=wallet_reference,
+                related_object_type="Tip",
+                related_object_id=tip_reference,
             ),
         ]
 
@@ -387,17 +492,22 @@ class WalletLedgerService:
             website=website,
             entry_type=LedgerEntryType.CLIENT_WALLET_TIP_DEDUCTION,
             lines=lines,
+            currency=WalletLedgerService.DEFAULT_CURRENCY,
             description="Client wallet tip deduction recorded.",
             reference=tip_reference,
             source_app=SourceApp.WALLETS,
             source_model="Tip",
             source_object_id=tip_reference,
             triggered_by=triggered_by,
-            metadata={
-                "client_id": client_id,
-                "writer_id": writer_id,
-                **(metadata or {}),
-            },
+            metadata=WalletLedgerService._merge_metadata(
+                base=metadata,
+                extra={
+                    "client_id": client_id,
+                    "writer_id": writer_id,
+                    "wallet_reference": wallet_reference,
+                    "tip_reference": tip_reference,
+                },
+            ),
         )
 
     @staticmethod
@@ -413,11 +523,9 @@ class WalletLedgerService:
         reference: str = "",
         triggered_by=None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> JournalEntry:
         """
-        Record wallet credit after cancellation.
-
-        This is a business-friendly wrapper around support wallet credit.
+        Business-friendly wrapper for cancellation wallet credit.
         """
         return WalletLedgerService.post_support_wallet_credit(
             website=website,
@@ -444,12 +552,9 @@ class WalletLedgerService:
         reference: str = "",
         triggered_by=None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> JournalEntry:
         """
-        Record dispute refund to wallet.
-
-        This is a business-friendly wrapper for wallet refund after a
-        dispute is resolved for the client.
+        Business-friendly wrapper for dispute wallet refund.
         """
         return WalletLedgerService.post_wallet_refund(
             website=website,
@@ -476,11 +581,9 @@ class WalletLedgerService:
         reference: str = "",
         triggered_by=None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> JournalEntry:
         """
-        Record wallet debit for extra service.
-
-        This is a business-friendly wrapper around support wallet debit.
+        Business-friendly wrapper for extra service wallet debit.
         """
         return WalletLedgerService.post_support_wallet_debit(
             website=website,

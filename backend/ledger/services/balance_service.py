@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
@@ -20,8 +20,16 @@ from ledger.services.account_service import AccountService
 
 class BalanceService:
     """
-    Compute balances from posted journal lines.
+    Compute tenant-scoped ledger balances from posted journal lines.
+
+    Important:
+        This service reads accounting truth only.
+        It does not mutate journal entries or wallet balances.
     """
+
+    @staticmethod
+    def _decimal_zero() -> Decimal:
+        return Decimal("0")
 
     @staticmethod
     def _sum_lines(
@@ -31,12 +39,14 @@ class BalanceService:
         extra_filters: dict[str, Any] | None = None,
     ) -> Decimal:
         """
-        Sum posted journal line amounts for an account and entry side.
+        Sum posted journal line amounts for one ledger account and side.
         """
         filters: dict[str, Any] = {
+            "website": account.website,
             "ledger_account": account,
             "journal_entry__status": JournalEntryStatus.POSTED,
             "entry_side": entry_side,
+            "currency": account.currency,
         }
 
         if extra_filters:
@@ -44,10 +54,43 @@ class BalanceService:
 
         total = (
             JournalLine.objects.filter(**filters).aggregate(
-                total=Coalesce(Sum("amount"), Decimal("0.00")),
+                total=Coalesce(
+                    Sum("amount"),
+                    BalanceService._decimal_zero(),
+                ),
             )["total"]
         )
-        return total
+
+        return cast(Decimal, total)
+
+    @staticmethod
+    def _credit_normal_balance(
+        *,
+        account: LedgerAccount,
+        wallet_reference: str,
+        currency: str,
+    ) -> Decimal:
+        """
+        Return credits minus debits for a credit-normal account.
+        """
+        debit_total = BalanceService._sum_lines(
+            account=account,
+            entry_side=EntrySide.DEBIT,
+            extra_filters={
+                "wallet_reference": wallet_reference,
+                "currency": currency,
+            },
+        )
+        credit_total = BalanceService._sum_lines(
+            account=account,
+            entry_side=EntrySide.CREDIT,
+            extra_filters={
+                "wallet_reference": wallet_reference,
+                "currency": currency,
+            },
+        )
+
+        return credit_total - debit_total
 
     @staticmethod
     def get_account_balance(*, account: LedgerAccount) -> Decimal:
@@ -95,46 +138,49 @@ class BalanceService:
     @staticmethod
     def get_client_wallet_balance(
         *,
-        website,
+        website: Any,
         wallet_reference: str,
         currency: str = "USD",
     ) -> Decimal:
         """
-        Return client wallet stored value balance.
-
-        This balance is computed only from the client platform credit
-        account, not from every line carrying the wallet reference.
+        Return client wallet liability balance for a wallet reference.
         """
-        client_credit = AccountService.get_system_account(
+        client_wallet_liability = AccountService.get_system_account(
             website=website,
-            key="client_platform_credit",
+            key="client_wallet_liability",
         )
 
-        debit_total = BalanceService._sum_lines(
-            account=client_credit,
-            entry_side=EntrySide.DEBIT,
-            extra_filters={
-                "website": website,
-                "wallet_reference": wallet_reference,
-                "currency": currency,
-            },
-        )
-        credit_total = BalanceService._sum_lines(
-            account=client_credit,
-            entry_side=EntrySide.CREDIT,
-            extra_filters={
-                "website": website,
-                "wallet_reference": wallet_reference,
-                "currency": currency,
-            },
+        return BalanceService._credit_normal_balance(
+            account=client_wallet_liability,
+            wallet_reference=wallet_reference,
+            currency=currency,
         )
 
-        return credit_total - debit_total
+    @staticmethod
+    def get_writer_wallet_balance(
+        *,
+        website: Any,
+        writer_reference: str,
+        currency: str = "USD",
+    ) -> Decimal:
+        """
+        Return writer wallet liability balance for a writer wallet reference.
+        """
+        writer_wallet_liability = AccountService.get_system_account(
+            website=website,
+            key="writer_wallet_liability",
+        )
+
+        return BalanceService._credit_normal_balance(
+            account=writer_wallet_liability,
+            wallet_reference=writer_reference,
+            currency=currency,
+        )
 
     @staticmethod
     def get_writer_payable_balance(
         *,
-        website,
+        website: Any,
         writer_reference: str,
         currency: str = "USD",
     ) -> Decimal:
@@ -146,31 +192,16 @@ class BalanceService:
             key="writer_payable",
         )
 
-        debit_total = BalanceService._sum_lines(
+        return BalanceService._credit_normal_balance(
             account=writer_payable,
-            entry_side=EntrySide.DEBIT,
-            extra_filters={
-                "website": website,
-                "wallet_reference": writer_reference,
-                "currency": currency,
-            },
+            wallet_reference=writer_reference,
+            currency=currency,
         )
-        credit_total = BalanceService._sum_lines(
-            account=writer_payable,
-            entry_side=EntrySide.CREDIT,
-            extra_filters={
-                "website": website,
-                "wallet_reference": writer_reference,
-                "currency": currency,
-            },
-        )
-
-        return credit_total - debit_total
 
     @staticmethod
     def get_writer_tip_payable_balance(
         *,
-        website,
+        website: Any,
         writer_reference: str,
         currency: str = "USD",
     ) -> Decimal:
@@ -182,32 +213,16 @@ class BalanceService:
             key="writer_tip_payable",
         )
 
-        debit_total = BalanceService._sum_lines(
+        return BalanceService._credit_normal_balance(
             account=writer_tip_payable,
-            entry_side=EntrySide.DEBIT,
-            extra_filters={
-                "website": website,
-                "wallet_reference": writer_reference,
-                "currency": currency,
-            },
+            wallet_reference=writer_reference,
+            currency=currency,
         )
-        credit_total = BalanceService._sum_lines(
-            account=writer_tip_payable,
-            entry_side=EntrySide.CREDIT,
-            extra_filters={
-                "website": website,
-                "wallet_reference": writer_reference,
-                "currency": currency,
-            },
-        )
-
-        return credit_total - debit_total
-    
 
     @staticmethod
     def get_writer_recovery_balance(
         *,
-        website,
+        website: Any,
         writer_reference: str,
         currency: str = "USD",
     ) -> Decimal:
@@ -219,23 +234,8 @@ class BalanceService:
             key="writer_recovery",
         )
 
-        debit_total = BalanceService._sum_lines(
+        return BalanceService._credit_normal_balance(
             account=writer_recovery,
-            entry_side=EntrySide.DEBIT,
-            extra_filters={
-                "website": website,
-                "wallet_reference": writer_reference,
-                "currency": currency,
-            },
+            wallet_reference=writer_reference,
+            currency=currency,
         )
-        credit_total = BalanceService._sum_lines(
-            account=writer_recovery,
-            entry_side=EntrySide.CREDIT,
-            extra_filters={
-                "website": website,
-                "wallet_reference": writer_reference,
-                "currency": currency,
-            },
-        )
-
-        return credit_total - debit_total
