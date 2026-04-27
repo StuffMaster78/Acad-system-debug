@@ -211,13 +211,6 @@ class ReversalLedgerService:
             metadata=reversal_metadata,
         )
 
-        locked_entry.mark_reversed()
-        locked_entry.save(
-            update_fields=[
-                "status",
-                "updated_at",
-            ],
-        )
 
         ReversalLedgerService._log_reversal(
             original_entry=locked_entry,
