@@ -15,7 +15,7 @@ from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from tickets.models import Ticket
 from communications.models import CommunicationMessage
-from pricing_configs.models import AdditionalService
+from order_pricing_core.models import AdditionalService
 
 User = settings.AUTH_USER_MODEL
 class DashboardMetricsService:

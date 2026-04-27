@@ -1,18 +1,45 @@
-from typing import Any
+from __future__ import annotations
 
-from rest_framework.permissions import BasePermission
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-class CanSubmitDraft(BasePermission):
-    def has_object_permission(self, request: Request, view: APIView, obj) -> Any:
-        user = request.user
+from accounts.services.permission_service import AccountPermissionService
+from core.permissions.base import BasePlatformPermission
 
-        if not user.is_authenticated:
+
+class CanSubmitDraft(BasePlatformPermission):
+    """
+    Allow current assigned writer (or permitted internal user) to submit draft.
+    """
+
+    message = "You are not allowed to submit this draft."
+
+    required_portal = "writer_portal"
+    required_permission = "orders.submit_draft"
+    require_tenant = True
+
+    def has_object_permission( # type: ignore[override]
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ):  
+        website = getattr(request, "website", None)
+
+        # Tenant safety
+        if getattr(obj, "website_id", None) != getattr(website, "id", None):
             return False
 
-        if getattr(user, "is_staff", False):
+        user = request.user
+
+        # Internal override (admin/support/editor etc)
+        if AccountPermissionService.user_has_permission(
+            user=user,
+            permission_code="orders.review_draft",
+            website=website,
+        ):
             return True
 
         assignments = getattr(obj, "assignments", None)
@@ -24,6 +51,13 @@ class CanSubmitDraft(BasePermission):
         return getattr(obj, "preferred_writer", None) == user
 
 
-class CanReviewDraft(BasePermission):
-    def has_permission(self, request: Request, view: APIView) -> Any:
-        return bool(request.user and request.user.is_staff)
+class CanReviewDraft(BasePlatformPermission):
+    """
+    Allow internal users to review drafts.
+    """
+
+    message = "You are not allowed to review this draft."
+
+    required_portal = "internal_admin"
+    required_permission = "orders.review_draft"
+    require_tenant = True

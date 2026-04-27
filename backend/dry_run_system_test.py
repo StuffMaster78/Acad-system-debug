@@ -385,7 +385,7 @@ class SystemDryRun:
         # Setup pricing configuration
         print_step("Setting up pricing configuration...")
         try:
-            from pricing_configs.models import PricingConfiguration
+            from order_pricing_core.models import PricingConfiguration
             pricing_config = PricingConfiguration.objects.filter(website=self.website).first()
             if not pricing_config:
                 pricing_config = PricingConfiguration.objects.create(

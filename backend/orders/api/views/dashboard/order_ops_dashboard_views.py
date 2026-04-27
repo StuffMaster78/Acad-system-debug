@@ -37,7 +37,7 @@ class OrderOpsDashboardSummaryView(GenericAPIView):
         """
         user = cast(Any, request.user)
         counts = OrderOpsSelector.dashboard_counts(
-            website=user.website,
+            website=request.website,
         )
 
         return Response(
@@ -77,7 +77,7 @@ class OrderOpsQueueView(GenericAPIView):
         """
         user = cast(Any, request.user)
         queryset = self._resolve_queue(
-            website=user.website,
+            website=request.website,
             queue_key=queue_key,
         )
 

@@ -181,7 +181,7 @@ def main():
             print_success(f"Using existing paper type: {paper_type.name}")
         
         # Create pricing configuration if needed
-        from pricing_configs.models import PricingConfiguration
+        from order_pricing_core.models import PricingConfiguration
         pricing_config = PricingConfiguration.objects.filter(website=website).first()
         if not pricing_config:
             try:

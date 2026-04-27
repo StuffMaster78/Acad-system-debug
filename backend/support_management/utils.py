@@ -1,6 +1,6 @@
 from django.utils.timezone import now
 from orders.models.orders import Order
-from orders.models.order_disputes import Dispute
+from orders.models.legacy_models.order_disputes import Dispute
 from tickets.models import Ticket
 from .models import (
     SupportNotification, SupportWorkloadTracker, OrderDisputeSLA, 

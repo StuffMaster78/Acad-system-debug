@@ -1,6 +1,6 @@
 from django.db.models import Count, Q, F
 from orders.models.orders import Order
-from orders.models.requests import OrderRequest
+from orders.models.legacy_models.requests import OrderRequest
 from writer_management.models import WriterProfile
 from django.contrib.auth import get_user_model
 

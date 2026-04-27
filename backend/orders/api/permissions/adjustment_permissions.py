@@ -2,90 +2,115 @@ from __future__ import annotations
 
 from typing import Any
 
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
+from accounts.services.permission_service import AccountPermissionService
+from core.permissions.base import BasePlatformPermission
 
-class BaseAdjustmentTenantPermission(BasePermission):
+
+class BaseAdjustmentTenantPermission(BasePlatformPermission):
     """
-    Base permission enforcing tenant alignment.
+    Base permission enforcing resolved tenant alignment.
     """
 
     message = "Cross-tenant access denied."
+    require_tenant = True
 
-    def _same_tenant(self, user: Any, obj: Any) -> bool:
-        user_website_id = getattr(user, "website_id", None)
+    def _same_tenant(self, request: Request, obj: Any) -> bool:
+        website = getattr(request, "website", None)
 
-        obj_website = getattr(obj, "website", None)
-        obj_website_id = getattr(obj_website, "pk", None)
+        order = getattr(obj, "order", None)
+        target = order if order is not None else obj
 
-        return user_website_id == obj_website_id
+        return getattr(target, "website_id", None) == getattr(website, "id", None)
 
 
-
-class CanActOnOwnAdjustment(BasePermission):
+class CanActOnOwnAdjustment(BaseAdjustmentTenantPermission):
     """
     Allow clients to act only on their own order adjustments.
     """
 
-    def has_object_permission(self, request: Request, view: APIView, obj) -> Any:
-        user = getattr(request, "user", None)
-        if user is None or not getattr(user, "is_authenticated", False):
-            return False
+    message = "You are not allowed to act on this adjustment."
+    required_permission = "orders.adjust_own"
 
-        return getattr(obj.order, "client", None) == user
-
-
-class CanWriterEscalateAdjustment(BasePermission):
-    """
-    Allow assigned writer to escalate post-counter adjustment.
-    """
-
-    def has_object_permission(self, request: Request, view: Request, obj) -> Any:
-        user = getattr(request, "user", None)
-        if user is None or not getattr(user, "is_authenticated", False):
-            return False
-
-        assignments = getattr(obj.order, "assignments", None)
-        if assignments is not None:
-            assignment = assignments.filter(is_current=True).first()
-            if assignment is not None:
-                return assignment.writer == user
-
-        return getattr(obj.order, "preferred_writer", None) == user
-
-
-class CanStaffResolveAdjustment(BasePermission):
-    """
-    Allow staff users to resolve adjustment escalations.
-    """
-
-    def has_permission(self, request:Request, view: APIView) -> Any:
-        user = getattr(request, "user", None)
-        return bool(
-            user
-            and getattr(user, "is_authenticated", False)
-            and getattr(user, "is_staff", False)
-        )
-    
-class CanCreateAdjustment(BaseAdjustmentTenantPermission):
-    """
-    Writers and staff can create adjustment requests for an order.
-    """
-
-    message = "You are not allowed to create this adjustment request."
-
-    def has_object_permission(
+    def has_object_permission( # type: ignore[override]
         self,
         request: Request,
         view: APIView,
         obj: Any,
-    ) -> Any:
-        if not self._same_tenant(request.user, obj):
+    ):  
+        if not self._same_tenant(request, obj):
             return False
 
-        if getattr(request.user, "is_staff", False):
+        order = getattr(obj, "order", None)
+        return getattr(order, "client", None) == request.user
+
+
+class CanWriterEscalateAdjustment(BaseAdjustmentTenantPermission):
+    """
+    Allow the current assigned writer to escalate an adjustment.
+    """
+
+    message = "You are not allowed to escalate this adjustment."
+    required_portal = "writer_portal"
+    required_permission = "orders.escalate_adjustment"
+
+    def has_object_permission( # type: ignore[override]
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ):
+        if not self._same_tenant(request, obj):
+            return False
+
+        order = getattr(obj, "order", None)
+        assignments = getattr(order, "assignments", None)
+
+        if assignments is not None:
+            assignment = assignments.filter(is_current=True).first()
+            if assignment is not None:
+                return assignment.writer == request.user
+
+        return getattr(order, "preferred_writer", None) == request.user
+
+
+class CanStaffResolveAdjustment(BaseAdjustmentTenantPermission):
+    """
+    Allow internal users to resolve adjustment escalations.
+    """
+
+    message = "You are not allowed to resolve this adjustment."
+    required_portal = "internal_admin"
+    required_permission = "orders.resolve_adjustment"
+
+
+class CanCreateAdjustment(BaseAdjustmentTenantPermission):
+    """
+    Allow current assigned writer or permitted internal user to create adjustment.
+    """
+
+    message = "You are not allowed to create this adjustment request."
+    required_permission = "orders.create_adjustment"
+
+    def has_object_permission( # type: ignore[override]
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ):
+        if not self._same_tenant(request, obj):
+            return False
+
+        user = request.user
+        website = getattr(request, "website", None)
+
+        if AccountPermissionService.user_has_permission(
+            user=user,
+            permission_code="orders.manage_adjustments",
+            website=website,
+        ):
             return True
 
         assignments = getattr(obj, "assignments", None)
@@ -93,131 +118,103 @@ class CanCreateAdjustment(BaseAdjustmentTenantPermission):
             return False
 
         return assignments.filter(
-            writer=request.user,
+            writer=user,
             is_current=True,
         ).exists()
 
 
-class CanCounterAdjustment(BaseAdjustmentTenantPermission):
+class BaseClientOrStaffAdjustmentPermission(BaseAdjustmentTenantPermission):
     """
-    Client owner or staff can counter an adjustment request.
+    Base class for adjustment actions allowed to client owner
+    or permitted internal users.
+    """
+
+    required_permission = "orders.respond_adjustment"
+
+    def has_object_permission( # type: ignore[override]
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ):
+        if not self._same_tenant(request, obj):
+            return False
+
+        user = request.user
+        website = getattr(request, "website", None)
+
+        if AccountPermissionService.user_has_permission(
+            user=user,
+            permission_code="orders.manage_adjustments",
+            website=website,
+        ):
+            return True
+
+        order = getattr(obj, "order", None)
+        client = getattr(order, "client", None)
+
+        return getattr(client, "pk", None) == getattr(user, "pk", None)
+
+
+class CanCounterAdjustment(BaseClientOrStaffAdjustmentPermission):
+    """
+    Client owner or permitted internal user can counter an adjustment.
     """
 
     message = "You are not allowed to counter this adjustment."
 
-    def has_object_permission(
-        self,
-        request: Request,
-        view: APIView,
-        obj: Any,
-    ) -> Any:
-        if not self._same_tenant(request.user, obj):
-            return False
 
-        if getattr(request.user, "is_staff", False):
-            return True
-
-        order = getattr(obj, "order", None)
-        client = getattr(order, "client", None)
-        return getattr(client, "pk", None) == getattr(
-            request.user,
-            "pk",
-            None,
-        )
-
-
-class CanAcceptAdjustment(BaseAdjustmentTenantPermission):
+class CanAcceptAdjustment(BaseClientOrStaffAdjustmentPermission):
     """
-    Client owner or staff can accept an adjustment request.
+    Client owner or permitted internal user can accept an adjustment.
     """
 
     message = "You are not allowed to accept this adjustment."
 
-    def has_object_permission(
-        self,
-        request: Request,
-        view: APIView,
-        obj: Any,
-    ) -> Any:
-        if not self._same_tenant(request.user, obj):
-            return False
 
-        if getattr(request.user, "is_staff", False):
-            return True
-
-        order = getattr(obj, "order", None)
-        client = getattr(order, "client", None)
-        return getattr(client, "pk", None) == getattr(
-            request.user,
-            "pk",
-            None,
-        )
-
-
-class CanDeclineAdjustment(BaseAdjustmentTenantPermission):
+class CanDeclineAdjustment(BaseClientOrStaffAdjustmentPermission):
     """
-    Client owner or staff can decline an adjustment request.
+    Client owner or permitted internal user can decline an adjustment.
     """
 
     message = "You are not allowed to decline this adjustment."
 
-    def has_object_permission(
-        self,
-        request: Request,
-        view: APIView,
-        obj: Any,
-    ) -> Any:
-        if not self._same_tenant(request.user, obj):
-            return False
-
-        if getattr(request.user, "is_staff", False):
-            return True
-
-        order = getattr(obj, "order", None)
-        client = getattr(order, "client", None)
-        return getattr(client, "pk", None) == getattr(
-            request.user,
-            "pk",
-            None,
-        )
-
 
 class CanCancelAdjustment(BaseAdjustmentTenantPermission):
     """
-    Requester or staff can cancel an adjustment request.
+    Original requester or permitted internal user can cancel adjustment.
     """
 
     message = "You are not allowed to cancel this adjustment."
+    required_permission = "orders.cancel_adjustment"
 
-    def has_object_permission(
+    def has_object_permission( # type: ignore[override]
         self,
         request: Request,
         view: APIView,
         obj: Any,
-    ) -> Any:
-        return (
-            self._same_tenant(request.user, obj)
-            and (
-                getattr(request.user, "is_staff", False)
-                or getattr(obj, "requested_by", None) == request.user
-            )
-        )
+    ):
+        if not self._same_tenant(request, obj):
+            return False
+
+        user = request.user
+        website = getattr(request, "website", None)
+
+        if AccountPermissionService.user_has_permission(
+            user=user,
+            permission_code="orders.manage_adjustments",
+            website=website,
+        ):
+            return True
+
+        return getattr(obj, "requested_by", None) == user
 
 
 class CanOverrideAdjustment(BaseAdjustmentTenantPermission):
     """
-    Only staff can create override proposals.
+    Allow internal users to create override proposals.
     """
 
     message = "You are not allowed to override this adjustment."
-
-    def has_object_permission(
-        self,
-        request: Request,
-        view: APIView,
-        obj: Any,
-    ) -> Any:
-        return (
-            self._same_tenant(request.user, obj)
-            and getattr(request.user, "is_staff", False)
-        )
+    required_portal = "internal_admin"
+    required_permission = "orders.override_adjustment"

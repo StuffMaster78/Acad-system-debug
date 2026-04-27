@@ -9,9 +9,10 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from django.shortcuts import get_object_or_404
+
 from orders.api.permissions.order_creation_permissions import (
-    CanCreateOrder,
-    CanCreateOrderWithUnpaidAccess,
+    CanAccessOrderCreation,
 )
 from orders.api.serializers.order_creation.create_order_serializer import (
     CreateOrderSerializer,
@@ -22,7 +23,9 @@ from orders.services.order_creation_service import (
 from orders.services.order_payment_application_service import (
     OrderPaymentApplicationService,
 )
-
+from orders.api.permissions import ClientOrderCreatePermission
+from core.utils.request_context import get_request_website
+from accounts.services.permission_service import AccountPermissionService
 
 class CreateOrderView(GenericAPIView):
     """
@@ -43,8 +46,7 @@ class CreateOrderView(GenericAPIView):
     serializer_class = CreateOrderSerializer
     permission_classes = [
         permissions.IsAuthenticated,
-        CanCreateOrder,
-        CanCreateOrderWithUnpaidAccess,
+        CanAccessOrderCreation,
     ]
 
     @transaction.atomic
@@ -72,16 +74,25 @@ class CreateOrderView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         validated_data = cast(dict[str, Any], serializer.validated_data)
+
+        if "website_id" in validated_data:
+            raise PermissionDenied(
+                "Tenant cannot be overridden."
+            )
+        
         pricing_snapshot = validated_data["pricing_snapshot"]
 
         user = cast(Any, request.user)
+
+        website = get_request_website(request)
+
         client = self._resolve_client_for_creation(
             request=request,
             acting_user=user,
         )
 
         order = OrderCreationService.create_order(
-            website=user.website,
+            website=website,
             client=client,
             order_payload=serializer.to_order_payload(),
             pricing_result=pricing_snapshot,
@@ -127,6 +138,7 @@ class CreateOrderView(GenericAPIView):
         *,
         request: Request,
         acting_user: Any,
+        website: Any,
     ) -> Any:
         """
         Resolve which client should own the new order.
@@ -147,21 +159,37 @@ class CreateOrderView(GenericAPIView):
         """
         request_data = cast(dict[str, Any], request.data)
         client_id = request_data.get("client_id")
-        if not client_id or not getattr(acting_user, "is_staff", False):
+
+        if not client_id:
             return acting_user
+    
+        can_create_on_behalf = AccountPermissionService.user_has_permission(
+            user=acting_user,
+            permission_code="orders.create_on_behalf",
+            website=website,
+        )
+
+        if client_id and not can_create_on_behalf:
+            raise PermissionDenied(
+                "You are not allowed to create orders for another client."
+            )
 
         user_model = CreateOrderSerializer._get_user_model()
-        client = user_model.objects.get(pk=client_id)
+        if client_id:
+            client = get_object_or_404(user_model, pk=client_id)
+        else:
+            client = acting_user
 
+        request_website_id = getattr(website, "id", None)
         client_website_id = getattr(client, "website_id", None)
-        acting_website_id = getattr(acting_user, "website_id", None)
+
         if (
             client_website_id is not None
-            and acting_website_id is not None
-            and client_website_id != acting_website_id
+            and request_website_id is not None
+            and client_website_id != request_website_id
         ):
             raise PermissionDenied(
-                "Selected client must belong to the same tenant."
+                "Client does not belong to the resolved tenant."
             )
 
         return client

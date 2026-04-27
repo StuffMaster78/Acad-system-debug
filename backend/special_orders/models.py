@@ -4,6 +4,8 @@ from websites.models.websites import Website
 from django.utils import timezone
 from typing import TYPE_CHECKING
 from decimal import Decimal
+
+
 class PredefinedSpecialOrderConfig(models.Model):
     """
     Configuration for predefined-cost special orders.

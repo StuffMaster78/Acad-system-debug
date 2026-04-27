@@ -19,7 +19,7 @@ from .serializers import (
     PaymentConfirmationSerializer, WriterPaymentRequestSerializer
 )
 from admin_management.permissions import IsAdmin
-
+from billing.constants import InvoiceStatus, PaymentRequestStatus
 
 class WriterWalletViewSet(viewsets.ModelViewSet):
     """ API endpoint for managing writer wallets. """
@@ -929,7 +929,7 @@ class WriterPaymentRequestViewSet(viewsets.ModelViewSet):
         
         payment_request = self.get_object()
         
-        if payment_request.status != 'pending':
+        if payment_request.status != PaymentReuestStatus.PAID:
             return Response({
                 "error": f"Request is already {payment_request.status}"
             }, status=400)
@@ -976,7 +976,7 @@ class WriterPaymentRequestViewSet(viewsets.ModelViewSet):
         
         payment_request = self.get_object()
         
-        if payment_request.status != 'pending':
+        if payment_request.status != PaymentRequestStatus.PENDING:
             return Response({
                 "error": f"Request is already {payment_request.status}"
             }, status=400)

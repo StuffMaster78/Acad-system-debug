@@ -38,7 +38,7 @@ class DiscountManager:
             Discount: The created discount instance.
         """
         from discounts.models import Discount
-        from discounts.models import PromotionalCampaign
+        from discounts.models.promotions import PromotionalCampaign
         # Fetch the promotional campaign by its slug
         if not campaign_slug:
             raise ValueError("Campaign slug must be provided.")

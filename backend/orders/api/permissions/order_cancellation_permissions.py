@@ -2,49 +2,47 @@ from __future__ import annotations
 
 from typing import Any
 
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
+from accounts.services.permission_service import AccountPermissionService
+from core.permissions.base import BasePlatformPermission
 from orders.models.orders.order import Order
 
 
-class CanCancelOrder(BasePermission):
+class CanCancelOrder(BasePlatformPermission):
     """
-    Permission for cancelling orders.
-
-    Rules (current simplified version):
-        1. User must be authenticated.
-        2. User must belong to the same tenant (website).
-        3. User must be either:
-            - the client who owns the order, OR
-            - staff (support/admin/editor/superadmin)
-
-    NOTE:
-        Tighten role checks later when your roles system is finalized.
+    Client owner or permitted internal user can cancel an order.
     """
 
-    def has_permission(self, request: Request, view: APIView) -> Any:
-        return bool(request.user and request.user.is_authenticated)
+    message = "You are not allowed to cancel this order."
 
-    def has_object_permission(
+    required_permission = "orders.cancel_order"
+    require_tenant = True
+
+    def has_object_permission( # type: ignore[override]
         self,
         request: Request,
         view: APIView,
         obj: Any,
-    ) -> Any:
+    ):
         if not isinstance(obj, Order):
+            return False
+
+        website = getattr(request, "website", None)
+
+        if getattr(obj, "website_id", None) != getattr(website, "id", None):
             return False
 
         user = request.user
 
-        # Tenant enforcement
-        if getattr(user, "website_id", None) != obj.website.pk:
-            return False
-
-        # Client can cancel their own order
-        if getattr(obj, "client_user", None) == user:
+        if AccountPermissionService.user_has_permission(
+            user=user,
+            permission_code="orders.cancel_any_order",
+            website=website,
+        ):
             return True
 
-        # Staff can cancel
-        return bool(getattr(user, "is_staff", False))
+        client = getattr(obj, "client_user", None) or getattr(obj, "client", None)
+
+        return client == user

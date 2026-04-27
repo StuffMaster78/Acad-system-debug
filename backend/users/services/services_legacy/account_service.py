@@ -22,11 +22,11 @@ import hashlib
 
 from authentication.models.mfa_settings import MFASettings
 from authentication.models.backup_code import BackupCode
-from authentication.models.password_reset import PasswordResetRequest
+from authentication.models.password_reset_request import PasswordResetRequest
 from users.models import ProfileUpdateRequest
 
 # AccountDeletionRequest is in authentication.models.deletion_requests
-from authentication.models.deletion_requests import AccountDeletionRequest
+from authentication.models.account_deletion_request import AccountDeletionRequest
 from authentication.services.password_reset_service import PasswordResetService
 from authentication.services.mfa import MFAService
 

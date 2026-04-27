@@ -140,7 +140,7 @@ class AccountManagementViewSet(viewsets.ViewSet):
             User = get_user_model()
             
             # Get user from token
-            from authentication.models.password_reset import PasswordResetRequest
+            from authentication.models.password_reset_request import PasswordResetRequest
             reset_request = PasswordResetRequest.objects.get(
                 token=serializer.validated_data['token']
             )

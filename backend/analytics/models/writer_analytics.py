@@ -164,7 +164,7 @@ class WriterAnalytics(models.Model):
             self.average_completion_time_hours = total_hours / self.total_orders_completed
         
         # Revision metrics
-        from orders.models.enhanced_revisions import RevisionRequest
+        from orders.models.legacy_models.enhanced_revisions import RevisionRequest
         revisions = RevisionRequest.objects.filter(
             order__writer=self.writer,
             order__website=self.website,

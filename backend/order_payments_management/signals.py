@@ -17,7 +17,7 @@ from order_payments_management.models.payments import (
     FailedPayment,
     OrderPayment,
 )
-from orders.models.requests import WriterRequest
+from orders.models.legacy_models.requests import WriterRequest
 
 logger = logging.getLogger(__name__)
 

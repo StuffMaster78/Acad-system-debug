@@ -24,6 +24,11 @@ class AuditLogEntry(models.Model):
         default=uuid.uuid4,
         editable=False
     )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name="unpaid_order_messages",
+    )
 
     action = models.CharField(
         max_length=10,

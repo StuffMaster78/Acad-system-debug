@@ -10,7 +10,7 @@ from .models import (
 from websites.models.websites import Website
 from tickets.models import Ticket
 from orders.models.orders import Order
-from orders.models.order_disputes import Dispute
+from orders.models.legacy_models.order_disputes import Dispute
 from .utils import send_support_notification, update_support_workload
 from django.contrib.auth import get_user_model
 from django.conf import settings

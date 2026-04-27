@@ -27,7 +27,7 @@ class SpecialOrderInstallmentPaymentService:
         installment: InstallmentPayment,
         client,
         payment_method: str = 'wallet',
-        discount_code: str = None
+        discount_code: str = ""
     ) -> OrderPayment:
         """
         Process payment for a special order installment.

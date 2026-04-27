@@ -283,6 +283,14 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
         "task": "blog_pages_management.tasks.send_content_reminder_email_digest",
         "schedule": crontab(minute=0, hour=8, day_of_week="monday"),  # Weekly on Monday at 8 AM
     },
+    "orders-send-writer-acknowledgement-reminders-every-30-minutes": {
+            "task": "orders.tasks.order_monitoring_tasks.send_writer_acknowledgement_reminders",
+            "schedule": crontab(minute="*/30"),
+    },
+        "orders-send-operational-writer-reminders-every-15-minutes": {
+            "task": "orders.tasks.order_monitoring_tasks.send_operational_writer_reminders",
+            "schedule": crontab(minute="*/15"),
+    },
 }
 
 # ---------- Dynamic schedule via django-celery-beat (guarded) ---------------

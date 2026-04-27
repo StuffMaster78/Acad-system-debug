@@ -39,7 +39,7 @@ def trigger_error(request):
 urlpatterns = [
     # Admin panel
     path('admin/', admin.site.urls, name='admin'),
-    path('sentry-debug/', trigger_error),
+    # path('sentry-debug/', trigger_error),
 
     # Health check endpoints (public, no authentication)
     path('health/', health_check, name='health-check'),
@@ -77,12 +77,14 @@ urlpatterns = [
     path('api/v1/order-configs/', include('order_configs.urls')),
     # Legacy alias for older frontend paths
     path('api/v1/order-configs/api/', include('order_configs.urls')),
-    path('api/v1/pricing-configs/', include('pricing_configs.urls')),
+    path('api/v1/pricing/', include('order_pricing_core.urls')),
     path('api/v1/loyalty-management/', include('loyalty_management.urls')),
     path('api/v1/loyalty_management/', include('loyalty_management.urls')),  # Alias for frontend compatibility
     path('api/v1/notifications/', include(('notifications_system.urls', 'notifications_system'), namespace='notifications')),
     path('api/v1/notifications_system/', include(('notifications_system.urls', 'notifications_system'), namespace='notifications_system')),  # Alias for frontend compatibility
     path('api/v1/order-communications/', include('communications.urls')),
+    # Orders (Newly Improved)
+    path("api/orders/", include("orders.api.urls")),
     path('api/v1/order-files/', include('order_files.urls')),
     path('api/v1/order-payments/', include('order_payments_management.urls')),  # Order Payments Management
     path('api/v1/special-orders/', include('special_orders.urls')),
@@ -113,7 +115,8 @@ urlpatterns = [
     # path('api/v1/badge_management/', include('badge_management.urls')),  # Badges app
 
     # path('api/v1/admin/', include('notifications_system.admin_urls')), # Admin URLs for notifications
-
+    path("api/v1/wallets/", include("wallets.urls", namespace="wallets")), #New Wallet APP
+    path("api/v1/ledger/", include("ledger.urls", namespace="ledger")), 
     path('api/v1/auth/', include('authentication.urls')),
     # Dropdown options endpoint (unified API for all dropdowns)
     path('api/v1/dropdown-options/', include('core.urls')),
@@ -123,6 +126,8 @@ urlpatterns = [
     path('api/v1/config-versioning/', include('core.urls_config_versioning')),
     # Note: Backward-compatible aliases removed to avoid URL namespace conflicts
     # Tests should use the /api/v1/ prefixed URLs instead
+
+    # path('api/v1/billing/', include('billing.urls')),
 ]
 
 # Serve media and static files during development

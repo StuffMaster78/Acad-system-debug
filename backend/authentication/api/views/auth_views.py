@@ -11,6 +11,7 @@ from authentication.api.serializers.auth_serializers import (
 )
 from authentication.services.login_flow_service import LoginFlowService
 from authentication.throttles.login_throttles import LoginRateThrottle
+# from accounts.services import AccountAccessProvisioningService
 
 class LoginView(APIView):
     """
@@ -28,8 +29,14 @@ class LoginView(APIView):
             dict[str, Any],
             serializer.validated_data,
         )
-
         website = getattr(request, "website", None)
+
+        # AccountAccessProvisioningService.provision_client(
+        #     user=user,
+        #     website=website,  # resolved from request.domain
+        # )
+
+        
         result = LoginFlowService.login(
             email=validated_data["email"],
             password=validated_data["password"],

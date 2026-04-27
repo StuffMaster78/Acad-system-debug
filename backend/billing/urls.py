@@ -1,0 +1,175 @@
+from __future__ import annotations
+
+from django.urls import path
+
+from billing.api.views.invoice_views import (
+    InvoiceDetailView,
+    InvoiceIssueView,
+    InvoiceListCreateView,
+    InvoicePreparePaymentView,
+)
+from billing.api.views.payment_access_views import (
+    PublicInvoicePreparePaymentView,
+    PublicPaymentRequestPreparePaymentView,
+)
+from billing.api.views.payment_installment_views import (
+    InvoiceInstallmentListCreateView,
+    PaymentInstallmentCancelView,
+    PaymentInstallmentDetailView,
+)
+from billing.api.views.payment_request_views import (
+    PaymentRequestDetailView,
+    PaymentRequestIssueView,
+    PaymentRequestListCreateView,
+    PaymentRequestPreparePaymentView,
+)
+from billing.api.views.receipt_views import (
+    ReceiptDetailView,
+    ReceiptListView,
+)
+from billing.api.views.reminder_views import (
+    InvoiceReminderListCreateView,
+    PaymentRequestReminderListCreateView,
+    ReminderDetailView,
+    ReminderListView,
+)
+from billing.api.views.supporting_document_views import (
+    InvoiceSupportingDocumentListCreateView,
+    PaymentRequestSupportingDocumentListCreateView,
+)
+from billing.api.views.client_invoice_views import (
+    ClientInvoiceDetailView,
+    ClientInvoiceListView,
+)
+from billing.api.views.client_payment_request_views import (
+    ClientPaymentRequestDetailView,
+    ClientPaymentRequestListView,
+)
+
+urlpatterns = [
+    path(
+        "payment-requests/",
+        PaymentRequestListCreateView.as_view(),
+        name="billing-payment-request-list-create",
+    ),
+    path(
+        "payment-requests/<int:payment_request_id>/",
+        PaymentRequestDetailView.as_view(),
+        name="billing-payment-request-detail",
+    ),
+    path(
+        "payment-requests/<int:payment_request_id>/issue/",
+        PaymentRequestIssueView.as_view(),
+        name="billing-payment-request-issue",
+    ),
+    path(
+        "payment-requests/<int:payment_request_id>/prepare-payment/",
+        PaymentRequestPreparePaymentView.as_view(),
+        name="billing-payment-request-prepare-payment",
+    ),
+    path(
+        "payment-requests/<int:payment_request_id>/documents/",
+        PaymentRequestSupportingDocumentListCreateView.as_view(),
+        name="billing-payment-request-document-list-create",
+    ),
+    path(
+        "payment-requests/<int:payment_request_id>/reminders/",
+        PaymentRequestReminderListCreateView.as_view(),
+        name="billing-payment-request-reminder-list-create",
+    ),
+    path(
+        "invoices/",
+        InvoiceListCreateView.as_view(),
+        name="billing-invoice-list-create",
+    ),
+    path(
+        "invoices/<int:invoice_id>/",
+        InvoiceDetailView.as_view(),
+        name="billing-invoice-detail",
+    ),
+    path(
+        "invoices/<int:invoice_id>/issue/",
+        InvoiceIssueView.as_view(),
+        name="billing-invoice-issue",
+    ),
+    path(
+        "invoices/<int:invoice_id>/prepare-payment/",
+        InvoicePreparePaymentView.as_view(),
+        name="billing-invoice-prepare-payment",
+    ),
+    path(
+        "invoices/<int:invoice_id>/documents/",
+        InvoiceSupportingDocumentListCreateView.as_view(),
+        name="billing-invoice-document-list-create",
+    ),
+    path(
+        "invoices/<int:invoice_id>/reminders/",
+        InvoiceReminderListCreateView.as_view(),
+        name="billing-invoice-reminder-list-create",
+    ),
+    path(
+        "invoices/<int:invoice_id>/installments/",
+        InvoiceInstallmentListCreateView.as_view(),
+        name="billing-invoice-installment-list-create",
+    ),
+    path(
+        "installments/<int:installment_id>/",
+        PaymentInstallmentDetailView.as_view(),
+        name="billing-installment-detail",
+    ),
+    path(
+        "installments/<int:installment_id>/cancel/",
+        PaymentInstallmentCancelView.as_view(),
+        name="billing-installment-cancel",
+    ),
+    path(
+        "receipts/",
+        ReceiptListView.as_view(),
+        name="billing-receipt-list",
+    ),
+    path(
+        "receipts/<int:receipt_id>/",
+        ReceiptDetailView.as_view(),
+        name="billing-receipt-detail",
+    ),
+    path(
+        "reminders/",
+        ReminderListView.as_view(),
+        name="billing-reminder-list",
+    ),
+    path(
+        "reminders/<int:reminder_id>/",
+        ReminderDetailView.as_view(),
+        name="billing-reminder-detail",
+    ),
+    path(
+        "pay/invoices/<str:token>/prepare/",
+        PublicInvoicePreparePaymentView.as_view(),
+        name="billing-public-invoice-prepare-payment",
+    ),
+    path(
+        "pay/payment-requests/<str:token>/prepare/",
+        PublicPaymentRequestPreparePaymentView.as_view(),
+        name="billing-public-payment-request-prepare-payment",
+    ),
+    path(
+        "my/invoices/",
+        ClientInvoiceListView.as_view(),
+        name="billing-client-invoice-list",
+    ),
+    path(
+        "my/invoices/<int:invoice_id>/",
+        ClientInvoiceDetailView.as_view(),
+        name="billing-client-invoice-detail",
+    ),
+    path(
+        "my/payment-requests/",
+        ClientPaymentRequestListView.as_view(),
+        name="billing-client-payment-request-list",
+    ),
+    path(
+        "my/payment-requests/<int:payment_request_id>/",
+        ClientPaymentRequestDetailView.as_view(),
+        name="billing-client-payment-request-detail",
+    ),
+]
