@@ -6,6 +6,7 @@ from typing import Any, cast
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from audit_logging.services.audit_log_service import AuditLogService
 from wallets.constants import (
@@ -23,30 +24,77 @@ from wallets.exceptions import (
 from wallets.models import Wallet, WalletEntry
 
 
+VALID_WALLET_TYPES = {
+    WalletType.CLIENT,
+    WalletType.WRITER,
+}
+
+
 class WalletService:
+    """
+    Core wallet balance service.
+
+    Rules:
+        1. Tenant must always be explicit.
+        2. Wallet must belong to the provided tenant.
+        3. Amounts must be positive.
+        4. Balance changes must be atomic.
+        5. Wallet entries must record before and after balances.
+    """
+
     @staticmethod
-    def validate_positive_amount(amount: Decimal) -> None:
+    def _validate_positive_amount(amount: Decimal) -> None:
+        """
+        Ensure wallet movement amount is positive.
+        """
         if amount <= Decimal("0.00"):
             raise WalletEntryError("Amount must be greater than zero.")
 
     @staticmethod
-    def assert_wallet_belongs_to_website(*, wallet: Wallet, website: Any) -> None:
-        if cast(Any,wallet).website_id != website.id:
+    def _validate_wallet_type(wallet_type: str) -> None:
+        """
+        Ensure wallet type is one of the supported wallet types.
+        """
+        if wallet_type not in VALID_WALLET_TYPES:
+            raise ValidationError("Invalid wallet type.")
+
+    @staticmethod
+    def assert_wallet_belongs_to_website(
+        *,
+        wallet: Wallet,
+        website: Any,
+    ) -> None:
+        """
+        Prevent cross-tenant wallet operations.
+        """
+        wallet_website_id = getattr(wallet, "website_id", None)
+        website_id = getattr(website, "id", None)
+
+        if wallet_website_id != website_id:
             raise CrossTenantWalletAccessError(
                 "Wallet does not belong to the provided website."
             )
 
     @staticmethod
     def assert_wallet_active(wallet: Wallet) -> None:
+        """
+        Prevent balance changes on inactive wallets.
+        """
         if wallet.status != WalletStatus.ACTIVE:
             raise WalletInactiveError("Wallet is not active.")
 
     @staticmethod
     def get_wallet_queryset():
+        """
+        Base wallet queryset with common relations selected.
+        """
         return Wallet.objects.select_related("website", "owner_user")
 
     @staticmethod
     def get_wallet_for_update(*, wallet_id: int) -> Wallet:
+        """
+        Lock a wallet row for atomic balance updates.
+        """
         return (
             Wallet.objects.select_for_update()
             .select_related("website", "owner_user")
@@ -61,20 +109,27 @@ class WalletService:
         wallet_type: str,
         currency: str = "USD",
     ) -> Wallet:
-        wallet, _ = Wallet.objects.get_or_create(
+        """
+        Return an existing wallet or create one for the tenant/user/type/currency.
+
+        This method is tenant-safe because website is explicit and wallet_type
+        is validated before lookup/creation.
+        """
+        WalletService._validate_wallet_type(wallet_type)
+
+        wallet, _created = Wallet.objects.get_or_create(
             website=website,
             owner_user=owner_user,
             wallet_type=wallet_type,
             currency=currency,
-            defaults={
-                "status": WalletStatus.ACTIVE,
-            },
+            defaults={},
         )
         return wallet
 
-    @staticmethod
+    @classmethod
     @transaction.atomic
     def credit_wallet(
+        cls,
         *,
         wallet: Wallet,
         amount: Decimal,
@@ -87,24 +142,31 @@ class WalletService:
         reference_id: str = "",
         metadata: dict[str, Any] | None = None,
     ) -> WalletEntry:
-        WalletService.validate_positive_amount(amount)
+        """
+        Credit a wallet and create a posted wallet entry.
 
-        locked_wallet = WalletService.get_wallet_for_update(
-            wallet_id=cast(Any, wallet).id
+        This method locks the wallet row before updating the balance to avoid
+        race conditions under concurrent requests.
+        """
+        cls._validate_positive_amount(amount)
+
+        locked_wallet = cls.get_wallet_for_update(
+            wallet_id=cast(Any, wallet).id,
         )
-        WalletService.assert_wallet_belongs_to_website(
+        cls.assert_wallet_belongs_to_website(
             wallet=locked_wallet,
             website=website,
         )
-        WalletService.assert_wallet_active(locked_wallet)
+        cls.assert_wallet_active(locked_wallet)
 
         balance_before = locked_wallet.available_balance
+        now = timezone.now()
 
         Wallet.objects.filter(id=cast(Any, locked_wallet).id).update(
             available_balance=F("available_balance") + amount,
             total_credited=F("total_credited") + amount,
-            last_activity_at=timezone.now(),
-            updated_at=timezone.now(),
+            last_activity_at=now,
+            updated_at=now,
         )
         locked_wallet.refresh_from_db()
 
@@ -125,7 +187,7 @@ class WalletService:
             created_by=created_by,
         )
 
-        WalletService._log_audit(
+        cls._log_audit(
             action="wallet.credit.posted",
             website=website,
             actor=created_by,
@@ -134,9 +196,10 @@ class WalletService:
         )
         return entry
 
-    @staticmethod
+    @classmethod
     @transaction.atomic
     def debit_wallet(
+        cls,
         *,
         wallet: Wallet,
         amount: Decimal,
@@ -150,16 +213,22 @@ class WalletService:
         metadata: dict[str, Any] | None = None,
         allow_negative: bool = False,
     ) -> WalletEntry:
-        WalletService.validate_positive_amount(amount)
+        """
+        Debit a wallet and create a posted wallet entry.
 
-        locked_wallet = WalletService.get_wallet_for_update(
-            wallet_id=cast(Any, wallet).id
+        Negative balances are rejected by default. Only pass allow_negative=True
+        for explicitly approved operational flows.
+        """
+        cls._validate_positive_amount(amount)
+
+        locked_wallet = cls.get_wallet_for_update(
+            wallet_id=cast(Any, wallet).id,
         )
-        WalletService.assert_wallet_belongs_to_website(
+        cls.assert_wallet_belongs_to_website(
             wallet=locked_wallet,
             website=website,
         )
-        WalletService.assert_wallet_active(locked_wallet)
+        cls.assert_wallet_active(locked_wallet)
 
         balance_before = locked_wallet.available_balance
 
@@ -168,11 +237,13 @@ class WalletService:
                 "Insufficient wallet balance for this debit."
             )
 
+        now = timezone.now()
+
         Wallet.objects.filter(id=cast(Any, locked_wallet).id).update(
             available_balance=F("available_balance") - amount,
             total_debited=F("total_debited") + amount,
-            last_activity_at=timezone.now(),
-            updated_at=timezone.now(),
+            last_activity_at=now,
+            updated_at=now,
         )
         locked_wallet.refresh_from_db()
 
@@ -193,7 +264,7 @@ class WalletService:
             created_by=created_by,
         )
 
-        WalletService._log_audit(
+        cls._log_audit(
             action="wallet.debit.posted",
             website=website,
             actor=created_by,
@@ -208,7 +279,12 @@ class WalletService:
         wallet: Wallet,
         total_amount: Decimal,
     ) -> dict[str, Decimal | bool]:
-        WalletService.validate_positive_amount(total_amount)
+        """
+        Calculate how much can be paid from wallet and gateway.
+
+        This does not mutate balances.
+        """
+        WalletService._validate_positive_amount(total_amount)
 
         wallet_amount = min(wallet.available_balance, total_amount)
         gateway_amount = total_amount - wallet_amount
@@ -227,6 +303,11 @@ class WalletService:
         wallet_type: str,
         currency: str = "USD",
     ) -> Wallet:
+        """
+        Retrieve an existing tenant-scoped wallet by owner/type/currency.
+        """
+        WalletService._validate_wallet_type(wallet_type)
+
         return WalletService.get_wallet_queryset().get(
             website=website,
             owner_user=owner_user,
@@ -241,6 +322,9 @@ class WalletService:
         owner_user: Any,
         currency: str = "USD",
     ) -> Wallet:
+        """
+        Return or create a client wallet for the resolved tenant.
+        """
         return WalletService.get_or_create_wallet(
             website=website,
             owner_user=owner_user,
@@ -255,6 +339,9 @@ class WalletService:
         owner_user: Any,
         currency: str = "USD",
     ) -> Wallet:
+        """
+        Return or create a writer wallet for the resolved tenant.
+        """
         return WalletService.get_or_create_wallet(
             website=website,
             owner_user=owner_user,
@@ -271,6 +358,11 @@ class WalletService:
         wallet: Wallet,
         entry: WalletEntry,
     ) -> None:
+        """
+        Best-effort audit logging.
+
+        Wallet operations must not fail because audit logging failed.
+        """
         try:
             cast(Any, AuditLogService).log_action(
                 action=action,
