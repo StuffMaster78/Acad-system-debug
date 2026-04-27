@@ -170,6 +170,8 @@ class JournalPostingService:
                 metadata=dict(line.metadata or {}),
             )
             created_lines.append(created_line)
+            created_line.full_clean()
+            created_line.save()
 
         return created_lines
 
@@ -194,6 +196,13 @@ class JournalPostingService:
         effective_at=None,
         metadata: dict[str, Any] | None = None,
     ) -> JournalEntry:
+        
+        JournalPostingService._lock_line_accounts(lines=lines)
+
+        JournalPostingService._validate_unique_reference(
+            website=website,
+            reference=reference,
+        )
 
         JournalPostingService._validate_lines(
             website=website,
@@ -260,3 +269,49 @@ class JournalPostingService:
         )
 
         return entry
+    
+
+    @staticmethod
+    def _validate_unique_reference(
+        *,
+        website,
+        reference: str,
+    ) -> None:
+        """
+        Prevent duplicate posted entries for the same business reference.
+        """
+        if not reference:
+            return
+
+        duplicate_exists = JournalEntry.objects.filter(
+            website=website,
+            reference=reference,
+            status=JournalEntryStatus.POSTED,
+        ).exists()
+
+        if duplicate_exists:
+            raise LedgerPostingError(
+                "A posted journal entry with this reference already exists."
+            )
+
+    @staticmethod
+    def _lock_line_accounts(
+        *,
+        lines: list[JournalLineInput],
+    ) -> None:
+        """
+        Lock ledger accounts touched by this entry during posting.
+
+        This reduces race conditions where concurrent posts validate against
+        the same account state at the same time.
+        """
+        account_pks = {
+            line.ledger_account.pk
+            for line in lines
+        }
+
+        list(
+            LedgerAccount.objects.select_for_update().filter(
+                pk__in=account_pks,
+            )
+        )
