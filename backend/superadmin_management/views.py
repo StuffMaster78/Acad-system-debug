@@ -17,7 +17,7 @@ from .permissions import IsSuperadmin
 from .managers import SuperadminManager
 from .pagination import SuperadminPagination , SuperadminLogCursorPagination
 from orders.models.orders import Order
-from orders.models.order_disputes import Dispute
+from orders.models.legacy_models.order_disputes import Dispute
 from order_payments_management.models.payments import OrderPayment
 from notifications_system.models.notifications import Notification
 from django_filters import rest_framework as filters

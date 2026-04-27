@@ -2,47 +2,54 @@ from __future__ import annotations
 
 from typing import Any
 
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
+from accounts.services.permission_service import AccountPermissionService
+from core.permissions.base import BasePlatformPermission
 
-class BaseReassignmentTenantPermission(BasePermission):
+
+class BaseReassignmentTenantPermission(BasePlatformPermission):
     """
-    Base permission enforcing tenant alignment.
+    Base permission enforcing resolved tenant alignment.
     """
 
     message = "Cross-tenant access denied."
+    require_tenant = True
 
-    def _same_tenant(self, user: Any, obj: Any) -> bool:
-        user_website_id = getattr(user, "website_id", None)
+    def _same_tenant(self, request: Request, obj: Any) -> bool:
+        website = getattr(request, "website", None)
+        obj_website_id = getattr(obj, "website_id", None)
 
-        obj_website = getattr(obj, "website", None)
-        obj_website_id = getattr(obj_website, "pk", None)
-
-        return user_website_id == obj_website_id
+        return obj_website_id == getattr(website, "id", None)
 
 
 class CanRequestReassignment(BaseReassignmentTenantPermission):
     """
-    Client owner, current writer, or staff can request reassignment.
+    Client owner, current writer, or permitted internal user can request reassignment.
     """
 
     message = "You are not allowed to request reassignment."
+    required_permission = "orders.request_reassignment"
 
-    def has_object_permission(
+    def has_object_permission( # type: ignore[override]
         self,
         request: Request,
         view: APIView,
         obj: Any,
-    ) -> Any:
-        if not self._same_tenant(request.user, obj):
+    ):
+        if not self._same_tenant(request, obj):
             return False
 
         user = request.user
+        website = getattr(request, "website", None)
         user_id = getattr(user, "pk", None)
 
-        if getattr(user, "is_staff", False):
+        if AccountPermissionService.user_has_permission(
+            user=user,
+            permission_code="orders.review_reassignment",
+            website=website,
+        ):
             return True
 
         client = getattr(obj, "client", None)
@@ -61,37 +68,47 @@ class CanRequestReassignment(BaseReassignmentTenantPermission):
 
 class CanReviewReassignment(BaseReassignmentTenantPermission):
     """
-    Only staff can review reassignment requests.
+    Internal users with reassignment review permission can review requests.
     """
 
     message = "You are not allowed to review this reassignment."
+    required_portal = "internal_admin"
+    required_permission = "orders.review_reassignment"
 
-    def has_object_permission(
+    def has_object_permission( # type: ignore[override]
         self,
         request: Request,
         view: APIView,
         obj: Any,
-    ) -> Any:
-        return (
-            self._same_tenant(request.user, obj)
-            and getattr(request.user, "is_staff", False)
-        )
+    ):  
+        return self._same_tenant(request, obj)
 
 
 class CanCancelReassignment(BaseReassignmentTenantPermission):
     """
-    Only the original requester can cancel a reassignment request.
+    Original requester or permitted internal user can cancel a reassignment request.
     """
 
     message = "You are not allowed to cancel this reassignment."
+    required_permission = "orders.cancel_reassignment"
 
-    def has_object_permission(
+    def has_object_permission( # type: ignore
         self,
         request: Request,
         view: APIView,
         obj: Any,
-    ) -> Any:
-        return (
-            self._same_tenant(request.user, obj)
-            and getattr(obj, "requested_by", None) == request.user
-        )
+    ):  # type: ignore[override]
+        if not self._same_tenant(request, obj):
+            return False
+
+        user = request.user
+        website = getattr(request, "website", None)
+
+        if AccountPermissionService.user_has_permission(
+            user=user,
+            permission_code="orders.review_reassignment",
+            website=website,
+        ):
+            return True
+
+        return getattr(obj, "requested_by", None) == user

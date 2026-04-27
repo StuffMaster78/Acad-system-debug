@@ -32,6 +32,7 @@ from authentication.services.account_suspension_service import (
     AccountSuspensionService
 )
 
+
 class AuthenticationService:
     """
     Handle top-level authentication workflows.

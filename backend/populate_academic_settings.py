@@ -18,7 +18,7 @@ from order_configs.models import (
     PaperType, FormattingandCitationStyle, Subject, AcademicLevel,
     TypeOfWork, EnglishType
 )
-from pricing_configs.models import PricingConfiguration, AcademicLevelPricing
+from order_pricing_core.models import PricingConfiguration, AcademicLevelPricing
 
 def print_success(msg):
     print(f"✅ {msg}")

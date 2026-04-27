@@ -20,4 +20,5 @@ urlpatterns = [
     path("", include("orders.api.urls.order_qa_urls")),
     path("", include("orders.api.urls.draft_urls")),
     path("", include("orders.api.urls.progressive_delivery_urls")),
+    path("", include("orders.api.urls.order_file_urls")),
 ]

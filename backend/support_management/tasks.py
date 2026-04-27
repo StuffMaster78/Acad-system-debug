@@ -10,7 +10,7 @@ from .models import (
 )
 from .utils import check_sla_status, send_support_notification
 from tickets.models import Ticket
-from orders.models.order_disputes import Dispute, Order
+from orders.models.legacy_models.order_disputes import Dispute, Order
 
 
 @shared_task

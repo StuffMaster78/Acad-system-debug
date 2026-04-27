@@ -8,6 +8,9 @@ from .client_onboarding_service import ClientOnboardingService
 from .onboarding_service import OnboardingService
 from .staff_onboarding_service import StaffOnboardingService
 from .writer_onboarding_service import WriterOnboardingService
+from .account_access_provisioning_service import (
+    AccountAccessProvisioningService,
+)
 
 __all__ = [
     "AccountActivationService",
@@ -20,4 +23,5 @@ __all__ = [
     "OnboardingService",
     "StaffOnboardingService",
     "WriterOnboardingService",
+    "AccountAccessProvisioningService",
 ]

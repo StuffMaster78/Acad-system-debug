@@ -5,7 +5,6 @@ Admin interface for dashboard configuration
 from django.contrib import admin
 from core.models.dashboard_config import DashboardCardConfig, DashboardFontConfig
 
-
 @admin.register(DashboardCardConfig)
 class DashboardCardConfigAdmin(admin.ModelAdmin):
     list_display = ['title', 'card_key', 'color', 'position', 'is_active', 'website']

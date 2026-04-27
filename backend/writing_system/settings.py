@@ -121,6 +121,7 @@ INSTALLED_APPS = [
     'django_otp.plugins.otp_totp',
     'drf_yasg',
     "notifications_system.apps.NotificationsSystemConfig",
+    "rest_framework_simple_jwt.tokens_blacklist",
     # 'django_celery_results',
     
 
@@ -149,7 +150,10 @@ INSTALLED_APPS = [
 
 
      # Financial Apps
+    'billing',
+    'ledger',
     'wallet',
+    'wallets',
     'client_wallet',
     'writer_wallet',
     'discounts',
@@ -207,10 +211,14 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # CORS middleware (must be before CommonMiddleware)
     'core.middleware.graceful_degradation.GracefulDegradationMiddleware',  # Graceful degradation - early in chain
+    'core.middleware.portal_tenant_resolver.PortalTenantResolverMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    "authentication.middleware.impersonation_middleware.ImpersonationMiddleware",
+    "authentication.middleware.login_session_enforcement_middleware.LoginSessionEnforcementMiddleware",
+    "authentication.middleware.session_activity_middleware.SessionActivityMiddleware",
     'authentication.middleware.session_timeout.SessionTimeoutMiddleware',  # Session idle timeout
     'audit_logging.middleware.AuditUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -677,9 +685,27 @@ REST_FRAMEWORK = {
         # Authentication-specific limits
         'login': '10/minute',  # Login attempts
         'login_sustained': '200/day',  # Sustained login attempts
-        'password_reset': '10/hour',  # Password reset requests
+        'password_reset_request': '5/10min',  # Password reset requests
         'magic_link': '5/minute',  # Magic link requests
         'mfa_challenge': '20/hour',  # MFA challenges
+        'mfa_verify': '10/5min',
+        # "login": "10/min",
+        # "magic_link": "5/10min",
+        "magic_link_ip": "10/10min",
+        "magic_link_email": "5/10min",
+        "magic_link_request": "5/10min",
+        "magic_link_confirm": "10/10min",
+        "logout_all_sessions": "5/hour",
+        "password_reset_confirm": "10/10min",
+        "account_unlock_request": "5/10min",
+        "account_unlock_confirm": "10/10min",
+        "registration_request": "5/10min",
+        "registration_resend": "3/10min",
+        "registration_confirm": "10/10min",
+        "mfa_challenge": "10/5min",
+        "backup_code_generate": "2/hour",
+        "impersonation_token_create": "10/hour",
+        "impersonation_start": "20/hour",
         
         # Notification limits
         'notifications_write_burst': '100/min',  # Notification writes per minute
@@ -712,6 +738,9 @@ REST_FRAMEWORK = {
 }
 
 
+SESSION_IDLE_TIMEOUT = 30 * 60
+IMPERSONATION_SESSION_IDLE_TIMEOUT = 15 * 60
+SESSION_WARNING_TIME = 5 * 60
 
 
 # JWT Token Settings
@@ -736,6 +765,13 @@ AUTHENTICATION_BACKENDS = [
     "admin_management.auth.BlacklistAuthenticationBackend",  # Custom authentication
     "django.contrib.auth.backends.ModelBackend",  # Default Django authentication
 ]
+
+# For Orders
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_TIME_LIMIT = 300
+CELERY_TASK_SOFT_TIME_LIMIT = 240
 
 CELERY_BEAT_SCHEDULE = {
     # Real tasks below. Removed placeholder 'your_app.tasks.*' entries to avoid unregistered task errors.
@@ -802,7 +838,256 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'notifications_system.tasks.maintenance.cleanup_processed_outbox',
         'schedule': 86400,  # daily
     },
+    "send-missing-phone-reminders-daily": {
+        "task": "users.tasks.profile_reminders.send_missing_phone_reminders",
+        "schedule": crontab(hour=9, minute=0),
+    },
+        "cleanup-expired-impersonation-tokens-every-30-minutes": {
+        "task": "authentication.tasks.cleanup_expired_impersonation_tokens_task",
+        "schedule": crontab(minute="*/30"),
+    },
+    "cleanup-expired-otps-every-15-minutes": {
+        "task": "authentication.tasks.cleanup_expired_otps_task",
+        "schedule": crontab(minute="*/15"),
+    },
+    "cleanup-expired-password-reset-requests-every-30-minutes": {
+        "task": "authentication.tasks.cleanup_expired_password_reset_requests_task",
+        "schedule": crontab(minute="*/30"),
+    },
+    "cleanup-expired-registration-tokens-every-30-minutes": {
+        "task": "authentication.tasks.cleanup_expired_registration_tokens_task",
+        "schedule": crontab(minute="*/30"),
+    },
+    "cleanup-expired-account-unlock-requests-every-30-minutes": {
+        "task": "authentication.tasks.cleanup_expired_account_unlock_requests_task",
+        "schedule": crontab(minute="*/30"),
+    },
+    "finalize-scheduled-account-deletions-every-10-minutes": {
+        "task": "authentication.tasks.finalize_scheduled_account_deletions_task",
+        "schedule": crontab(minute="*/10"),
+    },
+    "purge-retained-account-deletions-daily": {
+        "task": "authentication.tasks.purge_retained_account_deletions_task",
+        "schedule": crontab(minute=0, hour=2),
+    },
+    "resolve-stale-payments": {
+        "task": (
+            "payments_processor.tasks.payment_cleanup_tasks."
+            "resolve_stale_pending_payments_task"
+        ),
+        "schedule": 300.0,
+    },
+    "expire-payment-intents": {
+        "task": (
+            "payments_processor.tasks.payment_cleanup_tasks."
+            "expire_elapsed_payment_intents_task"
+        ),
+        "schedule": 300.0,
+    },
+    "reconcile-stale-payment-intents": {
+        "task": (
+            "payments_processor.tasks.payment_reconciliation_tasks."
+            "reconcile_stale_payment_intents_task"
+        ),
+        "schedule": 600.0,
+    },
+    "reconcile-pending-refunds": {
+        "task": (
+            "payments_processor.tasks.payment_reconciliation_tasks."
+            "reconcile_pending_refunds_task"
+        ),
+        "schedule": 900.0,
+    },
+    "billing-schedule-upcoming-installment-reminders": {
+        "task": "billing.tasks.schedule_upcoming_installment_reminders",
+        "schedule": 60 * 60,
+    },
+    "billing-schedule-due-installment-reminders": {
+        "task": "billing.tasks.schedule_due_installment_reminders",
+        "schedule": 60 * 30,
+    },
+    "billing-dispatch-due-billing-reminders": {
+        "task": "billing.tasks.dispatch_due_billing_reminders",
+        "schedule": 60 * 5,
+    },
+     "orders-auto-approve-eligible-orders-hourly": {
+        "task": "orders.tasks.order_approval_tasks.auto_approve_eligible_orders",
+        "schedule": crontab(minute=0),
+    },
+    "orders-send-approval-reminders-daily": {
+        "task": "orders.tasks.order_approval_tasks.send_order_approval_reminders",
+        "schedule": crontab(minute=0, hour=9),
+    },
+    "orders-auto-archive-eligible-orders-daily": {
+        "task": "orders.tasks.order_archival_tasks.auto_archive_eligible_orders",
+        "schedule": crontab(minute=30, hour=2),
+    },
+    "orders-send-writer-acknowledgement-reminders-every-30-minutes": {
+        "task": "orders.tasks.order_reminder_tasks.send_writer_acknowledgement_reminders",
+        "schedule": crontab(minute="*/30"),
+    },
+    "orders-send-operational-writer-reminders-every-15-minutes": {
+        "task": "orders.tasks.order_reminder_tasks.send_operational_writer_reminders",
+        "schedule": crontab(minute="*/15"),
+    },
+        "orders-auto-approve-eligible-orders-hourly": {
+        "task": "orders.tasks.order_approval_tasks.auto_approve_eligible_orders",
+        "schedule": crontab(minute=0),
+    },
+    "orders-send-approval-reminders-daily": {
+        "task": "orders.tasks.order_approval_tasks.send_order_approval_reminders",
+        "schedule": crontab(minute=0, hour=9),
+    },
+    "orders-auto-archive-eligible-orders-daily": {
+        "task": "orders.tasks.order_archival_tasks.auto_archive_eligible_orders",
+        "schedule": crontab(minute=30, hour=2),
+    },
+    "orders-send-writer-acknowledgement-reminders-every-30-minutes": {
+        "task": "orders.tasks.order_reminder_tasks.send_writer_acknowledgement_reminders",
+        "schedule": crontab(minute="*/30"),
+    },
+    "orders-send-operational-writer-reminders-every-15-minutes": {
+        "task": "orders.tasks.order_reminder_tasks.send_operational_writer_reminders",
+        "schedule": crontab(minute="*/15"),
+    },
+    "orders-expire-preferred-writer-invitations-every-15-minutes": {
+        "task": "orders.tasks.order_staffing_tasks.expire_preferred_writer_invitations",
+        "schedule": crontab(minute="*/15"),
+    },
+    "orders-fallback-expired-preferred-writer-orders-every-15-minutes": {
+        "task": "orders.tasks.order_staffing_tasks.fallback_expired_preferred_writer_orders_to_pool",
+        "schedule": crontab(minute="*/15"),
+    },
+    "orders-send-unstaffed-order-reminders-hourly": {
+        "task": "orders.tasks.order_staffing_tasks.send_unstaffed_order_reminders",
+        "schedule": crontab(minute=10),
+    },
+    "orders-send-pending-reassignment-reminders-every-4-hours": {
+        "task": "orders.tasks.order_reassignment_tasks.send_pending_reassignment_reminders",
+        "schedule": crontab(minute=0, hour="*/4"),
+    },
+    "orders-send-pending-hold-request-reminders-every-4-hours": {
+        "task": "orders.tasks.order_hold_tasks.send_pending_hold_request_reminders",
+        "schedule": crontab(minute=15, hour="*/4"),
+    },
+    "orders-send-stale-active-hold-reminders-every-6-hours": {
+        "task": "orders.tasks.order_hold_tasks.send_stale_active_hold_reminders",
+        "schedule": crontab(minute=20, hour="*/6"),
+    },
+    "orders-send-pending-adjustment-response-reminders-every-6-hours": {
+        "task": "orders.tasks.order_adjustment_tasks.send_pending_adjustment_response_reminders",
+        "schedule": crontab(minute=25, hour="*/6"),
+    },
+    "orders-expire-stale-adjustments-hourly": {
+        "task": "orders.tasks.order_adjustment_tasks.expire_stale_adjustments",
+        "schedule": crontab(minute=35),
+    },
+    "orders-send-pending-adjustment-funding-reminders-every-6-hours": {
+        "task": "orders.tasks.order_adjustment_tasks.send_pending_adjustment_funding_reminders",
+        "schedule": crontab(minute=40, hour="*/6"),
+    },
+    "orders-send-open-dispute-reminders-daily": {
+        "task": "orders.tasks.order_dispute_tasks.send_open_dispute_reminders",
+        "schedule": crontab(minute=0, hour=11),
+    },
+    "orders-send-escalated-dispute-reminders-every-6-hours": {
+        "task": "orders.tasks.order_dispute_tasks.send_escalated_dispute_reminders",
+        "schedule": crontab(minute=45, hour="*/6"),
+    },
+           "orders-send-pending-preferred-writer-reminders-every-6-hours": {
+            "task": "orders.tasks.preferred_writer_tasks.send_pending_preferred_writer_reminders",
+            "schedule": crontab(minute=0, hour="*/6"),
+        },
+        "orders-expire-preferred-writer-invitations-every-15-minutes": {
+            "task": "orders.tasks.preferred_writer_tasks.expire_preferred_writer_invitations",
+            "schedule": crontab(minute="*/15"),
+        },
+        "orders-fallback-expired-preferred-writer-orders-to-pool-every-15-minutes": {
+            "task": "orders.tasks.preferred_writer_tasks.fallback_expired_preferred_writer_orders_to_pool",
+            "schedule": crontab(minute="*/15"),
+        },
+        "orders-send-preferred-writer-staff-reminders-hourly": {
+            "task": "orders.tasks.preferred_writer_tasks.send_preferred_writer_staff_visibility_reminders",
+            "schedule": crontab(minute=20),
+        },
+        "orders-auto-approve-eligible-orders-hourly": {
+            "task": "orders.tasks.order_completion_tasks.auto_approve_eligible_orders",
+            "schedule": crontab(minute=0),
+        },
+        "orders-send-completion-approval-reminders-daily": {
+            "task": "orders.tasks.order_completion_tasks.send_completion_approval_reminders",
+            "schedule": crontab(minute=0, hour=9),
+        },
+        "orders-auto-archive-eligible-orders-daily": {
+            "task": "orders.tasks.order_completion_tasks.auto_archive_eligible_orders",
+            "schedule": crontab(minute=30, hour=2),
+        },
+        "orders-send-pending-adjustment-response-reminders-every-6-hours": {
+            "task": "orders.tasks.order_adjustment_tasks.send_pending_adjustment_response_reminders",
+            "schedule": crontab(minute=25, hour="*/6"),
+        },
+        "orders-expire-stale-adjustments-hourly": {
+            "task": "orders.tasks.order_adjustment_tasks.expire_stale_adjustments",
+            "schedule": crontab(minute=35),
+        },
+        "orders-send-pending-adjustment-funding-reminders-every-6-hours": {
+            "task": "orders.tasks.order_adjustment_tasks.send_pending_adjustment_funding_reminders",
+            "schedule": crontab(minute=40, hour="*/6"),
+        },
+        "orders-fallback-expired-preferred-writer-orders-to-pool-every-15-minutes": {
+            "task": "orders.tasks.preferred_writer_tasks.fallback_expired_preferred_writer_orders_to_pool",
+            "schedule": crontab(minute="*/15"),
+        },
+        "orders-send-adjustment-staff-reminders-every-4-hours": {
+            "task": "orders.tasks.order_adjustment_tasks.send_adjustment_staff_visibility_reminders",
+            "schedule": crontab(minute=45, hour="*/4"),
+        },
+        "orders-send-writer-acknowledgement-reminders-every-30-minutes": {
+            "task": "orders.tasks.order_monitoring_tasks.send_writer_acknowledgement_reminders",
+            "schedule": crontab(minute="*/30"),
+        },
+        "orders-send-operational-writer-reminders-every-15-minutes": {
+            "task": "orders.tasks.order_monitoring_tasks.send_operational_writer_reminders",
+            "schedule": crontab(minute="*/15"),
+        },
+         "orders-auto-approve-eligible-orders-hourly": {
+            "task": "orders.tasks.order_completion_tasks.auto_approve_eligible_orders",
+            "schedule": crontab(minute=0),
+        },
+        "orders-send-completion-approval-reminders-daily": {
+            "task": "orders.tasks.order_completion_tasks.send_completion_approval_reminders",
+            "schedule": crontab(minute=0, hour=9),
+        },
+        "orders-auto-archive-eligible-orders-daily": {
+            "task": "orders.tasks.order_completion_tasks.auto_archive_eligible_orders",
+            "schedule": crontab(minute=30, hour=2),
+        },
+        "orders-send-pending-preferred-writer-reminders-every-6-hours": {
+            "task": "orders.tasks.preferred_writer_tasks.send_pending_preferred_writer_reminders",
+            "schedule": crontab(minute=0, hour="*/6"),
+        },
+        "orders-expire-preferred-writer-invitations-every-15-minutes": {
+            "task": "orders.tasks.preferred_writer_tasks.expire_preferred_writer_invitations",
+            "schedule": crontab(minute="*/15"),
+        },
+        "orders-fallback-expired-preferred-writer-orders-to-pool-every-15-minutes": {
+            "task": "orders.tasks.preferred_writer_tasks.fallback_expired_preferred_writer_orders_to_pool",
+            "schedule": crontab(minute="*/15"),
+        },
+        "orders-send-pending-adjustment-response-reminders-every-6-hours": {
+            "task": "orders.tasks.order_adjustment_tasks.send_pending_adjustment_response_reminders",
+            "schedule": crontab(minute=25, hour="*/6"),
+        },
+        "orders-expire-stale-adjustments-hourly": {
+            "task": "orders.tasks.order_adjustment_tasks.expire_stale_adjustments",
+            "schedule": crontab(minute=35),
+        },
+        "orders-send-pending-adjustment-funding-reminders-every-6-hours": {
+            "task": "orders.tasks.order_adjustment_tasks.send_pending_adjustment_funding_reminders",
+            "schedule": crontab(minute=40, hour="*/6"),
+        },
 }
+
 RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW", "default")
 MAX_FAILED_ATTEMPTS = int(os.getenv("MAX_FAILED_ATTEMPTS", "5"))
 LOCKOUT_DURATION_MINUTES = int(os.getenv("LOCKOUT_DURATION_MINUTES", "30"))

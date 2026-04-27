@@ -152,12 +152,12 @@ class PaymentReminderService:
             if not client:
                 logger.warning(
                     "Order %s has no client, skipping reminder",
-                    order.id,
+                    order.pk,
                 )
                 return False
 
             message = config.message.format(
-                order_id=order.id,
+                order_id=order.pk,
                 topic=order.topic,
                 amount=order.total_price,
                 deadline=(
@@ -173,7 +173,7 @@ class PaymentReminderService:
                         recipient=client,
                         website=order.website,
                         context={
-                            "order_id": order.id,
+                            "order_id": order.pk,
                             "topic": order.topic,
                             "amount": order.total_price,
                             "deadline": (
@@ -183,7 +183,7 @@ class PaymentReminderService:
                                 if order.client_deadline else "N/A"
                             ),
                             "message": message,
-                            "link": f"/orders/{order.id}/pay",
+                            "link": f"/orders/{order.pk}/pay",
                         },
                         channels=["email", "in_app"],
                         triggered_by=None,
@@ -239,7 +239,7 @@ class PaymentReminderService:
             logger.info(
                 "Payment reminder '%s' sent for order %s",
                 config.name,
-                order.id,
+                order.pk,
             )
             return True
 
@@ -279,7 +279,7 @@ class PaymentReminderService:
                 return False
 
             message = deletion_message.message.format(
-                order_id=order.id,
+                order_id=order.pk,
                 topic=order.topic,
                 deadline=(
                     order.client_deadline.strftime("%Y-%m-%d %H:%M")
@@ -294,7 +294,7 @@ class PaymentReminderService:
                         recipient=client,
                         website=website,
                         context={
-                            "order_id": order.id,
+                            "order_id": order.pk,
                             "topic": order.topic,
                             "deadline": (
                                 order.client_deadline.strftime(

@@ -22,7 +22,7 @@ from django.shortcuts import get_object_or_404
 
 from admin_management.permissions import IsAdmin
 from orders.models.orders import Order
-from orders.models.order_disputes import Dispute
+from orders.models.legacy_models.order_disputes import Dispute
 from orders.order_enums import OrderStatus
 from orders.services.status_transition_service import VALID_TRANSITIONS
 from refunds.models import Refund

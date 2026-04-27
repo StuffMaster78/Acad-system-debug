@@ -7,6 +7,11 @@ from accounts.models import (
     AccountStatusHistory,
     OnboardingSession,
     RoleDefinition,
+    PermissionDefinition,
+    RolePermission,
+    PortalDefinition,
+    PortalAccess,
+    TenantAccess,
 )
 
 
@@ -194,3 +199,30 @@ class OnboardingSessionAdmin(admin.ModelAdmin):
         "updated_at",
     )
     ordering = ("-started_at",)
+
+
+@admin.register(PermissionDefinition)
+class PermissionDefinitionAdmin(admin.ModelAdmin):
+    list_display = ("code", "is_active")
+    search_fields = ("code",)
+
+
+@admin.register(RolePermission)
+class RolePermissionAdmin(admin.ModelAdmin):
+    list_display = ("role", "permission", "is_active")
+    list_filter = ("role",)
+
+
+@admin.register(PortalDefinition)
+class PortalDefinitionAdmin(admin.ModelAdmin):
+    list_display = ("code", "domain", "is_active")
+
+
+@admin.register(PortalAccess)
+class PortalAccessAdmin(admin.ModelAdmin):
+    list_display = ("user", "portal", "is_active")
+
+
+@admin.register(TenantAccess)
+class TenantAccessAdmin(admin.ModelAdmin):
+    list_display = ("user", "website", "is_active")

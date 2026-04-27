@@ -424,7 +424,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             requested_order_ids = list(order_requests.values_list('order_id', flat=True))
             
             # Get writer requests (from orders app) - lazy import to avoid circular dependency
-            from orders.models.requests import WriterRequest
+            from orders.models.legacy_models.requests import WriterRequest
             writer_requests = WriterRequest.objects.filter(
                 requested_by_writer=request.user,
                 order__is_paid=True  # Only show requests for paid orders

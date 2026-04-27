@@ -10,10 +10,10 @@ from decimal import Decimal
 from core.utils.cache_helpers import cache_view_result
 
 from client_management.models import ClientProfile
-from orders.models.logs import OrderTransitionLog
+from orders.models.legacy_models.logs import OrderTransitionLog
 from orders.models.orders import Order
-from orders.models.writer_progress import WriterProgress
-from orders.models.logs import OrderTransitionLog, WriterReassignmentLog
+from orders.models.legacy_models.writer_progress import WriterProgress
+from orders.models.legacy_models.logs import OrderTransitionLog, WriterReassignmentLog
 from order_payments_management.models.payments import OrderPayment
 from wallet.models import Wallet, WalletTransaction
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier, ClientBadge

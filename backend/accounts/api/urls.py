@@ -1,5 +1,5 @@
-from django.urls import path
-
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 from accounts.api.views.account_audit_views import (
     AccountAuditLogListView,
     OnboardingSessionListView,
@@ -23,13 +23,59 @@ from accounts.api.views.onboarding_views import (
     CompleteStaffOnboardingView,
     CompleteWriterOnboardingView,
 )
+from accounts.api.views.permission_views import (
+    PermissionDefinitionViewSet,
+    RolePermissionViewSet,
+)
+from accounts.api.views.portal_access_views import (
+    PortalAccessViewSet,
+    PortalDefinitionViewSet,
+)
+from accounts.api.views.tenant_access_views import TenantAccessViewSet
+
+router = DefaultRouter()
 
 app_name = "accounts"
+router.register(
+    "permissions",
+    PermissionDefinitionViewSet,
+    basename="account-permissions",
+)
+router.register(
+    "role-permissions",
+    RolePermissionViewSet,
+    basename="account-role-permissions",
+)
+router.register(
+    "portals",
+    PortalDefinitionViewSet,
+    basename="account-portals",
+)
+router.register(
+    "portal-access",
+    PortalAccessViewSet,
+    basename="account-portal-access",
+)
+router.register(
+    "tenant-access",
+    TenantAccessViewSet,
+    basename="account-tenant-access",
+)
+
 
 urlpatterns = [
-    path("me/summary/", MyAccountSummaryView.as_view(), name="my-account-summary"),
-    path("me/profile/", MyAccountProfileView.as_view(), name="my-profile"),
-    path("me/roles/", ListMyAccountRolesView.as_view(), name="my-roles"),
+    path(
+        "me/summary/", 
+        MyAccountSummaryView.as_view(), 
+        name="my-account-summary"),
+    path(
+        "me/profile/", 
+        MyAccountProfileView.as_view(), 
+        name="my-profile"),
+    path(
+        "me/roles/", 
+        ListMyAccountRolesView.as_view(), 
+        name="my-roles"),
 
     path(
         "<int:account_profile_id>/roles/assign/",
@@ -84,4 +130,5 @@ urlpatterns = [
         OnboardingSessionListView.as_view(),
         name="onboarding-sessions",
     ),
+    path("", include(router.urls)),
 ]

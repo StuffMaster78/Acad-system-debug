@@ -137,7 +137,7 @@ class WriterLevelProgressionService:
         
         # Calculate revision rate (orders with revisions)
         # Check OrderTransitionLog to see if order has ever been in a revision status
-        from orders.models.logs import OrderTransitionLog
+        from orders.models.legacy_models.logs import OrderTransitionLog
         revision_statuses = [
             OrderStatus.REVISED.value,
             OrderStatus.ON_REVISION.value,

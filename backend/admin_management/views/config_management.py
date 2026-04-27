@@ -67,11 +67,11 @@ class PricingConfigManagementViewSet(WebsiteFilteredMixin, viewsets.ModelViewSet
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get_queryset(self):
-        from pricing_configs.models import PricingConfiguration
+        from order_pricing_core.models import PricingConfiguration
         return self.get_website_filtered_queryset(PricingConfiguration.objects.all())
 
     def get_serializer_class(self):
-        from pricing_configs.serializers import PricingConfigurationSerializer
+        from order_pricing_core.serializers import PricingConfigurationSerializer
         return PricingConfigurationSerializer
 
     def perform_create(self, serializer):
@@ -355,8 +355,8 @@ class SystemConfigManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def list_all_configs(self, request):
         """Return a summarised list of all config types."""
-        from pricing_configs.models import PricingConfiguration
-        from pricing_configs.serializers import PricingConfigurationSerializer
+        from order_pricing_core.models import PricingConfiguration
+        from order_pricing_core.serializers import PricingConfigurationSerializer
         from writer_management.models.configs import WriterConfig
         from writer_management.serializers import WriterConfigSerializer
         from discounts.models.discount_configs import DiscountConfig

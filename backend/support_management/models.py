@@ -7,7 +7,7 @@ from order_files.models import OrderFile
 from django.conf import settings
 
 from tickets.models import Ticket, TicketMessage
-from orders.models.order_disputes import Dispute
+from orders.models.legacy_models.order_disputes import Dispute
 from orders.models.orders import Order
 from communications.models import CommunicationMessage, DisputeMessage
 

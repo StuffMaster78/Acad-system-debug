@@ -7,7 +7,7 @@ class HasRolePermission(BasePermission):
 
     required_roles: list[str] = []
 
-    def has_permission(self, request, view):
+    def has_permission(self, request, view):  # pyright: ignore[reportIncompatibleMethodOverride]
         user = request.user
         website = getattr(request, "website", None)
 

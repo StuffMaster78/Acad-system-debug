@@ -11,6 +11,8 @@ from accounts.models import RoleDefinition
 from accounts.services.account_audit_service import AccountAuditService
 from accounts.services.account_role_service import AccountRoleService
 from accounts.services.onboarding_service import OnboardingService
+from accounts.services.portal_access_service import PortalAccessService
+from accounts.services.tenant_access_service import TenantAccessService
 
 
 class WriterOnboardingService:
@@ -41,11 +43,24 @@ class WriterOnboardingService:
             metadata=metadata,
         )
 
+
         AccountRoleService.assign_role(
             account_profile=account_profile,
             role=role,
             actor=actor,
             metadata=metadata,
+        )
+
+        PortalAccessService.grant_portal_access(
+            user=account_profile.user,
+            portal_code="writer_portal",
+            granted_by=actor,
+        )
+
+        TenantAccessService.grant_access(
+            user=account_profile.user,
+            website=account_profile.website,
+            granted_by=actor,
         )
 
         account_profile.onboarding_status = OnboardingStatus.COMPLETED

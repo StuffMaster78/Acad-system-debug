@@ -137,7 +137,7 @@ class ClientAnalytics(models.Model):
             self.on_time_delivery_rate = (on_time / completed_orders.count()) * 100
         
         # Revision metrics
-        from orders.models.enhanced_revisions import RevisionRequest
+        from orders.models.legacy_models.enhanced_revisions import RevisionRequest
         revisions = RevisionRequest.objects.filter(
             order__client=self.client,
             order__website=self.website,

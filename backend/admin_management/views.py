@@ -25,7 +25,7 @@ from admin_management.serializers import (
 )
 from .permissions import IsAdmin, IsSuperAdmin
 from orders.models.orders import Order
-from orders.models.order_disputes import Dispute
+from orders.models.legacy_models.order_disputes import Dispute
 from admin_management.services.blacklist_service import BlacklistService
 from admin_management.services.admin_profile_service import  AdminProfileService
 from .serializers import (
@@ -925,7 +925,7 @@ class AdminDisputeManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get dispute statistics dashboard."""
-        from orders.models.order_disputes import Dispute
+        from orders.models.legacy_models.order_disputes import Dispute
         from orders.order_enums import DisputeStatusEnum
         from django.db.models import Count, Q
         from django.utils import timezone
@@ -1005,7 +1005,7 @@ class AdminDisputeManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='pending')
     def pending_disputes(self, request):
         """Get pending disputes queue."""
-        from orders.models.order_disputes import Dispute
+        from orders.models.legacy_models.order_disputes import Dispute
         from orders.order_enums import DisputeStatusEnum
         from orders.serializers import DisputeSerializer
         
@@ -1027,7 +1027,7 @@ class AdminDisputeManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get dispute analytics and trends."""
-        from orders.models.order_disputes import Dispute
+        from orders.models.legacy_models.order_disputes import Dispute
         from django.db.models import Count, Avg
         from django.utils import timezone
         from datetime import timedelta

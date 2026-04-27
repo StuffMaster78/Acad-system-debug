@@ -210,4 +210,3 @@ duration_configs = [
 - [Class Management Workflow](../CLASS_MANAGEMENT_WORKFLOW.md)
 - [Class Bundle Admin Service](../services/class_bundle_admin.py)
 - [Class Pricing Service](../services/pricing.py)
-

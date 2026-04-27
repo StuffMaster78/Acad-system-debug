@@ -1,0 +1,61 @@
+from django.urls import path
+
+from orders.api.views.files.order_file_views import (
+    OrderDraftFileUploadView,
+    OrderExternalFileLinkView,
+    OrderFileDeletionRequestView,
+    OrderFileDownloadView,
+    OrderFileListView,
+    OrderFinalFileUploadView,
+    OrderInstructionFileUploadView,
+    OrderReferenceFileUploadView,
+    OrderRevisionFileUploadView,
+)
+
+urlpatterns = [
+    path(
+        "<int:order_id>/files/",
+        OrderFileListView.as_view(),
+        name="order-file-list",
+    ),
+    path(
+        "<int:order_id>/files/instructions/",
+        OrderInstructionFileUploadView.as_view(),
+        name="order-file-upload-instruction",
+    ),
+    path(
+        "<int:order_id>/files/references/",
+        OrderReferenceFileUploadView.as_view(),
+        name="order-file-upload-reference",
+    ),
+    path(
+        "<int:order_id>/files/drafts/",
+        OrderDraftFileUploadView.as_view(),
+        name="order-file-upload-draft",
+    ),
+    path(
+        "<int:order_id>/files/final/",
+        OrderFinalFileUploadView.as_view(),
+        name="order-file-upload-final",
+    ),
+    path(
+        "<int:order_id>/files/revisions/",
+        OrderRevisionFileUploadView.as_view(),
+        name="order-file-upload-revision",
+    ),
+    path(
+        "<int:order_id>/files/external-links/",
+        OrderExternalFileLinkView.as_view(),
+        name="order-file-external-link",
+    ),
+    path(
+        "<int:order_id>/files/<int:attachment_id>/download/",
+        OrderFileDownloadView.as_view(),
+        name="order-file-download",
+    ),
+    path(
+        "<int:order_id>/files/<int:attachment_id>/request-deletion/",
+        OrderFileDeletionRequestView.as_view(),
+        name="order-file-request-deletion",
+    ),
+]

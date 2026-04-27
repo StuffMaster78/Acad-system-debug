@@ -27,7 +27,7 @@ from order_configs.models import (
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus, SpacingOptions
 from websites.models.websites import Website
-from pricing_configs.models import PricingConfiguration, AcademicLevelPricing, WriterLevelOptionConfig
+from order_pricing_core.models import PricingConfiguration, AcademicLevelPricing, WriterLevelOptionConfig
 from wallet.models import Wallet
 from writer_management.models.payout import WriterPayment
 

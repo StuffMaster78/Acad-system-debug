@@ -268,7 +268,7 @@ class GDPRService:
         Returns:
             Dict with deletion request status
         """
-        from authentication.models.deletion_requests import AccountDeletionRequest
+        from authentication.models.account_deletion_request import AccountDeletionRequest
         
         # Check if request already exists
         existing = AccountDeletionRequest.objects.filter(

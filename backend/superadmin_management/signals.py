@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 from .models import SuperadminLog
 from .utils import SuperadminNotifier
-from orders.models.order_disputes import Dispute
+from orders.models.legacy_models.order_disputes import Dispute
 from client_management.models import BlacklistedEmail
 
 # from orders.models import FailedPayment

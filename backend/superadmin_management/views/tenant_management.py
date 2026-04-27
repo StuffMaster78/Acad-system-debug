@@ -16,7 +16,7 @@ from superadmin_management.permissions import IsSuperadmin
 from websites.models.websites import Website
 from websites.serializers import WebsiteSerializer
 from orders.models.orders import Order
-from orders.models.order_disputes import Dispute
+from orders.models.legacy_models.order_disputes import Dispute
 from orders.order_enums import OrderStatus
 from users.models import User
 from order_payments_management.models.payments import OrderPayment

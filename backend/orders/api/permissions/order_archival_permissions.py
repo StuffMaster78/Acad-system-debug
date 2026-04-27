@@ -2,44 +2,33 @@ from __future__ import annotations
 
 from typing import Any
 
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
+from core.permissions.base import BasePlatformPermission
 from orders.models.orders.order import Order
 
 
-class CanArchiveOrder(BasePermission):
+class CanArchiveOrder(BasePlatformPermission):
     """
-    Permission for archiving orders.
-
-    Rules:
-        1. User must be authenticated.
-        2. Same tenant enforcement.
-        3. Only staff can archive orders.
-
-    Rationale:
-        Archival is an operational/administrative action,
-        not a client-facing one.
+    Only internal users with archive permission can archive orders.
     """
 
-    def has_permission(self, request: Request, view: APIView) -> Any:
-        return bool(request.user and request.user.is_authenticated)
+    message = "You are not allowed to archive this order."
 
-    def has_object_permission(
+    required_portal = "internal_admin"
+    required_permission = "orders.archive_order"
+    require_tenant = True
+
+    def has_object_permission( # type: ignore[override]
         self,
         request: Request,
         view: APIView,
         obj: Any,
-    ) -> Any:
+    ):
         if not isinstance(obj, Order):
             return False
 
-        user = request.user
+        website = getattr(request, "website", None)
 
-        # Tenant enforcement
-        if getattr(user, "website_id", None) != obj.website.pk:
-            return False
-
-        # Only staff can archive
-        return bool(getattr(user, "is_staff", False))
+        return getattr(obj, "website_id", None) == getattr(website, "id", None)

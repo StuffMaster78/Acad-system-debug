@@ -2,49 +2,54 @@ from __future__ import annotations
 
 from typing import Any
 
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
+from accounts.services.permission_service import AccountPermissionService
+from core.permissions.base import BasePlatformPermission
 
-class BaseRevisionTenantPermission(BasePermission):
+
+class BaseRevisionTenantPermission(BasePlatformPermission):
     """
-    Base permission enforcing tenant alignment.
+    Base permission enforcing resolved tenant alignment.
     """
 
     message = "Cross-tenant access denied."
+    require_tenant = True
 
-    def _same_tenant(self, user: Any, obj: Any) -> bool:
-        user_website_id = getattr(user, "website_id", None)
+    def _same_tenant(self, request: Request, obj: Any) -> bool:
+        website = getattr(request, "website", None)
+        obj_website_id = getattr(obj, "website_id", None)
 
-        obj_website = getattr(obj, "website", None)
-        obj_website_id = getattr(obj_website, "pk", None)
-
-        return user_website_id == obj_website_id
+        return obj_website_id == getattr(website, "id", None)
 
 
 class CanRequestRevision(BaseRevisionTenantPermission):
     """
-    Client owner or same-tenant staff can request revision routing.
+    Client owner or permitted internal user can request revision.
     """
 
     message = "You are not allowed to request revision for this order."
+    required_permission = "orders.request_revision"
 
-    def has_object_permission(
+    def has_object_permission(# type: ignore[override] 
         self,
         request: Request,
         view: APIView,
         obj: Any,
-    ) -> Any:
-        if not self._same_tenant(request.user, obj):
+    ):  
+        if not self._same_tenant(request, obj):
             return False
 
-        if getattr(request.user, "is_staff", False):
+        user = request.user
+        website = getattr(request, "website", None)
+
+        if AccountPermissionService.user_has_permission(
+            user=user,
+            permission_code="orders.manage_revisions",
+            website=website,
+        ):
             return True
 
         client = getattr(obj, "client", None)
-        return getattr(client, "pk", None) == getattr(
-            request.user,
-            "pk",
-            None,
-        )
+        return getattr(client, "pk", None) == getattr(user, "pk", None)

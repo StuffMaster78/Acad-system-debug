@@ -1,6 +1,12 @@
-from __future__ import annotations
+"""
+Frontend URL builder utilities.
 
-from urllib.parse import urljoin
+Provide a centralized way to construct frontend URLs with
+query parameters in a consistent and safe manner.
+"""
+from __future__ import annotations
+from urllib.parse import urlencode, urljoin
+from typing import Optional, Dict, Any
 
 from django.conf import settings
 
@@ -86,3 +92,89 @@ def get_profile_edit_url(user: User) -> str:
     Return the profile edit page URL for a user.
     """
     return build_frontend_url_for_user(user, "/profile/edit/")
+
+
+def get_frontend_base_url(website=None) -> str:
+    """
+    Resolve the base frontend URL.
+
+    Args:
+        website: Optional website/tenant instance.
+
+    Returns:
+        The base frontend URL.
+    """
+    # If you later support per-tenant domains:
+    if website and hasattr(website, "domain") and website.domain:
+        return website.domain.rstrip("/")
+
+    return getattr(settings, "FRONTEND_URL", "").rstrip("/")
+
+
+
+def get_frontend_link(
+    *,
+    path: str,
+    query_params: dict | None = None,
+    website=None,
+) -> str:
+    """
+    Build a full frontend URL.
+
+    Args:
+        path: Frontend route (e.g. "/auth/magic-link")
+        query_params: Optional query parameters
+        website: Optional tenant context
+
+    Returns:
+        Fully qualified frontend URL.
+    """
+    base_url = get_frontend_base_url(website=website)
+
+    path = path if path.startswith("/") else f"/{path}"
+
+    url = f"{base_url}{path}"
+
+    if query_params:
+        query_string = urlencode(query_params)
+        url = f"{url}?{query_string}"
+
+    return url
+
+
+def build_frontend_url(
+    *,
+    path: str,
+    query_params: Optional[Dict[str, Any]] = None,
+    base_url: Optional[str] = None,
+) -> str:
+    """
+    Build a frontend URL with optional query parameters.
+
+    Args:
+        path: Frontend route path (e.g., "/verify-email-change").
+        query_params: Optional dictionary of query parameters.
+        base_url: Optional override for frontend base URL.
+
+    Returns:
+        Fully constructed frontend URL.
+    """
+    base = (base_url or settings.FRONTEND_URL).rstrip("/")
+
+    # Ensure path starts with "/"
+    if not path.startswith("/"):
+        path = f"/{path}"
+
+    url = urljoin(base + "/", path.lstrip("/"))
+
+    if query_params:
+        # Remove None values to avoid messy URLs
+        clean_params = {
+            key: value
+            for key, value in query_params.items()
+            if value is not None
+        }
+        if clean_params:
+            return f"{url}?{urlencode(clean_params)}"
+
+    return url
