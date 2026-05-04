@@ -1,246 +1,500 @@
-"""
-Streamlined Class Payment Service
-Handles class payments, installments, and writer compensation in a unified way.
-"""
-import logging
-from decimal import Decimal
-from django.db import transaction
-from django.utils import timezone
-from class_management.class_payment import (
-    ClassPayment,
-    ClassPaymentInstallment,
-    ClassWriterPayment,
-)
-from class_management.models import ClassBundle, ClassInstallment
-from special_orders.models import WriterBonus
+from __future__ import annotations
 
-logger = logging.getLogger(__name__)
+from dataclasses import dataclass
+from decimal import Decimal
+from typing import Any
+
+from django.db import transaction
+
+from class_management.constants import (
+    ClassPaymentSourceType,
+    ClassTimelineEventType,
+)
+from class_management.exceptions import ClassPaymentError
+from class_management.integration.class_wallet_payment_integration import (
+    ClassWalletPaymentIntegration,
+)
+from class_management.models import (
+    ClassInstallment,
+    ClassInvoiceLink,
+    ClassOrder,
+    ClassPaymentAllocation,
+)
+from class_management.services.class_installment_service import (
+    ClassInstallmentService,
+)
+from class_management.services.class_order_service import ClassOrderService
+from class_management.services.class_timeline_service import (
+    ClassTimelineService,
+)
+
+
+@dataclass(frozen=True)
+class ClassPaymentResult:
+    """
+    Result returned after preparing or applying a class payment.
+    """
+
+    class_order: ClassOrder
+    amount_due: Decimal
+    wallet_amount: Decimal
+    external_amount: Decimal
+    source_type: str
+    checkout_url: str = ""
+    payment_intent_id: str = ""
+    allocation_id: int | None = None
 
 
 class ClassPaymentService:
     """
-    Service for managing class payments and installments.
-    """
-    
-    @staticmethod
-    @transaction.atomic
-    def create_payment_for_bundle(bundle: ClassBundle, writer=None):
-        """
-        Create a ClassPayment record for a class bundle.
-        This should be called when a bundle is created or when a writer is assigned.
-        """
-        # Check if payment already exists
-        existing_payment = ClassPayment.objects.filter(class_bundle=bundle).first()
-        if existing_payment:
-            # Update writer if provided
-            if writer:
-                existing_payment.assigned_writer = writer
-                existing_payment.writer_compensation_amount = existing_payment.calculate_writer_compensation()
-                existing_payment.save()
-            return existing_payment
-        
-        # Calculate amounts
-        total_amount = bundle.total_price or Decimal('0.00')
-        deposit_amount = bundle.deposit_required or Decimal('0.00')
-        deposit_paid = bundle.deposit_paid or Decimal('0.00')
-        balance_remaining = bundle.balance_remaining or total_amount
-        
-        # Create payment record
-        payment = ClassPayment.objects.create(
-            class_bundle=bundle,
-            website=bundle.website,
-            assigned_writer=writer or bundle.assigned_writer,
-            total_amount=total_amount,
-            deposit_amount=deposit_amount,
-            deposit_paid=deposit_paid,
-            balance_remaining=balance_remaining,
-            uses_installments=bundle.installments_enabled,
-            total_installments=bundle.installment_count or 0,
-        )
-        
-        # Calculate writer compensation
-        payment.writer_compensation_amount = payment.calculate_writer_compensation()
-        payment.save()
-        
-        # Link existing installments if any
-        if bundle.installments_enabled:
-            ClassPaymentService._link_installments(payment, bundle)
-        
-        logger.info(f"Created ClassPayment {payment.id} for bundle {bundle.id}")
-        return payment
-    
-    @staticmethod
-    def _link_installments(payment: ClassPayment, bundle: ClassBundle):
-        """Link existing ClassInstallments to ClassPayment."""
-        installments = ClassInstallment.objects.filter(class_bundle=bundle).order_by('installment_number')
-        
-        for installment in installments:
-            payment_installment, created = ClassPaymentInstallment.objects.get_or_create(
-                class_payment=payment,
-                class_installment=installment,
-                defaults={
-                    'installment_number': installment.installment_number or 0,
-                    'amount': installment.amount,
-                    'is_paid': installment.is_paid,
-                    'paid_at': installment.paid_at,
-                    'payment_record': installment.payment_record,
-                }
-            )
-            
-            if not created:
-                # Update if installment status changed
-                payment_installment.is_paid = installment.is_paid
-                payment_installment.paid_at = installment.paid_at
-                payment_installment.payment_record = installment.payment_record
-                payment_installment.save()
-    
-    @staticmethod
-    @transaction.atomic
-    def record_installment_payment(installment: ClassInstallment, payment_record):
-        """
-        Record an installment payment and update ClassPayment status.
-        """
-        # Find the ClassPayment for this bundle
-        try:
-            class_payment = ClassPayment.objects.get(class_bundle=installment.class_bundle)
-        except ClassPayment.DoesNotExist:
-            # Create payment if it doesn't exist
-            class_payment = ClassPaymentService.create_payment_for_bundle(installment.class_bundle)
-        
-        # Update or create payment installment link
-        payment_installment, created = ClassPaymentInstallment.objects.get_or_create(
-            class_payment=class_payment,
-            class_installment=installment,
-            defaults={
-                'installment_number': installment.installment_number or 0,
-                'amount': installment.amount,
-            }
-        )
-        
-        # Update payment installment
-        payment_installment.is_paid = installment.is_paid
-        payment_installment.paid_at = installment.paid_at
-        payment_installment.payment_record = payment_record
-        payment_installment.save()
-        
-        # Update class payment status
-        ClassPaymentService._update_payment_status(class_payment)
-        
-        logger.info(f"Recorded installment payment for installment {installment.id}")
-        return payment_installment
-    
-    @staticmethod
-    def _update_payment_status(payment: ClassPayment):
-        """Update payment status based on installments and payments."""
-        bundle = payment.class_bundle
-        
-        # Update deposit paid
-        payment.deposit_paid = bundle.deposit_paid or Decimal('0.00')
-        
-        # Calculate balance from installments
-        paid_installments = ClassPaymentInstallment.objects.filter(
-            class_payment=payment,
-            is_paid=True
-        )
-        total_paid = sum(pi.amount for pi in paid_installments)
-        payment.balance_remaining = payment.total_amount - total_paid - payment.deposit_paid
-        payment.paid_installments = paid_installments.count()
-        
-        # Update statuses
-        payment.update_client_payment_status()
-        
-        # If fully paid and writer assigned, schedule writer payment
-        if payment.is_fully_paid and payment.assigned_writer and not payment.is_writer_paid:
-            ClassPaymentService._schedule_writer_payment(payment)
-        
-        payment.save()
-    
-    @staticmethod
-    @transaction.atomic
-    def _schedule_writer_payment(payment: ClassPayment):
-        """
-        Schedule writer payment when class bundle is fully paid.
-        Creates WriterBonus if needed.
-        """
-        if payment.writer_payment_status == 'paid':
-            return
-        
-        # Check if writer bonus already exists
-        existing_bonus = WriterBonus.objects.filter(
-            writer=payment.assigned_writer,
-            category='class_payment',
-            special_order=None,
-        ).first()
-        
-        if not existing_bonus and payment.writer_compensation_amount > 0:
-            # Create WriterBonus
-            bonus = WriterBonus.objects.create(
-                website=payment.website,
-                writer=payment.assigned_writer,
-                special_order=None,
-                amount=payment.writer_compensation_amount,
-                category='class_payment',
-                reason=f"Payment for Class Bundle #{payment.class_bundle.id}",
-                is_paid=False,
-            )
-            
-            # Create ClassWriterPayment record
-            ClassWriterPayment.objects.create(
-                class_payment=payment,
-                writer_bonus=bonus,
-                amount=payment.writer_compensation_amount,
-                payment_type='full',
-                is_paid=False,
-            )
-            
-            payment.writer_payment_status = 'scheduled'
-            payment.save()
-            
-            logger.info(f"Scheduled writer payment ${payment.writer_compensation_amount} for bundle {payment.class_bundle.id}")
-    
-    @staticmethod
-    def get_payment_details(bundle_id):
-        """
-        Get comprehensive payment details for a class bundle.
-        Returns payment, installments, and writer payment info.
-        """
-        try:
-            bundle = ClassBundle.objects.get(id=bundle_id)
-        except ClassBundle.DoesNotExist:
-            return None
-        
-        # Get or create payment
-        payment = ClassPayment.objects.filter(class_bundle=bundle).first()
-        if not payment:
-            payment = ClassPaymentService.create_payment_for_bundle(bundle)
-        
-        # Get installments
-        installments = ClassPaymentInstallment.objects.filter(
-            class_payment=payment
-        ).select_related('class_installment', 'payment_record').order_by('installment_number')
-        
-        # Get writer payments
-        writer_payments = ClassWriterPayment.objects.filter(
-            class_payment=payment
-        ).select_related('writer_bonus').order_by('-created_at')
-        
-        return {
-            'payment': payment,
-            'installments': installments,
-            'writer_payments': writer_payments,
-        }
-    
-    @staticmethod
-    def get_writer_class_payments(writer):
-        """
-        Get all class payments for a writer with installment details.
-        """
-        payments = ClassPayment.objects.filter(
-            assigned_writer=writer
-        ).select_related('class_bundle', 'website').prefetch_related(
-            'payment_installments__class_installment',
-            'writer_payments__writer_bonus'
-        ).order_by('-created_at')
-        
-        return payments
+    Coordinate class payments.
 
+    This service does not own wallet, provider, billing, or ledger logic.
+    It calls those apps and records the class-side allocation.
+    """
+
+    @classmethod
+    @transaction.atomic
+    def create_invoice_link(
+        cls,
+        *,
+        class_order: ClassOrder,
+        invoice_id: str,
+        invoice_number: str = "",
+        status: str = "",
+        metadata: dict[str, Any] | None = None,
+    ) -> ClassInvoiceLink:
+        """
+        Link a billing invoice to a class order.
+        """
+        return ClassInvoiceLink.objects.create(
+            class_order=class_order,
+            invoice_id=invoice_id,
+            invoice_number=invoice_number,
+            status=status,
+            metadata=metadata or {},
+        )
+
+    @classmethod
+    @transaction.atomic
+    def prepare_payment(
+        cls,
+        *,
+        class_order: ClassOrder,
+        amount: Decimal,
+        payer,
+        use_wallet: bool,
+        installment: ClassInstallment | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> ClassPaymentResult:
+        """
+        Prepare wallet, external, or split payment.
+
+        If wallet covers the full amount, payment is applied immediately.
+        If wallet partially covers the amount, wallet is deducted and an
+        external checkout is created for the remaining amount.
+        """
+        cls._validate_payment_amount(
+            class_order=class_order,
+            amount=amount,
+        )
+
+        wallet_amount = Decimal("0.00")
+        external_amount = amount
+        wallet_transaction_id = ""
+
+        if use_wallet:
+            wallet_amount = cls._calculate_wallet_amount(
+                class_order=class_order,
+                payer=payer,
+                amount=amount,
+            )
+            external_amount = amount - wallet_amount
+
+        if wallet_amount > Decimal("0.00"):
+            wallet_transaction_id = cls._debit_client_wallet(
+                class_order=class_order,
+                client=payer,
+                amount=wallet_amount,
+                metadata=metadata,
+            )
+
+        if external_amount <= Decimal("0.00"):
+            return cls._apply_wallet_only_payment(
+                class_order=class_order,
+                amount=amount,
+                payer=payer,
+                installment=installment,
+                wallet_amount=wallet_amount,
+                wallet_transaction_id=wallet_transaction_id,
+                metadata=metadata,
+            )
+
+        return cls._prepare_external_payment(
+            class_order=class_order,
+            amount=amount,
+            payer=payer,
+            installment=installment,
+            wallet_amount=wallet_amount,
+            external_amount=external_amount,
+            wallet_transaction_id=wallet_transaction_id,
+            metadata=metadata,
+        )
+
+    @classmethod
+    @transaction.atomic
+    def apply_successful_payment(
+        cls,
+        *,
+        class_order: ClassOrder,
+        amount: Decimal,
+        source_type: str,
+        payer,
+        installment: ClassInstallment | None = None,
+        wallet_amount: Decimal = Decimal("0.00"),
+        external_amount: Decimal = Decimal("0.00"),
+        payment_intent_id: str = "",
+        payment_transaction_id: str = "",
+        wallet_transaction_id: str = "",
+        ledger_entry_id: str = "",
+        reference: str = "",
+        metadata: dict[str, Any] | None = None,
+    ) -> ClassPaymentAllocation:
+        """
+        Apply a successful payment to a class order.
+        """
+        cls._validate_payment_amount(
+            class_order=class_order,
+            amount=amount,
+        )
+        cls._ensure_payment_not_applied(
+            payment_intent_id=payment_intent_id,
+            payment_transaction_id=payment_transaction_id,
+        )
+
+        allocation = ClassPaymentAllocation.objects.create(
+            class_order=class_order,
+            source_type=source_type,
+            amount=amount,
+            wallet_amount=wallet_amount,
+            external_amount=external_amount,
+            installment=installment,
+            payment_intent_id=payment_intent_id,
+            payment_transaction_id=payment_transaction_id,
+            wallet_transaction_id=wallet_transaction_id,
+            ledger_entry_id=ledger_entry_id,
+            reference=reference,
+            metadata=metadata or {},
+        )
+
+        if installment is not None:
+            ClassInstallmentService.apply_payment_to_installment(
+                installment=installment,
+                amount=amount,
+                payment_intent_id=payment_intent_id,
+                invoice_id=cls._get_metadata_value(
+                    metadata=metadata,
+                    key="invoice_id",
+                ),
+            )
+
+        ClassOrderService.apply_payment(
+            class_order=class_order,
+            amount=amount,
+            triggered_by=payer,
+        )
+
+        ClassTimelineService.record(
+            class_order=class_order,
+            event_type=ClassTimelineEventType.PAYMENT_APPLIED,
+            title="Class payment allocated",
+            triggered_by=payer,
+            metadata={
+                "allocation_id": allocation.pk,
+                "amount": str(amount),
+                "source_type": source_type,
+                "wallet_amount": str(wallet_amount),
+                "external_amount": str(external_amount),
+                "payment_intent_id": payment_intent_id,
+            },
+        )
+
+        return allocation
+
+    @classmethod
+    @transaction.atomic
+    def apply_external_payment_success(
+        cls,
+        *,
+        class_order: ClassOrder,
+        payer,
+        amount: Decimal,
+        payment_intent_id: str,
+        payment_transaction_id: str,
+        installment: ClassInstallment | None = None,
+        wallet_amount: Decimal = Decimal("0.00"),
+        wallet_transaction_id: str = "",
+        ledger_entry_id: str = "",
+        metadata: dict[str, Any] | None = None,
+    ) -> ClassPaymentAllocation:
+        """
+        Apply a successful external or split payment callback.
+        """
+        source_type = (
+            ClassPaymentSourceType.SPLIT
+            if wallet_amount > Decimal("0.00")
+            else ClassPaymentSourceType.EXTERNAL
+        )
+        total_amount = amount + wallet_amount
+
+        return cls.apply_successful_payment(
+            class_order=class_order,
+            amount=total_amount,
+            source_type=source_type,
+            payer=payer,
+            installment=installment,
+            wallet_amount=wallet_amount,
+            external_amount=amount,
+            payment_intent_id=payment_intent_id,
+            payment_transaction_id=payment_transaction_id,
+            wallet_transaction_id=wallet_transaction_id,
+            ledger_entry_id=ledger_entry_id,
+            metadata=metadata,
+        )
+
+    @classmethod
+    def _apply_wallet_only_payment(
+        cls,
+        *,
+        class_order: ClassOrder,
+        amount: Decimal,
+        payer,
+        installment: ClassInstallment | None,
+        wallet_amount: Decimal,
+        wallet_transaction_id: str,
+        metadata: dict[str, Any] | None,
+    ) -> ClassPaymentResult:
+        """
+        Apply a payment fully covered by the client wallet.
+        """
+        allocation = cls.apply_successful_payment(
+            class_order=class_order,
+            amount=amount,
+            source_type=ClassPaymentSourceType.WALLET,
+            payer=payer,
+            installment=installment,
+            wallet_amount=wallet_amount,
+            external_amount=Decimal("0.00"),
+            wallet_transaction_id=wallet_transaction_id,
+            metadata=metadata,
+        )
+
+        return ClassPaymentResult(
+            class_order=allocation.class_order,
+            amount_due=amount,
+            wallet_amount=wallet_amount,
+            external_amount=Decimal("0.00"),
+            source_type=ClassPaymentSourceType.WALLET,
+            allocation_id=allocation.pk,
+        )
+
+    @classmethod
+    def _prepare_external_payment(
+        cls,
+        *,
+        class_order: ClassOrder,
+        amount: Decimal,
+        payer,
+        installment: ClassInstallment | None,
+        wallet_amount: Decimal,
+        external_amount: Decimal,
+        wallet_transaction_id: str,
+        metadata: dict[str, Any] | None,
+    ) -> ClassPaymentResult:
+        """
+        Create checkout for an external or split payment.
+        """
+        checkout = cls._create_external_checkout(
+            class_order=class_order,
+            payer=payer,
+            amount=external_amount,
+            installment=installment,
+            metadata={
+                **(metadata or {}),
+                "wallet_amount": str(wallet_amount),
+                "external_amount": str(external_amount),
+                "wallet_transaction_id": wallet_transaction_id,
+            },
+        )
+
+        payment_intent = checkout.get("payment_intent")
+        provider_data = checkout.get("provider_data", {})
+
+        source_type = (
+            ClassPaymentSourceType.SPLIT
+            if wallet_amount > Decimal("0.00")
+            else ClassPaymentSourceType.EXTERNAL
+        )
+
+        return ClassPaymentResult(
+            class_order=class_order,
+            amount_due=amount,
+            wallet_amount=wallet_amount,
+            external_amount=external_amount,
+            source_type=source_type,
+            checkout_url=str(provider_data.get("checkout_url", "")),
+            payment_intent_id=str(
+                getattr(payment_intent, "reference", ""),
+            ),
+        )
+
+    @classmethod
+    def _calculate_wallet_amount(
+        cls,
+        *,
+        class_order: ClassOrder,
+        payer,
+        amount: Decimal,
+    ) -> Decimal:
+        """
+        Calculate how much of the payment can come from wallet.
+        """
+        available_balance = cls._get_client_wallet_balance(
+            client=payer,
+            website=class_order.website,
+            currency=class_order.currency,
+        )
+
+        return min(available_balance, amount)
+
+    @classmethod
+    def _validate_payment_amount(
+        cls,
+        *,
+        class_order: ClassOrder,
+        amount: Decimal,
+    ) -> None:
+        """
+        Validate class payment amount.
+        """
+        if amount <= Decimal("0.00"):
+            raise ClassPaymentError("Payment amount must be positive.")
+
+        if class_order.final_amount <= Decimal("0.00"):
+            raise ClassPaymentError(
+                "Class order has no payable amount."
+            )
+
+        if class_order.balance_amount <= Decimal("0.00"):
+            raise ClassPaymentError(
+                "Class order is already fully paid."
+            )
+
+        if amount > class_order.balance_amount:
+            raise ClassPaymentError(
+                "Payment amount cannot exceed class balance."
+            )
+
+    @staticmethod
+    def _ensure_payment_not_applied(
+        *,
+        payment_intent_id: str,
+        payment_transaction_id: str,
+    ) -> None:
+        """
+        Prevent double application of external payment callbacks.
+        """
+        if payment_intent_id:
+            intent_exists = ClassPaymentAllocation.objects.filter(
+                payment_intent_id=payment_intent_id,
+            ).exists()
+
+            if intent_exists:
+                raise ClassPaymentError(
+                    "This payment intent has already been applied."
+                )
+
+        if payment_transaction_id:
+            transaction_exists = ClassPaymentAllocation.objects.filter(
+                payment_transaction_id=payment_transaction_id,
+            ).exists()
+
+            if transaction_exists:
+                raise ClassPaymentError(
+                    "This payment transaction has already been applied."
+                )
+
+    @staticmethod
+    def _get_client_wallet_balance(
+        *,
+        client,
+        website,
+        currency: str,
+    ) -> Decimal:
+        """
+        Return client wallet available balance.
+        """
+        return ClassWalletPaymentIntegration.get_client_wallet_balance(
+            client=client,
+            website=website,
+            currency=currency,
+        )
+
+    @staticmethod
+    def _debit_client_wallet(
+        *,
+        class_order: ClassOrder,
+        client,
+        amount: Decimal,
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
+        """
+        Debit client wallet for class payment.
+        """
+        return ClassWalletPaymentIntegration.debit_client_wallet(
+            client=client,
+            website=class_order.website,
+            amount=amount,
+            currency=class_order.currency,
+            reference=f"class_order:{class_order.pk}",
+            created_by=client,
+            metadata={
+                **(metadata or {}),
+                "class_order_id": str(class_order.pk),
+            },
+        )
+
+    @staticmethod
+    def _create_external_checkout(
+        *,
+        class_order: ClassOrder,
+        payer,
+        amount: Decimal,
+        installment: ClassInstallment | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Create an external payment checkout.
+        """
+        return ClassWalletPaymentIntegration.create_external_checkout(
+            class_order=class_order,
+            payer=payer,
+            amount=amount,
+            installment=installment,
+            metadata=metadata,
+        )
+
+    @staticmethod
+    def _get_metadata_value(
+        *,
+        metadata: dict[str, Any] | None,
+        key: str,
+    ) -> str:
+        """
+        Return a metadata value as a string.
+        """
+        if metadata is None:
+            return ""
+
+        value = metadata.get(key, "")
+        return str(value)
