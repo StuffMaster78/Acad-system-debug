@@ -1,0 +1,177 @@
+from __future__ import annotations
+
+from django.urls import path
+
+from discounts.api.admin_dashboard_views import (
+    DiscountDashboardByOriginAPIView,
+    DiscountDashboardExpiringSoonAPIView,
+    DiscountDashboardSummaryAPIView,
+    DiscountDashboardTopPerformingAPIView,
+    DiscountDashboardUnusedAPIView,
+    DiscountDashboardWorkingAPIView,
+)
+from discounts.api.admin_discount_views import (
+    AdminDiscountArchiveAPIView,
+    AdminDiscountDetailAPIView,
+    AdminDiscountListCreateAPIView,
+    AdminDiscountRestoreAPIView,
+    DiscountSettingsAPIView,
+    FirstOrderDiscountConfigAPIView,
+)
+from discounts.api.client_discount_views import (
+    AvailableDiscountListAPIView,
+    DiscountApplyAPIView,
+    DiscountPreviewAPIView,
+)
+from discounts.api.campaign_views import (
+    AdminCampaignActivateAPIView,
+    AdminCampaignArchiveAPIView,
+    AdminCampaignDeactivateAPIView,
+    AdminCampaignDetailAPIView,
+    AdminCampaignListCreateAPIView,
+    AdminCampaignRestoreAPIView,
+    ClientCampaignCalendarAPIView,
+)
+from discounts.api.admin_clone_views import (
+    AdminCampaignCloneAPIView,
+    AdminDiscountCloneAPIView,
+)
+from discounts.api.admin_spend_tier_views import (
+    AdminSpendTierDetailAPIView,
+    AdminSpendTierListCreateAPIView,
+)
+
+app_name = "discounts"
+
+urlpatterns = [
+    path(
+        "client/preview/",
+        DiscountPreviewAPIView.as_view(),
+        name="client-preview",
+    ),
+    path(
+        "client/apply/",
+        DiscountApplyAPIView.as_view(),
+        name="client-apply",
+    ),
+    path(
+        "admin/discounts/",
+        AdminDiscountListCreateAPIView.as_view(),
+        name="admin-discount-list-create",
+    ),
+    path(
+        "admin/discounts/<int:pk>/",
+        AdminDiscountDetailAPIView.as_view(),
+        name="admin-discount-detail",
+    ),
+    path(
+        "admin/discounts/<int:pk>/archive/",
+        AdminDiscountArchiveAPIView.as_view(),
+        name="admin-discount-archive",
+    ),
+    path(
+        "admin/discounts/<int:pk>/restore/",
+        AdminDiscountRestoreAPIView.as_view(),
+        name="admin-discount-restore",
+    ),
+    path(
+        "admin/settings/",
+        DiscountSettingsAPIView.as_view(),
+        name="admin-settings",
+    ),
+    path(
+        "admin/first-order-config/",
+        FirstOrderDiscountConfigAPIView.as_view(),
+        name="admin-first-order-config",
+    ),
+    path(
+        "admin/dashboard/summary/",
+        DiscountDashboardSummaryAPIView.as_view(),
+        name="admin-dashboard-summary",
+    ),
+    path(
+        "admin/dashboard/working/",
+        DiscountDashboardWorkingAPIView.as_view(),
+        name="admin-dashboard-working",
+    ),
+    path(
+        "admin/dashboard/expiring-soon/",
+        DiscountDashboardExpiringSoonAPIView.as_view(),
+        name="admin-dashboard-expiring-soon",
+    ),
+    path(
+        "admin/dashboard/top-performing/",
+        DiscountDashboardTopPerformingAPIView.as_view(),
+        name="admin-dashboard-top-performing",
+    ),
+    path(
+        "admin/dashboard/unused/",
+        DiscountDashboardUnusedAPIView.as_view(),
+        name="admin-dashboard-unused",
+    ),
+    path(
+        "admin/dashboard/by-origin/",
+        DiscountDashboardByOriginAPIView.as_view(),
+        name="admin-dashboard-by-origin",
+    ),
+    path(
+        "client/campaign-calendar/",
+        ClientCampaignCalendarAPIView.as_view(),
+        name="client-campaign-calendar",
+    ),
+    path(
+        "admin/campaigns/",
+        AdminCampaignListCreateAPIView.as_view(),
+        name="admin-campaign-list-create",
+    ),
+    path(
+        "admin/campaigns/<int:pk>/",
+        AdminCampaignDetailAPIView.as_view(),
+        name="admin-campaign-detail",
+    ),
+    path(
+        "admin/campaigns/<int:pk>/activate/",
+        AdminCampaignActivateAPIView.as_view(),
+        name="admin-campaign-activate",
+    ),
+    path(
+        "admin/campaigns/<int:pk>/deactivate/",
+        AdminCampaignDeactivateAPIView.as_view(),
+        name="admin-campaign-deactivate",
+    ),
+    path(
+        "admin/campaigns/<int:pk>/archive/",
+        AdminCampaignArchiveAPIView.as_view(),
+        name="admin-campaign-archive",
+    ),
+    path(
+        "client/available/",
+        AvailableDiscountListAPIView.as_view(),
+        name="client-available",
+    ),
+    path(
+        "admin/spend-tiers/",
+        AdminSpendTierListCreateAPIView.as_view(),
+        name="admin-spend-tier-list-create",
+    ),
+    path(
+        "admin/spend-tiers/<int:pk>/",
+        AdminSpendTierDetailAPIView.as_view(),
+        name="admin-spend-tier-detail",
+    ),
+    path(
+        "admin/clone/discount/",
+        AdminDiscountCloneAPIView.as_view(),
+        name="admin-clone-discount",
+    ),
+    path(
+        "admin/clone/campaign/",
+        AdminCampaignCloneAPIView.as_view(),
+        name="admin-clone-campaign",
+    ),
+    path(
+        "admin/campaigns/<int:pk>/restore/",
+        AdminCampaignRestoreAPIView.as_view(),
+        name="admin-campaign-restore",
+    ),
+]

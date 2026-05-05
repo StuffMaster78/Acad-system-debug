@@ -1,60 +1,42 @@
-"""
-Validates the format of discount codes.
-"""
+from __future__ import annotations
 
 import re
+
 from django.core.exceptions import ValidationError
+from django.utils.deconstruct import deconstructible
 
 
-class CodeFormatValidator:
+@deconstructible
+class DiscountCodeFormatValidator:
     """
-    Validates the format of a discount code.
+    Validate discount code format.
 
-    Enforces uppercase alphanumeric characters and optionally hyphens,
-    with a length between 5 and 20 characters.
+    Codes should be uppercase and may contain letters, numbers, and
+    hyphens only.
     """
 
-    CODE_REGEX = re.compile(r"^[A-Z0-9\-]{5,20}$")
+    pattern = re.compile(r"^[A-Z0-9-]+$")
 
-    def __call__(self, code):
-        """
-        Validate the discount code format.
-        Args:
-            code (str): The discount code to validate.
-        Raises:
-            ValidationError: If the code format is invalid.
-        """
-        return self.is_valid_format(code)
-
-    def deconstruct(self):
-        """
-        Support Django migration serialization for custom validators.
-
-        Returns a 3-tuple of (import_path, args, kwargs) so the validator can
-        be reconstructed in migration files.
-        """
-        path = "discounts.validators.code_format_validator.CodeFormatValidator"
-        return (path, tuple(), {})
-
-    def __eq__(self, other):
-        """Enable comparisons for migration de-duplication."""
-        return isinstance(other, CodeFormatValidator)
-
-    def is_valid_format(self, code):
+    def __call__(self, value: str) -> None:
         """
         Validate the given discount code.
-
-        Args:
-            code (str): The discount code to validate.
-
-        Raises:
-            ValidationError: If the code format is invalid.
         """
-        if not isinstance(code, str):
-            raise ValidationError("Discount code must be a string.")
+        if not value:
+            raise ValidationError("Discount code is required.")
 
-        if not self.CODE_REGEX.match(code):
+        if value != value.upper():
             raise ValidationError(
-                "Invalid discount code format. Code must be 5-20 characters, "
-                "uppercase letters, numbers, or hyphens only."
+                "Discount code must use uppercase characters."
             )
+
+        if not self.pattern.match(value):
+            raise ValidationError(
+                "Discount code may only contain uppercase letters, "
+                "numbers, and hyphens."
+            )
+
+    def __eq__(self, other) -> bool:
+        """
+        Support Django migration serialization comparisons.
+        """
+        return isinstance(other, DiscountCodeFormatValidator)
