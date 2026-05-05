@@ -1,200 +1,142 @@
-from django.utils import timezone
-from django.db import transaction
-from django.contrib.auth import get_user_model
+from __future__ import annotations
 
-from communications.models import (
-    CommunicationMessage,
-    FlaggedMessage,
-    DisputeMessage,
-    CommunicationNotification
+from communications.services.event_recipient_service import (
+    CommunicationEventRecipientService,
+)
+from notifications_system.services.notification_service import (
+    NotificationService,
 )
 
-User = get_user_model()
 
-
-class NotificationService:
-    """"
-    Service class for handling notifications related to communication events.
-    This class abstracts the logic for notifying users about new messages,
-    flagged messages, sensitive uploads, and disputes.
-    It provides methods to create notifications based on various triggers
-    such as new messages, flagged content, and disputes.
-    It also includes methods to notify admins about important events
-    such as flagged messages and disputes.
-    It ensures that notifications are created efficiently and correctly
-    based on the context of the communication.
+class CommunicationNotificationService:
     """
+    Bridge communications to the centralized notifications system.
+    """
+
+    MESSAGE_CREATED_EVENT = "communications.message.created"
+    MESSAGE_FLAGGED_EVENT = "communications.message.flagged"
+    THREAD_ESCALATED_EVENT = "communications.thread.escalated"
+    LINK_REVIEW_CREATED_EVENT = "communications.link_review.created"
+
     @staticmethod
-    def notify_user_on_message(msg: CommunicationMessage):
+    def notify_message_created(*, message) -> None:
         """
-        Notify both sender and recipient of a new message.
-        
-        Notifies:
-        1. The recipient - "You received a message from X"
-        2. The sender (themselves) - "You sent a message to X"
-
-        Args:
-            msg (CommunicationMessage): The new message.
+        Notify active thread participants about a new message.
         """
-        recipient = msg.recipient
-        sender = msg.sender
-        if not recipient or msg.is_hidden:
-            return
-
-        # Our User model already has a `role` field; older code expected `recipient.profile.role`.
-        # Fall back to `getattr(recipient, "role", None)` to avoid AttributeError.
-        role = getattr(getattr(recipient, "profile", None), "role", None) or getattr(recipient, "role", None)
-
-        if role == "client" and "client" not in msg.visible_to_roles:
-            return
-        if role == "writer" and "writer" not in msg.visible_to_roles:
-            return
-
-        preview = msg.message[:100]
-        if len(msg.message) > 100:
-            preview += "..."
-
-        # 1. Notify the recipient - "You received a message"
-        recipient_role = getattr(recipient, "role", None)
-        sender_label = "Writer" if getattr(sender, "role", None) == "writer" else "Client" if getattr(sender, "role", None) == "client" else sender.username
-        recipient_notification_text = f"You received a message from {sender_label}: {preview}"
-        
-        CommunicationNotification.objects.create(
-            recipient=recipient,
-            message=msg,
-            notification_text=recipient_notification_text,
-            is_read=False,
-            created_at=timezone.now()
+        recipient_ids = (
+            CommunicationEventRecipientService.message_created_recipients(
+                message=message,
+            )
         )
-        
-        # 2. Notify the sender (themselves) - "You sent a message"
-        if sender and sender != recipient:
-            recipient_label = "Writer" if recipient_role == "writer" else "Client" if recipient_role == "client" else recipient.username
-            sender_notification_text = f"You sent a message to {recipient_label}: {preview}"
-            
-            CommunicationNotification.objects.create(
-                recipient=sender,
-                message=msg,
-                notification_text=sender_notification_text,
-                is_read=False,
-                created_at=timezone.now()
-            )
 
-    @staticmethod
-    def notify_admin_on_flagged_message(flag: FlaggedMessage):
-        """
-        Notify all admins when a message is flagged.
+        participants = message.thread.participant_records.filter(
+            user_id__in=recipient_ids,
+            can_view=True,
+            removed_at__isnull=True,
+        ).select_related("user")
 
-        Args:
-            flag (FlaggedMessage): The flagged message instance.
-        """
-        admins = User.objects.filter(is_staff=True)
-        raw = flag.message.message or ""
-        preview = raw[:100] + ("..." if len(raw) > 100 else "")
-
-        notifications = [
-            CommunicationNotification(
-                recipient=admin,
-                message=flag.message,
-                notification_text=f"Flagged Message: {preview}",
-                is_read=False,
-                created_at=timezone.now()
-            )
-            for admin in admins
-        ]
-        CommunicationNotification.objects.bulk_create(notifications)
-
-    @staticmethod
-    def notify_admin_on_sensitive_upload(msg: CommunicationMessage):
-        """
-        Notify admins on file/image/link uploads from writers or clients.
-
-        Args:
-            msg (CommunicationMessage): The uploaded message.
-        """
-        sender_role = getattr(getattr(msg.sender, "profile", None), "role", None) or getattr(msg.sender, "role", None)
-        if sender_role not in {"client", "writer"}:
-            return
-
-        upload_label = {
-            "file": "File Upload",
-            "image": "Image Upload",
-            "link": "Link Shared"
-        }.get(msg.message_type, "Upload")
-
-        raw = msg.message or ""
-        preview = raw[:100] + ("..." if len(raw) > 100 else "")
-
-        admins = User.objects.filter(is_staff=True)
-        notifications = [
-            CommunicationNotification(
-                recipient=admin,
-                message=msg,
-                notification_text=(
-                    f"{upload_label} requires approval: {preview}"
+        for participant in participants:
+            NotificationService.notify(
+                event_key=(
+                    CommunicationNotificationService.MESSAGE_CREATED_EVENT
                 ),
-                is_read=False,
-                created_at=timezone.now()
+                recipient=participant.user,
+                website=message.website,
+                context={
+                    "thread_id": message.thread_id,
+                    "message_id": message.pk,
+                    "sender_id": (
+                        message.sender.pk
+                        if message.sender is not None
+                        else None
+                    ),
+                    "message_preview": message.body[:160],
+                    "thread_kind": message.thread.kind,
+                },
+                triggered_by=message.sender,
             )
-            for admin in admins
-        ]
-        CommunicationNotification.objects.bulk_create(notifications)
 
     @staticmethod
-    def notify_admin_on_dispute_created(dispute: DisputeMessage):
+    def notify_message_flagged(*, message, flag) -> None:
         """
-        Notify admins about a new dispute.
-
-        Args:
-            dispute (DisputeMessage): The dispute created.
+        Notify staff when a message is flagged.
         """
-        admins = User.objects.filter(is_staff=True)
-        preview = dispute.content[:100]
-        if len(dispute.content) > 100:
-            preview += "..."
+        staff_participants = message.thread.participant_records.filter(
+            role__in=["admin", "superadmin", "support"],
+            can_view=True,
+            removed_at__isnull=True,
+        ).select_related("user")
 
-        text = (
-            f"Dispute from {dispute.sender.username}: {preview}"
-        )
-
-        notifications = [
-            CommunicationNotification(
-                recipient=admin,
-                message=dispute.message,
-                notification_text=text,
-                is_read=False,
-                created_at=timezone.now()
+        for participant in staff_participants:
+            NotificationService.notify(
+                event_key=(
+                    CommunicationNotificationService.MESSAGE_FLAGGED_EVENT
+                ),
+                recipient=participant.user,
+                website=message.website,
+                context={
+                    "thread_id": message.thread_id,
+                    "message_id": message.pk,
+                    "flag_id": flag.pk,
+                    "severity": flag.severity,
+                    "reason": flag.reason,
+                },
+                triggered_by=flag.created_by,
+                is_critical=True,
             )
-            for admin in admins
-        ]
-        CommunicationNotification.objects.bulk_create(notifications)
 
     @staticmethod
-    def notify_admin_on_dispute_resolved(dispute: DisputeMessage):
+    def notify_thread_escalated(*, escalation) -> None:
         """
-        Notify admins when a dispute is resolved.
-
-        Args:
-            dispute (DisputeMessage): The resolved dispute.
+        Notify staff when a thread is escalated.
         """
-        if dispute.status != "resolved":
-            return
+        staff_participants = escalation.thread.participant_records.filter(
+            role__in=["admin", "superadmin", "support"],
+            can_view=True,
+            removed_at__isnull=True,
+        ).select_related("user")
 
-        admins = User.objects.filter(is_staff=True)
-        text = (
-            f"Dispute resolved for Order "
-            f"{dispute.message.thread.order.id} - "
-            f"{dispute.resolution_comment}"
-        )
-
-        notifications = [
-            CommunicationNotification(
-                recipient=admin,
-                message=dispute.message,
-                notification_text=text,
-                is_read=False,
-                created_at=timezone.now()
+        for participant in staff_participants:
+            NotificationService.notify(
+                event_key=(
+                    CommunicationNotificationService.THREAD_ESCALATED_EVENT
+                ),
+                recipient=participant.user,
+                website=escalation.website,
+                context={
+                    "thread_id": escalation.thread_id,
+                    "escalation_id": escalation.pk,
+                    "reason": escalation.reason,
+                },
+                triggered_by=escalation.escalated_by,
+                is_critical=True,
             )
-            for admin in admins
-        ]
-        CommunicationNotification.objects.bulk_create(notifications)
+
+    @staticmethod
+    def notify_link_review_created(*, review) -> None:
+        """
+        Notify admin and superadmin users about a pending link review.
+        """
+        staff_participants = review.thread.participant_records.filter(
+            role__in=["admin", "superadmin"],
+            can_view=True,
+            removed_at__isnull=True,
+        ).select_related("user")
+
+        for participant in staff_participants:
+            NotificationService.notify(
+                event_key=(
+                    CommunicationNotificationService.LINK_REVIEW_CREATED_EVENT
+                ),
+                recipient=participant.user,
+                website=review.website,
+                context={
+                    "thread_id": review.thread_id,
+                    "message_id": review.message_id,
+                    "review_id": review.pk,
+                    "domain": review.domain,
+                    "url": review.url,
+                },
+                triggered_by=review.submitted_by,
+                is_critical=True,
+            )

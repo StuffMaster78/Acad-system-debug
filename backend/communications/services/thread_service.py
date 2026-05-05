@@ -1,171 +1,139 @@
-from django.core.exceptions import PermissionDenied
-from communications.models import CommunicationThread
+from __future__ import annotations
+
+from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
+
+from communications.models.participant import CommunicationParticipant
+from communications.models.thread import CommunicationThread
+from communications.services.audit_service import CommunicationAuditService
+from communications.services.event_service import CommunicationEventService
+from communications.services.event_recipient_service import (
+    CommunicationEventRecipientService,
+)
+from communications.services.thread_guard_service import (
+    CommunicationThreadGuardService,
+)
+from communications.integrations.registry import (
+    CommunicationAdapterRegistry,
+)
 
 
-class ThreadService:
-    @staticmethod
-    def create_thread(order, created_by, participants, thread_type="order", website=None):
-        """
-        Creates a communication thread if allowed.
-
-        Args:
-            order (Order): The associated order.
-            created_by (User): The initiator of the thread.
-            participants (list): Users to include.
-            thread_type (str): Type of thread (default: "order").
-            website (Website, optional): Website for the thread (will be derived from order if not provided).
-
-        Returns:
-            CommunicationThread: The created thread.
-
-        Raises:
-            PermissionDenied: If thread creation is blocked.
-        """
-        if order.status == "archived":
-            raise PermissionDenied("Cannot create thread on archived orders.")
-
-        # Note: Special orders and class bundles use GenericRelation
-        # and are handled separately via their own thread creation methods
-        if order and getattr(order, "is_special", False):
-            raise PermissionDenied("Special orders do not support threads.")
-
-        # Class bundles are handled via ClassBundleCommunicationService
-        # Skip this check if order is None (class bundle threads or general threads)
-        if order and getattr(order, "is_class", False):
-            raise PermissionDenied("Class orders do not support threads.")
-
-        # Get website from order if not provided
-        if not website:
-            website = getattr(order, 'website', None)
-            if not website:
-                # Try to get website from order's website_id
-                website_id = getattr(order, 'website_id', None)
-                if website_id:
-                    from websites.models.websites import Website
-                    try:
-                        website = Website.objects.get(id=website_id)
-                    except Website.DoesNotExist:
-                        pass
-        
-        if not website and order:
-            # If we have an order, try to get website from it
-            website = getattr(order, 'website', None)
-        
-        if not website:
-            # For general threads (no order), try to get website from user
-            if hasattr(created_by, 'website'):
-                website = created_by.website
-            elif hasattr(created_by, 'user_main_profile') and created_by.user_main_profile:
-                website = getattr(created_by.user_main_profile, 'website', None)
-        
-        if not website:
-            raise PermissionDenied("Website is required for thread creation.")
-        
-        # Determine sender_role and recipient_role from participants
-        # Use created_by as the actual sender to ensure correct tab filtering
-        sender_role = "client"  # Default
-        recipient_role = "writer"  # Default
-        
-        if participants:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            
-            # Get all participants as User objects
-            participant_users = []
-            for p in participants:
-                if isinstance(p, User):
-                    participant_users.append(p)
-                else:
-                    participant_users.append(User.objects.get(id=p))
-            
-            # Get the actual sender (created_by) - this is who initiated the thread
-            sender = created_by
-            sender_role = getattr(sender, 'role', 'client')
-            
-            # Find the recipient (the other participant, not the sender)
-            recipients = [p for p in participant_users if p.id != sender.id]
-            
-            if recipients:
-                # Use the first recipient's role
-                recipient = recipients[0]
-                recipient_role = getattr(recipient, 'role', 'writer')
-            elif len(participant_users) == 1:
-                # Only one participant (the sender), determine recipient based on sender role
-                if sender_role in ['admin', 'superadmin', 'support', 'editor']:
-                    recipient_role = 'client'
-                elif sender_role == 'client':
-                    recipient_role = 'writer'
-                elif sender_role == 'writer':
-                    recipient_role = 'support'  # Writers typically message support
-                else:
-                    recipient_role = 'client'
-        
-        thread = CommunicationThread.objects.create(
-            order=order,
-            website=website,
-            thread_type=thread_type,
-            sender_role=sender_role,
-            recipient_role=recipient_role,
-            is_active=True
-        )
-
-        thread.participants.set(participants)
-        return thread
+class CommunicationThreadService:
+    """
+    Create and manage communication threads.
+    """
 
     @staticmethod
-    def create_special_order_thread(special_order, created_by, participants, thread_type="special", website=None):
+    @transaction.atomic
+    def create_thread(
+        *,
+        target,
+        thread_kind: str,
+        created_by,
+        website=None,
+    ) -> CommunicationThread:
         """
-        Creates a communication thread for a special order.
+        Create a communication thread for a domain object.
         """
-        if not special_order:
-            raise PermissionDenied("Special order is required.")
+        adapter = CommunicationAdapterRegistry.get_adapter(target=target)
 
-        # Get website from special order if not provided
-        if not website:
-            website = getattr(special_order, "website", None)
-        if not website:
-            raise PermissionDenied("Website is required for thread creation.")
+        context = adapter.get_context(target=target)
 
-        # Determine sender_role and recipient_role from participants
-        sender_role = "client"
-        recipient_role = "writer"
+        resolved_website = website or context.website
 
-        if participants:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-
-            participant_users = []
-            for p in participants:
-                if isinstance(p, User):
-                    participant_users.append(p)
-                else:
-                    participant_users.append(User.objects.get(id=p))
-
-            sender = created_by
-            sender_role = getattr(sender, "role", "client")
-
-            recipients = [p for p in participant_users if p.id != sender.id]
-            if recipients:
-                recipient = recipients[0]
-                recipient_role = getattr(recipient, "role", "writer")
-            elif len(participant_users) == 1:
-                if sender_role in ["admin", "superadmin", "support", "editor"]:
-                    recipient_role = "client"
-                elif sender_role == "client":
-                    recipient_role = "writer"
-                elif sender_role == "writer":
-                    recipient_role = "support"
-                else:
-                    recipient_role = "client"
-
-        thread = CommunicationThread.objects.create(
-            special_order=special_order,
-            website=website,
-            thread_type=thread_type,
-            sender_role=sender_role,
-            recipient_role=recipient_role,
-            is_active=True
+        access = adapter.user_can_access_target(
+            user=created_by,
+            target=target,
         )
 
-        thread.participants.set(participants)
+        if not access.allowed:
+            raise PermissionError(access.reason)
+
+        content_type = ContentType.objects.get_for_model(target)
+
+        thread = CommunicationThread.objects.create(
+            website=resolved_website,
+            target_content_type=content_type,
+            target_object_id=target.pk,
+            kind=thread_kind,
+            created_by=created_by,
+        )
+
+        participants = adapter.get_default_participants(
+            target=target,
+            thread_kind=thread_kind,
+        )
+
+        for user in participants:
+            CommunicationParticipant.objects.get_or_create(
+                website=resolved_website,
+                thread=thread,
+                user=user,
+                defaults={
+                    "added_by": created_by,
+                    "can_view": True,
+                    "can_send": True,
+                },
+            )
+
+        CommunicationAuditService.log(
+            website=resolved_website,
+            thread=thread,
+            actor=created_by,
+            action="thread.created",
+            details={
+                "thread_kind": thread_kind,
+                "target_id": target.pk,
+            },
+        )
+
+        recipient_ids = (
+            CommunicationEventRecipientService.active_thread_participant_ids(
+                thread=thread,
+            )
+        )
+
+        transaction.on_commit(
+            lambda: CommunicationEventService.thread_updated(
+                thread=thread,
+                recipient_user_ids=recipient_ids,
+            ),
+        )
+
         return thread
+    
+
+    @staticmethod
+    @transaction.atomic
+    def get_or_create_thread(
+        *,
+        target,
+        thread_kind: str,
+        created_by,
+        website=None,
+    ) -> CommunicationThread:
+        """
+        Return existing thread or create it.
+        """
+        adapter = CommunicationAdapterRegistry.get_adapter(target=target)
+        context = adapter.get_context(target=target)
+        resolved_website = website or context.website
+
+        content_type = ContentType.objects.get_for_model(target)
+
+        thread = CommunicationThread.objects.filter(
+            website=resolved_website,
+            target_content_type=content_type,
+            target_object_id=target.pk,
+            kind=thread_kind,
+        ).first()
+
+        if thread is not None:
+            return thread
+
+        return CommunicationThreadService.create_thread(
+            target=target,
+            thread_kind=thread_kind,
+            created_by=created_by,
+            website=resolved_website,
+        )
