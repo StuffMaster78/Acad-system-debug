@@ -1,0 +1,311 @@
+from __future__ import annotations
+
+from django.urls import path
+
+from special_orders.api.views.payment_views import (
+    ApplyExternalPaymentView,
+    ApplySplitPaymentView,
+    ApplyWalletPaymentView,
+)
+from special_orders.api.views.quotes_views import (
+    AcceptSpecialOrderQuoteView,
+    CreateSpecialOrderQuoteView,
+    RejectSpecialOrderQuoteView,
+    SendSpecialOrderQuoteView,
+    SpecialOrderQuoteDetailView,
+)
+from special_orders.api.views.refund_views import ApplyRefundView
+from special_orders.api.views.special_order_views import (
+    CreateFixedSpecialOrderView,
+    CreateQuotedSpecialOrderView,
+    SpecialOrderDetailView,
+    SpecialOrderListView,
+)
+from special_orders.api.views.payment_intent_views import (
+    CreatePaymentIntentView,
+)
+from special_orders.api.views.sensitive_access_views import (
+    CompleteTwoFactorRequestView,
+    CreateExternalLinkView,
+    CreateTwoFactorRequestView,
+    CreateVaultView,
+    GrantVaultAccessView,
+    ListVaultAccessLogsView,
+    ListVaultsView,
+    RevealVaultView,
+    RevokeVaultAccessView,
+    UpsertInstitutionProfileView,
+)
+from special_orders.api.views.lifecycle_views import (
+    ApproveOrderView,
+    AssignWriterView,
+    CancelOrderView,
+    CompleteOrderView,
+    HoldOrderView,
+    MarkReadyForDeliveryView,
+    ReleaseHoldView,
+    RequestRevisionView,
+    StartRevisionView,
+    StartWorkView,
+    SubmitWorkView,
+)
+from special_orders.api.views.change_request_views import (
+    AcceptChangeQuoteView,
+    CreateChangeQuoteView,
+    CreateChangeRequestView,
+    ReviewChangeRequestView,
+)
+from special_orders.api.views.dispute_views import (
+    MarkDisputeUnderReviewView,
+    OpenDisputeView,
+    RejectDisputeView,
+    ResolveDisputeView,
+)
+from special_orders.api.views.bonus_views import RequestWriterBonusView
+from special_orders.api.views.override_views import (
+    ApplyAdminOverrideView,
+    ApproveAdminOverrideView,
+    RejectAdminOverrideView,
+    RequestAdminOverrideView,
+)
+from special_orders.api.views.delivery_views import (
+    CreateDeliverableView,
+    DownloadDeliverableView,
+    ListDeliverablesView,
+    ListDeliveryCheckpointsView,
+)
+from special_orders.api.views.pricing_preview_views import (
+    FixedSpecialOrderPricingPreviewView,
+)
+
+app_name = "special_orders"
+
+
+urlpatterns = [
+    path(
+        "",
+        SpecialOrderListView.as_view(),
+        name="special-order-list",
+    ),
+    path(
+        "<int:special_order_id>/",
+        SpecialOrderDetailView.as_view(),
+        name="special-order-detail",
+    ),
+    path(
+        "quoted/",
+        CreateQuotedSpecialOrderView.as_view(),
+        name="special-order-create-quoted",
+    ),
+    path(
+        "fixed/",
+        CreateFixedSpecialOrderView.as_view(),
+        name="special-order-create-fixed",
+    ),
+
+    path(
+        "<int:special_order_id>/quotes/",
+        CreateSpecialOrderQuoteView.as_view(),
+        name="special-order-create-quote",
+    ),
+    path(
+        "quotes/<int:quote_id>/",
+        SpecialOrderQuoteDetailView.as_view(),
+        name="special-order-quote-detail",
+    ),
+    path(
+        "quotes/<int:quote_id>/send/",
+        SendSpecialOrderQuoteView.as_view(),
+        name="special-order-quote-send",
+    ),
+    path(
+        "quotes/<int:quote_id>/accept/",
+        AcceptSpecialOrderQuoteView.as_view(),
+        name="special-order-quote-accept",
+    ),
+    path(
+        "quotes/<int:quote_id>/reject/",
+        RejectSpecialOrderQuoteView.as_view(),
+        name="special-order-quote-reject",
+    ),
+
+    path(
+        "<int:special_order_id>/payments/external/apply/",
+        ApplyExternalPaymentView.as_view(),
+        name="special-order-payment-external-apply",
+    ),
+    path(
+        "<int:special_order_id>/payments/wallet/apply/",
+        ApplyWalletPaymentView.as_view(),
+        name="special-order-payment-wallet-apply",
+    ),
+    path(
+        "<int:special_order_id>/payments/split/apply/",
+        ApplySplitPaymentView.as_view(),
+        name="special-order-payment-split-apply",
+    ),
+    path(
+        "payments/<int:payment_application_id>/refund/",
+        ApplyRefundView.as_view(),
+        name="special-order-payment-refund",
+    ),
+    path(
+        "<int:special_order_id>/payments/create-intent/",
+        CreatePaymentIntentView.as_view(),
+    ),
+        path(
+        "<int:special_order_id>/institution-profile/",
+        UpsertInstitutionProfileView.as_view(),
+        name="special-order-institution-profile",
+    ),
+    path(
+        "<int:special_order_id>/vaults/",
+        ListVaultsView.as_view(),
+        name="special-order-vault-list",
+    ),
+    path(
+        "<int:special_order_id>/vaults/create/",
+        CreateVaultView.as_view(),
+        name="special-order-vault-create",
+    ),
+    path(
+        "vaults/<int:vault_id>/reveal/",
+        RevealVaultView.as_view(),
+        name="special-order-vault-reveal",
+    ),
+    path(
+        "<int:special_order_id>/external-links/create/",
+        CreateExternalLinkView.as_view(),
+        name="special-order-external-link-create",
+    ),
+    path(
+        "vaults/<int:vault_id>/grants/",
+        GrantVaultAccessView.as_view(),
+        name="special-order-vault-grant",
+    ),
+    path(
+        "vault-grants/<int:grant_id>/revoke/",
+        RevokeVaultAccessView.as_view(),
+        name="special-order-vault-grant-revoke",
+    ),
+    path(
+        "vaults/<int:vault_id>/logs/",
+        ListVaultAccessLogsView.as_view(),
+        name="special-order-vault-logs",
+    ),
+    path(
+        "vaults/<int:vault_id>/2fa/request/",
+        CreateTwoFactorRequestView.as_view(),
+        name="special-order-2fa-request",
+    ),
+    path(
+        "2fa/<int:request_id>/complete/",
+        CompleteTwoFactorRequestView.as_view(),
+        name="special-order-2fa-complete",
+    ),
+        path(
+        "<int:special_order_id>/assign-writer/",
+        AssignWriterView.as_view(),
+        name="special-order-assign-writer",
+    ),
+    path(
+        "<int:special_order_id>/start-work/",
+        StartWorkView.as_view(),
+        name="special-order-start-work",
+    ),
+    path(
+        "<int:special_order_id>/submit/",
+        SubmitWorkView.as_view(),
+        name="special-order-submit",
+    ),
+    path(
+        "<int:special_order_id>/ready-for-delivery/",
+        MarkReadyForDeliveryView.as_view(),
+        name="special-order-ready-for-delivery",
+    ),
+    path(
+        "<int:special_order_id>/complete/",
+        CompleteOrderView.as_view(),
+        name="special-order-complete",
+    ),
+    path(
+        "<int:special_order_id>/approve/",
+        ApproveOrderView.as_view(),
+        name="special-order-approve",
+    ),
+    path(
+        "<int:special_order_id>/hold/",
+        HoldOrderView.as_view(),
+        name="special-order-hold",
+    ),
+    path(
+        "<int:special_order_id>/release-hold/",
+        ReleaseHoldView.as_view(),
+        name="special-order-release-hold",
+    ),
+    path(
+        "<int:special_order_id>/cancel/",
+        CancelOrderView.as_view(),
+        name="special-order-cancel",
+    ),
+    path(
+        "<int:special_order_id>/request-revision/",
+        RequestRevisionView.as_view(),
+        name="special-order-request-revision",
+    ),
+    path(
+        "<int:special_order_id>/start-revision/",
+        StartRevisionView.as_view(),
+        name="special-order-start-revision",
+    ),
+        path(
+        "<int:special_order_id>/overrides/",
+        RequestAdminOverrideView.as_view(),
+        name="special-order-override-request",
+    ),
+    path(
+        "overrides/<int:override_id>/approve/",
+        ApproveAdminOverrideView.as_view(),
+        name="special-order-override-approve",
+    ),
+    path(
+        "overrides/<int:override_id>/reject/",
+        RejectAdminOverrideView.as_view(),
+        name="special-order-override-reject",
+    ),
+    path(
+        "overrides/<int:override_id>/apply/",
+        ApplyAdminOverrideView.as_view(),
+        name="special-order-override-apply",
+    ),
+    path(
+        "<int:special_order_id>/writer-bonus/",
+        RequestWriterBonusView.as_view(),
+        name="special-order-writer-bonus",
+    ),
+        path(
+        "<int:special_order_id>/deliverables/",
+        ListDeliverablesView.as_view(),
+        name="special-order-deliverable-list",
+    ),
+    path(
+        "<int:special_order_id>/deliverables/create/",
+        CreateDeliverableView.as_view(),
+        name="special-order-deliverable-create",
+    ),
+    path(
+        "deliverables/<int:deliverable_id>/download/",
+        DownloadDeliverableView.as_view(),
+        name="special-order-deliverable-download",
+    ),
+    path(
+        "<int:special_order_id>/delivery-checkpoints/",
+        ListDeliveryCheckpointsView.as_view(),
+        name="special-order-delivery-checkpoints",
+    ),
+        path(
+        "fixed/preview-price/",
+        FixedSpecialOrderPricingPreviewView.as_view(),
+        name="special-order-fixed-preview-price",
+    ),
+]
