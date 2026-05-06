@@ -1,6 +1,6 @@
 from django.contrib import admin
-from audit_logging.models import AuditLogEntry as AuditLog
-from audit_logging.models import WebhookAuditLog
+from audit_logging.storage import AuditLogEntry as AuditLog
+from audit_logging.storage import WebhookAuditLog
 from django.utils.translation import gettext_lazy as _
 
 @admin.register(AuditLog)

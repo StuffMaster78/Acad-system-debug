@@ -1,105 +1,103 @@
-from __future__ import annotations
-
 import logging
-from typing import Any, Optional
 
 from celery import shared_task
-from django.contrib.auth import get_user_model
-from django.utils.dateparse import parse_datetime
-from django.utils.timezone import now
+from django.db import transaction
+from django.utils import timezone
 
-from audit_logging.models import AuditLogEntry
+from audit_logging.storage.models import AuditEvent
+from audit_logging.selectors.audit_selectors import AuditSelectors
+from audit_logging.storage.models_dlq import AuditDeadLetter
 
 logger = logging.getLogger("audit")
 
 
-@shared_task(
-    bind=True,
-    autoretry_for=(Exception,),
-    retry_backoff=True,
-    retry_jitter=True,
-    retry_kwargs={"max_retries": 5},
-)
-def async_log_audit(
-    self,
-    *,
-    action: str,
-    target: str = "",
-    request_id: Optional[str] = None,
-    target_id: Optional[int] = None,
-    actor_id: Optional[int] = None,
-    metadata: Optional[dict[str, Any]] = None,
-    changes: Optional[dict[str, Any]] = None,
-    ip_address: Optional[str] = None,
-    user_agent: Optional[str] = None,
-    notes: str = "",
-    timestamp: Any = None,
-    target_content_type_id: Optional[int] = None,
-    target_object_id: Optional[int] = None,
-) -> int:
-    """
-    Persist an audit log entry asynchronously.
-
-    Returns:
-        int: Primary key of the created audit log entry.
-    """
-    actor = None
-    UserModel = get_user_model()
-
-    if actor_id is not None:
-        try:
-            actor = UserModel.objects.get(pk=actor_id)
-        except UserModel.DoesNotExist:
-            logger.warning(
-                "[AUDIT] Actor with actor_id=%s does not exist.",
-                actor_id,
-            )
+@shared_task(bind=True, max_retries=3)
+def process_audit_event_task(self, event_id: str):
+    event = None
 
     try:
-        if isinstance(timestamp, str):
-            parsed_timestamp = parse_datetime(timestamp)
-            if parsed_timestamp is not None:
-                timestamp = parsed_timestamp
+        # -------------------------
+        # Lock + idempotency check
+        # -------------------------
+        with transaction.atomic():
+            event = AuditSelectors.get_unprocessed(event_id)
 
-        if timestamp is None:
-            timestamp = now()
+            if not event:
+                return
 
-        entry = AuditLogEntry.objects.create(
-            action=action,
-            actor=actor,
-            target=target,
-            target_id=target_id,
-            request_id=request_id,
-            metadata=metadata or {},
-            changes=changes or {},
-            ip_address=ip_address,
-            user_agent=user_agent or "Unknown Agent",
-            notes=notes or "",
-            timestamp=timestamp,
-            target_content_type_id=target_content_type_id,
-            target_object_id=target_object_id,
-        )
+            # mark attempt safely
+            event.processing_attempts += 1
+            event.save(update_fields=["processing_attempts"])
 
-        logger.info(
-            "[AUDIT] Async log complete: action=%s target=%s target_id=%s entry_id=%s",
-            action,
-            target,
-            target_id,
-            entry.pk,
-        )
+        # -------------------------
+        # DO ACTUAL WORK (outside lock)
+        # -------------------------
+        _process_event(event)
 
-        return entry.pk
+        # -------------------------
+        # mark success
+        # -------------------------
+        event.processed_at = timezone.now()
+        event.last_error = None
+        event.save(update_fields=["processed_at", "last_error"])
 
     except Exception as exc:
+
+        if event:
+            event.last_error = str(exc)
+            event.save(update_fields=["last_error"])
+
         logger.exception(
-            (
-                "[AUDIT] Async log failed: "
-                "action=%s target=%s target_id=%s actor_id=%s error=%s"
-            ),
-            action,
-            target,
-            target_id,
-            actor_id,
-            str(exc),
+            "Audit event processing failed",
+            extra={"event_id": event_id},
         )
-        raise
+
+        try:
+            raise self.retry(exc=exc, countdown=2 ** self.request.retries)
+        except self.MaxRetriesExceededError:
+            send_to_dlq(event_id)
+
+
+def send_to_dlq(event_id: str):
+    try:
+        event = AuditEvent.objects.get(event_id=event_id)
+
+        AuditDeadLetter.objects.create(
+            event_id=event.event_id,
+            event_payload={
+                "action": event.action,
+                "metadata": event.metadata,
+            },
+            error=event.last_error,
+
+            # trace context (if present)
+            span_id=event.span_id,
+            span_name=event.span_name,
+            span_start_ms=event.span_start_ms,
+            span_duration_ms=event.span_duration_ms,
+        )
+
+    except Exception:
+        logger.exception(
+            "Failed to write to DLQ",
+            extra={"event_id": event_id},
+        )
+
+
+# -------------------------
+# LOCAL processing hook
+# -------------------------
+def _process_event(event: AuditEvent):
+    """
+    Safe, idempotent processing layer.
+
+    Keep this LIGHT and deterministic.
+    Expand later as needed.
+    """
+
+    # Example hooks (you can extend later)
+    if event.action.startswith("billing."):
+        pass
+
+    if event.is_sensitive:
+        pass
