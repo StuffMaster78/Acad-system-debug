@@ -1,5 +1,5 @@
 from audit_logging.ingestion.processors.base_processor import BaseProcessor
-from audit_logging.storage.models import AuditEvent
+from audit_logging.models.audit_event import AuditEvent
 
 
 class DBProcessor(BaseProcessor):

@@ -1,5 +1,7 @@
 import uuid
-from audit_logging.tracing.context import TraceContext
+from audit_logging.tracing.trace import (
+    Trace,
+)
 
 
 class TraceMiddleware:
@@ -26,25 +28,24 @@ class TraceMiddleware:
             else None
         ) or str(uuid.uuid4())
 
-        corr_token = TraceContext.set_correlation_id(correlation_id)
+        corr_token = Trace.set_correlation_id(correlation_id)
         request.correlation_id = correlation_id
 
         # -------------------------
         # Website / tenant
         # -------------------------
-        website_id = getattr(request, "website", None) or getattr(request, "tenant", None)
-        website_token = TraceContext.set_website_id(
-            str(website_id) if website_id else None
-        )
+        website = getattr(request, "website", None)
+        if not website:
+            raise RuntimeError("Missing tenant (website) on request")
+
+        website_id = str(getattr(website, "id", website))
+                
+        website_token = Trace.set_website_id(website_id)
 
         # -------------------------
         # Root span
         # -------------------------
-        root_span = TraceContext.create_root_span(
-            f"{request.method} {request.path}"
-        )
-
-        TraceContext.push_span(root_span)
+        root_span = Trace.start_span(f"{request.method} {request.path}")
         request.span = root_span
 
         try:
@@ -53,6 +54,6 @@ class TraceMiddleware:
             return response
 
         finally:
-            TraceContext.pop_span()
-            TraceContext.reset_correlation_id(corr_token)
-            TraceContext.reset_website_id(website_token)
+            Trace.pop_span()
+            Trace.reset_correlation_id(corr_token)
+            Trace.reset_website_id(website_token)

@@ -4,9 +4,9 @@ from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
 
-from audit_logging.storage.models import AuditEvent
+from audit_logging.models.audit_event import AuditEvent
 from audit_logging.selectors.audit_selectors import AuditSelectors
-from audit_logging.storage.models_dlq import AuditDeadLetter
+from audit_logging.models.audit_dead_letter import AuditDeadLetter
 
 logger = logging.getLogger("audit")
 

@@ -1,4 +1,4 @@
-from audit_logging.storage.models import AuditEvent
+from audit_logging.models.audit_event import AuditEvent
 
 
 class AuditTraceSelectors:

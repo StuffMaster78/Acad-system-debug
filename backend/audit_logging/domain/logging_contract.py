@@ -76,7 +76,7 @@ class AuditLoggingContract:
     # -------------------------
     # METADATA LIMIT RULE
     # -------------------------
-    MAX_METADATA_KEYS = 10
+    MAX_METADATA_KEYS = 20
 
     MAX_METADATA_DEPTH = 2
 

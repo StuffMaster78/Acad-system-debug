@@ -34,7 +34,7 @@ class AuditEvent(models.Model):
     actor_id = models.BigIntegerField(null=True, blank=True, db_index=True)
 
     actor_type = models.CharField(
-        max_length=50,
+        max_length=32,
         null=True,
         blank=True,
         help_text="Optional: user, system, admin, service"
@@ -56,7 +56,7 @@ class AuditEvent(models.Model):
     # Object reference (what it happened to)
     # -------------------------
     object_type = models.CharField(
-        max_length=255,
+        max_length=100,
         null=True,
         blank=True,
         db_index=True,
@@ -75,12 +75,6 @@ class AuditEvent(models.Model):
     # -------------------------
     # Request context (traceability)
     # -------------------------
-    request_id = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-        db_index=True,
-    )
     ip_address = models.GenericIPAddressField(
         null=True,
         blank=True,
@@ -88,6 +82,11 @@ class AuditEvent(models.Model):
     user_agent = models.TextField(
         null=True,
         blank=True,
+    )
+
+    created_by_system = models.BooleanField(
+        default=False,
+        db_index=True,
     )
 
     # -------------------------
@@ -111,28 +110,6 @@ class AuditEvent(models.Model):
         blank=True,
         help_text="Who accessed what sensitive data and under what condition"
     )
-
-    parent_span_id = models.CharField(
-        max_length=64,
-        null=True,
-        blank=True,
-    )
-    span_depth = models.IntegerField(default=0)
-
-    span_id = models.CharField(
-        max_length=64,
-        null=True,
-        blank=True,
-        db_index=True
-    )
-    span_name = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True
-    )
-
-    span_start_ms = models.BigIntegerField(null=True, blank=True)
-    span_duration_ms = models.BigIntegerField(null=True, blank=True)
 
     # -------------------------
     # Flexible metadata (bounded usage)
@@ -160,22 +137,69 @@ class AuditEvent(models.Model):
     # "middleware"
     # "admin_action"
 
+
+    # -------------------------
+    # Trace correlation
+    # -------------------------
+    correlation_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    span_id = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
     class Meta:
         indexes = [
             models.Index(fields=["actor_id", "timestamp"]),
             models.Index(fields=["object_type", "object_id"]),
             models.Index(fields=["action", "timestamp"]),
             models.Index(fields=["is_sensitive", "timestamp"]),
-            models.Index(fields=["request_id"]),
+            models.Index(fields=["website", "timestamp"]),
+            models.Index(fields=["website", "action"]),
+            models.Index(fields=["website", "actor_id"]),
+            models.Index(fields=["website", "object_type", "object_id"]),
+            models.Index(fields=["website", "is_sensitive"]),
+
         ]
         ordering = ["-timestamp"]
 
 
+    IMMUTABLE_FIELDS = {
+        "event_id",
+        "website_id",
+        "actor_id",
+        "actor_type",
+        "action",
+        "object_type",
+        "object_id",
+        "correlation_id",
+        "ip_address",
+        "user_agent",
+        "metadata",
+        "source",
+        "span_id",
+        "is_sensitive",
+        "sensitivity_level",
+    }
+
+
     def save(self, *args, **kwargs):
         if self.pk:
-            raise RuntimeError(
-                "AuditEvent is immutable and cannot be updated"
-            )
+            old = AuditEvent.objects.get(pk=self.pk)
+
+            for field in self.IMMUTABLE_FIELDS:
+                if getattr(old, field) != getattr(self, field):
+                    raise RuntimeError(
+                        f"AuditEvent field '{field}' is immutable"
+                    )
+
         super().save(*args, **kwargs)
 
     def __str__(self):

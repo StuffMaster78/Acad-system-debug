@@ -1,7 +1,7 @@
 import logging
 from typing import Iterable
 
-from audit_logging.storage.models import AuditEvent
+from audit_logging.models.audit_event import AuditEvent
 from audit_logging.ingestion.processors import get_default_processors
 
 logger = logging.getLogger("audit")

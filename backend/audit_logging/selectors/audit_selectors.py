@@ -1,4 +1,4 @@
-from audit_logging.storage.models import AuditEvent
+from audit_logging.models.audit_event import AuditEvent
 
 
 class AuditSelectors:
@@ -20,6 +20,13 @@ class AuditSelectors:
     @staticmethod
     def all():
         return AuditEvent.objects.all()
+    
+
+    @staticmethod
+    def for_website(website_id: str):
+        return AuditEvent.objects.filter(
+            website_id=website_id,
+        )
 
     # -------------------------
     # Actor-based queries
@@ -109,11 +116,15 @@ class AuditSelectors:
         )
 
     @staticmethod
-    def feed(limit: int = 100):
+    def feed(website_id: str, limit: int = 100):
         """
         Generic system-wide feed (for admin/activity dashboards)
         """
-        return AuditEvent.objects.all().order_by("-timestamp")[:limit]
+        return (
+            AuditEvent.objects
+            .filter(website_id=website_id)
+            .order_by("-timestamp")[:limit]
+        )
     
     @staticmethod
     def get_unprocessed(event_id: str) -> AuditEvent | None:

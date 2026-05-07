@@ -1,4 +1,4 @@
-from audit_logging.tracing.context import TraceContext
+from audit_logging.tracing.trace import Trace
 
 
 def inject_trace(task_kwargs, correlation_id, span=None):
@@ -10,4 +10,4 @@ def inject_trace(task_kwargs, correlation_id, span=None):
 
 def restore_trace(correlation_id=None, span_id=None):
     if correlation_id:
-        TraceContext.set_correlation_id(correlation_id)
+        Trace.set_correlation_id(correlation_id)
