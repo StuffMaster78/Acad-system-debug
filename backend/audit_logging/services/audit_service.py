@@ -5,150 +5,138 @@ from typing import Any
 
 from django.core.exceptions import ValidationError
 
-from audit_logging.utils.ids import generate_event_id
-from audit_logging.services.audit_validator import AuditValidator
-from audit_logging.storage.writer import AuditWriter
-from audit_logging.tracing.trace import Trace
+from audit_logging.ingestion.recorder import AuditRecorder
 from audit_logging.models.audit_event import AuditEvent
+from audit_logging.services.audit_validator import AuditValidator
+from audit_logging.tracing.context import TraceContext
 
 logger = logging.getLogger("audit")
 
 
 class AuditService:
     """
-    Core audit write service.
+    Canonical audit write service.
 
-    Responsibilities:
-    - validate audit intent
-    - enforce tenant context (STRICT)
-    - enrich with trace context
-    - construct event
-    - delegate persistence
+    This is the ONLY valid write entry-point for audit events.
     """
-
-    writer = AuditWriter()
 
     @classmethod
     def record(
         cls,
         *,
         action: str,
-        actor=None,
-        website=None,
+        actor: Any | None = None,
+        website: Any | None = None,
         obj: Any | None = None,
         metadata: dict[str, Any] | None = None,
         request: Any | None = None,
+        severity: str = "info",
         is_sensitive: bool = False,
         sensitivity_level: str | None = None,
-        source: str = "system",
-    ):
+        service_name: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> AuditEvent:
+
         metadata = metadata or {}
 
-        # ----------------------------
+        # -------------------------
         # Validation
-        # ----------------------------
-        AuditValidator.validate(action, metadata)
+        # -------------------------
+        AuditValidator.validate(action=action, metadata=metadata)
 
-        trace = Trace.snapshot()
+        # -------------------------
+        # Trace context (safe read-only snapshot)
+        # -------------------------
+        correlation_id = TraceContext.get_correlation_id()
+        current_span = TraceContext.current_span()
+        website_ctx = TraceContext.get_website_id()
 
-        # ----------------------------
-        # Tenant resolution (STRICT & SAFE)
-        # ----------------------------
-        if website is None:
-            website = getattr(request, "website", None) if request else None
+        # -------------------------
+        # Tenant resolution (deterministic)
+        # -------------------------
+        resolved_website = website
 
-        if website is None:
-            website_id = trace.get("website_id")
+        if resolved_website is None and request is not None:
+            resolved_website = getattr(request, "website", None)
 
-            if not website_id:
-                raise ValidationError("Missing website (tenant context)")
+        if resolved_website is None and website_ctx is not None:
+            resolved_website = website_ctx
 
-            # last-resort safety: request must exist in valid flow
-            if request is None:
-                raise ValidationError("Cannot resolve website without request")
+        if resolved_website is None:
+            raise ValidationError("Audit event requires website context")
 
-            website = getattr(request, "website", None)
+        website_id_value = getattr(resolved_website, "id", resolved_website)
 
-        if website is None:
-            raise ValidationError("Tenant resolution failed (website is None)")
-
-        # ----------------------------
-        # Trace context (single source of truth)
-        # ----------------------------
-        span = trace.get("span")
-        correlation_id = trace.get("correlation_id")
-        parent_span_id = trace.get("parent_span_id")
-
-        # ----------------------------
+        # -------------------------
         # Actor
-        # ----------------------------
-        actor_id = getattr(actor, "id", None) if actor else None
-        actor_type = actor.__class__.__name__ if actor else None
+        # -------------------------
+        actor_id = getattr(actor, "id", None)
 
-        # ----------------------------
+        # -------------------------
         # Object
-        # ----------------------------
+        # -------------------------
         object_type = obj.__class__.__name__ if obj else None
         object_id = str(getattr(obj, "id", None)) if obj else None
 
-        # ----------------------------
-        # Request context
-        # ----------------------------
-        request_id = getattr(request, "request_id", None) if request else None
+        # -------------------------
+        # Request context (safe extraction)
+        # -------------------------
+        ip_address = None
+        user_agent = None
 
-        ip_address = (
-            getattr(request, "META", {}).get("REMOTE_ADDR")
-            if request
-            else None
-        )
+        if request is not None:
+            meta = getattr(request, "META", None) or {}
+            ip_address = meta.get("REMOTE_ADDR")
+            user_agent = meta.get("HTTP_USER_AGENT")
 
-        user_agent = (
-            getattr(request, "META", {}).get("HTTP_USER_AGENT")
-            if request
-            else None
-        )
+        # -------------------------
+        # Trace enrichment (null-safe)
+        # -------------------------
+        span_id = getattr(current_span, "span_id", None)
 
-        # ----------------------------
-        # Span enrichment (safe)
-        # ----------------------------
-        span_id = getattr(span, "span_id", None) if span else None
-        span_name = getattr(span, "name", None) if span else None
-        span_duration_ms = span.duration_ms() if span else None
-
-        # ----------------------------
+        # -------------------------
         # Event construction
-        # ----------------------------
+        # -------------------------
         event = AuditEvent(
-            event_id=generate_event_id(),
+            website=resolved_website,
+
             action=action,
-
-            website=website,
-
             actor_id=actor_id,
-            actor_type=actor_type,
 
             object_type=object_type,
             object_id=object_id,
 
-            request_id=request_id,
             correlation_id=correlation_id,
+            span_id=span_id,
 
             ip_address=ip_address,
             user_agent=user_agent,
 
-            span_id=span_id,
-            span_name=span_name,
-            parent_span_id=parent_span_id,
-            span_duration_ms=span_duration_ms,
-
             metadata=metadata,
+
+            severity=severity,
 
             is_sensitive=is_sensitive,
             sensitivity_level=sensitivity_level,
-            source=source,
+
+            service_name=service_name,
+
+            idempotency_key=idempotency_key,
         )
 
-        # ----------------------------
-        # Persistence ONLY
-        # ----------------------------
-        return cls.writer.write(event)
+        # -------------------------
+        # Single ingestion boundary
+        # -------------------------
+        persisted_event = AuditRecorder.ingest(event)
+
+        logger.info(
+            "Audit event recorded",
+            extra={
+                "action": action,
+                "website_id": website_id_value,
+                "object_type": object_type,
+                "object_id": object_id,
+            },
+        )
+
+        return persisted_event

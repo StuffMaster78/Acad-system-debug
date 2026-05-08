@@ -19,4 +19,4 @@ def safe_serialize(value: Any) -> Any:
         return [safe_serialize(v) for v in value]
 
     # fallback for models/objects
-    return str(value)
+    return f"{type(value).__name__}:{value}"

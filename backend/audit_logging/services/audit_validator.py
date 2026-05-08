@@ -5,33 +5,30 @@ class AuditValidator:
     """
     Ensures only valid audit events enter the system.
 
-    Rules:
-    - Fail fast (raise exceptions)
-    - No silent drops
+    Rule:
+    - fail fast
+    - no silent drops
+    - no side effects
     """
-    
+
     @staticmethod
     def validate(action: str, metadata: dict | None = None) -> None:
+
         metadata = metadata or {}
 
         # -------------------------
-        # Type safety
+        # Action validation
         # -------------------------
-        if not isinstance(action, str) or not action:
+        if not isinstance(action, str) or not action.strip():
             raise ValueError("Audit action must be a non-empty string")
 
         if len(action) > 100:
             raise ValueError("Audit action exceeds max length (100)")
 
-        # -------------------------
-        # Naming convention
-        # -------------------------
+        # strict naming convention (current system rule)
         if "." not in action:
             raise ValueError(f"Invalid audit action format: {action}")
 
-        # -------------------------
-        # Forbidden actions
-        # -------------------------
         if action in AuditLoggingContract.FORBIDDEN:
             raise ValueError(f"Forbidden audit action: {action}")
 
@@ -41,5 +38,5 @@ class AuditValidator:
         if not isinstance(metadata, dict):
             raise ValueError("Metadata must be a dictionary")
 
-        if len(metadata.keys()) > AuditLoggingContract.MAX_METADATA_KEYS:
+        if len(metadata) > AuditLoggingContract.MAX_METADATA_KEYS:
             raise ValueError("Metadata too large for audit logging")

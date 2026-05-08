@@ -1,6 +1,7 @@
 import logging
 
 from celery import shared_task
+from celery.exceptions import MaxRetriesExceededError
 from django.db import transaction
 from django.utils import timezone
 
@@ -12,90 +13,95 @@ logger = logging.getLogger("audit")
 
 
 @shared_task(bind=True, max_retries=3)
-def process_audit_event_task(self, event_id: str):
+def process_audit_event_task(self, audit_id: str):
     event = None
 
     try:
-        # -------------------------
-        # Lock + idempotency check
-        # -------------------------
         with transaction.atomic():
-            event = AuditSelectors.get_unprocessed(event_id)
+            event = AuditSelectors.claim_unprocessed_event(audit_id)
 
             if not event:
                 return
 
-            # mark attempt safely
             event.processing_attempts += 1
             event.save(update_fields=["processing_attempts"])
 
-        # -------------------------
-        # DO ACTUAL WORK (outside lock)
-        # -------------------------
+        # outside lock (correct for long-running work)
         _process_event(event)
 
-        # -------------------------
-        # mark success
-        # -------------------------
         event.processed_at = timezone.now()
         event.last_error = None
-        event.save(update_fields=["processed_at", "last_error"])
+        event.status = "processed"
+        event.save(update_fields=["processed_at", "last_error", "status"])
 
     except Exception as exc:
 
         if event:
             event.last_error = str(exc)
-            event.save(update_fields=["last_error"])
+            event.status = "failed"
+            event.save(update_fields=["last_error", "status"])
 
         logger.exception(
             "Audit event processing failed",
-            extra={"event_id": event_id},
+            extra={"audit_id": audit_id},
         )
 
         try:
             raise self.retry(exc=exc, countdown=2 ** self.request.retries)
-        except self.MaxRetriesExceededError:
-            send_to_dlq(event_id)
+
+        except MaxRetriesExceededError:
+            send_to_dlq(audit_id)
 
 
-def send_to_dlq(event_id: str):
+# --------------------------------------------------
+# DLQ HANDLER
+# --------------------------------------------------
+
+def send_to_dlq(audit_id: str):
     try:
-        event = AuditEvent.objects.get(event_id=event_id)
+        event = AuditEvent.objects.get(id=audit_id)
 
         AuditDeadLetter.objects.create(
-            event_id=event.event_id,
-            event_payload={
-                "action": event.action,
-                "metadata": event.metadata,
-            },
-            error=event.last_error,
+            event_id=event.id,
+            website=event.website,
 
-            # trace context (if present)
-            span_id=event.span_id,
-            span_name=event.span_name,
-            span_start_ms=event.span_start_ms,
-            span_duration_ms=event.span_duration_ms,
+            event_payload={
+                "audit_event_id": str(event.id),
+                "action": event.action,
+                "actor_id": event.actor_id,
+                "metadata": event.metadata,
+                "object_type": event.object_type,
+                "object_id": event.object_id,
+                "correlation_id": event.correlation_id,
+                "span_id": event.span_id,
+                "is_sensitive": event.is_sensitive,
+            },
+
+            error_message=event.last_error or "unknown error",
+            retry_count=event.processing_attempts,
         )
 
     except Exception:
         logger.exception(
             "Failed to write to DLQ",
-            extra={"event_id": event_id},
+            extra={"audit_id": audit_id},
         )
 
 
-# -------------------------
-# LOCAL processing hook
-# -------------------------
+# --------------------------------------------------
+# PROCESSOR HOOK
+# --------------------------------------------------
+
 def _process_event(event: AuditEvent):
     """
-    Safe, idempotent processing layer.
+    Deterministic side-effect layer.
 
-    Keep this LIGHT and deterministic.
-    Expand later as needed.
+    MUST be:
+    - idempotent
+    - stateless
+    - safe to retry
     """
 
-    # Example hooks (you can extend later)
     if event.action.startswith("billing."):
         pass
 

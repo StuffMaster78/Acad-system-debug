@@ -1,59 +1,40 @@
-import uuid
-from audit_logging.tracing.trace import (
-    Trace,
-)
+from contextvars import ContextVar
+from typing import Optional
+
+_correlation_id: ContextVar[str | None] = ContextVar("correlation_id", default=None)
+_website_id: ContextVar[str | None] = ContextVar("website_id", default=None)
 
 
-class TraceMiddleware:
-    """
-    Request-level trace bootstrap.
+class Trace:
 
-    Responsibilities:
-    - correlation_id
-    - root span
-    - website/tenant injection
-    """
+    # -------------------------
+    # Correlation ID
+    # -------------------------
 
-    def __init__(self, get_response):
-        self.get_response = get_response
+    @staticmethod
+    def set_correlation_id(cid: str):
+        return _correlation_id.set(cid)
 
-    def __call__(self, request):
+    @staticmethod
+    def get_correlation_id() -> str | None:
+        return _correlation_id.get()
 
-        # -------------------------
-        # Correlation ID
-        # -------------------------
-        correlation_id = (
-            request.headers.get("X-Correlation-ID")
-            if hasattr(request, "headers")
-            else None
-        ) or str(uuid.uuid4())
+    @staticmethod
+    def reset_correlation_id(token):
+        _correlation_id.reset(token)
 
-        corr_token = Trace.set_correlation_id(correlation_id)
-        request.correlation_id = correlation_id
+    # -------------------------
+    # Website ID
+    # -------------------------
 
-        # -------------------------
-        # Website / tenant
-        # -------------------------
-        website = getattr(request, "website", None)
-        if not website:
-            raise RuntimeError("Missing tenant (website) on request")
+    @staticmethod
+    def set_website_id(wid: str):
+        return _website_id.set(wid)
 
-        website_id = str(getattr(website, "id", website))
-                
-        website_token = Trace.set_website_id(website_id)
+    @staticmethod
+    def get_website_id() -> str | None:
+        return _website_id.get()
 
-        # -------------------------
-        # Root span
-        # -------------------------
-        root_span = Trace.start_span(f"{request.method} {request.path}")
-        request.span = root_span
-
-        try:
-            response = self.get_response(request)
-            response["X-Correlation-ID"] = correlation_id
-            return response
-
-        finally:
-            Trace.pop_span()
-            Trace.reset_correlation_id(corr_token)
-            Trace.reset_website_id(website_token)
+    @staticmethod
+    def reset_website_id(token):
+        _website_id.reset(token)

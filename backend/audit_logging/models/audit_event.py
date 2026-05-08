@@ -1,66 +1,80 @@
+from __future__ import annotations
+
 import uuid
 from django.db import models
 
 
-class AuditEvent(models.Model):
-    """
-    Immutable system-wide audit event ledger.
+class AuditSeverity(models.TextChoices):
+    INFO = "info", "Info"
+    WARNING = "warning", "Warning"
+    CRITICAL = "critical", "Critical"
 
-    This is the source of truth for all system actions across:
-    - Orders
-    - Special Orders (including sensitive access tracking)
-    - Communications
-    - Auth / Permissions
-    """
+
+class AuditStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    PROCESSED = "processed", "Processed"
+    FAILED = "failed", "Failed"
+    DISCARDED = "discarded", "Discarded"
+
+
+class AuditEvent(models.Model):
 
     # -------------------------
     # Identity
     # -------------------------
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event_id = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
     website = models.ForeignKey(
         "websites.Website",
         on_delete=models.CASCADE,
+        related_name="audit_events",
         db_index=True,
     )
+
     # -------------------------
     # Time
     # -------------------------
-    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
-    # -------------------------
-    # Actor (who did it)
-    # -------------------------
-    actor_id = models.BigIntegerField(null=True, blank=True, db_index=True)
-
-    actor_type = models.CharField(
-        max_length=32,
-        null=True,
-        blank=True,
-        help_text="Optional: user, system, admin, service"
+    occurred_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
     )
 
     # -------------------------
-    # Action (what happened)
+    # Actor
     # -------------------------
-    action = models.CharField(max_length=255, db_index=True)
 
-    # Examples:
-    # order.created
-    # order.status_changed
-    # special_order.sensitive_viewed
-    # message.edited
-    # permission.granted
+    actor_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+    )
 
     # -------------------------
-    # Object reference (what it happened to)
+    # Action
     # -------------------------
+
+    action = models.CharField(
+        max_length=255,
+        db_index=True,
+    )
+
+    # -------------------------
+    # Object
+    # -------------------------
+
     object_type = models.CharField(
         max_length=100,
         null=True,
         blank=True,
         db_index=True,
     )
+
     object_id = models.CharField(
         max_length=255,
         null=True,
@@ -68,31 +82,83 @@ class AuditEvent(models.Model):
         db_index=True,
     )
 
-    processed_at = models.DateTimeField(null=True, blank=True)
-    processing_attempts = models.IntegerField(default=0)
-    last_error = models.TextField(null=True, blank=True)
+    # -------------------------
+    # Lifecycle
+    # -------------------------
+
+    status = models.CharField(
+        max_length=20,
+        choices=AuditStatus.choices,
+        default=AuditStatus.PENDING,
+        db_index=True,
+    )
+
+    processed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    processing_attempts = models.PositiveIntegerField(
+        default=0,
+    )
+
+    last_error = models.TextField(
+        null=True,
+        blank=True,
+    )
+    integrity_hash = models.CharField(
+        max_length=128,
+        null=True,
+        blank=True,
+    )
+
+    previous_hash = models.CharField(
+        max_length=128,
+        null=True,
+        blank=True,
+    )
 
     # -------------------------
-    # Request context (traceability)
+    # Request context
     # -------------------------
+
     ip_address = models.GenericIPAddressField(
         null=True,
         blank=True,
     )
+
     user_agent = models.TextField(
         null=True,
         blank=True,
     )
 
-    created_by_system = models.BooleanField(
-        default=False,
+    # -------------------------
+    # Trace (FIXED TYPES)
+    # -------------------------
+
+    correlation_id = models.UUIDField(
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    span_id = models.UUIDField(
+        null=True,
+        blank=True,
         db_index=True,
     )
 
     # -------------------------
-    # Sensitivity / compliance layer
-    # (critical for your special orders system)
+    # Severity
     # -------------------------
+
+    severity = models.CharField(
+        max_length=20,
+        choices=AuditSeverity.choices,
+        default=AuditSeverity.INFO,
+        db_index=True,
+    )
+
     is_sensitive = models.BooleanField(
         default=False,
         db_index=True,
@@ -102,105 +168,103 @@ class AuditEvent(models.Model):
         max_length=50,
         null=True,
         blank=True,
-        help_text="e.g. low, medium, high, restricted"
     )
 
-    access_context = models.JSONField(
+    # -------------------------
+    # Origin
+    # -------------------------
+
+    service_name = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    # -------------------------
+    # Metadata
+    # -------------------------
+
+    metadata = models.JSONField(
         default=dict,
         blank=True,
-        help_text="Who accessed what sensitive data and under what condition"
     )
 
     # -------------------------
-    # Flexible metadata (bounded usage)
+    # Reliability
     # -------------------------
-    metadata = models.JSONField(default=dict, blank=True)
 
-    # Recommended structure:
-    # {
-    #   "from": "pending",
-    #   "to": "paid",
-    #   "field": "status"
-    # }
+    event_version = models.PositiveIntegerField(default=1)
 
-    # -------------------------
-    # System origin (important for debugging)
-    # -------------------------
-    source = models.CharField(
-        max_length=100,
-        default="system",
-        db_index=True
-    )
-    # e.g.:
-    # "orders_service"
-    # "communications_app"
-    # "middleware"
-    # "admin_action"
-
-
-    # -------------------------
-    # Trace correlation
-    # -------------------------
-    correlation_id = models.CharField(
+    idempotency_key = models.CharField(
         max_length=255,
         null=True,
         blank=True,
         db_index=True,
     )
 
-    span_id = models.CharField(
-        max_length=64,
-        null=True,
-        blank=True,
-        db_index=True,
-    )
+    # -------------------------
+    # Meta
+    # -------------------------
 
     class Meta:
+        ordering = ["-occurred_at"]
+
         indexes = [
-            models.Index(fields=["actor_id", "timestamp"]),
-            models.Index(fields=["object_type", "object_id"]),
-            models.Index(fields=["action", "timestamp"]),
-            models.Index(fields=["is_sensitive", "timestamp"]),
-            models.Index(fields=["website", "timestamp"]),
+            models.Index(fields=["website", "occurred_at"]),
             models.Index(fields=["website", "action"]),
             models.Index(fields=["website", "actor_id"]),
-            models.Index(fields=["website", "object_type", "object_id"]),
-            models.Index(fields=["website", "is_sensitive"]),
-
+            models.Index(fields=["object_type", "object_id"]),
+            models.Index(fields=["correlation_id"]),
+            models.Index(fields=["span_id"]),
+            models.Index(fields=["status", "processed_at"]),
         ]
-        ordering = ["-timestamp"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["website", "idempotency_key"],
+                name="uniq_audit_event_idempotency_per_website",
+            )
+        ]
 
+    # -------------------------
+    # IMMUTABILITY
+    # -------------------------
 
     IMMUTABLE_FIELDS = {
-        "event_id",
-        "website_id",
+        "website",
         "actor_id",
-        "actor_type",
         "action",
         "object_type",
         "object_id",
-        "correlation_id",
         "ip_address",
         "user_agent",
         "metadata",
-        "source",
+        "correlation_id",
         "span_id",
         "is_sensitive",
         "sensitivity_level",
+        "service_name",
+        "severity",
+        "idempotency_key",
     }
-
 
     def save(self, *args, **kwargs):
         if self.pk:
-            old = AuditEvent.objects.get(pk=self.pk)
+            previous = AuditEvent.objects.get(pk=self.pk)
 
             for field in self.IMMUTABLE_FIELDS:
-                if getattr(old, field) != getattr(self, field):
-                    raise RuntimeError(
-                        f"AuditEvent field '{field}' is immutable"
-                    )
+                old = getattr(previous, field)
+                new = getattr(self, field)
+
+                # FK-safe comparison
+                if field == "website":
+                    old = old_id if (old_id := getattr(old, "id", None)) else None
+                    new = getattr(new, "id", None)
+
+                if old != new:
+                    raise RuntimeError(f"AuditEvent field '{field}' is immutable.")
 
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.action} | {self.actor_id} | {self.timestamp}"
+        return f"{self.action} | actor={self.actor_id} | {self.occurred_at}"

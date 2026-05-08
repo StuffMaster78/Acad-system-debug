@@ -1,3 +1,4 @@
+from django.db import transaction
 from audit_logging.models.audit_event import AuditEvent
 
 
@@ -5,31 +6,25 @@ class AuditSelectors:
     """
     Read-only query layer for AuditEvent.
 
-    Purpose:
-    - support activity feed generation
-    - admin investigation tools
-    - debugging and traceability
-
-    Rule:
-    No business logic. Only filtering and retrieval.
+    Rules:
+    - no business logic
+    - no mutations
+    - tenant-safe filtering only
     """
 
     # -------------------------
-    # Base queries
+    # BASE
     # -------------------------
     @staticmethod
     def all():
         return AuditEvent.objects.all()
-    
 
     @staticmethod
     def for_website(website_id: str):
-        return AuditEvent.objects.filter(
-            website_id=website_id,
-        )
+        return AuditEvent.objects.filter(website_id=website_id)
 
     # -------------------------
-    # Actor-based queries
+    # ACTOR
     # -------------------------
     @staticmethod
     def by_actor(actor_id: int):
@@ -40,17 +35,17 @@ class AuditSelectors:
         return AuditEvent.objects.filter(actor_type=actor_type)
 
     # -------------------------
-    # Object-based queries
+    # OBJECT
     # -------------------------
     @staticmethod
     def by_object(object_type: str, object_id: str):
         return AuditEvent.objects.filter(
             object_type=object_type,
-            object_id=object_id
+            object_id=object_id,
         )
 
     # -------------------------
-    # Action-based queries
+    # ACTION
     # -------------------------
     @staticmethod
     def by_action(action: str):
@@ -61,32 +56,36 @@ class AuditSelectors:
         return AuditEvent.objects.filter(action__in=actions)
 
     # -------------------------
-    # Time-based queries
+    # TIME (FIXED FIELD NAME)
     # -------------------------
     @staticmethod
     def recent(limit: int = 50):
-        return AuditEvent.objects.all()[:limit]
+        return AuditEvent.objects.order_by("-occurred_at")[:limit]
 
     @staticmethod
     def since(timestamp):
-        return AuditEvent.objects.filter(timestamp__gte=timestamp)
+        return AuditEvent.objects.filter(occurred_at__gte=timestamp)
 
     @staticmethod
     def between(start, end):
         return AuditEvent.objects.filter(
-            timestamp__gte=start,
-            timestamp__lte=end
+            occurred_at__gte=start,
+            occurred_at__lte=end,
         )
 
     # -------------------------
-    # Request tracing (VERY useful for debugging)
+    # FEED (TENANT SAFE)
     # -------------------------
     @staticmethod
-    def by_request(request_id: str):
-        return AuditEvent.objects.filter(request_id=request_id)
+    def feed(website_id: str, limit: int = 100):
+        return (
+            AuditEvent.objects
+            .filter(website_id=website_id)
+            .order_by("-occurred_at")[:limit]
+        )
 
     # -------------------------
-    # Sensitivity layer (critical for special orders)
+    # SENSITIVITY
     # -------------------------
     @staticmethod
     def sensitive_events():
@@ -97,43 +96,35 @@ class AuditSelectors:
         return AuditEvent.objects.filter(sensitivity_level=level)
 
     # -------------------------
-    # Activity feed support (this is for your new app)
+    # TRACE DEBUGGING
     # -------------------------
     @staticmethod
-    def timeline_for_object(object_type: str, object_id: str):
-        return (
-            AuditEvent.objects
-            .filter(object_type=object_type, object_id=object_id)
-            .order_by("-timestamp")
-        )
+    def by_request(request_id: str):
+        return AuditEvent.objects.filter(session_id=request_id)
 
+    # -------------------------
+    # IDEMPOTENCY / PROCESSING
+    # -------------------------
     @staticmethod
-    def timeline_for_actor(actor_id: int):
-        return (
-            AuditEvent.objects
-            .filter(actor_id=actor_id)
-            .order_by("-timestamp")
-        )
+    def claim_unprocessed_event(event_id: str) -> AuditEvent | None:
+        with transaction.atomic():
+            try:
+                event = (
+                    AuditEvent.objects
+                    .select_for_update(skip_locked=True)
+                    .filter(
+                        id=event_id,
+                        processed_at__isnull=True,
+                        status="pending",
+                    )
+                    .first()
+                )
 
-    @staticmethod
-    def feed(website_id: str, limit: int = 100):
-        """
-        Generic system-wide feed (for admin/activity dashboards)
-        """
-        return (
-            AuditEvent.objects
-            .filter(website_id=website_id)
-            .order_by("-timestamp")[:limit]
-        )
-    
-    @staticmethod
-    def get_unprocessed(event_id: str) -> AuditEvent | None:
-        try:
-            event = AuditEvent.objects.select_for_update().get(event_id=event_id)
-        except AuditEvent.DoesNotExist:
-            return None
+                if not event:
+                    return None
 
-        if event.processed_at is not None:
-            return None
-
-        return event
+                event.status = "processing"
+                event.save(update_fields=["status"])
+                return event
+            except AuditEvent.DoesNotExist:
+                return None

@@ -1,14 +1,19 @@
 from django.apps import AppConfig
-import sys
 
 
 class AuditLoggingConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'audit_logging'
+    default_auto_field = "django.db.models.BigAutoField"
+
+    name = "audit_logging"
+
+    verbose_name = "Audit Logging"
 
     def ready(self):
-        # Avoid registering signals during migrations so we don't touch
-        # ContentType or other tables before they exist.
-        if any(cmd in sys.argv for cmd in ("migrate", "makemigrations")):
-            return
-        import audit_logging.signals  # Hook signals
+        """
+        Import signal registrations and startup hooks.
+        Keep imports LOCAL to avoid app registry issues.
+        """
+
+        # future:
+        # import audit_logging.signals  # noqa: F401
+        import audit_logging.signals.model_signals
