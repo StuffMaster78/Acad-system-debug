@@ -1,11 +1,8 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import WriterPaymentManagementViewSet
+from __future__ import annotations
 
-router = DefaultRouter()
-router.register('payment-management', WriterPaymentManagementViewSet, basename='payment-management')
+from django.urls import path, include
+
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("api/", include("writer_payments_management.api.urls")),
 ]
-
