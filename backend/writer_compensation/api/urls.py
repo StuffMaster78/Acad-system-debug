@@ -34,6 +34,10 @@ urlpatterns = [
         ),
     ),
     path(
+        "advances/",
+        include("writer_compensation.api.urls.advance_urls"),
+    ),
+    path(
         "admin/",
         include(
             "writer_compensation.api.urls.admin_urls",
