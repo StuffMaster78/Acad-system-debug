@@ -831,9 +831,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         completed_paid_order_ids = list(completed_paid_orders.values_list('id', flat=True))
         
         # Note: WriterPayment model doesn't have an 'order' field, so we can't directly link payments to orders
-        # Instead, we'll check if there's a payment record in writer_payments_management.WriterPayment
+        # Instead, we'll check if there's a payment record in writer_compensation.WriterPayment
         # which does have an order field
-        from writer_payments_management.models import WriterPayment as WriterPaymentWithOrder
+        from writer_compensation.models import WriterPayment as WriterPaymentWithOrder
         processed_order_ids = list(WriterPaymentWithOrder.objects.filter(
             writer=profile
         ).values_list('order_id', flat=True))
@@ -1064,8 +1064,8 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 status=404
             )
         
-        # Get payments from writer_payments_management
-        from writer_payments_management.models import WriterPayment, WriterPayoutRequest
+        # Get payments from writer_compensation
+        from writer_compensation.models import WriterPayment, WriterPayoutRequest
         
         all_payments = WriterPayment.objects.filter(
             writer=profile

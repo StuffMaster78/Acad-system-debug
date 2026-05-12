@@ -40,6 +40,7 @@ class WalletEntryType(models.TextChoices):
     PAYOUT_RESERVE = "payout_reserve", "Payout Reserve"
     PAYOUT_RELEASE = "payout_release", "Payout Release"
     PAYOUT_SETTLED = "payout_settled", "Payout Settled"
+    WRITER_EARNING = "writer_earning", "Writer Earning"
 
 
 class WalletHoldStatus(models.TextChoices):

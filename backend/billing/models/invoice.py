@@ -4,6 +4,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from decimal import Decimal
 from billing.constants import InvoicePurpose, InvoiceStatus
 from websites.models.websites import Website
 
@@ -156,6 +157,32 @@ class Invoice(models.Model):
         choices=InvoiceStatus.choices,
         default=InvoiceStatus.DRAFT,
         help_text="Current lifecycle state of the invoice.",
+    )
+    original_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Invoice amount before discounts.",
+    )
+
+    discount_code = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="Discount code applied to this invoice.",
+    )
+
+    discount_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Discount amount applied to this invoice.",
+    )
+
+    discount_usage_id = models.PositiveBigIntegerField(
+        null=True,
+        blank=True,
+        help_text="Linked discount usage record ID.",
     )
 
     issued_at = models.DateTimeField(

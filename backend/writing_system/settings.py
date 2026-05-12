@@ -43,6 +43,10 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
+
+
+# Encryption Key
+# FIELD_ENCRYPTION_KEY = "your-generated-fernet-key"
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 # Handle empty strings as if not set
@@ -159,7 +163,10 @@ INSTALLED_APPS = [
     'discounts',
     'referrals',
     'fines',
+    'tips',
     'refunds',
+    'writer_compensation',
+    'payment_processor',
     
     # Order Management
     'orders',
@@ -188,7 +195,7 @@ INSTALLED_APPS = [
     'admin_management',
     'client_management',
     'writer_management',
-    'writer_payments_management',
+    'writer_compensation.apps.WriterCompensationConfig',
     'editor_management',
     'support_management',
     'loyalty_management',
@@ -357,6 +364,12 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5175",
 ]
 
+COMMUNICATIONS_REDIS_URL = os.getenv(
+    "COMMUNICATIONS_REDIS_URL",
+    default="redis://localhost:6379/2",
+)
+
+COMMUNICATIONS_SSE_CHANNEL = "communications:sse"
 
 
 PASSKEY_CHALLENGE_TTL = 300  # 5 minutes
@@ -712,16 +725,22 @@ REST_FRAMEWORK = {
         'notifications_write_sustained': '1000/day',  # Notification writes per day
         
         # Communication limits (from communications/throttles.py)
-        'communication_message': '60/minute',
-        'communication_thread': '60/minute',
-        'communication_notification': '30/minute',
-        'order_message': '60/minute',
-        'order_message_read_receipt': '10/minute',
-        'order_message_search': '10/minute',
-        
+        "communication_message_send": "60/min",
+        "communication_thread_create": "20/hour",
+        "communication_moderation_action": "120/hour",
+        "communication_screening_rule_write": "30/hour",
+        "communication_sse_connect": "30/min",
+        "communication_read_receipt": "300/min",
+
         # Audit limits
         'audit_log': '10/minute',
         'superadmin_audit': '100/minute',
+
+        # classes Throttles
+        "class_access_view": "10/min",
+        "class_two_factor": "6/min",
+        "class_payment_prepare": "20/hour",
+        "class_proposal_action": "30/hour",
     },
     'EXCEPTION_HANDLER': 'authentication.exceptions.custom_exception_handler',
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
@@ -1069,23 +1088,58 @@ CELERY_BEAT_SCHEDULE = {
         "orders-expire-preferred-writer-invitations-every-15-minutes": {
             "task": "orders.tasks.preferred_writer_tasks.expire_preferred_writer_invitations",
             "schedule": crontab(minute="*/15"),
+    },
+    "orders-fallback-expired-preferred-writer-orders-to-pool-every-15-minutes": {
+        "task": "orders.tasks.preferred_writer_tasks.fallback_expired_preferred_writer_orders_to_pool",
+        "schedule": crontab(minute="*/15"),
+    },
+    "orders-send-pending-adjustment-response-reminders-every-6-hours": {
+        "task": "orders.tasks.order_adjustment_tasks.send_pending_adjustment_response_reminders",
+        "schedule": crontab(minute=25, hour="*/6"),
+    },
+    "orders-expire-stale-adjustments-hourly": {
+        "task": "orders.tasks.order_adjustment_tasks.expire_stale_adjustments",
+        "schedule": crontab(minute=35),
+    },
+    "orders-send-pending-adjustment-funding-reminders-every-6-hours": {
+        "task": "orders.tasks.order_adjustment_tasks.send_pending_adjustment_funding_reminders",
+         "schedule": crontab(minute=40, hour="*/6"),
+    },
+    "discounts-activate-expire-campaigns-every-15-minutes": {
+        "task": "discounts.activate_and_expire_campaigns",
+        "schedule": 900.0,
+    },
+    "discounts-notify-expiring-daily": {
+        "task": "discounts.notify_expiring_discounts",
+        "schedule": 86400.0,
+        "kwargs": {
+            "days": 3,
         },
-        "orders-fallback-expired-preferred-writer-orders-to-pool-every-15-minutes": {
-            "task": "orders.tasks.preferred_writer_tasks.fallback_expired_preferred_writer_orders_to_pool",
-            "schedule": crontab(minute="*/15"),
-        },
-        "orders-send-pending-adjustment-response-reminders-every-6-hours": {
-            "task": "orders.tasks.order_adjustment_tasks.send_pending_adjustment_response_reminders",
-            "schedule": crontab(minute=25, hour="*/6"),
-        },
-        "orders-expire-stale-adjustments-hourly": {
-            "task": "orders.tasks.order_adjustment_tasks.expire_stale_adjustments",
-            "schedule": crontab(minute=35),
-        },
-        "orders-send-pending-adjustment-funding-reminders-every-6-hours": {
-            "task": "orders.tasks.order_adjustment_tasks.send_pending_adjustment_funding_reminders",
-            "schedule": crontab(minute=40, hour="*/6"),
-        },
+    },
+    "discounts-notify-usage-limit-daily": {
+        "task": "discounts.notify_usage_limit_reached",
+        "schedule": 86400.0,
+    },
+    "mark-overdue-installments": {
+        "task": "class_management.tasks.class_payment_tasks.mark_overdue_installments",
+        "schedule": crontab(minute="*/10"),
+    },
+    "auto-pause-overdue": {
+        "task": "class_management.tasks.class_payment_tasks.auto_pause_work_for_overdue",
+        "schedule": crontab(minute="*/10"),
+    },
+    "expire-proposals": {
+        "task": "class_management.tasks.class_pricing_tasks.expire_old_proposals",
+        "schedule": crontab(minute="*/15"),
+    },
+    "two-factor-reminders": {
+        "task": "class_management.tasks.class_access_tasks.send_two_factor_reminders",
+        "schedule": crontab(minute="*/5"),
+    },
+    "payment-reminders": {
+        "task": "class_management.tasks.class_reminder_tasks.send_payment_reminders",
+        "schedule": crontab(hour="*/2"),
+    },
 }
 
 RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW", "default")

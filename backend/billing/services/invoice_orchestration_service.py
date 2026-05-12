@@ -33,7 +33,9 @@ from billing.services.reminder_orchestration_service import (
 from billing.services.installment_allocation_service import (
     InstallmentAllocationService,
 )
-
+from billing.services.invoice_discount_integration_service import (
+    InvoiceDiscountIntegrationService,
+)
 
 @dataclass(frozen=True)
 class InvoiceIntentPreparationResult:
@@ -319,6 +321,10 @@ class InvoiceOrchestrationService:
         provider: str,
         reference_prefix: str = "inv",
         triggered_by=None,
+        payable_type: str,
+        entered_code: str | None = None,
+        lifetime_spend: Decimal | None = None,
+        has_prior_paid_purchase: bool = False,
     ) -> InvoiceIntentPreparationResult:
         """
         Create a provider initialized payment intent for an invoice.
@@ -363,11 +369,22 @@ class InvoiceOrchestrationService:
                 created=False,
             )
 
+        # Apply discount before creating payment intent
+        discount_result = (
+            InvoiceDiscountIntegrationService.apply_invoice_discount(
+                invoice=invoice,
+                payable_type=payable_type,
+                entered_code=entered_code,
+                lifetime_spend=lifetime_spend,
+                has_prior_paid_purchase=has_prior_paid_purchase,
+            )
+        )
+            
         create_result = PaymentIntentService.create_intent(
             client=invoice.client,
             provider=provider,
             purpose=PaymentIntentPurpose.INVOICE,
-            amount=invoice.amount,
+            amount=discount_result.final_amount,
             currency=invoice.currency,
             payable=invoice,
             metadata={
@@ -375,9 +392,13 @@ class InvoiceOrchestrationService:
                 "invoice_reference": invoice.reference,
                 "invoice_title": invoice.title,
                 "invoice_status": invoice.status,
+                "invoice_amount": str(discount_result.final_amount),
                 "recipient_email": InvoiceSelector.get_recipient_email(
-                    invoice=invoice
+                    invoice=invoice,
                 ),
+                "discount_code": discount_result.discount_code,
+                "discount_amount": str(discount_result.discount_amount),
+                "discount_usage_id": discount_result.usage_id,
             },
             reference_prefix=reference_prefix,
         )
@@ -419,6 +440,10 @@ class InvoiceOrchestrationService:
         *,
         invoice: Invoice,
         provider: str,
+        payable_type: str = "invoice",
+        entered_code: str | None = None,
+        lifetime_spend: Decimal | None = None,
+        has_prior_paid_purchase: bool = False,
         generate_token: bool = True,
         token_expiry_hours: int = 72,
         send_notification: bool = False,
@@ -464,8 +489,12 @@ class InvoiceOrchestrationService:
             )
 
         result = cls.create_payment_intent_for_invoice(
-            invoice=prepared_invoice,
             provider=provider,
+            payable_type=payable_type,
+            entered_code=entered_code,
+            lifetime_spend=lifetime_spend,
+            has_prior_paid_purchase=has_prior_paid_purchase,
+            invoice=prepared_invoice,
             triggered_by=triggered_by,
         )
 
@@ -656,6 +685,7 @@ class InvoiceOrchestrationService:
         *,
         invoice: Invoice,
         provider: str,
+        payable_type: str = "invoice",
         token_expiry_hours: int = 72,
         triggered_by=None,
     ) -> InvoiceIntentPreparationResult:
@@ -689,6 +719,7 @@ class InvoiceOrchestrationService:
         return cls.create_payment_intent_for_invoice(
             invoice=refreshed_invoice,
             provider=provider,
+            payable_type=payable_type,
             triggered_by=triggered_by,
         )
 

@@ -2,15 +2,15 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">All Writer Payments</h1>
-        <p class="mt-2 text-gray-600">Complete payment history from system start</p>
+        <h1 class="text-3xl font-bold text-gray-900">Writer Compensation Ledger</h1>
+        <p class="mt-2 text-gray-600">Complete compensation history from system start</p>
       </div>
       <div class="flex gap-2 flex-wrap md:justify-end">
         <router-link
           to="/admin/payments/batched"
           class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
         >
-          Batched Payments
+          Compensation Cycles
         </router-link>
         <router-link
           to="/admin/financial-overview"
@@ -69,16 +69,16 @@
     <!-- Summary -->
     <div v-if="summary" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-        <p class="text-sm font-medium text-blue-700 mb-1">Total Payments</p>
+        <p class="text-sm font-medium text-blue-700 mb-1">Total Entries</p>
         <p class="text-3xl font-bold text-blue-900">{{ summary.total || 0 }}</p>
       </div>
       <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
-        <p class="text-sm font-medium text-green-700 mb-1">Total Amount</p>
+        <p class="text-sm font-medium text-green-700 mb-1">Compensation Total</p>
         <p class="text-3xl font-bold text-green-900">${{ formatCurrency(summary.total_amount || 0) }}</p>
       </div>
     </div>
 
-    <!-- Payments Table -->
+    <!-- Compensation Table -->
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
       <div v-if="loading" class="flex items-center justify-center py-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -88,12 +88,12 @@
         <table class="min-w-full divide-y divide-gray-200 text-xs">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment ID</th>
+              <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Compensation ID</th>
               <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Writer</th>
               <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden md:table-cell">Email</th>
               <th class="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Orders</th>
             <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Client Total</th>
-            <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Writer Amount</th>
+            <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Compensation</th>
             <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Platform Margin</th>
               <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Tips</th>
               <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Fines</th>
@@ -146,7 +146,7 @@
                     v-if="authStore.isAdmin || authStore.isSuperAdmin"
                     @click="openAdjustModal(payment)"
                     class="text-purple-600 hover:text-purple-800 hover:underline font-medium"
-                    title="Adjust Payment Amount"
+                    title="Adjust Compensation Amount"
                   >
                     Adjust
                   </button>
@@ -165,17 +165,17 @@
         </table>
         
         <div v-if="!loading && payments.length === 0" class="text-center py-12 text-gray-500">
-          No payments found.
+          No compensation entries found.
         </div>
       </div>
     </div>
 
-    <!-- Payment Breakdown Modal (reuse from BatchedWriterPayments) -->
+    <!-- Compensation Breakdown Modal (reuse from BatchedWriterPayments) -->
     <div v-if="showBreakdownModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-2xl font-bold">Payment Breakdown</h3>
+            <h3 class="text-2xl font-bold">Compensation Breakdown</h3>
             <button @click="showBreakdownModal = false" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
           </div>
 
@@ -184,11 +184,11 @@
           </div>
 
           <div v-else-if="paymentBreakdown" class="space-y-6">
-            <!-- Payment Summary -->
+            <!-- Compensation Summary -->
             <div class="bg-gray-50 rounded-lg p-4">
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <span class="text-gray-600">Payment ID:</span>
+                  <span class="text-gray-600">Compensation ID:</span>
                   <div class="font-mono font-medium">{{ paymentBreakdown.reference_code }}</div>
                 </div>
                 <div>
@@ -428,8 +428,8 @@ const viewPaymentBreakdown = async (paymentId) => {
     const response = await writerPaymentsAPI.getPaymentBreakdown(paymentId)
     paymentBreakdown.value = response.data
   } catch (error) {
-    console.error('Failed to load payment breakdown:', error)
-    alert('Failed to load payment breakdown: ' + (error.response?.data?.detail || error.message))
+    console.error('Failed to load compensation breakdown:', error)
+    alert('Failed to load compensation breakdown: ' + (error.response?.data?.detail || error.message))
   } finally {
     breakdownLoading.value = false
   }
@@ -472,18 +472,18 @@ const getStatusClass = (status) => {
 }
 
 const markPaymentAsPaid = async (paymentId) => {
-  if (!confirm('Are you sure you want to mark this payment as paid?')) {
+  if (!confirm('Are you sure you want to mark this compensation as paid?')) {
     return
   }
   
   markingAsPaid.value = true
   try {
     await apiClient.post(`/writer-wallet/scheduled-payments/${paymentId}/mark-as-paid/`)
-    alert('Payment marked as paid successfully!')
+    alert('Compensation marked as paid successfully!')
     await loadPayments()
   } catch (error) {
-    console.error('Failed to mark payment as paid:', error)
-    alert('Failed to mark payment as paid: ' + (error.response?.data?.error || error.message))
+    console.error('Failed to mark compensation as paid:', error)
+    alert('Failed to mark compensation as paid: ' + (error.response?.data?.error || error.message))
   } finally {
     markingAsPaid.value = false
   }
@@ -507,7 +507,7 @@ const closeAdjustModal = () => {
 }
 
 const handleAdjustmentSuccess = async (data) => {
-  alert('Payment adjusted successfully!')
+  alert('Compensation adjusted successfully!')
   await loadPayments()
   closeAdjustModal()
 }
@@ -516,4 +516,3 @@ onMounted(() => {
   loadPayments()
 })
 </script>
-

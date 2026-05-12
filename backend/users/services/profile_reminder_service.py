@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from typing import TYPE_CHECKING, Any, cast
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 from users.models.profile_reminder import (
     ProfileReminder,
     ProfileReminderStatus,
@@ -124,17 +124,16 @@ class ProfileReminderService:
             metadata=metadata,
         )
 
-        AuditLogService.log_auto(
+        AuditService.record(
             action="profile_missing_phone_reminder_sent",
             actor=actor,
-            target=reminder,
+            obj=reminder,
+            website=reminder.website,
             metadata={
                 "website_id": user.website.pk,
                 "subject_user_id": user.pk,
                 "channel": selected_channel,
                 "status": status,
-            },
-            changes={
                 "phone_number": {
                     "from": user.phone_number or "",
                     "to": "[STILL_MISSING]",

@@ -1,7 +1,7 @@
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from refunds.models import Refund
-from writer_payments_management.models import WriterPayment
+from writer_compensation.models import WriterPayment
 from writer_management.models import WriterLevel
 from order_payments_management.models.logs import AdminLog, PaymentLog
 from refunds.models import RefundLog

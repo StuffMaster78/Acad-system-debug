@@ -30,6 +30,9 @@ from class_management.state_machine import ClassOrderStateMachine
 from notifications_system.services.notification_service import (
     NotificationService,
 )
+from communications.services.thread_bootstrap_service import (
+    CommunicationThreadBootstrapService,
+)
 
 
 class ClassOrderService:
@@ -103,6 +106,13 @@ class ClassOrderService:
             initial_client_notes=initial_client_notes,
             created_by=created_by,
             updated_by=created_by,
+        )
+
+        transaction.on_commit(
+            lambda: CommunicationThreadBootstrapService.bootstrap_for_class_order(
+                class_order=class_order,
+                created_by=created_by,
+            ),
         )
 
         ClassTimelineService.record(

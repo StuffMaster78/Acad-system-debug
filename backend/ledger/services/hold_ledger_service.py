@@ -8,7 +8,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 from ledger.constants import HoldStatus
 from ledger.exceptions import LedgerHoldError
 from ledger.models.hold_record import HoldRecord
@@ -108,7 +108,7 @@ class HoldLedgerService:
         Best-effort audit logging for ledger hold lifecycle changes.
         """
         try:
-            cast(Any, AuditLogService).log_action(
+            cast(Any, AuditService).record(
                 action=action,
                 actor=actor or hold.user,
                 target=hold,

@@ -8,7 +8,7 @@ from django.db.models import F
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 from wallets.constants import (
     WalletEntryDirection,
     WalletEntryStatus,
@@ -364,10 +364,10 @@ class WalletService:
         Wallet operations must not fail because audit logging failed.
         """
         try:
-            cast(Any, AuditLogService).log_action(
+            cast(Any, AuditService).record(
                 action=action,
                 actor=actor,
-                target=wallet,
+                obj=wallet,
                 website=website,
                 metadata={
                     "wallet_id": cast(Any, wallet).id,

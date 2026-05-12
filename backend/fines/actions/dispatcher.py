@@ -1,6 +1,6 @@
 from importlib import import_module
 from actions.base import BaseAction, PermissionDenied
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 
 ACTION_REGISTRY = {}
 
@@ -38,9 +38,11 @@ def dispatch_action(name, actor, **kwargs):
         result = action.perform(**kwargs)
 
         # Log success audit event
-        AuditLogService.log_auto(
+        AuditService.record(
             actor=actor,
             action=name,
+            obj=fines,
+            website=website,
             target=result if hasattr(result, 'pk') else None,
             changes={'status': 'success'},
             context=kwargs

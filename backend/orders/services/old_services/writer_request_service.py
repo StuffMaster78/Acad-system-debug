@@ -233,7 +233,7 @@ class WriterRequestService:
         """
         from writer_management.models.profile import WriterProfile
         from writer_management.services.earnings_calculator import WriterEarningsCalculator
-        from writer_payments_management.models import WriterPayment
+        from writer_compensation.models import WriterPayment
         from django.utils import timezone
         
         try:

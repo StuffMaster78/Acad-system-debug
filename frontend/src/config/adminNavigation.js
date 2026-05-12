@@ -102,9 +102,9 @@ export const adminNavigationGroups = [
       {
         name: 'Payments',
         to: '/admin/payments/writer-payments',
-        label: 'Writer Payments',
+        label: 'Writer Compensation',
         icon: '💳',
-        description: 'Manage writer payments and payouts',
+        description: 'Manage writer compensation, payout requests, and reconciliation',
       },
       {
         name: 'RefundManagement',

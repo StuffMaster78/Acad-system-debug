@@ -130,7 +130,7 @@ class PaymentBatchingService:
         
         for order in completed_orders:
             # Get writer payment for this order
-            from writer_payments_management.models import WriterPayment as WriterPaymentModel
+            from writer_compensation.models import WriterPayment as WriterPaymentModel
             writer_payment = WriterPaymentModel.objects.filter(
                 writer=writer,
                 order=order
@@ -304,6 +304,7 @@ class PaymentBatchingService:
                             amount=final_amount,
                             status='Pending'
                         )
+                        batch_amount = final_amount
                     else:
                         # No payment needed, all earnings went to advance repayment
                         # Deductions have already been recorded by process_advance_deductions
@@ -317,21 +318,22 @@ class PaymentBatchingService:
                         amount=earnings_data['total'],
                         status='Pending'
                     )
+                    batch_amount = earnings_data['total']
                 
-                        # Create order records
-                        for order_data in earnings_data['orders']:
-                            try:
-                                order = Order.objects.get(id=order_data['order_id'])
-                                PaymentOrderRecord.objects.create(
-                                    website=website,
-                                    payment=scheduled_payment,
-                                    order=order,
-                                    amount_paid=order_data['amount']
-                                )
-                            except Order.DoesNotExist:
-                                continue
-                        
-                        total_batch_amount += final_amount
+                # Create order records
+                for order_data in earnings_data['orders']:
+                    try:
+                        order = Order.objects.get(id=order_data['order_id'])
+                        PaymentOrderRecord.objects.create(
+                            website=website,
+                            payment=scheduled_payment,
+                            order=order,
+                            amount_paid=order_data['amount']
+                        )
+                    except Order.DoesNotExist:
+                        continue
+
+                total_batch_amount += batch_amount
         
         return schedule
     
@@ -433,4 +435,3 @@ class PaymentBatchingService:
         breakdown['total_amount'] = float(breakdown['total_amount'])
         
         return breakdown
-

@@ -16,7 +16,9 @@ from orders.services.order_pricing_snapshot_service import (
     OrderPricingSnapshotService,
 )
 from django.forms.models import model_to_dict
-
+from communications.services.thread_bootstrap_service import (
+    CommunicationThreadBootstrapService,
+)
 class OrderCreationService:
     """
     Own creation of new orders from validated input and pricing-core output.
@@ -210,6 +212,13 @@ class OrderCreationService:
             allow_unpaid_access=order_payload.get(
                 "allow_unpaid_access",
                 False,
+            ),
+        )
+
+        transaction.on_commit(
+            lambda: CommunicationThreadBootstrapService.bootstrap_for_order(
+                order=order,
+                created_by=order.client,
             ),
         )
 

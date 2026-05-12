@@ -17,7 +17,9 @@ from orders.models.orders.order_timeline_event import (
 from payments_processor.services.payment_intent_service import (
     PaymentIntentService,
 )
-
+from orders.services.order_discount_integration_service import (
+    OrderDiscountIntegrationService,
+)
 
 class OrderPaymentApplicationService:
     """
@@ -58,6 +60,13 @@ class OrderPaymentApplicationService:
             raise ValidationError(
                 {"order": "Order does not require external payment."}
             )
+        
+        # discount_result = OrderDiscountIntegrationService.apply_order_discount(
+        #     order=order,
+        #     entered_code=entered_code,
+        #     lifetime_spend=client_lifetime_spend,
+        #     has_prior_paid_purchase=has_prior_paid_purchase,
+        # )
 
         payment_intent = PaymentIntentService.create_intent(
             client=order.client,

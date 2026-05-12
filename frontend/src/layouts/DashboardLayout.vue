@@ -608,7 +608,7 @@
             </div>
 
             <!-- Finances Group -->
-            <div v-if="shouldShowItem('Finances', 'Payments Payment Requests Advance Payments Tips Fines')" class="space-y-1.5 mb-6">
+            <div v-if="shouldShowItem('Finances', 'Payments Payout Requests Advance Payments Tips Fines')" class="space-y-1.5 mb-6">
               <div v-show="!sidebarCollapsed" class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800 transition-opacity duration-300">
                 <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
@@ -635,9 +635,9 @@
                   <SidebarIcon icon-name="credit-card" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View payment history" />
                   Payments
                 </router-link>
-                <router-link v-if="shouldShowItem('Payment Requests', 'Request payments')" to="/writer/payment-request" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payment-request')}">
-                  <SidebarIcon icon-name="credit-card" size="sm" icon-class="text-gray-500 group-hover:text-indigo-600 mr-3" tooltip="Request payments" />
-                  Payment Requests
+                <router-link v-if="shouldShowItem('Payout Requests', 'Request payouts')" to="/writer/payment-request" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payment-request')}">
+                  <SidebarIcon icon-name="credit-card" size="sm" icon-class="text-gray-500 group-hover:text-indigo-600 mr-3" tooltip="Request payouts" />
+                  Payout Requests
                 </router-link>
                 <router-link v-if="shouldShowItem('Advance Payments', 'Request advance payments')" to="/writer/advance-payments" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/advance-payments')}">
                   <SidebarIcon icon-name="dollar-sign" size="sm" icon-class="text-gray-500 group-hover:text-green-600 mr-3" tooltip="Request advance payments" />
@@ -1180,7 +1180,7 @@
                 </h3>
               </div>
               <div class="space-y-1.5">
-                <div v-if="shouldShowItem('Payments', 'Client Payments Writer Payments Payment Requests Invoices Wallets')" class="space-y-1">
+                <div v-if="shouldShowItem('Payments', 'Client Payments Writer Compensation Payout Requests Invoices Wallets')" class="space-y-1">
                   <button 
                     @click="adminGroups.payments = !adminGroups.payments" 
                     class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-[0.98]"
@@ -1223,7 +1223,7 @@
                       </span>
                     </router-link>
                     <router-link
-                      v-if="shouldShowItem('Payment Requests', 'Manage writer payment requests')"
+                      v-if="shouldShowItem('Payout Requests', 'Manage writer payout requests')"
                       to="/admin/payments/payment-requests"
                       class="flex items-center px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-amber-50 hover:translate-x-1 group leading-relaxed shadow-sm"
                       :class="isRouteActive({ to: '/admin/payments/payment-requests' }) ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold shadow-md' : 'text-amber-700 hover:text-amber-800'"
@@ -1238,24 +1238,24 @@
                           :icon-class="isRouteActive({ to: '/admin/payments/payment-requests' }) 
                             ? 'text-white' 
                             : 'text-amber-600 group-hover:text-amber-700'" 
-                          tooltip="Manage writer payment requests" 
+                          tooltip="Manage writer payout requests"
                         />
                       </div>
                       <span class="tracking-wide" :class="isRouteActive({ to: '/admin/payments/payment-requests' }) ? 'font-bold text-base' : 'font-semibold'">
-                        Payment Requests
+                        Payout Requests
                       </span>
                       <span v-if="!isRouteActive({ to: '/admin/payments/payment-requests' })" class="ml-auto text-xs font-medium text-amber-500 opacity-75">
                         📋
                       </span>
                     </router-link>
                     <router-link
-                      v-if="shouldShowItem('Writer Payments', 'Manage writer payments')"
+                      v-if="shouldShowItem('Writer Compensation', 'Manage writer compensation')"
                       to="/admin/payments/writer-payments"
                       class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
                       :class="isRouteActive({ to: '/admin/payments/writer-payments' }) ? 'bg-primary-50 text-primary-700 font-semibold' : ''"
                     >
-                      <SidebarIcon icon-name="cash" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage writer payments" />
-                      Writer Payments
+                      <SidebarIcon icon-name="cash" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage writer compensation" />
+                      Writer Compensation
                     </router-link>
                     <router-link 
                       v-if="shouldShowItem('Invoices', 'View and manage invoices')"
@@ -1294,22 +1294,22 @@
                       Wallets
                     </router-link>
                     <router-link 
-                      v-if="shouldShowItem('Payment Management', 'Batch payment management')"
+                      v-if="shouldShowItem('Compensation Cycles', 'Manage grouped writer compensation')"
                       to="/admin/payments/batched" 
                       class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                       :class="isRouteActive({ to: '/admin/payments/batched' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
                     >
-                      <SidebarIcon icon-name="view-grid" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Batch payment management" />
-                      Payment Management
+                      <SidebarIcon icon-name="view-grid" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage grouped writer compensation" />
+                      Compensation Cycles
                     </router-link>
                     <router-link 
-                      v-if="shouldShowItem('All Payments', 'View all payments')"
+                      v-if="shouldShowItem('Compensation Ledger', 'View all compensation entries')"
                       to="/admin/payments/all" 
                       class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                       :class="isRouteActive({ to: '/admin/payments/all' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
                     >
-                      <SidebarIcon icon-name="currency-dollar" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View all payments" />
-                      All Payments
+                      <SidebarIcon icon-name="currency-dollar" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View all compensation entries" />
+                      Compensation Ledger
                     </router-link>
                     <router-link 
                       v-if="shouldShowItem('Payment Logs', 'Payment transaction logs')"
@@ -4519,4 +4519,3 @@ nav {
   background: rgba(75, 85, 99, 0.5);
 }
 </style>
-

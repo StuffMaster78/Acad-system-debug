@@ -8,7 +8,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 from ledger.constants import JournalEntryStatus
 from ledger.models.journal_line import JournalLine
 from wallets.constants import WalletHoldStatus, WalletType
@@ -485,10 +485,10 @@ class WalletReconciliationService:
         Best-effort audit logging for wallet repair.
         """
         try:
-            cast(Any, AuditLogService).log_action(
+            cast(Any, AuditService).record(
                 action="wallet.reconciliation.repaired",
                 actor=repaired_by,
-                target=wallet,
+                obj=wallet,
                 website=wallet.website,
                 metadata={
                     "wallet_id": cast(Any, wallet).id,

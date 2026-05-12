@@ -21,7 +21,7 @@ from notifications_system.services.notification_service import (
 from billing.selectors.payment_installment_selectors import (
     PaymentInstallmentSelector,
 )
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 
 class ReminderOrchestrationService:
     """
@@ -279,12 +279,13 @@ class ReminderOrchestrationService:
                 cancelled = ReminderService.mark_cancelled(
                     reminder=reminder
                 )
-                AuditLogService.log(
+                AuditService.record(
                     action="billing.reminder.cancelled",
                     actor=triggered_by,
-                    target=cancelled,
+                    obj=cancelled,
                     website=website,
                     metadata={
+                        "website": website,
                         "reason": "invoice_not_remindable",
                         "invoice_id": invoice.pk,
                         "invoice_reference": invoice.reference,
@@ -322,12 +323,13 @@ class ReminderOrchestrationService:
                 cancelled = ReminderService.mark_cancelled(
                     reminder=reminder
                 )
-                AuditLogService.log(
+                AuditService.record(
                     action="billing.reminder.cancelled",
                     actor=triggered_by,
-                    target=cancelled,
+                    obj=cancelled,
                     website=website,
                     metadata={
+                        "website": website,
                         "reason": "payment_request_not_remindable",
                         "payment_request_id": payment_request.pk,
                         "payment_request_reference": (
@@ -347,10 +349,10 @@ class ReminderOrchestrationService:
                 reminder=reminder,
                 error_message="Reminder recipient could not be resolved.",
             )
-            AuditLogService.log(
+            AuditService.record(
                 action="billing.reminder.failed",
                 actor=triggered_by,
-                target=updated,
+                obj=updated,
                 website=website,
                 metadata={
                     "event_key": reminder.event_key,
@@ -371,10 +373,10 @@ class ReminderOrchestrationService:
 
             updated = ReminderService.mark_sent(reminder=reminder)
 
-            AuditLogService.log(
+            AuditService.record(
                 action="billing.reminder.sent",
                 actor=triggered_by,
-                target=updated,
+                obj=updated,
                 website=website,
                 metadata={
                     "event_key": reminder.event_key,
@@ -390,10 +392,10 @@ class ReminderOrchestrationService:
                 reminder=reminder,
                 error_message=str(exc),
             )
-            AuditLogService.log(
+            AuditService.record(
                 action="billing.reminder.failed",
                 actor=triggered_by,
-                target=updated,
+                obj=updated,
                 website=website,
                 metadata={
                     "event_key": reminder.event_key,
@@ -765,10 +767,10 @@ class ReminderOrchestrationService:
             scheduled_for=scheduled_for,
         )
 
-        AuditLogService.log(
+        AuditService.record(
             action="billing.reminder.created",
             actor=triggered_by,
-            target=reminder,
+            obj=reminder,
             website=invoice.website,
             metadata={
                 "event_key": event_key,
@@ -864,10 +866,10 @@ class ReminderOrchestrationService:
             scheduled_for=scheduled_for,
         )
 
-        AuditLogService.log(
+        AuditService.record(
             action="billing.reminder.created",
             actor=triggered_by,
-            target=reminder,
+            obj=reminder,
             website=payment_request.website,
             metadata={
                 "event_key": event_key,

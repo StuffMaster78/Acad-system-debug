@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.utils import timezone
 
@@ -42,8 +43,11 @@ from orders.services.staffing.order_staffing_policy import (
 from orders.services.staffing.order_staffing_store import (
     OrderStaffingStore,
 )
-
-
+from communications.constants import CommunicationThreadKind
+from communications.models.thread import CommunicationThread
+from communications.services.participant_sync_service import (
+    CommunicationParticipantSyncService,
+)
 class OrderStaffingService:
     """
     Own staffing visibility and assignment workflow for orders.
@@ -219,6 +223,13 @@ class OrderStaffingService:
             source_interest=existing_interest,
         )
 
+        cls.sync_order_writer_communications(
+            order=locked_order,
+            new_writer=writer,
+            old_writer=None,
+            actor=triggered_by or writer,
+        )
+
         OrderStaffingStore.close_other_open_interests(
             order=locked_order,
             keep_interest=existing_interest,
@@ -275,11 +286,19 @@ class OrderStaffingService:
             source_interest=locked_interest,
         )
 
+        cls.sync_order_writer_communications(
+            order=locked_order,
+            new_writer=locked_interest.writer,
+            old_writer=None,
+            actor=assigned_by,
+        )
+
         OrderStaffingStore.close_other_open_interests(
             order=locked_order,
             keep_interest=locked_interest,
             superseded_status=ORDER_INTEREST_STATUS_SUPERSEDED,
         )
+    
         cls._mark_order_in_progress(
             order=locked_order,
             actor=assigned_by,
@@ -318,6 +337,13 @@ class OrderStaffingService:
             assigned_by=assigned_by,
             source=ORDER_ASSIGNMENT_SOURCE_STAFF_ASSIGNMENT,
             source_interest=None,
+        )
+
+        cls.sync_order_writer_communications(
+            order=locked_order,
+            new_writer=writer,
+            old_writer=None,
+            actor=assigned_by,
         )
 
         OrderStaffingStore.close_other_open_interests(
@@ -375,6 +401,13 @@ class OrderStaffingService:
             assigned_by=triggered_by or writer,
             source=ORDER_ASSIGNMENT_SOURCE_PREFERRED_WRITER_ACCEPTANCE,
             source_interest=locked_interest,
+        )
+
+        cls.sync_order_writer_communications(
+            order=locked_order,
+            new_writer=writer,
+            old_writer=None,
+            actor=triggered_by or writer,
         )
 
         OrderStaffingStore.close_other_open_interests(
@@ -542,6 +575,13 @@ class OrderStaffingService:
             ]
         )
 
+        cls.sync_order_writer_communications(
+            order=locked_order,
+            new_writer=None,
+            old_writer=current_assignment.writer,
+            actor=released_by,
+        )
+
         locked_order.status = ORDER_STATUS_READY_FOR_STAFFING
         locked_order.visibility_mode = ORDER_VISIBILITY_POOL
         if locked_order.preferred_writer is None:
@@ -691,4 +731,36 @@ class OrderStaffingService:
             order=order,
             actor=actor,
             metadata=metadata,
+        )
+
+    @staticmethod
+    def sync_order_writer_communications(
+        *,
+        order: Order,
+        new_writer=None,
+        old_writer=None,
+        actor=None,
+    ) -> None:
+        """
+        Sync order communication thread participants after writer changes.
+        """
+        content_type = ContentType.objects.get_for_model(order)
+
+        threads = CommunicationThread.objects.filter(
+            website=order.website,
+            target_content_type=content_type,
+            target_object_id=order.pk,
+            kind__in=[
+                CommunicationThreadKind.CLIENT_WRITER,
+                CommunicationThreadKind.WRITER_SUPPORT,
+            ],
+        )
+
+        transaction.on_commit(
+            lambda: CommunicationParticipantSyncService.sync_writer(
+                threads=threads,
+                new_writer=new_writer,
+                old_writer=old_writer,
+                actor=actor,
+            ),
         )

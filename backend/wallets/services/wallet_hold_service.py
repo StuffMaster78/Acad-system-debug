@@ -6,7 +6,7 @@ from typing import Any, cast
 from django.db import transaction
 from django.utils import timezone
 
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 from wallets.constants import (
     WalletEntryDirection,
     WalletEntryStatus,
@@ -96,10 +96,10 @@ class WalletHoldService:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         try:
-            cast(Any, AuditLogService).log_action(
+            cast(Any, AuditService).record(
                 action=action,
                 actor=actor,
-                target=hold.wallet,
+                obj=hold.wallet,
                 website=website,
                 metadata={
                     "wallet_id": cast(Any, hold).wallet_id,

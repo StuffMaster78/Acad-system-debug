@@ -257,7 +257,7 @@ class WriterConfigSerializer(serializers.ModelSerializer):
         return None
 
 
-### ---------------- Writer Payment & Earnings Serializers ---------------- ###
+### ---------------- Writer Compensation & Earnings Serializers ---------------- ###
 
 class WriterPayoutPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -270,7 +270,7 @@ class WriterPayoutPreferenceSerializer(serializers.ModelSerializer):
 
 class WriterPaymentSerializer(serializers.ModelSerializer):
     """
-    Serializer for Writer Payments
+    Serializer for writer compensation entries.
     """
     class Meta:
         model = WriterPayment

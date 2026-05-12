@@ -12,7 +12,7 @@ from payments_processor.enums import (
     PaymentIntentStatus,
     PaymentProvider,
 )
-
+from wallets.models.wallet_hold import WalletHold
 
 class PaymentIntent(models.Model):
     """
@@ -91,6 +91,7 @@ class PaymentIntent(models.Model):
         max_length=128,
         blank=True,
         default="",
+        db_index=True,
     )
 
     provider_customer_id = models.CharField(
@@ -98,6 +99,38 @@ class PaymentIntent(models.Model):
         blank=True,
         default="",
     )
+    provider_checkout_url = models.URLField(
+        blank=True,
+        default="",
+    )
+    provider_client_secret = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+    )
+    provider_response = models.JSONField(
+        default=dict,
+        blank=True,
+    )
+    provider_last_synced_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    provider_transaction_id = models.CharField(
+        max_length=128,
+        blank=True,
+        default="",
+    )
+
+    wallet_hold = models.ForeignKey(
+        WalletHold,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payment_intents",
+    )
+
+
 
     last_verified_at = models.DateTimeField(null=True, blank=True)
     verification_attempts = models.PositiveIntegerField(default=0)
@@ -123,11 +156,11 @@ class PaymentIntent(models.Model):
         ]
         constraints = [
                 models.CheckConstraint(
-                    check=models.Q(amount__gt=ZERO_DECIMAL),
+                    condition=models.Q(amount__gt=ZERO_DECIMAL),
                     name="ppi_amount_gt_zero",
                 ),
                 models.CheckConstraint(
-                    check=models.Q(amount_refunded__gte=ZERO_DECIMAL),
+                    condition=models.Q(amount_refunded__gte=ZERO_DECIMAL),
                     name="ppi_amount_refunded_gte_zero",
                 ),
             ]

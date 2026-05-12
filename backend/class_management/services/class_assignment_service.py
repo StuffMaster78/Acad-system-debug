@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
 
+from typing import Any
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.utils import timezone
 
@@ -22,6 +23,12 @@ from class_management.state_machine import ClassOrderStateMachine
 from notifications_system.services.notification_service import (
     NotificationService,
 )
+from communications.constants import CommunicationThreadKind
+from communications.models.thread import CommunicationThread
+from communications.services.participant_sync_service import (
+    CommunicationParticipantSyncService,
+)
+
 
 
 class ClassAssignmentService:
@@ -99,6 +106,13 @@ class ClassAssignmentService:
             class_order=class_order,
         )
 
+        cls.sync_class_writer_communications(
+            class_order=class_order,
+            new_writer=writer,
+            old_writer=None,
+            actor=assigned_by,
+        )
+
         ClassTimelineService.record(
             class_order=class_order,
             event_type=ClassTimelineEventType.WRITER_ASSIGNED,
@@ -141,6 +155,7 @@ class ClassAssignmentService:
         old_assignment = cls.get_active_assignment(
             class_order=class_order,
         )
+        old_writer = old_assignment.writer if old_assignment else None
 
         if old_assignment:
             old_assignment.status = ClassAssignmentStatus.REASSIGNED
@@ -175,6 +190,13 @@ class ClassAssignmentService:
             class_order=class_order,
         )
 
+        cls.sync_class_writer_communications(
+            class_order=class_order,
+            new_writer=new_writer,
+            old_writer=old_writer,
+            actor=reassigned_by,
+        )
+
         ClassTimelineService.record(
             class_order=class_order,
             event_type=ClassTimelineEventType.WRITER_ASSIGNED,
@@ -199,6 +221,35 @@ class ClassAssignmentService:
         )
 
         return assignment
+
+    @staticmethod 
+    def sync_class_writer_communications(
+        *,
+        class_order: ClassOrder,
+        new_writer=None,
+        old_writer=None,
+        actor=None,
+    ) -> None:
+        content_type = ContentType.objects.get_for_model(class_order)
+
+        threads = CommunicationThread.objects.filter(
+            website=class_order.website,
+            target_content_type=content_type,
+            target_object_id=class_order.pk,
+            kind__in=[
+                CommunicationThreadKind.CLIENT_WRITER,
+                CommunicationThreadKind.WRITER_SUPPORT,
+            ],
+        )
+
+        transaction.on_commit(
+            lambda: CommunicationParticipantSyncService.sync_writer(
+                threads=threads,
+                new_writer=new_writer,
+                old_writer=old_writer,
+                actor=actor,
+            ),
+        )
 
     @classmethod
     @transaction.atomic
@@ -240,6 +291,12 @@ class ClassAssignmentService:
                 "updated_by",
                 "updated_at",
             ],
+        )
+        cls.sync_class_writer_communications(
+            class_order=class_order,
+            new_writer=None,
+            old_writer=assignment.writer,
+            actor=removed_by,
         )
 
         ClassTimelineService.record(

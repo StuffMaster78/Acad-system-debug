@@ -1,6 +1,6 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.order_hold_service import HoldOrderService
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 from orders.registry.decorator import register_order_action
 @register_order_action("hold_order")
 class HoldOrderAction(BaseOrderAction):
@@ -18,10 +18,11 @@ class HoldOrderAction(BaseOrderAction):
             else service.hold_order(self.order_id)
         )
 
-        AuditLogService.log_auto(
+        AuditService.record(
             actor=self.user,
             action=action,
-            target="orders.Order",
+            obj="orders.Order",
+            website=order.website,
             target_id=self.order_id,
             metadata={
                 "resume": self.params.get("resume", False)

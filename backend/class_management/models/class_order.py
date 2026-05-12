@@ -199,11 +199,3 @@ class ClassOrder(models.Model):
                     "updated_at",
                 ]
             )
-
-    def mark_submitted(self) -> None:
-        """
-        Mark the order as submitted by the client.
-        """
-        self.status = ClassOrderStatus.SUBMITTED
-        self.submitted_at = timezone.now()
-        self.save(update_fields=["status", "submitted_at", "updated_at"])

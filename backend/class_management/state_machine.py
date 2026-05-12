@@ -1,5 +1,3 @@
-# class_management/state_machine.py
-
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -186,29 +184,6 @@ class ClassOrderStateMachine:
     ) -> ClassOrder:
         """
         Move a class order from its current status to a new status.
-
-        Args:
-            class_order:
-                The class order being transitioned.
-            to_status:
-                Target status.
-            triggered_by:
-                User or system actor responsible for the change.
-            reason:
-                Optional human-readable reason.
-            metadata:
-                Extra timeline metadata.
-            force:
-                Allows privileged callers to bypass the transition map.
-            save:
-                Whether to persist the class order immediately.
-
-        Returns:
-            The updated class order.
-
-        Raises:
-            ClassOrderStateError:
-                If the transition is invalid.
         """
         from_status = class_order.status
 
@@ -322,27 +297,36 @@ class ClassOrderStateMachine:
         if to_status == ClassOrderStatus.SUBMITTED:
             class_order.submitted_at = now
 
+        if to_status == ClassOrderStatus.PRICE_PROPOSED:
+            class_order.price_proposed_at = now
+
         if to_status == ClassOrderStatus.ACCEPTED:
             class_order.accepted_at = now
+
+        if to_status == ClassOrderStatus.ASSIGNED:
+            class_order.assigned_at = now
+
+        if to_status == ClassOrderStatus.IN_PROGRESS:
+            class_order.work_started_at = class_order.work_started_at or now
+            class_order.is_work_paused = False
+            class_order.pause_reason = ""
+            class_order.paused_at = None
 
         if to_status == ClassOrderStatus.PAUSED:
             class_order.is_work_paused = True
             class_order.pause_reason = reason or "state_transition"
             class_order.paused_at = now
 
-        if to_status == ClassOrderStatus.IN_PROGRESS:
-            class_order.is_work_paused = False
-            class_order.pause_reason = ""
-            class_order.paused_at = None
-
         if to_status == ClassOrderStatus.COMPLETED:
             class_order.completed_at = now
 
         if to_status == ClassOrderStatus.CANCELLED:
             class_order.cancelled_at = now
+            class_order.is_active = False
 
         if to_status == ClassOrderStatus.ARCHIVED:
             class_order.archived_at = now
+            class_order.is_active = False
 
     @classmethod
     def _get_update_fields(cls, *, to_status: str) -> list[str]:
@@ -358,19 +342,26 @@ class ClassOrderStateMachine:
         if to_status == ClassOrderStatus.SUBMITTED:
             fields.append("submitted_at")
 
+        if to_status == ClassOrderStatus.PRICE_PROPOSED:
+            fields.append("price_proposed_at")
+
         if to_status == ClassOrderStatus.ACCEPTED:
             fields.append("accepted_at")
 
-        if to_status == ClassOrderStatus.PAUSED:
+        if to_status == ClassOrderStatus.ASSIGNED:
+            fields.append("assigned_at")
+
+        if to_status == ClassOrderStatus.IN_PROGRESS:
             fields.extend(
                 [
+                    "work_started_at",
                     "is_work_paused",
                     "pause_reason",
                     "paused_at",
                 ]
             )
 
-        if to_status == ClassOrderStatus.IN_PROGRESS:
+        if to_status == ClassOrderStatus.PAUSED:
             fields.extend(
                 [
                     "is_work_paused",
@@ -383,10 +374,20 @@ class ClassOrderStateMachine:
             fields.append("completed_at")
 
         if to_status == ClassOrderStatus.CANCELLED:
-            fields.append("cancelled_at")
+            fields.extend(
+                [
+                    "cancelled_at",
+                    "is_active",
+                ]
+            )
 
         if to_status == ClassOrderStatus.ARCHIVED:
-            fields.append("archived_at")
+            fields.extend(
+                [
+                    "archived_at",
+                    "is_active",
+                ]
+            )
 
         return fields
 

@@ -75,6 +75,8 @@ class LedgerEntryType(models.TextChoices):
         "Gateway Reconciliation Adjustment",
     )
 
+    
+    TIP_SETTLEMENT = "tip_settlement", "Tip Settlement"
     ORDER_PAYMENT = "order_payment", "Order Payment"
     ORDER_INSTALLMENT_PAYMENT = (
         "order_installment_payment",
@@ -154,6 +156,7 @@ class ReconciliationStatus(models.TextChoices):
 
 class SourceApp(models.TextChoices):
     ORDERS = "orders", "Orders"
+    TIPS = "tips", "Tips"
     SPECIAL_ORDERS = "special_orders", "Special Orders"
     CLASS_MANAGEMENT = "class_management", "Class Management"
     PAYMENT_PROCESSOR = "payment_processor", "Payment Processor"
@@ -161,7 +164,7 @@ class SourceApp(models.TextChoices):
     REFUNDS = "refunds", "Refunds"
     DISPUTES = "disputes", "Disputes"
     FINES = "fines", "Fines"
-    WRITER_PAYMENTS = "writer_payments", "Writer Payments"
+    WRITER_PAYMENTS = "writer_payments", "Writer Compensation"
     ADMIN = "admin", "Admin"
     SYSTEM = "system", "System"
 

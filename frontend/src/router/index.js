@@ -405,7 +405,7 @@ const router = createRouter({
           component: () => import('@/views/admin/payments/PaymentRequests.vue'),
           meta: {
             requiresAuth: true,
-            title: 'Payment Requests',
+            title: 'Payout Requests',
             roles: ['admin', 'superadmin'],
           },
         },
@@ -415,7 +415,7 @@ const router = createRouter({
           component: () => import('@/views/admin/payments/WriterPayments.vue'),
           meta: {
             requiresAuth: true,
-            title: 'Writer Payments',
+            title: 'Writer Compensation',
             roles: ['admin', 'superadmin'],
           },
         },
@@ -695,7 +695,7 @@ const router = createRouter({
           component: () => import('@/views/writers/PaymentRequest.vue'),
           meta: {
             requiresAuth: true,
-            title: 'Payment Requests',
+            title: 'Payout Requests',
             roles: ['writer'],
           },
         },
@@ -2235,7 +2235,7 @@ const router = createRouter({
           component: () => import('@/views/admin/BatchedWriterPayments.vue'),
           meta: {
             requiresAuth: true,
-            title: 'Batched Writer Payments',
+            title: 'Compensation Cycles',
             roles: ['admin', 'superadmin'],
           },
         },
@@ -2245,7 +2245,7 @@ const router = createRouter({
           component: () => import('@/views/admin/AllWriterPayments.vue'),
           meta: {
             requiresAuth: true,
-            title: 'All Writer Payments',
+            title: 'Writer Compensation Ledger',
             roles: ['admin', 'superadmin'],
           },
         },

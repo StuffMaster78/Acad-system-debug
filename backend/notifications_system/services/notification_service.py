@@ -291,7 +291,7 @@ class NotificationService:
                 NotificationEventConfig,
             )
             config = NotificationEventConfig.objects.get(
-                event__event_key=event_key,
+                event_key=event_key,
                 is_active=True,
             )
             return config.get_default_channels()

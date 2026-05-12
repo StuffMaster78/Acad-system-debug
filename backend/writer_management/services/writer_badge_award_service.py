@@ -1,6 +1,6 @@
 from django.utils.timezone import now
 
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 from notifications_system.services.notification_service import (
     NotificationService,
 )
@@ -48,14 +48,14 @@ class WriterBadgeAwardService:
 
         actor = None if is_auto else awarded_by
 
-        AuditLogService.log(
+        AuditService.record(
             actor=actor,
-            target=writer.user,
+            obj=writer.user,
             action="writer_badge.awarded",
-            message=f"Badge '{badge.name}' awarded to writer.",
-            extra={
+            website=writer_badge.website,
+            metadata={
                 "badge": badge.name,
-                "badge_id": badge.id,
+                "badge_id": badge.pk,
                 "badge_rule_code": badge.rule_code,
                 "auto": is_auto,
             },
@@ -97,14 +97,14 @@ class WriterBadgeAwardService:
             ]
         )
 
-        AuditLogService.log(
+        AuditService.record(
             actor=by_admin,
-            target=writer_badge.writer.user,
+            obj=writer_badge.writer.user,
             action="writer_badge.revoked",
-            message=f"Badge '{writer_badge.badge.name}' revoked.",
-            extra={
+            website=writer_badge.website,
+            metadata={
                 "badge": writer_badge.badge.name,
-                "badge_id": writer_badge.badge.id,
+                "badge_id": writer_badge.badge.pk,
                 "badge_rule_code": writer_badge.badge.rule_code,
                 "reason": reason,
             },
@@ -140,7 +140,7 @@ class WriterBadgeAwardService:
             context={
                 "writer_id": writer.id,
                 "writer_name": user.get_full_name() or user.username,
-                "badge_id": badge.id,
+                "badge_id": badge.pk,
                 "badge_name": badge.name,
                 "badge_icon": badge.icon,
                 "badge_rule_code": badge.rule_code,

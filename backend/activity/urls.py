@@ -1,9 +1,8 @@
-from rest_framework.routers import DefaultRouter
+from __future__ import annotations
 
-from activity.views import ActivityLogViewSet, UserActivityFeedViewSet
+from django.urls import include
+from django.urls import path
 
-router = DefaultRouter()
-router.register(r"activity-logs", ActivityLogViewSet, basename="activity-log")
-router.register(r"user-feed", UserActivityFeedViewSet, basename="user-activity-feed")
-
-urlpatterns = router.urls
+urlpatterns = [
+    path("", include("activity.api.urls")),
+]

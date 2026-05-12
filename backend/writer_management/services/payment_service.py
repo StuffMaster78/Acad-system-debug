@@ -1,8 +1,8 @@
 from decimal import Decimal
 from django.utils.timezone import now
 from django.core.exceptions import PermissionDenied
-from audit_logging.services.audit_log_service import (
-    AuditLogService as AuditLogger
+from audit_logging.services.audit_service import (
+    AuditService as AuditLogger
 )
 from writer_management.models.profile import WriterProfile
 from websites.models.websites import Website
@@ -51,13 +51,14 @@ class WriterPaymentService:
 
         total = (converted_amount + bonuses + tips - fines).quantize(Decimal("0.01"))
 
-        AuditLogger.log_auto(
+        AuditLogger.record(
             action="create_payment",
             actor=actor,
-            target=writer,
+            obj=writer,
+            website=website,
             metadata={
-                "website": website.id,
-                "writer": writer.id,
+                "website": website.pk,
+                "writer": writer.pk,
                 "amount_usd": str(amount_usd),
                 "bonuses": str(bonuses),
                 "fines": str(fines),
@@ -67,7 +68,6 @@ class WriterPaymentService:
                 "conversion_rate": str(rate),
                 "payment_date": payment_date or now(),
             },
-            notes=description or f"Payout in {currency_used} on {now().date()}",
         )
 
 

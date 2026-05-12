@@ -117,7 +117,7 @@ class WriterPayment(models.Model):
 
     def __str__(self):
         return (
-            f"Payment of ${self.amount} to {self.writer.user.username}"
+            f"Compensation of ${self.amount} to {self.writer.user.username}"
              f"on {self.payment_date}"
         )
     
@@ -133,8 +133,8 @@ class WriterPayment(models.Model):
         super().save(*args, **kwargs)
 
     class Meta:
-        verbose_name = "Writer Payment"
-        verbose_name_plural = "Writer Payments"
+        verbose_name = "Writer Compensation"
+        verbose_name_plural = "Writer Compensation"
         ordering = ['-payment_date']
         indexes = [
             models.Index(fields=['writer', 'payment_date']),

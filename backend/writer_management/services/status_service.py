@@ -4,7 +4,7 @@ from django.core.cache import cache
 from writer_management.models.status import WriterStatus
 from writer_management.models.profile import WriterProfile
 from writer_management.services.escalation_config_service import EscalationConfigService
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 
 class WriterStatusService:
     """
@@ -170,13 +170,13 @@ class WriterStatusService:
         except Exception:
             # Log but don't fail if notification fails
             pass
-        cache.set(f"writer_status:{writer.id}", status, timeout=300)
+        cache.set(f"writer_status:{writer.pk}", status, timeout=300)
 
-        AuditLogService.log(
+        AuditService.record(
             actor=None,  # system-initiated
-            target=writer.user,
+            obj=writer.user,
             action="status_changed",
-            message=f"Writer {writer.user.username} status updated.",
+            website=writer.website,
             metadata={
                 "status": status,
                 "warnings": active_warnings,
@@ -188,14 +188,12 @@ class WriterStatusService:
         )
 
         if should_suspend:
-            AuditLogService.log(
+            AuditService.record(
                 actor=None,
-                target=writer.user,
+                obj=writer.user,
                 action="status_auto_flagged",
-                message=(
-                    f"Writer {writer.user.username} flagged for suspension: "
-                    f"{active_warnings} active warnings."
-                )
+                website=writer.website,
+                
             )
         return status
 

@@ -47,7 +47,7 @@ class FileAccessGrantService:
                 "Managed file does not belong to this website."
             )
 
-        if attachment and attachment.website_id != website.id:
+        if attachment and attachment.website.id != website.id:
             raise FileAccessDenied(
                 "Attachment does not belong to this website."
             )

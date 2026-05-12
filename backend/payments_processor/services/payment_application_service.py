@@ -16,6 +16,13 @@ from payments_processor.services.payment_application_guard_service import (
 )
 
 from billing.models.payment_request import PaymentRequest
+from special_orders.integrations.payments_processor_bridge import (
+    SpecialOrderPaymentsProcessorBridge,
+)
+from payments_processor.models import (
+    PaymentTransaction,
+)
+from payments_processor.enums import PaymentTransactionStatus
 
 class PaymentApplicationService:
     """
@@ -222,17 +229,54 @@ class PaymentApplicationService:
         payment_intent: PaymentIntent,
     ) -> dict[str, Any]:
         """
-        Handle special order settlement.
+        Apply a successful payment intent to a special order.
         """
-        special_order = payment_intent.payable
+        payment_transaction = (
+            PaymentTransaction.objects.filter(
+                payment_intent=payment_intent,
+                status=PaymentTransactionStatus.SUCCEEDED,
+            )
+            .order_by("-created_at")
+            .first()
+        )
 
-        if special_order is None:
-            raise PaymentError("Special order payable missing.")
+        if payment_transaction is None:
+            raise PaymentError(
+                "Cannot apply special order payment without a successful "
+                "payment transaction."
+            )
+        
+        intent_metadata = payment_intent.metadata or {}
+
+        ledger_entry_reference = str(
+            intent_metadata.get(
+                "ledger_entry_reference",
+                "",
+            )
+        )
+
+        if not ledger_entry_reference:
+            raise PaymentError(
+                "Cannot apply special order payment without a ledger reference."
+            )
+
+        payment_application = (
+            SpecialOrderPaymentsProcessorBridge.apply_successful_transaction(
+                payment_intent=payment_intent,
+                payment_transaction=payment_transaction,
+                ledger_entry_reference=ledger_entry_reference,
+                triggered_by=None,
+                metadata={
+                    "source": "payments_processor_application_service",
+                },
+            )
+        )
 
         return {
             "domain": "special_orders",
-            "object_id": getattr(special_order, "pk", None),
-            "action": "mark_paid",
+            "object_id": payment_application.special_order_id,
+            "action": "payment_applied",
+            "payment_application_id": payment_application.id,
         }
 
     @staticmethod
@@ -402,3 +446,35 @@ class PaymentApplicationService:
             "object_id": payable.pk,
             "action": "mark_paid",
         }
+    
+    def _apply_domain_payment(
+        *,
+        payment_intent,
+        payment_transaction,
+        journal_entry,
+        triggered_by=None,
+    ) -> None:
+        """
+        Route successful payment to the correct domain.
+        """
+        metadata = payment_intent.metadata or {}
+
+        payable_type = metadata.get("payable_type")
+
+        if payable_type == "special_order":
+            SpecialOrderPaymentsProcessorBridge.apply_successful_transaction(
+                payment_intent=payment_intent,
+                payment_transaction=payment_transaction,
+                ledger_entry_reference=str(journal_entry.id),
+                triggered_by=triggered_by,
+                metadata={
+                    "provider": payment_transaction.provider,
+                    "provider_reference": (
+                        payment_transaction.provider_reference
+                    ),
+                },
+            )
+
+        # future:
+        # elif payable_type == "order":
+        #     OrderPaymentsBridge.apply(...)

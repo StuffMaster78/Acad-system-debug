@@ -6,7 +6,7 @@ from typing import Any, cast
 from django.db import transaction
 from django.utils import timezone
 
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 from payments_processor.services.payment_provider_service import (
     PaymentProviderService,
 )
@@ -73,13 +73,14 @@ class PaymentOrchestrationService:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         try:
-            AuditLogService.log_auto(
+            AuditService.record(
                 action=action,
                 actor=actor,
-                target=payment_intent,
+                obj=payment_intent,
+                website=payment_intent.website,
                 metadata={
                     "payment_intent_id": getattr(
-                        payment_intent, "pk", None
+                        payment_intent, "payment_provider_id", ""
                     ),
                     "reference": PaymentOrchestrationService._get_reference(
                         payment_intent

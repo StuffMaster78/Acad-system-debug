@@ -52,7 +52,7 @@ export const coreNavigation = [
     description: 'Payments and financial operations',
     quickLinks: [
       { label: 'Client Payments', to: '/admin/payments/client-payments', icon: 'credit-card' },
-      { label: 'Writer Payments', to: '/admin/payments/writer-payments', icon: 'cash' },
+      { label: 'Writer Compensation', to: '/admin/payments/writer-payments', icon: 'cash' },
       { label: 'Invoices', to: '/admin/invoices', icon: 'document-text' },
       { label: 'Refunds', to: '/admin/refunds', icon: 'arrow-left' },
       { label: 'Wallets', to: '/admin/wallets', icon: 'wallet' },

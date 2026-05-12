@@ -13,7 +13,7 @@ from editor_management.models import EditorProfile, EditorTaskAssignment
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from notifications_system.services.notification_service import NotificationService
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 
 
 class EditorAssignmentService:
@@ -42,7 +42,7 @@ class EditorAssignmentService:
         """
         if order.status != OrderStatus.UNDER_EDITING.value:
             raise ValidationError(
-                f"Order {order.id} must be in 'under_editing' status for editor assignment."
+                f"Order {order.pk} must be in 'under_editing' status for editor assignment."
             )
         
         # Check if already assigned
@@ -118,12 +118,13 @@ class EditorAssignmentService:
             assignment.save()
         
         # Log action
-        AuditLogService.log_auto(
+        AuditService.record(
             action="Editor task auto-assigned",
             actor=None,  # System action
-            target=order,
+            obj=order,
+            website=website,
             metadata={
-                "assigned_editor": best_editor.user.username,
+                "assigned_editor": best_editor.username,
                 "assignment_type": "auto",
             },
         )
@@ -134,7 +135,7 @@ class EditorAssignmentService:
             recipient=best_editor.user,
             website=website,
             context={
-                "order_id": order.id,
+                "order_id": order.pk,
                 "order_topic": order.topic,
                 "assignment_type": "auto",
             },
@@ -171,7 +172,7 @@ class EditorAssignmentService:
         """
         if order.status != OrderStatus.UNDER_EDITING.value:
             raise ValidationError(
-                f"Order {order.id} must be in 'under_editing' status for editor assignment."
+                f"Order {order.pk} must be in 'under_editing' status for editor assignment."
             )
         
         if not editor.can_take_more_tasks():
@@ -204,10 +205,11 @@ class EditorAssignmentService:
             assignment.save()
         
         # Log action
-        AuditLogService.log_auto(
+        AuditService.record(
             actor=assigned_by,
             action="Editor task manually assigned",
-            target=order,
+            obj=order,
+            website=order.website,
             metadata={
                 "assigned_editor": editor.user.username,
                 "assigned_by": assigned_by.username,
@@ -221,7 +223,7 @@ class EditorAssignmentService:
             recipient=editor.user,
             website=editor.website,
             context={
-                "order_id": order.id,
+                "order_id": order.pk,
                 "order_topic": order.topic,
                 "assignment_type": "manual",
                 "assigned_by": assigned_by.username,
@@ -255,7 +257,7 @@ class EditorAssignmentService:
         """
         if order.status != OrderStatus.UNDER_EDITING.value:
             raise ValidationError(
-                f"Order {order.id} must be in 'under_editing' status to be claimed."
+                f"Order {order.pk} must be in 'under_editing' status to be claimed."
             )
         
         if not editor.can_self_assign:
@@ -284,12 +286,12 @@ class EditorAssignmentService:
             # Already exists - check if can be claimed
             if assignment.assigned_editor and assignment.assigned_editor != editor:
                 raise ValidationError(
-                    f"Order {order.id} is already assigned to {assignment.assigned_editor.name}."
+                    f"Order {order.pk} is already assigned to {assignment.assigned_editor.name}."
                 )
             
             if assignment.review_status not in ['pending', 'unclaimed']:
                 raise ValidationError(
-                    f"Order {order.id} cannot be claimed (current status: {assignment.review_status})."
+                    f"Order {order.pk} cannot be claimed (current status: {assignment.review_status})."
                 )
             
             # Claim it
@@ -304,15 +306,16 @@ class EditorAssignmentService:
         EditorActionLog.objects.create(
             editor=editor,
             action_type="claimed_task",
-            action=f"Claimed order {order.id}",
+            action=f"Claimed order {order.pk}",
             related_order=order,
             related_task=assignment,
         )
         
-        AuditLogService.log_auto(
+        AuditService.record(
             actor=editor.user,
             action="Editor claimed task",
-            target=order,
+            obj=order,
+            website=order.website,
             metadata={
                 "assigned_editor": editor.user.username,
                 "assignment_type": "claimed",
@@ -353,7 +356,7 @@ class EditorAssignmentService:
         EditorActionLog.objects.create(
             editor=editor,
             action_type="unclaimed_task",
-            action=f"Unclaimed order {assignment.order.id}",
+            action=f"Unclaimed order {assignment.order.pk}",
             related_order=assignment.order,
             related_task=assignment,
         )

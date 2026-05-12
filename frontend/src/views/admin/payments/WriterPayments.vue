@@ -1,8 +1,8 @@
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 py-4">
     <PageHeader
-      title="Writer Payments"
-      subtitle="Writer payments grouped by bi-weekly and monthly periods"
+      title="Writer Compensation"
+      subtitle="Writer compensation grouped by bi-weekly and monthly cycles"
       @refresh="loadPayments"
     />
 
@@ -10,22 +10,22 @@
       <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-blue-700 truncate">Total Bi-Weekly</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight">${{ formatCurrency(summary.total_biweekly_amount || 0) }}</p>
-        <p class="text-xs text-blue-600">{{ summary.total_biweekly_payments || 0 }} payments</p>
+        <p class="text-xs text-blue-600">{{ summary.total_biweekly_payments || 0 }} entries</p>
       </div>
       <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-green-700 truncate">Total Monthly</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-green-900 break-all leading-tight">${{ formatCurrency(summary.total_monthly_amount || 0) }}</p>
-        <p class="text-xs text-green-600">{{ summary.total_monthly_payments || 0 }} payments</p>
+        <p class="text-xs text-green-600">{{ summary.total_monthly_payments || 0 }} entries</p>
       </div>
       <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
-        <p class="text-xs font-medium text-purple-700 truncate">Total Amount</p>
+        <p class="text-xs font-medium text-purple-700 truncate">Compensation Total</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">${{ formatCurrency((summary.total_biweekly_amount || 0) + (summary.total_monthly_amount || 0)) }}</p>
-        <p class="text-xs text-purple-600">{{ (summary.total_biweekly_payments || 0) + (summary.total_monthly_payments || 0) }} total payments</p>
+        <p class="text-xs text-purple-600">{{ (summary.total_biweekly_payments || 0) + (summary.total_monthly_payments || 0) }} total entries</p>
       </div>
       <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow border border-orange-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
-        <p class="text-xs font-medium text-orange-700 truncate">Periods</p>
+        <p class="text-xs font-medium text-orange-700 truncate">Cycles</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-orange-900 break-all leading-tight">{{ biweeklyPayments.length + monthlyPayments.length }}</p>
-        <p class="text-xs text-orange-600">payment periods</p>
+        <p class="text-xs text-orange-600">compensation cycles</p>
       </div>
     </div>
 
@@ -45,13 +45,13 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Period Type</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Cycle Type</label>
           <select
             v-model="filters.period_type"
             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             @change="loadPayments"
           >
-            <option value="both">Both Periods</option>
+            <option value="both">Both Cycles</option>
             <option value="biweekly">Bi-Weekly Only</option>
             <option value="monthly">Monthly Only</option>
           </select>
@@ -85,7 +85,7 @@
       </div>
     </div>
 
-    <!-- Payment Type Tabs -->
+    <!-- Compensation Type Tabs -->
     <div v-if="filters.period_type === 'both'" class="bg-white rounded-lg shadow border border-gray-200 mb-6">
       <div class="flex border-b border-gray-200">
         <button
@@ -99,7 +99,7 @@
         >
           <div class="flex items-center justify-center gap-2">
             <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-            <span>Bi-Weekly Payments</span>
+            <span>Bi-Weekly Compensation</span>
             <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
               {{ biweeklyPayments.length }}
             </span>
@@ -116,7 +116,7 @@
         >
           <div class="flex items-center justify-center gap-2">
             <div class="w-3 h-3 rounded-full bg-green-500"></div>
-            <span>Monthly Payments</span>
+            <span>Monthly Compensation</span>
             <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
               {{ monthlyPayments.length }}
             </span>
@@ -126,24 +126,24 @@
     </div>
 
     <div class="space-y-6">
-      <!-- Bi-Weekly Payments -->
+      <!-- Bi-Weekly Compensation -->
       <div v-if="(filters.period_type === 'both' && activePaymentTab === 'biweekly') || filters.period_type === 'biweekly'">
         <div class="flex items-center gap-3 mb-4">
           <div class="h-8 w-1 bg-blue-500 rounded-full"></div>
-          <h2 class="text-2xl font-bold text-gray-900">Bi-Weekly Payments</h2>
+          <h2 class="text-2xl font-bold text-gray-900">Bi-Weekly Compensation</h2>
           <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-            {{ biweeklyPayments.length }} periods
+            {{ biweeklyPayments.length }} cycles
           </span>
         </div>
         <div v-if="loading" class="text-center py-12">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p class="mt-2 text-gray-500">Loading payments...</p>
+          <p class="mt-2 text-gray-500">Loading compensation...</p>
         </div>
         <div v-else-if="biweeklyPayments.length === 0" class="bg-white rounded-lg shadow border border-gray-200 p-12 text-center">
           <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <p class="mt-4 text-gray-500 text-lg">No bi-weekly payments found</p>
+          <p class="mt-4 text-gray-500 text-lg">No bi-weekly compensation found</p>
         </div>
         <div v-else class="space-y-4">
           <div
@@ -204,19 +204,19 @@
                     <div class="text-2xl font-bold text-blue-900">
                       ${{ formatCurrency(period.total_amount || 0) }}
                     </div>
-                    <div class="text-xs text-blue-600 font-medium">Total Amount</div>
+                    <div class="text-xs text-blue-600 font-medium">Compensation Total</div>
               </div>
                   <button
                     v-if="!period.completed"
                     @click.stop="markPeriodAsPaid(period.schedule_id)"
                     :disabled="markingAsPaid"
                     class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-2"
-                    title="Mark all payments in this period as paid"
+                    title="Mark all compensation in this cycle as paid"
                   >
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    {{ markingAsPaid ? 'Processing...' : 'Mark All Paid' }}
+                    {{ markingAsPaid ? 'Processing...' : 'Mark Cycle Paid' }}
                   </button>
                 </div>
               </div>
@@ -227,7 +227,7 @@
                   <thead class="bg-gray-50">
                     <tr>
                       <th class="px-4 py-2 text-left">Writer</th>
-                      <th class="px-4 py-2 text-right">Amount</th>
+                      <th class="px-4 py-2 text-right">Compensation</th>
                       <th class="px-4 py-2 text-right">Tips</th>
                       <th class="px-4 py-2 text-right">Fines</th>
                       <th class="px-4 py-2 text-right">Total</th>
@@ -350,24 +350,24 @@
         </div>
       </div>
 
-      <!-- Monthly Payments -->
+      <!-- Monthly Compensation -->
       <div v-if="(filters.period_type === 'both' && activePaymentTab === 'monthly') || filters.period_type === 'monthly'">
         <div class="flex items-center gap-3 mb-4" :class="filters.period_type === 'both' ? '' : 'mt-8'">
           <div class="h-8 w-1 bg-green-500 rounded-full"></div>
-          <h2 class="text-2xl font-bold text-gray-900">Monthly Payments</h2>
+          <h2 class="text-2xl font-bold text-gray-900">Monthly Compensation</h2>
           <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-            {{ monthlyPayments.length }} periods
+            {{ monthlyPayments.length }} cycles
           </span>
         </div>
         <div v-if="loading" class="text-center py-12">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-          <p class="mt-2 text-gray-500">Loading payments...</p>
+          <p class="mt-2 text-gray-500">Loading compensation...</p>
         </div>
         <div v-else-if="monthlyPayments.length === 0" class="bg-white rounded-lg shadow border border-gray-200 p-12 text-center">
           <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <p class="mt-4 text-gray-500 text-lg">No monthly payments found</p>
+          <p class="mt-4 text-gray-500 text-lg">No monthly compensation found</p>
         </div>
         <div v-else class="space-y-4">
           <div
@@ -428,19 +428,19 @@
                     <div class="text-2xl font-bold text-green-900">
                       ${{ formatCurrency(period.total_amount || 0) }}
                     </div>
-                    <div class="text-xs text-green-600 font-medium">Total Amount</div>
+                    <div class="text-xs text-green-600 font-medium">Compensation Total</div>
               </div>
                   <button
                     v-if="!period.completed"
                     @click.stop="markPeriodAsPaid(period.schedule_id)"
                     :disabled="markingAsPaid"
                     class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-2"
-                    title="Mark all payments in this period as paid"
+                    title="Mark all compensation in this cycle as paid"
                   >
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    {{ markingAsPaid ? 'Processing...' : 'Mark All Paid' }}
+                    {{ markingAsPaid ? 'Processing...' : 'Mark Cycle Paid' }}
                   </button>
                 </div>
               </div>
@@ -470,7 +470,7 @@
                     <tr>
                       <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Writer</th>
                       <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Orders</th>
-                      <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Amount</th>
+                      <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Compensation</th>
                       <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Tips</th>
                       <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Fines</th>
                       <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
@@ -551,7 +551,7 @@
                         <button
                           @click.stop="viewPaymentDetails(payment)"
                               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="View payment details"
+                              title="View compensation details"
                             >
                               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -610,19 +610,19 @@
               </div>
             </div>
             <div v-else-if="expandedPeriods[period.schedule_id] && period.payments.length === 0" class="p-6 text-center text-gray-500">
-              No payments in this period
+              No compensation entries in this cycle
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Payment Details Modal -->
+    <!-- Compensation Details Modal -->
     <div v-if="showPaymentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="showPaymentModal = false">
       <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
         <div class="p-6">
           <div class="flex items-center justify-between mb-6 border-b pb-4">
-            <h3 class="text-2xl font-bold text-gray-900">Payment Details</h3>
+            <h3 class="text-2xl font-bold text-gray-900">Compensation Details</h3>
             <button @click="showPaymentModal = false" class="text-gray-500 hover:text-gray-700 text-2xl transition-colors">✕</button>
           </div>
 
@@ -631,12 +631,12 @@
           </div>
 
           <div v-else-if="selectedPayment" class="space-y-6">
-            <!-- Payment Summary -->
+            <!-- Compensation Summary -->
             <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
               <div class="flex items-start justify-between mb-4">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm flex-1">
                 <div>
-                    <span class="text-gray-600 font-medium">Payment ID:</span>
+                    <span class="text-gray-600 font-medium">Compensation ID:</span>
                     <div class="font-mono font-medium text-gray-900 mt-1">{{ selectedPayment.reference_code }}</div>
                 </div>
                 <div>
@@ -679,7 +679,7 @@
                   @click="markPaymentAsPaid(selectedPayment.id)"
                   :disabled="markingAsPaid"
                   class="ml-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-2"
-                  title="Mark this payment as paid"
+                  title="Mark this compensation as paid"
                 >
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -902,8 +902,8 @@ const viewPaymentDetails = async (payment) => {
     const response = await paymentsAPI.getPaymentBreakdown(payment.id)
     paymentBreakdown.value = response.data
   } catch (err) {
-    console.error('Failed to load payment breakdown:', err)
-    error('Failed to load payment breakdown: ' + (err.response?.data?.detail || err.message))
+    console.error('Failed to load compensation breakdown:', err)
+    error('Failed to load compensation breakdown: ' + (err.response?.data?.detail || err.message))
     paymentBreakdown.value = null
   } finally {
     breakdownLoading.value = false
@@ -912,9 +912,9 @@ const viewPaymentDetails = async (payment) => {
 
 const markPaymentAsPaid = async (paymentId) => {
   confirmDialog.value = {
-    title: 'Mark Payment as Paid',
-    message: 'Are you sure you want to mark this payment as paid?',
-    details: 'This action will update the payment status and cannot be undone.',
+    title: 'Mark Compensation as Paid',
+    message: 'Are you sure you want to mark this compensation as paid?',
+    details: 'This action will update the compensation status and cannot be undone.',
     icon: '💰',
     variant: 'default',
     confirmText: 'Mark as Paid',
@@ -923,7 +923,7 @@ const markPaymentAsPaid = async (paymentId) => {
       markingAsPaid.value = true
       try {
         await apiClient.post(`/writer-wallet/scheduled-payments/${paymentId}/mark-as-paid/`)
-        success('Payment marked as paid successfully!')
+        success('Compensation marked as paid successfully!')
         await loadPayments()
         // Refresh modal if open
         if (selectedPayment.value && selectedPayment.value.id === paymentId) {
@@ -931,8 +931,8 @@ const markPaymentAsPaid = async (paymentId) => {
           selectedPayment.value.payment_date = new Date().toISOString()
         }
       } catch (err) {
-        console.error('Failed to mark payment as paid:', err)
-        error('Failed to mark payment as paid: ' + (err.response?.data?.error || err.message))
+        console.error('Failed to mark compensation as paid:', err)
+        error('Failed to mark compensation as paid: ' + (err.response?.data?.error || err.message))
       } finally {
         markingAsPaid.value = false
       }
@@ -948,12 +948,12 @@ const markPeriodAsPaid = async (scheduleId) => {
   const totalAmount = period?.total_amount || 0
   
   confirmDialog.value = {
-    title: 'Mark All Payments as Paid',
-    message: `Are you sure you want to mark all ${paymentCount} payments in this period as paid?`,
-    details: `This will mark ${paymentCount} payment(s) totaling $${formatCurrency(totalAmount)} as paid. This action cannot be undone.`,
+    title: 'Mark Compensation as Paid',
+    message: `Are you sure you want to mark all ${paymentCount} compensation entries in this cycle as paid?`,
+    details: `This will mark ${paymentCount} compensation entr${paymentCount === 1 ? 'y' : 'ies'} totaling $${formatCurrency(totalAmount)} as paid. This action cannot be undone.`,
     icon: '💰',
     variant: 'default',
-    confirmText: 'Mark All as Paid',
+    confirmText: 'Mark Cycle Paid',
     cancelText: 'Cancel',
     onConfirm: async () => {
       markingAsPaid.value = true
@@ -961,11 +961,11 @@ const markPeriodAsPaid = async (scheduleId) => {
         await apiClient.post('/writer-wallet/scheduled-payments/bulk-mark-as-paid/', {
           schedule_id: scheduleId
         })
-        success(`All ${paymentCount} payments in this period have been marked as paid!`)
+        success(`All ${paymentCount} compensation entries in this cycle have been marked as paid!`)
         await loadPayments()
       } catch (err) {
-        console.error('Failed to mark payments as paid:', err)
-        error('Failed to mark payments as paid: ' + (err.response?.data?.error || err.message))
+        console.error('Failed to mark compensation as paid:', err)
+        error('Failed to mark compensation as paid: ' + (err.response?.data?.error || err.message))
       } finally {
         markingAsPaid.value = false
       }
@@ -1022,4 +1022,3 @@ onMounted(async () => {
   @apply bg-white rounded-lg shadow-sm p-6;
 }
 </style>
-

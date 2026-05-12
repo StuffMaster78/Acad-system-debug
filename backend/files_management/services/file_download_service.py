@@ -51,7 +51,9 @@ class FileDownloadService:
         if attachment.external_link:
             return attachment.external_link.url
 
-        raise FileNotAvailable("Attachment has no downloadable source.")
+        raise FileNotAvailable(
+            "Attachment has no downloadable source."
+        )
 
     @classmethod
     def _get_managed_file_download_url(

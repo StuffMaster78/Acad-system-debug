@@ -77,7 +77,7 @@ class FileAccessService:
         if not cls._is_authenticated(user=user):
             return False
 
-        if attachment.website_id != website.id:
+        if attachment.website.id != website.id:
             return False
 
         if not attachment.is_active:

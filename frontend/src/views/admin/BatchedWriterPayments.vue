@@ -2,15 +2,15 @@
   <div class="space-y-6 p-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Writer Payment Management</h1>
-        <p class="mt-2 text-gray-600">Manage writer payments, requests, and reconciliation</p>
+        <h1 class="text-3xl font-bold text-gray-900">Writer Compensation</h1>
+        <p class="mt-2 text-gray-600">Manage writer compensation, payout requests, and reconciliation</p>
       </div>
       <div class="flex gap-2">
         <router-link
           to="/admin/payments/all"
           class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
         >
-          All Payments
+          Compensation Ledger
         </router-link>
         <router-link
           to="/admin/financial-overview"
@@ -23,7 +23,7 @@
           @click="showClearModal = true"
           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
-          Mark All as Paid
+          Mark Compensation Paid
         </button>
       </div>
     </div>
@@ -40,7 +40,7 @@
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
-          Payments
+          Compensation
         </button>
         <button
           @click="activeTab = 'requests'"
@@ -51,7 +51,7 @@
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
-          Payment Requests
+          Payout Requests
         </button>
         <button
           @click="activeTab = 'reconciliation'"
@@ -67,9 +67,9 @@
       </nav>
     </div>
 
-    <!-- Payments Tab -->
+    <!-- Compensation Tab -->
     <div v-if="activeTab === 'payments'">
-      <!-- Payment Type Sub-Tabs -->
+      <!-- Compensation Type Sub-Tabs -->
       <div class="border-b border-gray-200 mb-6">
         <nav class="-mb-px flex space-x-6">
           <button
@@ -81,7 +81,7 @@
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
-            All Payments
+            Compensation Ledger
           </button>
           <button
             @click="paymentTypeTab = 'biweekly'"
@@ -92,7 +92,7 @@
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
-            Bi-Weekly Payments
+            Bi-Weekly Compensation
           </button>
           <button
             @click="paymentTypeTab = 'monthly'"
@@ -103,7 +103,7 @@
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
-            Monthly Payments
+            Monthly Compensation
           </button>
         </nav>
       </div>
@@ -112,9 +112,9 @@
       <div class="bg-white rounded-lg shadow border border-gray-200 p-4">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm font-medium mb-1 text-gray-700">Period Type</label>
+          <label class="block text-sm font-medium mb-1 text-gray-700">Cycle Type</label>
           <select v-model="filters.period_type" @change="loadPayments" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <option value="both">All Periods</option>
+            <option value="both">All Cycles</option>
             <option value="biweekly">Bi-Weekly</option>
             <option value="monthly">Monthly</option>
           </select>
@@ -151,35 +151,35 @@
         <div v-if="paymentTypeTab === 'all' || paymentTypeTab === 'biweekly'" class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-blue-700 truncate">Total Bi-Weekly</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight">${{ formatCurrency(summary.total_biweekly_amount || 0) }}</p>
-          <p class="text-xs text-blue-600">{{ summary.total_biweekly_payments || 0 }} payments</p>
+          <p class="text-xs text-blue-600">{{ summary.total_biweekly_payments || 0 }} entries</p>
       </div>
         <div v-if="paymentTypeTab === 'all' || paymentTypeTab === 'monthly'" class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-green-700 truncate">Total Monthly</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-green-900 break-all leading-tight">${{ formatCurrency(summary.total_monthly_amount || 0) }}</p>
-          <p class="text-xs text-green-600">{{ summary.total_monthly_payments || 0 }} payments</p>
+          <p class="text-xs text-green-600">{{ summary.total_monthly_payments || 0 }} entries</p>
       </div>
         <div v-if="paymentTypeTab === 'all'" class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
-          <p class="text-xs font-medium text-purple-700 truncate">Total Amount</p>
+          <p class="text-xs font-medium text-purple-700 truncate">Compensation Total</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">${{ formatCurrency((summary.total_biweekly_amount || 0) + (summary.total_monthly_amount || 0)) }}</p>
       </div>
         <div v-if="paymentTypeTab === 'all'" class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow border border-orange-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
-          <p class="text-xs font-medium text-orange-700 truncate">Total Payments</p>
+          <p class="text-xs font-medium text-orange-700 truncate">Total Entries</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-orange-900 break-all leading-tight">{{ (summary.total_biweekly_payments || 0) + (summary.total_monthly_payments || 0) }}</p>
         </div>
         <div v-if="paymentTypeTab === 'biweekly'" class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
-          <p class="text-xs font-medium text-purple-700 truncate">Total Amount</p>
+          <p class="text-xs font-medium text-purple-700 truncate">Compensation Total</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">${{ formatCurrency(summary.total_biweekly_amount || 0) }}</p>
         </div>
         <div v-if="paymentTypeTab === 'monthly'" class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
-          <p class="text-xs font-medium text-purple-700 truncate">Total Amount</p>
+          <p class="text-xs font-medium text-purple-700 truncate">Compensation Total</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">${{ formatCurrency(summary.total_monthly_amount || 0) }}</p>
       </div>
     </div>
 
-    <!-- Bi-Weekly Payments -->
+    <!-- Bi-Weekly Compensation -->
       <div v-if="(paymentTypeTab === 'all' || paymentTypeTab === 'biweekly') && biweeklyPayments.length > 0" class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
-          <h2 class="text-xl font-semibold text-blue-900">Bi-Weekly Payments</h2>
+          <h2 class="text-xl font-semibold text-blue-900">Bi-Weekly Compensation</h2>
       </div>
       <div class="divide-y divide-gray-200">
         <div
@@ -230,7 +230,7 @@
                   :disabled="markingAsPaid"
                   class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
                 >
-                  {{ markingAsPaid ? 'Processing...' : 'Mark All as Paid' }}
+                  {{ markingAsPaid ? 'Processing...' : 'Mark Cycle Paid' }}
                 </button>
                 <span v-if="expandedPeriods[period.schedule_id]" class="text-xs text-blue-600 font-medium">
                   Click to collapse
@@ -242,7 +242,7 @@
             </div>
           </div>
 
-          <!-- Expanded Payment Details -->
+          <!-- Expanded Compensation Details -->
           <div v-if="expandedPeriods[period.schedule_id]" class="bg-gray-50 px-6 py-4 border-t border-gray-200">
             <div class="mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div class="bg-white rounded-lg p-3 border border-gray-200">
@@ -263,12 +263,12 @@
               </div>
             </div>
 
-            <!-- Payments Table -->
+            <!-- Compensation Table -->
             <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200" style="min-width: 1200px;">
               <thead class="bg-gray-100">
                 <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Payment ID</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Compensation ID</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Writer</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Email</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Orders</th>
@@ -356,10 +356,10 @@
       </div>
     </div>
 
-    <!-- Monthly Payments -->
+    <!-- Monthly Compensation -->
       <div v-if="(paymentTypeTab === 'all' || paymentTypeTab === 'monthly') && monthlyPayments.length > 0" class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-green-100">
-        <h2 class="text-xl font-semibold text-green-900">Monthly Payments</h2>
+        <h2 class="text-xl font-semibold text-green-900">Monthly Compensation</h2>
       </div>
       <div class="divide-y divide-gray-200">
         <div
@@ -410,7 +410,7 @@
                   :disabled="markingAsPaid"
                   class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
                 >
-                  {{ markingAsPaid ? 'Processing...' : 'Mark All as Paid' }}
+                  {{ markingAsPaid ? 'Processing...' : 'Mark Cycle Paid' }}
                 </button>
                 <span v-if="expandedPeriods[period.schedule_id]" class="text-xs text-green-600 font-medium">
                   Click to collapse
@@ -422,7 +422,7 @@
             </div>
           </div>
 
-          <!-- Expanded Payment Details -->
+          <!-- Expanded Compensation Details -->
           <div v-if="expandedPeriods[period.schedule_id]" class="bg-gray-50 px-6 py-4 border-t border-gray-200">
             <div class="mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div class="bg-white rounded-lg p-3 border border-gray-200">
@@ -443,12 +443,12 @@
               </div>
             </div>
 
-            <!-- Payments Table -->
+            <!-- Compensation Table -->
             <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200" style="min-width: 1200px;">
               <thead class="bg-gray-100">
                 <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Payment ID</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Compensation ID</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Writer</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Email</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Orders</th>
@@ -524,19 +524,19 @@
         (paymentTypeTab === 'monthly' && monthlyPayments.length === 0)
       )" class="bg-white rounded-lg shadow-sm p-12 text-center">
         <p class="text-gray-500 text-lg">
-          <span v-if="paymentTypeTab === 'biweekly'">No bi-weekly payment periods found</span>
-          <span v-else-if="paymentTypeTab === 'monthly'">No monthly payment periods found</span>
-          <span v-else>No payment periods found</span>
+          <span v-if="paymentTypeTab === 'biweekly'">No bi-weekly compensation cycles found</span>
+          <span v-else-if="paymentTypeTab === 'monthly'">No monthly compensation cycles found</span>
+          <span v-else>No compensation cycles found</span>
         </p>
       </div>
     </div>
 
-    <!-- Payment Breakdown Modal -->
+    <!-- Compensation Breakdown Modal -->
     <div v-if="showBreakdownModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-2xl font-bold">Payment Breakdown</h3>
+            <h3 class="text-2xl font-bold">Compensation Breakdown</h3>
             <button @click="showBreakdownModal = false" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
           </div>
 
@@ -575,17 +575,17 @@
                   <div class="font-medium text-lg">{{ paymentBreakdown.total_writers }}</div>
                 </div>
                 <div>
-                  <span class="text-gray-600">Total Amount:</span>
+                  <span class="text-gray-600">Compensation Total:</span>
                   <div class="font-medium text-lg text-green-600">${{ formatCurrency(paymentBreakdown.total_amount) }}</div>
                 </div>
               </div>
             </div>
             
-            <!-- Payment Summary (for individual payment breakdown) -->
+            <!-- Compensation Summary (for individual compensation breakdown) -->
             <div v-else class="bg-gray-50 rounded-lg p-4">
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <span class="text-gray-600">Payment ID:</span>
+                  <span class="text-gray-600">Compensation ID:</span>
                   <div class="font-mono font-medium">{{ paymentBreakdown.reference_code }}</div>
                 </div>
                 <div>
@@ -640,7 +640,7 @@
                       <div class="text-xs text-gray-400">{{ writer.registration_id }}</div>
                     </div>
                     <div class="text-right">
-                      <div class="text-sm text-gray-600">Total Amount</div>
+                      <div class="text-sm text-gray-600">Compensation Total</div>
                       <div class="text-xl font-bold text-green-600">${{ formatCurrency(writer.total_amount) }}</div>
                       <div>
                         <span :class="getStatusClass(writer.status)" class="px-2 py-1 rounded-full text-xs font-medium">
@@ -681,7 +681,7 @@
               </div>
             </div>
             
-            <!-- Orders (for individual payment breakdown) -->
+            <!-- Orders (for individual compensation breakdown) -->
             <div v-else>
               <h4 class="text-lg font-semibold mb-3">Orders ({{ paymentBreakdown.orders?.length || 0 }})</h4>
               <div class="overflow-x-auto">
@@ -789,7 +789,7 @@
       </div>
     </div>
 
-    <!-- Payment Requests Tab -->
+    <!-- Payout Requests Tab -->
     <div v-if="activeTab === 'requests'" class="space-y-6">
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -809,7 +809,7 @@
           <p class="text-xs text-red-600">rejected requests</p>
         </div>
         <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
-          <p class="text-xs font-medium text-blue-700 truncate">Total Amount</p>
+          <p class="text-xs font-medium text-blue-700 truncate">Compensation Total</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight">${{ formatCurrency(paymentRequestsSummary.total_amount || 0) }}</p>
           <p class="text-xs text-blue-600">all requests</p>
         </div>
@@ -875,7 +875,7 @@
         </div>
       </div>
 
-      <!-- Payment Requests Table -->
+      <!-- Payout Requests Table -->
       <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div v-if="paymentRequestsLoading" class="flex items-center justify-center py-12">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -885,7 +885,7 @@
           <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <p class="mt-2 text-sm font-medium">No payment requests found</p>
+          <p class="mt-2 text-sm font-medium">No payout requests found</p>
           <p class="mt-1 text-xs text-gray-400">Try adjusting your filters</p>
         </div>
         
@@ -971,12 +971,12 @@
     <!-- Reconciliation Tab -->
     <div v-if="activeTab === 'reconciliation'" class="space-y-4">
       <div class="bg-white rounded-lg shadow-sm p-6">
-        <h2 class="text-xl font-semibold mb-4">Payment Adjustments</h2>
+        <h2 class="text-xl font-semibold mb-4">Compensation Adjustments</h2>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200" style="min-width: 800px;">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment ID</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compensation ID</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Adjustment</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
@@ -1004,7 +1004,7 @@
     <!-- Move to Next Period Modal -->
     <div v-if="showMoveModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 max-w-md w-full">
-        <h3 class="text-lg font-semibold mb-4">Move Payment to Next Period</h3>
+        <h3 class="text-lg font-semibold mb-4">Move Compensation to Next Cycle</h3>
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium mb-1">Reason (required)</label>
@@ -1012,11 +1012,11 @@
               v-model="moveReason"
               class="w-full border rounded px-3 py-2"
               rows="3"
-              placeholder="Enter reason for moving this payment..."
+              placeholder="Enter reason for moving this compensation..."
             ></textarea>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Target Period Type</label>
+            <label class="block text-sm font-medium mb-1">Target Cycle Type</label>
             <select v-model="targetPeriodType" class="w-full border rounded px-3 py-2">
               <option value="">Same as current</option>
               <option value="biweekly">Bi-Weekly</option>
@@ -1028,7 +1028,7 @@
               Cancel
             </button>
             <button @click="moveToNextPeriod" class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">
-              Move Payment
+              Move Compensation
             </button>
           </div>
         </div>
@@ -1038,7 +1038,7 @@
     <!-- Adjust for Order Status Modal -->
     <div v-if="showAdjustModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 max-w-md w-full">
-        <h3 class="text-lg font-semibold mb-4">Adjust Payment for Order Status</h3>
+        <h3 class="text-lg font-semibold mb-4">Adjust Compensation for Order Status</h3>
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium mb-1">Order Status</label>
@@ -1063,24 +1063,24 @@
               Cancel
             </button>
             <button @click="adjustForOrderStatus" class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">
-              Adjust Payment
+              Adjust Compensation
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Mark All as Paid Modal (Clear Payments) -->
+    <!-- Mark Compensation Paid Modal -->
     <div v-if="showClearModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 max-w-md w-full">
-        <h3 class="text-lg font-semibold mb-4">Mark Payments as Paid</h3>
+        <h3 class="text-lg font-semibold mb-4">Mark Compensation as Paid</h3>
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium mb-1">Clear Options</label>
             <select v-model="clearOption" class="w-full border rounded px-3 py-2">
               <option value="all">All Writers</option>
               <option value="writer">Specific Writer</option>
-              <option value="selected">Selected Payments</option>
+              <option value="selected">Selected Compensation</option>
             </select>
           </div>
           <div v-if="clearOption === 'writer'">
@@ -1089,7 +1089,7 @@
           </div>
           <div class="bg-blue-50 border border-blue-200 rounded p-3">
             <p class="text-sm text-blue-800">
-              <strong>Note:</strong> "Clear Payments" will mark all selected payments as paid. This action cannot be undone.
+              <strong>Note:</strong> This will mark the selected compensation as paid. This action cannot be undone.
             </p>
           </div>
           <div class="flex gap-2 justify-end">
@@ -1251,8 +1251,8 @@ const viewPaymentBreakdown = async (paymentId) => {
     const response = await apiClient.get(`/writer-wallet/scheduled-payments/${paymentId}/breakdown/`)
     paymentBreakdown.value = response.data
   } catch (err) {
-    console.error('Failed to load payment breakdown:', err)
-    error('Failed to load payment breakdown: ' + (err.response?.data?.detail || err.message))
+    console.error('Failed to load compensation breakdown:', err)
+    error('Failed to load compensation breakdown: ' + (err.response?.data?.detail || err.message))
     showBreakdownModal.value = false
   } finally {
     breakdownLoading.value = false
@@ -1271,7 +1271,7 @@ const resetFilters = () => {
 const markPaymentAsPaid = async (paymentId) => {
   confirmDialog.value = {
     title: 'Mark Payment as Paid',
-    message: 'Are you sure you want to mark this payment as paid?',
+    message: 'Are you sure you want to mark this compensation as paid?',
     icon: '💰',
     variant: 'default',
     confirmText: 'Mark as Paid',
@@ -1280,11 +1280,11 @@ const markPaymentAsPaid = async (paymentId) => {
   markingAsPaid.value = true
   try {
     await apiClient.post(`/writer-wallet/scheduled-payments/${paymentId}/mark-as-paid/`)
-        success('Payment marked as paid successfully!')
+        success('Compensation marked as paid successfully!')
     await loadPayments()
       } catch (err) {
-        console.error('Failed to mark payment as paid:', err)
-        error('Failed to mark payment as paid: ' + (err.response?.data?.error || err.message))
+        console.error('Failed to mark compensation as paid:', err)
+        error('Failed to mark compensation as paid: ' + (err.response?.data?.error || err.message))
   } finally {
     markingAsPaid.value = false
   }
@@ -1296,8 +1296,8 @@ const markPaymentAsPaid = async (paymentId) => {
 
 const markPeriodAsPaid = async (scheduleId) => {
   confirmDialog.value = {
-    title: 'Mark All Payments as Paid',
-    message: 'Are you sure you want to mark all payments in this period as paid?',
+    title: 'Mark Compensation as Paid',
+    message: 'Are you sure you want to mark all compensation in this cycle as paid?',
     icon: '💰',
     variant: 'default',
     confirmText: 'Mark All as Paid',
@@ -1308,11 +1308,11 @@ const markPeriodAsPaid = async (scheduleId) => {
     await apiClient.post('/writer-wallet/scheduled-payments/bulk-mark-as-paid/', {
       schedule_id: scheduleId
     })
-        success('All payments in this period have been marked as paid!')
+        success('All compensation in this cycle has been marked as paid!')
     await loadPayments()
       } catch (err) {
-        console.error('Failed to mark payments as paid:', err)
-        error('Failed to mark payments as paid: ' + (err.response?.data?.error || err.message))
+        console.error('Failed to mark compensation as paid:', err)
+        error('Failed to mark compensation as paid: ' + (err.response?.data?.error || err.message))
   } finally {
     markingAsPaid.value = false
   }
@@ -1358,7 +1358,7 @@ const showMoveToNextPeriodModal = (payment) => {
 
 const moveToNextPeriod = async () => {
   if (!moveReason.value.trim()) {
-    warning('Please enter a reason for moving this payment')
+    warning('Please enter a reason for moving this compensation')
     return
   }
 
@@ -1367,13 +1367,13 @@ const moveToNextPeriod = async () => {
       reason: moveReason.value,
       target_period_type: targetPeriodType.value || null
     })
-    success(response.data.message || 'Payment moved to next period successfully')
+    success(response.data.message || 'Compensation moved to next cycle successfully')
     showMoveModal.value = false
     await loadPayments()
     await loadAdjustments()
   } catch (err) {
-    console.error('Failed to move payment:', err)
-    error('Failed to move payment: ' + (err.response?.data?.error || err.message))
+    console.error('Failed to move compensation:', err)
+    error('Failed to move compensation: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -1395,20 +1395,20 @@ const adjustForOrderStatus = async () => {
       order_status: orderStatus.value,
       reason: adjustReason.value
     })
-    success(response.data.message || 'Payment adjusted successfully')
+    success(response.data.message || 'Compensation adjusted successfully')
     showAdjustModal.value = false
     await loadPayments()
     await loadAdjustments()
   } catch (err) {
-    console.error('Failed to adjust payment:', err)
-    error('Failed to adjust payment: ' + (err.response?.data?.error || err.message))
+    console.error('Failed to adjust compensation:', err)
+    error('Failed to adjust compensation: ' + (err.response?.data?.error || err.message))
   }
 }
 
 const clearPayments = async () => {
   confirmDialog.value = {
-    title: 'Mark Payments as Paid',
-    message: 'Are you sure you want to mark these payments as paid?',
+    title: 'Mark Compensation as Paid',
+    message: 'Are you sure you want to mark this compensation as paid?',
     details: 'This action cannot be undone.',
     icon: '⚠️',
     variant: 'warning',
@@ -1426,7 +1426,7 @@ const clearPayments = async () => {
     }
 
     const response = await writerPaymentsAPI.clearPayments(data)
-        success(response.data.message || 'Payments marked as paid successfully')
+        success(response.data.message || 'Compensation marked as paid successfully')
     showClearModal.value = false
     await loadPayments()
       } catch (err) {
@@ -1533,8 +1533,8 @@ const loadPaymentRequests = async () => {
       previous: response.data.previous,
     }
   } catch (err) {
-    console.error('Failed to load payment requests:', err)
-    error('Failed to load payment requests')
+    console.error('Failed to load payout requests:', err)
+    error('Failed to load payout requests')
     paymentRequests.value = []
   } finally {
     paymentRequestsLoading.value = false
@@ -1570,8 +1570,8 @@ const getPaymentRequestStatusClass = (status) => {
 
 const approvePaymentRequest = (request) => {
   confirmDialog.value = {
-    title: 'Approve Payment Request',
-    message: `Are you sure you want to approve this payment request of $${formatCurrency(request.requested_amount)}?`,
+    title: 'Approve Payout Request',
+    message: `Are you sure you want to approve this payout request of $${formatCurrency(request.requested_amount)}?`,
     icon: '✅',
     variant: 'default',
     confirmText: 'Approve',
@@ -1582,8 +1582,8 @@ const approvePaymentRequest = (request) => {
         success('Payment request approved successfully')
         await loadPaymentRequests()
       } catch (err) {
-        console.error('Failed to approve payment request:', err)
-        error('Failed to approve payment request: ' + (err.response?.data?.error || err.message))
+        console.error('Failed to approve payout request:', err)
+        error('Failed to approve payout request: ' + (err.response?.data?.error || err.message))
       }
     },
     onCancel: () => {},
@@ -1593,8 +1593,8 @@ const approvePaymentRequest = (request) => {
 
 const rejectPaymentRequest = (request) => {
   confirmDialog.value = {
-    title: 'Reject Payment Request',
-    message: `Are you sure you want to reject this payment request of $${formatCurrency(request.requested_amount)}?`,
+    title: 'Reject Payout Request',
+    message: `Are you sure you want to reject this payout request of $${formatCurrency(request.requested_amount)}?`,
     icon: '❌',
     variant: 'default',
     confirmText: 'Reject',
@@ -1607,8 +1607,8 @@ const rejectPaymentRequest = (request) => {
         success('Payment request rejected')
         await loadPaymentRequests()
       } catch (err) {
-        console.error('Failed to reject payment request:', err)
-        error('Failed to reject payment request: ' + (err.response?.data?.error || err.message))
+        console.error('Failed to reject payout request:', err)
+        error('Failed to reject payout request: ' + (err.response?.data?.error || err.message))
       }
     },
     onCancel: () => {},
@@ -1617,10 +1617,10 @@ const rejectPaymentRequest = (request) => {
 }
 
 const viewPaymentRequestDetails = (request) => {
-  info(`Payment Request Details:\nWriter: ${request.writer_wallet_data?.writer?.username || 'N/A'}\nAmount: $${formatCurrency(request.requested_amount)}\nStatus: ${request.status}\nReason: ${request.reason || 'N/A'}`)
+  info(`Payout Request Details:\nWriter: ${request.writer_wallet_data?.writer?.username || 'N/A'}\nAmount: $${formatCurrency(request.requested_amount)}\nStatus: ${request.status}\nReason: ${request.reason || 'N/A'}`)
 }
 
-// Watch for tab changes to load payment requests
+// Watch for tab changes to load payout requests
 watch(activeTab, (newTab) => {
   if (newTab === 'requests' && paymentRequests.value.length === 0) {
     loadPaymentRequests()
@@ -1632,10 +1632,9 @@ onMounted(() => {
   loadPayoutRequests()
   loadAdjustments()
   loadWebsites()
-  // Load payment requests when tab is active
+  // Load payout requests when tab is active
   if (activeTab.value === 'requests') {
     loadPaymentRequests()
   }
 })
 </script>
-

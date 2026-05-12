@@ -32,7 +32,10 @@ from orders.models.orders.order_reassignment_request import (
     OrderReassignmentRequestStatus,
     OrderReassignmentRequest,
 )
-
+from communications.services.participant_sync_service import (
+    CommunicationParticipantSyncService,
+)
+from communications.models.thread import CommunicationThread
 
 class OrderReassignmentService:
     """

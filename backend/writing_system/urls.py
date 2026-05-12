@@ -96,7 +96,8 @@ urlpatterns = [
     # Legacy alias for older frontend paths
     path('api/v1/wallet/api/', include('client_wallet.urls')),
     path('api/v1/writer-wallet/', include('writer_wallet.urls')),  # Writer Wallet Management
-    path('api/v1/writer-payments/', include('writer_payments_management.urls')),  # Writer Payments Management
+    path('api/v1/writer-compensation/', include('writer_compensation.urls')),  # Writer Compensation
+    path('api/v1/writer-payments/', include('writer_compensation.urls')),  # Legacy writer compensation alias
     path('api/v1/mass-emails/', include('mass_emails.urls')),
     path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
     path('api/v1/service-pages/', include('service_pages_management.urls')),
@@ -128,6 +129,11 @@ urlpatterns = [
     # Tests should use the /api/v1/ prefixed URLs instead
 
     # path('api/v1/billing/', include('billing.urls')),
+    path("api/v1/communications/", include("communications.urls")),
+    path(
+        "api/v1/writer-compensation/",
+        include("writer_compensation.urls"),
+    ),
 ]
 
 # Serve media and static files during development
