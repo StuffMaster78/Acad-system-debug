@@ -6,8 +6,7 @@ from django.db.models import Count, OuterRef, Q, Subquery, Sum
  
 from writer_compensation.enums.compensation_enums import (
     EventStatus,
-    PayoutItemStatus,
-    WindowStatus
+    WindowStatus,
 )
 
 from writer_compensation.models.compensation_event import (

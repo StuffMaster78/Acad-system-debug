@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import models
 
 from websites.models.websites import Website
-from writer_compensation.enums.financial_event_enums import (
+from writer_compensation.enums.compensation_enums import (
     PayoutRecordStatus,
 )
 
@@ -23,10 +23,12 @@ class PayoutRecord(models.Model):
     This is "intent to pay".
 
      Moves independently of other items in the same batch:
-        PENDING   → initial state when batch is created
-        CONFIRMED → admin has reviewed and confirmed this writer's total
-        PAID      → admin has paid this writer externally and marked it done
-        HELD      → admin has flagged this writer; unblocks when admin resolves
+        PENDING   -> initial state when batch is created
+        CONFIRMED -> admin has reviewed and confirmed this writer's total
+        PAID -> admin has paid this writer externally and marked it done
+        HELD -> admin has flagged this writer; unblocks when admin resolves
+        DEFERRED -> carried to next window (e.g. negative balance)
+        FAILED -> payment attempt failed externally
  
     A window can be marked DONE while some PayoutItems are still HELD.
     HELD items remain open indefinitely until admin resolves them.
@@ -37,7 +39,7 @@ class PayoutRecord(models.Model):
 
     website = models.ForeignKey(
         Website,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="payout_records",
     )
 
@@ -49,13 +51,19 @@ class PayoutRecord(models.Model):
 
     writer = models.ForeignKey(
         "writer_management.WriterProfile",
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="payout_records",
     )
 
+    # FIX: was non-nullable. WindowService.close_window() doesn't have a
+    # SettlementPeriod at batch-creation time — settlement runs separately.
+    # Made nullable so close_window() can create records without it.
+    # Service layer links settlement_period later during settlement pipeline.
     settlement_period = models.ForeignKey(
         "writer_compensation.SettlementPeriod",
-        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
         related_name="payout_records",
     )
 

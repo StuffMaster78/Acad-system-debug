@@ -20,8 +20,8 @@ class PayoutReconciliationReport(models.Model):
     )
 
     payout_batch = models.ForeignKey(
-        "writer_payments_management.PayoutBatch",
-        on_delete=models.CASCADE,
+        "writer_compensation.PayoutBatch",
+        on_delete=models.PROTECT,
         related_name="reconciliation_reports",
     )
 

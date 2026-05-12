@@ -8,14 +8,10 @@ from django.db import models
 from websites.models.websites import Website
 from writer_management.models.profile import WriterProfile
 
-from writer_compensation.enums.financial_event_enums import (
-    FinancialEventSource,
-)
-from writer_compensation.enums.financial_event_enums import (
-    FinancialEventStatus,
-)
-from writer_compensation.enums.financial_event_enums import (
-    FinancialEventType,
+from writer_compensation.enums.compensation_enums import (
+    EventSource,
+    EventStatus,
+    EventType,
 )
 
 User = settings.AUTH_USER_MODEL
@@ -41,14 +37,14 @@ class CompensationEvent(models.Model):
 
     website = models.ForeignKey(
         Website,
-        on_delete=models.CASCADE,
-        related_name="financial_events",
+        on_delete=models.PROTECT,
+        related_name="compensation_events",
     )
 
     writer = models.ForeignKey(
         WriterProfile,
-        on_delete=models.CASCADE,
-        related_name="financial_events",
+        on_delete=models.PROTECT,
+        related_name="compensation_events",
     )
 
     payment_window = models.ForeignKey(
@@ -57,20 +53,33 @@ class CompensationEvent(models.Model):
         related_name="events",
     )
 
+    # Set only on ADJUSTMENT events — points to the closed window being corrected.
+    # The event itself is assigned to the next open window.
+    related_window = models.ForeignKey(
+            'writer_compensation.PaymentWindow',
+            null=True,
+            blank=True,
+            on_delete=models.SET_NULL,
+            related_name="adjustment_events",
+            help_text=(
+                "Set when this event corrects something in a prior closed window. "
+                "The event itself lives in the current open window."
+            ),
+        )
     event_type = models.CharField(
         max_length=64,
-        choices=FinancialEventType.choices,
+        choices=EventType.choices,
     )
 
     source = models.CharField(
         max_length=64,
-        choices=FinancialEventSource.choices,
+        choices=EventSource.choices,
     )
 
     status = models.CharField(
         max_length=64,
-        choices=FinancialEventStatus.choices,
-        default=FinancialEventStatus.PENDING_CONFIRMATION,
+        choices=EventStatus.choices,
+        default=EventStatus.PENDING_CONFIRMATION,
     )
 
     amount = models.DecimalField(
@@ -101,6 +110,8 @@ class CompensationEvent(models.Model):
         blank=True,
     )
     notes = models.TextField(blank=True)
+    # Generic source pointer — nullable for general tips, bonuses, fines
+    # that are not tied to a specific order or class.
     source_type = models.CharField(
         max_length=64,
         blank=True,
@@ -111,20 +122,8 @@ class CompensationEvent(models.Model):
         null=True,
         blank=True,
     )
-    # Set only on ADJUSTMENT events — points to the closed window being corrected.
-    # The event itself is assigned to the next open window.
-    # related_window = models.ForeignKey(
-    #     CompensationWindow,
-    #     null=True,
-    #     blank=True,
-    #     on_delete=models.SET_NULL,
-    #     related_name="adjustment_events",
-    #     help_text=(
-    #         "Set when this event corrects something in a prior closed window. "
-    #         "The event itself lives in the current open window."
-    #     ),
-    # )
 
+    # Link to a prior event (for reversals and adjustments).
     related_event = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,
@@ -134,6 +133,7 @@ class CompensationEvent(models.Model):
         help_text="Reversal or adjustment link",
     )
 
+    # Assigned when this event is picked up by a SettlementPeriod.
     settlement_period = models.ForeignKey(
         "writer_payments_management.SettlementPeriod",
         null=True,
@@ -176,10 +176,13 @@ class CompensationEvent(models.Model):
         blank=True,
         related_name="created_financial_events",
     )
+    # FIX: removed null=True — idempotency_key is either a non-empty string or
+    # blank string "". The constraint uses isnull=False which would never fire
+    # if blank strings are stored instead. See constraint below.
     idempotency_key = models.CharField(
         max_length=255,
-        null=True,
         blank=True,
+        default="",
         db_index=True,
     )
 
@@ -201,7 +204,7 @@ class CompensationEvent(models.Model):
 
         indexes = [
             models.Index(fields=["website", "writer"]),
-            models.Index(fields=["writer", "window"]),
+            models.Index(fields=["writer", "payment_window"]),
             models.Index(fields=["writer", "status"]),
             models.Index(fields=["event_type", "status"]),
             models.Index(fields=["created_at"]),
@@ -220,9 +223,11 @@ class CompensationEvent(models.Model):
 
         constraints = [
             # Idempotency: unique per (website, writer, key) when key is set.
+            # FIX: use __gt="" (non-empty string) not isnull=False,
+            # because we store "" not NULL for events without a key.
             models.UniqueConstraint(
                 fields=["website", "writer", "idempotency_key"],
-                condition=models.Q(idempotency_key__isnull=False),
+                condition=models.Q(idempotency_key__gt=""),
                 name="unique_compensation_event_idempotency",
             ),
             # Amount must never be zero.
@@ -239,9 +244,13 @@ class CompensationEvent(models.Model):
             f"{self.amount}"
         )
 
+   # Properties
+
     @property
     def is_positive_event(self) -> bool:
-        return self.amount >= Decimal("0.00")
+        # FIX: was >= 0, which classified zero as positive.
+        # Zero is prevented by DB constraint but > is semantically correct.
+        return self.amount > Decimal("0.00")
 
     @property
     def is_negative_event(self) -> bool:
@@ -250,14 +259,13 @@ class CompensationEvent(models.Model):
     @property
     def can_be_settled(self) -> bool:
         return (
-            self.status == FinancialEventStatus.MATURED
+            self.status == EventStatus.MATURED
             and not self.is_locked
         )
 
     @property
     def affects_writer_balance(self) -> bool:
-        return self.status in {
-            FinancialEventStatus.MATURED,
-            FinancialEventStatus.INCLUDED_IN_SETTLEMENT,
-            FinancialEventStatus.PAID,
-        }
+        from writer_compensation.enums.compensation_enums import (
+            BALANCE_AFFECTING_STATUSES,
+        )
+        return self.status in BALANCE_AFFECTING_STATUSES

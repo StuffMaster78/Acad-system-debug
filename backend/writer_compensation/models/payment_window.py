@@ -1,5 +1,3 @@
-# models/payment_window_models.py
-
 from __future__ import annotations
 
 from decimal import Decimal
@@ -9,11 +7,9 @@ from django.db import models
 
 from websites.models.websites import Website
 
-from writer_compensation.enums.financial_event_enums import (
-    PaymentWindowStatus,
-)
-from writer_compensation.enums.financial_event_enums import (
-    PaymentWindowType,
+from writer_compensation.enums.compensation_enums import (
+    WindowStatus,
+    WindowType,
 )
 
 
@@ -27,6 +23,7 @@ class PaymentWindow(models.Model):
     Every CompensationEvent belongs to exactly one window.
 
     Lifecycle (one-way, never reversed):
+        UPCOMING   -> created ahead of time; not yet accepting events
         OPEN       -> events are collected; writers work normally
         CLOSED     -> period ended; batch and items created; no new events assigned
         PROCESSING -> admin clicked "Process payments"; writers see status message;
@@ -46,23 +43,24 @@ class PaymentWindow(models.Model):
 
     website = models.ForeignKey(
         Website,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="writer_payment_windows",
     )
 
     title = models.CharField(
         max_length=255,
     )
-
-    window_type = models.CharField(
+     # FIX: renamed from window_type to cycle_type for consistency with
+    # WriterPayoutPreference.cycle_type and CycleChangeRequest fields.
+    cycle_type = models.CharField(
         max_length=32,
-        choices=PaymentWindowType.choices,
+        choices=WindowType.choices,
     )
 
     status = models.CharField(
         max_length=32,
-        choices=PaymentWindowStatus.choices,
-        default=PaymentWindowStatus.UPCOMING,
+        choices=WindowStatus.choices,
+        default=WindowStatus.UPCOMING,
     )
 
     start_date = models.DateField()
@@ -77,9 +75,16 @@ class PaymentWindow(models.Model):
     is_active = models.BooleanField(
         default=True,
     )
+    # FIX: renamed from is_locked to avoid property name clash.
+    # Use the is_locked @property below for read access.
+    # Use locked field only for explicit admin-forced locks outside lifecycle.
 
-    is_locked = models.BooleanField(
+    locked = models.BooleanField(
         default=False,
+        help_text=(
+            "Set to True to hard-lock this window outside normal lifecycle. "
+            "Prefer using status transitions (PROCESSING / DONE) instead."
+        ),
     )
 
     allow_advances = models.BooleanField(
@@ -144,7 +149,7 @@ class PaymentWindow(models.Model):
         ordering = [
             "-start_date",
         ]
-        unique_together = [("website", "start_date", "window_type")]
+        unique_together = [("website", "start_date", "cycle_type")]
         indexes = [
             models.Index(
                 fields=[
@@ -169,29 +174,48 @@ class PaymentWindow(models.Model):
     def __str__(self) -> str:
         return (
             f"{self.website.pk} | {self.title} "
-            f"({self.start_date} → {self.end_date})"
+            f"({self.start_date} -> {self.end_date})"
             f" [{self.status}]"
         )
+    
+     # Status shorthand properties
 
     @property
     def is_open(self) -> bool:
         return (
-            self.status == PaymentWindowStatus.OPEN
+            self.status == WindowStatus.OPEN
         )
 
     @property
     def is_closed(self) -> bool:
         return (
-            self.status == PaymentWindowStatus.CLOSED
+            self.status == WindowStatus.CLOSED
         )
 
     @property
     def is_processing(self) -> bool:
         return (
-            self.status == PaymentWindowStatus.LOCKED
+            self.status == WindowStatus.PROCESSING
         )
-    
-    # @property
-    # def is_locked(self) -> bool:
-    #     """No event changes once PROCESSING or DONE."""
-    #     return self.status in {PaymentWindowStatus.PROCESSING, PaymentWindowStatus.CLOSED}
+    @property
+    def is_done(self) -> bool:
+        return self.status == WindowStatus.DONE
+ 
+    @property
+    def is_locked(self) -> bool:
+        """
+        True when no event changes are allowed.
+        Events are locked once window moves to PROCESSING or DONE,
+        or when the explicit locked field is set.
+        """
+        # FIX: was a BooleanField shadowing this property.
+        # Now computed from status + explicit lock field.
+        return self.locked or self.status in {
+            WindowStatus.PROCESSING,
+            WindowStatus.DONE,
+        }
+ 
+    @property
+    def accepts_events(self) -> bool:
+        """True only while the window is OPEN and not explicitly locked."""
+        return self.status == WindowStatus.OPEN and not self.locked

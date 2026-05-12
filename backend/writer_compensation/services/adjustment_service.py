@@ -1,3 +1,29 @@
+"""
+writer_compensation/services/adjustment_service.py
+
+Fixes applied:
+  1. Dead import removed — financial_event_enums no longer imported.
+     FinancialEventType / FinancialEventStatus replaced with unified
+     EventType / EventStatus from compensation_enums.
+
+  2. apply_adjustment() now routes through EventIntakeService.record()
+     instead of calling CompensationEvent.objects.create() directly.
+     Direct create bypassed:
+       - window assignment (event had no payment_window → orphan)
+       - window lock check (could write to PROCESSING window)
+       - idempotency enforcement (duplicate events possible)
+     EventIntakeService handles all of these correctly.
+
+  3. Post-creation, event is matured immediately (admin-confirmed at
+     creation time) using a targeted save — not a re-fetch.
+
+  4. Outbox emission uses the actual payload hash correctly —
+     OutboxService.emit() handles deduplication internally.
+
+  5. _validate_amount raises ZeroAmountError (custom exception)
+     instead of bare ValueError, consistent with rest of codebase.
+"""
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -6,28 +32,15 @@ from typing import Any
 from django.db import transaction
 from django.utils import timezone
 
-from writer_compensation.enums.financial_event_enums import (
-    FinancialEventStatus,
-    FinancialEventType,
-)
-
-from writer_compensation.models.compensation_event import (
-    CompensationEvent,
-)
-
-from writer_compensation.services.outbox_service import (
-    OutboxService,
-)
-from writer_compensation.models.payment_window import (
-    PaymentWindow,
-)
-from writer_compensation.services.event_intake_service import (
-    EventIntakeService,
-)
-from writer_compensation.enums.compensation_enums import (
-    WindowStatus,
+from writer_compensation.enums.compensation_enums import (   # unified enum only
+    EventStatus,
     EventType,
+    WindowStatus,
 )
+from writer_compensation.exceptions.exceptions import ZeroAmountError
+from writer_compensation.models.payment_window import PaymentWindow
+from writer_compensation.services.event_intake_service import EventIntakeService
+from writer_compensation.services.outbox_service import OutboxService
 
 
 class AdjustmentService:
@@ -36,8 +49,10 @@ class AdjustmentService:
 
     Core rules:
         - NEVER mutate historical records
-        - ALWAYS emit immutable financial events
+        - ALWAYS emit events via EventIntakeService (never direct DB create)
         - ALL corrections remain auditable
+        - Positive amount = credit (writer receives more)
+        - Negative amount = deduction (writer receives less)
     """
 
     @staticmethod
@@ -50,75 +65,86 @@ class AdjustmentService:
         reason: str,
         created_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> CompensationEvent:
+    ) -> Any:
         """
-        Create immutable adjustment  compensation event.
+        Create an immutable ADJUSTMENT CompensationEvent.
 
-        Positive amount:
-            Credit adjustment
+        FIX: previously called CompensationEvent.objects.create() directly,
+        producing orphan events with no payment_window, no idempotency,
+        and no window lock check. Now routes through EventIntakeService.record().
 
-        Negative amount:
-            Deduction adjustment
+        The event is immediately matured (status = MATURED) because admin
+        adjustments are confirmed at creation time — they do not need a
+        separate review step.
+
+        Raises:
+            ZeroAmountError  — amount is zero
+            NoOpenWindowError — no open window exists for this website
         """
-
         if amount == Decimal("0.00"):
-            raise ValueError(
-                "Adjustment amount cannot be zero."
-            )
+            raise ZeroAmountError("Adjustment amount cannot be zero.")
 
         event_metadata: dict[str, Any] = {
             "reason": reason,
             "source": "adjustment_service",
             "generated_at": timezone.now().isoformat(),
         }
-
         if metadata:
             event_metadata.update(metadata)
 
-        event = CompensationEvent.objects.create(
+        # FIX: route through EventIntakeService — assigns window, checks
+        # lock, enforces idempotency, fires with correct status.
+        event, _ = EventIntakeService.record(
             website=website,
             writer=writer,
-            event_type=FinancialEventType.ADJUSTMENT,
-            status=FinancialEventStatus.MATURED,
+            event_type=EventType.ADJUSTMENT,
             amount=amount,
-            title="Financial Adjustment",
-            description=reason,
+            title="Financial adjustment",
+            notes=reason,
             created_by=created_by,
-            metadata=event_metadata,
         )
 
-        # Durable event propagation
+        # Mature immediately — admin adjustments are pre-approved.
+        event.status   = EventStatus.MATURED
+        event.metadata = event_metadata
+        event.save(update_fields=["status", "metadata"])
+
         OutboxService.emit(
             event_type="FINANCIAL_EVENT_CREATED",
             payload={
                 "financial_event_id": str(event.pk),
-                "event_type": FinancialEventType.ADJUSTMENT,
+                "event_type": EventType.ADJUSTMENT,
+                "amount": str(amount),
             },
         )
 
         return event
-    
 
     @staticmethod
     @transaction.atomic
     def create_post_close_adjustment(
         *,
         closed_window: PaymentWindow,
-        writer,
+        writer: Any,
         amount: Decimal,
         notes: str,
-        created_by,
-    ) -> CompensationEvent:
+        created_by: Any,
+    ) -> Any:
         """
-        Creates an ADJUSTMENT event in the current open window that references
-        the closed window. Amount can be positive (missed earning) or negative
+        Creates an ADJUSTMENT event in the current open window that
+        references the closed window being corrected.
+
+        Amount can be positive (missed earning) or negative
         (over-payment correction).
- 
+
         Raises:
-            ValueError — closed_window is not PROCESSING or DONE
-            ZeroAmountError — amount is zero
+            ValueError        — closed_window is not PROCESSING or DONE
+            ZeroAmountError   — amount is zero
             NoOpenWindowError — no open window exists
         """
+        if amount == Decimal("0.00"):
+            raise ZeroAmountError("Adjustment amount cannot be zero.")
+
         if closed_window.status not in {
             WindowStatus.PROCESSING,
             WindowStatus.DONE,
@@ -127,7 +153,7 @@ class AdjustmentService:
                 "Post-close adjustments only apply to PROCESSING or DONE windows. "
                 f"Window {closed_window.pk} is {closed_window.status}."
             )
- 
+
         event, _ = EventIntakeService.record(
             website=closed_window.website,
             writer=writer,
@@ -137,4 +163,5 @@ class AdjustmentService:
             created_by=created_by,
             related_window=closed_window,
         )
+
         return event

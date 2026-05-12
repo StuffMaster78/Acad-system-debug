@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from writer_compensation.models.exposure_ledger_models import ExposureLedger
+from writer_compensation.models.exposure_ledger import ExposureLedger
 
 
 class RiskEngineService:
@@ -81,3 +81,15 @@ class RiskEngineService:
         )
 
         return amount <= available
+    
+
+    @staticmethod
+    def get_advance_cap(
+        *,
+        ledger: ExposureLedger,
+    ) -> Decimal:
+        """
+        Maximum advance amount the writer can request based on their earninge.
+        A convinience wrapper around get_available_risk_capacity().
+        """
+        return RiskEngineService.get_available_risk_capacity(ledger=ledger)

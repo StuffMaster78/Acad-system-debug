@@ -17,3 +17,10 @@ class SettlementFinalizedError(CompensationBaseException):
     """
     Attempted mutation on locked settlement period.
     """
+
+
+class SettlementValidationError(CompensationBaseException):
+    """
+    Raised when a SettlementPeriod fails validation before finalization.
+    Carries a list of issue codes in the message.
+    """

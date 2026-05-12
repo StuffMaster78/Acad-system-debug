@@ -1,129 +1,130 @@
+"""
+writer_compensation/models/payout_clearance.py
+
+Fixes applied:
+  1. FK app label: "writer_payments_management.PayoutRecord" →
+     "writer_compensation.PayoutRecord"
+     The old label referenced a non-existent app, breaking migrations.
+
+  2. on_delete=CASCADE on website → PROTECT
+     Deleting a website must not cascade to clearance records.
+
+  3. on_delete=CASCADE on payout_record → PROTECT
+     A clearance is a financial proof record — it must outlive the
+     payout record if the record is ever cleaned up.
+
+  4. status field now uses ClearanceStatus TextChoices instead of a
+     raw string default. The service was using raw string comparisons
+     ("PAID", "FAILED") — these now match the enum values.
+
+  5. external_reference renamed to external_transaction_id to match
+     PayoutClearanceService which references external_transaction_id.
+     Both field names were in play; one had to win. Service wins.
+
+  6. amount_sent renamed to amount_paid to match PayoutClearanceService
+     which creates records using amount_paid=.
+
+  7. Meta class added: ordering, indexes.
+
+  8. __str__ updated to reference corrected field names.
+"""
+
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
 
-from django.db import transaction
-from django.utils import timezone
+from django.conf import settings
+from django.db import models
 
-from writer_compensation.models.payout_record import PayoutRecord
-from writer_compensation.models.payout_clearance import PayoutClearance
+from websites.models.websites import Website
+
+User = settings.AUTH_USER_MODEL
 
 
-class PayoutClearanceService:
+class ClearanceStatus(models.TextChoices):
+    PENDING    = "PENDING",    "Pending"
+    PROCESSING = "PROCESSING", "Processing"
+    PAID       = "PAID",       "Paid"
+    FAILED     = "FAILED",     "Failed"
+
+
+class PayoutClearance(models.Model):
     """
-    External payout finalization layer.
+    Real-world payout execution record.
 
-    RULES:
-        1. PayoutRecord = intent
-        2. Clearance = external truth proof
-        3. Must be idempotent (webhook-safe)
-        4. Must never double-apply financial state
+    Confirms money actually left the platform via
+    MPESA, bank transfer, PayPal, Wise, etc.
+
+    This is NOT the payment intent — PayoutRecord is the intent.
+    This is the external proof that the payment happened.
+
+    Immutable once status = PAID.
     """
 
-    STATUS_PROCESSING = "PROCESSING"
-    STATUS_PAID = "PAID"
-    STATUS_FAILED = "FAILED"
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.PROTECT,          # FIX: was CASCADE
+        related_name="payout_clearances",
+    )
+    payout_record = models.ForeignKey(
+        "writer_compensation.PayoutRecord", # FIX: was writer_payments_management
+        on_delete=models.PROTECT,          # FIX: was CASCADE — proof must outlive intent
+        related_name="clearances",
+    )
 
-    # -----------------------------
-    # PROCESSING STATE
-    # -----------------------------
-    @staticmethod
-    @transaction.atomic
-    def mark_as_processing(
-        *,
-        payout_record: PayoutRecord,
-        reference_code: str,
-    ) -> PayoutRecord:
-        """
-        Move payout into external processing state.
-        Safe for retries (idempotent update).
-        """
+    # FIX: renamed from amount_sent → amount_paid (matches service)
+    amount_paid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
 
-        if payout_record.status == PayoutClearanceService.STATUS_PAID:
-            return payout_record  # already finalized
+    method = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="MPESA, Bank, PayPal, Wise, etc.",
+    )
 
-        payout_record.status = PayoutClearanceService.STATUS_PROCESSING
-        payout_record.external_reference = reference_code
-        payout_record.updated_at = timezone.now()
-        payout_record.save(update_fields=["status", "external_reference", "updated_at"])
+    # FIX: renamed from external_reference → external_transaction_id (matches service)
+    external_transaction_id = models.CharField(
+        max_length=255,
+        blank=True,
+        db_index=True,
+        help_text="Transaction ID from the external payment provider.",
+    )
 
-        return payout_record
+    # FIX: uses TextChoices enum — was raw string default
+    status = models.CharField(
+        max_length=32,
+        choices=ClearanceStatus.choices,
+        default=ClearanceStatus.PENDING,
+        db_index=True,
+    )
 
-    # -----------------------------
-    # SUCCESS STATE
-    # -----------------------------
-    @staticmethod
-    @transaction.atomic
-    def mark_as_success(
-        *,
-        payout_record: PayoutRecord,
-        external_transaction_id: str,
-        amount_paid: Decimal,
-        metadata: dict[str, Any] | None = None,
-    ) -> PayoutClearance:
-        """
-        Confirm successful external payout execution.
+    processed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="processed_payout_clearances",
+    )
+    processed_at   = models.DateTimeField(null=True, blank=True)
+    failure_reason = models.TextField(blank=True)
+    metadata       = models.JSONField(default=dict, blank=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
 
-        Idempotent:
-            - If already cleared, returns existing clearance
-        """
+    class Meta:
+        ordering = ["-created_at"]
+        indexes  = [
+            models.Index(fields=["payout_record", "status"]),
+            models.Index(fields=["external_transaction_id"]),
+            models.Index(fields=["website", "status"]),
+        ]
 
-        existing = PayoutClearance.objects.filter(
-            payout_record=payout_record,
-            external_transaction_id=external_transaction_id,
-            status=PayoutClearanceService.STATUS_PAID,
-        ).first()
-
-        if existing:
-            return existing
-
-        payout_record.status = PayoutClearanceService.STATUS_PAID
-        payout_record.paid_at = timezone.now()
-        payout_record.save(update_fields=["status", "paid_at"])
-
-        return PayoutClearance.objects.create(
-            payout_record=payout_record,
-            external_transaction_id=external_transaction_id,
-            amount_paid=amount_paid,
-            status=PayoutClearanceService.STATUS_PAID,
-            metadata=metadata or {},
-            created_at=timezone.now(),
-        )
-
-    # -----------------------------
-    # FAILURE STATE
-    # -----------------------------
-    @staticmethod
-    @transaction.atomic
-    def mark_as_failed(
-        *,
-        payout_record: PayoutRecord,
-        failure_reason: str,
-        external_transaction_id: str | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> PayoutClearance:
-        """
-        Mark payout as failed and persist failure proof.
-
-        This is safe for retries and webhook replays.
-        """
-
-        if payout_record.status == PayoutClearanceService.STATUS_PAID:
-            raise ValueError("Cannot fail a completed payout")
-
-        payout_record.status = PayoutClearanceService.STATUS_FAILED
-        payout_record.updated_at = timezone.now()
-        payout_record.save(update_fields=["status", "updated_at"])
-
-        return PayoutClearance.objects.create(
-            payout_record=payout_record,
-            external_transaction_id=external_transaction_id or "",
-            amount_paid=Decimal("0.00"),
-            status=PayoutClearanceService.STATUS_FAILED,
-            metadata={
-                "reason": failure_reason,
-                **(metadata or {}),
-            },
-            created_at=timezone.now(),
+    def __str__(self) -> str:
+        return (
+            f"Clearance {self.pk} | "
+            f"record {self.payout_record.pk} | "
+            f"{self.amount_paid} | "
+            f"{self.status}"
         )

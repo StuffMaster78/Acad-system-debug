@@ -8,14 +8,17 @@ from django.utils import timezone
  
 from writer_compensation.enums.compensation_enums import (
     EventStatus,
+    EventType,
     WindowStatus,
 )
 from writer_compensation.exceptions.exceptions import (
     InvalidPayoutItemTransitionError,
+    InvalidWindowTransitionError,
     NoOpenWindowError,
     WindowLockedError,
     ZeroAmountError,
 )
+
 from writer_compensation.models.compensation_event import (
     CompensationEvent,
 )
@@ -23,10 +26,6 @@ from writer_compensation.models.payment_window import (
     PaymentWindow,
 )
  
- 
-# ---------------------------------------------------------------------------
-# EventIntakeService
-# ---------------------------------------------------------------------------
  
 class EventIntakeService:
     """
@@ -50,8 +49,10 @@ class EventIntakeService:
         writer,
         event_type: str,
         amount: Decimal,
+        source: str = "",
         source_type: str = "",
         source_id: int | None = None,
+        title: str = "",
         notes: str = "",
         idempotency_key: str = "",
         created_by=None,
@@ -90,12 +91,14 @@ class EventIntakeService:
             )
  
         defaults = dict(
-            window=open_window,
+            payment_window=open_window,
             event_type=event_type,
             amount=amount,
-            status=EventStatus.PENDING,
+            status=EventStatus.PENDING_CONFIRMATION,
+            source=source,
             source_type=source_type,
             source_id=source_id,
+            title=title or event_type,
             notes=notes,
             created_by=created_by,
             related_window=related_window,
@@ -109,6 +112,7 @@ class EventIntakeService:
                 defaults=defaults,
             )
         else:
+            # No idempotency key — always create, store blank string.
             event = CompensationEvent.objects.create(
                 website=website,
                 writer=writer,
@@ -118,18 +122,98 @@ class EventIntakeService:
             created = True
  
         return event, created
+
+    @staticmethod
+    @transaction.atomic
+    def mature_event(event: CompensationEvent) -> CompensationEvent:
+        """
+        PENDING_CONFIRMATION → MATURED.
+ 
+        A matured event is eligible for settlement aggregation.
+        Called by admin review, or automatically when a window closes
+        with auto_confirm_pending=True.
+        """
+        if event.status != EventStatus.PENDING_CONFIRMATION:
+            raise InvalidWindowTransitionError(
+                f"Event {event.pk} is {event.status}. "
+                "Expected PENDING_CONFIRMATION."
+            )
+        event.status = EventStatus.MATURED
+        event.matured_at = timezone.now()
+        event.save(update_fields=["status", "matured_at"])
+        return event
  
     @staticmethod
     @transaction.atomic
-    def confirm_event(event: CompensationEvent) -> CompensationEvent:
+    def void_event(
+        event: CompensationEvent,
+        voided_by,
+        reason: str = "",
+    ) -> CompensationEvent:
         """
-        Move a single event from PENDING to CONFIRMED.
-        Called by admin or automatically when window closes.
+        Any non-PAID status → VOIDED.
+        Admin use only. Cannot void a paid event.
         """
-        if event.status != EventStatus.PENDING:
-            raise InvalidPayoutItemTransitionError(
-                f"Event {event.pk} is {event.status}, not PENDING."
+        if event.status == EventStatus.PAID:
+            raise InvalidWindowTransitionError(
+                f"Event {event.pk} is PAID and cannot be voided."
             )
-        event.status = EventStatus.CONFIRMED
-        event.save(update_fields=["status"])
+        event.status = EventStatus.VOIDED
+        if reason:
+            event.notes = f"{event.notes}\n[VOIDED] {reason}".strip()
+        event.save(update_fields=["status", "notes"])
         return event
+ 
+    @staticmethod
+    @transaction.atomic
+    def create_reversal(
+        original_event: CompensationEvent,
+        created_by,
+        notes: str = "",
+    ) -> CompensationEvent:
+        """
+        Creates a REVERSAL event that negates the original event.
+        The original event is stamped REVERSED.
+        Both events must be on the same website/writer.
+        """
+        if original_event.status == EventStatus.REVERSED:
+            raise InvalidWindowTransitionError(
+                f"Event {original_event.pk} is already REVERSED."
+            )
+ 
+        reversal, _ = EventIntakeService.record(
+            website=original_event.website,
+            writer=original_event.writer,
+            event_type=EventType.REVERSAL,
+            amount=-original_event.amount,
+            source_type=original_event.source_type,
+            source_id=original_event.source_id,
+            title=f"Reversal of event {original_event.pk}",
+            notes=notes or f"Reversal of {original_event.event_type} #{original_event.pk}",
+            created_by=created_by,
+        )
+ 
+        # Link and stamp original.
+        reversal.related_event = original_event
+        reversal.save(update_fields=["related_event"])
+ 
+        original_event.status = EventStatus.REVERSED
+        original_event.reversed_at = timezone.now()
+        original_event.save(update_fields=["status", "reversed_at"])
+ 
+        return reversal
+ 
+    # @staticmethod
+    # @transaction.atomic
+    # def confirm_event(event: CompensationEvent) -> CompensationEvent:
+    #     """
+    #     Move a single event from PENDING to CONFIRMED.
+    #     Called by admin or automatically when window closes.
+    #     """
+    #     if event.status != EventStatus.PENDING:
+    #         raise InvalidPayoutItemTransitionError(
+    #             f"Event {event.pk} is {event.status}, not PENDING."
+    #         )
+    #     event.status = EventStatus.CONFIRMED
+    #     event.save(update_fields=["status"])
+    #     return event

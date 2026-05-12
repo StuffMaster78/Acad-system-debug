@@ -3,12 +3,17 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models
 
+from typing import TYPE_CHECKING
+
 from decimal import Decimal
 from websites.models.websites import Website
-from writer_compensation.enums.financial_event_enums import (
+from writer_compensation.enums.compensation_enums import (
     PayoutBatchStatus,
 )
 
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+    from writer_compensation.models.payout_record import PayoutRecord
 
 User = settings.AUTH_USER_MODEL
 
@@ -27,10 +32,11 @@ class PayoutBatch(models.Model):
         May Biweekly Payout Batch
         → contains all writer payout records (items)
     """
+    records: QuerySet[PayoutRecord]
 
     website = models.ForeignKey(
         Website,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="payout_batches",
     )
 
@@ -78,6 +84,14 @@ class PayoutBatch(models.Model):
     paid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["website", "status"]),
+            models.Index(fields=["payment_window"]),
+        ]
 
     def __str__(self):
         return (
