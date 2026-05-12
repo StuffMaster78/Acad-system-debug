@@ -1,34 +1,3 @@
-"""
-writer_compensation/models/payout_clearance.py
-
-Fixes applied:
-  1. FK app label: "writer_payments_management.PayoutRecord" →
-     "writer_compensation.PayoutRecord"
-     The old label referenced a non-existent app, breaking migrations.
-
-  2. on_delete=CASCADE on website → PROTECT
-     Deleting a website must not cascade to clearance records.
-
-  3. on_delete=CASCADE on payout_record → PROTECT
-     A clearance is a financial proof record — it must outlive the
-     payout record if the record is ever cleaned up.
-
-  4. status field now uses ClearanceStatus TextChoices instead of a
-     raw string default. The service was using raw string comparisons
-     ("PAID", "FAILED") — these now match the enum values.
-
-  5. external_reference renamed to external_transaction_id to match
-     PayoutClearanceService which references external_transaction_id.
-     Both field names were in play; one had to win. Service wins.
-
-  6. amount_sent renamed to amount_paid to match PayoutClearanceService
-     which creates records using amount_paid=.
-
-  7. Meta class added: ordering, indexes.
-
-  8. __str__ updated to reference corrected field names.
-"""
-
 from __future__ import annotations
 
 from decimal import Decimal

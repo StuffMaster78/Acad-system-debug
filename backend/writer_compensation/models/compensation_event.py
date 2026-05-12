@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import models
@@ -13,6 +14,10 @@ from writer_compensation.enums.compensation_enums import (
     EventStatus,
     EventType,
 )
+
+
+if TYPE_CHECKING:
+    from django.db.models import ForeignKey as _FK
 
 User = settings.AUTH_USER_MODEL
 

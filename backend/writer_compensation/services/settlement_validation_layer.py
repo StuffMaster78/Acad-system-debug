@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Any
 
 from writer_compensation.models.settlement_period import SettlementPeriod
-from writer_compensation.exceptions.settlement_exceptions import (  # FIX: custom exception
+from writer_compensation.exceptions.settlement_exceptions import (
     SettlementValidationError,
 )
 

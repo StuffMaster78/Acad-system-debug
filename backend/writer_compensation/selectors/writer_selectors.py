@@ -1,71 +1,49 @@
 from __future__ import annotations
- 
+
 from decimal import Decimal
- 
-from django.db.models import Count, OuterRef, Q, Subquery, Sum
- 
+
+from django.db.models import Count, Q, Sum
+
 from writer_compensation.enums.compensation_enums import (
+    CycleChangeStatus,
     EventStatus,
     WindowStatus,
 )
-
-from writer_compensation.models.compensation_event import (
-    CompensationEvent,
-)
-from writer_compensation.models.payment_window import (
-    PaymentWindow,
-)
-from writer_compensation.models.cycle_change_request import (
-    PaymentWindowChangeRequest,
-)
-from writer_compensation.models.writer_payout_preference import (
-    WriterPayoutPreference,
-)
-from writer_compensation.selectors.window_selectors import (
-    WindowSelectors,
-)
+from writer_compensation.models.compensation_event import CompensationEvent
+from writer_compensation.models.cycle_change_request import PaymentWindowChangeRequest
+from writer_compensation.models.payment_window import PaymentWindow
+from writer_compensation.models.writer_payout_preference import WriterPayoutPreference
+from writer_compensation.selectors.window_selectors import WindowSelectors
 
 
 class WriterSelectors:
- 
+
     @staticmethod
     def get_writer_events(writer, website, filters: dict | None = None):
-        """
-        Full event history for a writer. Filterable by event_type, status,
-        window_id, date range.
-        Powers the writer-facing earnings timeline.
-        """
         qs = (
             CompensationEvent.objects
             .filter(writer=writer, website=website)
-            .select_related("window", "related_window")
+            .select_related("payment_window", "related_window")
             .order_by("-created_at")
         )
- 
+
         if filters:
             if filters.get("event_type"):
                 qs = qs.filter(event_type=filters["event_type"])
             if filters.get("status"):
                 qs = qs.filter(status=filters["status"])
             if filters.get("window_id"):
-                qs = qs.filter(window_id=filters["window_id"])
+                qs = qs.filter(payment_window_id=filters["window_id"])
             if filters.get("from_date"):
                 qs = qs.filter(created_at__date__gte=filters["from_date"])
             if filters.get("to_date"):
                 qs = qs.filter(created_at__date__lte=filters["to_date"])
- 
+
         return qs
- 
+
     @staticmethod
     def get_writer_lifetime_summary(writer, website) -> dict:
-        """
-        Aggregated lifetime totals for a writer on one website.
-        Never a running balance — always computed on demand.
-        """
-        qs = CompensationEvent.objects.filter(
-            writer=writer,
-            website=website,
-        )
+        qs = CompensationEvent.objects.filter(writer=writer, website=website)
         result = qs.aggregate(
             total_earned=Sum("amount", filter=Q(amount__gt=0)),
             total_deductions=Sum("amount", filter=Q(amount__lt=0)),
@@ -78,52 +56,49 @@ class WriterSelectors:
         for key in result:
             result[key] = result[key] or Decimal("0.00")
         return result
- 
+
     @staticmethod
     def get_writer_current_window_status(writer, website) -> dict:
-        """
-        What the writer sees on their dashboard for the current window.
-        Includes window status (for PROCESSING banner).
-        """
         open_window = WindowSelectors.get_open_window(website)
         processing_window = (
             PaymentWindow.objects
             .filter(website=website, status=WindowStatus.PROCESSING)
             .first()
         )
- 
         current_window = processing_window or open_window
- 
+
         if not current_window:
             return {
-                "window": None,
-                "net":    Decimal("0.00"),
-                "count":  0,
+                "window":        None,
+                "net":           Decimal("0.00"),
+                "count":         0,
                 "is_processing": False,
             }
- 
+
         totals = CompensationEvent.objects.filter(
             writer=writer,
-            window=current_window,
+            payment_window=current_window,
         ).aggregate(net=Sum("amount"), count=Count("id"))
- 
+
         return {
-            "window":         current_window,
-            "net":            totals["net"]   or Decimal("0.00"),
-            "count":          totals["count"] or 0,
-            "is_processing":  current_window.status == WindowStatus.PROCESSING,
+            "window":        current_window,
+            "net":           totals["net"]   or Decimal("0.00"),
+            "count":         totals["count"] or 0,
+            "is_processing": current_window.status == WindowStatus.PROCESSING,
         }
- 
+
     @staticmethod
     def get_writer_payout_preference(writer, website) -> WriterPayoutPreference | None:
         return WriterPayoutPreference.objects.filter(
             writer=writer,
             website=website,
         ).first()
- 
+
     @staticmethod
-    def get_pending_cycle_change_request(writer, website) -> PaymentWindowChangeRequest | None:
-        from writer_compensation.enums.compensation_enums import CycleChangeStatus
+    def get_pending_cycle_change_request(
+        writer,
+        website,
+    ) -> PaymentWindowChangeRequest | None:
         return PaymentWindowChangeRequest.objects.filter(
             writer=writer,
             website=website,

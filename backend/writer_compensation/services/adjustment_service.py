@@ -1,29 +1,3 @@
-"""
-writer_compensation/services/adjustment_service.py
-
-Fixes applied:
-  1. Dead import removed — financial_event_enums no longer imported.
-     FinancialEventType / FinancialEventStatus replaced with unified
-     EventType / EventStatus from compensation_enums.
-
-  2. apply_adjustment() now routes through EventIntakeService.record()
-     instead of calling CompensationEvent.objects.create() directly.
-     Direct create bypassed:
-       - window assignment (event had no payment_window → orphan)
-       - window lock check (could write to PROCESSING window)
-       - idempotency enforcement (duplicate events possible)
-     EventIntakeService handles all of these correctly.
-
-  3. Post-creation, event is matured immediately (admin-confirmed at
-     creation time) using a targeted save — not a re-fetch.
-
-  4. Outbox emission uses the actual payload hash correctly —
-     OutboxService.emit() handles deduplication internally.
-
-  5. _validate_amount raises ZeroAmountError (custom exception)
-     instead of bare ValueError, consistent with rest of codebase.
-"""
-
 from __future__ import annotations
 
 from decimal import Decimal

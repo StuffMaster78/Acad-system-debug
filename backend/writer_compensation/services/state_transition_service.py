@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from django.utils import timezone
 
-from writer_compensation.models.financial_state_transition_log_models import (
-    FinancialStateTransitionLog,
+from writer_compensation.models.compensation_state_transition_log import (
+    CompensationStateTransitionLog,
 )
 
 
@@ -23,11 +23,11 @@ class StateTransitionService:
         actor=None,
         reason: str = "",
         metadata: dict | None = None,
-    ) -> FinancialStateTransitionLog:
+    ) -> CompensationStateTransitionLog:
         """
         Log a state transition.
         """
-        return FinancialStateTransitionLog.objects.create(
+        return CompensationStateTransitionLog.objects.create(
             website=website,
             entity_type=entity_type,
             entity_id=str(entity_id),

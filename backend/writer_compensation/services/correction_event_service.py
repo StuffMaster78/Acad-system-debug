@@ -6,9 +6,9 @@ from typing import Any, TypedDict
 from django.utils import timezone
 
 from writer_compensation.models.compensation_event import CompensationEvent
-from writer_compensation.enums.financial_event_enums import (
-    FinancialEventType,
-    FinancialEventStatus,
+from writer_compensation.enums.compensation_enums import (
+    EventType,
+    EventStatus,
 )
 
 
@@ -91,8 +91,8 @@ class CorrectionEventService:
         return CompensationEvent.objects.create(
             website=website,
             writer=writer,
-            event_type=FinancialEventType.ADJUSTMENT,
-            status=FinancialEventStatus.MATURED,
+            event_type=EventType.ADJUSTMENT,
+            status=EventStatus.MATURED,
             amount=amount,
             title="Correction Event",
             description=reason,

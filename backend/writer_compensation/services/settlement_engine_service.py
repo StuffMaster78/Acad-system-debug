@@ -6,7 +6,7 @@ from typing import Any
 from django.db import transaction
 from django.utils import timezone
 
-from writer_compensation.enums.compensation_enums import (   # FIX: was financial_event_enums
+from writer_compensation.enums.compensation_enums import (
     EventStatus,
     EventType,
     SettlementStatus,
@@ -18,7 +18,7 @@ from writer_compensation.services.settlement_validation_layer import (
     SettlementValidationService,
 )
 
-# FIX: guard Celery task import — missing file crashed the app at startup
+
 try:
     from writer_compensation.tasks.settlement_tasks import (
         materialize_exposure_from_settlement,

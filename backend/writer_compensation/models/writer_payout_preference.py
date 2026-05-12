@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import models
  
 from writer_compensation.enums.compensation_enums import (
-    CycleType,
+    WindowType,
 )
  
 User = settings.AUTH_USER_MODEL
@@ -33,7 +33,7 @@ class WriterPayoutPreference(models.Model):
     )
     cycle_type = models.CharField(
         max_length=16,
-        choices=CycleType.choices,
+        choices=WindowType.choices,
     )
     locked = models.BooleanField(
         default=False,

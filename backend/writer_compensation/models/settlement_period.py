@@ -1,5 +1,3 @@
-# models/settlement_period_models.py
-
 from __future__ import annotations
 
 from decimal import Decimal
@@ -13,7 +11,7 @@ from writer_management.models.profile import (
     WriterProfile,
 )
 
-from writer_compensation.enums.financial_event_enums import (
+from writer_compensation.enums.compensation_enums import (
     SettlementStatus,
 )
 from writer_compensation.models.payment_window import (

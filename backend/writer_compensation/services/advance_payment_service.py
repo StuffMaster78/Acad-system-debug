@@ -1,27 +1,3 @@
-"""
-writer_compensation/services/advance_payment_service.py
-
-Fixes applied:
-  1. select_for_update() on ledger read — prevents race condition when
-     two concurrent advance approvals read the same total_advance_taken,
-     both add to it, and one write is silently lost.
-
-  2. CompensationEvent now fired via EventIntakeService.record() after
-     ledger update — previously the ledger was updated but no event was
-     created, meaning settlement never saw the advance. The event log
-     and the ledger were out of sync.
-
-  3. ADVANCE_RECOVERY path added — AdvanceRecovery.record() creates the
-     negative ADVANCE_RECOVERY CompensationEvent that settlement deducts
-     from the writer's payout window.
-
-  4. website + writer + created_by added as required params to apply_advance
-     so the CompensationEvent can be created with full context.
-
-  5. select_for_update() wraps both ledger paths (apply + recovery) to
-     prevent concurrent writes from corrupting running totals.
-"""
-
 from __future__ import annotations
 
 from decimal import Decimal

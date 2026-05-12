@@ -9,7 +9,7 @@ from django.db import models
 
 from websites.models.websites import Website
 
-from writer_compensation.enums.financial_event_enums import (
+from writer_compensation.enums.compensation_enums import (
     AdvancePaymentStatus,
 )
 from writer_compensation.models.payment_window import (

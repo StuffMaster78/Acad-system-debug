@@ -1,12 +1,13 @@
+"""
+writer_compensation/api/serializers/compensation_event_serializers.py
+"""
 from __future__ import annotations
 
 from decimal import Decimal
 
 from rest_framework import serializers
 
-from writer_compensation.models.compensation_event import (
-    CompensationEvent,
-)
+from writer_compensation.models.compensation_event import CompensationEvent
 
 
 class CompensationEventSerializer(serializers.ModelSerializer):
@@ -14,9 +15,9 @@ class CompensationEventSerializer(serializers.ModelSerializer):
     related_window_label = serializers.SerializerMethodField()
     is_positive          = serializers.SerializerMethodField()
     window_label         = serializers.SerializerMethodField()
-    class Meta:
-        model = CompensationEvent
 
+    class Meta:
+        model  = CompensationEvent
         fields = [
             "id",
             "website",
@@ -48,7 +49,6 @@ class CompensationEventSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-
         read_only_fields = [
             "id",
             "created_at",
@@ -61,16 +61,16 @@ class CompensationEventSerializer(serializers.ModelSerializer):
         if obj.created_by:
             return obj.created_by.get_full_name() or obj.created_by.email
         return "System"
- 
+
     def get_related_window_label(self, obj) -> str | None:
         if obj.related_window:
             w = obj.related_window
-            return f"{w.start_date} - {w.end_date}"
+            return f"{w.start_date} – {w.end_date}"
         return None
- 
+
     def get_is_positive(self, obj) -> bool:
         return obj.amount > Decimal("0.00")
- 
+
     def get_window_label(self, obj) -> str:
-        w = obj.window
-        return f"{w.start_date} - {w.end_date}"
+        w = obj.payment_window       # FIX: was obj.window
+        return f"{w.start_date} – {w.end_date}"

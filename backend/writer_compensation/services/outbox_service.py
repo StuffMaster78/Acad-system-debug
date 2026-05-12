@@ -7,7 +7,7 @@ from django.db import transaction
  
 from writer_compensation.models.outbox_event_models import OutboxEvent
  
- 
+
 def _hash_payload(payload: dict) -> str:
     """
     Compute the same hash OutboxEvent._generate_hash() uses.

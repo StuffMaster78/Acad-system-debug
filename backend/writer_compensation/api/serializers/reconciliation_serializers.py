@@ -9,7 +9,7 @@ from writer_compensation.models.payout_reconciliation_report import (
 )
 
 
-class PayoutReconciliationReportSerializer(
+class ReconciliationReportSerializer(
     serializers.ModelSerializer
 ):
     class Meta:

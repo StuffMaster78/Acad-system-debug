@@ -5,7 +5,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models
 
-from writer_compensation.enums.financial_event_enums import (
+from writer_compensation.enums.compensation_enums import (
     DeferralReason,
 )
 from writer_compensation.models.compensation_event import (

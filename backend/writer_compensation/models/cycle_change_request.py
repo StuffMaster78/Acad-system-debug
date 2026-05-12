@@ -7,7 +7,7 @@ from django.db import models
  
 from writer_compensation.enums.compensation_enums import (
     CycleChangeStatus,
-    CycleType,
+    WindowType,
 )
 from writer_compensation.models.payment_window import (
     PaymentWindow,
@@ -38,11 +38,11 @@ class PaymentWindowChangeRequest(models.Model):
     )
     from_window = models.CharField(
         max_length=16,
-        choices=CycleType.choices,
+        choices=WindowType.choices,
     )
     requested_window = models.CharField(
         max_length=16,
-        choices=CycleType.choices,
+        choices=WindowType.choices,
     )
     reason = models.TextField(blank=True)
     status = models.CharField(

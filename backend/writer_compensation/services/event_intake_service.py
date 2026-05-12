@@ -12,7 +12,6 @@ from writer_compensation.enums.compensation_enums import (
     WindowStatus,
 )
 from writer_compensation.exceptions.exceptions import (
-    InvalidPayoutItemTransitionError,
     InvalidWindowTransitionError,
     NoOpenWindowError,
     WindowLockedError,
@@ -194,8 +193,11 @@ class EventIntakeService:
         )
  
         # Link and stamp original.
-        reversal.related_event = original_event
-        reversal.save(update_fields=["related_event"])
+        # reversal.related_event = original_event
+        # reversal.save(update_fields=["related_event"])
+        CompensationEvent.objects.filter(pk=reversal.pk).update(
+            related_event=original_event,
+        )
  
         original_event.status = EventStatus.REVERSED
         original_event.reversed_at = timezone.now()

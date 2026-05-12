@@ -14,8 +14,6 @@ from writer_compensation.enums.compensation_enums import (
 from writer_compensation.exceptions.exceptions import (
     InvalidWindowTransitionError,
     WindowOverlapError,
-    WindowLockedError,
-
 
 )
 from writer_compensation.models.compensation_event import (

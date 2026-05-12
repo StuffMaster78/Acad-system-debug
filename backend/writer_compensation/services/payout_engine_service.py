@@ -8,7 +8,6 @@ from django.utils import timezone
  
 from writer_compensation.enums.compensation_enums import (
     EventStatus,
-    PayoutBatchStatus,
     PayoutRecordStatus,
     WindowStatus,
 )

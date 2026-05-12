@@ -6,11 +6,7 @@ from django.conf import settings
 from django.db import models
  
 from writer_compensation.enums.compensation_enums import (
-    CycleChangeStatus,
-    CycleType,
-    EventStatus,
-    EventType,
-    PayoutItemStatus,
+    WindowType,
     WindowStatus,
 )
  
@@ -26,11 +22,11 @@ class CompensationWindow(models.Model):
     A defined pay period. Every CompensationEvent belongs to exactly one window.
  
     Lifecycle (one-way, never reversed):
-        OPEN       → events are collected; writers work normally
-        CLOSED     → period ended; batch and items created; no new events assigned
-        PROCESSING → admin clicked "Process payments"; writers see status message;
+        OPEN       -> events are collected; writers work normally
+        CLOSED     -> period ended; batch and items created; no new events assigned
+        PROCESSING -> admin clicked "Process payments"; writers see status message;
                      all events locked
-        DONE       → admin finished; held items remain open indefinitely
+        DONE       -> admin finished; held items remain open indefinitely
     """
  
     website    = models.ForeignKey(
@@ -40,7 +36,7 @@ class CompensationWindow(models.Model):
     )
     cycle_type = models.CharField(
         max_length=16,
-        choices=CycleType.choices,
+        choices=WindowType.choices,
     )
     start_date = models.DateField()
     end_date   = models.DateField()
