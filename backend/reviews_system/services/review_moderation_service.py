@@ -1,164 +1,264 @@
+from uuid import UUID
+
+from django.db import transaction
 from django.utils import timezone
-from reviews_system.models.website_review import WebsiteReview
-from reviews_system.models.writer_review import WriterReview
-from reviews_system.models.order_review import OrderReview
-from notifications_system.services.notification_service import NotificationService
+
+from reviews_system.events.review_event_builder import (
+    ReviewEventBuilder,
+)
+from reviews_system.models import (
+    Review,
+    ReviewModerationLog,
+)
+from reviews_system.models.states import (
+    ReviewState,
+    ReviewVisibility,
+)
+from reviews_system.services.review_visibility_service import (
+    ReviewVisibilityService,
+)
+
 
 class ReviewModerationService:
     """
-    Service to moderate and manage reviews across Website, Writer, and Order.
-    Supports shadowing, flagging, approving, and deleting reviews.
+    Handles review moderation lifecycle.
+
+    Responsibilities:
+        - state transitions
+        - visibility delegation
+        - audit logging
+        - event emission
     """
 
-    @staticmethod
-    def _get_review_type(review) -> str:
-        """
-        Determines the type of review based on its class.
-        """
-        if isinstance(review, OrderReview):
-            return "order"
-        elif isinstance(review, WriterReview):
-            return "writer"
-        elif isinstance(review, WebsiteReview):
-            return "website"
-        return "unknown"
+    @classmethod
+    @transaction.atomic
+    def approve(
+        cls,
+        *,
+        review: Review,
+        moderator_id: UUID | None = None,
+        reason: str = "",
+    ) -> Review:
+        """Approve review and publish it."""
 
-    @staticmethod
-    def moderate_review(review, data: dict):
-        """
-        Applies moderation decisions to a review object.
+        previous_state = review.moderation_state
+        previous_visibility = review.visibility
 
-        Args:
-            review (Model): The review instance
-                (OrderReview, WriterReview, WebsiteReview).
-            data (dict): Dictionary with keys 
-                    like `is_approved`, `is_shadowed`, `flag_reason`, etc.
-        """
-        if "is_approved" in data:
-            """
-            Approving a review means marking it as valid and visible to the public.
-            """
-            review.is_approved = data["is_approved"]
-
-        if "is_shadowed" in data:
-            """
-            Shadowing a review means marking it as not visible to the public,
-            but still keeping it in the database for internal review.
-            """
-            review.is_shadowed = data["is_shadowed"]
-
-        if "is_flagged" in data:
-            """
-            Flagging a review means marking it for further investigation,
-            usually due to inappropriate content or disputes.
-            """
-            review.is_flagged = data["is_flagged"]
-
-        if "flag_reason" in data:
-            """
-            The reason for flagging a review, which
-            can be used for internal tracking.
-            """
-            review.flag_reason = data["flag_reason"]
-
-        if "moderation_notes" in data:
-            """
-            Additional notes from the moderator about the review.
-            This can include explanations for the moderation decision.
-            """
-            review.moderation_notes = data["moderation_notes"]
-
-        review.moderated_at = timezone.now()
-        review.save(
-            update_fields=[
-                "is_approved", "is_shadowed", "is_flagged",
-                "flag_reason", "moderation_notes", "moderated_at"
-            ]
+        cls._apply_moderation_base(
+            review=review,
+            state=ReviewState.APPROVED,
+            moderator_id=moderator_id,
+            reason=reason,
         )
 
-    @staticmethod
-    def delete_review(review):
-        """
-        Permanently deletes a review instance.
+        ReviewVisibilityService.set_public(review=review)
 
-        Args:
-            review (Model): The review to delete.
-        """
-        review.delete()
-
-    @staticmethod
-    def approve_review(review):
-        """
-        Approves a review, making it visible to the public.
-        """
-        if not review.is_approved:
-            review.is_approved = True
-            review.moderated_at = timezone.now()
-            review.save(update_fields=["is_approved", "moderated_at"])
-
-        NotificationService.notify(
-            event_key="review.approved",
-            recipient=review.user,
-            website=review.website,
-            context={
-                "review_id": review.id,
-                "review_type": ReviewModerationService._get_review_type(review),
-                "title": "Review Approved",
-                "message": "Your review {review_type} has been approved and is now visible.",
-            },
-            channels=["email", "in_app"],
-            priority="medium",
-            is_broadcast=False,
-            is_critical=False,
-            is_digest=False,
-            digest_group=None,
+        cls._log(
+            review=review,
+            moderator_id=moderator_id,
+            previous_state=previous_state,
+            new_state=ReviewState.APPROVED,
+            previous_visibility=previous_visibility,
+            new_visibility=ReviewVisibility.PUBLIC,
+            reason=reason,
         )
 
-    @staticmethod
-    def shadow_review(review, reason: str = ""):
-        """
-        Shadows a review, making it not visible to the public.
-        """
-        if review.is_approved:
-            review.is_approved = False
-        if not review.is_shadowed:
-            review.is_shadowed = True
-            review.flag_reason = reason
-            review.moderated_at = timezone.now()
-            review.save(
-                update_fields=[
-                    "is_shadowed",
-                    "flag_reason",
-                    "moderated_at"
-                ]
+        cls._emit(
+            ReviewEventBuilder.build_approved(
+                review_id=review.id,
+                target_type=review.target_type,
+                target_id=review.target_id,
+                actor_id=moderator_id,
             )
+        )
 
-    @staticmethod
-    def unshadow_review(review):
-        """
-        Unshadows a review, making it visible to the public again.
-        """
-        review.is_shadowed = False
-        review.flag_reason = None
+        return review
+
+    @classmethod
+    @transaction.atomic
+    def reject(
+        cls,
+        *,
+        review: Review,
+        moderator_id: UUID | None = None,
+        reason: str = "",
+    ) -> Review:
+        """Reject review."""
+
+        previous_state = review.moderation_state
+        previous_visibility = review.visibility
+
+        cls._apply_moderation_base(
+            review=review,
+            state=ReviewState.REJECTED,
+            moderator_id=moderator_id,
+            reason=reason,
+        )
+
+        ReviewVisibilityService.set_removed(review=review)
+
+        cls._log(
+            review=review,
+            moderator_id=moderator_id,
+            previous_state=previous_state,
+            new_state=ReviewState.REJECTED,
+            previous_visibility=previous_visibility,
+            new_visibility=ReviewVisibility.REMOVED,
+            reason=reason,
+        )
+
+        cls._emit(
+            ReviewEventBuilder.build_rejected(
+                review_id=review.id,
+                target_type=review.target_type,
+                target_id=review.target_id,
+                actor_id=moderator_id,
+            )
+        )
+
+        return review
+
+    @classmethod
+    @transaction.atomic
+    def shadow(
+        cls,
+        *,
+        review: Review,
+        moderator_id: UUID | None = None,
+        reason: str = "",
+    ) -> Review:
+        """Shadow review from public view."""
+
+        previous_state = review.moderation_state
+        previous_visibility = review.visibility
+
+        cls._apply_moderation_base(
+            review=review,
+            state=ReviewState.APPROVED,
+            moderator_id=moderator_id,
+            reason=reason,
+        )
+
+        ReviewVisibilityService.set_shadowed(review=review)
+
+        cls._log(
+            review=review,
+            moderator_id=moderator_id,
+            previous_state=previous_state,
+            new_state=ReviewState.APPROVED,
+            previous_visibility=previous_visibility,
+            new_visibility=ReviewVisibility.SHADOWED,
+            reason=reason,
+        )
+
+        cls._emit(
+            ReviewEventBuilder.build_shadowed(
+                review_id=review.id,
+                target_type=review.target_type,
+                target_id=review.target_id,
+                actor_id=moderator_id,
+            )
+        )
+
+        return review
+
+    @classmethod
+    @transaction.atomic
+    def flag(
+        cls,
+        *,
+        review: Review,
+        moderator_id: UUID | None = None,
+        reason: str = "",
+    ) -> Review:
+        """Flag review for investigation."""
+
+        previous_state = review.moderation_state
+        previous_visibility = review.visibility
+
+        cls._apply_moderation_base(
+            review=review,
+            state=ReviewState.FLAGGED,
+            moderator_id=moderator_id,
+            reason=reason,
+        )
+
+        cls._log(
+            review=review,
+            moderator_id=moderator_id,
+            previous_state=previous_state,
+            new_state=ReviewState.FLAGGED,
+            previous_visibility=previous_visibility,
+            new_visibility=previous_visibility,
+            reason=reason,
+        )
+
+        cls._emit(
+            ReviewEventBuilder.build_flagged(
+                review_id=review.id,
+                target_type=review.target_type,
+                target_id=review.target_id,
+                actor_id=moderator_id,
+            )
+        )
+
+        return review
+
+    @classmethod
+    def _apply_moderation_base(
+        cls,
+        *,
+        review: Review,
+        state: ReviewState,
+        moderator_id: UUID | None,
+        reason: str,
+    ) -> None:
+        """Centralized state mutation logic."""
+
+        review.moderation_state = state
         review.moderated_at = timezone.now()
+        review.moderated_by_id = moderator_id
+        review.moderation_notes = reason
+
         review.save(
             update_fields=[
-                "is_shadowed", "flag_reason", "moderated_at"
+                "moderation_state",
+                "moderated_at",
+                "moderated_by_id",
+                "moderation_notes",
             ]
         )
 
-    @staticmethod
-    def flag_review(review, reason: str):
-        """
-        Flags a review for further investigation.
-        """
-        review.is_flagged = True
-        review.flag_reason = reason
-        review.moderated_at = timezone.now()
-        review.save(
-            update_fields=[
-                "is_flagged",
-                "flag_reason",
-                "moderated_at"
-            ]
+    @classmethod
+    def _log(
+        cls,
+        *,
+        review: Review,
+        moderator_id: UUID | None,
+        previous_state: str,
+        new_state: str,
+        previous_visibility: str,
+        new_visibility: str,
+        reason: str,
+    ) -> None:
+        """Write moderation audit log."""
+
+        ReviewModerationLog.objects.create(
+            review_id=review.id,
+            moderator_id=moderator_id,
+            previous_state=previous_state,
+            new_state=new_state,
+            previous_visibility=previous_visibility,
+            new_visibility=new_visibility,
+            reason=reason,
         )
+
+    @classmethod
+    def _emit(cls, event) -> None:
+        """Emit domain event."""
+
+        from event_system.services.event_bus_service import (
+            EventBusService,
+        )
+
+        EventBusService.publish(event)
