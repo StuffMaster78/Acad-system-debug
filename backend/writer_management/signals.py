@@ -5,19 +5,17 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in
 from django.utils.timezone import now
-from .models.profile import WriterProfile
+from .models.writer_profile import WriterProfile
 from .models.logs import WriterActionLog
 from core.utils.location import get_geolocation_from_ip
-from .models.payout import CurrencyConversionRate
 from django.core.cache import cache
-from writer_management.services.conversion_service import CurrencyConversionService
 
 from writer_management.services.status_service import WriterStatusService
-from writer_management.models.discipline import (
-    WriterStrike, WriterSuspension, WriterBlacklist, Probation
+from writer_management.models.writer_discipline import (
+    WriterStrike, WriterSuspension, WriterBlacklist, WriterProbation
 )
-from writer_management.models.writer_warnings import WriterWarning
-from writer_management.models.rewards import WriterReward
+from writer_management.models.writer_warning import WriterWarning
+from writer_management.models.writer_reward import WriterReward
 
 
 User = get_user_model()
@@ -147,7 +145,7 @@ def get_client_ip(request):
 @receiver([post_save, post_delete], sender=WriterStrike)
 @receiver([post_save, post_delete], sender=WriterSuspension)
 @receiver([post_save, post_delete], sender=WriterBlacklist)
-@receiver([post_save, post_delete], sender=Probation)
+@receiver([post_save, post_delete], sender=WriterProbation)
 def invalidate_writer_status_cache(sender, instance, **kwargs):
     """Invalidate the cache for the writer's status
     when any discipline-related model is saved or deleted.
@@ -155,92 +153,88 @@ def invalidate_writer_status_cache(sender, instance, **kwargs):
     WriterStatusService.clear_cache(instance.writer)
 
 
-# ---------------- Discipline Notifications ---------------- #
+# ---- Discipline Notifications disabled (DisciplineNotificationService not available) ----
+# These handlers are commented out pending notification service implementation.
+# Uncomment when DisciplineNotificationService is available in notifications_system or similar.
 
-@receiver(pre_save, sender=WriterWarning)
-def store_previous_warning_state(sender, instance, **kwargs):
-    if not instance.pk:
-        instance._previous_is_active = None
-        return
-    try:
-        instance._previous_is_active = (
-            sender.objects.only("is_active").get(pk=instance.pk).is_active
-        )
-    except sender.DoesNotExist:
-        instance._previous_is_active = None
+# @receiver(pre_save, sender=WriterWarning)
+# def store_previous_warning_state(sender, instance, **kwargs):
+#     if not instance.pk:
+#         instance._previous_is_active = None
+#         return
+#     try:
+#         instance._previous_is_active = (
+#             sender.objects.only("is_active").get(pk=instance.pk).is_active
+#         )
+#     except sender.DoesNotExist:
+#         instance._previous_is_active = None
+#
+#
+# @receiver(post_save, sender=WriterWarning)
+# def writer_warning_notifications(sender, instance, created, **kwargs):
+#     if created:
+#         DisciplineNotificationService.notify_warning_issued(instance)
+#         return
+#     prev_active = getattr(instance, "_previous_is_active", None)
+#     if prev_active and not instance.is_active:
+#         DisciplineNotificationService.notify_warning_resolved(
+#             instance, reason="resolved"
+#         )
+#
+#
+# @receiver(post_delete, sender=WriterWarning)
+# def writer_warning_deleted(sender, instance, **kwargs):
+#     if instance.writer:
+#         DisciplineNotificationService.notify_warning_resolved(
+#             instance, reason="removed"
+#         )
+#
+#
+# @receiver(post_save, sender=WriterStrike)
+# def writer_strike_created(sender, instance, created, **kwargs):
+#     if created:
+#         DisciplineNotificationService.notify_strike_issued(instance)
+#
+#
+# @receiver(post_delete, sender=WriterStrike)
+# def writer_strike_deleted(sender, instance, **kwargs):
+#     if instance.writer:
+#         DisciplineNotificationService.notify_strike_revoked(instance)
+#
+#
+# @receiver(pre_save, sender=WriterSuspension)
+# def store_previous_suspension_state(sender, instance, **kwargs):
+#     if not instance.pk:
+#         instance._previous_is_active = None
+#         return
+#     try:
+#         instance._previous_is_active = (
+#             sender.objects.only("is_active").get(pk=instance.pk).is_active
+#         )
+#     except sender.DoesNotExist:
+#         instance._previous_is_active = None
+#
+#
+# @receiver(post_save, sender=WriterSuspension)
+# def writer_suspension_notifications(sender, instance, created, **kwargs):
+#     if created:
+#         DisciplineNotificationService.notify_suspension_started(instance)
+#         return
+#     prev_active = getattr(instance, "_previous_is_active", None)
+#     if prev_active and not instance.is_active:
+#         DisciplineNotificationService.notify_suspension_lifted(instance)
+#
+#
+# @receiver(post_save, sender=WriterProbation)
+# def writer_probation_notifications(sender, instance, created, **kwargs):
+#     if created:
+#         DisciplineNotificationService.notify_probation_started(instance)
 
+# ---- CurrencyConversionRate handler removed (model deleted, migrated to writer_compensation) ----
+# Cache invalidation now handled by writer_compensation app.
 
-@receiver(post_save, sender=WriterWarning)
-def writer_warning_notifications(sender, instance, created, **kwargs):
-    if created:
-        DisciplineNotificationService.notify_warning_issued(instance)
-        return
-    prev_active = getattr(instance, "_previous_is_active", None)
-    if prev_active and not instance.is_active:
-        DisciplineNotificationService.notify_warning_resolved(
-            instance, reason="resolved"
-        )
+# ---- WriterReward post-save handler ----
 
-
-@receiver(post_delete, sender=WriterWarning)
-def writer_warning_deleted(sender, instance, **kwargs):
-    if instance.writer:
-        DisciplineNotificationService.notify_warning_resolved(
-            instance, reason="removed"
-        )
-
-
-@receiver(post_save, sender=WriterStrike)
-def writer_strike_created(sender, instance, created, **kwargs):
-    if created:
-        DisciplineNotificationService.notify_strike_issued(instance)
-
-
-@receiver(post_delete, sender=WriterStrike)
-def writer_strike_deleted(sender, instance, **kwargs):
-    if instance.writer:
-        DisciplineNotificationService.notify_strike_revoked(instance)
-
-
-@receiver(pre_save, sender=WriterSuspension)
-def store_previous_suspension_state(sender, instance, **kwargs):
-    if not instance.pk:
-        instance._previous_is_active = None
-        return
-    try:
-        instance._previous_is_active = (
-            sender.objects.only("is_active").get(pk=instance.pk).is_active
-        )
-    except sender.DoesNotExist:
-        instance._previous_is_active = None
-
-
-@receiver(post_save, sender=WriterSuspension)
-def writer_suspension_notifications(sender, instance, created, **kwargs):
-    if created:
-        DisciplineNotificationService.notify_suspension_started(instance)
-        return
-    prev_active = getattr(instance, "_previous_is_active", None)
-    if prev_active and not instance.is_active:
-        DisciplineNotificationService.notify_suspension_lifted(instance)
-
-
-@receiver(post_save, sender=Probation)
-def writer_probation_notifications(sender, instance, created, **kwargs):
-    if created:
-        DisciplineNotificationService.notify_probation_started(instance)
-
-
-
-@receiver(post_save, sender=CurrencyConversionRate)
-def clear_cached_conversion_rate(sender, instance, **kwargs):
-    key = CurrencyConversionService._cache_key(
-        instance.website.id, instance.target_currency
-    )
-    cache.delete(key)
-
-
-@receiver([post_save, pre_delete, pre_delete], sender=WriterReward)
 def ensure_reward_website(sender, instance, **kwargs):
     try:
         if not getattr(instance, 'website_id', None):

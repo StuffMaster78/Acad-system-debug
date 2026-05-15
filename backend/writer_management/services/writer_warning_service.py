@@ -1,259 +1,511 @@
-# writer_management/services/writer_warning_service.py
+"""
+writer_management/services/writer_warning_service.py
 
+Issues and manages writer warnings.
+
+RESPONSIBILITY
+--------------
+This service owns the warning lifecycle:
+    issue_warning()     — create a warning, notify, check thresholds
+    revoke_warning()    — void a warning issued in error
+    void_warning()      — alias for revoke_warning (same operation)
+    get_active_count()  — count active warnings for a writer
+
+ESCALATION
+----------
+After every new warning, this service evaluates thresholds
+from WriterWarningEscalationConfig and calls DisciplineService
+for auto-escalation. It does NOT execute the escalation itself —
+DisciplineService owns suspension and probation.
+
+After every mutation, this service calls WriterStatusService.recompute()
+to rebuild WriterDisciplineState. This keeps the cache consistent.
+
+IDENTITY RESOLUTION
+-------------------
+WriterProfile has no .user or .website attributes.
+All resolution goes through _resolve_website() and _resolve_user()
+which navigate the correct chain:
+    website → writer.writer_level.website
+              or writer.account_profile.website
+    user    → writer.account_profile.user
+"""
+
+import logging
 from datetime import timedelta
 
-from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.db.models import Q
 from django.utils.timezone import now
 
-from notifications_system.services.notification_service import (
-    NotificationService,
-)
-from writer_management.models.profile import WriterProfile
-from writer_management.models.writer_warnings import WriterWarning
-from writer_management.services.escalation_config_service import (
-    EscalationConfigService,
-)
+from writer_management.models.writer_profile import WriterProfile
+from writer_management.models.writer_warning import WriterWarning
 
-User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class WriterWarningService:
-    """Service for issuing writer warnings and handling thresholds."""
+
+    # ----------------------------------------------------------------
+    # ISSUE
+    # ----------------------------------------------------------------
 
     @staticmethod
+    @transaction.atomic
     def issue_warning(
         writer: WriterProfile,
         reason: str,
+        category: str = "other",
         issued_by=None,
         expires_days: int | None = None,
     ) -> WriterWarning:
         """
-        Issue a warning to a writer and trigger relevant notifications.
+        Issue a formal warning to a writer.
+
+        Creates the warning record, notifies the writer,
+        evaluates escalation thresholds, rebuilds discipline state.
 
         Args:
-            writer: Writer profile receiving the warning.
-            reason: Reason for the warning.
-            issued_by: User who issued the warning, or None for system.
-            expires_days: Optional override for warning expiration days.
+            writer:      WriterProfile receiving the warning.
+            reason:      Full description of the behaviour.
+                         Include order number and policy reference.
+            category:    WriterWarning.category choice value.
+            issued_by:   Admin User. None = system-triggered.
+            expires_days: Override expiry duration in days.
+                          Defaults to WriterWarningEscalationConfig value.
 
         Returns:
-            The created WriterWarning instance.
+            Created WriterWarning instance.
+
+        Raises:
+            ValueError: If website cannot be resolved.
         """
-        website = getattr(writer, "website", None)
+        website = WriterWarningService._resolve_website(writer)
         if not website:
-            raise ValueError("Writer must belong to a website.")
+            raise ValueError(
+                f"Cannot resolve website for writer "
+                f"{writer.registration_id}."
+            )
 
-        config = EscalationConfigService.get_config(website)
-        previous_count = WriterWarningService.get_active_warning_count(writer)
+        config = WriterWarningService._get_config(website)
 
-        expires_days = (
-            expires_days or config.default_warning_duration_days
+        duration = expires_days or getattr(
+            config, "default_warning_duration_days", 30
         )
-        expires_at = now() + timedelta(days=expires_days)
+        expires_at = now() + timedelta(days=duration)
 
         warning = WriterWarning.objects.create(
             website=website,
             writer=writer,
             reason=reason,
+            category=category,
             issued_by=issued_by,
             expires_at=expires_at,
         )
 
-        WriterWarningService._notify_warning_issued(
+        logger.info(
+            "WriterWarning issued: writer=%s warning=%s "
+            "category=%s expires=%s",
+            writer.registration_id,
+            warning.pk,
+            category,
+            expires_at.date(),
+        )
+
+        # Rebuild discipline state cache
+        WriterWarningService._recompute(writer)
+
+        # Notify writer
+        WriterWarningService._notify_writer(
             warning=warning,
             triggered_by=issued_by,
         )
 
-        WriterWarningService.check_threshold(
+        # Evaluate thresholds and trigger escalation if needed
+        WriterWarningService._evaluate_thresholds(
             writer=writer,
-            previous_count=previous_count,
+            website=website,
+            config=config,
         )
 
         return warning
 
+    # ----------------------------------------------------------------
+    # VOID / REVOKE
+    # ----------------------------------------------------------------
+
     @staticmethod
-    def get_active_warning_count(writer: WriterProfile) -> int:
+    @transaction.atomic
+    def void_warning(
+        warning: WriterWarning,
+        voided_by=None,
+        reason: str = "",
+    ) -> WriterWarning:
         """
-        Return the number of active, unexpired warnings for a writer.
+        Void a warning issued in error.
+
+        Voided warnings are preserved for audit but excluded from
+        all threshold counts. The void is permanent.
 
         Args:
-            writer: Writer profile to evaluate.
+            warning:   WriterWarning to void.
+            voided_by: Admin User performing the void.
+            reason:    Why the warning is being voided. Required.
 
         Returns:
-            Number of active warnings.
+            Updated warning instance.
+
+        Raises:
+            ValueError: If reason is not provided.
         """
-        return writer.warnings.filter(
+        if not reason.strip():
+            raise ValueError(
+                "A reason must be provided when voiding a warning."
+            )
+
+        if warning.is_voided:
+            logger.warning(
+                "void_warning called on already-voided warning %s.",
+                warning.pk,
+            )
+            return warning
+
+        warning.is_voided = True
+        warning.is_active = False
+        warning.voided_at = now()
+        warning.voided_by = voided_by
+        warning.void_reason = reason
+        warning.save(update_fields=[
+            "is_voided", "is_active",
+            "voided_at", "voided_by", "void_reason",
+            "updated_at",
+        ])
+
+        logger.info(
+            "WriterWarning voided: warning=%s writer=%s by=%s reason=%r",
+            warning.pk,
+            warning.writer.pk,
+            getattr(voided_by, "pk", "system"),
+            reason[:80],
+        )
+
+        # Rebuild discipline state — active warning count changes
+        WriterWarningService._recompute(warning.writer)
+
+        return warning
+
+    # Alias
+    revoke_warning = void_warning
+
+    # ----------------------------------------------------------------
+    # QUERIES
+    # ----------------------------------------------------------------
+
+    @staticmethod
+    def get_active_count(writer: WriterProfile) -> int:
+        """
+        Count active, non-expired, non-voided warnings for a writer.
+
+        This is the authoritative count used for threshold evaluation.
+        WriterDisciplineState.active_warning_count is the cached version.
+        """
+        return WriterWarning.objects.filter(
+            writer=writer,
             is_active=True,
-            expires_at__gt=now(),
+            is_voided=False,
+        ).filter(
+            Q(expires_at__isnull=True) |
+            Q(expires_at__gt=now())
         ).count()
 
     @staticmethod
-    def check_threshold(
-        writer: WriterProfile,
-        previous_count: int | None = None,
-    ) -> None:
-        """
-        Notify admins if the writer crosses the configured threshold.
+    def get_active_warnings(writer: WriterProfile):
+        """Return active warning queryset for a writer."""
+        n = now()
+        return WriterWarning.objects.filter(
+            writer=writer,
+            is_active=True,
+            is_voided=False,
+        ).filter(
+            Q(expires_at__isnull=True) |
+            Q(expires_at__gt=n)
+        ).order_by("-created_at")
 
-        Args:
-            writer: Writer profile to evaluate.
-            previous_count: Warning count before latest change.
+    # ----------------------------------------------------------------
+    # THRESHOLD EVALUATION
+    # ----------------------------------------------------------------
+
+    @staticmethod
+    def _evaluate_thresholds(writer, website, config) -> None:
         """
-        website = getattr(writer, "website", None)
-        if not website:
+        Check if active warning count crosses configured thresholds.
+        Trigger notifications and auto-escalation accordingly.
+        """
+        if config is None:
             return
 
-        config = EscalationConfigService.get_config(website)
-        current_count = WriterWarningService.get_active_warning_count(
-            writer
-        )
+        current_count = WriterWarningService.get_active_count(writer)
 
-        if previous_count is None:
-            previous_count = current_count
+        # Determine highest threshold crossed
+        auto_suspension = getattr(config, "auto_suspension_threshold", 0)
+        auto_probation = getattr(config, "auto_probation_threshold", 0)
+        admin_alert = getattr(config, "admin_alert_threshold", 0)
 
-        crossed_threshold = (
-            previous_count < config.admin_alert_threshold
-            <= current_count
-        )
-
-        if crossed_threshold:
-            WriterWarningService._notify_warning_threshold(
+        # Auto-suspension (highest priority)
+        if auto_suspension and current_count >= auto_suspension:
+            logger.warning(
+                "Auto-suspension threshold reached: writer=%s "
+                "active_warnings=%d threshold=%d",
+                writer.registration_id,
+                current_count,
+                auto_suspension,
+            )
+            WriterWarningService._trigger_suspension(writer, config)
+            WriterWarningService._notify_admins(
                 writer=writer,
-                warnings=current_count,
-                threshold=config.admin_alert_threshold,
+                website=website,
+                current_count=current_count,
+                suggested_action="suspension_triggered",
+                config=config,
+            )
+            return
+
+        # Auto-probation
+        if auto_probation and current_count >= auto_probation:
+            logger.info(
+                "Auto-probation threshold reached: writer=%s "
+                "active_warnings=%d threshold=%d",
+                writer.registration_id,
+                current_count,
+                auto_probation,
+            )
+            WriterWarningService._trigger_probation(writer, config)
+            WriterWarningService._notify_admins(
+                writer=writer,
+                website=website,
+                current_count=current_count,
+                suggested_action="probation_triggered",
+                config=config,
+            )
+            return
+
+        # Admin alert only
+        if admin_alert and current_count >= admin_alert:
+            logger.info(
+                "Admin alert threshold reached: writer=%s "
+                "active_warnings=%d threshold=%d",
+                writer.registration_id,
+                current_count,
+                admin_alert,
+            )
+            WriterWarningService._notify_admins(
+                writer=writer,
+                website=website,
+                current_count=current_count,
+                suggested_action="review_recommended",
                 config=config,
             )
 
     @staticmethod
-    def suggest_action(config, count: int) -> str:
-        """
-        Suggest the next disciplinary action based on thresholds.
+    def _trigger_suspension(writer, config) -> None:
+        """Auto-suspend via DisciplineService."""
+        try:
+            from writer_management.services.discipline_service import (
+                DisciplineService,
+            )
+            from writer_management.exceptions import WriterSuspendedError
 
-        Args:
-            config: Escalation config instance.
-            count: Current active warning count.
-
-        Returns:
-            Suggested action label.
-        """
-        if (
-            config.auto_suspension_threshold
-            and count >= config.auto_suspension_threshold
-        ):
-            return "Suspension Recommended"
-
-        if (
-            config.auto_probation_threshold
-            and count >= config.auto_probation_threshold
-        ):
-            return "Probation Recommended"
-
-        return "No Action"
-
-    @staticmethod
-    def _notify_warning_issued(
-        *,
-        warning: WriterWarning,
-        triggered_by=None,
-    ) -> None:
-        """
-        Notify the writer that a warning has been issued.
-
-        Args:
-            warning: Created warning instance.
-            triggered_by: User who issued it, or None for system.
-        """
-        writer = warning.writer
-        user = getattr(writer, "user", None)
-        website = getattr(writer, "website", None)
-
-        if not user or not website:
-            return
-
-        NotificationService.notify(
-            event_key="writer.discipline.warning_issued",
-            recipient=user,
-            website=website,
-            context={
-                "writer_id": writer.id,
-                "writer_name": user.get_full_name() or user.username,
-                "warning_id": warning.id,
-                "warning_reason": warning.reason,
-                "issued_at": warning.created_at.isoformat(),
-                "expires_at": (
-                    warning.expires_at.isoformat()
-                    if warning.expires_at
-                    else None
+            DisciplineService.suspend(
+                writer=writer,
+                reason=(
+                    f"Auto-suspended: active warning count reached "
+                    f"suspension threshold "
+                    f"({config.auto_suspension_threshold} warnings)."
                 ),
-                "active_warning_count": (
-                    WriterWarningService.get_active_warning_count(writer)
-                ),
-            },
-            triggered_by=triggered_by,
-        )
-
-    @staticmethod
-    def _notify_warning_threshold(
-        *,
-        writer: WriterProfile,
-        warnings: int,
-        threshold: int,
-        config,
-    ) -> None:
-        """
-        Notify admins when a writer crosses the warning threshold.
-
-        Args:
-            writer: Writer profile that crossed the threshold.
-            warnings: Current active warning count.
-            threshold: Admin alert threshold.
-            config: Escalation config instance.
-        """
-        website = getattr(writer, "website", None)
-        user = getattr(writer, "user", None)
-
-        if not website or not user:
-            return
-
-        admin_users = WriterWarningService._get_admin_recipients(website)
-        suggested_action = WriterWarningService.suggest_action(
-            config,
-            warnings,
-        )
-
-        for admin in admin_users:
-            NotificationService.notify(
-                event_key=(
-                    "writer.discipline.warning_threshold_reached"
-                ),
-                recipient=admin,
-                website=website,
-                context={
-                    "writer_id": writer.id,
-                    "writer_name": (
-                        user.get_full_name() or user.username
-                    ),
-                    "warning_count": warnings,
-                    "threshold": threshold,
-                    "suggested_action": suggested_action,
-                },
-                triggered_by=None,
-                is_critical=True,
+                duration_days=getattr(config, "auto_suspend_days", 7),
+                auto_triggered=True,
+            )
+        except Exception as exc:
+            logger.exception(
+                "Auto-suspension failed for writer %s: %s",
+                writer.registration_id,
+                exc,
             )
 
     @staticmethod
+    def _trigger_probation(writer, config) -> None:
+        """Auto-probation via DisciplineService."""
+        try:
+            from writer_management.services.discipline_service import (
+                DisciplineService,
+            )
+
+            DisciplineService.place_on_probation(
+                writer=writer,
+                reason=(
+                    f"Auto-probation: active warning count reached "
+                    f"probation threshold "
+                    f"({config.auto_probation_threshold} warnings)."
+                ),
+                auto_triggered=True,
+            )
+        except Exception as exc:
+            logger.exception(
+                "Auto-probation failed for writer %s: %s",
+                writer.registration_id,
+                exc,
+            )
+
+    # ----------------------------------------------------------------
+    # NOTIFICATIONS
+    # ----------------------------------------------------------------
+
+    @staticmethod
+    def _notify_writer(warning: WriterWarning, triggered_by=None) -> None:
+        """Notify writer that a warning was issued."""
+        try:
+            from notifications_system.services.notification_service import (
+                NotificationService,
+            )
+
+            writer = warning.writer
+            user = WriterWarningService._resolve_user(writer)
+            if not user:
+                logger.warning(
+                    "Cannot notify writer %s — user not resolvable.",
+                    writer.registration_id,
+                )
+                return
+
+            NotificationService.notify(
+                event_key="writer.discipline.warning_issued",
+                recipient=user,
+                website=warning.website,
+                context={
+                    "registration_id": writer.registration_id,
+                    "warning_id": warning.pk,
+                    "category": warning.category,
+                    "reason": warning.reason,
+                    "issued_at": warning.created_at.isoformat(),
+                    "expires_at": (
+                        warning.expires_at.isoformat()
+                        if warning.expires_at else None
+                    ),
+                    "active_warning_count": (
+                        WriterWarningService.get_active_count(writer)
+                    ),
+                    "days_remaining": warning.days_remaining,
+                },
+                triggered_by=triggered_by,
+            )
+        except Exception as exc:
+            logger.exception(
+                "Warning notification failed for warning %s: %s",
+                warning.pk,
+                exc,
+            )
+
+    @staticmethod
+    def _notify_admins(
+        *,
+        writer,
+        website,
+        current_count: int,
+        suggested_action: str,
+        config,
+    ) -> None:
+        """Notify admin users when a threshold is crossed."""
+        try:
+            from notifications_system.services.notification_service import (
+                NotificationService,
+            )
+
+            admin_users = WriterWarningService._get_admin_recipients(website)
+
+            for admin in admin_users:
+                NotificationService.notify(
+                    event_key="writer.discipline.warning_threshold_reached",
+                    recipient=admin,
+                    website=website,
+                    context={
+                        "registration_id": writer.registration_id,
+                        "active_warning_count": current_count,
+                        "suggested_action": suggested_action,
+                        "admin_alert_threshold": config.admin_alert_threshold,
+                    },
+                    triggered_by=None,
+                    is_critical=True,
+                )
+        except Exception as exc:
+            logger.exception(
+                "Admin threshold notification failed for writer %s: %s",
+                writer.registration_id,
+                exc,
+            )
+
+    # ----------------------------------------------------------------
+    # PRIVATE HELPERS
+    # ----------------------------------------------------------------
+
+    @staticmethod
+    def _recompute(writer) -> None:
+        """Rebuild WriterDisciplineState after any warning mutation."""
+        try:
+            from writer_management.services.writer_status_service import (
+                WriterStatusService,
+            )
+            WriterStatusService.recompute(writer)
+        except Exception as exc:
+            logger.exception(
+                "Failed to recompute discipline state for writer %s: %s",
+                writer.registration_id,
+                exc,
+            )
+
+    @staticmethod
+    def _get_config(website):
+        """Get WriterWarningEscalationConfig for a website."""
+        from writer_management.models.configs import (
+            WriterWarningEscalationConfig,
+        )
+        try:
+            return WriterWarningEscalationConfig.objects.get(website=website)
+        except WriterWarningEscalationConfig.DoesNotExist:
+            logger.warning(
+                "No WriterWarningEscalationConfig for website %s.",
+                website.pk,
+            )
+            return None
+
+    @staticmethod
+    def _resolve_website(writer):
+        try:
+            if writer.writer_level_id:
+                return writer.writer_level.website
+        except Exception:
+            pass
+        try:
+            return writer.account_profile.website
+        except Exception:
+            return None
+
+    @staticmethod
+    def _resolve_user(writer):
+        try:
+            return writer.account_profile.user
+        except Exception:
+            return None
+
+    @staticmethod
     def _get_admin_recipients(website):
-        """
-        Resolve admin recipients for a website.
-
-        Args:
-            website: Website instance.
-
-        Returns:
-            QuerySet of active admin users.
-        """
-        return User.objects.filter(
-            website=website,
-            role__in=["admin", "superadmin"],
-            is_active=True,
+        from accounts.models.account_profile import AccountProfile
+        return (
+            AccountProfile.objects
+            .filter(
+                website=website,
+                role__in=["admin", "superadmin"],
+                user__is_active=True,
+            )
+            .select_related("user")
+            .values_list("user", flat=True)
         )
