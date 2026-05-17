@@ -1,0 +1,5 @@
+# users_state/tasks/event_tasks.py
+
+from notifications_system.tasks import handle_notification_event as _handle_notification_event
+
+handle_notification_event = _handle_notification_event
