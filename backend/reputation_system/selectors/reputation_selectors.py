@@ -51,3 +51,12 @@ class ReputationSelectors:
             website_id=website_id,
         )
         return obj
+    
+    @staticmethod
+    def distinct_target_ids(target_type: str):
+        return (
+            Review.objects
+            .filter(target_type=target_type)
+            .values_list("target_id", flat=True)
+            .distinct()
+        )

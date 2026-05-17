@@ -18,6 +18,10 @@ class ReputationEvent(models.Model):
         REVIEW_SHADOWED = "review.shadowed"
         REVIEW_REJECTED = "review.rejected"
         REPUTATION_RECALCULATED = "reputation.recalculated"
+        TRUST_SCORE_UPDATED = "trust_score.updated"
+        BONUS_QUALIFIED = "bonus.qualified"
+        BONUS_REVOKED = "bonus.revoked"
+        PERCENTILE_CHANGED = "percentile.changed"
 
     id = models.UUIDField(
         primary_key=True,

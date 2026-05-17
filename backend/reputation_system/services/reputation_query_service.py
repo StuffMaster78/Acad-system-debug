@@ -14,6 +14,7 @@ class ReputationQueryService:
         - bonus_service
         - dashboards
         - admin tools
+        - ranking engines
     """
 
     @classmethod
@@ -22,9 +23,12 @@ class ReputationQueryService:
         Return writer reputation snapshot.
         """
 
-        return WriterReputationSnapshot.objects.filter(
-            writer_id=writer_id,
-        ).first()
+        return (
+            WriterReputationSnapshot.objects
+            .filter(writer_id=writer_id)
+            .order_by("-updated_at")
+            .first()
+        )
 
     @classmethod
     def get_website_reputation(cls, website_id: str):
@@ -32,25 +36,31 @@ class ReputationQueryService:
         Return website reputation snapshot.
         """
 
-        return WebsiteReputationSnapshot.objects.filter(
-            website_id=website_id,
-        ).first()
+        return (
+            WebsiteReputationSnapshot.objects
+            .filter(website_id=website_id)
+            .order_by("-updated_at")
+            .first()
+        )
 
     @classmethod
     def top_writers(cls, limit: int = 50):
         """
         Return top writers by rating.
         """
-
-        return WriterReputationSnapshot.objects.order_by(
-            "-rating",
-        )[:limit]
+        return (
+            WriterReputationSnapshot.objects
+            .order_by("-rating", "-review_count")
+            [:limit]
+        )
     
     @staticmethod
     def top_websites(limit: int = 50):
         """
         Returns the top rated websites.
         """
-        return WebsiteReputationSnapshot.objects.order_by(
-            "-rating",
-        )[:limit]
+        return (
+            WebsiteReputationSnapshot.objects
+            .order_by("-rating", "-review_count")
+            [:limit]
+        )

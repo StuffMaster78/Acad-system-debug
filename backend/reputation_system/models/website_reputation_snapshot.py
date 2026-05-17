@@ -20,6 +20,16 @@ class WebsiteReputationSnapshot(models.Model):
     review_count = models.PositiveIntegerField(
         default=0,
     )
+    # For a richer competitive metrics
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "Precomputed reputation intelligence. "
+            "Used for rewards, routing, "
+            "leaderboards, and analytics."
+        ),
+    )
 
     updated_at = models.DateTimeField(
         auto_now=True,

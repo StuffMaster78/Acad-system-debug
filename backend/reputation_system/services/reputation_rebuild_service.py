@@ -8,12 +8,13 @@ from reputation_system.selectors.reputation_selectors import (
 
 class ReputationRebuildService:
     """
+    A Safe Rebuild Engine
     Rebuilds reputation from scratch.
 
     Useful for:
-        - migrations
-        - bug fixes
-        - replay logic (future event sourcing)
+        - partial rebuild
+        - full target rebuild
+        - batch-safe iteration
     """
 
     @classmethod
@@ -25,17 +26,12 @@ class ReputationRebuildService:
 
     @classmethod
     def rebuild_all_for_target_type(cls, target_type: str) -> None:
-        reviews = ReputationSelectors.reviews_for_target(
-            target_type=target_type,
-            target_id=None,
+        target_ids = ReputationSelectors.distinct_target_ids(
+            target_type=target_type
         )
-
-        target_ids = {
-            str(r.target_id) for r in reviews
-        }
 
         for target_id in target_ids:
             cls.rebuild_target(
                 target_type=target_type,
-                target_id=target_id,
+                target_id=str(target_id),
             )
