@@ -5,11 +5,6 @@ and the Celery task pipeline.
 Responsibilities:
     - Deduplicate events via SHA-256 key
     - Write Outbox row in the caller's DB transaction
-    - Queue the Celery task
-    - Requeue stale PENDING rows (called by beat worker)
-    - Build the full outbox payload
-    - Deduplicate events via SHA-256 key
-    - Write Outbox row in the caller's DB transaction
     - Queue the Celery task immediately after write
     - Requeue stale PENDING rows (called by beat worker)
 
@@ -98,27 +93,24 @@ class OutboxService:
         """
         from notifications_system.models.outbox import Outbox
 
-        # Build the full payload the dispatcher needs
-        payload = {
-            'context': context,
-            'channels': channels,
-            'priority': priority,
-            'is_critical': is_critical,
-            'is_silent': is_silent,
-            'is_digest': is_digest,
-            'digest_group': digest_group,
-            'triggered_by_id': getattr(triggered_by, 'id', None),
-            'category': get_event_category(event_key),
-        }
+        payload = OutboxService._build_payload(
+            context=context,
+            channels=channels,
+            priority=priority,
+            is_critical=is_critical,
+            is_silent=is_silent,
+            is_digest=is_digest,
+            digest_group=digest_group,
+            triggered_by=triggered_by,
+            event_key=event_key,
+        )
 
         dedupe_key = OutboxService._build_dedupe_key(
             event_key=event_key,
             recipient_id=recipient.id,
             website_id=website.id,
-            context=context,
         )
 
-        # Write — idempotent via dedupe_key unique constraint
         outbox, created = Outbox.objects.get_or_create(
             dedupe_key=dedupe_key,
             defaults={
@@ -136,13 +128,9 @@ class OutboxService:
                 event_key,
                 recipient.id,
                 website.id,
-                dedupe_key[:16],  # log prefix only — full key is 64 chars
             )
             return None
 
-        # Queue the Celery task immediately
-        # Falls back gracefully if Celery is unavailable —
-        # requeue_pending() will pick it up within 5 minutes
         OutboxService._queue_task(outbox.pk)
 
         logger.info(
@@ -235,27 +223,25 @@ class OutboxService:
         event_key: str,
         recipient_id: int,
         website_id: int,
-        context: dict,
     ) -> str:
         """
         Build a deterministic SHA-256 dedupe key.
 
-        Same event + recipient + website + context always produces
-        the same key. This prevents duplicate notifications from
-        concurrent requests or retry storms.
+        FIX: context is intentionally excluded from the key.
+        Including context caused two problems:
+          1. Slightly different context (e.g. a timestamp in the payload)
+             would bypass deduplication entirely.
+          2. Processed outbox rows with context in the key permanently
+             blocked re-sending the same event (e.g. a second password
+             reset hours later) even after the row was purged, because
+             the context hash differed.
 
-        The SHA-256 hash ensures the key is always exactly
-        64 characters regardless of context size — safely under
-        the 256-char DB column limit.
+        Rate limiting in NotificationService handles burst protection.
+        Outbox row purging (cleanup_processed_outbox) recycles keys
+        so legitimate recurring sends work after the retention window.
         """
-        raw = (
-            f"{event_key}"
-            f":{recipient_id}"
-            f":{website_id}"
-            f":{json.dumps(context, sort_keys=True)}"
-        )
+        raw = f"{event_key}:{recipient_id}:{website_id}"
         return hashlib.sha256(raw.encode()).hexdigest()
-    
 
     @staticmethod
     def _queue_task(outbox_id: int) -> None:
@@ -263,17 +249,8 @@ class OutboxService:
         Queue the Celery task to process this outbox entry.
 
         Falls back gracefully if Celery is unavailable —
-        the requeue_pending beat task will pick it up within
-        5 minutes.
-
-        Never raises — a failed task queue is not fatal because
-        the outbox row persists in PENDING and will be requeued
-        by the beat worker within 5 minutes.
-
-        Respects the ENABLE_CELERY setting — when False (typically
-        in development with CELERY_TASK_ALWAYS_EAGER) the task is
-        still imported and called, Celery's eager mode handles it.
-        When explicitly disabled tasks are skipped entirely.
+        requeue_pending() beat task will recover within 5 minutes.
+        Never raises.
         """
         if not getattr(settings, 'ENABLE_CELERY', True):
             logger.info(
@@ -287,17 +264,13 @@ class OutboxService:
             from notifications_system.tasks.send import process_outbox_entry
             process_outbox_entry.delay(outbox_id)  # type: ignore[attr-defined]
             logger.debug(
-                "OutboxService._queue_task(): queued task "
-                "for outbox=%s.",
+                "OutboxService._queue_task(): queued task for outbox=%s.",
                 outbox_id,
             )
         except Exception as exc:
-            # Celery broker unavailable — not fatal
-            # requeue_pending() beat task will recover within 5 minutes
             logger.warning(
                 "OutboxService._queue_task(): Celery unavailable. "
-                "Outbox %s will be requeued by beat worker. "
-                "Error: %s",        # ← part of the format string
+                "Outbox %s will be requeued by beat worker. Error: %s",
                 outbox_id,
                 exc,
             )

@@ -1,0 +1,45 @@
+Reward Earned
+
+Hello {{ user.first_name|default:user.username }},
+
+Your recent performance has earned you a new writer reward.
+
+Reward:
+{{ reward_title }}
+
+{% if reward_amount and reward_amount != "0.00" %}
+Reward Amount:
+${{ reward_amount }}
+{% endif %}
+
+{% if badge_name %}
+Badge Earned:
+{{ badge_name }}
+{% endif %}
+
+{% if average_rating %}
+Average Rating:
+{{ average_rating }}
+{% endif %}
+
+{% if percentile_rank %}
+Performance Rank:
+You outperformed {{ percentile_rank }}% of writers.
+{% endif %}
+
+{% if review_count %}
+Total Reviews:
+{{ review_count }}
+{% endif %}
+
+{% if reward_description %}
+{{ reward_description }}
+{% endif %}
+
+{% if period_start and period_end %}
+Evaluation Period:
+{{ period_start }} → {{ period_end }}
+{% endif %}
+
+Keep building momentum.
+Consistency compounds.

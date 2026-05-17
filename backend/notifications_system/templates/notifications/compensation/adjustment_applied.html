@@ -1,0 +1,68 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Account Adjustment — {{ website_name }}{% endblock %}
+{% block tagline %}<div class="tagline">Account Update</div>{% endblock %}
+
+{% block content %}
+<h1>An adjustment has been applied</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    An adjustment has been made to your account and will appear in your
+    next payout.
+</p>
+
+{% if direction == "credit" %}
+<table class="detail-table">
+    <tr>
+        <td>Adjustment</td>
+        <td style="font-size:18px;font-weight:700;color:#16a34a;">+${{ amount }}</td>
+    </tr>
+    <tr>
+        <td>Type</td>
+        <td>Credit</td>
+    </tr>
+</table>
+
+<div class="info-box success">
+    <p>
+        A credit of ${{ amount }} has been added to your account.
+        This amount will be included in your next payout.
+    </p>
+</div>
+
+<div class="btn-wrapper">
+    <a href="{{ dashboard_url }}" class="btn btn-success">View my earnings</a>
+</div>
+
+{% else %}
+<table class="detail-table">
+    <tr>
+        <td>Adjustment</td>
+        <td style="font-size:18px;font-weight:700;color:#dc2626;">-${{ amount }}</td>
+    </tr>
+    <tr>
+        <td>Type</td>
+        <td>Deduction</td>
+    </tr>
+</table>
+
+<div class="info-box warning">
+    <p>
+        A deduction of ${{ amount }} has been applied to your account.
+        This amount will be reflected in your next payout.
+        If you believe this is an error, please contact support.
+    </p>
+</div>
+
+<div class="btn-wrapper">
+    <a href="{{ support_url|default:dashboard_url }}" class="btn btn-warning">
+        Contact support
+    </a>
+</div>
+{% endif %}
+
+<hr class="divider">
+<p style="font-size:14px;color:#888888;">
+    Adjustment reference ID: <strong>{{ event_id }}</strong>
+</p>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Deduction Applied to Your Account — {{ website_name }}{% endblock %}
+{% block tagline %}<div class="tagline">Account Notice</div>{% endblock %}
+
+{% block content %}
+<h1>A deduction has been applied</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    A deduction has been applied to your account. This will be reflected
+    in your next payout.
+</p>
+
+<table class="detail-table">
+    <tr>
+        <td>Deduction amount</td>
+        <td style="font-size:18px;font-weight:700;color:#dc2626;">-${{ amount }}</td>
+    </tr>
+    {% if source_label %}
+    <tr>
+        <td>Related to</td>
+        <td>{{ source_label }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<div class="info-box danger">
+    <p>
+        This deduction will reduce your earnings for the current pay period.
+        If you believe this deduction has been applied in error, please
+        contact our support team promptly.
+    </p>
+</div>
+
+<div class="btn-wrapper">
+    <a href="{{ support_url|default:dashboard_url }}" class="btn btn-danger">
+        Contact support
+    </a>
+</div>
+
+<hr class="divider">
+<p style="font-size:14px;color:#888888;">
+    Deduction reference ID: <strong>{{ event_id }}</strong>
+</p>
+{% endblock %}

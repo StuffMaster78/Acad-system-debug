@@ -22,6 +22,12 @@ from notifications_system.views.admin_views import (
     AdminDeliveryLogViewSet,
     AdminNotificationLogViewSet,
 )
+from django.urls import path
+from notifications_system.views.webhooks import (
+    SendgridWebhookView,
+    SESWebhookView,
+    MailgunWebhookView,
+)
 
 router = DefaultRouter()
 
@@ -92,6 +98,12 @@ urlpatterns = [
         NotificationPollView.as_view(),
         name='notification-poll',
     ),
+]
+
+webhook_urlpatterns = [
+    path('webhooks/sendgrid/', SendgridWebhookView.as_view(), name='webhook-sendgrid'),
+    path('webhooks/ses/', SESWebhookView.as_view(), name='webhook-ses'),
+    path('webhooks/mailgun/', MailgunWebhookView.as_view(), name='webhook-mailgun'),
 ]
 
 ## Complete endpoint reference

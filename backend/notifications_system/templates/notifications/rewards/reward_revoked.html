@@ -1,0 +1,44 @@
+{% extends "notifications/base.html" %}
+
+{% block content %}
+<h2>
+    Reward Status Updated
+</h2>
+
+<p>
+    Hello {{ user.first_name|default:user.username }},
+</p>
+
+<p>
+    A previously issued reward has been revoked.
+</p>
+
+<div
+    style="
+        background:#f8f8f8;
+        border-radius:12px;
+        padding:20px;
+        margin:24px 0;
+    "
+>
+    <h3 style="margin-top:0;">
+        {{ reward_title }}
+    </h3>
+
+    {% if reason %}
+    <p>
+        <strong>Reason:</strong>
+        {{ reason }}
+    </p>
+    {% endif %}
+</div>
+
+<p>
+    If you believe this was incorrect,
+    please contact support or your assigned administrator.
+</p>
+
+<p>
+    Platform integrity matters for everyone.
+</p>
+{% endblock %}

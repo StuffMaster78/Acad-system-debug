@@ -1,0 +1,34 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Payment Being Processed — {{ website_name }}{% endblock %}
+{% block tagline %}<div class="tagline">Payment Update</div>{% endblock %}
+
+{% block content %}
+<h1>Your payment is being processed</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    Great news — your earnings for the period below are currently being
+    reviewed and processed by our team. You will receive another notification
+    once your payment has been completed.
+</p>
+
+<div class="info-box">
+    <div class="label">Pay period</div>
+    <div class="value">{{ window_label }}</div>
+</div>
+
+<p>
+    During this time your earnings are locked and no further changes will
+    be made to your compensation for this period.
+</p>
+
+<div class="btn-wrapper">
+    <a href="{{ dashboard_url }}" class="btn">View my earnings</a>
+</div>
+
+<hr class="divider">
+<p style="font-size:14px;color:#888888;">
+    If you have any questions about your payment, please contact our
+    support team directly.
+</p>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Payment Processed — {{ website_name }}{% endblock %}
+{% block tagline %}<div class="tagline">Payment Confirmation</div>{% endblock %}
+
+{% block content %}
+<h1>Your payment has been processed</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    Your payment for the period below has been successfully processed.
+    Please allow your payment provider's usual processing time for
+    the funds to reflect in your account.
+</p>
+
+<table class="detail-table">
+    <tr>
+        <td>Pay period</td>
+        <td>{{ window_label }}</td>
+    </tr>
+    <tr>
+        <td>Amount</td>
+        <td style="font-size:20px;font-weight:700;color:#16a34a;">${{ amount }}</td>
+    </tr>
+</table>
+
+<div class="info-box success">
+    <p>
+        This payment has been marked as completed in our system.
+        If you do not receive your funds within the expected timeframe,
+        please contact support.
+    </p>
+</div>
+
+<div class="btn-wrapper">
+    <a href="{{ dashboard_url }}" class="btn btn-success">View payout history</a>
+</div>
+
+<hr class="divider">
+<p style="font-size:14px;color:#888888;">
+    Payment reference ID: <strong>{{ record_id }}</strong>
+</p>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "notifications/base.html" %}
+
+{% block content %}
+<h2>
+    Kudos, Reward Earned!
+</h2>
+
+<p>
+    Hello {{ user.first_name|default:user.username }},
+</p>
+
+<p>
+    Your recent performance has earned you a new writer reward.
+</p>
+
+<div
+    style="
+        background:#f5f7fa;
+        border-radius:12px;
+        padding:20px;
+        margin:24px 0;
+    "
+>
+    <h3 style="margin-top:0;">
+        {{ reward_title }}
+    </h3>
+
+    {% if reward_amount and reward_amount != "0.00" %}
+    <p>
+        <strong>Reward Amount:</strong>
+        ${{ reward_amount }}
+    </p>
+    {% endif %}
+
+    {% if badge_name %}
+    <p>
+        <strong>Badge Earned:</strong>
+        {{ badge_name }}
+    </p>
+    {% endif %}
+
+    {% if average_rating %}
+    <p>
+        <strong>Average Rating:</strong>
+        {{ average_rating }}
+    </p>
+    {% endif %}
+
+    {% if percentile_rank %}
+    <p>
+        <strong>Performance Rank:</strong>
+        You outperformed {{ percentile_rank }}% of writers.
+    </p>
+    {% endif %}
+
+    {% if review_count %}
+    <p>
+        <strong>Total Reviews:</strong>
+        {{ review_count }}
+    </p>
+    {% endif %}
+</div>
+
+{% if reward_description %}
+<p>
+    {{ reward_description }}
+</p>
+{% endif %}
+
+{% if period_start and period_end %}
+<p>
+    Evaluation Period:
+    <strong>
+        {{ period_start }} → {{ period_end }}
+    </strong>
+</p>
+{% endif %}
+
+<p>
+    Keep building momentum. Consistency compounds.
+</p>
+
+<p>
+    The best writers are not built in one night.
+    They are forged through disciplined repetition.
+</p>
+{% endblock %}

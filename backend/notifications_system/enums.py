@@ -33,7 +33,8 @@ class NotificationEvent(TextChoices):
     ORDER_DISPUTE_ESCALATED = 'order.dispute_escalated', _('Dispute Escalated')      # staff receives
     ORDER_DEADLINE_APPROACHING = 'order.deadline_approaching', _('Deadline Approaching')  # writer receives
     ORDER_RATED = 'order.rated', _('Order Rated')                           # writer receives
-
+    ORDER_QA_REVIEW_READY = "order.qa_review_ready"
+    
     # Payments / Wallet
     WALLET_CREDITED = 'wallet.credited', _('Wallet Credited')
     WALLET_DEBITED = 'wallet.debited', _('Wallet Debited')
@@ -102,6 +103,10 @@ class NotificationEvent(TextChoices):
     ADMIN_BROADCAST = 'system.broadcast', _('Admin Broadcast')
 
 
+    WRITER_REWARD_ISSUED = "writer.reward.issued"
+    WRITER_REWARD_REVOKED = "writer.reward.revoked"
+
+
 class NotificationChannel(TextChoices):
     """
     Delivery channels.
@@ -127,7 +132,7 @@ class NotificationCategory(TextChoices):
     ACCOUNT = 'account', _('Account')
     TICKET = 'ticket', _('Ticket')
     FILE = 'file', _('File')
-    MESSAGE = 'message', _('Message')
+    COMMUNICATION_MESSAGE = 'communication_message', _('Communicatin Message')
     SYSTEM = 'system', _('System')
     INFO = 'info', _('Info')
 
@@ -147,6 +152,9 @@ class DeliveryStatus(TextChoices):
     BOUNCED = 'bounced', _('Bounced')
     DLQ = 'dlq', _('Dead Letter Queue')
     UNDELIVERABLE = 'undeliverable', _('Undeliverable')
+    # ADD: distinguishes suppressed addresses (bounce/complaint/unsubscribe)
+    # from genuine delivery failures — visible separately in admin views.
+    SUPPRESSED = 'suppressed', _('Suppressed')
 
 class PreferenceSource(TextChoices):
     USER = 'user', 'Set by User'
@@ -176,7 +184,7 @@ def get_event_category(event_key: str) -> str:
         'account': NotificationCategory.ACCOUNT,
         'writer': NotificationCategory.WRITER,
         'file': NotificationCategory.FILE,
-        'message': NotificationCategory.MESSAGE,
+        'communitaion_message': NotificationCategory.COMMUNICATION_MESSAGE,
         'system': NotificationCategory.SYSTEM,
     }
     prefix = event_key.split('.')[0] if '.' in event_key else ''

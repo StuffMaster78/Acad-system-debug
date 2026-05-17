@@ -150,7 +150,7 @@ class NotificationDispatcher:
         logger.info(
             "dispatch() created notification=%s event=%s "
             "user=%s website=%s channels=%s.",
-            notification.id,
+            notification.pk,
             event_key,
             recipient.id,
             website.id,
@@ -162,7 +162,7 @@ class NotificationDispatcher:
             logger.info(
                 "dispatch() silent: notification=%s "
                 "stored but not delivered.",
-                notification.id,
+                notification.pk,
             )
             return notification
 
@@ -179,7 +179,7 @@ class NotificationDispatcher:
             logger.info(
                 "dispatch() digest: notification=%s "
                 "queued for digest group=%s.",
-                notification.id,
+                notification.pk,
                 digest_group,
             )
             return notification
@@ -213,13 +213,13 @@ class NotificationDispatcher:
         # mark notification as cancelled so it does not
         # sit in PENDING forever
         if not delivered_to_any:
-            Notification.objects.filter(id=notification.id).update(
+            Notification.objects.filter(id=notification.pk).update(
                 status=DeliveryStatus.CANCELLED,
             )
             logger.info(
                 "dispatch() all channels suppressed: "
                 "notification=%s marked CANCELLED.",
-                notification.id,
+                notification.pk,
             )
 
         return notification
@@ -269,11 +269,16 @@ class NotificationDispatcher:
         # --- Render
         rendered = TemplateService.render(template, context)
 
-        # --- Store rendered content on Notification for the first channel
-        # Subsequent channels write their own rendered content to
-        # their Delivery row — the Notification only needs one copy
-        # for display purposes (typically the in-app rendering)
-        if not notification.rendered:
+        # --- Store rendered content on Notification for the first channel.
+        # FIX: prefer in_app channel as the canonical snapshot since it is
+        # the channel-agnostic rendering. Fall back to first available.
+        # Previously this wrote whichever channel happened to render last,
+        # making Notification.rendered non-deterministic.
+        from notifications_system.enums import NotificationChannel
+        should_snapshot = (
+            channel == NotificationChannel.IN_APP or not notification.rendered
+        )
+        if should_snapshot and not notification.rendered:
             notification.rendered = rendered
             notification.save(update_fields=['rendered', 'updated_at'])
 
@@ -292,14 +297,19 @@ class NotificationDispatcher:
         )
 
         # --- Queue send task
+        # FIX: was send_channel_notification().delay(delivery_id=delivery.id)
+        # The () before .delay() called the task as a plain function first,
+        # which returns a Celery signature object. Pylance types that as
+        # list[str] and correctly flags .delay() on it as not callable.
+        # At runtime this would also fail. Correct form is task.delay(*args)
+        # with no preceding call parens on the task reference itself.
         from notifications_system.tasks.send import send_channel_notification
-        
-        send_channel_notification().delay(delivery_id=delivery.id)
+        send_channel_notification().delay(delivery_id=delivery.pk)
 
         logger.info(
             "_queue_channel_delivery() queued: "
             "delivery=%s channel=%s notification=%s.",
-            delivery.id,
+            delivery.pk,
             channel,
             notification.id,
         )

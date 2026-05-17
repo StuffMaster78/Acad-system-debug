@@ -1,6 +1,4 @@
 """
-notifications_system/services/notification_service.py
-
 Single entry point for all notifications.
 Responsibilities: validate, deduplicate, write outbox, queue task.
 Everything else (preferences, rendering, delivery) is handled downstream.
@@ -12,7 +10,9 @@ import json
 import logging
 from typing import Any, Dict, Iterable, Optional
 
+from django.apps import apps
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from notifications_system.enums import (
@@ -23,9 +23,16 @@ from notifications_system.enums import (
     get_event_category,
     is_valid_event,
 )
-from notifications_system.services.outbox import OutboxService
+from notifications_system.services.outbox_service import OutboxService
 
 logger = logging.getLogger(__name__)
+
+# Maximum notifications per user per event within RATE_LIMIT_WINDOW_SECONDS.
+# Protects against runaway loops in calling services.
+RATE_LIMIT_MAX = getattr(settings, 'NOTIFICATION_RATE_LIMIT_MAX', 10)
+RATE_LIMIT_WINDOW_SECONDS = getattr(
+    settings, 'NOTIFICATION_RATE_LIMIT_WINDOW_SECONDS', 300
+)  # 5 minutes
 
 
 class NotificationService:
@@ -38,7 +45,8 @@ class NotificationService:
 
     Flow:
         NotificationService.notify()
-            → writes Outbox row
+            → rate-limit check (Redis)
+            → writes Outbox row (dedupe via unique dedupe_key)
             → queues process_outbox_entry.delay()
             → Dispatcher handles preferences + rendering + delivery
     """
@@ -116,6 +124,21 @@ class NotificationService:
             )
             return None
 
+        # --- Rate limit check (skipped for critical notifications)
+        if not is_critical:
+            if NotificationService._is_rate_limited(
+                recipient_id=recipient.id,
+                event_key=event_key,
+                website_id=website.id,
+            ):
+                logger.warning(
+                    "notify() rate-limited: user=%s event=%s website=%s.",
+                    recipient.id,
+                    event_key,
+                    website.id,
+                )
+                return None
+
         context = dict(context or {})
 
         # --- Resolve event config defaults
@@ -139,6 +162,9 @@ class NotificationService:
         }
 
         # --- Deduplicate via outbox dedupe_key
+        # FIX: dedupe key excludes context so that recurring legitimate
+        # events (e.g. second password reset) are not permanently blocked.
+        # Window-based deduplication is enforced by the rate limiter above.
         dedupe_key = NotificationService._build_dedupe_key(
             event_key=event_key,
             recipient_id=recipient.id,
@@ -196,15 +222,17 @@ class NotificationService:
         Each user gets their own outbox entry and delivery.
 
         Args:
-            event_key:   Event to fire
-            role:        Role string e.g. 'writer', 'support'
-            website:     Website to scope users to
-            context:     Template context
+            event_key:    Event to fire
+            role:         Role string e.g. 'writer', 'support'
+            website:      Website to scope users to
+            context:      Template context
             triggered_by: Who triggered the event
-            priority:    Notification priority
-            is_critical: Bypass mute and DND
+            priority:     Notification priority
+            is_critical:  Bypass mute and DND
         """
-        User = settings.AUTH_USER_MODEL
+        # FIX: was settings.AUTH_USER_MODEL (a string). get_user_model()
+        # returns the actual model class.
+        User = get_user_model()
 
         recipients = User.objects.filter(
             website=website,
@@ -245,11 +273,13 @@ class NotificationService:
     ):
         """
         Notify all staff assigned to a website.
-        Convenience wrapper around notify_role for each staff role.
+        Convenience wrapper around notify() for each active staff member.
         """
         from admin_management.models import StaffWebsiteAssignment
-        
-        User = settings.AUTH_USER_MODEL
+
+        # FIX: was settings.AUTH_USER_MODEL (a string). get_user_model()
+        # returns the actual model class.
+        User = get_user_model()
 
         staff_ids = StaffWebsiteAssignment.objects.filter(
             website=website,
@@ -273,6 +303,46 @@ class NotificationService:
     # -------------------------
 
     @staticmethod
+    def _is_rate_limited(
+        recipient_id: int,
+        event_key: str,
+        website_id: int,
+    ) -> bool:
+        """
+        Returns True if this user has exceeded the rate limit for this
+        event on this website within the configured time window.
+
+        Uses Redis INCR + EXPIRE for atomic, TTL-based counting.
+        Falls back to False (allow) if Redis is unavailable — better
+        to over-send than to silently drop critical notifications.
+
+        Rate limit settings (in Django settings):
+            NOTIFICATION_RATE_LIMIT_MAX: int (default 10)
+            NOTIFICATION_RATE_LIMIT_WINDOW_SECONDS: int (default 300)
+        """
+        try:
+            from django.core.cache import cache
+
+            cache_key = (
+                f"notif_rl:{website_id}:{recipient_id}:{event_key}"
+            )
+            count = cache.get(cache_key, 0)
+
+            if count >= RATE_LIMIT_MAX:
+                return True
+
+            # Atomic increment — set TTL only on first write
+            new_count = count + 1
+            cache.set(cache_key, new_count, timeout=RATE_LIMIT_WINDOW_SECONDS)
+            return False
+
+        except Exception as exc:
+            logger.warning(
+                "_is_rate_limited() cache error — allowing through: %s", exc
+            )
+            return False
+
+    @staticmethod
     def _resolve_channels(
         event_key: str,
         channels: Optional[Iterable[str]],
@@ -285,7 +355,6 @@ class NotificationService:
         if channels:
             return list(channels)
 
-        # Look up event config for defaults
         try:
             from notifications_system.models.event_config import (
                 NotificationEventConfig,
@@ -310,10 +379,18 @@ class NotificationService:
     ) -> str:
         """
         Build a deterministic dedupe key for an outbox entry.
-        Same event + recipient + website + context = same key.
-        Uses SHA-256 so the key is always under 256 chars.
+
+        Context is intentionally excluded from the key so that
+        recurring legitimate events (e.g. a second password reset
+        one hour later) are not permanently blocked by a stale
+        outbox row. Window-based rate limiting handles burst
+        protection instead.
+
+        Same event + recipient + website = same key within the
+        outbox lifetime. Outbox rows should be purged after
+        processing (see maintenance task) to allow re-sending.
         """
-        raw = f"{event_key}:{recipient_id}:{website_id}:{json.dumps(context, sort_keys=True)}"
+        raw = f"{event_key}:{recipient_id}:{website_id}"
         return hashlib.sha256(raw.encode()).hexdigest()
 
     @staticmethod

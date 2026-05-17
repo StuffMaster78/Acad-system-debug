@@ -140,7 +140,7 @@ class Delivery(models.Model):
             self.error_code = error_code
             self.error_detail = error_detail
             if self.has_retries_remaining:
-                self.status = DeliveryStatus.RETRY
+                self.status = DeliveryStatus.RETRYING
                 backoff_minutes = 2 ** self.attempts
                 self.next_retry_at = timezone.now() + timezone.timedelta(
                     minutes=backoff_minutes

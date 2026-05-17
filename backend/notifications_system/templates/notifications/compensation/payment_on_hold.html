@@ -1,0 +1,35 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Payment Requires Review — {{ website_name }}{% endblock %}
+{% block tagline %}<div class="tagline">Payment Update</div>{% endblock %}
+
+{% block content %}
+<h1>Your payment requires review</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    Your payment for the period below is currently under review by our team.
+    We will reach out to you directly if any additional information is needed.
+</p>
+
+<div class="info-box warning">
+    <div class="label">Pay period</div>
+    <div class="value">{{ window_label }}</div>
+</div>
+
+<p>
+    No action is required from you at this time. Our team is working to
+    resolve this as quickly as possible.
+</p>
+
+<div class="btn-wrapper">
+    <a href="{{ support_url|default:dashboard_url }}" class="btn btn-warning">
+        Contact support
+    </a>
+</div>
+
+<hr class="divider">
+<p style="font-size:14px;color:#888888;">
+    If you believe this is an error or would like an update on your payment
+    status, please contact our support team and reference your account.
+</p>
+{% endblock %}

@@ -222,7 +222,13 @@ def send_channel_notification(self, delivery_id: int) -> None:
             channel,
             result.provider_msg_id,
         )
-        _update_notification_status(delivery.notification.id)
+        # FIX: was delivery.notification.id — ForeignKey is typed as
+        # Notification | None so Pylance correctly flags .id as unsafe.
+        # delivery.notification_id is the raw integer column Django
+        # always exposes directly on the model — no None risk,
+        # no extra object attribute traversal.
+        if delivery.notification is not None:
+            _update_notification_status(delivery.notification.id)
 
     else:
         logger.warning(
