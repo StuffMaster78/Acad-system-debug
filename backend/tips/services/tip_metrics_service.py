@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from django.db.models import Q
 
+from tips.models.tip import Tip
+from tips.enums.tip_status import TipStatus
 from tips.services.metrics.tip_platform_metrics_service import (
     TipPlatformMetricsService,
 )
@@ -42,6 +45,17 @@ class TipMetricsService:
     @staticmethod
     def get_platform_failure_rate() -> Decimal:
         return TipPlatformMetricsService.failure_rate()
+    
+    @staticmethod
+    def get_pending_tips_count() -> int:
+        """
+        Count of tips currently in a non-final state.
+        """
+
+        return Tip.objects.filter(
+            Q(status=TipStatus.PAYMENT_INITIATED) |
+            Q(status=TipStatus.PROCESSING)
+        ).count()
 
     # ------------------------------------------------------------ #
     # USER METRICS

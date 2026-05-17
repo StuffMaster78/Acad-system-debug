@@ -26,7 +26,7 @@ class AdminOutboxEventListAPIView(APIView):
         data = [
             {
                 "id": event.pk,
-                "topic": event.topic,
+                # "topic": event.topic,
                 "status": event.status,
                 "created_at": event.created_at,
             }

@@ -30,12 +30,12 @@ class PlatformTipMetricsAPIView(APIView):
             "platform_fees_total": (
                 TipMetricsService.get_platform_fees_total()
             ),
-            # "failure_rate": (
-            #     TipMetricsService.get_failure_rate()
-            # ),
-            # "pending_tips_count": (
-            #     TipMetricsService.get_pending_tips_count()
-            # ),
+            "failure_rate": (
+                TipMetricsService.get_platform_failure_rate()
+            ),
+            "pending_tips_count": (
+                TipMetricsService.get_pending_tips_count()
+            ),
         }
 
         return Response(data)

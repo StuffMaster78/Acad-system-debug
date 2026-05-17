@@ -100,7 +100,7 @@ class Ticket(models.Model):
                     default_site = Website.objects.filter(is_active=True).first()
                     if default_site is None:
                         default_site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
-                    self.website_id = default_site.id
+                    self.website_id = default_site.pk
             except Exception:
                 pass
         super().save(*args, **kwargs)

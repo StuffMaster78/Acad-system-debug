@@ -114,7 +114,7 @@ class SupportProfile(models.Model):
                     site = Website.objects.filter(is_active=True).first()
                     if site is None:
                         site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
-                    self.website_id = site.id
+                    self.website_id = site.pk
             except Exception:
                 pass
         super().save(*args, **kwargs)
@@ -280,7 +280,7 @@ class DisputeResolutionLog(models.Model):
     resolved_at = models.DateTimeField(default=now)
 
     def __str__(self):
-        return f"Dispute {self.dispute.id} resolved by {self.resolved_by.name}"
+        return f"Dispute {self.dispute.pk} resolved by {self.resolved_by.name}"
 
 class SupportActionLog(models.Model):
     """Logs actions performed by support staff."""
@@ -471,7 +471,7 @@ class PaymentIssueLog(models.Model):
         self.save()
 
     def __str__(self):
-        return f"Payment Issue {self.issue_type} - Order {self.order.id} ({self.status})"
+        return f"Payment Issue {self.issue_type} - Order {self.order.pk} ({self.status})"
 
 class SupportOrderFileManagement(models.Model):
     """

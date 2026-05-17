@@ -14,6 +14,7 @@ from tips.services.tip_payment_router_service import TipPaymentRouterService
 from audit_logging.services.audit_service import AuditService
 from notifications_system.services.notification_service import NotificationService
 
+from tips.services.tip_wcs_bridge import TipWCSBridge
 
 class TipCreationService:
     """
@@ -54,6 +55,7 @@ class TipCreationService:
             status="pending",
             active_policy=policy,
             client_note=contract.reason,
+            idempotency_key=idempotency_obj,
         )
 
         TipAttributionService.create_attribution(
@@ -69,6 +71,28 @@ class TipCreationService:
 
         tip.payment_intent = routing.get("payment_intent")
         tip.save(update_fields=["payment_intent"])
+
+        # Fire WCS bridge — tip is now confirmed.
+        # fire WCS bridge after payment routing.
+        # Previously TipWCSBridge was imported but never called —
+        # the tip was never entered into the writer compensation system.
+        #
+        # fire_safe() updates tip.status, tip.settlement_reference,
+        # and tip.paid_at in place. We save those fields immediately.
+        #
+        # On failure (no open window) tip.status = FAILED.
+        # Admin retries via POST /admin/tips/{pk}/retry/
+        # The retry is idempotent — same idempotency key returns the
+        # existing CompensationEvent on a second attempt.
+        TipWCSBridge.fire_safe(tip)
+        tip.save(
+            update_fields=[
+                "status",
+                "compensation_event",
+                "confirmed_at",
+            ],
+        )
+
 
         AuditService.record(
             action="tip.created",
