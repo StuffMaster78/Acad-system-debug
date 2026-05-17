@@ -35,11 +35,10 @@ class OrderAssignment(models.Model):
         related_name="assignments",
         help_text="Order being assigned.",
     )
-    writer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    writer = models.OneToOneField(
+        "writer_management.WriterProfile",
         on_delete=models.CASCADE,
-        related_name="order_assignments",
-        help_text="Writer assigned to the order.",
+        related_name="capacity",
     )
     assigned_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

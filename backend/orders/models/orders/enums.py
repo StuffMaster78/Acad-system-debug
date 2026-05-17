@@ -23,11 +23,13 @@ class OrderStatus(models.TextChoices):
     IN_PROGRESS = "in_progress", "In Progress"
     ON_HOLD = "on_hold", "On Hold"
     QA_REVIEW = "qa_review", "QA Review"
+    UNDER_EDITING = "under_editing", "Under Editing"
     SUBMITTED = "submitted", "Submitted"
     COMPLETED = "completed", "Completed"
     DISPUTED = "disputed", "Disputed"
     CANCELLED = "cancelled", "Cancelled"
     ARCHIVED = "archived", "Archived"
+    REVISION_REQUESTED = "revision_requested", "Revision Requested"
 
 
 class OrderVisibilityMode(models.TextChoices):
