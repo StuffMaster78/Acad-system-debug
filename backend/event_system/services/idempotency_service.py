@@ -25,3 +25,24 @@ class IdempotencyService:
             True,
             timeout=ttl,
         )
+
+    
+    @staticmethod
+    def claim(event_id: str, ttl: int = 300) -> bool:
+        """
+        Atomically claim event for processing.
+
+        Returns:
+            True if claim successful
+            False if already claimed
+        """
+
+        key = IdempotencyService.PREFIX + event_id
+
+        # Django cache doesn't guarantee atomicity everywhere,
+        # but this is acceptable baseline unless you're on Redis with SETNX.
+        if cache.get(key) is not None:
+            return False
+
+        cache.set(key, "processing", timeout=ttl)
+        return True

@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
-from event_system.router.event_router import EventRouter
-from event_system.consumers.review_event_consumer import ReviewEventConsumer
+from event_system.registrations.review import register_review_events
+from event_system.registrations.governance import register_governance_events
 
 
 class EventSystemConfig(AppConfig):
@@ -9,7 +9,6 @@ class EventSystemConfig(AppConfig):
     name = "event_system"
 
     def ready(self) -> None:
-        routes = getattr(ReviewEventConsumer, "ROUTES", {})
 
-        for event_type, handler in routes.items():
-            EventRouter.register(event_type, handler)
+        register_review_events()
+        register_governance_events()

@@ -1,7 +1,11 @@
+from collections.abc import Callable
+
 from event_system.models.event_outbox import EventOutbox
 from reputation_system.services.reputation_aggregation_service import (
     ReputationAggregationService,
 )
+
+EventHandler = Callable[[EventOutbox], None]
 
 
 class ReviewEventConsumer:
@@ -39,10 +43,3 @@ class ReviewEventConsumer:
             target_type=payload["target_type"],
             target_id=payload["target_id"],
         )
-
-
-ROUTES = {
-    "review.approved": ReviewEventConsumer.handle_approved,
-    "review.shadowed": ReviewEventConsumer.handle_shadowed,
-    "review.rejected": ReviewEventConsumer.handle_rejected,
-}

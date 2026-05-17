@@ -1,8 +1,10 @@
 import uuid
 
+from django.db import transaction
+
 from event_system.models.event_outbox import EventOutbox
 from reviews_system.events.review_event_builder import ReviewEvent
-
+from event_system.services.post_commit_event_hooks import on_commit_publish
 
 class EventBusService:
     """
@@ -35,6 +37,10 @@ class EventBusService:
             attempts=0,
         )
 
+
+        transaction.on_commit(
+            lambda event_id=str(outbox_event.id): on_commit_publish(event_id)
+        )
         return outbox_event
 
     @staticmethod

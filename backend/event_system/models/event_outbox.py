@@ -4,8 +4,11 @@ from django.db import models
 
 class EventStatus(models.TextChoices):
     PENDING = "pending", "Pending"
+    PROCESSING = "processing"
     PROCESSED = "processed", "Processed"
     FAILED = "failed", "Failed"
+    IGNORED = "ignored", "Ignored"
+    DEAD_LETTER = "dead_letter", "Dead Letter"
 
 
 class EventOutbox(models.Model):
@@ -72,6 +75,19 @@ class EventOutbox(models.Model):
         null=True,
         blank=True,
         db_index=True,
+    )
+    last_error = models.TextField(
+        null=True,
+        blank=True,
+    )
+    processed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    ignored_at = models.DateTimeField(
+        null=True,
+        blank=True,
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
