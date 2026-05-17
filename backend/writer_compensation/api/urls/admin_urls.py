@@ -22,6 +22,17 @@ from writer_compensation.api.views.admin_views import (
     AdminWindowSummaryView,
     AdminWriterWindowEventsView,
 )
+from writer_compensation.api.views.earnings_bonus_views import (
+    AdminWindowEarningsBreakdownView,
+    AdminWriterEarningsView,
+    AdminWriterEarningsBreakdownView,
+    AdminWriterFullEarningsView,
+    AdminWriterBonusHistoryView,
+    AdminApplyMilestoneBonusView,
+    AdminApplyPerformanceBonusView,
+    AdminApplyRetentionBonusView,
+)
+
 
 urlpatterns = [
     # Windows
@@ -122,5 +133,48 @@ urlpatterns = [
         "cycle-changes/<int:request_id>/reject/",
         AdminCycleChangeRejectView.as_view(),
         name="admin-cycle-change-reject",
+    ),
+    # Earnings
+    path(
+        "windows/<int:window_id>/earnings/",
+        AdminWindowEarningsBreakdownView.as_view(),
+        name="admin-window-earnings"
+    ),
+    path(
+        "writers/<int:writer_id>/earnings/",
+        AdminWriterEarningsView.as_view(),
+        name="admin-writer-earnings"
+    ),
+    path(
+        "writers/<int:writer_id>/earnings/breakdown/",
+         AdminWriterEarningsBreakdownView.as_view(),
+         name="admin-writer-earnings-breakdown"
+    ),
+    path(
+        "writers/<int:writer_id>/earnings/full/",
+         AdminWriterFullEarningsView.as_view(),
+         name="admin-writer-earnings-full"
+    ),
+
+    # Bonuses
+    path(
+        "writers/<int:writer_id>/bonuses/",
+        AdminWriterBonusHistoryView.as_view(),
+        name="admin-writer-bonus-history"
+    ),
+    path(
+        "writers/<int:writer_id>/bonuses/milestone/",
+        AdminApplyMilestoneBonusView.as_view(),
+        name="admin-apply-milestone-bonus"
+    ),
+    path(
+        "writers/<int:writer_id>/bonuses/performance/",
+        AdminApplyPerformanceBonusView.as_view(),
+        name="admin-apply-performance-bonus"
+    ),
+    path(
+        "writers/<int:writer_id>/bonuses/retention/",
+        AdminApplyRetentionBonusView.as_view(),
+        name="admin-apply-retention-bonus"
     ),
 ]

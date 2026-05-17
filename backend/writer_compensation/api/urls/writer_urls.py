@@ -10,6 +10,12 @@ from writer_compensation.api.views.writer_payout_views import (
     WriterPayoutHistoryView,
     WriterPayoutPreferenceView,
 )
+from writer_compensation.api.views.earnings_bonus_views import (
+    WriterEarningsView,
+    WriterRunningBalanceView,
+    WriterBonusHistoryView,
+)
+
 
 urlpatterns = [
     path(
@@ -41,5 +47,20 @@ urlpatterns = [
         "compensation/cycle-change/",
         WriterCycleChangeRequestView.as_view(),
         name="writer-cycle-change-request",
+    ),
+    path(
+        "compensation/earnings/",
+         WriterEarningsView.as_view(),
+         name="writer-earnings"
+    ),
+    path(
+        "compensation/balance/",
+         WriterRunningBalanceView.as_view(),
+         name="writer-balance"
+    ),
+    path(
+        "compensation/bonuses/",
+        WriterBonusHistoryView.as_view(),
+        name="writer-bonus-history"
     ),
 ]

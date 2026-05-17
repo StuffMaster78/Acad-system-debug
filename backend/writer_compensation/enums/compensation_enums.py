@@ -14,23 +14,56 @@ from django.db import models
 # Financial event
 # ---------------------------------------------------------------------------
 
+from django.db import models
+
+
 class EventType(models.TextChoices):
-    ORDER_EARNING = "ORDER_EARNING", "Order Earning"
-    CLASS_EARNING = "CLASS_EARNING", "Class Earning"
-    SPECIAL_ORDER_EARNING = "SPECIAL_ORDER_EARNING", "Special Order Earning"
-    TIP  = "TIP", "Tip"
-    BONUS = "BONUS", "Bonus"
+    # -----------------------------
+    # CORE EARNINGS (work output)
+    # -----------------------------
+    BASE_EARNING = "BASE_EARNING", "Base earning"
+    ORDER_EARNING = "ORDER_EARNING", "Order earning"
+    CLASS_EARNING = "CLASS_EARNING", "Class earning"
+    SPECIAL_ORDER_EARNING = "SPECIAL_ORDER_EARNING", "Special order earning"
+
+    # -----------------------------
+    # INCENTIVES (positive boosts)
+    # -----------------------------
+    TIP = "TIP", "Tip"
+    BONUS = "BONUS", "Generic bonus"
+    PERFORMANCE_BONUS = "PERFORMANCE_BONUS", "Performance bonus"
+    MILESTONE_BONUS = "MILESTONE_BONUS", "Milestone bonus"
+    REFERRAL_BONUS = "REFERRAL_BONUS", "Referral Bonus"
+    RETENTION_BONUS = "RETENTION_BONUS", "Retention Bonus"
+    REPUTATION_BONUS = "REPUTATION_BONUS", "Reputation Bonus"
+    TRUST_SCORE_UPDATED = "TRUST_SCORE_UPDATED", "Trust Score Updated"
+
+    # -----------------------------
+    # DEDUCTIONS (permanent loss)
+    # -----------------------------
     FINE = "FINE", "Fine"
     DEDUCTION = "DEDUCTION", "Deduction"
-    ADJUSTMENT = "ADJUSTMENT", "Adjustment"
-    REVERSAL = "REVERSAL", "Reversal"
-    REFUND_DEDUCTION = "REFUND_DEDUCTION", "Refund Deduction"
-    ADVANCE = "ADVANCE", "Advance"
-    ADVANCE_RECOVERY = "ADVANCE_RECOVERY", "Advance Recovery"
-    REVISION_HOLD = "REVISION_HOLD", "Revision Hold"
-    DISPUTE_HOLD = "DISPUTE_HOLD", "Dispute Hold"
-    CANCELLATION = "CANCELLATION", "Cancellation"
+    PENALTY = "PENALTY", "Penalty deduction"
+    REFUND_DEDUCTION = "REFUND_DEDUCTION", "Refund deduction"
 
+    # -----------------------------
+    # TEMPORARY HOLDS (not final)
+    # -----------------------------
+    REVISION_HOLD = "REVISION_HOLD", "Revision hold"
+    DISPUTE_HOLD = "DISPUTE_HOLD", "Dispute hold"
+    CANCELLATION = "CANCELLATION", "Cancellation hold"
+
+    # -----------------------------
+    # CASH FLOW OPERATIONS
+    # -----------------------------
+    ADVANCE = "ADVANCE", "Advance payment"
+    ADVANCE_RECOVERY = "ADVANCE_RECOVERY", "Advance recovery"
+
+    # -----------------------------
+    # SYSTEM OPERATIONS
+    # -----------------------------
+    ADJUSTMENT = "ADJUSTMENT", "Manual adjustment"
+    REVERSAL = "REVERSAL", "Reversal"
 
 class EventStatus(models.TextChoices):
     """
@@ -200,6 +233,19 @@ EARNING_EVENT_TYPES = {
     EventType.TIP,
     EventType.BONUS,
     EventType.ADVANCE,
+    EventType.PERFORMANCE_BONUS,
+    EventType.MILESTONE_BONUS,
+    EventType.REFERRAL_BONUS,
+    EventType.RETENTION_BONUS,
+}
+
+BONUS_EVENT_TYPES = {
+    EventType.BONUS,
+    EventType.PERFORMANCE_BONUS,
+    EventType.MILESTONE_BONUS,
+    EventType.REFERRAL_BONUS,
+    EventType.RETENTION_BONUS,
+    EventType.REPUTATION_BONUS,
 }
 
 DEDUCTION_EVENT_TYPES = {

@@ -79,7 +79,7 @@ from writer_compensation.services.cycle_change_service import (
 from writer_compensation.services.payout_engine_service import (
     PayoutEngineService,
 )
-from writer_compensation.enums.compensation_enums import CycleType
+from writer_compensation.enums.compensation_enums import WindowType
  
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -192,7 +192,7 @@ class AdminWindowCloseView(APIView):
  
         # Optionally auto-create the next window.
         if request.data.get("create_next_window", False):
-            preference = request.data.get("next_cycle_type", window.window_type)
+            preference = request.data.get("next_cycle_type", window.cycle_type)
             WindowService.get_or_create_next_window(
                 website=website,
                 cycle_type=preference,
@@ -370,8 +370,8 @@ class AdminBatchDetailView(APIView):
         try:
             batch = (
                 PayoutBatch.objects
-                .prefetch_related("items__writer__user")
-                .select_related("window")
+                .prefetch_related("records__writer")
+                .select_related("payment_window")
                 .get(pk=batch_id)
             )
         except PayoutBatch.DoesNotExist:
@@ -389,7 +389,7 @@ class AdminBatchBulkConfirmView(APIView):
  
     def post(self, request, batch_id):
         try:
-            batch = PayoutBatch.objects.select_related("window").get(pk=batch_id)
+            batch = PayoutBatch.objects.select_related("payment_window").get(pk=batch_id)
         except PayoutBatch.DoesNotExist:
             return _error("Batch not found.", 404)
  
@@ -410,7 +410,7 @@ class AdminBatchBulkMarkPaidView(APIView):
  
     def post(self, request, batch_id):
         try:
-            batch = PayoutBatch.objects.select_related("window").get(pk=batch_id)
+            batch = PayoutBatch.objects.select_related("payment_window").get(pk=batch_id)
         except PayoutBatch.DoesNotExist:
             return _error("Batch not found.", 404)
  
@@ -432,7 +432,7 @@ class AdminPayoutRecordConfirmView(APIView):
     def post(self, request, record_id):
         try:
             record = PayoutRecord.objects.select_related(
-                "batch__window", "writer"
+                "batch__payment_window", "writer"
             ).get(pk=record_id)
         except PayoutRecord.DoesNotExist:
             return _error("Payout item not found.", 404)
@@ -455,7 +455,7 @@ class AdminPayoutItemMarkPaidView(APIView):
     def post(self, request, record_id):
         try:
             record = PayoutRecord.objects.select_related(
-                "batch__window", "writer"
+                "batch__payment_window", "writer"
             ).get(pk=record_id)
         except PayoutRecord.DoesNotExist:
             return _error("Payout item not found.", 404)
@@ -465,7 +465,7 @@ class AdminPayoutItemMarkPaidView(APIView):
  
         try:
             validated_data = cast(dict[str, Any], serializer.validated_data)
-            item = PayoutEngineService.mark_record_paid(
+            record = PayoutEngineService.mark_record_paid(
                 record,
                 paid_by=request.user,
                 notes=validated_data["notes"],
@@ -486,7 +486,7 @@ class AdminPayoutItemHoldView(APIView):
     def post(self, request, record_id):
         try:
             record = PayoutRecord.objects.select_related(
-                "batch__window", "writer"
+                "batch__payment_window", "writer"
             ).get(pk=record_id)
         except PayoutRecord.DoesNotExist:
             return _error("Payout item not found.", 404)
@@ -517,7 +517,7 @@ class AdminPayoutRecordReleaseView(APIView):
     def post(self, request, record_id):
         try:
             record = PayoutRecord.objects.select_related(
-                "batch__window", "writer"
+                "batch__payment_window", "writer"
             ).get(pk=record_id)
         except PayoutRecord.DoesNotExist:
             return _error("Payout item not found.", 404)

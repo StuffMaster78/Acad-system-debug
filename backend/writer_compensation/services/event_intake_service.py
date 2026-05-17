@@ -12,6 +12,7 @@ from writer_compensation.enums.compensation_enums import (
     WindowStatus,
 )
 from writer_compensation.exceptions.exceptions import (
+    InvalidPayoutItemTransitionError,
     InvalidWindowTransitionError,
     NoOpenWindowError,
     WindowLockedError,
@@ -205,17 +206,17 @@ class EventIntakeService:
  
         return reversal
  
-    # @staticmethod
-    # @transaction.atomic
-    # def confirm_event(event: CompensationEvent) -> CompensationEvent:
-    #     """
-    #     Move a single event from PENDING to CONFIRMED.
-    #     Called by admin or automatically when window closes.
-    #     """
-    #     if event.status != EventStatus.PENDING:
-    #         raise InvalidPayoutItemTransitionError(
-    #             f"Event {event.pk} is {event.status}, not PENDING."
-    #         )
-    #     event.status = EventStatus.CONFIRMED
-    #     event.save(update_fields=["status"])
-    #     return event
+    @staticmethod
+    @transaction.atomic
+    def confirm_event(event: CompensationEvent) -> CompensationEvent:
+        """
+        Move a single event from PENDING to CONFIRMED.
+        Called by admin or automatically when window closes.
+        """
+        if event.status != EventStatus.PENDING_CONFIRMATION:
+            raise InvalidPayoutItemTransitionError(
+                f"Event {event.pk} is {event.status}, not PENDING."
+            )
+        event.status = EventStatus.MATURED
+        event.save(update_fields=["status"])
+        return event
