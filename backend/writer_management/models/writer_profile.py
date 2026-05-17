@@ -303,7 +303,7 @@ class WriterProfile(models.Model):
  
     @property
     def is_onboarding_failed(self) -> bool:
-        return self.onboarding_status == WriterOnboardingStatus.FAILED
+        return self.onboarding_status == WriterOnboardingStatus.REJECTED
 
     # IDENTITY SNAPSHOT — admin UI presentation only
     # Not for API serialization. Not for business logic.
