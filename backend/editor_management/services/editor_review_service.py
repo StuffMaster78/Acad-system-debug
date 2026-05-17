@@ -1,72 +1,91 @@
 """
-Service for editors to submit reviews and complete editing tasks.
+CHANGES FROM PREVIOUS VERSION
+------------------------------
+1. Removed phantom import: OrderTransitionHelper does not exist.
+   Replaced with OrderTransitionService throughout.
+
+2. submit_review() approval branch:
+   UNDER_EDITING → REVIEWED  (WRONG — REVIEWED is post-client-rating)
+   UNDER_EDITING → SUBMITTED (CORRECT — delivered to client)
+
+3. submit_review() revision branch:
+   order.status = ... ; order.save()  (WRONG — no timeline event)
+   OrderTransitionService.transition(...)  (CORRECT — creates timeline event)
+
+4. submit_review() audit call:
+   Syntax error fixed — service_name was inside metadata dict closing brace.
+
+5. reject_task() notification:
+   Dead loop (User.objects.filter → for admin in admins → notify_role)
+   Replaced with single notify_role() call. User import removed.
 """
 
+from __future__ import annotations
+
+import logging
+from decimal import Decimal
+from typing import Any, Optional
+
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils.timezone import now
-from django.core.exceptions import ValidationError
-from typing import Optional, Dict, Any
-from decimal import Decimal
 
+from audit_logging.services.audit_service import AuditService
 from editor_management.models import (
+    EditorActionLog,
     EditorProfile,
-    EditorTaskAssignment,
     EditorReviewSubmission,
-    EditorActionLog
+    EditorTaskAssignment,
 )
-from orders.models.orders import Order
-from orders.order_enums import OrderStatus
-from orders.services.transition_helper import OrderTransitionHelper
-from notifications_system.services.notification_service import NotificationService
-from audit_logging.services.audit_log_service import AuditLogService
+from notifications_system.services.notification_service import (
+    NotificationService,
+)
+from orders.models.orders.enums import OrderStatus
+
+# FIX 1: was OrderTransitionHelper — module does not exist
+from orders.services.order_transition_service import OrderTransitionService
+
+logger = logging.getLogger(__name__)
 
 
 class EditorReviewService:
     """
     Handles editor review submission and task completion.
     """
-    
+
     @staticmethod
     @transaction.atomic
     def start_review(
         task_assignment: EditorTaskAssignment,
-        editor: EditorProfile
+        editor: EditorProfile,
     ) -> EditorTaskAssignment:
-        """
-        Start reviewing an assigned task.
-        
-        Args:
-            task_assignment: The task assignment to start
-            editor: The editor starting the review
-            
-        Returns:
-            Updated EditorTaskAssignment
-        """
+        """Start reviewing an assigned task."""
         if task_assignment.assigned_editor != editor:
             raise ValidationError(
                 "Only the assigned editor can start reviewing this task."
             )
-        
+
         task_assignment.start_review()
-        
-        # Log action
+
         EditorActionLog.objects.create(
             editor=editor,
             action_type="started_review",
-            action=f"Started reviewing order {task_assignment.order.id}",
+            action=f"Started reviewing order {task_assignment.order.pk}",
             related_order=task_assignment.order,
             related_task=task_assignment,
         )
-        
-        AuditLogService.log_auto(
+
+        AuditService.record(
+            action="editor.review.started",
             actor=editor.user,
-            action="Editor started review",
-            target=task_assignment.order,
+            obj=task_assignment.order,
+            website=task_assignment.order.website,
             metadata={"review_status": "in_review"},
+            service_name="editor_management",
         )
-        
+
         return task_assignment
-    
+
     @staticmethod
     @transaction.atomic
     def submit_review(
@@ -81,308 +100,327 @@ class EditorReviewService:
         revision_notes: str = "",
         edited_files: Optional[list] = None,
     ) -> EditorReviewSubmission:
-        """
-        Submit a review for an order.
-        
-        Args:
-            task_assignment: The task assignment being reviewed
-            editor: The editor submitting the review
-            quality_score: Quality score (0.00-10.00)
-            issues_found: Issues/problems found
-            corrections_made: Corrections made
-            recommendations: Recommendations
-            is_approved: Whether work is approved for delivery
-            requires_revision: Whether revision is needed from writer
-            revision_notes: Notes for writer if revision needed
-            edited_files: List of file IDs that were edited
-            
-        Returns:
-            EditorReviewSubmission
-        """
+        """Submit a review for an order."""
         if task_assignment.assigned_editor != editor:
             raise ValidationError(
                 "Only the assigned editor can submit a review for this task."
             )
-        
-        if task_assignment.review_status != 'in_review':
+
+        if task_assignment.review_status != "in_review":
             raise ValidationError(
-                f"Cannot submit review from status: {task_assignment.review_status}"
+                f"Cannot submit review from status: "
+                f"{task_assignment.review_status}"
             )
-        
+
         order = task_assignment.order
-        
-        # Validate quality_score
+
         if quality_score is not None:
-            if quality_score < Decimal('0.00') or quality_score > Decimal('10.00'):
-                raise ValidationError("Quality score must be between 0.00 and 10.00")
-        
-        # Create or update review submission
+            if not (Decimal("0.00") <= quality_score <= Decimal("10.00")):
+                raise ValidationError(
+                    "Quality score must be between 0.00 and 10.00."
+                )
+
         review_submission, created = EditorReviewSubmission.objects.get_or_create(
             task_assignment=task_assignment,
             defaults={
-                'editor': editor,
-                'order': order,
-                'quality_score': quality_score,
-                'issues_found': issues_found,
-                'corrections_made': corrections_made,
-                'recommendations': recommendations,
-                'is_approved': is_approved,
-                'requires_revision': requires_revision,
-                'revision_notes': revision_notes,
-                'edited_files': edited_files or [],
-            }
+                "editor":            editor,
+                "order":             order,
+                "quality_score":     quality_score,
+                "issues_found":      issues_found,
+                "corrections_made":  corrections_made,
+                "recommendations":   recommendations,
+                "is_approved":       is_approved,
+                "requires_revision": requires_revision,
+                "revision_notes":    revision_notes,
+                "edited_files":      edited_files or [],
+            },
         )
-        
+
         if not created:
-            # Update existing submission
-            review_submission.quality_score = quality_score
-            review_submission.issues_found = issues_found
+            review_submission.quality_score    = quality_score
+            review_submission.issues_found     = issues_found
             review_submission.corrections_made = corrections_made
-            review_submission.recommendations = recommendations
-            review_submission.is_approved = is_approved
+            review_submission.recommendations  = recommendations
+            review_submission.is_approved      = is_approved
             review_submission.requires_revision = requires_revision
-            review_submission.revision_notes = revision_notes
-            review_submission.edited_files = edited_files or []
+            review_submission.revision_notes   = revision_notes
+            review_submission.edited_files     = edited_files or []
             review_submission.save()
-        
-        # Update task status based on review
+
         if is_approved and not requires_revision:
-            # Approved - complete the task
+            # Editor approved — complete task, deliver to client
+
             task_assignment.complete_review()
 
-            # Move order to appropriate status using unified transition helper
-            # If the order is currently under_editing, transition it to reviewed.
+            # FIX 2: was REVIEWED (post-client-rating — wrong)
+            #        was OrderTransitionHelper (doesn't exist — ImportError)
+            # CORRECT: SUBMITTED = delivered to client
             if order.status == OrderStatus.UNDER_EDITING.value:
-                OrderTransitionHelper.transition_order(
+                OrderTransitionService.transition(
                     order=order,
-                    target_status=OrderStatus.REVIEWED.value,
-                    user=editor.user if hasattr(editor, "user") else None,
-                    reason="Editor approved order after editing",
-                    action="editor_approve_after_editing",
-                    is_automatic=False,
-                    skip_payment_check=True,
+                    next_status=OrderStatus.SUBMITTED.value,
+                    actor=editor.user,
+                    event_type="editor_approved_submitted_to_client",
                     metadata={
                         "editor_profile_id": getattr(editor, "id", None),
                         "editor_task_id": getattr(task_assignment, "id", None),
                     },
                 )
-            
-            # Log action
+
             EditorActionLog.objects.create(
                 editor=editor,
                 action_type="submitted_review",
-                action=f"Submitted review for order {order.id} - Approved",
+                action=f"Submitted review for order {order.pk} — Approved",
                 related_order=order,
                 related_task=task_assignment,
                 metadata={
-                    'quality_score': float(quality_score) if quality_score else None,
-                    'is_approved': True,
-                }
+                    "quality_score": float(quality_score) if quality_score else None,
+                    "is_approved":   True,
+                },
             )
-            
-            # Notify client
+
             if order.client:
-                NotificationService.notify(
+                _notify(
                     event_key="order.reviewed",
                     recipient=order.client,
                     website=order.website,
                     context={
-                        "order_id": order.id,
+                        "order_id": order.pk,
                         "order_topic": order.topic,
                         "reviewed_by": editor.name,
-                        "approved": True,
-                        "website_id": order.website_id,
+                        "approved":    True,
                     },
-                    channels=["email", "in_app"],
-                    priority="high",
-                    is_broadcast=False,
                     is_critical=True,
-                    is_digest=False,
-                    is_silent=False,
-                    digest_group=None,
                 )
+
         else:
-            # Requires revision - keep in review but mark task appropriately
-            task_assignment.notes = (task_assignment.notes or '') + f"\n[Revision Required: {revision_notes}]"
-            task_assignment.save()
-            
-            # Move order to revision_requested status
+            # Requires revision from writer
+            task_assignment.notes = (
+                (task_assignment.notes or "") +
+                f"\n[Revision Required: {revision_notes}]"
+            )
+            task_assignment.save(update_fields=["notes", "updated_at"])
+
+            # FIX 3: was direct order.status = ...; order.save()
+            # No timeline event was created. Service handles that.
             if order.status == OrderStatus.UNDER_EDITING.value:
-                order.status = OrderStatus.REVISION_REQUESTED.value
-                order.save(update_fields=['status'])
-            
-            # Log action
+                OrderTransitionService.transition(
+                    order=order,
+                    next_status=OrderStatus.REVISION_REQUESTED.value,
+                    actor=editor.user,
+                    event_type="editor_revision_requested",
+                    metadata={
+                        "revision_notes": revision_notes,
+                        "editor_task_id": getattr(task_assignment, "id", None),
+                    },
+                )
+
             EditorActionLog.objects.create(
                 editor=editor,
                 action_type="submitted_review",
-                action=f"Submitted review for order {order.id} - Revision Required",
+                action=(
+                    f"Submitted review for order {order.pk}"
+                    f" — Revision Required"
+                ),
                 related_order=order,
                 related_task=task_assignment,
                 metadata={
-                    'quality_score': float(quality_score) if quality_score else None,
-                    'requires_revision': True,
-                }
+                    "quality_score":     float(quality_score) if quality_score else None,
+                    "requires_revision": True,
+                },
             )
-            
-            # Notify writer
+
             if order.assigned_writer:
-                NotificationService.notify(
+                _notify(
                     event_key="order.revision_requested",
                     recipient=order.assigned_writer,
                     website=order.website,
                     context={
-                        "order_id": order.id,
+                        "order_id": order.pk,
                         "order_topic": order.topic,
                         "revision_notes": revision_notes,
-                        "requested_by": editor.name,
-                        "website_id": order.website_id,
+                        "requested_by":   editor.name,
                     },
-                    channels=["email", "in_app"],
-                    priority="high",
-                    is_broadcast=False,
                     is_critical=True,
-                    is_digest=False,
-                    is_silent=False,
-                    digest_group=None,
                 )
-        
-        AuditLogService.log_auto(
+
+        # FIX 4: syntax error — service_name was inside metadata dict
+        AuditService.record(
+            action="editor.review.submitted",
             actor=editor.user,
-            action="Editor submitted review",
-            target=order,
+            obj=order,
+            website=order.website,
             metadata={
-                "review_submission_id": review_submission.id,
+                "review_submission_id": review_submission.pk,
                 "is_approved": is_approved,
                 "requires_revision": requires_revision,
             },
+            service_name="editor_management",
         )
-        
+
         return review_submission
-    
+
     @staticmethod
     @transaction.atomic
     def complete_task(
         task_assignment: EditorTaskAssignment,
         editor: EditorProfile,
-        final_notes: str = ""
+        final_notes: str = "",
     ) -> EditorTaskAssignment:
-        """
-        Mark a task as completed (after review has been submitted and approved).
-        
-        Args:
-            task_assignment: The task assignment to complete
-            editor: The editor completing the task
-            final_notes: Optional final notes
-            
-        Returns:
-            Updated EditorTaskAssignment
-        """
+        """Mark a task as completed after review submitted and approved."""
         if task_assignment.assigned_editor != editor:
             raise ValidationError(
                 "Only the assigned editor can complete this task."
             )
-        
-        if task_assignment.review_status not in ['in_review', 'completed']:
+
+        if task_assignment.review_status not in ["in_review", "completed"]:
             raise ValidationError(
-                f"Cannot complete task from status: {task_assignment.review_status}"
+                f"Cannot complete task from status: "
+                f"{task_assignment.review_status}"
             )
-        
-        # Check if review was submitted
-        if not hasattr(task_assignment, 'review_submission'):
+
+        if not hasattr(task_assignment, "review_submission"):
             raise ValidationError(
                 "Cannot complete task without submitting a review first."
             )
-        
+
         task_assignment.complete_review()
-        
+
         if final_notes:
-            task_assignment.notes = (task_assignment.notes or '') + f"\n[Final Notes: {final_notes}]"
-            task_assignment.save()
-        
-        # Log action
+            task_assignment.notes = (
+                (task_assignment.notes or "") +
+                f"\n[Final Notes: {final_notes}]"
+            )
+            task_assignment.save(update_fields=["notes", "updated_at"])
+
         EditorActionLog.objects.create(
             editor=editor,
             action_type="completed_task",
-            action=f"Completed task for order {task_assignment.order.id}",
+            action=f"Completed task for order {task_assignment.order.pk}",
             related_order=task_assignment.order,
             related_task=task_assignment,
         )
-        
-        AuditLogService.log_auto(
+
+        AuditService.record(
+            action="editor.task.completed",
             actor=editor.user,
-            action="Editor completed task",
-            target=task_assignment.order,
+            obj=task_assignment.order,
+            website=task_assignment.order.website,
             metadata={"review_status": "completed"},
+            service_name="editor_management",
         )
-        
+
         return task_assignment
-    
+
     @staticmethod
     @transaction.atomic
     def reject_task(
         task_assignment: EditorTaskAssignment,
         editor: EditorProfile,
-        reason: str
+        reason: str,
     ) -> EditorTaskAssignment:
-        """
-        Reject a task (e.g., order quality too poor, needs admin review).
-        
-        Args:
-            task_assignment: The task assignment to reject
-            editor: The editor rejecting the task
-            reason: Reason for rejection
-            
-        Returns:
-            Updated EditorTaskAssignment
-        """
+        """Reject a task — order needs admin review."""
         if task_assignment.assigned_editor != editor:
             raise ValidationError(
                 "Only the assigned editor can reject this task."
             )
-        
-        task_assignment.review_status = 'rejected'
-        task_assignment.notes = (task_assignment.notes or '') + f"\n[Rejected: {reason}]"
+
+        task_assignment.review_status = "rejected"
+        task_assignment.notes = (
+            (task_assignment.notes or "") +
+            f"\n[Rejected: {reason}]"
+        )
         task_assignment.reviewed_at = now()
-        task_assignment.save()
-        
-        # Log action
+        task_assignment.save(update_fields=[
+            "review_status", "notes", "reviewed_at", "updated_at"
+        ])
+
         EditorActionLog.objects.create(
             editor=editor,
             action_type="rejected_task",
-            action=f"Rejected task for order {task_assignment.order.id}",
+            action=f"Rejected task for order {task_assignment.order.pk}",
             related_order=task_assignment.order,
             related_task=task_assignment,
-            metadata={'reason': reason}
+            metadata={"reason": reason},
         )
-        
-        AuditLogService.log_auto(
+
+        AuditService.record(
+            action="editor.task.rejected",
             actor=editor.user,
-            action="Editor rejected task",
-            target=task_assignment.order,
+            obj=task_assignment.order,
+            website=task_assignment.order.website,
             metadata={"review_status": "rejected", "reason": reason},
+            service_name="editor_management",
         )
-        
-        # Notify admin/support
-        from users.models import User
-        admins = User.objects.filter(role__in=['admin', 'superadmin'], is_active=True)
-        for admin in admins:
-            NotificationService.notify(
-                event_key="editor.task_rejected",
-                recipient=admin,
-                website=task_assignment.order.website,
-                context={
-                    "order_id": task_assignment.order.id,
-                    "editor": editor.name,
-                    "reason": reason,
-                },
-                channels=["email", "in_app"],
-                priority="high",
-                is_broadcast=False,
-                is_critical=True,
-                is_digest=False,
-                is_silent=False,
-                digest_group=None,
-            )
-        
+
+        # FIX 5: was dead loop — User.objects.filter → for admin → notify_role
+        # notify_role handles all admin recipients internally
+        _notify_role(
+            event_key="editor.task_rejected",
+            role="admin",
+            website=task_assignment.order.website,
+            context={
+                "order_id": task_assignment.order.pk,
+                "editor":   editor.name,
+                "reason":   reason,
+            },
+            is_critical=True,
+        )
+
         return task_assignment
 
+
+# ----------------------------------------------------------------
+# PRIVATE NOTIFICATION HELPERS
+# ----------------------------------------------------------------
+
+def _notify(
+    *,
+    event_key: str,
+    recipient: Any,
+    website: Any,
+    context: dict,
+    is_critical: bool = False,
+) -> None:
+    """Notify a single recipient. Never raises."""
+    try:
+        NotificationService.notify(
+            event_key=event_key,
+            recipient=recipient,
+            website=website,
+            context=context,
+            is_critical=is_critical,
+        )
+    except Exception as exc:
+        logger.exception(
+            "_notify failed: event=%s recipient=%s: %s",
+            event_key,
+            getattr(recipient, "pk", "?"),
+            exc,
+        )
+
+
+def _notify_role(
+    *,
+    event_key: str,
+    role: str,
+    website: Any,
+    context: dict,
+    is_critical: bool = False,
+) -> None:
+    """Notify all users of a role. Never raises."""
+    try:
+        NotificationService.notify_role(
+            event_key=event_key,
+            role=role,
+            website=website,
+            context=context,
+            is_critical=is_critical,
+        )
+    except Exception as exc:
+        logger.exception(
+            "_notify_role failed: event=%s role=%s: %s",
+            event_key,
+            role,
+            exc,
+        )

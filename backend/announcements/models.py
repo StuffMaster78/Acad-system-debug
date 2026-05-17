@@ -79,7 +79,7 @@ class Announcement(models.Model):
     def __str__(self):
         if self.broadcast:
             return f"Announcement: {self.broadcast.title}"
-        return f"Announcement #{self.id}"
+        return f"Announcement #{self.pk}"
 
     @property
     def title(self):

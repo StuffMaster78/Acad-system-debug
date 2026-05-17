@@ -1,7 +1,7 @@
 from django.db import models
 from websites.models.websites import Website
 import json
-
+from decimal import Decimal
 
 class CriticalDeadlineSetting(models.Model):
     """
@@ -18,7 +18,7 @@ class CriticalDeadlineSetting(models.Model):
         verbose_name_plural = "Critical Deadline Settings"
 
     def __str__(self):
-        return f"CriticalDeadlineSetting: {self.threshold_hours} hours"
+        return f"CriticalDeadlineSetting: {self.critical_deadline_threshold_hours} hours"
 
 
 class EditingRequirementConfig(models.Model):
@@ -68,7 +68,7 @@ class EditingRequirementConfig(models.Model):
     high_value_threshold = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=300.00,
+        default=Decimal(300.00),
         help_text="Order value threshold (USD) to consider 'high value'"
     )
     
@@ -82,7 +82,26 @@ class EditingRequirementConfig(models.Model):
         related_name='created_editing_configs',
         help_text="Admin who created this configuration"
     )
-    
+    # QA Fields 
+    enable_qa_by_default = models.BooleanField(
+        default=False,
+        help_text="Enable QA review for orders that don't require editing.",
+    )
+    qa_required_for_high_value = models.BooleanField(
+        default=True,
+        help_text="Require QA for orders above high_value_threshold.",
+    )
+    qa_required_for_new_writers = models.BooleanField(
+        default=True,
+        help_text="Require QA for orders from writers below new_writer_order_threshold.",
+    )
+    new_writer_order_threshold = models.PositiveIntegerField(
+        default=5,
+        help_text=(
+            "Writers with fewer completed orders than this threshold "
+            "are considered 'new' and their orders go through QA."
+        ),
+    )
     class Meta:
         verbose_name = "Editing Requirement Config"
         verbose_name_plural = "Editing Requirement Configs"
@@ -402,6 +421,14 @@ class SubjectTemplate(models.Model):
         
         return counts
     
+    def get_category_display(self) -> str:  # pragma: no cover
+        """
+        Stub for Pylance — Django generates this at runtime for
+        CharField(choices=...). The real implementation is injected
+        by Django's contribute_to_class machinery.
+        """
+        ...  # never reached — Django overrides this
+    
     class Meta:
         ordering = ['category', 'name']
         verbose_name = "Subject Template"
@@ -505,6 +532,14 @@ class PaperTypeTemplate(models.Model):
                 counts['errors'].append(f"Error creating {paper_type_name}: {str(e)}")
         
         return counts
+    
+    def get_category_display(self) -> str:  # pragma: no cover
+        """
+        Stub for Pylance — Django generates this at runtime for
+        CharField(choices=...). The real implementation is injected
+        by Django's contribute_to_class machinery.
+        """
+        ...  # never reached — Django overrides this
     
     class Meta:
         ordering = ['category', 'name']
@@ -612,6 +647,14 @@ class TypeOfWorkTemplate(models.Model):
                 counts['errors'].append(f"Error creating {work_type_name}: {str(e)}")
         
         return counts
+    
+    def get_category_display(self) -> str:  # pragma: no cover
+        """
+        Stub for Pylance — Django generates this at runtime for
+        CharField(choices=...). The real implementation is injected
+        by Django's contribute_to_class machinery.
+        """
+        ...  # never reached — Django overrides this
     
     class Meta:
         ordering = ['category', 'name']

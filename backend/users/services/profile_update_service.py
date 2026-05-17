@@ -12,7 +12,7 @@ from users.models.profile import (
     UserProfile,
 )
 from users.models.user import User
-from audit_logging.services.audit_log_service import AuditLogService
+from audit_logging.services.audit_service import AuditService
 
 
 class ProfileUpdateService:
@@ -96,10 +96,10 @@ class ProfileUpdateService:
             status=ProfileUpdateRequestStatus.PENDING,
         )
 
-        AuditLogService.log_auto(
+        AuditService.record(
             action="profile_update_submitted",
             actor=user,
-            target=request_obj,
+            website=request_obj.website,
             metadata={
                 "website_id": user.website.pk,
                 "requested_fields": sorted(requested_changes.keys()),
@@ -137,15 +137,13 @@ class ProfileUpdateService:
             ]
         )
 
-        AuditLogService.log_auto(
+        AuditService.record(
             action="profile_update_marked_under_review",
             actor=reviewer,
-            target=request_obj,
+            website=request_obj.website,
             metadata={
                 "website_id": request_obj.website.pk,
                 "subject_user_id": request_obj.user.pk,
-            },
-            changes={
                 "status": {
                     "from": old_status,
                     "to": request_obj.status,
@@ -191,21 +189,18 @@ class ProfileUpdateService:
             ]
         )
 
-        AuditLogService.log_auto(
+        AuditService.record(
             action="profile_update_approved",
             actor=reviewer,
-            target=request_obj,
+            website=request_obj.website,
             metadata={
                 "website_id": request_obj.website.pk,
                 "subject_user_id": request_obj.user.pk,
-            },
-            changes={
                 "status": {
                     "from": old_status,
                     "to": request_obj.status,
-                }
+                },
             },
-            notes=review_note,
         )
         return request_obj
 
@@ -247,21 +242,19 @@ class ProfileUpdateService:
             ]
         )
 
-        AuditLogService.log_auto(
+        AuditService.record(
             action="profile_update_rejected",
             actor=reviewer,
-            target=request_obj,
+            website=request_obj.website,
             metadata={
                 "website_id": request_obj.website.pk,
                 "subject_user_id": request_obj.user.pk,
-            },
-            changes={
                 "status": {
                     "from": old_status,
                     "to": request_obj.status,
-                }
+                },
+                "notes": review_note,
             },
-            notes=review_note,
         )
         return request_obj
 
@@ -300,19 +293,17 @@ class ProfileUpdateService:
         request_obj.status = ProfileUpdateRequestStatus.CANCELLED
         request_obj.save(update_fields=["status", "updated_at"])
 
-        AuditLogService.log_auto(
+        AuditService.record(
             action="profile_update_cancelled",
             actor=actor,
-            target=request_obj,
+            website=request_obj.website,
             metadata={
                 "website_id": request_obj.website.pk,
                 "subject_user_id": request_obj.user.pk,
-            },
-            changes={
                 "status": {
                     "from": old_status,
                     "to": request_obj.status,
-                }
+                },
             },
         )
 
@@ -370,15 +361,15 @@ class ProfileUpdateService:
             "to": request_obj.status,
         }
 
-        AuditLogService.log_auto(
+        AuditService.record(
             action="profile_update_applied",
             actor=actor,
-            target=profile,
+            website=request_obj.website,
             metadata={
                 "website_id": request_obj.website.pk,
                 "profile_update_request_id": request_obj.pk,
                 "subject_user_id": request_obj.user.pk,
+                "changes": changes,
             },
-            changes=changes,
         )
         return request_obj
