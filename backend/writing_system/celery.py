@@ -291,6 +291,89 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
             "task": "orders.tasks.order_monitoring_tasks.send_operational_writer_reminders",
             "schedule": crontab(minute="*/15"),
     },
+    # Close windows at 23:50 every night.
+    # Runs just before midnight so end_date == today is still true.
+    # auto_confirm_pending=True so no events are excluded.
+    "compensation-close-windows-nightly": {
+        "task": "writer_compensation.tasks.check_and_close_windows",
+        "schedule": crontab(hour=23, minute=50),
+    },
+ 
+    # Open new windows at 00:05 every night.
+    # Runs just after midnight so the new window's start_date == today.
+    # Five minute gap after close ensures close task finishes first.
+    "compensation-open-windows-nightly": {
+        "task": "writer_compensation.tasks.check_and_open_windows",
+        "schedule": crontab(hour=0, minute=5),
+    },
+ 
+    # Alert admin at 09:00 every morning about any pending events
+    # sitting in closed windows that need post-close adjustments.
+    "compensation-alert-pending-events-daily": {
+        "task": "writer_compensation.tasks.alert_pending_events",
+        "schedule": crontab(hour=9, minute=0),
+    },
+        # ── Outbox reliability ─────────────────────────────────────────────────
+    # Safety net: requeues any PENDING outbox rows whose Celery task was
+    # never queued (e.g. broker was briefly down when enqueue() ran).
+    # Without this, those notifications are silently lost forever.
+    'notif-requeue-pending': {
+        'task': 'notifications_system.tasks.maintenance.requeue_pending_outbox',
+        'schedule': crontab(minute='*/5'),
+    },
+
+    # ── Expiry ─────────────────────────────────────────────────────────────
+    # Marks sent in-app notifications as CANCELLED past their expires_at.
+    'notif-expire-stale': {
+        'task': 'notifications_system.tasks.maintenance.expire_stale_notifications',
+        'schedule': crontab(minute='*/30'),
+    },
+
+    # ── Dead letter alerting ───────────────────────────────────────────────
+    # Logs WARNING for every permanently-failed outbox entry so Sentry /
+    # CloudWatch / Datadog picks them up. Extend to Slack if needed.
+    'notif-alert-dead-letters': {
+        'task': 'notifications_system.tasks.maintenance.alert_dead_letter_outbox',
+        'schedule': crontab(minute='*/15'),
+    },
+
+    # ── Webhook event processing ───────────────────────────────────────────
+    # Processes any ProviderWebhookEvent rows still PENDING after the
+    # original webhook request failed (brief DB unavailability etc.).
+    'notif-process-webhook-events': {
+        'task': 'notifications_system.tasks.maintenance.process_pending_webhook_events',
+        'schedule': crontab(minute='*/5'),
+    },
+    # ── Digest sending ─────────────────────────────────────────────────────
+    # Sends all due unsent digests. Runs every hour.
+    'notif-process-due-digests': {
+        'task': 'notifications_system.tasks.digest.process_due_digests',
+        'schedule': crontab(minute=0, hour='*'),
+    },
+    # ── Digest ─────────────────────────────────────────────────────────────
+    # Deletes sent digest rows older than 30 days to keep the table lean.
+    'notif-clear-stale-digests': {
+        'task': 'notifications_system.tasks.maintenance.clear_stale_digests',
+        'schedule': crontab(hour=3, minute=0),
+    },
+
+    # ── Unread count integrity ─────────────────────────────────────────────
+    # Recalculates cached unread counts from source of truth.
+    # Run daily as a drift correction. Also run manually after migrations.
+    'notif-rebuild-unread-counts': {
+        'task': 'notifications_system.tasks.maintenance.rebuild_unread_counts',
+        'schedule': crontab(hour=4, minute=0),
+    },
+
+    # ── Outbox cleanup ─────────────────────────────────────────────────────
+    # Deletes processed outbox rows older than 7 days (OUTBOX_RETAIN_DAYS).
+    # This recycles dedupe keys so the same event can be re-sent legitimately
+    # after the retention window (e.g. a second password reset days later).
+    'notif-cleanup-processed-outbox': {
+        'task': 'notifications_system.tasks.maintenance.cleanup_processed_outbox',
+        'schedule': crontab(hour=3, minute=30),
+    },
+
 }
 
 # ---------- Dynamic schedule via django-celery-beat (guarded) ---------------
