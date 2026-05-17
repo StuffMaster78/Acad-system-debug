@@ -165,7 +165,6 @@ INSTALLED_APPS = [
     'fines',
     'tips',
     'refunds',
-    'writer_compensation',
     'payment_processor',
     
     # Order Management
