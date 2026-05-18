@@ -1,6 +1,9 @@
+# writer_management/models/writer_achievement.py
+
 from __future__ import annotations
 
 from django.db import models
+from django.utils import timezone
 
 from websites.models.websites import Website
 from writer_management.models.writer_profile import (
@@ -8,10 +11,43 @@ from writer_management.models.writer_profile import (
 )
 
 
-class WriterAchievement(models.Model):
+class WriterAchievement(
+    models.Model,
+):
     """
     Immutable writer achievement record.
+
+    Represents milestone, excellence,
+    trust, or specialization accomplishments.
     """
+
+    class AchievementType(
+        models.TextChoices,
+    ):
+        QUALITY = (
+            "QUALITY",
+            "Quality",
+        )
+        SPEED = (
+            "SPEED",
+            "Speed",
+        )
+        TRUST = (
+            "TRUST",
+            "Trust",
+        )
+        SPECIALIZATION = (
+            "SPECIALIZATION",
+            "Specialization",
+        )
+        CONSISTENCY = (
+            "CONSISTENCY",
+            "Consistency",
+        )
+        MILESTONE = (
+            "MILESTONE",
+            "Milestone",
+        )
 
     website = models.ForeignKey(
         Website,
@@ -25,8 +61,15 @@ class WriterAchievement(models.Model):
         related_name="achievements",
     )
 
+    achievement_type = models.CharField(
+        max_length=40,
+        choices=AchievementType.choices,
+        db_index=True,
+    )
+
     slug = models.SlugField(
         max_length=120,
+        db_index=True,
     )
 
     title = models.CharField(
@@ -37,9 +80,27 @@ class WriterAchievement(models.Model):
         blank=True,
     )
 
-    badge = models.CharField(
+    badge_name = models.CharField(
         max_length=120,
         blank=True,
+    )
+
+    icon = models.CharField(
+        max_length=120,
+        blank=True,
+    )
+
+    points = models.PositiveIntegerField(
+        default=0,
+    )
+
+    is_featured = models.BooleanField(
+        default=False,
+    )
+
+    earned_at = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
     )
 
     metadata = models.JSONField(
@@ -47,18 +108,24 @@ class WriterAchievement(models.Model):
         blank=True,
     )
 
-    awarded_at = models.DateTimeField(
-        auto_now_add=True,
-        db_index=True,
-    )
-
     class Meta:
-        ordering = ["-awarded_at"]
+        ordering = [
+            "-earned_at",
+        ]
 
         indexes = [
             models.Index(
-                fields=["writer", "slug"],
+                fields=[
+                    "website",
+                    "writer",
+                ],
                 name="writer_achievement_idx",
+            ),
+            models.Index(
+                fields=[
+                    "achievement_type",
+                ],
+                name="achievement_type_idx",
             ),
         ]
 
@@ -68,14 +135,14 @@ class WriterAchievement(models.Model):
                     "writer",
                     "slug",
                 ],
-                name=(
-                    "unique_writer_achievement"
-                ),
+                name="unique_writer_achievement_slug",
             ),
         ]
 
-    def __str__(self) -> str:
+    def __str__(
+        self,
+    ) -> str:
         return (
-            f"{self.writer.registration_id} "
-            f"| {self.title}"
+            f"{self.writer.registration_id} | "
+            f"{self.title}"
         )

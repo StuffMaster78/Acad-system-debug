@@ -11,4 +11,4 @@ class WriterManagementConfig(AppConfig):
         Register all signals when the app is ready.
         Import order matters — models must be loaded before signals.
         """
-        import writer_management.signals  # noqa: F401
+        import writer_management.signals.achievement_signals  # noqa: F401
