@@ -145,6 +145,7 @@ INSTALLED_APPS = [
 
     # Core Project Apps
     'core',
+    'config_systen',
     'websites',
     'accounts',
     'audit_logging',
@@ -165,9 +166,11 @@ INSTALLED_APPS = [
     'fines',
     'tips',
     'refunds',
-    'payment_processor',
+    'payments_processor',
+    
     
     # Order Management
+    'order_pricing_core',
     'orders',
     'order_payments_management',
     'order_files',
@@ -190,6 +193,7 @@ INSTALLED_APPS = [
     'holiday_management',  # Holiday and special day management
 
     # Users Management Apps
+    'governance',
     'superadmin_management',
     'admin_management',
     'client_management',

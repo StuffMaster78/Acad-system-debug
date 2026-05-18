@@ -86,8 +86,6 @@ urlpatterns = [
     # Orders (Newly Improved)
     path("api/orders/", include("orders.api.urls")),
     path('api/v1/order-files/', include('order_files.urls')),
-    path('api/v1/order-payments/', include('order_payments_management.urls')),  # Order Payments Management
-    path('api/v1/special-orders/', include('special_orders.urls')),
     # Legacy alias for older frontend paths
     path('api/v1/special-orders/api/', include('special_orders.urls')),
     path('api/v1/tickets/', include('tickets.urls')),
@@ -134,6 +132,7 @@ urlpatterns = [
         "api/v1/writer-compensation/",
         include("writer_compensation.urls"),
     ),
+    path('api/v1/tips/', include('tips.urls')),
 ]
 
 # Serve media and static files during development
