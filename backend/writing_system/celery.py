@@ -373,6 +373,28 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
         'task': 'notifications_system.tasks.maintenance.cleanup_processed_outbox',
         'schedule': crontab(hour=3, minute=30),
     },
+    "weekly-writer-rewards": {
+        "task": (
+            "writer_compensation.tasks.reward_tasks."
+            "run_weekly_rewards_task"
+        ),
+        "schedule": crontab(
+            minute=0,
+            hour=1,
+            day_of_week="monday",
+        ),
+    },
+    "monthly-writer-rewards": {
+        "task": (
+            "writer_compensation.tasks.reward_tasks."
+            "run_monthly_rewards_task"
+        ),
+        "schedule": crontab(
+            minute=0,
+            hour=2,
+            day_of_month=1,
+        ),
+    },
 
 }
 
