@@ -1,12 +1,15 @@
-from django.db.models.signals import post_save
+from __future__ import annotations
+
+from django.db.models.signals import (
+    post_save,
+)
 from django.dispatch import receiver
 
 from writer_compensation.models.writer_reward import (
     WriterReward,
 )
-
-from writer_compensation.services.reward_notification_service import (
-    RewardNotificationService,
+from writer_compensation.services.reward_event_emitter import (
+    RewardEventEmitter,
 )
 
 
@@ -14,23 +17,19 @@ from writer_compensation.services.reward_notification_service import (
     post_save,
     sender=WriterReward,
 )
-def writer_reward_post_save(
+def reward_created_signal(
     sender,
-    reward: WriterReward,
+    instance: WriterReward,
     created: bool,
     **kwargs,
-):
+) -> None:
     """
-    Fire notifications after reward issuance.
+    Emit reward issued event.
     """
 
     if not created:
         return
 
-    if (
-        reward.status
-        == WriterReward.RewardStatus.ISSUED
-    ):
-        RewardNotificationService.notify_reward_issued(
-            reward=reward,
-        )
+    RewardEventEmitter.reward_issued(
+        reward=instance,
+    )

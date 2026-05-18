@@ -55,4 +55,11 @@ urlpatterns = [
             "writer_compensation.api.urls.support_urls",
         ),
     ),
+    path(
+        "reward-projections/",
+        include(
+            "writer_compensation.api.urls"
+            ".reward_projection_urls"
+        ),
+    ),
 ]

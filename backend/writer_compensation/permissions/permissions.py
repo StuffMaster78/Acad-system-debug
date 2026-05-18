@@ -54,3 +54,57 @@ class IsAdminOrSupport(BasePermission):
             or user.is_superuser
             or getattr(user, "is_support", False)
         )
+    
+class CanManageRewards(
+    BasePermission,
+):
+    """
+    Allows reward management access.
+    """
+
+    def has_permission( #type: ignore
+        self,
+        request,
+        view,
+    ):
+        return bool(
+            request.user
+            and request.user.is_staff
+        )
+
+
+class CanViewOwnRewards(
+    BasePermission,
+):
+    """
+    Writers may only view their own rewards.
+    """
+
+    def has_object_permission(
+        self,
+        request,
+        view,
+        obj,
+    ):
+        return (
+            obj.writer.user_id
+            == request.user.id
+        )
+
+
+class CanRunRewardJobs(
+    BasePermission,
+):
+    """
+    Restrict scheduler endpoints.
+    """
+
+    def has_permission( #type: ignore
+        self,
+        request,
+        view,
+    ):
+        return bool(
+            request.user
+            and request.user.is_superuser
+        )

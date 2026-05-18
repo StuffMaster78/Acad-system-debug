@@ -15,7 +15,48 @@ from rest_framework.views import APIView
 from writer_compensation.models.writer_reward import (
     WriterReward,
 )
+from writer_compensation.services.reward_analytics_service import (
+    RewardAnalyticsService,
+)
 
+
+class RewardAnalyticsOverviewView(
+    APIView,
+):
+    """
+    Aggregate reward analytics endpoint.
+    """
+
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def get(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ) -> Response:
+        """
+        Return reward analytics overview.
+        """
+
+        website_id = (
+            request.query_params.get(
+                "website_id",
+            )
+        )
+
+        payload = (
+            RewardAnalyticsService
+            .overview_metrics(
+                website_id=website_id,
+            )
+        )
+
+        return Response(
+            payload,
+        )
 
 class RewardAnalyticsView(
     APIView,

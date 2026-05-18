@@ -3,6 +3,11 @@ from __future__ import annotations
 from rest_framework.generics import ListAPIView
 from rest_framework.generics import RetrieveAPIView
 from typing import cast
+from rest_framework import status
+
+from rest_framework.generics import CreateAPIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from writer_compensation.permissions.reward_permissions import (
     IsRewardViewer,
@@ -54,6 +59,53 @@ class RewardRuleListView(
         )
 
 
+class RewardRuleCreateView(
+    CreateAPIView,
+):
+    """
+    Create reward rule.
+    """
+
+    serializer_class = (
+        RewardRuleSerializer
+    )
+
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    queryset = (
+        RewardRule.objects.all()
+    )
+
+    def create(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
+        """
+        Create reward rule.
+        """
+
+        serializer = self.get_serializer(
+            data=request.data,
+        )
+
+        serializer.is_valid(
+            raise_exception=True,
+        )
+
+        reward_rule = serializer.save()
+
+        return Response(
+            RewardRuleSerializer(
+                reward_rule,
+            ).data,
+            status=status.HTTP_201_CREATED,
+        )
+    
+    
 class RewardRuleDetailView(
     RetrieveAPIView,
 ):
@@ -72,3 +124,5 @@ class RewardRuleDetailView(
     queryset = (
         RewardRule.objects.all()
     )
+
+    lookup_field = "pk"
