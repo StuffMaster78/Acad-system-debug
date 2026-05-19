@@ -30,7 +30,7 @@ class OrderDispute(models.Model):
     website = models.ForeignKey(
         'websites.Website',
         on_delete=models.CASCADE,
-        related_name='order_disputes'
+        related_name='support_order_disputes'
     )
     order = models.ForeignKey(
         'orders.Order',
@@ -190,4 +190,3 @@ class DisputeMessage(models.Model):
     
     def __str__(self):
         return f"Message in Dispute #{self.dispute.id} from {self.sender.email}"
-

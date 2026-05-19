@@ -50,7 +50,7 @@ class TipAttribution(models.Model):
     )
 
     class_purchase = models.ForeignKey(
-        "classes.ClassPurchase",
+        "class_management.ClassOrder",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

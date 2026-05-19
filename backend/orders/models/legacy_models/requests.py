@@ -201,7 +201,7 @@ class ReassignmentRequest(models.Model):
     order = models.ForeignKey(
         'orders.Order',
         on_delete=models.CASCADE,
-        related_name='reassignment_requests'
+        related_name='legacy_reassignment_requests'
     )
 
     requested_by = models.CharField(

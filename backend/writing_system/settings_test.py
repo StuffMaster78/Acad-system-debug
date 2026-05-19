@@ -12,7 +12,7 @@ import os
 DEBUG = True
 
 # Provide a default token encryption key for tests
-TOKEN_ENCRYPTION_KEY = TOKEN_ENCRYPTION_KEY or "test-token-encryption-key"
+TOKEN_ENCRYPTION_KEY = globals().get("TOKEN_ENCRYPTION_KEY") or "test-token-encryption-key"
 
 # Database selection for tests: sqlite (default) or postgres when TEST_DB=postgres
 # Check for DATABASE_URL first (for CI/CD)
@@ -128,7 +128,10 @@ for _app in [
         INSTALLED_APPS.remove(_app)
 
 # Keep notifications_system loaded because some project apps import its models
-if "notifications_system" not in INSTALLED_APPS:
+if (
+    "notifications_system" not in INSTALLED_APPS
+    and "notifications_system.apps.NotificationsSystemConfig" not in INSTALLED_APPS
+):
     INSTALLED_APPS.append("notifications_system")
 
 # Faster password hashing during tests

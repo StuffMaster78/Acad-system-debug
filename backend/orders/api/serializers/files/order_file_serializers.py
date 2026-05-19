@@ -15,6 +15,34 @@ class OrderFileUploadSerializer(serializers.Serializer):
     """
 
     file = serializers.FileField()
+    description = serializers.CharField(required=False, allow_blank=True)
+    category_code = serializers.CharField(required=False, allow_blank=True)
+
+
+class OrderStyleReferenceUploadSerializer(OrderFileUploadSerializer):
+    """
+    Serializer for style reference uploads.
+    """
+
+    reference_type = serializers.ChoiceField(
+        choices=[
+            ("previous_paper", "Previous Paper"),
+            ("instructor_feedback", "Instructor Feedback"),
+            ("style_guide", "Style Guide"),
+            ("sample_work", "Sample Work"),
+        ],
+        default="previous_paper",
+    )
+    is_visible_to_writer = serializers.BooleanField(default=True)
+
+
+class OrderExtraServiceFileUploadSerializer(OrderFileUploadSerializer):
+    """
+    Serializer for extra service file uploads.
+    """
+
+    service_code = serializers.CharField(required=False, allow_blank=True)
+    is_downloadable = serializers.BooleanField(default=False)
 
 
 class OrderExternalFileLinkSerializer(serializers.Serializer):

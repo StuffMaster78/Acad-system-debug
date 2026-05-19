@@ -60,7 +60,7 @@ class MockPaymentProvider(BasePaymentProvider):
             status=str(payload.get("status", "success")),
             amount=Decimal(str(amount_value)),
             currency=currency,
-            reference=str(payload.get("reference"))
+            reference=str(payload.get("reference")),
             provider_transaction_id=provider_transaction_id,
             provider_reference=provider_reference,
             raw_payload=payload,

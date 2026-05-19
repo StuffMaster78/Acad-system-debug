@@ -267,7 +267,7 @@ class WriterProfile(models.Model):
             # Soft delete integrity:
             # if is_deleted is True, deleted_at must be set
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(is_deleted=False) |
                     models.Q(deleted_at__isnull=False)
                 ),
@@ -276,7 +276,7 @@ class WriterProfile(models.Model):
             # Verification integrity:
             # is_verified=True implies status must be VERIFIED
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(is_verified=False) |
                     models.Q(
                         verification_status=WriterVerificationStatus.VERIFIED

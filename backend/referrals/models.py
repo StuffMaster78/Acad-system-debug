@@ -11,7 +11,7 @@ from django.apps import apps
 User = settings.AUTH_USER_MODEL 
 
 def get_order_payment_model():
-    return apps.get_model('order_payments_management', 'OrderPayment')
+    return apps.get_model('payments_processor', 'PaymentIntent')
 class SoftDeleteModel(models.Model):
     """Abstract model for soft deletion instead of permanent deletion."""
     website = models.ForeignKey(
@@ -340,7 +340,7 @@ class ReferralBonusUsage(models.Model):
         on_delete=models.CASCADE
     )
     payment = models.ForeignKey(
-        'order_payments_management.OrderPayment',
+        'payments_processor.PaymentIntent',
         on_delete=models.CASCADE
     )
     discount_amount = models.DecimalField(
@@ -350,7 +350,7 @@ class ReferralBonusUsage(models.Model):
     applied_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Referral bonus of {self.discount_amount} applied to Order {self.order.id} (Payment {self.payment.transaction_id})"
+        return f"Referral bonus of {self.discount_amount} applied to Order {self.order.id} (Payment {self.payment.reference})"
 
 
 class PendingReferralInvitation(models.Model):

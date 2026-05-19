@@ -38,7 +38,7 @@ class OrderAssignment(models.Model):
     writer = models.OneToOneField(
         "writer_management.WriterProfile",
         on_delete=models.CASCADE,
-        related_name="capacity",
+        related_name="order_assignment",
     )
     assigned_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

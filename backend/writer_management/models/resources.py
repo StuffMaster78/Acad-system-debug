@@ -126,7 +126,7 @@ class WriterResource(models.Model):
         indexes = [
             models.Index(
                 fields=["website", "is_active", "is_featured"],
-                name="resource_site_active_featured_idx",
+                name="writer_res_active_feat_idx",
             ),
         ]
 

@@ -159,7 +159,7 @@ class PaymentWindow(models.Model):
             ),
             models.Index(
                 fields=[
-                    "window_type",
+                    "cycle_type",
                 ]
             ),
             models.Index(

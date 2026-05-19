@@ -106,7 +106,7 @@ class OrderDisputeResolution(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(refund_amount__isnull=True)
                     | models.Q(refund_amount__gte=0)
                 ),

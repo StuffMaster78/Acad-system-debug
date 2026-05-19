@@ -14,6 +14,7 @@ class AuditLoggingConfig(AppConfig):
         Keep imports LOCAL to avoid app registry issues.
         """
 
-        # future:
-        # import audit_logging.signals  # noqa: F401
-        import audit_logging.signals.model_signals
+        try:
+            import audit_logging.signals.model_signals  # noqa: F401
+        except Exception:
+            pass

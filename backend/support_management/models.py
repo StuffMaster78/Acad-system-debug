@@ -3,13 +3,13 @@ from django.utils.timezone import now, timedelta
 from websites.models.websites import Website
 from orders.models.orders import Order
 from tickets.models import Ticket
-from order_files.models import OrderFile
 from django.conf import settings
+from files_management.models import FileAttachment
 
 from tickets.models import Ticket, TicketMessage
 from orders.models.legacy_models.order_disputes import Dispute
 from orders.models.orders import Order
-from communications.models import CommunicationMessage, DisputeMessage
+from communications.models import CommunicationMessage
 
 User = settings.AUTH_USER_MODEL 
 
@@ -182,6 +182,8 @@ class SupportMessageAccess(models.Model):
 
     def view_dispute_messages(self, dispute):
         """Returns all messages in a dispute."""
+        from support_management.models.enhanced_disputes import DisputeMessage
+
         return DisputeMessage.objects.filter(dispute=dispute)
 
     def view_ticket_messages(self, ticket):
@@ -476,7 +478,7 @@ class PaymentIssueLog(models.Model):
 class SupportOrderFileManagement(models.Model):
     """
     Allows support agents to manage order files by uploading, deleting,
-    and restricting access through the Order Files App.
+    and restricting access through the central file system.
     """
     support_staff = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="managed_order_files",
@@ -486,7 +488,7 @@ class SupportOrderFileManagement(models.Model):
         Order, on_delete=models.CASCADE, related_name="support_file_management"
     )
     file = models.ForeignKey(
-        OrderFile, on_delete=models.CASCADE, related_name="support_actions"
+        FileAttachment, on_delete=models.CASCADE, related_name="support_actions"
     )
     action = models.CharField(
         max_length=20,
@@ -496,13 +498,20 @@ class SupportOrderFileManagement(models.Model):
 
     def restrict_file_download(self):
         """Restricts file download for an order."""
-        self.file.is_downloadable = False
-        self.file.save()
+        self.file.is_active = False
+        self.file.metadata = {
+            **(self.file.metadata or {}),
+            "support_download_restricted": True,
+        }
+        self.file.save(update_fields=["is_active", "metadata", "updated_at"])
 
     def enable_file_download(self):
         """Allows file download for an order."""
-        self.file.is_downloadable = True
-        self.file.save()
+        self.file.is_active = True
+        metadata = {**(self.file.metadata or {})}
+        metadata.pop("support_download_restricted", None)
+        self.file.metadata = metadata
+        self.file.save(update_fields=["is_active", "metadata", "updated_at"])
 
     def __str__(self):
         return f"Support File Action: {self.support_staff.username} - {self.action} ({self.timestamp})"

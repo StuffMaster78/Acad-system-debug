@@ -25,7 +25,7 @@ class CreateExtraServiceAdjustmentSerializer(serializers.Serializer):
         allow_blank=True,
         default="",
     )
-    milestones = serializers.CharField(
+    milestones = serializers.ListField(
         child=serializers.DictField(),
         required=False,
         allow_empty=False,

@@ -58,13 +58,7 @@ class FileAttachment(models.Model):
         "content_type",
         "object_id",
     )
-    managed_file = models.ForeignKey(
-        "files_management.ManagedFile",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="deletion_requests",
-    )
+
     purpose = models.CharField(
         max_length=64,
         choices=FilePurpose.choices,
@@ -147,8 +141,8 @@ class FileAttachment(models.Model):
         admin, serializers, tests, and service level validation.
         """
 
-        has_managed_file = self.managed_file.pk is not None
-        has_external_link = self.external_link.pk is not None
+        has_managed_file = self.managed_file_id is not None
+        has_external_link = self.external_link_id is not None
 
         if has_managed_file == has_external_link:
             raise ValidationError(

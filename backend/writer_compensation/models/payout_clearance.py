@@ -25,7 +25,7 @@ class PayoutClearance(models.Model):
     )
 
     payout_record = models.ForeignKey(
-        "writer_payments_management.PayoutRecord",
+        "writer_compensation.PayoutRecord",
         on_delete=models.CASCADE,
         related_name="clearances",
     )

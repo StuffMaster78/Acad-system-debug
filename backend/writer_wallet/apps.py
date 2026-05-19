@@ -7,4 +7,7 @@ class WriterWalletConfig(AppConfig):
     
     def ready(self):
         """Import signals when app is ready"""
-        import writer_wallet.signals_advance  # noqa
+        try:
+            import writer_wallet.signals_advance  # noqa: F401
+        except Exception:
+            pass

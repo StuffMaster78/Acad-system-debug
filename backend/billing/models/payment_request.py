@@ -101,7 +101,7 @@ class PaymentRequest(BillingBaseModel):
         help_text="Optional linked special order.",
     )
     class_purchase = models.ForeignKey(
-        "class_management.ClassPurchase",
+        "class_management.ClassOrder",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

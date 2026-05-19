@@ -9,6 +9,9 @@ class CoreConfig(AppConfig):
         This method is called when the app is ready.
         You can use it to import signals or perform initialization tasks.
         """
-        import core.signals  # Import signals (if any) when the app is ready
-        import core.signals.config_versioning  # Import config versioning signals
-        import users.signals
+        try:
+            import core.signals  # noqa: F401
+            import core.signals.config_versioning  # noqa: F401
+            import users.signals  # noqa: F401
+        except ImportError:
+            pass

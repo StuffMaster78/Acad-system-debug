@@ -5,6 +5,7 @@ from django.db import transaction
 
 from communications.models.participant import CommunicationParticipant
 from communications.models.thread import CommunicationThread
+from communications.constants import CommunicationParticipantRole
 from communications.services.audit_service import CommunicationAuditService
 from communications.services.event_service import CommunicationEventService
 from communications.services.event_recipient_service import (
@@ -57,6 +58,9 @@ class CommunicationThreadService:
             target_object_id=target.pk,
             kind=thread_kind,
             created_by=created_by,
+            subject=getattr(target, "title", "")[:255],
+            reference=context.reference,
+            metadata=context.metadata,
         )
 
         participants = adapter.get_default_participants(
@@ -71,6 +75,9 @@ class CommunicationThreadService:
                 user=user,
                 defaults={
                     "added_by": created_by,
+                    "role": CommunicationThreadService._participant_role(
+                        user=user,
+                    ),
                     "can_view": True,
                     "can_send": True,
                 },
@@ -137,3 +144,14 @@ class CommunicationThreadService:
             created_by=created_by,
             website=resolved_website,
         )
+
+    @staticmethod
+    def _participant_role(*, user) -> str:
+        role = getattr(user, "role", "") or ""
+        if role in dict(CommunicationParticipantRole.CHOICES):
+            return role
+        if getattr(user, "is_superuser", False):
+            return CommunicationParticipantRole.SUPERADMIN
+        if getattr(user, "is_staff", False):
+            return CommunicationParticipantRole.ADMIN
+        return CommunicationParticipantRole.OBSERVER

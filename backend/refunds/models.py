@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 import uuid
 from orders.models.orders import Order
 from websites.models.websites import Website
-from order_payments_management.models.payments import OrderPayment 
+from payments_processor.models import PaymentIntent
 from django.apps import apps
 import uuid
 
@@ -46,7 +46,7 @@ class Refund(models.Model):
         related_name='refunds_for_client'
     )
     order_payment = models.ForeignKey(
-        OrderPayment,
+        PaymentIntent,
         on_delete=models.CASCADE,
         related_name="refund_app_refunds"
     )
@@ -112,7 +112,7 @@ class Refund(models.Model):
             pass
         super().save(*args, **kwargs)
     
-if apps.is_installed('payments'):
+if apps.is_installed('payments_processor'):
     class RefundRequest(models.Model):
         """
         Represents a refund request initiated by a client.
@@ -137,7 +137,7 @@ if apps.is_installed('payments'):
         ]
 
         payment = models.OneToOneField(
-            "payments.PaymentRecord", on_delete=models.CASCADE,
+            "payments_processor.PaymentIntent", on_delete=models.CASCADE,
             related_name="refund_request"
         )
         requested_by = models.ForeignKey(
@@ -290,7 +290,7 @@ class RefundReceipt(models.Model):
         help_text="Total amount refunded"
     )
     order_payment = models.ForeignKey(
-        OrderPayment,
+        PaymentIntent,
         on_delete=models.CASCADE,
         related_name="refund_receipt"
     )

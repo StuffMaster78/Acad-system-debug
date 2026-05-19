@@ -173,7 +173,6 @@ INSTALLED_APPS = [
     'order_pricing_core',
     'orders',
     'order_payments_management',
-    'order_files',
     'order_configs',
     'pricing_configs',
     'pricing',
@@ -181,11 +180,15 @@ INSTALLED_APPS = [
     'class_management',
     # 'orders.apps.OrdersConfig',  # Custom AppConfig for Orders
 
+    'files_management',
+    'reputation_system',
+    'privacy',
+    'users_state',
 
    
 
     # Notifications and Support
-    # 'notifications_system',
+    'notifications_system',
     'tickets',
     'mass_emails',
     'announcements',  # Announcements Center

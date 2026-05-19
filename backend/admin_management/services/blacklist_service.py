@@ -1,9 +1,9 @@
 from django.db import IntegrityError
+from django.contrib.auth import get_user_model
 from admin_management.models import BlacklistedUser
-from django.conf import settings
-from activity.models import ActivityLog
+from admin_management.models import AdminActivityLog
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 
 class BlacklistService:
@@ -32,10 +32,11 @@ class BlacklistService:
             reason=reason,
         )
 
-        ActivityLog.objects.create(
+        AdminActivityLog.objects.create(
             admin=blacklisted_by,
             target_user=user,
             action="Blacklisted User",
+            website=website,
             details=f"Blacklisted {email}. Reason: {reason or 'N/A'}"
         )
 

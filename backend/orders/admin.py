@@ -10,7 +10,7 @@ from orders.models.orders import Order
 from orders.models.legacy_models.writer_progress import WriterProgress
 from orders.models.legacy_models.order_disputes import Dispute, DisputeWriterResponse
 from orders.models.legacy_models.requests import WriterRequest
-from orders.models.legacy_models.logs import OrderTransitionLog, OrderPricingSnapshot
+from orders.models.orders import OrderPricingSnapshot
 from orders.admin_filters import (
     StatusGroupFilter,
     CanTransitionToFilter,
@@ -40,7 +40,7 @@ class PrettyJSONWidget(widgets.Textarea):
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'client', 'assigned_writer', 'topic',
-        'status', 'client_deadline', 'is_paid', 'total_price',
+        'status', 'client_deadline', 'payment_status', 'total_price',
         'writer_deadline', 'requires_editing', 'editing_skip_reason',
         'created_at', 'updated_at'
     )
@@ -51,7 +51,7 @@ class OrderAdmin(admin.ModelAdmin):
         NeedsAttentionFilter,
         RecentlyTransitionedFilter,
         TransitionCountFilter,
-        'is_paid',
+        'payment_status',
         'requires_editing',
         'is_urgent',
         'created_at',
@@ -81,7 +81,7 @@ class OrderAdmin(admin.ModelAdmin):
             )
         }),
         ('Financial', {
-            'fields': ('total_price', 'writer_compensation', 'is_paid')
+            'fields': ('total_price', 'writer_compensation', 'payment_status')
         }),
         ('Deadlines', {
             'fields': ('client_deadline', 'writer_deadline')
@@ -159,34 +159,11 @@ class WriterRequestAdmin(admin.ModelAdmin):
     list_display = ('order', 'request_type', 'admin_approval', 'client_approval')
     list_filter = ('request_type', 'admin_approval', 'client_approval')
 
-@admin.register(OrderTransitionLog)
-class OrderTransitionLogAdmin(admin.ModelAdmin):
-    list_display = (
-        'id', 'order', 'old_status', 'new_status', 'action',
-        'is_automatic', 'user', 'timestamp'
-    )
-    list_filter = (
-        'is_automatic', 'old_status',
-        'new_status', 'action', 'timestamp'
-    )
-    search_fields = ('order__reference_code', 'user__email', 'action')
-    readonly_fields = ('order', 'old_status', 'new_status', 'timestamp', 'user')
-    ordering = ('-timestamp',)
-    date_hierarchy = 'timestamp'
-    actions = ['mark_as_manual']
-    def mark_as_manual(self, request, queryset):
-        for log in queryset:
-            if log.is_automatic:
-                log.is_automatic = False
-                log.save()
-        self.message_user(request, "Selected logs marked as manual.")
-    mark_as_manual.short_description = "Mark selected logs as manual"
-
 @admin.register(OrderPricingSnapshot)
 class OrderPricingSnapshotAdmin(admin.ModelAdmin):
-    list_display = ["order", "calculated_at", "display_total"]
-    list_filter = ["calculated_at"]
-    readonly_fields = ["order", "pricing_data", "calculated_at"]
+    list_display = ["order", "created_at", "total_amount", "is_current"]
+    list_filter = ["created_at", "is_current"]
+    readonly_fields = ["order", "pricing_payload", "created_at"]
     search_fields = ["order__id"]
 
     formfield_overrides = {
@@ -194,10 +171,7 @@ class OrderPricingSnapshotAdmin(admin.ModelAdmin):
     }
 
     def display_total(self, obj):
-        try:
-            return f"${obj.pricing_data.get('final_total', 'N/A')}"
-        except Exception:
-            return "N/A"
+        return obj.total_amount
 
     def has_add_permission(self, request):
         return False  # snapshots should only be created programmatically

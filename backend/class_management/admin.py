@@ -690,11 +690,11 @@ class ClassPaymentAllocationAdmin(admin.ModelAdmin):
         "wallet_amount",
         "external_amount",
         "payment_intent_id",
-        "created_at",
+        "applied_at",
     ]
     list_filter = [
         "source_type",
-        "created_at",
+        "applied_at",
     ]
     search_fields = [
         "class_order__title",

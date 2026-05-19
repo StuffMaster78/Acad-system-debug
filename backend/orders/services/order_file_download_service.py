@@ -83,6 +83,10 @@ class OrderFileDownloadService:
         if cls._is_order_client(order=order, user=user):
             if attachment.purpose in cls.FINAL_PURPOSES:
                 cls._ensure_final_file_unlocked(order=order)
+            if attachment.purpose == FilePurpose.EXTRA_SERVICE_FILE:
+                cls._ensure_extra_service_file_unlocked(
+                    attachment=attachment,
+                )
             return
 
         raise PermissionDenied("You cannot download this order file.")
@@ -131,6 +135,15 @@ class OrderFileDownloadService:
 
         raise PermissionDenied(
             "Final files are locked until payment and release rules pass."
+        )
+
+    @staticmethod
+    def _ensure_extra_service_file_unlocked(*, attachment: FileAttachment) -> None:
+        if (attachment.metadata or {}).get("is_downloadable", False):
+            return
+
+        raise PermissionDenied(
+            "This extra service file is not available for download yet."
         )
 
     @staticmethod

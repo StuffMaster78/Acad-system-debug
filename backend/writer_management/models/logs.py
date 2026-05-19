@@ -303,7 +303,7 @@ class WriterActivityTracking(models.Model):
         indexes = [
             models.Index(
                 fields=["last_seen"],
-                name="activity_tracking_last_seen_idx",
+                name="writer_act_last_seen_idx",
             ),
         ]
 

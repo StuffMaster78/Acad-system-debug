@@ -15,9 +15,11 @@ from files_management.selectors import FileAttachmentSelector
 from files_management.services import FileDeletionService
 from orders.api.serializers.files.order_file_serializers import (
     OrderExternalFileLinkSerializer,
+    OrderExtraServiceFileUploadSerializer,
     OrderFileAttachmentSerializer,
     OrderFileDeletionRequestSerializer,
     OrderFileUploadSerializer,
+    OrderStyleReferenceUploadSerializer,
 )
 from orders.models import Order
 from orders.services.order_file_download_service import (
@@ -189,6 +191,61 @@ class OrderReferenceFileUploadView(OrderFileBaseView):
             order=order,
             uploaded_by=request.user,
             uploaded_file=serializer.validated_data["file"],
+        )
+
+        return Response(
+            OrderFileAttachmentSerializer(attachment).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class OrderStyleReferenceFileUploadView(OrderFileBaseView):
+    """
+    Upload a style reference file such as a previous paper or style guide.
+    """
+
+    def post(self, request, order_id: int):
+        order = self.get_order(request, order_id)
+        self.ensure_client_or_staff(order=order, user=request.user)
+
+        serializer = OrderStyleReferenceUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        attachment = OrderFileIntegrationService.upload_style_reference_file(
+            order=order,
+            uploaded_by=request.user,
+            uploaded_file=serializer.validated_data["file"],
+            reference_type=serializer.validated_data.get("reference_type", "previous_paper"),
+            description=serializer.validated_data.get("description", ""),
+            is_visible_to_writer=serializer.validated_data.get("is_visible_to_writer", True),
+        )
+
+        return Response(
+            OrderFileAttachmentSerializer(attachment).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class OrderExtraServiceFileUploadView(OrderFileBaseView):
+    """
+    Upload an extra service file such as a plagiarism report.
+    """
+
+    def post(self, request, order_id: int):
+        order = self.get_order(request, order_id)
+        self.ensure_writer_or_staff(order=order, user=request.user)
+
+        serializer = OrderExtraServiceFileUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        attachment = OrderFileIntegrationService.upload_extra_service_file(
+            order=order,
+            uploaded_by=request.user,
+            uploaded_file=serializer.validated_data["file"],
+            service_code=serializer.validated_data.get("service_code", ""),
+            category_code=serializer.validated_data.get("category_code", ""),
+            description=serializer.validated_data.get("description", ""),
+            is_downloadable=serializer.validated_data.get("is_downloadable", False),
         )
 
         return Response(

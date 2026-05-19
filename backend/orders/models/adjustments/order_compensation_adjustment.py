@@ -120,7 +120,7 @@ class OrderCompensationAdjustment(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(amount_delta__gte=0),
+                check=models.Q(amount_delta__gte=0),
                 name="orders_comp_adj_amount_delta_gte_zero",
             ),
         ]

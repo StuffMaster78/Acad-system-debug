@@ -1,15 +1,15 @@
 from botocore import context
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.apps import apps
 from django.db import transaction
-from django.conf import settings
 from admin_management.models import AdminProfile, BlacklistedUser
 from orders.models.legacy_models.order_disputes import Dispute
 from admin_management.models import AdminActivityLog
 from notifications_system.services.notification_service import NotificationService
 from users.services.group_service import UserGroupService
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 def create_admin_profile_if_needed(user):
     if user.role == "admin":

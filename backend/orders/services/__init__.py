@@ -1,1 +1,1 @@
-from .order_service import OrderService
+"""Order service package exports."""

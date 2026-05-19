@@ -2,6 +2,7 @@ from django.urls import path
 
 from orders.api.views.files.order_file_views import (
     OrderDraftFileUploadView,
+    OrderExtraServiceFileUploadView,
     OrderExternalFileLinkView,
     OrderFileDeletionRequestView,
     OrderFileDownloadView,
@@ -10,6 +11,7 @@ from orders.api.views.files.order_file_views import (
     OrderInstructionFileUploadView,
     OrderReferenceFileUploadView,
     OrderRevisionFileUploadView,
+    OrderStyleReferenceFileUploadView,
 )
 
 urlpatterns = [
@@ -29,6 +31,11 @@ urlpatterns = [
         name="order-file-upload-reference",
     ),
     path(
+        "<int:order_id>/files/style-references/",
+        OrderStyleReferenceFileUploadView.as_view(),
+        name="order-file-upload-style-reference",
+    ),
+    path(
         "<int:order_id>/files/drafts/",
         OrderDraftFileUploadView.as_view(),
         name="order-file-upload-draft",
@@ -42,6 +49,11 @@ urlpatterns = [
         "<int:order_id>/files/revisions/",
         OrderRevisionFileUploadView.as_view(),
         name="order-file-upload-revision",
+    ),
+    path(
+        "<int:order_id>/files/extra-services/",
+        OrderExtraServiceFileUploadView.as_view(),
+        name="order-file-upload-extra-service",
     ),
     path(
         "<int:order_id>/files/external-links/",

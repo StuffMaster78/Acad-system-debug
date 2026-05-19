@@ -10,7 +10,7 @@ from datetime import timedelta
 from decimal import Decimal
 from core.utils.cache_helpers import cache_view_result
 
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 from writer_management.models.performance_snapshot import WriterPerformanceSnapshot
 # WriterOrderRequest imported inside functions to avoid circular import
 from writer_management.models.payout import WriterPayment, WriterEarningsHistory
@@ -2886,4 +2886,3 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             "last_changed": profile.availability_last_changed.isoformat()
             if getattr(profile, 'availability_last_changed', None) else None,
         }
-

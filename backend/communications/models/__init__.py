@@ -24,8 +24,15 @@ from communications.models.screening_rule import CommunicationScreeningAction
 from communications.models.screening_rule import CommunicationScreeningMatchType
 from communications.models.screening_rule import CommunicationScreeningRule
 from communications.models.screening_rule import CommunicationScreeningSeverity
+from communications.constants import CommunicationMessageType
+from communications.constants import CommunicationParticipantRole
+
+CommRole = CommunicationParticipantRole
+MessageType = CommunicationMessageType
+MessageType.TEXT = CommunicationMessageType.USER
 
 __all__ = [
+    "CommRole",
     "CommunicationAttachment",
     "CommunicationAuditLog",
     "CommunicationMessage",
@@ -51,4 +58,5 @@ __all__ = [
     "CommunicationScreeningMatchType",
     "CommunicationScreeningRule",
     "CommunicationScreeningSeverity",
+    "MessageType",
 ]

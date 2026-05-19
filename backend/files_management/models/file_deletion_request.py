@@ -30,6 +30,8 @@ class FileDeletionRequest(models.Model):
     managed_file = models.ForeignKey(
         "files_management.ManagedFile",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="deletion_requests",
     )
 
@@ -117,4 +119,5 @@ class FileDeletionRequest(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"Deletion request for {self.managed_file.pk}"
+        source = self.managed_file_id or self.external_link_id
+        return f"Deletion request for {source}"

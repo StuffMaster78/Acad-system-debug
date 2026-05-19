@@ -25,7 +25,7 @@ def get_required_env(key, default=None, allow_empty=False):
 # SECURITY CORE
 # -------------------------
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY") or "dev-insecure-secret-key-change-me"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
@@ -72,16 +72,26 @@ INSTALLED_APPS = [
 
     # Core apps
     "core",
+    "websites",
     "users",
     "accounts",
     "authentication",
     "audit_logging",
+    "event_system",
     "communications",
 
     # Business apps
     "orders",
+    "order_configs",
+    "order_pricing_core",
+    "pricing",
+    "special_orders",
+    "class_management",
     "billing",
     "wallet",
+    "wallets",
+    "client_wallet",
+    "writer_wallet",
     "ledger",
     "payments_processor",
     "discounts",
@@ -89,11 +99,16 @@ INSTALLED_APPS = [
     "refunds",
     "tips",
     "fines",
+    "files_management",
+    "reputation_system",
+    "privacy",
+    "users_state",
 
     # Content
     "blog_pages_management",
     "service_pages_management",
     "seo_pages",
+    "media_management",
 
     # Support
     "tickets",
@@ -104,9 +119,15 @@ INSTALLED_APPS = [
     # Management domains
     "client_management",
     "writer_management",
+    "editor_management",
+    "support_management",
     "admin_management",
     "superadmin_management",
     "governance",
+    "loyalty_management",
+    "activity",
+    "reviews_system",
+    "holiday_management",
 
     # Compensation
     "writer_compensation.apps.WriterCompensationConfig",
@@ -204,6 +225,7 @@ def _redis_url(db: int) -> str:
 
 COMMUNICATIONS_REDIS_URL = os.getenv("COMMUNICATIONS_REDIS_URL", _redis_url(2))
 COMMUNICATIONS_SSE_CHANNEL = "communications:sse"
+REDIS_URL = os.getenv("REDIS_URL", _redis_url(0))
 
 # -------------------------
 # CELERY BASE

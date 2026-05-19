@@ -15,10 +15,8 @@ from websites.models.websites import Website
 from discounts.models.discount import Discount
 from order_configs.models import WriterDeadlineConfig
 from order_configs.models import AcademicLevel
-from order_pricing_core.models import PricingConfiguration
 from django.core.exceptions import ValidationError
 
-from orders.services.pricing_calculator import PricingCalculatorService
 from django.apps import apps
 from orders.order_enums import (
     OrderStatus, OrderFlags,

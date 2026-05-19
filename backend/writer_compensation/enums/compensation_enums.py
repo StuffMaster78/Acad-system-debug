@@ -109,6 +109,9 @@ class WindowType(models.TextChoices):
     MONTHLY = "MONTHLY", "Monthly"
 
 
+CycleType = WindowType
+
+
 class WindowStatus(models.TextChoices):
     """
     One-way lifecycle. Never reversed.

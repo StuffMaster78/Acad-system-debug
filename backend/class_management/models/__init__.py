@@ -28,11 +28,17 @@ from .class_timeline import ClassTimelineEvent
 from .class_writer_compensation import ClassWriterCompensation
 from .class_portal_work import ClassPortalWorkLog
 
+ClassBundle = ClassOrder
+ExpressClass = ClassOrder
+ClassBundleInstallment = ClassInstallment
+
 __all__ = [
     "ClassAccessDetail",
     "ClassAccessGrant",
     "ClassAccessLog",
     "ClassAssignment",
+    "ClassBundle",
+    "ClassBundleInstallment",
     "ClassInstallment",
     "ClassInstallmentPlan",
     "ClassInvoiceLink",
@@ -48,4 +54,5 @@ __all__ = [
     "ClassTwoFactorWindow",
     "ClassWriterCompensation",
     "ClassPortalWorkLog",
+    "ExpressClass",
 ]

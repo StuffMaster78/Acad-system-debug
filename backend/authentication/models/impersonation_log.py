@@ -50,7 +50,7 @@ class ImpersonationLog(models.Model):
         null=True,
         blank=True,
      )
-    reason_type = models.CharField(choices=Reason.choices)
+    reason_type = models.CharField(max_length=32, choices=Reason.choices)
     reason_details = models.TextField()
     user_agent = models.TextField(
         null=True,

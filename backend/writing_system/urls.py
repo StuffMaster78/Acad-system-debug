@@ -85,7 +85,7 @@ urlpatterns = [
     path('api/v1/order-communications/', include('communications.urls')),
     # Orders (Newly Improved)
     path("api/orders/", include("orders.api.urls")),
-    path('api/v1/order-files/', include('order_files.urls')),
+    path("api/v1/files/", include("files_management.urls")),
     # Legacy alias for older frontend paths
     path('api/v1/special-orders/api/', include('special_orders.urls')),
     path('api/v1/tickets/', include('tickets.urls')),

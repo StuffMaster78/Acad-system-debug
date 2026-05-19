@@ -234,7 +234,7 @@ class WriterApplication(models.Model):
             ),
             # Review integrity: approved/rejected must have reviewer
             models.CheckConstraint(
-                condition=(
+                check=(
                     ~models.Q(status__in=["approved", "rejected"]) |
                     models.Q(reviewed_by__isnull=False)
                 ),
@@ -242,7 +242,7 @@ class WriterApplication(models.Model):
             ),
             # Review integrity: approved/rejected must have timestamp
             models.CheckConstraint(
-                condition=(
+                check=(
                     ~models.Q(status__in=["approved", "rejected"]) |
                     models.Q(reviewed_at__isnull=False)
                 ),

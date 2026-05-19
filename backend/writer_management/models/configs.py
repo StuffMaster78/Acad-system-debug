@@ -158,15 +158,15 @@ class WriterConfig(models.Model):
         verbose_name_plural = "Writer Configs"
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(max_requests_per_writer__gte=1),
+                check=models.Q(max_requests_per_writer__gte=1),
                 name="writer_config_max_requests_gte_1",
             ),
             models.CheckConstraint(
-                condition=models.Q(max_takes_per_writer__gte=1),
+                check=models.Q(max_takes_per_writer__gte=1),
                 name="writer_config_max_takes_gte_1",
             ),
             models.CheckConstraint(
-                condition=models.Q(
+                check=models.Q(
                     preferred_assignment_window_hours__gte=1
                 ),
                 name="writer_config_window_hours_gte_1",
@@ -354,7 +354,7 @@ class WriterWarningEscalationConfig(models.Model):
         constraints = [
             # Logical ordering: alert <= probation <= suspension
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(auto_probation_threshold=0) |
                     models.Q(
                         admin_alert_threshold__lte=models.F(
@@ -365,7 +365,7 @@ class WriterWarningEscalationConfig(models.Model):
                 name="warning_cfg_alert_le_probation",
             ),
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(auto_suspension_threshold=0) |
                     models.Q(
                         auto_probation_threshold__lte=models.F(
@@ -377,16 +377,16 @@ class WriterWarningEscalationConfig(models.Model):
             ),
             # Duration sanity
             models.CheckConstraint(
-                condition=models.Q(default_warning_duration_days__gte=1),
+                check=models.Q(default_warning_duration_days__gte=1),
                 name="warning_cfg_duration_gte_1",
             ),
             models.CheckConstraint(
-                condition=models.Q(auto_suspend_days__gte=1),
+                check=models.Q(auto_suspend_days__gte=1),
                 name="warning_cfg_suspend_days_gte_1",
             ),
             # Admin alert threshold cannot be 0
             models.CheckConstraint(
-                condition=models.Q(admin_alert_threshold__gte=1),
+                check=models.Q(admin_alert_threshold__gte=1),
                 name="warning_cfg_alert_threshold_gte_1",
             ),
         ]

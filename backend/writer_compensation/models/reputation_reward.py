@@ -129,7 +129,7 @@ class ReputationReward(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(amount__gte=Decimal("0.00")),
+                check=models.Q(amount__gte=Decimal("0.00")),
                 name="rep_reward_amount_gte_0",
             ),
         ]

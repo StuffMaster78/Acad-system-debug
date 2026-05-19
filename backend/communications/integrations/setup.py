@@ -12,11 +12,15 @@ from orders.integrations.communication_adapter import (
 from special_orders.integrations.communication_adapter import (
     SpecialOrderCommunicationAdapter,
 )
+from tickets.integrations.communication_adapter import (
+    TicketCommunicationAdapter,
+)
 
 # Import models
 from class_management.models import ClassOrder
 from orders.models import Order
 from special_orders.models import SpecialOrder
+from tickets.models import Ticket
 
 
 def register_communication_adapters() -> None:
@@ -36,4 +40,9 @@ def register_communication_adapters() -> None:
     CommunicationAdapterRegistry.register(
         model=SpecialOrder,
         adapter=SpecialOrderCommunicationAdapter(),
+    )
+
+    CommunicationAdapterRegistry.register(
+        model=Ticket,
+        adapter=TicketCommunicationAdapter(),
     )

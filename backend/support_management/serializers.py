@@ -12,7 +12,6 @@ from .models import (
 from orders.models.orders import Order
 from orders.models.legacy_models.order_disputes import Dispute
 from tickets.models import Ticket
-from order_files.models import OrderFile
 
 User = settings.AUTH_USER_MODEL
 

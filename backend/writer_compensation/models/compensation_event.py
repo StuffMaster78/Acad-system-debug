@@ -140,7 +140,7 @@ class CompensationEvent(models.Model):
 
     # Assigned when this event is picked up by a SettlementPeriod.
     settlement_period = models.ForeignKey(
-        "writer_payments_management.SettlementPeriod",
+        "writer_compensation.SettlementPeriod",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -222,7 +222,7 @@ class CompensationEvent(models.Model):
                     "status",
                     "settlement_period",
                 ],
-                name="compensation_event_settlement_idx",
+                name="comp_evt_settle_idx",
             ),
         ]
 
@@ -237,7 +237,7 @@ class CompensationEvent(models.Model):
             ),
             # Amount must never be zero.
             models.CheckConstraint(
-                condition=~models.Q(amount=Decimal("0.00")),
+                check=~models.Q(amount=Decimal("0.00")),
                 name="compensation_event_amount_non_zero",
             ),
         ]

@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 
 from writer_compensation.api.serializers.settlement_action_serializers import (
     RunSettlementSerializer,

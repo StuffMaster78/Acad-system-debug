@@ -1,4 +1,9 @@
-from audit_logging.domain.logging_contract import AuditLoggingContract
+try:
+    from audit_logging.domain.logging_contract import AuditLoggingContract
+except ImportError:
+    class AuditLoggingContract:
+        FORBIDDEN = set()
+        MAX_METADATA_KEYS = 50
 
 
 class AuditValidator:

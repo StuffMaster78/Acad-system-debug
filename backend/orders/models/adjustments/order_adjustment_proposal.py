@@ -118,7 +118,7 @@ class OrderAdjustmentProposal(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(amount__gt=0),
+                check=models.Q(amount__gt=0),
                 name="orders_adj_proposal_amount_gt_zero",
             ),
         ]

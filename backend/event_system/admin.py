@@ -7,9 +7,6 @@ from event_system.services.event_replay_service import EventReplayService
 from event_system.models.event_audit_log import EventAuditLog
 from event_system.services.event_timeline_service import EventTimelineService
 
-from event_system.models.event_outbox import EventOutbox
-from event_system.services.event_inspection_service import EventInspectionService
-
 @admin.register(EventOutbox)
 class EventOutboxAdmin(admin.ModelAdmin):
     """
@@ -207,60 +204,3 @@ class EventAuditLogAdmin(admin.ModelAdmin):
         return format_html(html)
 
     timeline_view.short_description = "Event Timeline" # type: ignore[attr-defined]
-
-
-
-@admin.register(EventOutbox)
-class EventOpsAdmin(admin.ModelAdmin):
-    """
-    Ops-grade event control panel.
-
-    This is not "Django admin".
-    This is internal infrastructure tooling.
-    """
-
-    list_display = (
-        "id",
-        "event_type",
-        "status",
-        "attempts",
-        "processed_at",
-        "ignored_at",
-    )
-
-    actions = (
-        "replay_events",
-        "mark_as_ignored",
-    )
-
-    def replay_events(self, request, queryset):
-        """
-        Safe replay with audit trail.
-        """
-
-        count = 0
-
-        for event in queryset:
-            EventInspectionService.replay_event(str(event.id))
-            count += 1
-
-        self.message_user(
-            request,
-            f"Replayed {count} event(s)."
-        )
-
-    replay_events.short_description = "Replay selected events safely" # type: ignore[attr-defined]
-
-    def mark_as_ignored(self, request, queryset):
-        """
-        Force-ignore noisy events.
-        """
-
-        updated = queryset.update(status="IGNORED")
-
-        self.message_user(
-            request,
-            f"{updated} event(s) ignored."
-        )
-
-    mark_as_ignored.short_description = "Mark as ignored" # type: ignore[attr-defined]

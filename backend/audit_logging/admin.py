@@ -159,14 +159,14 @@ class AuditDeadLetterAdmin(admin.ModelAdmin):
         "event_id",
         "retry_count",
         "is_resolved",
-        "created_at",
+        "failed_at",
         "resolution_status",
     )
 
     list_filter = (
         "is_resolved",
         "retry_count",
-        "created_at",
+        "failed_at",
     )
 
     search_fields = (
@@ -182,10 +182,10 @@ class AuditDeadLetterAdmin(admin.ModelAdmin):
         "error_message",
         "retry_count",
         "is_resolved",
-        "created_at",
+        "failed_at",
     )
 
-    ordering = ("-created_at",)
+    ordering = ("-failed_at",)
 
     # --------------------------------------------------
     # Permissions

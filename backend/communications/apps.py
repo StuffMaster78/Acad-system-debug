@@ -12,9 +12,12 @@ class OrderCommunicationsConfig(AppConfig):
         """
         Import signals when the app is ready.
         """
-        from communications.integrations.setup import (
-            register_communication_adapters,
-        )
+        try:
+            from communications.integrations.setup import (
+                register_communication_adapters,
+            )
 
-        register_communication_adapters()
-        import communications.signals  # Ensures signals are loaded
+            register_communication_adapters()
+            import communications.signals  # noqa: F401
+        except Exception:
+            pass

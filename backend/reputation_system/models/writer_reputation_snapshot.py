@@ -155,21 +155,21 @@ class WriterReputationSnapshot(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(rating__gte=Decimal("0.00")) &
                     models.Q(rating__lte=Decimal("5.00"))
                 ),
                 name="writer_rep_rating_range",
             ),
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(percentile_rank__gte=Decimal("0.00")) &
                     models.Q(percentile_rank__lte=Decimal("100.00"))
                 ),
                 name="writer_rep_percentile_range",
             ),
             models.CheckConstraint(
-                condition=models.Q(trust_score__gte=Decimal("0.00")),
+                check=models.Q(trust_score__gte=Decimal("0.00")),
                 name="writer_rep_trust_gte_0",
             ),
         ]

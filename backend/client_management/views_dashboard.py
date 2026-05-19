@@ -10,11 +10,9 @@ from decimal import Decimal
 from core.utils.cache_helpers import cache_view_result
 
 from client_management.models import ClientProfile
-from orders.models.legacy_models.logs import OrderTransitionLog
 from orders.models.orders import Order
 from orders.models.legacy_models.writer_progress import WriterProgress
-from orders.models.legacy_models.logs import OrderTransitionLog, WriterReassignmentLog
-from order_payments_management.models.payments import OrderPayment
+from payments_processor.models import PaymentIntent
 from wallet.models import Wallet, WalletTransaction
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier, ClientBadge
 try:
@@ -60,8 +58,8 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         total_orders = all_orders.count()
         
         # All-time payment stats
-        all_time_payments = OrderPayment.objects.filter(
-            order__client=request.user,
+        all_time_payments = PaymentIntent.objects.filter(
+            client=request.user,
             status='completed'
         )
         payment_stats = all_time_payments.aggregate(
@@ -75,8 +73,8 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         
         # All-time statistics - combined queries
         all_time_orders_qs = Order.objects.filter(client=request.user)
-        all_time_payments_qs = OrderPayment.objects.filter(
-            order__client=request.user,
+        all_time_payments_qs = PaymentIntent.objects.filter(
+            client=request.user,
             status='completed'
         )
         all_time_stats = all_time_orders_qs.aggregate(
@@ -94,8 +92,8 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             client=request.user,
             created_at__gte=month_start
         )
-        month_payments_qs = OrderPayment.objects.filter(
-            order__client=request.user,
+        month_payments_qs = PaymentIntent.objects.filter(
+            client=request.user,
             created_at__gte=month_start,
             status='completed'
         )
@@ -114,8 +112,8 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             client=request.user,
             created_at__gte=year_start
         )
-        year_payments_qs = OrderPayment.objects.filter(
-            order__client=request.user,
+        year_payments_qs = PaymentIntent.objects.filter(
+            client=request.user,
             created_at__gte=year_start,
             status='completed'
         )
@@ -1129,4 +1127,3 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             'updated_at': reminder_sent.sent_at.isoformat(),
             'message': 'Payment reminder preference updated successfully.',
         })
-

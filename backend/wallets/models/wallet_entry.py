@@ -30,7 +30,7 @@ class WalletEntry(models.Model):
         related_name="entries",
     )
     ledger_transaction = models.ForeignKey(
-        "ledger.LedgerTransaction",
+        "ledger.JournalEntry",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

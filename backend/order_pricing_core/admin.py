@@ -1,12 +1,11 @@
 from django.contrib import admin
-from .models import PricingConfiguration, AdditionalService, AcademicLevelPricing
-from django.contrib.postgres.fields import JSONField  # if using Postgres
 from django.db import models
 from django.forms import widgets
+from .models import AcademicLevelRate, ServiceAddon, WebsitePricingProfile
 
-@admin.register(PricingConfiguration)
-class PricingConfigurationAdmin(admin.ModelAdmin):
-    list_display = ["website", "created_at"]
+@admin.register(WebsitePricingProfile)
+class WebsitePricingProfileAdmin(admin.ModelAdmin):
+    list_display = ["website", "created_at", "updated_at"]
     list_filter = ["website"]
     readonly_fields = ["created_at"]
 
@@ -16,14 +15,14 @@ class PricingConfigurationAdmin(admin.ModelAdmin):
         },
     }
 
-@admin.register(AdditionalService)
-class AdditionalServiceAdmin(admin.ModelAdmin):
-    list_display = ('cost', 'is_active', 'website')
+@admin.register(ServiceAddon)
+class ServiceAddonAdmin(admin.ModelAdmin):
+    list_display = ('name', 'flat_amount', 'is_active', 'website')
     list_filter = ('is_active', 'website')
-    search_fields = ('website__name',)
+    search_fields = ('name', 'website__name')
 
 
-@admin.register(AcademicLevelPricing)
+@admin.register(AcademicLevelRate)
 class AcademicLevelPricingAdmin(admin.ModelAdmin):
     list_display = ('website', 'multiplier', 'created_at', 'updated_at')
     search_fields = ('website__name',)

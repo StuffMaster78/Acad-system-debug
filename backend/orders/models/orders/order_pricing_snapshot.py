@@ -108,19 +108,19 @@ class OrderPricingSnapshot(models.Model):
                 name="unique_current_order_pricing_snapshot",
             ),
             models.CheckConstraint(
-                condition=models.Q(subtotal_amount__gte=0),
+                check=models.Q(subtotal_amount__gte=0),
                 name="orders_price_snap_subtotal_gte_zero",
             ),
             models.CheckConstraint(
-                condition=models.Q(discount_amount__gte=0),
+                check=models.Q(discount_amount__gte=0),
                 name="orders_price_snap_discount_gte_zero",
             ),
             models.CheckConstraint(
-                condition=models.Q(total_amount__gte=0),
+                check=models.Q(total_amount__gte=0),
                 name="orders_price_snap_total_gte_zero",
             ),
             models.CheckConstraint(
-                condition=models.Q(
+                check=models.Q(
                     writer_compensation_amount__gte=0
                 ),
                 name="orders_price_snap_writer_comp_gte_zero",

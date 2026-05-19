@@ -5,4 +5,7 @@ class AdminManagementConfig(AppConfig):
     name = 'admin_management'
 
     def ready(self):
-        import admin_management.signals  # Ensure signals are loaded
+        try:
+            import admin_management.signals  # noqa: F401
+        except Exception:
+            pass

@@ -19,3 +19,5 @@ from .settlement_item import SettlementItem
 from .settlement_period import SettlementPeriod
 from .settlement_rule_snapshot import SettlementRuleSnapshot
 from .writer_balance_snapshot import WriterBalanceSnapshot
+
+WriterPayment = PayoutRecord

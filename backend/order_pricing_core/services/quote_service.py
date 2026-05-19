@@ -11,7 +11,8 @@ from typing import cast
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models.manager import RelatedManager
+
+RelatedManager = Any
 
 from order_pricing_core.calculators.base import BasePricingCalculator
 from order_pricing_core.calculators.base import PriceCalculationResult

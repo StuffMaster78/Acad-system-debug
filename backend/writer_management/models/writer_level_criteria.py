@@ -194,19 +194,19 @@ class WriterLevelCriteria(models.Model):
         verbose_name_plural = "Writer Level Criteria"
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(
+                check=models.Q(
                     min_avg_rating__gte=Decimal("0.00"),
                     min_avg_rating__lte=Decimal("5.00"),
                 ),
                 name="level_criteria_rating_range",
             ),
             models.CheckConstraint(
-                condition=models.Q(min_completion_rate__gte=Decimal("0.00")) &
+                check=models.Q(min_completion_rate__gte=Decimal("0.00")) &
                           models.Q(min_completion_rate__lte=Decimal("100.00")),
                 name="level_criteria_completion_rate_range",
             ),
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(max_revision_rate__isnull=True) |
                     (
                         models.Q(max_revision_rate__gte=Decimal("0.00")) &
@@ -216,7 +216,7 @@ class WriterLevelCriteria(models.Model):
                 name="level_criteria_revision_rate_range",
             ),
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(max_lateness_rate__isnull=True) |
                     (
                         models.Q(max_lateness_rate__gte=Decimal("0.00")) &
@@ -226,7 +226,7 @@ class WriterLevelCriteria(models.Model):
                 name="level_criteria_lateness_rate_range",
             ),
             models.CheckConstraint(
-                condition=models.Q(min_evaluation_periods__gte=1),
+                check=models.Q(min_evaluation_periods__gte=1),
                 name="level_criteria_min_periods_gte_1",
             ),
         ]

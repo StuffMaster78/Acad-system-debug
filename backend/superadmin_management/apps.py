@@ -10,4 +10,7 @@ class SuperadminManagementConfig(AppConfig):
         Import signals when the app is ready.
         This ensures automated notifications & logging.
         """
-        import superadmin_management.signals
+        try:
+            import superadmin_management.signals  # noqa: F401
+        except Exception:
+            pass

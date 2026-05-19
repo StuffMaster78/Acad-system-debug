@@ -102,14 +102,12 @@ class MFASettingsAdmin(admin.ModelAdmin):
         "website",
         "is_enabled",
         "preferred_method",
-        "skip_on_trusted",
         "updated_at",
     )
     list_filter = (
         "website",
         "is_enabled",
         "preferred_method",
-        "skip_on_trusted",
     )
     search_fields = (
         "user__email",

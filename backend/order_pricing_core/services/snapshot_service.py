@@ -4,12 +4,14 @@ Snapshot service for the order_pricing_core app.
 
 from __future__ import annotations
 
+from typing import Any
 from typing import cast
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models.manager import RelatedManager
 from django.utils import timezone
+
+RelatedManager = Any
 
 from order_pricing_core.constants import QuoteStatus
 from order_pricing_core.models import PricingQuote

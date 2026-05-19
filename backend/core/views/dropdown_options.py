@@ -19,7 +19,10 @@ from order_payments_management.models.payments import (
     STATUS_CHOICES, PAYMENT_TYPE_CHOICES
 )
 from fines.models import FineType, FineStatus
-from class_management.models import ClassDurationOption
+try:
+    from class_management.models import ClassDurationOption
+except ImportError:
+    ClassDurationOption = None
 from users.models import User
 
 
@@ -147,12 +150,14 @@ class DropdownOptionsView(APIView):
             elif user_website:
                 duration_filter = Q(website=user_website)
             
-            response_data['class_duration_options'] = [
-                {'id': opt.id, 'class_code': opt.class_code, 'label': opt.label, 'website_id': opt.website_id}
-                for opt in ClassDurationOption.objects.filter(duration_filter, is_active=True)
-                .select_related('website')
-                .order_by('website', 'class_code')
-            ]
+            response_data['class_duration_options'] = []
+            if ClassDurationOption is not None:
+                response_data['class_duration_options'] = [
+                    {'id': opt.id, 'class_code': opt.class_code, 'label': opt.label, 'website_id': opt.website_id}
+                    for opt in ClassDurationOption.objects.filter(duration_filter, is_active=True)
+                    .select_related('website')
+                    .order_by('website', 'class_code')
+                ]
         
         # Users List (Admin only, optional)
         if include_users and request.user.role in ['superadmin', 'admin']:
@@ -337,6 +342,9 @@ class DropdownOptionsByCategoryView(APIView):
             ])
         
         elif category == 'class_duration_options':
+            if ClassDurationOption is None:
+                return Response([])
+
             return Response([
                 {'id': opt.id, 'class_code': opt.class_code, 'label': opt.label, 'website_id': opt.website_id}
                 for opt in ClassDurationOption.objects.filter(website_filter, is_active=True)
@@ -346,4 +354,3 @@ class DropdownOptionsByCategoryView(APIView):
         
         else:
             return Response({'detail': f'Unknown category: {category}'}, status=400)
-

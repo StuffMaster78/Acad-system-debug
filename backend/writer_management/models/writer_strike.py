@@ -206,7 +206,7 @@ class WriterStrike(models.Model):
         constraints = [
             # Void integrity: voided strikes must have timestamp
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(is_voided=False) |
                     models.Q(voided_at__isnull=False)
                 ),
@@ -214,7 +214,7 @@ class WriterStrike(models.Model):
             ),
             # Notification integrity: notified_at requires writer_notified
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(writer_notified=False) |
                     models.Q(notified_at__isnull=False)
                 ),

@@ -75,15 +75,15 @@ class TipSettlementSnapshot(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(gross_amount__gte=0),
+                check=models.Q(gross_amount__gte=0),
                 name="tip_snapshot_gross_positive",
             ),
             models.CheckConstraint(
-                condition=models.Q(writer_tip_share__gte=0),
+                check=models.Q(writer_tip_share__gte=0),
                 name="tip_snapshot_writer_positive",
             ),
             models.CheckConstraint(
-                condition=models.Q(platform_tip_share__gte=0),
+                check=models.Q(platform_tip_share__gte=0),
                 name="tip_snapshot_platform_positive",
             ),
         ]

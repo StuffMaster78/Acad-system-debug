@@ -82,10 +82,13 @@ class CommunicationThreadGuardService:
         if not user or not user.is_authenticated:
             return False
 
+        role = getattr(user, "role", None)
+
         return bool(
             getattr(user, "is_superuser", False)
             or getattr(user, "is_admin", False)
             or getattr(user, "is_support", False)
+            or role in {"superadmin", "admin", "support", "editor"}
         )
 
     @classmethod

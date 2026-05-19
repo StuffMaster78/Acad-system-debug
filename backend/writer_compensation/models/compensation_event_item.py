@@ -85,7 +85,7 @@ class FinancialEventItem(models.Model):
     )
 
     class_session = models.ForeignKey(
-        "classes.ClassSession",
+        "class_management.ClassOrder",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -128,7 +128,7 @@ class FinancialEventItem(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["item_type"]),
-            models.Index(fields=["financial_event"]),
+            models.Index(fields=["compensation_event"]),
         ]
 
     def __str__(self) -> str:

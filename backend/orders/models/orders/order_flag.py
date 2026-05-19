@@ -36,7 +36,7 @@ class OrderFlag(models.Model):
     order = models.ForeignKey(
         "orders.Order",
         on_delete=models.CASCADE,
-        related_name="flags",
+        related_name="flag_records",
         help_text="Order this flag belongs to.",
     )
     flag_key = models.CharField(

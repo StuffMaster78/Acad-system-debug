@@ -235,6 +235,16 @@ class Appeal(models.Model):
         ]
 
 
+try:
+    from writer_management.models.writer_discipline import (
+        WriterProbation as Probation,
+    )
+except ImportError:
+    Probation = None
+
+UserActionLog = SuperadminLog
+
+
 class Blacklist(models.Model):
     """
     Platform-level blacklist for email addresses, IP addresses,

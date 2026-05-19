@@ -244,11 +244,11 @@ class WriterRewardCriteria(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(prize_amount__gte=Decimal("0.00")),
+                check=models.Q(prize_amount__gte=Decimal("0.00")),
                 name="reward_criteria_prize_gte_0",
             ),
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(min_avg_rating__isnull=True) |
                     (
                         models.Q(min_avg_rating__gte=Decimal("0.00")) &
@@ -258,7 +258,7 @@ class WriterRewardCriteria(models.Model):
                 name="reward_criteria_rating_range",
             ),
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(max_lateness_rate__isnull=True) |
                     (
                         models.Q(max_lateness_rate__gte=Decimal("0.00")) &
@@ -268,7 +268,7 @@ class WriterRewardCriteria(models.Model):
                 name="reward_criteria_lateness_range",
             ),
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(max_revision_rate__isnull=True) |
                     (
                         models.Q(max_revision_rate__gte=Decimal("0.00")) &
@@ -430,7 +430,7 @@ class WriterReward(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(prize_amount__gte=Decimal("0.00")),
+                check=models.Q(prize_amount__gte=Decimal("0.00")),
                 name="reward_prize_gte_0",
             ),
         ]

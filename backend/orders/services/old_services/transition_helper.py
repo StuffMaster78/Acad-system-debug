@@ -164,8 +164,15 @@ def _validate_is_reviewed(order: Order, **kwargs) -> None:
 
 def _validate_has_files(order: Order, **kwargs) -> None:
     """Validate that order has files before submission (optional rule)."""
-    from order_files.models import OrderFile
-    has_files = OrderFile.objects.filter(order=order).exists()
+    from django.contrib.contenttypes.models import ContentType
+    from files_management.models import FileAttachment
+
+    content_type = ContentType.objects.get_for_model(order)
+    has_files = FileAttachment.objects.filter(
+        content_type=content_type,
+        object_id=order.pk,
+        is_active=True,
+    ).exists()
     if not has_files:
         raise ValidationError(
             "Order must have at least one file uploaded before it can be submitted."
@@ -438,4 +445,3 @@ class OrderTransitionHelper:
         """
         current_status = order.status
         return VALID_TRANSITIONS.get(current_status, [])
-

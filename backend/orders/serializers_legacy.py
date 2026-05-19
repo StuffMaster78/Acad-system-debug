@@ -202,30 +202,28 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_style_reference_files(self, obj):
         """Get style reference files for this order."""
         try:
-            from order_files.models import StyleReferenceFile
-            from order_files.serializers import StyleReferenceFileSerializer
-            
-            # Get style reference files visible to the current user
-            user = self.context.get('request').user if self.context.get('request') else None
-            style_refs = StyleReferenceFile.objects.filter(order=obj)
-            
-            # Filter based on user permissions
-            if user:
-                # Filter to only show files the user can access
-                style_refs = [ref for ref in style_refs if ref.can_access(user)]
-            else:
-                # If no user, return empty list
-                style_refs = []
-            
-            # Serialize the files
-            serializer = StyleReferenceFileSerializer(
+            from django.contrib.contenttypes.models import ContentType
+            from files_management.api.serializers.response_serializers import (
+                FileAttachmentDetailSerializer,
+            )
+            from files_management.enums import FilePurpose
+            from files_management.models import FileAttachment
+
+            content_type = ContentType.objects.get_for_model(obj)
+            style_refs = FileAttachment.objects.filter(
+                content_type=content_type,
+                object_id=obj.pk,
+                purpose=FilePurpose.STYLE_REFERENCE,
+                is_active=True,
+            ).select_related("managed_file", "external_link")
+
+            serializer = FileAttachmentDetailSerializer(
                 style_refs,
                 many=True,
                 context=self.context
             )
             return serializer.data
         except Exception:
-            # If there's any error (e.g., model not migrated yet), return empty list
             return []
 
     def to_representation(self, instance):

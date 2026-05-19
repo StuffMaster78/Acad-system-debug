@@ -153,13 +153,13 @@ class WriterCapacity(models.Model):
 
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(
+                check=models.Q(
                     active_orders_count__gte=0,
                 ),
                 name="writer_capacity_active_orders_gte_0",
             ),
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(
                         override_max_active_orders__isnull=True,
                     )

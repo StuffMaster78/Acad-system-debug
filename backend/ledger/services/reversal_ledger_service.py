@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Any, cast
 
 from django.db import transaction
-from django.db.models.manager import RelatedManager
+
+RelatedManager = Any
 
 from ledger.constants import EntrySide, JournalEntryStatus, LedgerEntryType
 from ledger.exceptions import LedgerReversalError

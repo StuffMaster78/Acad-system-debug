@@ -156,11 +156,11 @@ class PaymentIntent(models.Model):
         ]
         constraints = [
                 models.CheckConstraint(
-                    condition=models.Q(amount__gt=ZERO_DECIMAL),
+                    check=models.Q(amount__gt=ZERO_DECIMAL),
                     name="ppi_amount_gt_zero",
                 ),
                 models.CheckConstraint(
-                    condition=models.Q(amount_refunded__gte=ZERO_DECIMAL),
+                    check=models.Q(amount_refunded__gte=ZERO_DECIMAL),
                     name="ppi_amount_refunded_gte_zero",
                 ),
             ]

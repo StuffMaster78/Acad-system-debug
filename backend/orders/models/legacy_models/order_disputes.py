@@ -28,7 +28,7 @@ class Dispute(models.Model):
     order = models.ForeignKey(
         'orders.Order',
         on_delete=models.CASCADE,
-        related_name='disputes',
+        related_name='legacy_disputes',
         help_text="The order associated with this dispute."
     )
     raised_by = models.ForeignKey(
@@ -205,4 +205,3 @@ class DisputeWriterResponse(models.Model):
     class Meta:
         unique_together = ('dispute', 'responded_by')
         ordering = ['-timestamp']
-

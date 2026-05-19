@@ -3,8 +3,10 @@ from __future__ import annotations
 from django.db.models import QuerySet
 from django.utils import timezone
 
-from orders.models.legacy_models.order_adjustment_request import (
+from orders.models.adjustments.order_adjustment_request import (
     OrderAdjustmentRequest,
+)
+from orders.models.orders.enums import (
     OrderAdjustmentStatus,
 )
 

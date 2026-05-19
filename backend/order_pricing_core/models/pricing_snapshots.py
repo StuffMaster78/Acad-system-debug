@@ -19,7 +19,7 @@ class PricingSnapshot(models.Model):
     website = models.ForeignKey(
         "websites.Website",
         on_delete=models.CASCADE,
-        related_name="order_pricing_snapshots",
+        related_name="core_pricing_snapshots",
     )
     service = models.ForeignKey(
         "order_pricing_core.ServiceCatalogItem",
@@ -47,7 +47,7 @@ class PricingSnapshot(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="created_order_pricing_snapshots",
+        related_name="created_core_pricing_snapshots",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -7,11 +7,13 @@ from dataclasses import dataclass
 
 from decimal import Decimal
 from decimal import ROUND_HALF_UP
+from typing import Any
 from typing import cast
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models.manager import RelatedManager
+
+RelatedManager = Any
 
 from order_pricing_core.models import CompositePricingQuote
 from order_pricing_core.models import CompositePricingQuoteItem

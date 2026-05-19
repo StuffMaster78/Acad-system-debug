@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from files_management.api.serializers.admin_serializers import IsTenantStaff
+from files_management.api.permissions import IsTenantStaff
 from files_management.api.serializers.admin_extra_serializers import (
     AdminFileReplaceSerializer,
     CMSUploadSerializer,

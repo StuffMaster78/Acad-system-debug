@@ -26,13 +26,22 @@ from orders.models.legacy_models.order_disputes import Dispute
 from orders.order_enums import OrderStatus
 from orders.services.status_transition_service import VALID_TRANSITIONS
 from refunds.models import Refund
-from reviews_system.models import WebsiteReview, WriterReview, OrderReview
-from special_orders.models import SpecialOrder, InstallmentPayment
-from class_management.models import ClassBundle, ClassPurchase, ExpressClass
+from reviews_system.models import Review
+from reviews_system.models.states import ReviewState, ReviewVisibility
+from shared.enums.review_targets import ReviewTarget
+from special_orders.constants import FundingMilestoneStatus
+from special_orders.models import SpecialOrder, SpecialOrderFundingMilestone
+from class_management.constants import ClassInstallmentStatus
+from class_management.models import ClassInstallment, ClassOrder
+
+ClassBundle = ClassOrder
+ExpressClass = ClassOrder
 from fines.models import Fine, FineAppeal, FinePolicy, FineStatus, FineType
 from tickets.models import Ticket
 from users.models import User
-from writer_management.models.advance_payment import WriterAdvancePaymentRequest
+from writer_compensation.models.advance_payment import AdvancePaymentRequest
+
+WriterAdvancePaymentRequest = AdvancePaymentRequest
 
 
 class AdminDisputeDashboardViewSet(viewsets.ViewSet):
@@ -404,72 +413,68 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='moderation-queue')
     def moderation_queue(self, request):
         """Get pending reviews for moderation."""
-        from reviews_system.serializers import (
-            WebsiteReviewSerializer, WriterReviewSerializer, OrderReviewSerializer
+        pending_filter = (
+            Q(moderation_state__in=[ReviewState.PENDING, ReviewState.FLAGGED])
+            | Q(visibility=ReviewVisibility.SHADOWED)
         )
-        
-        # Filter: pending = not approved, not shadowed, or flagged
-        pending_filter = Q(is_approved=False) | Q(is_flagged=True) | Q(is_shadowed=True)
         
         # Get pending reviews by type
         pending_reviews = []
         
-        # Website reviews
-        website_reviews = WebsiteReview.objects.filter(pending_filter).select_related('reviewer', 'website')
+        website_reviews = Review.objects.filter(
+            pending_filter,
+            target_type=ReviewTarget.WEBSITE,
+        )
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
-                website_reviews = website_reviews.filter(website=website)
+                website_reviews = website_reviews.filter(target_id=website.id)
         
         for review in website_reviews[:50]:
             pending_reviews.append({
                 'id': review.id,
                 'type': 'website',
-                'reviewer': review.reviewer.username if review.reviewer else None,
+                'reviewer_id': review.reviewer_id,
                 'rating': review.rating,
                 'comment': review.comment,
-                'is_flagged': review.is_flagged,
-                'is_approved': review.is_approved,
+                'is_flagged': review.moderation_state == ReviewState.FLAGGED,
+                'is_approved': review.moderation_state == ReviewState.APPROVED,
                 'created_at': review.created_at.isoformat() if review.created_at else None,
             })
         
-        # Writer reviews
-        writer_reviews = WriterReview.objects.filter(pending_filter).select_related('reviewer', 'writer', 'website')
-        if request.user.role != 'superadmin':
-            website = getattr(request.user, 'website', None)
-            if website:
-                writer_reviews = writer_reviews.filter(website=website)
+        writer_reviews = Review.objects.filter(
+            pending_filter,
+            writer_id__isnull=False,
+        ).exclude(target_type=ReviewTarget.WEBSITE)
         
         for review in writer_reviews[:50]:
             pending_reviews.append({
                 'id': review.id,
                 'type': 'writer',
-                'reviewer': review.reviewer.username if review.reviewer else None,
-                'writer': review.writer.username if review.writer else None,
+                'reviewer_id': review.reviewer_id,
+                'writer_id': review.writer_id,
                 'rating': review.rating,
                 'comment': review.comment,
-                'is_flagged': review.is_flagged,
-                'is_approved': review.is_approved,
+                'is_flagged': review.moderation_state == ReviewState.FLAGGED,
+                'is_approved': review.moderation_state == ReviewState.APPROVED,
                 'created_at': review.created_at.isoformat() if review.created_at else None,
             })
         
-        # Order reviews
-        order_reviews = OrderReview.objects.filter(pending_filter).select_related('reviewer', 'order', 'website')
-        if request.user.role != 'superadmin':
-            website = getattr(request.user, 'website', None)
-            if website:
-                order_reviews = order_reviews.filter(website=website)
+        order_reviews = Review.objects.filter(
+            pending_filter,
+            target_type=ReviewTarget.ORDER,
+        )
         
         for review in order_reviews[:50]:
             pending_reviews.append({
                 'id': review.id,
                 'type': 'order',
-                'reviewer': review.reviewer.username if review.reviewer else None,
-                'order_id': review.order.id if review.order else None,
+                'reviewer_id': review.reviewer_id,
+                'order_id': review.target_id,
                 'rating': review.rating,
                 'comment': review.comment,
-                'is_flagged': review.is_flagged,
-                'is_approved': review.is_approved,
+                'is_flagged': review.moderation_state == ReviewState.FLAGGED,
+                'is_approved': review.moderation_state == ReviewState.APPROVED,
                 'created_at': review.created_at.isoformat() if review.created_at else None,
             })
         
@@ -486,31 +491,34 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
         """Get review analytics dashboard."""
         from django.db.models.functions import TruncWeek
         
-        # Get all reviews
-        all_website_reviews = WebsiteReview.objects.all()
-        all_writer_reviews = WriterReview.objects.all()
-        all_order_reviews = OrderReview.objects.all()
+        all_website_reviews = Review.objects.filter(
+            target_type=ReviewTarget.WEBSITE,
+        )
+        all_writer_reviews = Review.objects.filter(
+            writer_id__isnull=False,
+        ).exclude(target_type=ReviewTarget.WEBSITE)
+        all_order_reviews = Review.objects.filter(
+            target_type=ReviewTarget.ORDER,
+        )
         
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
-                all_website_reviews = all_website_reviews.filter(website=website)
-                all_writer_reviews = all_writer_reviews.filter(website=website)
-                all_order_reviews = all_order_reviews.filter(website=website)
+                all_website_reviews = all_website_reviews.filter(target_id=website.id)
         
         # Combined aggregations - reduces from 6 queries to 3 queries
         website_stats = all_website_reviews.aggregate(
             total=Count('id'),
-            flagged=Count('id', filter=Q(is_flagged=True))
+            flagged=Count('id', filter=Q(moderation_state=ReviewState.FLAGGED))
         )
         writer_stats = all_writer_reviews.aggregate(
             total=Count('id'),
-            flagged=Count('id', filter=Q(is_flagged=True))
+            flagged=Count('id', filter=Q(moderation_state=ReviewState.FLAGGED))
         )
         order_stats = all_order_reviews.aggregate(
             total=Count('id'),
-            flagged=Count('id', filter=Q(is_flagged=True))
+            flagged=Count('id', filter=Q(moderation_state=ReviewState.FLAGGED))
         )
         
         total_reviews = (website_stats['total'] or 0) + (writer_stats['total'] or 0) + (order_stats['total'] or 0)
@@ -529,7 +537,8 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
         # Rating distribution
         rating_distribution = {}
         for rating in all_ratings:
-            rating_distribution[rating] = rating_distribution.get(rating, 0) + 1
+            key = str(rating)
+            rating_distribution[key] = rating_distribution.get(key, 0) + 1
         
         # Reviews by week (last 12 weeks) - combine all types
         weeks_ago = timezone.now() - timedelta(weeks=12)
@@ -1119,18 +1128,17 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
         pending_installments = []
         for bundle in bundles_with_installments:
             # Check if there are pending installments
-            from class_management.models import ClassBundleInstallment
-            installments = ClassBundleInstallment.objects.filter(
-                bundle=bundle,
-                status='pending'
+            installments = ClassInstallment.objects.filter(
+                plan__class_order=bundle,
+                status=ClassInstallmentStatus.PENDING,
             )
             if installments.exists():
                 pending_installments.append({
                     'bundle_id': bundle.id,
                     'client_id': bundle.client.id if bundle.client else None,
-                    'total_cost': str(bundle.total_cost),
+                    'total_cost': str(bundle.final_amount),
                     'pending_installments': installments.count(),
-                    'next_due_date': installments.order_by('due_date').first().due_date.isoformat() if installments.exists() else None,
+                    'next_due_date': installments.order_by('due_at').first().due_at.isoformat() if installments.exists() else None,
                 })
         
         return Response({
@@ -1348,10 +1356,14 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
         # Get orders with pending installments
         pending_installments = []
         for order in all_special_orders:
-            installments = InstallmentPayment.objects.filter(
+            installments = SpecialOrderFundingMilestone.objects.filter(
                 special_order=order,
-                is_paid=False
-            ).order_by('due_date')
+                status__in=[
+                    FundingMilestoneStatus.PENDING,
+                    FundingMilestoneStatus.PARTIALLY_PAID,
+                    FundingMilestoneStatus.OVERDUE,
+                ],
+            ).order_by('due_at')
             
             if installments.exists():
                 next_installment = installments.first()
@@ -1367,7 +1379,7 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                     'status': order.status,
                     'pending_installments_count': installments.count(),
                     'total_pending_amount': str(total_pending),
-                    'next_due_date': next_installment.due_date.isoformat() if next_installment else None,
+                    'next_due_date': next_installment.due_at.isoformat() if next_installment and next_installment.due_at else None,
                     'next_due_amount': str(next_installment.amount_due) if next_installment else None,
                 })
         
@@ -2202,4 +2214,3 @@ class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
                 'repayment_rate': round(repayment_rate, 2),
             },
         })
-

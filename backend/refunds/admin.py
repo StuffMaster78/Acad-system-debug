@@ -1,9 +1,10 @@
 from django.contrib import admin
 from .models import Refund, RefundLog, RefundReceipt
-from refunds.tasks import retry_external_refund
 
 @admin.action(description="Retry external refund via webhook")
 def retry_selected_refunds(modeladmin, request, queryset):
+    from refunds.tasks import retry_external_refund
+
     for refund in queryset.filter(
         status='pending', refund_method='external'
     ):

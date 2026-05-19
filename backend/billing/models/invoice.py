@@ -132,7 +132,7 @@ class Invoice(models.Model):
     )
 
     class_purchase = models.ForeignKey(
-        "class_management.ClassPurchase",
+        "class_management.ClassOrder",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

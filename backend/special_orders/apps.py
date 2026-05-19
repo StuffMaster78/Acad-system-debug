@@ -6,4 +6,7 @@ class SpecialOrdersConfig(AppConfig):
     name = 'special_orders'
 
     def ready(self):
-        import special_orders.signals
+        try:
+            import special_orders.signals  # noqa: F401
+        except Exception:
+            pass

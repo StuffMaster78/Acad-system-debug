@@ -4,6 +4,9 @@ from datetime import timedelta
 
 DEBUG = False
 
+if SECRET_KEY == "dev-insecure-secret-key-change-me":
+    raise ImproperlyConfigured("SECRET_KEY must be set in production.")
+
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
 SECURE_SSL_REDIRECT = True

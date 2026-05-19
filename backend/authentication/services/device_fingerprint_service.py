@@ -9,7 +9,22 @@ from django.utils import timezone
 from authentication.models.device_fingerprinting import (
     DeviceFingerprint,
 )
-from authentication.services.auth_service import AuthenticationService
+from authentication.utils.ip import get_client_ip
+
+
+def _extract_fingerprint_data(request) -> dict[str, Any] | None:
+    if request is None:
+        return None
+
+    raw_fingerprint_data = request.headers.get("X-Device-Fingerprint")
+    if not raw_fingerprint_data:
+        return None
+
+    return {
+        "raw_fingerprint_data": raw_fingerprint_data,
+        "user_agent": request.headers.get("User-Agent", ""),
+        "ip_address": get_client_ip(request),
+    }
 
 class DeviceFingerprintService:
     """
@@ -162,7 +177,7 @@ class DeviceFingerprintService:
             True if trusted fingerprint exists, otherwise False.
         """
         service = cls(user=user, website=website)
-        fingerprint_data = AuthenticationService._extract_fingerprint_data(request=request)
+        fingerprint_data = _extract_fingerprint_data(request)
 
         if not fingerprint_data:
             return False
@@ -234,7 +249,7 @@ class DeviceFingerprintService:
             raise ValidationError("Fingerprint request is required.")
 
         service = cls(user=user, website=website)
-        fingerprint_data = AuthenticationService._extract_fingerprint_data(request=request)
+        fingerprint_data = _extract_fingerprint_data(request)
 
         if not fingerprint_data:
             raise ValidationError("Fingerprint data is required.")

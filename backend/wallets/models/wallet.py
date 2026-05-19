@@ -82,19 +82,19 @@ class Wallet(models.Model):
                 name="wallets_unique_wallet_per_owner_type_currency",
             ),
             models.CheckConstraint(
-                condition=models.Q(available_balance__gte=0),
+                check=models.Q(available_balance__gte=0),
                 name="wallets_available_balance_gte_0",
             ),
             models.CheckConstraint(
-                condition=models.Q(pending_balance__gte=0),
+                check=models.Q(pending_balance__gte=0),
                 name="wallets_pending_balance_gte_0",
             ),
             models.CheckConstraint(
-                condition=models.Q(total_credited__gte=0),
+                check=models.Q(total_credited__gte=0),
                 name="wallets_total_credited_gte_0",
             ),
             models.CheckConstraint(
-                condition=models.Q(total_debited__gte=0),
+                check=models.Q(total_debited__gte=0),
                 name="wallets_total_debited_gte_0",
             ),
         ]

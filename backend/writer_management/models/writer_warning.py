@@ -188,7 +188,7 @@ class WriterWarning(models.Model):
         constraints = [
             # Void integrity: voided warnings must have a timestamp
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(is_voided=False) |
                     models.Q(voided_at__isnull=False)
                 ),
@@ -201,7 +201,7 @@ class WriterWarning(models.Model):
             # OR expires_at must be in the past
             # (partial logic — service enforces, constraint catches gross errors)
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(is_active=True) |
                     models.Q(is_voided=True) |
                     models.Q(expires_at__isnull=False)
