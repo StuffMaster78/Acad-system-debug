@@ -18,6 +18,9 @@ from writer_compensation.exceptions.exceptions import (
 from writer_compensation.models.compensation_event import CompensationEvent
 from writer_compensation.models.payout_batch import PayoutBatch
 from writer_compensation.models.payout_record import PayoutRecord
+from writer_compensation.services.wallet_sync_service import (
+    CompensationWalletSyncService,
+)
  
  
 class PayoutEngineService:
@@ -93,6 +96,11 @@ class PayoutEngineService:
         if notes:
             record.notes = notes
         record.save(update_fields=["status", "paid_at", "paid_by", "notes"])
+
+        CompensationWalletSyncService.settle_payout_record(
+            record=record,
+            actor=paid_by,
+        )
  
         # Stamp underlying events as PAID.
         CompensationEvent.objects.filter(
@@ -220,6 +228,11 @@ class PayoutEngineService:
             record.paid_at = now
             record.paid_by = paid_by
             record.save(update_fields=["status", "paid_at", "paid_by"])
+
+            CompensationWalletSyncService.settle_payout_record(
+                record=record,
+                actor=paid_by,
+            )
  
             CompensationEvent.objects.filter(
                 writer=record.writer,

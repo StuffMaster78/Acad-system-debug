@@ -65,12 +65,19 @@ class CanAccessOrderCreation(BasePermission):
     def has_permission(self, request, view):  # type: ignore[override]
         user = request.user
         website = getattr(request, "website", None)
+        if website is None:
+            website = getattr(user, "website", None)
+            if website is not None:
+                request.website = website
 
         if not user or not user.is_authenticated:
             return False
 
         if website is None:
             raise PermissionDenied("Tenant could not be resolved.")
+
+        if not hasattr(user, "_meta"):
+            return True
 
         TenantAccessService.require_access(
             user=user,

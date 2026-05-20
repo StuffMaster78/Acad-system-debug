@@ -72,6 +72,19 @@ class SupportFilePolicy(BaseFilePolicy):
             attachment=attachment,
         )
 
+    def can_replace(self, *, user, attachment: FileAttachment) -> bool:
+        """
+        Allow support staff or the uploader to replace support files.
+        """
+
+        if not self.is_same_website(user=user, attachment=attachment):
+            return False
+
+        return self.is_staff_like(user=user) or self.is_uploader(
+            user=user,
+            attachment=attachment,
+        )
+
     def can_delete(self, *, user, attachment: FileAttachment) -> bool:
         """
         Allow only staff direct deletion.
@@ -95,6 +108,7 @@ class SupportFilePolicy(BaseFilePolicy):
             "submitted_by_id",
             "client_id",
             "writer_id",
+            "assigned_to_id",
             "user_id",
         ):
             if getattr(obj, attr_name, None) == user_id:

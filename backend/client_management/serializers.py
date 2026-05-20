@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from .models import ClientProfile, SuspiciousLogin, ClientActivityLog, TemporaryPassword, ProfileUpdateRequest
 from loyalty_management.models import ClientBadge, LoyaltyTransaction, Milestone
-from wallet.models import Wallet
 from django.apps import apps
 from decimal import Decimal
 from client_management.models import BlacklistedEmail

@@ -12,6 +12,7 @@ from writer_compensation.services.risk_engine_service import RiskEngineService
 from writer_compensation.factories.correction_event_factory import (
     CorrectionEventFactory,
 )
+from wallets.services.writer_wallet_service import WriterWalletService
 
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
@@ -35,9 +36,10 @@ def materialize_exposure_from_settlement(self, settlement_period_id: int):
         )
 
         # 2. Sync check (wallet vs ledger drift detection)
-        # NOTE: wallet lookup should be injected later via wallet service
-        # Keeping soft coupling for now
-        wallet = getattr(period.writer, "wallet", None)
+        wallet = WriterWalletService.get_wallet(
+            website=period.website,
+            writer=_writer_user(period.writer),
+        )
 
         if wallet:
             diff_report = LedgerSyncService.compare(
@@ -65,3 +67,7 @@ def materialize_exposure_from_settlement(self, settlement_period_id: int):
             "settlement_period_id": period.pk,
             "status": "EXPOSURE_MATERIALIZED",
         }
+
+
+def _writer_user(writer_profile):
+    return getattr(writer_profile, "user", None) or writer_profile.account_profile.user

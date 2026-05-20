@@ -154,22 +154,16 @@ class OrderFile(models.Model):
 
         # Writers can access files for orders they're assigned to or have requested
         if hasattr(user, 'role') and user.role == 'writer':
-            # Check if writer is assigned to the order
-            if self.order.assigned_writer == user:
+            from orders.selectors.order_visibility_selector import (
+                OrderVisibilitySelector,
+            )
+
+            can_view = OrderVisibilitySelector.can_writer_view_order(
+                writer=user,
+                order=self.order,
+            ).can_view
+            if can_view:
                 return self.is_downloadable
-            
-            # Check if writer has requested this order
-            from writer_management.models.requests import WriterOrderRequest
-            try:
-                writer_profile = user.writer_profile
-                has_requested = WriterOrderRequest.objects.filter(
-                    writer=writer_profile,
-                    order=self.order
-                ).exists()
-                if has_requested:
-                    return self.is_downloadable
-            except Exception:
-                pass
 
         # Clients can't download Final Drafts until payment is complete
         if self.category and self.category.is_final_draft:

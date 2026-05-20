@@ -1,11 +1,8 @@
 import uuid
 from django.db import transaction
-from django.utils.timezone import now
 from decimal import Decimal
-from wallet.models import Wallet, WalletTransaction
 from django.apps import apps
 from referrals.models import Referral, ReferralCode, ReferralBonusConfig
-from loyalty_management.models import LoyaltyTransaction
 from typing import TYPE_CHECKING
 
 
@@ -59,26 +56,15 @@ class ReferralService:
         if not self.can_award_bonus():
             return
 
-        wallet = Wallet.objects.select_for_update().get(user=self.referral.referrer)
-        bonus_amount = self.config.first_order_bonus
+        order = self._get_qualifying_order()
+        if order is None:
+            return
 
-        WalletTransaction.objects.create(
-            wallet=wallet,
-            transaction_type='bonus',
-            amount=bonus_amount,
-            description="Referral Bonus",
-            website=self.referral.website,
+        from referrals.services.referral_reward_service import (
+            ReferralRewardService,
         )
 
-        LoyaltyTransaction.objects.create(
-            client=self.referral.referrer.client_profile,
-            points=bonus_amount * 10,
-            transaction_type='add',
-            reason="Referral Bonus Earned",
-        )
-
-        self.referral.bonus_awarded = True
-        self.referral.save()
+        ReferralRewardService.award_for_qualifying_order(order=order)
 
     def apply_discount(self, order: "Order") -> Decimal:
         """
@@ -110,15 +96,6 @@ class ReferralService:
 
         order.total -= discount
         order.save()
-
-        wallet, _ = Wallet.objects.get_or_create(user=self.referral.referrer)
-        WalletTransaction.objects.create(
-            wallet=wallet,
-            transaction_type='referral_bonus',
-            amount=discount,
-            description=f"Referral Discount Applied for {order_client.username}",
-            website=self.referral.website,
-        )
 
         self.referral.first_order_bonus_credited = True
         self.referral.save()
@@ -163,18 +140,6 @@ class ReferralService:
             discount = min(self.config.first_order_discount_amount, order.total)
 
         return discount 
-    
-    def _create_wallet_transaction(self, order, discount_amount):
-        """Creates a wallet transaction for the referrer when the discount is applied."""
-        # Create wallet transaction for the referrer
-        wallet, created = Wallet.objects.get_or_create(user=self.referrer)
-        WalletTransaction.objects.create(
-            wallet=wallet,
-            transaction_type='referral_bonus',
-            amount=discount_amount,
-            description=f"Referral Bonus: First Order Discount for {order.user.username}",
-            website=self.website,
-        )
     
     def reset_referral(self):
         """

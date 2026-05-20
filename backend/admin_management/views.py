@@ -143,19 +143,22 @@ class AdminDashboardView(viewsets.ViewSet):
         
         # Combined aggregation query - reduces from 5 queries to 1 query
         from django.db.models import Count, Q
+        from accounts.enums import AccountStatus
+        from accounts.models import AccountProfile
         user_stats = user_qs.aggregate(
             total_writers=Count('id', filter=Q(role="writer")),
             total_editors=Count('id', filter=Q(role="editor")),
             total_support=Count('id', filter=Q(role="support")),
             total_clients=Count('id', filter=Q(role="client")),
-            suspended_users=Count('id', filter=Q(is_suspended=True))
         )
         
         total_writers = user_stats['total_writers'] or 0
         total_editors = user_stats['total_editors'] or 0
         total_support = user_stats['total_support'] or 0
         total_clients = user_stats['total_clients'] or 0
-        suspended_users = user_stats['suspended_users'] or 0
+        suspended_users = AccountProfile.objects.filter(
+            status=AccountStatus.SUSPENDED,
+        ).values("user_id").distinct().count()
         total_users = total_writers + total_editors + total_support + total_clients
         
         # Get recent activity logs
@@ -692,16 +695,22 @@ class UserManagementView(viewsets.ViewSet):
     @action(detail=True, methods=["post"])
     def suspend_user(self, request, pk=None):
         user = get_object_or_404(User, pk=pk)
-        user.is_suspended = True
-        user.suspension_reason = request.data.get("reason", "No reason provided")
-        user.save()
+        from admin_management.managers import AdminManager
+
+        result = AdminManager.suspend_user(
+            request.user,
+            user,
+            request.data.get("reason", "No reason provided"),
+        )
+        if "error" in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         AdminActivityLog.objects.create(
             admin=request.user,
             action="User Suspension",
             details=f"{request.user.username} suspended {user.username}"
         )
-        return Response({"message": f"{user.username} suspended."})
+        return Response(result)
 
     @action(detail=True, methods=["post"], permission_classes=[IsSuperAdmin])
     def blacklist_user(self, request, pk=None):
@@ -710,8 +719,6 @@ class UserManagementView(viewsets.ViewSet):
             return Response({"error": "Cannot blacklist another admin."}, status=403)
 
         BlacklistedUser.objects.create(email=user.email, blacklisted_by=request.user)
-        user.is_blacklisted = True
-        user.save()
 
         AdminActivityLog.objects.create(
             admin=request.user,
@@ -729,16 +736,42 @@ class UserManagementView(viewsets.ViewSet):
         if user.role == "admin":
             return Response({"error": "Cannot place admins on probation."}, status=403)
 
-        user.place_on_probation(reason, duration)
+        if user.role != "writer":
+            return Response(
+                {"error": "Probation is currently managed through writer discipline."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from writer_management.models import WriterProfile
+        from writer_management.services.discipline_service import DisciplineService
+
+        writer = get_object_or_404(WriterProfile, account_profile__user=user)
+        DisciplineService.place_on_probation(
+            writer=writer,
+            reason=reason,
+            duration_days=duration,
+            placed_by=request.user,
+        )
         return Response({"message": f"{user.username} is on probation for {duration} days."})
 
     @action(detail=True, methods=["post"])
     def remove_probation(self, request, pk=None):
         user = get_object_or_404(User, pk=pk)
-        if not user.is_on_probation:
+        if user.role != "writer":
             return Response({"error": "User is not on probation."}, status=400)
 
-        user.remove_from_probation()
+        from writer_management.models import WriterProfile
+        from writer_management.services.discipline_service import DisciplineService
+
+        writer = get_object_or_404(WriterProfile, account_profile__user=user)
+        try:
+            DisciplineService.end_probation(
+                writer=writer,
+                ended_by=request.user,
+                reason=request.data.get("reason", "Probation ended by admin."),
+            )
+        except ValueError:
+            return Response({"error": "User is not on probation."}, status=400)
         return Response({"message": f"{user.username} is no longer on probation."})
 
 

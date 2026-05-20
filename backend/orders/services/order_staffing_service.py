@@ -119,6 +119,21 @@ class OrderStaffingService:
         )
 
     @classmethod
+    def route_to_staffing(
+        cls,
+        *,
+        order: Order,
+        triggered_by: Optional[Any] = None,
+    ) -> Order:
+        """
+        Compatibility alias for older callers.
+        """
+        return cls.route_order_to_staffing(
+            order=order,
+            triggered_by=triggered_by,
+        )
+
+    @classmethod
     @transaction.atomic
     def express_interest(
         cls,
@@ -485,6 +500,23 @@ class OrderStaffingService:
             },
         )
         return assignment
+
+    @classmethod
+    def assign_direct(
+        cls,
+        *,
+        order: Order,
+        writer: Any,
+        assigned_by: Any,
+    ) -> OrderAssignment:
+        """
+        Compatibility alias for older callers.
+        """
+        return cls.assign_directly(
+            order=order,
+            writer=writer,
+            assigned_by=assigned_by,
+        )
 
     @classmethod
     @transaction.atomic

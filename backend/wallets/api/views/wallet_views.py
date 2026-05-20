@@ -14,6 +14,7 @@ from wallets.api.serializers import (
     WalletSerializer,
 )
 from wallets.models import WalletEntry, WalletHold
+from wallets.selectors import WalletEntrySelectors, WalletHoldSelectors
 from wallets.services import WalletService
 
 
@@ -74,14 +75,10 @@ class MyWalletEntryListView(generics.ListAPIView):
             currency=currency,
         )
 
-        queryset = WalletEntry.objects.filter(
-            wallet=wallet,
-            website=website,
-        ).select_related(
-            "wallet",
-            "website",
-            "created_by",
-        ).order_by("-created_at", "-id")
+        queryset = WalletEntrySelectors.for_wallet(wallet=wallet).order_by(
+            "-created_at",
+            "-id",
+        )
 
         return cast(Any, queryset)
 
@@ -114,13 +111,9 @@ class MyWalletHoldListView(generics.ListAPIView):
             currency=currency,
         )
 
-        queryset = WalletHold.objects.filter(
-            wallet=wallet,
-            website=website,
-        ).select_related(
-            "wallet",
-            "website",
-            "created_by",
-        ).order_by("-created_at", "-id")
+        queryset = WalletHoldSelectors.for_wallet(wallet=wallet).order_by(
+            "-created_at",
+            "-id",
+        )
 
         return cast(Any, queryset)

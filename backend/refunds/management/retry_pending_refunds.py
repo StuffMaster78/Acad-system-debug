@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from refunds.models import Refund
 from refunds.tasks import retry_external_refund
 
+
 class Command(BaseCommand):
     help = "Retries all pending external refunds"
 

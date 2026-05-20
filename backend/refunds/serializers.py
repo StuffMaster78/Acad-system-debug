@@ -1,84 +1,148 @@
+from __future__ import annotations
+
+from decimal import Decimal
+
+from django.db.models import Sum
 from rest_framework import serializers
-from .models import Refund, RefundLog, RefundReceipt
+
+from refunds.models import Refund, RefundLog, RefundReceipt
+
 
 class RefundSerializer(serializers.ModelSerializer):
+    """Serializer for refund workflow records."""
+
     total_amount = serializers.SerializerMethodField(read_only=True)
+    refundable_amount = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Refund
         fields = [
             "id",
             "order_payment",
+            "payment_refund",
+            "order",
             "client",
             "website",
             "type",
             "wallet_amount",
             "external_amount",
             "refund_method",
+            "reason",
             "processed_by",
             "processed_at",
             "status",
             "metadata",
             "error_message",
             "total_amount",
+            "refundable_amount",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = [
+            "payment_refund",
+            "order",
+            "client",
+            "website",
+            "refund_method",
             "processed_by",
             "processed_at",
             "status",
             "error_message",
             "total_amount",
+            "refundable_amount",
+            "created_at",
+            "updated_at",
         ]
         extra_kwargs = {
-            "client": {"required": False, "allow_null": True},
-            "website": {"required": False, "allow_null": True},
             "type": {"required": False},
-            "refund_method": {"required": False},
+            "reason": {"required": False},
+            "metadata": {"required": False},
         }
 
-    def get_total_amount(self, obj):
-        return obj.total_amount()
+    def get_total_amount(self, obj: Refund) -> str:
+        return str(obj.total_amount())
 
-    def validate(self, data):
-        wallet_amount = data.get("wallet_amount", 0)
-        external_amount = data.get("external_amount", 0)
-        order_payment = data.get("order_payment")
-        if wallet_amount < 0 or external_amount < 0:
-            raise serializers.ValidationError("Refund amounts cannot be negative.")
-        if wallet_amount == 0 and external_amount == 0:
-            raise serializers.ValidationError("At least one refund amount must be greater than zero.")
-        if order_payment:
-            total = wallet_amount + external_amount
-            paid = getattr(order_payment, "discounted_amount", None) or getattr(order_payment, "original_amount", 0)
-            if paid is not None and total > paid:
-                raise serializers.ValidationError("Refund exceeds paid amount.")
-            # Prevent duplicate refunds (one refund allowed in tests)
-            if order_payment.refunds.exists():
-                raise serializers.ValidationError("Order payment already refunded.")
-        return data
+    def get_refundable_amount(self, obj: Refund) -> str:
+        return str(self._refundable_amount(obj.order_payment))
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        payment = attrs.get("order_payment")
+        wallet_amount = attrs.get("wallet_amount", Decimal("0.00"))
+        external_amount = attrs.get("external_amount", Decimal("0.00"))
+
+        if payment is None:
+            raise serializers.ValidationError(
+                {"order_payment": "This field is required."}
+            )
+
+        total = wallet_amount + external_amount
+        if wallet_amount < Decimal("0.00"):
+            raise serializers.ValidationError(
+                {"wallet_amount": "Refund amount cannot be negative."}
+            )
+        if external_amount < Decimal("0.00"):
+            raise serializers.ValidationError(
+                {"external_amount": "Refund amount cannot be negative."}
+            )
+        if total <= Decimal("0.00"):
+            raise serializers.ValidationError(
+                "At least one refund amount must be greater than zero."
+            )
+        if total > self._refundable_amount(payment):
+            raise serializers.ValidationError(
+                "Refund exceeds refundable balance."
+            )
+
+        if request and not request.user.is_staff:
+            if payment.client_id != request.user.pk:
+                raise serializers.ValidationError(
+                    "You can only request refunds for your own payments."
+                )
+
+        return attrs
 
     def create(self, validated_data):
-        # Infer client and website from order_payment if not supplied
-        order_payment = validated_data.get("order_payment")
-        if order_payment is None:
-            raise serializers.ValidationError({"order_payment": "This field is required."})
+        payment = validated_data["order_payment"]
+        validated_data["client"] = payment.client
+        validated_data["website"] = payment.website
 
-        if not validated_data.get("client"):
-            try:
-                validated_data["client"] = getattr(order_payment, "client", None)
-            except Exception:
-                pass
-        if not validated_data.get("website"):
-            try:
-                validated_data["website"] = (
-                    getattr(order_payment, "website", None)
-                    or getattr(getattr(order_payment, "order", None), "website", None)
-                )
-            except Exception:
-                pass
-        return super().create(validated_data)
+        payable = getattr(payment, "payable", None)
+        if payable is not None:
+            if payable.__class__._meta.label_lower == "orders.order":
+                validated_data["order"] = payable
+
+        refund = Refund(**validated_data)
+        refund.full_clean()
+        refund.save()
+        return refund
+
+    @staticmethod
+    def _refundable_amount(payment) -> Decimal:
+        reserved = (
+            Refund.objects.filter(
+                order_payment=payment,
+                status=Refund.PENDING,
+            )
+            .aggregate(
+                wallet_total=Sum("wallet_amount"),
+                external_total=Sum("external_amount"),
+            )
+        )
+        wallet_total = reserved["wallet_total"] or Decimal("0.00")
+        external_total = reserved["external_total"] or Decimal("0.00")
+        remaining = (
+            payment.amount
+            - payment.amount_refunded
+            - wallet_total
+            - external_total
+        )
+        return max(remaining, Decimal("0.00"))
+
 
 class RefundLogSerializer(serializers.ModelSerializer):
+    """Read-only refund audit serializer."""
+
     class Meta:
         model = RefundLog
         fields = [
@@ -97,7 +161,10 @@ class RefundLogSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+
 class RefundReceiptSerializer(serializers.ModelSerializer):
+    """Read-only refund receipt serializer."""
+
     class Meta:
         model = RefundReceipt
         fields = [
@@ -110,7 +177,6 @@ class RefundReceiptSerializer(serializers.ModelSerializer):
             "order_payment",
             "client",
             "processed_by",
-            "processed_at",
             "reason",
         ]
         read_only_fields = fields

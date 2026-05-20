@@ -5,7 +5,7 @@ from files_management.enums import FilePurpose
 from files_management.exceptions import FileValidationError
 from files_management.models import FilePolicy
 from files_management.services import FilePolicyService
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class FilePolicyServiceTests(TestCase):

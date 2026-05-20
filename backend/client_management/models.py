@@ -6,7 +6,6 @@ from django.contrib.auth import get_user_model
 from django.utils.timezone import now
 # from websites.models.websites import Website
 from orders.models.orders import Order
-from wallet.models import Wallet
 from django.apps import apps
 from django.conf import settings
 import secrets
@@ -178,18 +177,28 @@ class ClientProfile(models.Model):
     @property
     def wallet_balance(self):
         """
-        Retrieve the wallet balance from the wallet app.
+        Retrieve the client wallet balance from the canonical wallets app.
         """
-        from wallet.models import Wallet 
-        wallet = Wallet.objects.filter(user=self.user).first()
-        return wallet.balance if wallet else 0.00
+        from wallets.services import ClientWalletService
+
+        wallet = ClientWalletService.get_wallet(
+            website=self.website,
+            client=self.user,
+        )
+        return wallet.available_balance
     
     def get_wallet_transactions(self):
         """
         Retrieve wallet transactions for the client.
         """
-        wallet = Wallet.objects.filter(user=self.user).first()
-        return wallet.transactions.all() if wallet else []
+        from wallets.constants import WalletType
+        from wallets.selectors import WalletEntrySelectors
+
+        return WalletEntrySelectors.for_owner(
+            website=self.website,
+            owner_user=self.user,
+            wallet_type=WalletType.CLIENT,
+        ).order_by("-created_at", "-id")
 
 
     def add_loyalty_points(self, points, reason=None):

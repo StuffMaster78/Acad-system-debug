@@ -1,6 +1,8 @@
 import logging
+
 from .base import PROVIDER_REGISTRY
 from .smtp import SMTPProvider  # Force registration of default
+
 
 def get_provider_client(campaign):
     """

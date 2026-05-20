@@ -11,6 +11,7 @@ from .models import (
 from notifications_system.services.notification_service import (
     NotificationService
 )
+from wallet.services.wallet_transaction_service import WalletTransactionService
 
 
 @shared_task
@@ -77,8 +78,17 @@ def process_scheduled_payments():
     for payment in scheduled_payments:
         with transaction.atomic():
             writer_wallet = payment.writer_wallet
-            writer_wallet.balance -= payment.amount  # Deduct from wallet
-            writer_wallet.save()
+            entry = WalletTransactionService.debit(
+                user=writer_wallet.writer,
+                website=writer_wallet.website,
+                amount=payment.amount,
+                description=f"Scheduled writer payment {payment.reference_code}",
+                source="scheduled_writer_payment",
+                reference=payment.id,
+                transaction_type="payout",
+            )
+            writer_wallet.balance = entry.balance_after
+            writer_wallet.save(update_fields=["balance", "last_updated"])
             payment.status = "Paid"
             payment.payment_date = now()
             payment.save()

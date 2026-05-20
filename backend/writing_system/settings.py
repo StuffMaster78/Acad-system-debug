@@ -105,6 +105,19 @@ if not DEBUG:
 # Frontend URL for email links (activation, password reset)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
+# Legacy compatibility apps are installed only so historical migrations and
+# data imports can still resolve their models. New code and frontend routes
+# must use wallets and files_management instead.
+LEGACY_COMPAT_APPS = [
+    'wallet',
+    'client_wallet',
+    'writer_wallet',
+]
+
+ENABLE_LEGACY_WRITER_WALLET_SIGNALS = (
+    os.getenv("ENABLE_LEGACY_WRITER_WALLET_SIGNALS", "False") == "True"
+)
+
 
 # Application definition
 
@@ -157,10 +170,8 @@ INSTALLED_APPS = [
      # Financial Apps
     'billing',
     'ledger',
-    'wallet',
     'wallets',
-    'client_wallet',
-    'writer_wallet',
+    *LEGACY_COMPAT_APPS,
     'discounts',
     'referrals',
     'fines',
@@ -800,17 +811,13 @@ CELERY_TASK_SOFT_TIME_LIMIT = 240
 
 CELERY_BEAT_SCHEDULE = {
     # Real tasks below. Removed placeholder 'your_app.tasks.*' entries to avoid unregistered task errors.
-    'expire-referral-bonus-every-night': {
-        'task': 'client_wallet.tasks.expire_referral_bonus',
-        'schedule': timedelta(days=1),  # Run once every day
+    'expire-wallet-holds-every-night': {
+        'task': 'wallets.tasks.expire_active_holds',
+        'schedule': timedelta(days=1),
     },
-    'adjust-wallet-balance-for-referrals': {
-        'task': 'client_wallet.tasks.adjust_wallet_balance_for_referrals',
-        'schedule': timedelta(days=1),  # Run once every day
-    },
-    'check-and-update-loyalty-points': {
-        'task': 'client_wallet.tasks.check_and_update_loyalty_points',
-        'schedule': timedelta(days=7),  # Run once every week
+    'reconcile-wallets-every-night': {
+        'task': 'wallets.tasks.reconcile_all_wallets',
+        'schedule': timedelta(days=1),
     },
     'daily_soft_delete_cleanup': {
         "task": "users.tasks.deletion.cleanup_soft_deleted_models",

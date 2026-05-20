@@ -1,0 +1,21 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<h1>New message</h1>
+<p>Hi {{ user.get_full_name|default:user.username }},</p>
+<p>A new message was added to conversation #{{ thread_id }}.</p>
+{% if message_preview %}
+<div class="info-box">
+  <div class="label">Message</div>
+  <p>{{ message_preview }}</p>
+</div>
+{% endif %}
+<table class="detail-table">
+  <tr><td>Conversation</td><td>#{{ thread_id }}</td></tr>
+  <tr><td>Type</td><td>{{ thread_kind }}</td></tr>
+</table>
+{% if cta_url %}
+<div class="btn-wrapper">
+  <a href="{{ cta_url }}" class="btn">Open conversation</a>
+</div>
+{% endif %}
+{% endblock %}

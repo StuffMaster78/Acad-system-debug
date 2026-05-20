@@ -197,7 +197,6 @@ class DuplicateAccountDetectionService:
     def detect_by_payment_methods():
         """Detect accounts sharing payment methods (cards, PayPal, etc.)."""
         from order_payments_management.models.payments import OrderPayment
-        from client_wallet.models import WalletTransaction
         
         duplicates = []
         
@@ -358,4 +357,3 @@ class DuplicateAccountDetectionService:
                 user_duplicates.append(dup)
         
         return user_duplicates
-

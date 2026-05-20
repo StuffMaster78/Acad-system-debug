@@ -54,8 +54,16 @@ class PaymentAllocationService:
 
         metadata = metadata or {}
 
-        wallet = ClientWalletService._get_client_wallet(client=client, currency=currency)
-        wallet_available = ClientWalletService._get_wallet_available_balance(wallet=wallet)
+        website = getattr(payable, "website", None) or getattr(client, "website", None)
+        if website is None:
+            raise PaymentError("Payment allocation requires a website.")
+
+        wallet = ClientWalletService.get_wallet(
+            website=website,
+            client=client,
+            currency=currency,
+        )
+        wallet_available = wallet.available_balance
 
         wallet_amount = min(wallet_available, total_amount)
         external_amount = total_amount - wallet_amount
@@ -159,7 +167,7 @@ class PaymentAllocationService:
         return PaymentAllocation.objects.create(
             reference=generate_payment_reference(prefix="alloc"),
             website=wallet.website,
-            client=client,
+            customer=client,
             payable_content_type=ContentType.objects.get_for_model(payable),
             payable_object_id=payable.pk,
             allocation_type=PaymentAllocationType.WALLET,
@@ -187,7 +195,7 @@ class PaymentAllocationService:
         return PaymentAllocation.objects.create(
             reference=generate_payment_reference(prefix="alloc"),
             website=payment_intent.website,
-            client=client,
+            customer=client,
             payable_content_type=ContentType.objects.get_for_model(payable),
             payable_object_id=payable.pk,
             allocation_type=PaymentAllocationType.EXTERNAL_PAYMENT,

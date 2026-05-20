@@ -8,7 +8,7 @@ from django.db.models import Q
 
 from orders.models.orders import Order
 from orders.models.legacy_models.requests import WriterRequest
-from writer_management.models.requests import WriterOrderRequest
+from orders.selectors.order_visibility_selector import OrderVisibilitySelector
 from writer_management.models.configs import WriterLevelConfig
 from writer_management.models.metrics import WriterPerformanceMetrics
 
@@ -92,11 +92,11 @@ class WriterDashboardRealtimeService:
         common_qs = base_available.filter(preferred_writer__isnull=True)
         common_count = common_qs.count()
 
-        writer_request_count = WriterOrderRequest.objects.filter(
-            writer=profile,
-            approved=False,
-            order__is_paid=True,  # Only count requests for paid orders
-        ).count()
+        writer_request_count = (
+            OrderVisibilitySelector.pending_interest_count_for_writer(
+                writer=user,
+            )
+        )
 
         adjustment_requests = WriterRequest.objects.filter(
             requested_by_writer=user,
@@ -220,4 +220,3 @@ class WriterDashboardRealtimeService:
             or getattr(order, "deadline", None)
         )
         return deadline.isoformat() if deadline else None
-

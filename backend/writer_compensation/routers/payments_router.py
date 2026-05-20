@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Any
 
 from wallets.services.wallet_service import WalletService
+from wallets.constants import WalletEntryType
 from writer_compensation.services.settlement_engine_service import SettlementEngineService
 from writer_compensation.services.correction_event_service import CorrectionEventService
 
@@ -33,7 +34,7 @@ class CompensationRouter:
             amount=amount,
             website=website,
             created_by=actor,
-            entry_type="router_debit",
+            entry_type=WalletEntryType.ADMIN_DEBIT,
             description=reason,
         )
 
@@ -51,7 +52,7 @@ class CompensationRouter:
             amount=amount,
             website=website,
             created_by=actor,
-            entry_type="router_credit",
+            entry_type=WalletEntryType.ADMIN_CREDIT,
             description=reason,
         )
 

@@ -48,6 +48,14 @@ class WalletReconciliationResult:
     ledger_account_code: str | None
     checked_at: Any
 
+    @property
+    def available_balance_matches(self) -> bool:
+        return self.available_balance_matches_entries
+
+    @property
+    def pending_balance_matches(self) -> bool:
+        return self.pending_balance_matches_holds
+
 
 class WalletReconciliationService:
     """
@@ -262,6 +270,8 @@ class WalletReconciliationService:
 
         This method does not mutate state.
         """
+        wallet.refresh_from_db()
+
         expected_pending = (
             WalletReconciliationService
             .get_expected_pending_balance_from_holds(wallet=wallet)

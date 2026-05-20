@@ -8,11 +8,11 @@ from files_management.services import (
     FileAttachmentService,
     FileUploadService,
 )
-from orders.models import Order
 from orders.services.order_file_download_service import (
     OrderFileDownloadService,
 )
-from websites.models import Website
+from tickets.models import Ticket
+from websites.models.websites import Website
 
 
 @override_settings(DEFAULT_FILE_STORAGE="django.core.files.storage.InMemoryStorage")
@@ -49,11 +49,12 @@ class OrderFileDownloadServiceTests(TestCase):
             is_staff=True,
         )
 
-        self.order = Order.objects.create(
+        self.order = Ticket.objects.create(
+            title="Order-like file target",
+            description="Attach files here.",
             website=self.website,
-            client=self.client,
-            writer=self.writer,
-            payment_status="pending",
+            created_by=self.client_user,
+            assigned_to=self.writer,
         )
 
     def _make_attachment(self, *, purpose: str):
@@ -114,7 +115,7 @@ class OrderFileDownloadServiceTests(TestCase):
         with self.assertRaises(PermissionDenied):
             OrderFileDownloadService.get_download_url(
                 order=self.order,
-                user=self.client,
+                user=self.client_user,
                 attachment=attachment,
             )
 
@@ -124,11 +125,10 @@ class OrderFileDownloadServiceTests(TestCase):
         )
 
         self.order.payment_status = "paid"
-        self.order.save(update_fields=["payment_status"])
 
         url = OrderFileDownloadService.get_download_url(
             order=self.order,
-            user=self.client,
+            user=self.client_user,
             attachment=attachment,
         )
 

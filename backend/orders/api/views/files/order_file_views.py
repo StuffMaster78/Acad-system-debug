@@ -3,14 +3,12 @@ from __future__ import annotations
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from files_management.enums import FilePurpose
-from files_management.integrations.orders import (
-    OrderFileIntegrationService,
-)
+from files_management.exceptions import FileManagementError
 from files_management.selectors import FileAttachmentSelector
 from files_management.services import FileDeletionService
 from orders.api.serializers.files.order_file_serializers import (
@@ -25,6 +23,7 @@ from orders.models import Order
 from orders.services.order_file_download_service import (
     OrderFileDownloadService,
 )
+from orders.services.order_file_service import OrderFileService
 
 
 class OrderFileBaseView(APIView):
@@ -92,8 +91,9 @@ class OrderFileBaseView(APIView):
 
         user_id = getattr(user, "id", None)
 
-        if getattr(order, "client_id", None) == user_id:
-            return True
+        for attr_name in ("client_id", "created_by_id"):
+            if getattr(order, attr_name, None) == user_id:
+                return True
 
         client = getattr(order, "client", None)
 
@@ -110,7 +110,7 @@ class OrderFileBaseView(APIView):
 
         user_id = getattr(user, "id", None)
 
-        for attr_name in ("writer_id", "assigned_writer_id"):
+        for attr_name in ("writer_id", "assigned_writer_id", "assigned_to_id"):
             if getattr(order, attr_name, None) == user_id:
                 return True
 
@@ -123,7 +123,15 @@ class OrderFileBaseView(APIView):
         if getattr(assigned_writer, "user_id", None) == user_id:
             return True
 
+        account_profile = getattr(assigned_writer, "account_profile", None)
+        if getattr(account_profile, "user_id", None) == user_id:
+            return True
+
         return False
+
+    @staticmethod
+    def handle_file_error(exc: FileManagementError) -> ValidationError:
+        return ValidationError({"file": str(exc)})
 
 
 class OrderFileListView(OrderFileBaseView):
@@ -163,11 +171,14 @@ class OrderInstructionFileUploadView(OrderFileBaseView):
         serializer = OrderFileUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        attachment = OrderFileIntegrationService.upload_instruction_file(
-            order=order,
-            uploaded_by=request.user,
-            uploaded_file=serializer.validated_data["file"],
-        )
+        try:
+            attachment = OrderFileService.client_upload_instruction(
+                order=order,
+                uploaded_by=request.user,
+                uploaded_file=serializer.validated_data["file"],
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
 
         return Response(
             OrderFileAttachmentSerializer(attachment).data,
@@ -187,11 +198,14 @@ class OrderReferenceFileUploadView(OrderFileBaseView):
         serializer = OrderFileUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        attachment = OrderFileIntegrationService.upload_reference_file(
-            order=order,
-            uploaded_by=request.user,
-            uploaded_file=serializer.validated_data["file"],
-        )
+        try:
+            attachment = OrderFileService.client_upload_reference(
+                order=order,
+                uploaded_by=request.user,
+                uploaded_file=serializer.validated_data["file"],
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
 
         return Response(
             OrderFileAttachmentSerializer(attachment).data,
@@ -211,14 +225,23 @@ class OrderStyleReferenceFileUploadView(OrderFileBaseView):
         serializer = OrderStyleReferenceUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        attachment = OrderFileIntegrationService.upload_style_reference_file(
-            order=order,
-            uploaded_by=request.user,
-            uploaded_file=serializer.validated_data["file"],
-            reference_type=serializer.validated_data.get("reference_type", "previous_paper"),
-            description=serializer.validated_data.get("description", ""),
-            is_visible_to_writer=serializer.validated_data.get("is_visible_to_writer", True),
-        )
+        try:
+            attachment = OrderFileService.client_upload_style_reference(
+                order=order,
+                uploaded_by=request.user,
+                uploaded_file=serializer.validated_data["file"],
+                reference_type=serializer.validated_data.get(
+                    "reference_type",
+                    "previous_paper",
+                ),
+                description=serializer.validated_data.get("description", ""),
+                is_visible_to_writer=serializer.validated_data.get(
+                    "is_visible_to_writer",
+                    True,
+                ),
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
 
         return Response(
             OrderFileAttachmentSerializer(attachment).data,
@@ -238,15 +261,21 @@ class OrderExtraServiceFileUploadView(OrderFileBaseView):
         serializer = OrderExtraServiceFileUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        attachment = OrderFileIntegrationService.upload_extra_service_file(
-            order=order,
-            uploaded_by=request.user,
-            uploaded_file=serializer.validated_data["file"],
-            service_code=serializer.validated_data.get("service_code", ""),
-            category_code=serializer.validated_data.get("category_code", ""),
-            description=serializer.validated_data.get("description", ""),
-            is_downloadable=serializer.validated_data.get("is_downloadable", False),
-        )
+        try:
+            attachment = OrderFileService.writer_upload_extra_service(
+                order=order,
+                uploaded_by=request.user,
+                uploaded_file=serializer.validated_data["file"],
+                service_code=serializer.validated_data.get("service_code", ""),
+                category_code=serializer.validated_data.get("category_code", ""),
+                description=serializer.validated_data.get("description", ""),
+                is_downloadable=serializer.validated_data.get(
+                    "is_downloadable",
+                    False,
+                ),
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
 
         return Response(
             OrderFileAttachmentSerializer(attachment).data,
@@ -266,11 +295,14 @@ class OrderDraftFileUploadView(OrderFileBaseView):
         serializer = OrderFileUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        attachment = OrderFileIntegrationService.upload_draft_file(
-            order=order,
-            uploaded_by=request.user,
-            uploaded_file=serializer.validated_data["file"],
-        )
+        try:
+            attachment = OrderFileService.writer_upload_draft(
+                order=order,
+                uploaded_by=request.user,
+                uploaded_file=serializer.validated_data["file"],
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
 
         return Response(
             OrderFileAttachmentSerializer(attachment).data,
@@ -290,11 +322,14 @@ class OrderFinalFileUploadView(OrderFileBaseView):
         serializer = OrderFileUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        attachment = OrderFileIntegrationService.upload_final_file(
-            order=order,
-            uploaded_by=request.user,
-            uploaded_file=serializer.validated_data["file"],
-        )
+        try:
+            attachment = OrderFileService.writer_upload_final(
+                order=order,
+                uploaded_by=request.user,
+                uploaded_file=serializer.validated_data["file"],
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
 
         return Response(
             OrderFileAttachmentSerializer(attachment).data,
@@ -314,11 +349,14 @@ class OrderRevisionFileUploadView(OrderFileBaseView):
         serializer = OrderFileUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        attachment = OrderFileIntegrationService.upload_revision_file(
-            order=order,
-            uploaded_by=request.user,
-            uploaded_file=serializer.validated_data["file"],
-        )
+        try:
+            attachment = OrderFileService.writer_upload_revision(
+                order=order,
+                uploaded_by=request.user,
+                uploaded_file=serializer.validated_data["file"],
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
 
         return Response(
             OrderFileAttachmentSerializer(attachment).data,
@@ -334,23 +372,19 @@ class OrderExternalFileLinkView(OrderFileBaseView):
     def post(self, request, order_id: int):
         order = self.get_order(request, order_id)
 
-        if not (
-            self.is_staff(user=request.user)
-            or self.is_order_client(order=order, user=request.user)
-            or self.is_order_writer(order=order, user=request.user)
-        ):
-            raise PermissionDenied("You cannot add links to this order.")
-
         serializer = OrderExternalFileLinkSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        attachment = OrderFileIntegrationService.submit_external_order_link(
-            order=order,
-            submitted_by=request.user,
-            url=serializer.validated_data["url"],
-            purpose=serializer.validated_data["purpose"],
-            title=serializer.validated_data.get("title", ""),
-        )
+        try:
+            attachment = OrderFileService.submit_external_link(
+                order=order,
+                submitted_by=request.user,
+                url=serializer.validated_data["url"],
+                purpose=serializer.validated_data["purpose"],
+                title=serializer.validated_data.get("title", ""),
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
 
         return Response(
             OrderFileAttachmentSerializer(attachment).data,
@@ -374,13 +408,16 @@ class OrderFileDownloadView(OrderFileBaseView):
             id=attachment_id,
         )
 
-        url = OrderFileDownloadService.get_download_url(
-            order=order,
-            user=request.user,
-            attachment=attachment,
-            ip_address=request.META.get("REMOTE_ADDR", ""),
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
-        )
+        try:
+            url = OrderFileDownloadService.get_download_url(
+                order=order,
+                user=request.user,
+                attachment=attachment,
+                ip_address=request.META.get("REMOTE_ADDR", ""),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
 
         return Response({"url": url})
 

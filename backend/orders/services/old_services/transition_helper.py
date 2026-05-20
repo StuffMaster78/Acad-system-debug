@@ -164,14 +164,11 @@ def _validate_is_reviewed(order: Order, **kwargs) -> None:
 
 def _validate_has_files(order: Order, **kwargs) -> None:
     """Validate that order has files before submission (optional rule)."""
-    from django.contrib.contenttypes.models import ContentType
-    from files_management.models import FileAttachment
+    from files_management.selectors import FileAttachmentSelector
 
-    content_type = ContentType.objects.get_for_model(order)
-    has_files = FileAttachment.objects.filter(
-        content_type=content_type,
-        object_id=order.pk,
-        is_active=True,
+    has_files = FileAttachmentSelector.for_object(
+        website=order.website,
+        obj=order,
     ).exists()
     if not has_files:
         raise ValidationError(

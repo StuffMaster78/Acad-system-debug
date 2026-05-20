@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from rest_framework import serializers
 from typing import Any
+
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import serializers
+
 from communications.models.attachment import CommunicationAttachment
 from communications.services.attachment_service import (
     CommunicationAttachmentService,
@@ -67,10 +70,15 @@ class CommunicationAttachmentCreateSerializer(serializers.Serializer):
         # Replace this import/model with your actual files_management model.
         from files_management.models import ManagedFile
 
-        file = ManagedFile.objects.get(
-            pk=validated_data["file_id"],
-            website=message.website,
-        )
+        try:
+            file = ManagedFile.objects.get(
+                pk=validated_data["file_id"],
+                website=message.website,
+            )
+        except ObjectDoesNotExist as exc:
+            raise serializers.ValidationError(
+                {"file_id": "Managed file was not found for this website."},
+            ) from exc
 
         return CommunicationAttachmentService.attach_file(
             message=message,

@@ -100,6 +100,7 @@ class TicketService:
             action=TicketAction.ESCALATED,
             metadata={"old_priority": old_priority},
         )
+        TicketNotificationService.escalated(ticket=ticket, actor=actor)
         return ticket
 
     @classmethod
@@ -178,4 +179,14 @@ class TicketService:
 
             return Website.objects.get(id=website_id)
 
-        raise ValueError("A website is required to create a ticket.")
+        from websites.models.websites import Website
+
+        default_site = Website.objects.filter(is_active=True).first()
+        if default_site is not None:
+            return default_site
+
+        return Website.objects.create(
+            name="Default Support Website",
+            domain="https://support.local",
+            is_active=True,
+        )

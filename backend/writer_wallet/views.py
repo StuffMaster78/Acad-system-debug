@@ -20,6 +20,7 @@ from .serializers import (
 )
 from admin_management.permissions import IsAdmin
 from billing.constants import InvoiceStatus, PaymentRequestStatus
+from wallet.services.wallet_transaction_service import WalletTransactionService
 
 class WriterWalletViewSet(viewsets.ModelViewSet):
     """ API endpoint for managing writer wallets. """
@@ -66,40 +67,47 @@ class WriterWalletViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 if amount > 0:
-                    # Credit
-                    wallet.balance += amount
-                    wallet.total_adjustments += amount
-                    wallet.save()
-                    
-                    # Create transaction record
-                    WalletTransaction.objects.create(
-                        writer_wallet=wallet,
+                    entry = WalletTransactionService.credit(
+                        user=wallet.writer,
                         website=wallet.website,
-                        transaction_type=transaction_type if transaction_type != 'Adjustment' else 'Adjustment',
-                        amount=amount
+                        amount=amount,
+                        description=reason,
+                        source="writer_wallet_admin_adjustment",
+                        transaction_type="bonus" if transaction_type in {"Bonus", "Reward"} else "adjustment",
+                        created_by=request.user,
+                        metadata={"legacy_transaction_type": transaction_type},
                     )
+                    wallet.balance = entry.balance_after
+                    wallet.total_adjustments += amount
+                    wallet.save(update_fields=["balance", "total_adjustments", "last_updated"])
                     
                     message = f'Successfully credited ${amount:,.2f} to {wallet.writer.get_full_name() or wallet.writer.username}\'s wallet.'
                 else:
                     # Debit (make amount positive)
                     debit_amount = abs(amount)
-                    if wallet.balance < debit_amount:
+                    canonical_balance = WalletTransactionService.get_balance(
+                        wallet.writer,
+                        wallet.website,
+                    )
+                    if canonical_balance < debit_amount:
                         return Response(
-                            {"detail": f"Insufficient balance. Current balance: ${wallet.balance:,.2f}"},
+                            {"detail": f"Insufficient balance. Current balance: ${canonical_balance:,.2f}"},
                             status=status.HTTP_400_BAD_REQUEST
                         )
                     
-                    wallet.balance -= debit_amount
-                    wallet.total_adjustments += amount  # Negative adjustment
-                    wallet.save()
-                    
-                    # Create transaction record
-                    WalletTransaction.objects.create(
-                        writer_wallet=wallet,
+                    entry = WalletTransactionService.debit(
+                        user=wallet.writer,
                         website=wallet.website,
-                        transaction_type=transaction_type if transaction_type != 'Adjustment' else 'Fine',
-                        amount=debit_amount
+                        amount=debit_amount,
+                        description=reason,
+                        source="writer_wallet_admin_adjustment",
+                        transaction_type="fine" if transaction_type == "Fine" else "deduction",
+                        created_by=request.user,
+                        metadata={"legacy_transaction_type": transaction_type},
                     )
+                    wallet.balance = entry.balance_after
+                    wallet.total_adjustments += amount  # Negative adjustment
+                    wallet.save(update_fields=["balance", "total_adjustments", "last_updated"])
                     
                     message = f'Successfully debited ${debit_amount:,.2f} from {wallet.writer.get_full_name() or wallet.writer.username}\'s wallet.'
                 
@@ -374,7 +382,7 @@ class ScheduledWriterPaymentViewSet(viewsets.ModelViewSet):
         fines_data = []
         try:
             from fines.models import Fine
-            from writer_management.models.profile import WriterProfile
+            from writer_management.models.writer_profile import WriterProfile
             # writer_wallet.writer is the User, need to get WriterProfile
             writer_user = payment.writer_wallet.writer if payment.writer_wallet and payment.writer_wallet.writer else None
             writer_profile = None
@@ -410,7 +418,7 @@ class ScheduledWriterPaymentViewSet(viewsets.ModelViewSet):
         writer_profile = None
         if writer_user:
             try:
-                from writer_management.models.profile import WriterProfile
+                from writer_management.models.writer_profile import WriterProfile
                 writer_profile = WriterProfile.objects.filter(user=writer_user).first()
             except Exception:
                 pass
@@ -848,7 +856,7 @@ class WriterPaymentRequestViewSet(viewsets.ModelViewSet):
         Writer requests a manual payment.
         """
         from writer_wallet.models import WriterWallet
-        from writer_management.models.profile import WriterProfile
+        from writer_management.models.writer_profile import WriterProfile
         from websites.models.websites import WebsiteSettings
         
         try:
@@ -867,12 +875,19 @@ class WriterPaymentRequestViewSet(viewsets.ModelViewSet):
                 }, status=403)
         
         try:
-            writer_wallet = WriterWallet.objects.get(
+            writer_wallet, _ = WriterWallet.objects.get_or_create(
                 writer=request.user,
-                website=website
+                website=website,
+                defaults={
+                    "balance": WalletTransactionService.get_balance(request.user, website),
+                },
             )
-        except WriterWallet.DoesNotExist:
-            return Response({"error": "Writer wallet not found"}, status=404)
+            canonical_balance = WalletTransactionService.get_balance(request.user, website)
+            if writer_wallet.balance != canonical_balance:
+                writer_wallet.balance = canonical_balance
+                writer_wallet.save(update_fields=["balance", "last_updated"])
+        except Exception as exc:
+            return Response({"error": f"Writer wallet unavailable: {exc}"}, status=400)
         
         requested_amount = request.data.get('amount')
         reason = request.data.get('reason', '')
@@ -886,9 +901,9 @@ class WriterPaymentRequestViewSet(viewsets.ModelViewSet):
             return Response({"error": "Invalid amount format"}, status=400)
         
         # Check if writer has enough balance
-        if writer_wallet.balance < requested_amount:
+        if canonical_balance < requested_amount:
             return Response({
-                "error": f"Insufficient balance. Available: ${writer_wallet.balance:,.2f}"
+                "error": f"Insufficient balance. Available: ${canonical_balance:,.2f}"
             }, status=400)
         
         # Check for pending requests
@@ -907,7 +922,7 @@ class WriterPaymentRequestViewSet(viewsets.ModelViewSet):
             website=website,
             writer_wallet=writer_wallet,
             requested_amount=requested_amount,
-            available_balance=writer_wallet.balance,
+            available_balance=canonical_balance,
             reason=reason,
             requested_by=request.user
         )
@@ -929,7 +944,7 @@ class WriterPaymentRequestViewSet(viewsets.ModelViewSet):
         
         payment_request = self.get_object()
         
-        if payment_request.status != PaymentReuestStatus.PAID:
+        if payment_request.status != PaymentRequestStatus.PAID:
             return Response({
                 "error": f"Request is already {payment_request.status}"
             }, status=400)

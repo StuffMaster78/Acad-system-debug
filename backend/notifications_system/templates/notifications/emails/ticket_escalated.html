@@ -1,0 +1,20 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<h1>Ticket escalated</h1>
+<p>Hi {{ user.get_full_name|default:user.username }},</p>
+<p>This ticket has been escalated and needs priority attention.</p>
+<div class="info-box warning">
+  <div class="label">Ticket</div>
+  <div class="value">{{ ticket_number|default:ticket_id }} — {{ ticket_subject|default:ticket_title }}</div>
+</div>
+<table class="detail-table">
+  <tr><td>Status</td><td>{{ ticket_status }}</td></tr>
+  <tr><td>Priority</td><td>{{ ticket_priority|default:"critical" }}</td></tr>
+  {% if escalated_by %}<tr><td>Escalated by</td><td>{{ escalated_by }}</td></tr>{% endif %}
+</table>
+{% if cta_url %}
+<div class="btn-wrapper">
+  <a href="{{ cta_url }}" class="btn btn-warning">Review Ticket</a>
+</div>
+{% endif %}
+{% endblock %}

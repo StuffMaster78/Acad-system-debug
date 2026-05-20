@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from typing import Any, cast
 
 from django.shortcuts import get_object_or_404
@@ -46,7 +46,8 @@ class OrderLifecycleView(GenericAPIView):
         self.check_object_permissions(request, order)
 
         snapshot = OrderLifecycleReadService.build_snapshot(order=order)
-        serializer = self.get_serializer(asdict(snapshot))
+        payload = asdict(snapshot) if is_dataclass(snapshot) else snapshot
+        serializer = self.get_serializer(payload)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 

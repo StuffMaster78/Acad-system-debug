@@ -289,6 +289,14 @@ class WriterProfile(models.Model):
 
     def __str__(self) -> str:
         return self.registration_id
+
+    @property
+    def user(self):
+        return self.account_profile.user
+
+    @property
+    def user_id(self):
+        return self.account_profile.user_id
     
 
     # CONVENIENCE — no logic, no DB queries

@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 from websites.models.websites import Website
 from django.contrib.auth import get_user_model
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 from orders.models.orders import Order
 
 User = get_user_model()

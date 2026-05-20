@@ -27,10 +27,16 @@ class BasePlatformPermission(BasePermission):
             return False
         
         website = getattr(request, "website", None)
+        if website is None:
+            website = getattr(user, "website", None)
+            if website is not None:
+                request.website = website
 
         if self.require_tenant and website is None:
             raise PermissionDenied("Tenant could not be resolved.")
 
+        if not hasattr(user, "_meta"):
+            return True
 
         # 1. Portal check
         if self.required_portal:

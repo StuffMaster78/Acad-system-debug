@@ -15,7 +15,7 @@ from client_management.models import BlacklistedEmail
 # from orders.models import FailedPayment
 from admin_management.models import AdminPromotionRequest
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 
 ### 🔹 1️⃣ Notify Superadmins When a New User is Created
@@ -71,6 +71,8 @@ def notify_user_on_suspension(sender, instance, update_fields=None, **kwargs):
     """Sends a notification when a user is suspended or reactivated."""
     # Skip if signals are disabled (e.g., during testing)
     if getattr(settings, "DISABLE_NOTIFICATION_SIGNALS", False):
+        return
+    if not hasattr(instance, "is_suspended"):
         return
     
     if update_fields and 'is_suspended' not in update_fields:

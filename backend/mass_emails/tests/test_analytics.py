@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
 @pytest.mark.django_db
 class TestCampaignAnalytics:
 
@@ -45,7 +46,8 @@ class TestCampaignAnalytics:
         # simulate some opens and clicks
         EmailOpenTracker.objects.create(recipient=self.recipients[0])
         EmailOpenTracker.objects.create(recipient=self.recipients[1])
-        EmailClickTracker.objects.create(recipient=self.recipients[0], url="https://link.com")
+        EmailClickTracker.objects.create(
+            recipient=self.recipients[0], url="https://link.com")
 
         UnsubscribeLog.objects.create(email=self.recipients[4].email)
 

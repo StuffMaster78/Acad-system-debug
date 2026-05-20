@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
 @pytest.mark.django_db
 class TestEmailHistoryViews:
 
@@ -104,7 +105,8 @@ class TestEmailHistoryViews:
         client.force_authenticate(user=self.admin)
 
         url = reverse("admin-email-history")
-        response = client.get(url + f"?user_id={self.user.id}&email_type=promos")
+        response = client.get(
+            url + f"?user_id={self.user.id}&email_type=promos")
         results = response.json()
         assert len(results) == 1
         assert results[0]["campaign"]["email_type"] == "promos"

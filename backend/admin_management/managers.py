@@ -4,8 +4,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group, Permission
 from django.core.mail import send_mail
-from django.utils.timezone import now, timedelta
 from django.conf import settings
+from accounts.models import AccountProfile
+from accounts.services.account_activation_service import AccountActivationService
+from accounts.services.account_service import AccountService
 from notifications_system.services.notification_service import NotificationService  # Integration with Notifications App
 
 User = get_user_model()
@@ -95,10 +97,27 @@ class AdminManager:
         if user.role == "superadmin":
             return {"error": "Superadmins cannot be suspended."}
 
-        user.is_suspended = True
-        user.suspension_reason = reason
-        user.suspension_start_date = now()
-        user.save()
+        website = getattr(user, "website", None) or getattr(admin, "website", None)
+        if not website:
+            from websites.models.websites import Website
+
+            website = Website.objects.filter(is_active=True).first()
+        if not website:
+            return {"error": "Cannot suspend a user without a website context."}
+
+        account_profile = AccountService.get_or_create_account_profile(
+            website=website,
+            user=user,
+            actor=admin,
+            is_primary=not AccountProfile.objects.filter(user=user).exists(),
+            metadata={"source": "admin_management.suspend_user"},
+        )
+        AccountActivationService.suspend_account(
+            account_profile=account_profile,
+            reason=reason,
+            actor=admin,
+            metadata={"source": "admin_management.suspend_user"},
+        )
 
         # Log action
         AdminLog = get_admin_log_model()
@@ -108,10 +127,6 @@ class AdminManager:
         )
 
         # Send notification
-        website = getattr(user, 'website', None)
-        if not website:
-            from websites.models.websites import Website
-            website = Website.objects.filter(is_active=True).first()
         if website:
             NotificationService.notify(
                 event_key="user.account_suspended",
@@ -142,9 +157,6 @@ class AdminManager:
         BlacklistedUser = get_blacklisted_user_model()
         BlacklistedUser.objects.create(email=user.email, blacklisted_by=admin, reason=reason)
 
-        user.is_blacklisted = True
-        user.save()
-
         AdminLog = get_admin_log_model()
         AdminLog.objects.create(
             admin=admin,
@@ -159,11 +171,23 @@ class AdminManager:
         if user.role == "admin":
             return {"error": "Admins cannot be placed on probation."}
 
-        user.is_on_probation = True
-        user.probation_reason = reason
-        user.probation_start_date = now()
-        user.probation_end_date = now() + timedelta(days=duration_in_days)
-        user.save()
+        if user.role != "writer":
+            return {"error": "Probation is currently managed through writer discipline."}
+
+        from writer_management.models import WriterProfile
+        from writer_management.services.discipline_service import DisciplineService
+
+        try:
+            writer = WriterProfile.objects.get(account_profile__user=user)
+        except WriterProfile.DoesNotExist:
+            return {"error": "Writer profile not found."}
+
+        DisciplineService.place_on_probation(
+            writer=writer,
+            reason=reason,
+            duration_days=duration_in_days,
+            placed_by=admin,
+        )
 
         # Log the action
         AdminLog = get_admin_log_model()
@@ -201,14 +225,22 @@ class AdminManager:
     @staticmethod
     def remove_user_from_probation(admin, user):
         """Removes a user from probation."""
-        if not user.is_on_probation:
+        if user.role != "writer":
             return {"error": "User is not on probation."}
 
-        user.is_on_probation = False
-        user.probation_reason = None
-        user.probation_start_date = None
-        user.probation_end_date = None
-        user.save()
+        from writer_management.models import WriterProfile
+        from writer_management.services.discipline_service import DisciplineService
+
+        try:
+            writer = WriterProfile.objects.get(account_profile__user=user)
+            DisciplineService.end_probation(
+                writer=writer,
+                ended_by=admin,
+                reason="Probation ended by admin.",
+            )
+        except (WriterProfile.DoesNotExist, ValueError):
+            return {"error": "User is not on probation."}
+
 
         # Log the action
         AdminLog = get_admin_log_model()

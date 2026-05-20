@@ -108,7 +108,7 @@ class TestWriterDashboardAPI:
     
     def test_writer_dashboard_caching(self, db_with_website):
         """Test that writer dashboard uses caching."""
-        from writer_management.models.profile import WriterProfile
+        from writer_management.models.writer_profile import WriterProfile
         
         website = db_with_website
         

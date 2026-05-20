@@ -75,33 +75,20 @@ urlpatterns = [
     path('api/v1/referrals/', include('referrals.urls')), # Referrals Management App
     path('api/v1/refunds/', include('refunds.urls')),
     path('api/v1/order-configs/', include('order_configs.urls')),
-    # Legacy alias for older frontend paths
-    path('api/v1/order-configs/api/', include('order_configs.urls')),
     path('api/v1/pricing/', include('order_pricing_core.urls')),
     path('api/v1/loyalty-management/', include('loyalty_management.urls')),
-    path('api/v1/loyalty_management/', include('loyalty_management.urls')),  # Alias for frontend compatibility
     path('api/v1/notifications/', include(('notifications_system.urls', 'notifications_system'), namespace='notifications')),
-    path('api/v1/notifications_system/', include(('notifications_system.urls', 'notifications_system'), namespace='notifications_system')),  # Alias for frontend compatibility
-    path('api/v1/order-communications/', include('communications.urls')),
     # Orders (Newly Improved)
     path("api/orders/", include("orders.api.urls")),
     path("api/v1/files/", include("files_management.urls")),
-    # Legacy alias for older frontend paths
-    path('api/v1/special-orders/api/', include('special_orders.urls')),
     path('api/v1/tickets/', include('tickets.urls')),
-    path('api/v1/wallet/', include('wallet.urls')),
-    path('api/v1/client-wallet/', include('client_wallet.urls')),  # Client Wallet Management
-    # Legacy alias for older frontend paths
-    path('api/v1/wallet/api/', include('client_wallet.urls')),
-    path('api/v1/writer-wallet/', include('writer_wallet.urls')),  # Writer Wallet Management
+    # Wallets is the canonical API for both client and writer wallet workflows.
+    # Legacy wallet/client_wallet/writer_wallet routes are intentionally not exposed.
     path('api/v1/writer-compensation/', include('writer_compensation.urls')),  # Writer Compensation
-    path('api/v1/writer-payments/', include('writer_compensation.urls')),  # Legacy writer compensation alias
     path('api/v1/mass-emails/', include('mass_emails.urls')),
     path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
     path('api/v1/service-pages/', include('service_pages_management.urls')),
     path('api/v1/fines/', include('fines.urls')),
-    # Legacy alias for older frontend paths
-    path('api/v1/fines/api/', include('fines.urls')),
     path('api/v1/reviews/', include('reviews_system.urls')),  # Reviews System
     path('api/v1/class-management/', include('class_management.urls')),  # Class Management (bundles & express classes)
     path('api/v1/media/', include('media_management.urls')),  # Media assets (images, videos, documents)
@@ -128,10 +115,6 @@ urlpatterns = [
 
     # path('api/v1/billing/', include('billing.urls')),
     path("api/v1/communications/", include("communications.urls")),
-    path(
-        "api/v1/writer-compensation/",
-        include("writer_compensation.urls"),
-    ),
     path('api/v1/tips/', include('tips.urls')),
 ]
 

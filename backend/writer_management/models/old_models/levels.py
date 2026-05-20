@@ -2,7 +2,7 @@ from django.db import models
 from decimal import Decimal
 from django.conf import settings
 from websites.models.websites import Website
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 
 
 User = settings.AUTH_USER_MODEL

@@ -253,8 +253,9 @@ class OrderDownloadEligibilityService:
 
         user_id = getattr(user, "id", None)
 
-        if getattr(order, "client_id", None) == user_id:
-            return True
+        for attr_name in ("client_id", "created_by_id"):
+            if getattr(order, attr_name, None) == user_id:
+                return True
 
         client = getattr(order, "client", None)
 
@@ -271,7 +272,7 @@ class OrderDownloadEligibilityService:
 
         user_id = getattr(user, "id", None)
 
-        for attr_name in ("writer_id", "assigned_writer_id"):
+        for attr_name in ("writer_id", "assigned_writer_id", "assigned_to_id"):
             if getattr(order, attr_name, None) == user_id:
                 return True
 

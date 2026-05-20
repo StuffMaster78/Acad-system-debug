@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
@@ -79,5 +80,15 @@ class CommunicationThreadCreateSerializer(serializers.Serializer):
                 {"target_model": "Invalid target model."},
             ) from exc
 
+        try:
+            target = content_type.get_object_for_this_type(
+                pk=attrs["target_object_id"],
+            )
+        except ObjectDoesNotExist as exc:
+            raise serializers.ValidationError(
+                {"target_object_id": "Target object was not found."},
+            ) from exc
+
         attrs["target_content_type"] = content_type
+        attrs["target"] = target
         return attrs

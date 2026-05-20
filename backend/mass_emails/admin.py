@@ -3,14 +3,14 @@ Django admin configuration for the Mass Email System.
 """
 
 from django.contrib import admin
+
 from .models import (
-    EmailCampaign,
-    EmailRecipient,
     CampaignAttachment,
-    EmailTemplate,
+    EmailCampaign,
     EmailServiceIntegration,
+    EmailRecipient,
+    EmailTemplate,
 )
-from rest_framework import filters, generics
 
 
 class CampaignAttachmentInline(admin.TabularInline):
@@ -86,7 +86,7 @@ class CampaignAttachmentAdmin(admin.ModelAdmin):
     """
     Admin view for campaign file attachments.
     """
-    list_display = ('name', 'campaign', 'file')
+    list_display = ('name', 'campaign', 'attachment')
     autocomplete_fields = ('campaign',)
 
 
@@ -102,6 +102,7 @@ class EmailTemplateAdmin(admin.ModelAdmin):
     search_fields = ('name', 'subject', 'body')
     autocomplete_fields = ('created_by',)
     readonly_fields = ('created_at',)
+
 
 @admin.register(EmailServiceIntegration)
 class EmailServiceIntegrationAdmin(admin.ModelAdmin):

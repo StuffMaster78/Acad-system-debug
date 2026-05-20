@@ -35,8 +35,11 @@ class WalletHoldServiceTests(TestCase):
         )
 
     def _create_website(self):
-        from websites.models import Website
-        return Website.objects.create(name="Test Site")
+        from websites.models.websites import Website
+        return Website.objects.create(
+            name="Test Site",
+            domain="https://wallets.test",
+        )
 
     def test_create_hold(self):
         hold = WalletHoldService.create_hold(

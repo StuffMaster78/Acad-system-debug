@@ -2,7 +2,9 @@ from django.db import transaction
 from django.utils.timezone import now
 
 from superadmin_management.models import Blacklist
-from writer_governance_service import WriterGovernanceService
+from superadmin_management.services.writer_governance_service import (
+    WriterGovernanceService,
+)
 
 
 class BlacklistService:

@@ -21,6 +21,7 @@ class MessageFilePolicy(BaseFilePolicy):
 
     MESSAGE_MODEL_NAMES = {
         "message",
+        "communicationmessage",
         "conversationmessage",
         "chatmessage",
         "threadmessage",
@@ -35,7 +36,7 @@ class MessageFilePolicy(BaseFilePolicy):
         app_label = attachment.content_type.app_label.lower()
 
         return (
-            app_label in {"messages", "messaging", "chats"}
+            app_label in {"communications", "messages", "messaging", "chats"}
             or model_name in self.MESSAGE_MODEL_NAMES
         )
 
@@ -136,6 +137,9 @@ class MessageFilePolicy(BaseFilePolicy):
             return False
 
         try:
+            if participants.filter(user_id=user_id).exists():
+                return True
+
             return participants.filter(id=user_id).exists()
         except AttributeError:
             return False

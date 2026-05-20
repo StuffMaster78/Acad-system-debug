@@ -80,6 +80,10 @@ class FilePurpose(models.TextChoices):
     INVOICE = "invoice", "Invoice"
     REFUND_EVIDENCE = "refund_evidence", "Refund Evidence"
     PAYOUT_EVIDENCE = "payout_evidence", "Payout Evidence"
+    MASS_EMAIL_ATTACHMENT = (
+        "mass_email_attachment",
+        "Mass Email Attachment",
+    )
 
     ADMIN_INTERNAL = "admin_internal", "Admin Internal"
     LEGAL_DOCUMENT = "legal_document", "Legal Document"
@@ -207,6 +211,7 @@ class ExternalFileReviewStatus(models.TextChoices):
     APPROVED = "approved", "Approved"
     REJECTED = "rejected", "Rejected"
     EXPIRED = "expired", "Expired"
+
 
 class DeletionRequestScope(models.TextChoices):
     """

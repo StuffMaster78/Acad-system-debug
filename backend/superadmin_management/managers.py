@@ -5,6 +5,10 @@ from django.contrib.auth.hashers import make_password
 from django.core.mail import send_mail
 from django.utils.timezone import now
 from django.conf import settings
+from accounts.enums import AccountStatus
+from accounts.models import AccountProfile
+from accounts.services.account_activation_service import AccountActivationService
+from accounts.services.account_service import AccountService
 from .models import SuperadminLog, Probation, Blacklist, User, UserActionLog
 from notifications_system.models.notifications import Notification
 class SuperadminManager:
@@ -79,10 +83,27 @@ class SuperadminManager:
     @staticmethod
     def suspend_user(superadmin, user, reason="No reason provided"):
         """Suspends a user."""
-        user.is_suspended = True
-        user.suspension_reason = reason
-        user.suspension_start_date = now()
-        user.save()
+        website = getattr(user, "website", None) or getattr(superadmin, "website", None)
+        if not website:
+            from websites.models.websites import Website
+
+            website = Website.objects.filter(is_active=True).first()
+        if not website:
+            return {"error": "Cannot suspend a user without a website context."}
+
+        account_profile = AccountService.get_or_create_account_profile(
+            website=website,
+            user=user,
+            actor=superadmin,
+            is_primary=not AccountProfile.objects.filter(user=user).exists(),
+            metadata={"source": "superadmin_management.suspend_user"},
+        )
+        AccountActivationService.suspend_account(
+            account_profile=account_profile,
+            reason=reason,
+            actor=superadmin,
+            metadata={"source": "superadmin_management.suspend_user"},
+        )
 
         # Log action
         SuperadminLog.objects.create(
@@ -105,9 +126,18 @@ class SuperadminManager:
     @staticmethod
     def reactivate_user(superadmin, user):
         """Reactivates a suspended user."""
-        user.is_suspended = False
-        user.suspension_reason = None
-        user.save()
+        account_profile = user.account_profiles.filter(
+            status=AccountStatus.SUSPENDED,
+        ).order_by("-suspended_at", "-updated_at").first()
+        if not account_profile:
+            return {"error": "User is not suspended."}
+
+        AccountActivationService.reactivate_account(
+            account_profile=account_profile,
+            actor=superadmin,
+            reason="Account reactivated by superadmin.",
+            metadata={"source": "superadmin_management.reactivate_user"},
+        )
 
         # Log action
         SuperadminLog.objects.create(

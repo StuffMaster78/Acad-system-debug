@@ -38,11 +38,13 @@ class TestEmailTrackingEndpoints:
         assert response["Content-Type"] == "image/gif"
 
         # DB check
-        assert EmailOpenTracker.objects.filter(recipient=self.recipient).exists()
+        assert EmailOpenTracker.objects.filter(
+            recipient=self.recipient).exists()
 
         # Hitting again does not duplicate
         client.get(url)
-        assert EmailOpenTracker.objects.filter(recipient=self.recipient).count() == 1
+        assert EmailOpenTracker.objects.filter(
+            recipient=self.recipient).count() == 1
 
         # Status should be updated to 'opened'
         self.recipient.refresh_from_db()
@@ -57,7 +59,8 @@ class TestEmailTrackingEndpoints:
         assert response.status_code == 302
         assert response.url == destination
 
-        click = EmailClickTracker.objects.filter(recipient=self.recipient).first()
+        click = EmailClickTracker.objects.filter(
+            recipient=self.recipient).first()
         assert click is not None
         assert click.url == destination
 
@@ -74,12 +77,18 @@ class TestEmailTrackingEndpoints:
         assert response.status_code == 200
         assert b"unsubscribed" in response.content.lower()
 
-        unsub = UnsubscribeLog.objects.filter(email=self.recipient.email).first()
+        unsub = UnsubscribeLog.objects.filter(
+            email=self.recipient.email).first()
         assert unsub is not None
         assert unsub.user == self.user
 
     def test_invalid_recipient_id_returns_404(self, client):
-        for route_name in ["email-track-open", "email-track-click", "email-unsubscribe"]:
+        route_names = [
+            "email-track-open",
+            "email-track-click",
+            "email-unsubscribe",
+        ]
+        for route_name in route_names:
             url = reverse(route_name, args=[9999])
             response = client.get(url)
             assert response.status_code == 404

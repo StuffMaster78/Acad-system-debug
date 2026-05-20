@@ -1,12 +1,13 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in
 from .models import ClientProfile, SuspiciousLogin
 from core.utils.location import get_geolocation_from_ip, get_client_ip
 from django.core.mail import send_mail
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 
 @receiver(post_save, sender=User)
@@ -14,8 +15,11 @@ def create_client_profile(sender, instance, created, **kwargs):
     """
     Automatically create a ClientProfile for a user with the 'client' role.
     """
-    if created and instance.role == "client":
-        ClientProfile.objects.create(user=instance)
+    if created and instance.role == "client" and getattr(instance, "website_id", None):
+        ClientProfile.objects.get_or_create(
+            user=instance,
+            defaults={"website": instance.website},
+        )
         print(f"ClientProfile created for user: {instance.username}")
 
 

@@ -202,19 +202,16 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_style_reference_files(self, obj):
         """Get style reference files for this order."""
         try:
-            from django.contrib.contenttypes.models import ContentType
             from files_management.api.serializers.response_serializers import (
                 FileAttachmentDetailSerializer,
             )
             from files_management.enums import FilePurpose
-            from files_management.models import FileAttachment
+            from files_management.selectors import FileAttachmentSelector
 
-            content_type = ContentType.objects.get_for_model(obj)
-            style_refs = FileAttachment.objects.filter(
-                content_type=content_type,
-                object_id=obj.pk,
+            style_refs = FileAttachmentSelector.for_object_and_purpose(
+                website=obj.website,
+                obj=obj,
                 purpose=FilePurpose.STYLE_REFERENCE,
-                is_active=True,
             ).select_related("managed_file", "external_link")
 
             serializer = FileAttachmentDetailSerializer(

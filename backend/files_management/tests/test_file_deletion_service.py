@@ -15,8 +15,8 @@ from files_management.services import (
     FileDeletionService,
     FileUploadService,
 )
-from orders.models import Order
-from websites.models import Website
+from tickets.models import Ticket
+from websites.models.websites import Website
 
 
 @override_settings(DEFAULT_FILE_STORAGE="django.core.files.storage.InMemoryStorage")
@@ -45,13 +45,16 @@ class FileDeletionServiceTests(TestCase):
             website=self.website,
             is_staff=True,
         )
-        self.order = Order.objects.create(
+        self.order = Ticket.objects.create(
+            title="Deletion target",
+            description="Attach files here.",
             website=self.website,
-            client=self.client,
+            created_by=self.client_user,
+            assigned_to=self.staff,
         )
         self.file = FileUploadService.upload_file(
             website=self.website,
-            uploaded_by=self.client,
+            uploaded_by=self.client_user,
             uploaded_file=SimpleUploadedFile(
                 "instructions.pdf",
                 b"content",
@@ -65,25 +68,25 @@ class FileDeletionServiceTests(TestCase):
             managed_file=self.file,
             purpose=FilePurpose.ORDER_INSTRUCTION,
             visibility=FileVisibility.ORDER_PARTICIPANTS,
-            attached_by=self.client,
+            attached_by=self.client_user,
         )
 
     def test_client_can_request_deletion(self) -> None:
         request = FileDeletionService.request_deletion(
             website=self.website,
-            requested_by=self.client,
+            requested_by=self.client_user,
             attachment=self.attachment,
             reason="Wrong file.",
         )
 
         self.assertIsInstance(request, FileDeletionRequest)
         self.assertEqual(request.status, DeletionRequestStatus.PENDING)
-        self.assertEqual(request.requested_by, self.client)
+        self.assertEqual(request.requested_by, self.client_user)
 
     def test_staff_can_approve_deletion_request(self) -> None:
         request = FileDeletionService.request_deletion(
             website=self.website,
-            requested_by=self.client,
+            requested_by=self.client_user,
             attachment=self.attachment,
             reason="Wrong file.",
         )
@@ -99,7 +102,7 @@ class FileDeletionServiceTests(TestCase):
     def test_staff_can_complete_detach_only_request(self) -> None:
         request = FileDeletionService.request_deletion(
             website=self.website,
-            requested_by=self.client,
+            requested_by=self.client_user,
             attachment=self.attachment,
             reason="Wrong file.",
             scope=DeletionRequestScope.DETACH_ONLY,
@@ -125,7 +128,7 @@ class FileDeletionServiceTests(TestCase):
     def test_staff_can_archive_file_from_request(self) -> None:
         request = FileDeletionService.request_deletion(
             website=self.website,
-            requested_by=self.client,
+            requested_by=self.client_user,
             attachment=self.attachment,
             reason="Archive it.",
             scope=DeletionRequestScope.ARCHIVE_FILE,

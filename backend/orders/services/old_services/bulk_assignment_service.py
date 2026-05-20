@@ -12,7 +12,7 @@ from django.utils import timezone
 from orders.models.orders import Order, OrderStatus
 from orders.services.assignment import OrderAssignmentService
 from orders.services.auto_assignment_service import AutoAssignmentService
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 from writer_management.models.levels import WriterLevel
 
 

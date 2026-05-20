@@ -113,7 +113,7 @@ class WindowService:
         # Optionally confirm all pending events before closing.
         if auto_confirm_pending:
             CompensationEvent.objects.filter(
-                window=window,
+                payment_window=window,
                 status=EventStatus.PENDING_CONFIRMATION,
             ).update(status=EventStatus.MATURED)
  
@@ -125,7 +125,7 @@ class WindowService:
         # Aggregate MATURED events per writer.
         writer_totals = (
             CompensationEvent.objects
-            .filter(window=window, status=EventStatus.MATURED)
+            .filter(payment_window=window, status=EventStatus.MATURED)
             .values("writer_id")
             .annotate(total=Sum("amount"))
         )
@@ -186,7 +186,7 @@ class WindowService:
  
         # Lock all events — confirm any still-pending ones.
         CompensationEvent.objects.filter(
-            window=window,
+            payment_window=window,
             status=EventStatus.PENDING_CONFIRMATION,
         ).update(status=EventStatus.MATURED)
  

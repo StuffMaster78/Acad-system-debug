@@ -9,8 +9,13 @@ from tickets.services import TicketFileService
 
 
 class TicketFileSerializer(FileAttachmentDetailSerializer):
+    uploaded_by = serializers.IntegerField(
+        source="attached_by_id",
+        read_only=True,
+    )
+
     class Meta(FileAttachmentDetailSerializer.Meta):
-        pass
+        fields = FileAttachmentDetailSerializer.Meta.fields + ["uploaded_by"]
 
 
 class TicketFileUploadSerializer(serializers.Serializer):

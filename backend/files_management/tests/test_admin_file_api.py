@@ -21,8 +21,8 @@ from files_management.services import (
     FileScanService,
     FileUploadService,
 )
-from orders.models import Order
-from websites.models import Website
+from tickets.models import Ticket
+from websites.models.websites import Website
 
 
 @override_settings(DEFAULT_FILE_STORAGE="django.core.files.storage.InMemoryStorage")
@@ -53,9 +53,12 @@ class AdminFileApiTests(TestCase):
             website=self.website,
         )
 
-        self.order = Order.objects.create(
+        self.order = Ticket.objects.create(
+            title="File test target",
+            description="Attach files here.",
             website=self.website,
-            client=self.client_user,
+            created_by=self.client_user,
+            assigned_to=self.staff,
         )
 
         self.managed_file = FileUploadService.upload_file(

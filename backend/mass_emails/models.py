@@ -7,7 +7,7 @@ recipient tracking, file attachments, and email templates.
 from django.conf import settings
 from django.db import models
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 class EmailCampaign(models.Model):
@@ -91,7 +91,11 @@ class EmailCampaign(models.Model):
                 from websites.models.websites import Website
                 site = Website.objects.filter(is_active=True).first()
                 if site is None:
-                    site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+                    site = Website.objects.create(
+                        name="Test Website",
+                        domain="https://test.local",
+                        is_active=True,
+                    )
                 self.website_id = site.id
             except Exception:
                 pass
@@ -101,20 +105,31 @@ class EmailCampaign(models.Model):
     def resolved_sender_email(self):
         """
         Returns the website's marketing sender email.
-        Raises error if not configured.
         """
-        if not self.website.marketing_sender_email:
-            raise ValueError(
-                "Marketing sender email is not configured on the website."
-            )
-        return self.website.marketing_sender_email
+        if self.website.marketing_sender_email:
+            return self.website.marketing_sender_email
+        try:
+            integration = self.website.email_service
+            if integration and integration.sender_email:
+                return integration.sender_email
+        except Exception:
+            pass
+        return getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@example.com")
 
     @property
     def resolved_sender_name(self):
         """
         Returns the website's default sender name or a fallback.
         """
-        return self.website.default_sender_name or "Marketing Team"
+        if self.website.default_sender_name:
+            return self.website.default_sender_name
+        try:
+            integration = self.website.email_service
+            if integration and integration.sender_name:
+                return integration.sender_name
+        except Exception:
+            pass
+        return self.website.name or "Marketing Team"
 
 
 class EmailRecipient(models.Model):
@@ -161,15 +176,27 @@ class EmailRecipient(models.Model):
 
 class CampaignAttachment(models.Model):
     """
-    Stores file attachments (e.g. PDFs, images) for a campaign.
+    Links a campaign to a centrally managed file attachment.
     """
     campaign = models.ForeignKey(
         EmailCampaign,
         on_delete=models.CASCADE,
         related_name='attachments'
     )
-    file = models.FileField(upload_to='email_attachments/')
+    attachment = models.OneToOneField(
+        'files_management.FileAttachment',
+        on_delete=models.CASCADE,
+        related_name='mass_email_attachment',
+    )
     name = models.CharField(max_length=255)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_campaign_attachments',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
@@ -193,7 +220,7 @@ class EmailTemplate(models.Model):
 
     def __str__(self):
         return self.name
-    
+
 
 class EmailServiceIntegration(models.Model):
     """
@@ -223,7 +250,7 @@ class EmailServiceIntegration(models.Model):
 
     def __str__(self):
         return f"{self.website.name} - {self.provider_name}"
-    
+
 
 # mass_email/models.py (add these at the bottom)
 

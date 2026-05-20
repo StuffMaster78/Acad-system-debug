@@ -10,11 +10,14 @@ from decimal import Decimal
 from core.utils.cache_helpers import cache_view_result
 
 from client_management.models import ClientProfile
+from order_payments_management.models.payments import OrderPayment
 from orders.models.orders import Order
 from orders.models.legacy_models.writer_progress import WriterProgress
 from payments_processor.models import PaymentIntent
-from wallet.models import Wallet, WalletTransaction
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier, ClientBadge
+from wallets.constants import WalletEntryDirection, WalletEntryType, WalletType
+from wallets.selectors import WalletEntrySelectors
+from wallets.services import ClientWalletService
 try:
     from referrals.models import Referral
 except ImportError:
@@ -344,41 +347,43 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 status=404
             )
         
-        try:
-            wallet = Wallet.objects.get(user=request.user)
-        except Wallet.DoesNotExist:
-            return Response({
-                'balance': 0,
-                'transactions': [],
-                'top_up_history': [],
-                'spending_breakdown': {},
-            })
+        wallet = ClientWalletService.get_wallet(
+            website=profile.website,
+            client=request.user,
+        )
         
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
         
         # Get transactions
-        transactions = WalletTransaction.objects.filter(
-            wallet=wallet,
-            created_at__gte=date_from
+        transactions = WalletEntrySelectors.for_owner(
+            website=profile.website,
+            owner_user=request.user,
+            wallet_type=WalletType.CLIENT,
+        ).filter(
+            created_at__gte=date_from,
         ).order_by('-created_at')
         
         # Get top-up history
-        top_ups = transactions.filter(transaction_type='credit').order_by('-created_at')
+        top_ups = transactions.filter(
+            direction=WalletEntryDirection.CREDIT,
+            entry_type=WalletEntryType.FUNDING,
+        ).order_by('-created_at')
         
         # Spending breakdown by category
-        spending = transactions.filter(transaction_type='debit')
+        spending = transactions.filter(direction=WalletEntryDirection.DEBIT)
         spending_breakdown = spending.values('description').annotate(
             total=Sum('amount')
         ).order_by('-total')
         
         return Response({
-            'balance': float(wallet.balance),
+            'balance': float(wallet.available_balance),
             'transactions': [
                 {
                     'id': t.id,
                     'amount': float(t.amount),
-                    'transaction_type': t.transaction_type,
+                    'transaction_type': t.entry_type,
+                    'direction': t.direction,
                     'description': t.description,
                     'created_at': t.created_at.isoformat() if t.created_at else None,
                 }
@@ -635,37 +640,25 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             # Clients can only see their own orders
             order_query['client'] = user
         elif user_role == 'writer':
-            # Writers can see orders they're assigned to or have requested
-            from writer_management.models.requests import WriterOrderRequest
-            try:
-                writer_profile = user.writer_profile
-                requested_orders = WriterOrderRequest.objects.filter(
-                    writer=writer_profile
-                ).values_list('order_id', flat=True)
-                
-                # Use Q object to check if order is assigned to writer OR requested by writer
-                from django.db.models import Q
-                order = Order.objects.select_related(
-                    'assigned_writer', 'type_of_work', 'paper_type', 'subject',
-                    'completed_by', 'client'
-                ).prefetch_related(
-                    'progress_logs', 'transitions', 'reassignment_logs',
-                    'disputes', 'reviews'
-                ).filter(
-                    Q(id=order_id) & (
-                        Q(assigned_writer=user) |
-                        Q(id__in=requested_orders)
-                    )
-                ).first()
-                
-                if not order:
-                    return Response(
-                        {"detail": "Order not found or you don't have permission to view it."},
-                        status=404
-                    )
-            except Exception:
+            from orders.selectors.order_visibility_selector import (
+                OrderVisibilitySelector,
+            )
+
+            order = Order.objects.filter(id=order_id).first()
+            if (
+                order is None
+                or not OrderVisibilitySelector.can_writer_view_order(
+                    writer=user,
+                    order=order,
+                ).can_view
+            ):
                 return Response(
-                    {"detail": "Order not found or you don't have permission to view it."},
+                    {
+                        "detail": (
+                            "Order not found or you don't have permission "
+                            "to view it."
+                        )
+                    },
                     status=404
                 )
         elif user_role in ['admin', 'superadmin', 'support', 'editor']:

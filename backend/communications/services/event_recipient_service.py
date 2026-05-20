@@ -15,7 +15,7 @@ class CommunicationEventRecipientService:
         """
         Return active participant user IDs for a thread.
         """
-        queryset = thread.participant_records.filter(
+        queryset = thread.participants.filter(
             can_view=True,
             removed_at__isnull=True,
         )
@@ -36,7 +36,7 @@ class CommunicationEventRecipientService:
         Replace with your real user/role selector once roles are centralized.
         """
         return list(
-            thread.participant_records.filter(
+            thread.participants.filter(
                 can_view=True,
                 removed_at__isnull=True,
                 role__in=[

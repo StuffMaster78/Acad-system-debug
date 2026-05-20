@@ -3,7 +3,7 @@ from django.utils.timezone import now
 from django.conf import settings
 from websites.models.websites import Website
 from orders.models.orders import Order
-from wallet.models import Wallet
+from wallets.models import Wallet
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from django.contrib.postgres.fields import ArrayField

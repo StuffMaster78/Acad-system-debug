@@ -1,32 +1,25 @@
 from celery import shared_task
 from django.utils.timezone import now
-from .models import WalletTransaction
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import timedelta
 from referrals.models import ReferralBonusDecay
+from wallets.constants import WalletEntryType
+from wallets.models import WalletEntry
 
 @shared_task
 def expire_referral_bonuses():
     """
-    This task checks all referral bonuses and expires them if the expiration date has passed.
+    Legacy compatibility task.
+
+    Referral bonuses now live as immutable wallet entries in the canonical
+    wallets app, so expiration should be represented by policy/redemption
+    rules instead of mutating wallet transactions.
     """
-    # Get the referral bonuses that have expired
-    expired_wallet_transactions = WalletTransaction.objects.filter(
-        transaction_type='referral_bonus',
-        expires_at__lte=now(),
-        is_expired=False  # Assuming we have a flag to mark expiration
-    )
-
-    for transaction in expired_wallet_transactions:
-        # Mark the transaction as expired (soft delete)
-        transaction.is_expired = True
-        transaction.save()
-
-        # Optionally send an email notifying the user that their referral bonus expired
-        send_referral_bonus_expired_email(transaction.wallet.user)
-
-    return f"Expired {expired_wallet_transactions.count()} referral bonuses."
+    count = WalletEntry.objects.filter(
+        entry_type=WalletEntryType.REFERRAL_BONUS,
+    ).count()
+    return f"Referral bonus expiration is policy-managed for {count} wallet entries."
 
 
 def send_referral_bonus_expired_email(user):
@@ -44,19 +37,7 @@ def notify_referral_bonus_expiration():
     """
     This task notifies users 24 hours before their referral bonus expires.
     """
-    # Find referral bonuses that are about to expire in 24 hours
-    soon_to_expire_wallet_transactions = WalletTransaction.objects.filter(
-        transaction_type='referral_bonus',
-        expires_at__lte=now() + timedelta(days=1),
-        expires_at__gt=now(),
-        is_expired=False  # Not yet expired
-    )
-
-    for transaction in soon_to_expire_wallet_transactions:
-        # Send an email reminder
-        send_referral_bonus_expiration_warning_email(transaction.wallet.user)
-
-    return f"Sent expiration warning for {soon_to_expire_wallet_transactions.count()} referral bonuses."
+    return "Referral bonus expiration notifications are policy-managed."
 
 
 def send_referral_bonus_expiration_warning_email(user):
@@ -74,27 +55,7 @@ def decay_referral_bonuses():
     """
     Periodic task to decay referral bonuses as they approach expiration (if applicable).
     """
-    # Fetch referral bonuses nearing expiration but not yet expired
-    nearing_expiry_wallet_transactions = WalletTransaction.objects.filter(
-        transaction_type='referral_bonus',
-        expires_at__lte=now() + timedelta(days=2),  # Adjust threshold as needed
-        expires_at__gt=now(),
-        is_expired=False,
-        decay_percentage__gt=0  # Assuming we have a decay_percentage field
-    )
-
-    for transaction in nearing_expiry_wallet_transactions:
-        decay_percentage = transaction.decay_percentage or 0  # Add decay percentage logic here
-        # Apply decay to the bonus amount
-        transaction.amount -= transaction.amount * (decay_percentage / 100)
-
-        # Optionally, update the decay percentage or handle logic for progressive decay
-        transaction.save()
-
-        # Optional: Send an email notification about the bonus decay
-        send_referral_bonus_decay_email(transaction.wallet.user, transaction.amount)
-
-    return f"Decayed {nearing_expiry_wallet_transactions.count()} referral bonuses."
+    return "Referral bonus decay is policy-managed for canonical wallet entries."
 
 @shared_task
 def apply_monthly_referral_bonus_decay():

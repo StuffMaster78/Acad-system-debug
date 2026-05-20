@@ -1,6 +1,8 @@
-from user_governance_service import UserGovernanceService
-from blacklist_service import BlacklistService
-from appeal_service import AppealService
+from superadmin_management.services.appeal_service import AppealService
+from superadmin_management.services.blacklist_service import BlacklistService
+from superadmin_management.services.user_governance_service import (
+    UserGovernanceService,
+)
 
 
 class SuperadminService:

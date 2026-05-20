@@ -15,6 +15,10 @@ from writer_compensation.signals import (
 logger = logging.getLogger(__name__)
 
 
+def _writer_user(writer_profile):
+    return getattr(writer_profile, "user", None) or writer_profile.account_profile.user
+
+
 @receiver(window_processing_started)
 def on_window_processing_started(sender, window, **kwargs):
     """
@@ -27,8 +31,8 @@ def on_window_processing_started(sender, window, **kwargs):
     writers = (
         CompensationEvent.objects
         .filter(payment_window=window)
-        .select_related("writer__user")
-        .values_list("writer__user", flat=True)
+        .select_related("writer__account_profile__user")
+        .values_list("writer__account_profile__user", flat=True)
         .distinct()
     )
 
@@ -68,12 +72,13 @@ def on_payout_record_paid(sender, record, **kwargs):
     from notifications_system.services.notification_service import NotificationService
 
     window = record.batch.payment_window
+    writer_user = _writer_user(record.writer)
 
     try:
         NotificationService.notify(
             event_key="compensation.payment_paid",
-            recipient=record.writer.user,
-            website=record.batch.window.website,
+            recipient=writer_user,
+            website=window.website,
             context={
                 "amount":       str(record.total_amount),
                 "window_label": f"{window.start_date} - {window.end_date}",
@@ -84,7 +89,7 @@ def on_payout_record_paid(sender, record, **kwargs):
     except Exception:
         logger.exception(
             "Failed to send compensation.payment_paid | "
-            "user %s | record %s", record.writer.user.pk, record.pk,
+            "user %s | record %s", writer_user.pk, record.pk,
         )
 
 
@@ -97,11 +102,12 @@ def on_payout_record_held(sender, record, **kwargs):
     from notifications_system.services.notification_service import NotificationService
 
     window = record.batch.payment_window
+    writer_user = _writer_user(record.writer)
 
     try:
         NotificationService.notify(
             event_key="compensation.payment_on_hold",
-            recipient=record.writer.user,
+            recipient=writer_user,
             website=window.website,
             context={
                 "window_label": f"{window.start_date} - {window.end_date}",
@@ -112,7 +118,7 @@ def on_payout_record_held(sender, record, **kwargs):
     except Exception:
         logger.exception(
             "Failed to send compensation.payment_on_hold | "
-            "user %s | record %s", record.writer.user.pk, record.pk,
+            "user %s | record %s", writer_user.pk, record.pk,
         )
 
 

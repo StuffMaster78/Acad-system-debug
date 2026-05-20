@@ -1,54 +1,79 @@
+from __future__ import annotations
+
 from decimal import Decimal
+import uuid
 
-from django.db import models
 from django.conf import settings
-from django.utils import timezone
 from django.core.exceptions import ValidationError
-import uuid
-from orders.models.orders import Order
-from websites.models.websites import Website
-from payments_processor.models import PaymentIntent
-from django.apps import apps
-import uuid
+from django.db import models
 
-def generate_reference_code():
-    return uuid.uuid4().hex 
+
+def generate_reference_code() -> str:
+    """Return a unique receipt reference code."""
+    return uuid.uuid4().hex
+
+
 class Refund(models.Model):
     """
-    Represents a refund record. Supports wallet and external refunds.
-    Allows both manual and automated refunds.
-    """
-    MANUAL = 'manual'
-    AUTOMATED = 'automated'
+    Business workflow record for client refunds.
 
-    REFUND_TYPE_CHOICES = [
-        (MANUAL, 'Manual'),
-        (AUTOMATED, 'Automated'),
+    Refund execution is delegated to wallets for wallet credits and to
+    payments_processor.PaymentRefund for original payment method refunds.
+    """
+
+    MANUAL = "manual"
+    AUTOMATED = "automated"
+
+    TYPE_CHOICES = [
+        (MANUAL, "Manual"),
+        (AUTOMATED, "Automated"),
     ]
+
+    METHOD_WALLET = "wallet"
+    METHOD_EXTERNAL = "external"
+    METHOD_SPLIT = "split"
 
     METHOD_CHOICES = [
-        ("wallet", "Wallet"),
-        ("external", "External"),
+        (METHOD_WALLET, "Wallet"),
+        (METHOD_EXTERNAL, "Original Payment Method"),
+        (METHOD_SPLIT, "Wallet and Original Payment Method"),
     ]
 
-    PENDING = 'pending'
-    PROCESSED = 'processed'
-    REJECTED = 'rejected'
+    PENDING = "pending"
+    PROCESSED = "processed"
+    REJECTED = "rejected"
+    CANCELED = "canceled"
 
     STATUS_CHOICES = [
-        (PENDING, 'Pending'),
-        (PROCESSED, 'Processed'),
-        (REJECTED, 'rejected'),
+        (PENDING, "Pending"),
+        (PROCESSED, "Processed"),
+        (REJECTED, "Rejected"),
+        (CANCELED, "Canceled"),
     ]
+
     website = models.ForeignKey(
-        Website,
+        "websites.Website",
         on_delete=models.CASCADE,
-        related_name='refunds_for_client'
+        related_name="refunds",
+    )
+    order = models.ForeignKey(
+        "orders.Order",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="refunds",
     )
     order_payment = models.ForeignKey(
-        PaymentIntent,
-        on_delete=models.CASCADE,
-        related_name="refund_app_refunds"
+        "payments_processor.PaymentIntent",
+        on_delete=models.PROTECT,
+        related_name="refund_app_refunds",
+    )
+    payment_refund = models.ForeignKey(
+        "payments_processor.PaymentRefund",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="refund_workflows",
     )
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -57,272 +82,242 @@ class Refund(models.Model):
     )
     type = models.CharField(
         max_length=10,
-        choices=REFUND_TYPE_CHOICES,
-        default=MANUAL
+        choices=TYPE_CHOICES,
+        default=MANUAL,
     )
     wallet_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, default=Decimal("0.00")
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
     )
     external_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, default=Decimal("0.00")
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
     )
     refund_method = models.CharField(
-        max_length=10, choices=METHOD_CHOICES, default="wallet"
+        max_length=20,
+        choices=METHOD_CHOICES,
+        default=METHOD_WALLET,
     )
+    reason = models.TextField(blank=True, default="")
     processed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="processed_refund_app_refunds"
+        related_name="processed_refund_app_refunds",
     )
     processed_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default="pending"
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=PENDING,
     )
     metadata = models.JSONField(default=dict, blank=True)
-    error_message = models.TextField(blank=True, null=True)
+    error_message = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["website", "client", "created_at"]),
+            models.Index(fields=["order_payment", "status"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["refund_method"]),
+        ]
+
+    def __str__(self) -> str:
         return (
-            f"Refund of ${self.total_amount()} for OrderPayment {self.order_payment.pk}"
+            f"Refund {self.pk or 'new'} of {self.total_amount()} "
+            f"for payment {self.order_payment.pk}"
         )
 
-    def total_amount(self):
-        """
-        Returns the total refunded amount (wallet + external).
-        """
+    def clean(self) -> None:
+        """Validate refund amounts and destination consistency."""
+        super().clean()
+
+        if self.wallet_amount < Decimal("0.00"):
+            raise ValidationError(
+                {"wallet_amount": "Wallet refund cannot be negative."}
+            )
+
+        if self.external_amount < Decimal("0.00"):
+            raise ValidationError(
+                {"external_amount": "External refund cannot be negative."}
+            )
+
+        if self.total_amount() <= Decimal("0.00"):
+            raise ValidationError("Refund amount must be greater than zero.")
+
+        if (
+            self.refund_method == self.METHOD_WALLET
+            and self.external_amount > Decimal("0.00")
+        ):
+            raise ValidationError(
+                {
+                    "refund_method": (
+                        "Wallet refunds cannot include external amount."
+                    ),
+                }
+            )
+
+        if (
+            self.refund_method == self.METHOD_EXTERNAL
+            and self.wallet_amount > Decimal("0.00")
+        ):
+            raise ValidationError(
+                {
+                    "refund_method": (
+                        "External refunds cannot include wallet amount."
+                    ),
+                }
+            )
+
+    def save(self, *args, **kwargs) -> None:
+        """Infer tenant, client, order, and destination before saving."""
+        self._infer_related_fields()
+        self._infer_refund_method()
+        super().save(*args, **kwargs)
+
+    def total_amount(self) -> Decimal:
+        """Return the combined wallet and external refund amount."""
         return self.wallet_amount + self.external_amount
 
-    def save(self, *args, **kwargs):
-        # Infer website and client from order_payment if missing
-        from websites.models.websites import Website
-        try:
-            if not getattr(self, 'website_id', None) and getattr(self, 'order_payment', None):
-                if getattr(self.order_payment, 'website_id', None):
-                    self.website_id = self.order_payment.website_id
-                elif getattr(getattr(self.order_payment, 'order', None), 'website_id', None):
-                    self.website_id = self.order_payment.order.website_id
-            if not getattr(self, 'client_id', None) and getattr(self, 'order_payment', None):
-                if getattr(self.order_payment, 'client_id', None):
-                    self.client_id = self.order_payment.client_id
-                elif getattr(getattr(self.order_payment, 'order', None), 'client_id', None):
-                    self.client_id = self.order_payment.order.client_id
-        except Exception:
-            pass
-        super().save(*args, **kwargs)
-    
-if apps.is_installed('payments_processor'):
-    class RefundRequest(models.Model):
-        """
-        Represents a refund request initiated by a client.
-
-        Attributes:
-            payment: Payment being refunded.
-            requested_by: Who filed the refund request.
-            reason: Stated reason for refund.
-            status: Current lifecycle status of the request.
-            decision_notes: Admin notes explaining the decision.
-            reviewed_by: Admin who approved/rejected.
-            created_at: When the request was filed.
-            reviewed_at: When the request was resolved.
-        """
-
-        STATUS_CHOICES = [
-            ("pending", "Pending"),
-            ("approved", "Approved"),
-            ("rejected", "Rejected"),
-            ("refunded", "Refunded"),
-            ("failed", "Failed"),
-        ]
-
-        payment = models.OneToOneField(
-            "payments_processor.PaymentIntent", on_delete=models.CASCADE,
-            related_name="refund_request"
+    @property
+    def is_full_refund(self) -> bool:
+        """Return whether this refund covers the whole payment amount."""
+        payment_amount = getattr(
+            self.order_payment,
+            "amount",
+            Decimal("0.00"),
         )
-        requested_by = models.ForeignKey(
-            settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-            related_name="refund_requests"
-        )
-        reason = models.TextField()
-        status = models.CharField(
-            max_length=20, choices=STATUS_CHOICES, default="pending"
-        )
-        decision_notes = models.TextField(blank=True)
-        reviewed_by = models.ForeignKey(
-            settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-            null=True, blank=True, related_name="reviewed_refunds"
-        )
-        created_at = models.DateTimeField(auto_now_add=True)
-        reviewed_at = models.DateTimeField(null=True, blank=True)
+        return self.total_amount() >= payment_amount
 
-        def __str__(self):
-            return f"RefundRequest for {self.payment.reference_id}"
+    def _infer_related_fields(self) -> None:
+        payment = getattr(self, "order_payment", None)
+        if payment is None:
+            return
 
-    class RefundTransaction(models.Model):
-        """
-        Represents the actual refund action performed on a payment.
+        if not self.website_id and getattr(payment, "website_id", None):
+            self.website_id = payment.website_id
 
-        Attributes:
-            request: The refund request this transaction fulfills.
-            amount: Amount refunded.
-            method: Refund method used (Stripe, Wallet, Manual).
-            status: Status of the refund execution.
-            reference_id: External refund ID (e.g. Stripe).
-            metadata: Extra data like Stripe response or wallet log.
-            created_at: When the refund was triggered.
-            completed_at: When the refund was completed.
-        """
+        if not self.client_id and getattr(payment, "client_id", None):
+            self.client_id = payment.client_id
 
-        METHOD_CHOICES = [
-            ("stripe", "Stripe"),
-            ("wallet", "Wallet"),
-            ("manual", "Manual"),
-        ]
+        payable = getattr(payment, "payable", None)
+        if not self.order and payable is not None:
+            if payable.__class__._meta.label_lower == "orders.order":
+                self.order = payable
 
-        STATUS_CHOICES = [
-            ("initiated", "Initiated"),
-            ("completed", "Completed"),
-            ("failed", "Failed"),
-        ]
+    def _infer_refund_method(self) -> None:
+        has_wallet = self.wallet_amount > Decimal("0.00")
+        has_external = self.external_amount > Decimal("0.00")
 
-        request = models.ForeignKey(
-            RefundRequest, on_delete=models.CASCADE,
-            related_name="transactions"
-        )
-        amount = models.DecimalField(max_digits=12, decimal_places=2)
-        method = models.CharField(max_length=20, choices=METHOD_CHOICES)
-        status = models.CharField(max_length=20, choices=STATUS_CHOICES)
-        reference_id = models.CharField(
-            max_length=100, blank=True, null=True
-        )
-        metadata = models.JSONField(blank=True, null=True)
-        created_at = models.DateTimeField(auto_now_add=True)
-        completed_at = models.DateTimeField(null=True, blank=True)
+        if has_wallet and has_external:
+            self.refund_method = self.METHOD_SPLIT
+        elif has_external:
+            self.refund_method = self.METHOD_EXTERNAL
+        else:
+            self.refund_method = self.METHOD_WALLET
 
-        def __str__(self):
-            return f"{self.method} refund of {self.amount}"
 
 class RefundLog(models.Model):
-    """
-    Logs the details of a refund action. Used to track and audit refund activities.
-    """
+    """Immutable audit log for refund workflow actions."""
+
     website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name='refund_logs'
-    )
-    order = models.ForeignKey(
-        Order,
+        "websites.Website",
         on_delete=models.CASCADE,
         related_name="refund_logs",
-        help_text="The order related to the refund"
+    )
+    order = models.ForeignKey(
+        "orders.Order",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="refund_logs",
     )
     refund = models.ForeignKey(
         Refund,
         on_delete=models.CASCADE,
         related_name="logs",
-        help_text="The refund associated with this log"
     )
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="refund_logs",
-        help_text="The client who initiated the refund"
-    )   
-    amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        help_text="Amount refunded"
     )
-    source = models.CharField(
-        max_length=100,
-        help_text="Origin of the refund (manual, stripe-webhook, etc.)"
-    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    action = models.CharField(max_length=100)
+    source = models.CharField(max_length=100)
     processed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         related_name="refund_processed_logs",
-        help_text="User who processed the refund"
     )
-    status = models.CharField(
-        max_length=20,
-        choices=[
-            ('pending', 'Pending'),
-            ('processed', 'Processed'),
-            ('rejected', 'Rejected')
-        ],
-        help_text="Refund status"
-    )
-    metadata = models.JSONField(
-        default=dict,
-        blank=True,
-        help_text="Any additional metadata associated with the refund"
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text="Timestamp of the refund action"
-    )
+    status = models.CharField(max_length=20)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["website", "client", "created_at"]),
+            models.Index(fields=["refund", "status"]),
+        ]
+
+    def __str__(self) -> str:
         return (
-            f"Refund of {self.amount} for Order {self.order.id} "
-            f"from {self.source} - {self.status}"
+            f"{self.action} for refund {self.refund.pk} "
+            f"amount={self.amount} status={self.status}"
         )
 
 
 class RefundReceipt(models.Model):
-    """
-    Receipt for the refunded amount.
-    """
+    """Client-facing receipt for a processed refund."""
+
     website = models.ForeignKey(
-        Website,
+        "websites.Website",
         on_delete=models.CASCADE,
-        related_name='refund_receipt'
+        related_name="refund_receipts",
     )
     refund = models.OneToOneField(
-        Refund, on_delete=models.CASCADE,
-        related_name="receipt"
-    )
-    amount = models.DecimalField(
-        max_digits=10, decimal_places=2,
-        help_text="Total amount refunded"
-    )
-    order_payment = models.ForeignKey(
-        PaymentIntent,
+        Refund,
         on_delete=models.CASCADE,
-        related_name="refund_receipt"
+        related_name="receipt",
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    order_payment = models.ForeignKey(
+        "payments_processor.PaymentIntent",
+        on_delete=models.PROTECT,
+        related_name="refund_receipts",
     )
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="refund_receipts"
+        related_name="refund_receipts",
     )
-
-    reason = models.TextField(
-        blank=True, null=True,
-        help_text="Reason for the refund"
-    )
-
+    reason = models.TextField(blank=True, default="")
     processed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         on_delete=models.SET_NULL,
-        related_name="processed_receipts"
+        related_name="processed_receipts",
     )
-
     generated_at = models.DateTimeField(auto_now_add=True)
-
     reference_code = models.CharField(
-        max_length=64, unique=True,
-        default=generate_reference_code, blank=True
+        max_length=64,
+        unique=True,
+        default=generate_reference_code,
+        blank=True,
     )
 
-    def save(self, *args, **kwargs):
-        if not self.reference_code:
-            self.reference_code = uuid.uuid4().hex[:16]
-        super().save(*args, **kwargs)
+    class Meta:
+        ordering = ["-generated_at", "-id"]
 
-    def __str__(self):
-        return f"Receipt {self.reference_code} for Refund {self.refund.id}"
+    def __str__(self) -> str:
+        return f"Receipt {self.reference_code} for refund {self.refund.pk}"

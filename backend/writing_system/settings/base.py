@@ -33,6 +33,19 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 DEBUG = False  # overridden in dev
 
+# Legacy compatibility apps are installed only so historical migrations and
+# data imports can still resolve their models. New code and frontend routes
+# must use wallets and files_management instead.
+LEGACY_COMPAT_APPS = [
+    "wallet",
+    "client_wallet",
+    "writer_wallet",
+]
+
+ENABLE_LEGACY_WRITER_WALLET_SIGNALS = (
+    os.getenv("ENABLE_LEGACY_WRITER_WALLET_SIGNALS", "False") == "True"
+)
+
 
 # -------------------------
 # INSTALLED APPS
@@ -88,10 +101,8 @@ INSTALLED_APPS = [
     "special_orders",
     "class_management",
     "billing",
-    "wallet",
     "wallets",
-    "client_wallet",
-    "writer_wallet",
+    *LEGACY_COMPAT_APPS,
     "ledger",
     "payments_processor",
     "discounts",

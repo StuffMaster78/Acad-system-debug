@@ -74,7 +74,7 @@ class CanModerateMessages(permissions.BasePermission):
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and request.user.role == "support"):
             return False
-        access = getattr(getattr(request.user, 'support_profile', None), 'message_access', None)
+        access = getattr(request.user, 'message_access', None)
         try:
             return bool(getattr(access, 'can_moderate_messages', False))
         except Exception:

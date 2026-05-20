@@ -14,7 +14,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from orders.models.orders import Order, OrderStatus
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 from writer_management.models.levels import WriterLevel
 
 

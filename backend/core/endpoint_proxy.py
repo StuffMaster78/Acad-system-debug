@@ -29,14 +29,14 @@ ENDPOINT_ROUTES = {
         '/client/referrals/stats/': '/api/v1/referrals/referrals/stats/',
         '/client/profile/': '/api/v1/users/users/profile/',
         '/client/support/': '/api/v1/support-management/tickets/',
-        '/client/notifications/': '/api/v1/notifications_system/notifications/feed/',
+        '/client/notifications/': '/api/v1/notifications/notifications/feed/',
     },
     'writer': {
         '/writer/orders/': '/api/v1/writer-management/writer-orders/',
         '/writer/requests/': '/api/v1/writer-management/writer-order-requests/',
         '/writer/takes/': '/api/v1/writer-management/writer-order-takes/',
-        '/writer/payments/': '/api/v1/writer-management/writer-payments/',
-        '/writer/wallet/': '/api/v1/writer-wallet/writer-payments/',
+        '/writer/payments/': '/api/v1/writer-compensation/',
+        '/writer/wallet/': '/api/v1/wallets/me/',
         '/writer/performance/': '/api/v1/writer-management/writer-performance/',
         '/writer/dashboard/': '/api/v1/writer-management/writer-dashboard/',
         '/writer/hold-requests/': '/api/v1/writer-management/writer-order-hold-requests/',
@@ -256,4 +256,3 @@ def endpoint_proxy(request, masked_path=''):
     
     # Make internal request to actual endpoint
     return make_internal_request(request, actual_path)
-

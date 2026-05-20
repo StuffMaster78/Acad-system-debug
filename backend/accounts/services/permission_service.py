@@ -18,13 +18,16 @@ class AccountPermissionService:
         user: Any,
         website: Any | None = None,
     ) -> Set[int]:
+        if not hasattr(user, "_meta"):
+            return set()
+
         qs = AccountRole.objects.filter(
-            account__user=user,
+            account_profile__user=user,
             is_active=True,
         )
 
         if website is not None:
-            qs = qs.filter(account__website=website)
+            qs = qs.filter(account_profile__website=website)
 
         return set(qs.values_list("role_id", flat=True))
 
@@ -57,6 +60,9 @@ class AccountPermissionService:
         permission_code: str,
         website: Any | None = None,
     ) -> bool:
+        if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+            return True
+
         permissions = AccountPermissionService.get_user_permissions(
             user=user,
             website=website,

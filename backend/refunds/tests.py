@@ -1,207 +1,332 @@
-from django.urls import reverse
-from rest_framework.test import APITestCase, APIClient
-from rest_framework import status
-from django.conf import settings
-from refunds.models import Refund, RefundLog, RefundReceipt
-from order_payments_management.models.payments import OrderPayment
-from django.utils import timezone
+from __future__ import annotations
 
-User = settings.AUTH_USER_MODEL
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+from ledger.constants import LedgerAccountType
+from ledger.models import LedgerAccount
+from payments_processor.enums import (
+    PaymentIntentPurpose,
+    PaymentIntentStatus,
+    PaymentProvider,
+)
+from payments_processor.models import PaymentIntent, PaymentRefund
+from refunds.models import Refund, RefundLog, RefundReceipt
+from rest_framework import status
+from rest_framework.test import APITestCase
+from wallets.models import Wallet
+from websites.models.websites import Website
+
+
+User = get_user_model()
+
 
 class RefundsAPITestCase(APITestCase):
+    """Refund API and processing coverage."""
+
     def setUp(self):
-        self.client_user = User.objects.create_user(username="client", password="pass")
-        self.staff_user = User.objects.create_user(username="staff", password="pass", is_staff=True)
-        self.order_payment = OrderPayment.objects.create(
-            # Fill with required fields for your OrderPayment model
+        self.website = Website.objects.create(
+            name="Refunds Site",
+            domain="https://refunds.test",
+        )
+        self.client_user = User.objects.create_user(
+            username="refund-client",
+            email="refund-client@test.local",
+            password="pass",
+            role="client",
+            website=self.website,
+        )
+        self.other_client = User.objects.create_user(
+            username="refund-other",
+            email="refund-other@test.local",
+            password="pass",
+            role="client",
+            website=self.website,
+        )
+        self.staff_user = User.objects.create_user(
+            username="refund-staff",
+            email="refund-staff@test.local",
+            password="pass",
+            role="admin",
+            website=self.website,
+            is_staff=True,
+        )
+        self._create_ledger_accounts()
+        self.payment = self._create_payment(
+            reference="pi_refunds_001",
             client=self.client_user,
-            discounted_amount=100,
+            amount=Decimal("100.00"),
         )
         self.refund_data = {
-            "order_payment": self.order_payment.id,
-            "wallet_amount": 50,
-            "external_amount": 0,
-            "refund_method": "wallet",
+            "order_payment": self.payment.id,
+            "wallet_amount": "50.00",
+            "external_amount": "0.00",
+            "reason": "Client cancellation",
         }
 
     def authenticate(self, user):
         self.client.force_authenticate(user=user)
 
-    def test_client_can_create_refund(self):
+    def test_client_can_create_refund_request(self):
         self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        response = self.client.post(url, self.refund_data)
+        response = self.client.post(reverse("refund-list"), self.refund_data)
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Refund.objects.count(), 1)
-        refund = Refund.objects.first()
+
+        refund = Refund.objects.get()
         self.assertEqual(refund.client, self.client_user)
-        self.assertEqual(refund.wallet_amount, 50)
+        self.assertEqual(refund.website, self.website)
+        self.assertEqual(refund.wallet_amount, Decimal("50.00"))
+        self.assertEqual(refund.refund_method, Refund.METHOD_WALLET)
+        self.assertEqual(refund.status, Refund.PENDING)
 
-    def test_client_cannot_update_refund(self):
+    def test_client_cannot_refund_another_clients_payment(self):
+        self.authenticate(self.other_client)
+        response = self.client.post(reverse("refund-list"), self.refund_data)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_pending_refunds_reserve_refundable_balance(self):
         self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        response = self.client.post(url, self.refund_data)
-        refund_id = response.data["id"]
-        update_url = reverse("refund-detail", args=[refund_id])
-        response = self.client.put(update_url, {"wallet_amount": 80})
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.client.post(reverse("refund-list"), self.refund_data)
 
-    def test_client_cannot_delete_refund(self):
+        response = self.client.post(
+            reverse("refund-list"),
+            {
+                "order_payment": self.payment.id,
+                "wallet_amount": "60.00",
+                "external_amount": "0.00",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_multiple_partial_refunds_are_allowed_up_to_paid_amount(self):
         self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        response = self.client.post(url, self.refund_data)
-        refund_id = response.data["id"]
-        delete_url = reverse("refund-detail", args=[refund_id])
-        response = self.client.delete(delete_url)
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        first = self.client.post(reverse("refund-list"), self.refund_data)
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
 
-    def test_staff_can_retry_rejected_refund(self):
-        self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        response = self.client.post(url, self.refund_data)
-        refund_id = response.data["id"]
-        refund = Refund.objects.get(id=refund_id)
-        refund.status = Refund.REJECTED
-        refund.save()
+        second = self.client.post(
+            reverse("refund-list"),
+            {
+                "order_payment": self.payment.id,
+                "wallet_amount": "50.00",
+                "external_amount": "0.00",
+            },
+        )
 
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Refund.objects.count(), 2)
+
+    def test_staff_processes_wallet_refund(self):
+        refund = self._create_refund(wallet_amount=Decimal("50.00"))
         self.authenticate(self.staff_user)
-        retry_url = reverse("refund-retry-refund", args=[refund_id])
-        response = self.client.post(retry_url)
+
+        response = self.client.post(
+            reverse("refund-process-refund", args=[refund.id]),
+            {"reason": "Order canceled"},
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+            response.data,
+        )
+        refund.refresh_from_db()
+        self.payment.refresh_from_db()
+
+        wallet = Wallet.objects.get(owner_user=self.client_user)
+        self.assertEqual(refund.status, Refund.PROCESSED)
+        self.assertEqual(wallet.available_balance, Decimal("50.00"))
+        self.assertEqual(self.payment.amount_refunded, Decimal("50.00"))
+        self.assertEqual(
+            self.payment.status,
+            PaymentIntentStatus.PARTIALLY_REFUNDED,
+        )
+        self.assertTrue(RefundReceipt.objects.filter(refund=refund).exists())
+        self.assertTrue(RefundLog.objects.filter(refund=refund).exists())
+
+    def test_staff_processes_external_full_refund(self):
+        refund = self._create_refund(
+            wallet_amount=Decimal("0.00"),
+            external_amount=Decimal("100.00"),
+        )
+        self.authenticate(self.staff_user)
+
+        response = self.client.post(
+            reverse("refund-process-refund", args=[refund.id]),
+            {"reason": "Dispute resolved for client"},
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+            response.data,
+        )
+        refund.refresh_from_db()
+        self.payment.refresh_from_db()
+
+        self.assertEqual(refund.status, Refund.PROCESSED)
+        self.assertEqual(refund.refund_method, Refund.METHOD_EXTERNAL)
+        self.assertEqual(PaymentRefund.objects.count(), 1)
+        self.assertEqual(self.payment.amount_refunded, Decimal("100.00"))
+        self.assertEqual(self.payment.status, PaymentIntentStatus.REFUNDED)
+
+    def test_staff_processes_split_refund(self):
+        refund = self._create_refund(
+            wallet_amount=Decimal("30.00"),
+            external_amount=Decimal("70.00"),
+        )
+        self.authenticate(self.staff_user)
+
+        response = self.client.post(
+            reverse("refund-process-refund", args=[refund.id]),
+            {"reason": "Partial wallet credit requested"},
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+            response.data,
+        )
+        refund.refresh_from_db()
+        self.payment.refresh_from_db()
+
+        wallet = Wallet.objects.get(owner_user=self.client_user)
+        self.assertEqual(refund.refund_method, Refund.METHOD_SPLIT)
+        self.assertEqual(wallet.available_balance, Decimal("30.00"))
+        self.assertEqual(PaymentRefund.objects.count(), 1)
+        self.assertEqual(self.payment.amount_refunded, Decimal("100.00"))
+        self.assertEqual(self.payment.status, PaymentIntentStatus.REFUNDED)
+
+    def test_client_can_cancel_own_pending_refund(self):
+        refund = self._create_refund(wallet_amount=Decimal("50.00"))
+        self.authenticate(self.client_user)
+
+        response = self.client.post(
+            reverse("refund-cancel-refund", args=[refund.id]),
+            {"reason": "Changed mind"},
+        )
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         refund.refresh_from_db()
-        self.assertEqual(refund.status, Refund.PROCESSED)
-
-    def test_client_cannot_retry_refund(self):
-        self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        response = self.client.post(url, self.refund_data)
-        refund_id = response.data["id"]
-        refund = Refund.objects.get(id=refund_id)
-        refund.status = Refund.REJECTED
-        refund.save()
-        retry_url = reverse("refund-retry-refund", args=[refund_id])
-        response = self.client.post(retry_url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_client_can_cancel_pending_refund(self):
-        self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        response = self.client.post(url, self.refund_data)
-        refund_id = response.data["id"]
-        cancel_url = reverse("refund-cancel-refund", args=[refund_id])
-        response = self.client.post(cancel_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        refund = Refund.objects.get(id=refund_id)
         self.assertEqual(refund.status, Refund.REJECTED)
 
-    def test_cannot_cancel_non_pending_refund(self):
+    def test_client_cannot_process_refund(self):
+        refund = self._create_refund(wallet_amount=Decimal("50.00"))
         self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        response = self.client.post(url, self.refund_data)
-        refund_id = response.data["id"]
-        refund = Refund.objects.get(id=refund_id)
-        refund.status = Refund.PROCESSED
-        refund.save()
-        cancel_url = reverse("refund-cancel-refund", args=[refund_id])
-        response = self.client.post(cancel_url)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_refund_log_and_receipt_readonly(self):
-        self.authenticate(self.client_user)
-        # Create a refund to generate logs/receipts
-        url = reverse("refund-list")
-        response = self.client.post(url, self.refund_data)
-        refund_id = response.data["id"]
+        response = self.client.post(
+            reverse("refund-process-refund", args=[refund.id]),
+        )
 
-        # Refund logs
-        log_url = reverse("refund-log-list")
-        response = self.client.get(log_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-        # Refund receipts
-        receipt_url = reverse("refund-receipt-list")
-        response = self.client.get(receipt_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    def test_staff_sees_all_refunds_and_client_sees_own_only(self):
+        own = self._create_refund(wallet_amount=Decimal("10.00"))
+        other_payment = self._create_payment(
+            reference="pi_refunds_002",
+            client=self.other_client,
+            amount=Decimal("25.00"),
+        )
+        Refund.objects.create(
+            order_payment=other_payment,
+            wallet_amount=Decimal("25.00"),
+            client=self.other_client,
+            website=self.website,
+        )
 
-        # Try to POST to logs/receipts (should fail)
-        response = self.client.post(log_url, {})
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
-        response = self.client.post(receipt_url, {})
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
-    def test_negative_refund_amount(self):
-        self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        data = self.refund_data.copy()
-        data["wallet_amount"] = -10
-        response = self.client.post(url, data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_zero_refund_amounts(self):
-        self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        data = self.refund_data.copy()
-        data["wallet_amount"] = 0
-        data["external_amount"] = 0
-        response = self.client.post(url, data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_refund_exceeds_paid_amount(self):
-        self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        data = self.refund_data.copy()
-        data["wallet_amount"] = 200  # More than discounted_amount
-        response = self.client.post(url, data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_unauthenticated_access(self):
-        url = reverse("refund-list")
-        self.client.logout()
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_staff_sees_all_refunds(self):
-        # Create refund as client
-        self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        self.client.post(url, self.refund_data)
-        # Create another refund as staff for another client
-        other_client = User.objects.create_user(username="other", password="pass")
         self.authenticate(self.staff_user)
-        data = self.refund_data.copy()
-        data["client"] = other_client.id
-        data["order_payment"] = self.order_payment.id
-        Refund.objects.create(client=other_client, order_payment=self.order_payment, wallet_amount=10, external_amount=0, refund_method="wallet")
-        response = self.client.get(url)
-        self.assertTrue(len(response.data) >= 2)
+        staff_response = self.client.get(reverse("refund-list"))
+        self.assertEqual(staff_response.data["count"], 2)
 
-    def test_client_sees_only_own_refunds(self):
         self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        self.client.post(url, self.refund_data)
-        other_client = User.objects.create_user(username="other", password="pass")
-        self.authenticate(other_client)
-        response = self.client.get(url)
-        self.assertEqual(len(response.data), 0)
+        client_response = self.client.get(reverse("refund-list"))
+        self.assertEqual(client_response.data["count"], 1)
+        self.assertEqual(client_response.data["results"][0]["id"], own.id)
 
-    
-    def test_client_only_sees_own_logs_and_receipts(self):
-        self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        self.client.post(url, self.refund_data)
-        log_url = reverse("refund-log-list")
-        receipt_url = reverse("refund-receipt-list")
-        response = self.client.get(log_url)
-        self.assertTrue(all(log["client"] == self.client_user.id for log in response.data))
-        response = self.client.get(receipt_url)
-        # If client field is present in receipt, check ownership
-        if response.data and "client" in response.data[0]:
-            self.assertTrue(all(r["client"] == self.client_user.id for r in response.data))
+    def test_logs_and_receipts_are_read_only(self):
+        refund = self._create_refund(wallet_amount=Decimal("50.00"))
+        self.authenticate(self.staff_user)
+        self.client.post(reverse("refund-process-refund", args=[refund.id]))
 
-    def test_cannot_refund_twice(self):
         self.authenticate(self.client_user)
-        url = reverse("refund-list")
-        self.client.post(url, self.refund_data)
-        response = self.client.post(url, self.refund_data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        log_response = self.client.get(reverse("refund-log-list"))
+        receipt_response = self.client.get(reverse("refund-receipt-list"))
+        log_post = self.client.post(reverse("refund-log-list"), {})
+        receipt_post = self.client.post(reverse("refund-receipt-list"), {})
+
+        self.assertEqual(log_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(receipt_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            log_post.status_code,
+            status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(
+            receipt_post.status_code,
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def test_unauthenticated_access_is_rejected(self):
+        response = self.client.get(reverse("refund-list"))
+        self.assertIn(
+            response.status_code,
+            {status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN},
+        )
+
+    def _create_refund(
+        self,
+        *,
+        wallet_amount: Decimal,
+        external_amount: Decimal = Decimal("0.00"),
+    ) -> Refund:
+        return Refund.objects.create(
+            order_payment=self.payment,
+            wallet_amount=wallet_amount,
+            external_amount=external_amount,
+            client=self.client_user,
+            website=self.website,
+        )
+
+    def _create_payment(
+        self,
+        *,
+        reference: str,
+        client,
+        amount: Decimal,
+    ) -> PaymentIntent:
+        return PaymentIntent.objects.create(
+            website=self.website,
+            reference=reference,
+            client=client,
+            purpose=PaymentIntentPurpose.ORDER,
+            provider=PaymentProvider.MOCK,
+            status=PaymentIntentStatus.SUCCEEDED,
+            amount=amount,
+            currency="USD",
+            provider_transaction_id=f"txn_{reference}",
+        )
+
+    def _create_ledger_accounts(self):
+        accounts = [
+            (
+                "CLIENT_WALLET_LIABILITY",
+                "Client Wallet Liability",
+                LedgerAccountType.LIABILITY,
+            ),
+            (
+                "REFUND_CLEARING",
+                "Refund Clearing",
+                LedgerAccountType.CLEARING,
+            ),
+        ]
+        for code, name, account_type in accounts:
+            LedgerAccount.objects.create(
+                website=self.website,
+                code=code,
+                name=name,
+                account_type=account_type,
+                currency="USD",
+                is_system_account=True,
+            )

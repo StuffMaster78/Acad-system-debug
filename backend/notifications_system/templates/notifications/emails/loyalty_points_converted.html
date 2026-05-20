@@ -1,0 +1,6 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<h1>Points converted</h1>
+<p>Hi {{ user.get_full_name|default:user.username }},</p>
+<p>{{ points }} loyalty points were converted to {{ amount }} wallet balance.</p>
+{% endblock %}

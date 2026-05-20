@@ -68,7 +68,7 @@ class FileVersionService:
         )
 
         version_number = cls.get_next_version_number(
-            managed_file=new_file,
+            managed_file=old_file,
         )
 
         FileVersion.objects.create(
@@ -135,4 +135,6 @@ class FileVersionService:
         )
 
         max_version = result.get("max_version") or 0
+        if max_version == 0:
+            max_version = 1
         return int(max_version) + 1

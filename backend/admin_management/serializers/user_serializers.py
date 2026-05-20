@@ -4,9 +4,63 @@ Comprehensive user serializers for admin management.
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from accounts.enums import AccountStatus
 from users.mixins import UserRole
 
 User = get_user_model()
+
+
+def _account_profiles(user):
+    return user.account_profiles.all()
+
+
+def _is_account_suspended(user) -> bool:
+    legacy_value = getattr(user, "is_suspended", None)
+    if legacy_value is not None:
+        return bool(legacy_value)
+    return _account_profiles(user).filter(status=AccountStatus.SUSPENDED).exists()
+
+
+def _suspension_reason(user) -> str:
+    legacy_value = getattr(user, "suspension_reason", None)
+    if legacy_value:
+        return legacy_value
+    profile = _account_profiles(user).filter(
+        status=AccountStatus.SUSPENDED,
+    ).order_by("-suspended_at", "-updated_at").first()
+    return profile.suspension_reason if profile else ""
+
+
+def _suspended_at(user):
+    profile = _account_profiles(user).filter(
+        status=AccountStatus.SUSPENDED,
+    ).order_by("-suspended_at", "-updated_at").first()
+    return profile.suspended_at if profile else None
+
+
+def _is_blacklisted(user) -> bool:
+    legacy_value = getattr(user, "is_blacklisted", None)
+    if legacy_value is not None:
+        return bool(legacy_value)
+    from admin_management.models import BlacklistedUser
+
+    return BlacklistedUser.objects.filter(email__iexact=user.email).exists()
+
+
+def _writer_discipline(user):
+    try:
+        writer_profile = user.writer_profile
+    except Exception:
+        return None
+    return getattr(writer_profile, "discipline_state", None)
+
+
+def _is_on_probation(user) -> bool:
+    legacy_value = getattr(user, "is_on_probation", None)
+    if legacy_value is not None:
+        return bool(legacy_value)
+    discipline = _writer_discipline(user)
+    return bool(getattr(discipline, "is_on_probation", False))
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -15,6 +69,9 @@ class UserSerializer(serializers.ModelSerializer):
     role_display = serializers.SerializerMethodField()
     website = serializers.SerializerMethodField()
     phone_number = serializers.SerializerMethodField()
+    is_suspended = serializers.SerializerMethodField()
+    is_blacklisted = serializers.SerializerMethodField()
+    is_on_probation = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -71,6 +128,15 @@ class UserSerializer(serializers.ModelSerializer):
             return role_map.get(role, role.title() if role else 'N/A')
         except Exception:
             return 'N/A'
+
+    def get_is_suspended(self, obj):
+        return _is_account_suspended(obj)
+
+    def get_is_blacklisted(self, obj):
+        return _is_blacklisted(obj)
+
+    def get_is_on_probation(self, obj):
+        return _is_on_probation(obj)
     
     def to_representation(self, instance):
         """Override to ensure all fields are properly serialized."""
@@ -114,6 +180,15 @@ class UserDetailSerializer(serializers.ModelSerializer):
     role_display = serializers.SerializerMethodField()
     website_name = serializers.SerializerMethodField()
     phone_number = serializers.SerializerMethodField()
+    is_suspended = serializers.SerializerMethodField()
+    suspension_reason = serializers.SerializerMethodField()
+    suspension_start_date = serializers.SerializerMethodField()
+    suspension_end_date = serializers.SerializerMethodField()
+    is_blacklisted = serializers.SerializerMethodField()
+    is_on_probation = serializers.SerializerMethodField()
+    probation_reason = serializers.SerializerMethodField()
+    probation_start_date = serializers.SerializerMethodField()
+    probation_end_date = serializers.SerializerMethodField()
     
     # Profile information
     writer_profile = serializers.SerializerMethodField()
@@ -171,6 +246,35 @@ class UserDetailSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
+
+    def get_is_suspended(self, obj):
+        return _is_account_suspended(obj)
+
+    def get_suspension_reason(self, obj):
+        return _suspension_reason(obj)
+
+    def get_suspension_start_date(self, obj):
+        return _suspended_at(obj)
+
+    def get_suspension_end_date(self, obj):
+        return getattr(obj, "suspension_end_date", None)
+
+    def get_is_blacklisted(self, obj):
+        return _is_blacklisted(obj)
+
+    def get_is_on_probation(self, obj):
+        return _is_on_probation(obj)
+
+    def get_probation_reason(self, obj):
+        discipline = _writer_discipline(obj)
+        return getattr(discipline, "probation_reason", "") or getattr(obj, "probation_reason", "")
+
+    def get_probation_start_date(self, obj):
+        return getattr(obj, "probation_start_date", None)
+
+    def get_probation_end_date(self, obj):
+        discipline = _writer_discipline(obj)
+        return getattr(discipline, "probation_ends_at", None) or getattr(obj, "probation_end_date", None)
     
     def get_writer_profile(self, obj):
         try:
@@ -323,4 +427,3 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             profile.save()
         
         return instance
-

@@ -3,11 +3,11 @@ from django.utils.timezone import now
 from django.conf import settings
 from websites.models.websites import Website
 from orders.models.orders import Order
-from wallet.models import Wallet
+from wallets.models import Wallet
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields import ArrayField
 from fines.models import Fine
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 
 User = settings.AUTH_USER_MODEL
 

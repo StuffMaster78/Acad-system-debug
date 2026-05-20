@@ -13,8 +13,10 @@ from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
+from accounts.enums import AccountStatus
+from accounts.services.account_activation_service import AccountActivationService
 from admin_management.permissions import IsAdmin, IsSuperAdmin
-from admin_management.models import AdminActivityLog
+from admin_management.models import AdminActivityLog, BlacklistedUser
 from admin_management.serializers import (
     CreateUserSerializer,
     UserSerializer,
@@ -52,7 +54,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
     """
     permission_classes = [IsAuthenticated, IsAdmin]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['role', 'is_active', 'is_suspended', 'is_blacklisted', 'is_on_probation']
+    filterset_fields = ['role', 'is_active']
     search_fields = ['username', 'email', 'first_name', 'last_name']
     ordering_fields = ['date_joined', 'last_login', 'username', 'email']
     ordering = ['-date_joined']
@@ -66,6 +68,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
             'notification_profile', # Used in serializers
         ).prefetch_related(
             'user_main_profile',    # OneToOne relationship
+            'account_profiles',
         )
         
         # Superadmins and admins can see all users
@@ -116,11 +119,16 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
             
             # Status filters
             if request.query_params.get('is_suspended') == 'true':
-                queryset = queryset.filter(is_suspended=True)
+                queryset = queryset.filter(
+                    account_profiles__status=AccountStatus.SUSPENDED,
+                ).distinct()
             if request.query_params.get('is_active') == 'false':
                 queryset = queryset.filter(is_active=False)
             if request.query_params.get('is_blacklisted') == 'true':
-                queryset = queryset.filter(is_blacklisted=True)
+                from admin_management.models import BlacklistedUser
+
+                blacklisted_emails = BlacklistedUser.objects.values("email")
+                queryset = queryset.filter(email__in=blacklisted_emails)
             
             # Check if pagination is enabled (pagination_class might be None but DRF settings might have default)
             page = self.paginate_queryset(queryset)
@@ -451,18 +459,22 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
     def unsuspend(self, request, pk=None):
         """Unsuspend a user."""
         user = self.get_object()
-        
-        if not user.is_suspended:
+
+        account_profile = user.account_profiles.filter(
+            status=AccountStatus.SUSPENDED,
+        ).order_by("-suspended_at", "-updated_at").first()
+        if not account_profile:
             return Response(
                 {"error": "User is not suspended."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        user.is_suspended = False
-        user.suspension_reason = None
-        user.suspension_start_date = None
-        user.suspension_end_date = None
-        user.save()
+
+        AccountActivationService.reactivate_account(
+            account_profile=account_profile,
+            actor=request.user,
+            reason=request.data.get("reason", "Account reactivated by admin."),
+            metadata={"source": "admin_management.unsuspend"},
+        )
         
         AdminActivityLog.objects.create(
             admin=request.user,
@@ -519,13 +531,9 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         """Remove user from probation."""
         user = self.get_object()
         
-        if not user.is_on_probation:
-            return Response(
-                {"error": "User is not on probation."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
         result = AdminManager.remove_user_from_probation(request.user, user)
+        if 'error' in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
         
         return Response(result, status=status.HTTP_200_OK)
 
@@ -665,9 +673,15 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     for role in ['client', 'writer', 'editor', 'support', 'admin', 'superadmin']
                 },
                 'active_users': queryset.filter(is_active=True).count(),
-                'suspended_users': queryset.filter(is_suspended=True).count(),
-                'blacklisted_users': queryset.filter(is_blacklisted=True).count(),
-                'on_probation': queryset.filter(is_on_probation=True).count(),
+                'suspended_users': queryset.filter(
+                    account_profiles__status=AccountStatus.SUSPENDED,
+                ).distinct().count(),
+                'blacklisted_users': queryset.filter(
+                    email__in=BlacklistedUser.objects.values("email"),
+                ).count(),
+                'on_probation': queryset.filter(
+                    account_profiles__writer_profile__discipline_state__is_on_probation=True,
+                ).distinct().count(),
             }
             
             return Response(stats, status=status.HTTP_200_OK)
@@ -746,7 +760,10 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         suspended_count = 0
         with transaction.atomic():
             for user in users:
-                if not user.is_suspended:
+                is_suspended = user.account_profiles.filter(
+                    status=AccountStatus.SUSPENDED,
+                ).exists()
+                if not is_suspended:
                     result = AdminManager.suspend_user(request.user, user, reason)
                     if 'error' not in result:
                         suspended_count += 1
@@ -755,4 +772,3 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
             "message": f"Suspended {suspended_count} user(s).",
             "suspended_count": suspended_count
         }, status=status.HTTP_200_OK)
-

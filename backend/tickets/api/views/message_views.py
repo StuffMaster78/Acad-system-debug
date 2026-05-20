@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from rest_framework import status, viewsets
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from tickets.api.permissions import IsTicketParticipantOrStaff
@@ -23,7 +24,11 @@ class TicketMessageViewSet(viewsets.GenericViewSet):
         return TicketMessageSerializer
 
     def list(self, request):
-        ticket = self._get_ticket_from_query()
+        ticket_id = request.query_params.get("ticket")
+        if not ticket_id:
+            return Response([])
+
+        ticket = self._get_ticket(ticket_id=ticket_id)
         messages = TicketMessageSelector.for_ticket_visible_to_user(
             ticket=ticket,
             user=request.user,
@@ -35,7 +40,7 @@ class TicketMessageViewSet(viewsets.GenericViewSet):
         return Response(serializer.data)
 
     def create(self, request):
-        ticket = self._get_ticket_from_payload()
+        ticket = self._get_ticket(ticket_id=request.data.get("ticket"))
         serializer = self.get_serializer(
             data=request.data,
             context={**self.get_serializer_context(), "ticket": ticket},
@@ -47,14 +52,17 @@ class TicketMessageViewSet(viewsets.GenericViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    def _get_ticket_from_query(self) -> Ticket:
-        ticket_id = self.request.query_params.get("ticket")
-        return TicketSelector.detail_visible_to_user(
-            user=self.request.user,
-        ).get(id=ticket_id)
+    def _get_ticket(self, *, ticket_id) -> Ticket:
+        if not ticket_id:
+            raise ValidationError({"ticket": "This field is required."})
 
-    def _get_ticket_from_payload(self) -> Ticket:
-        ticket_id = self.request.data.get("ticket")
-        return TicketSelector.detail_visible_to_user(
+        visible_ticket = TicketSelector.detail_visible_to_user(
             user=self.request.user,
-        ).get(id=ticket_id)
+        ).filter(id=ticket_id).first()
+        if visible_ticket is not None:
+            return visible_ticket
+
+        if Ticket.objects.filter(id=ticket_id).exists():
+            raise PermissionDenied("You do not have access to this ticket.")
+
+        raise NotFound("Ticket not found.")

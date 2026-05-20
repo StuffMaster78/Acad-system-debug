@@ -7,6 +7,7 @@ from datetime import timedelta
 from random import choice, randint
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
@@ -28,10 +29,8 @@ from orders.models.orders import Order
 from orders.order_enums import OrderStatus, SpacingOptions
 from websites.models.websites import Website
 from order_pricing_core.models import PricingConfiguration, AcademicLevelPricing, WriterLevelOptionConfig
-from wallet.models import Wallet
-from writer_management.models.payout import WriterPayment
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 
 class Command(BaseCommand):
@@ -235,58 +234,12 @@ class Command(BaseCommand):
 
     def create_sample_writer_payments(self, writer_user):
         """Create historical writer payment data for the given writer."""
-        try:
-            profile = writer_user.writer_profile
-        except Exception:
-            self.stdout.write(self.style.WARNING(f"  ⚠ Could not find writer profile for {writer_user.email}, skipping payment seed."))
-            return
-
-        website = profile.website
-        existing_payments = WriterPayment.objects.filter(writer=profile).count()
-        if existing_payments >= 3:
-            self.stdout.write(f"  Writer payments already exist for {writer_user.email}, skipping creation.")
-            return
-
-        payment_templates = [
-            {
-                "amount": Decimal("245.50"),
-                "bonuses": Decimal("15.00"),
-                "tips": Decimal("8.00"),
-                "fines": Decimal("0.00"),
-                "offset_days": 12,
-                "description": "Fortnightly payout covering urgent orders and quality bonus.",
-            },
-            {
-                "amount": Decimal("310.75"),
-                "bonuses": Decimal("0.00"),
-                "tips": Decimal("20.00"),
-                "fines": Decimal("5.00"),
-                "offset_days": 32,
-                "description": "Monthly payout with client tips and minor late delivery deduction.",
-            },
-            {
-                "amount": Decimal("198.25"),
-                "bonuses": Decimal("10.00"),
-                "tips": Decimal("0.00"),
-                "fines": Decimal("0.00"),
-                "offset_days": 55,
-                "description": "Fortnightly payout with revision assistance bonus.",
-            },
-        ]
-
-        self.stdout.write(f"  Creating sample writer payments for {writer_user.email}...")
-        for template in payment_templates:
-            WriterPayment.objects.create(
-                website=website,
-                writer=profile,
-                amount=template["amount"],
-                bonuses=template["bonuses"],
-                fines=template["fines"],
-                tips=template["tips"],
-                description=template["description"],
-                payment_date=timezone.now() - timedelta(days=template["offset_days"]),
+        self.stdout.write(
+            self.style.WARNING(
+                "  ⚠ Writer payment seeding is skipped; payouts are now "
+                "owned by writer_compensation."
             )
-        self.stdout.write(self.style.SUCCESS(f"  ✓ Seeded writer payments for {writer_user.email}"))
+        )
 
     def handle(self, *args, **options):
         # Temporarily disable cache operations that require Redis
@@ -502,13 +455,15 @@ class Command(BaseCommand):
                     password="Client123!",
                     website=website,
                 )
-                # Wallet will be created automatically via signals if needed
-                # But ensure it exists for dry run
+                # Ensure canonical client wallet exists for dry run.
                 try:
-                    Wallet.objects.get_or_create(
-                        user=client,
+                    from wallets.services.wallet_service import WalletService
+                    from wallets.constants import WalletType
+
+                    WalletService.get_or_create_wallet(
                         website=website,
-                        defaults={'balance': Decimal('0.00')}
+                        owner_user=client,
+                        wallet_type=WalletType.CLIENT,
                     )
                 except Exception:
                     pass  # Wallet creation may fail, continue anyway
@@ -533,24 +488,28 @@ class Command(BaseCommand):
                 )
                 # Manually create WriterProfile if it doesn't exist (signal is disabled)
                 try:
-                    from writer_management.models.profile import WriterProfile
-                    from wallet.models import Wallet
-                    if not hasattr(writer, 'writer_profile'):
-                        wallet, _ = Wallet.objects.get_or_create(
-                            user=writer,
-                            website=website,
-                            defaults={'balance': Decimal('0.00')}
-                        )
+                    from accounts.models import AccountProfile
+                    from accounts.services.account_service import AccountService
+                    from writer_management.models import WriterProfile
+                    if not WriterProfile.objects.filter(
+                        account_profile__user=writer,
+                    ).exists():
                         import random
                         registration_id = f"Writer #{random.randint(10000, 99999)}"
                         while WriterProfile.objects.filter(registration_id=registration_id).exists():
                             registration_id = f"Writer #{random.randint(10000, 99999)}"
-                        WriterProfile.objects.get_or_create(
-                            user=writer,
+                        account_profile = AccountService.get_or_create_account_profile(
                             website=website,
+                            user=writer,
+                            is_primary=not AccountProfile.objects.filter(
+                                user=writer,
+                            ).exists(),
+                            metadata={"source": "seed_dry_run_system"},
+                        )
+                        WriterProfile.objects.get_or_create(
+                            account_profile=account_profile,
                             defaults={
                                 'registration_id': registration_id,
-                                'wallet': wallet,
                             }
                         )
                 except Exception as e:
@@ -818,4 +777,3 @@ class Command(BaseCommand):
         self.stdout.write("\n" + "="*70)
         self.stdout.write("NOTE: All passwords follow the pattern: [Role]123!")
         self.stdout.write("="*70 + "\n")
-

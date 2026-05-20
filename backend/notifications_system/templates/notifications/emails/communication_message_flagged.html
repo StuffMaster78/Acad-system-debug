@@ -1,0 +1,16 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<h1>Message flagged</h1>
+<p>Hi {{ user.get_full_name|default:user.username }},</p>
+<p>A message in conversation #{{ thread_id }} was flagged for review.</p>
+<table class="detail-table">
+  <tr><td>Conversation</td><td>#{{ thread_id }}</td></tr>
+  <tr><td>Severity</td><td>{{ severity }}</td></tr>
+  <tr><td>Reason</td><td>{{ reason }}</td></tr>
+</table>
+{% if cta_url %}
+<div class="btn-wrapper">
+  <a href="{{ cta_url }}" class="btn">Review message</a>
+</div>
+{% endif %}
+{% endblock %}

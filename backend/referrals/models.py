@@ -3,7 +3,6 @@ from django.utils.timezone import now
 from django.conf import settings
 from decimal import Decimal
 import uuid
-from wallet.models import Wallet, WalletTransaction
 from websites.models.websites import Website
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier
 from django.apps import apps
@@ -193,6 +192,30 @@ class ReferralBonusConfig(models.Model):
         default=0.0,
         help_text="Bonus amount when a referee places their first order."
     )
+    award_wallet_bonus = models.BooleanField(
+        default=True,
+        help_text="Credit the referrer's wallet when a referral qualifies.",
+    )
+    award_loyalty_points = models.BooleanField(
+        default=True,
+        help_text="Award loyalty points when a referral qualifies.",
+    )
+    referrer_loyalty_points = models.PositiveIntegerField(
+        default=0,
+        help_text=(
+            "Loyalty points awarded to the referrer. If 0, points are "
+            "derived from the wallet bonus amount."
+        ),
+    )
+    referee_loyalty_points = models.PositiveIntegerField(
+        default=0,
+        help_text="Optional loyalty points awarded to the referred client.",
+    )
+    qualifying_order_status = models.CharField(
+        max_length=32,
+        default="approved",
+        help_text="Order milestone that qualifies the referral reward.",
+    )
     first_order_discount_type = models.CharField(
         max_length=10,  choices=DISCOUNT_TYPE_CHOICES,
         default='fixed'
@@ -293,7 +316,7 @@ class ReferralBonusDecay(models.Model):
         related_name='referral_bonus_decay'
     )
     wallet_transaction = models.OneToOneField(
-        WalletTransaction,
+        "wallets.WalletEntry",
         on_delete=models.CASCADE,
         related_name="decay",
         help_text="The wallet transaction associated with the bonus."

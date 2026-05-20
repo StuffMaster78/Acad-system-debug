@@ -14,7 +14,9 @@ from loyalty_management.models import (
     LoyaltyTransaction
 )
 from discounts.models.discount import Discount
-from wallet.models import Wallet, WalletTransaction
+from wallets.constants import WalletEntryType
+from wallets.services.client_wallet_service import ClientWalletService
+from wallets.services.wallet_service import WalletService
 
 
 class RedemptionService:
@@ -152,26 +154,28 @@ class RedemptionService:
         item = redemption.item
         
         if item.redemption_type == 'cash':
-            # Add to wallet
-            wallet, _ = Wallet.objects.get_or_create(
-                user=redemption.client.user,
-                website=redemption.website,
-                defaults={'balance': Decimal('0.00')}
-            )
             amount = item.discount_amount or Decimal('0.00')
-            wallet.balance += amount
-            wallet.save()
-            
-            # Create wallet transaction
-            WalletTransaction.objects.create(
+            wallet = ClientWalletService.get_wallet(
+                website=redemption.website,
+                client=redemption.client.user,
+            )
+            entry = WalletService.credit_wallet(
                 wallet=wallet,
-                transaction_type='credit',
+                website=redemption.website,
                 amount=amount,
+                entry_type=WalletEntryType.LOYALTY_CONVERSION,
                 description=f"Loyalty points redemption: {item.name}",
-                website=redemption.website
+                reference=f"loyalty-redemption-{redemption.id}",
+                reference_type="loyalty_redemption",
+                reference_id=str(redemption.id),
+                metadata={
+                    "redemption_request_id": redemption.id,
+                    "redemption_item_id": item.id,
+                    "points_used": redemption.points_used,
+                },
             )
             
-            redemption.fulfillment_code = f"WALLET-{wallet.id}-{int(timezone.now().timestamp())}"
+            redemption.fulfillment_code = f"WALLET-{entry.wallet_id}-{int(timezone.now().timestamp())}"
         
         elif item.redemption_type == 'discount':
             # Generate discount code
@@ -297,4 +301,3 @@ class RedemptionService:
             queryset = queryset.filter(status=status)
         
         return queryset
-

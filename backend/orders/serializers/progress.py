@@ -3,7 +3,12 @@ Serializers for writer progress reports.
 """
 from rest_framework import serializers
 from orders.models.legacy_models.writer_progress import WriterProgress
-from users.serializers_legacy import SimpleUserSerializer
+
+
+class SimpleUserSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    username = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
 
 
 class WriterProgressSerializer(serializers.ModelSerializer):
@@ -58,4 +63,3 @@ class WriterProgressListSerializer(serializers.ModelSerializer):
             'id', 'progress_percentage', 'notes', 'is_withdrawn',
             'contains_screened_words', 'timestamp'
         ]
-

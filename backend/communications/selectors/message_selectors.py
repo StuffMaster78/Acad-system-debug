@@ -27,9 +27,9 @@ class CommunicationMessageSelector:
         return (
             base_qs
             .filter(
-                thread__participant_records__user=user,
-                thread__participant_records__can_view=True,
-                thread__participant_records__removed_at__isnull=True,
+                thread__participants__user=user,
+                thread__participants__can_view=True,
+                thread__participants__removed_at__isnull=True,
             )
             .exclude(is_internal=True)
             .exclude(status=CommunicationMessageStatus.HIDDEN)
@@ -58,9 +58,9 @@ class CommunicationMessageSelector:
         return (
             base_qs
             .filter(
-                thread__participant_records__user=user,
-                thread__participant_records__can_view=True,
-                thread__participant_records__removed_at__isnull=True,
+                thread__participants__user=user,
+                thread__participants__can_view=True,
+                thread__participants__removed_at__isnull=True,
             )
             .exclude(is_internal=True)
             .exclude(status=CommunicationMessageStatus.HIDDEN)

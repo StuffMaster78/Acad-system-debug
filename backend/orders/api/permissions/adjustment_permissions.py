@@ -17,8 +17,16 @@ class BaseAdjustmentTenantPermission(BasePlatformPermission):
     message = "Cross-tenant access denied."
     require_tenant = True
 
+    def has_permission(self, request: Request, view: APIView):  # type: ignore[override]
+        """
+        Allow the view to resolve the object before ownership checks.
+        """
+        return bool(request.user and request.user.is_authenticated)
+
     def _same_tenant(self, request: Request, obj: Any) -> bool:
         website = getattr(request, "website", None)
+        if website is None:
+            website = getattr(request.user, "website", None)
 
         order = getattr(obj, "order", None)
         target = order if order is not None else obj
@@ -218,3 +226,26 @@ class CanOverrideAdjustment(BaseAdjustmentTenantPermission):
     message = "You are not allowed to override this adjustment."
     required_portal = "internal_admin"
     required_permission = "orders.override_adjustment"
+
+    def has_object_permission( # type: ignore[override]
+        self,
+        request: Request,
+        view: APIView,
+        obj: Any,
+    ):
+        if not self._same_tenant(request, obj):
+            return False
+
+        user = request.user
+        if getattr(user, "is_staff", False):
+            return True
+
+        website = getattr(request, "website", None)
+        if website is None:
+            website = getattr(user, "website", None)
+
+        return AccountPermissionService.user_has_permission(
+            user=user,
+            permission_code="orders.manage_adjustments",
+            website=website,
+        )

@@ -1,0 +1,10 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<h1>Loyalty points earned</h1>
+<p>Hi {{ user.get_full_name|default:user.username }},</p>
+<p>You earned <strong>{{ points }}</strong> loyalty points.</p>
+<table class="detail-table">
+  <tr><td>Reason</td><td>{{ reason }}</td></tr>
+  <tr><td>Total points</td><td>{{ total_points }}</td></tr>
+</table>
+{% endblock %}

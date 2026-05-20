@@ -1,7 +1,9 @@
 from django.utils.timezone import now
 
 from superadmin_management.models import Appeal
-from writer_governance_service import WriterGovernanceService
+from superadmin_management.services.writer_governance_service import (
+    WriterGovernanceService,
+)
 
 
 class AppealService:

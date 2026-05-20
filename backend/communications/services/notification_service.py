@@ -29,7 +29,7 @@ class CommunicationNotificationService:
             )
         )
 
-        participants = message.thread.participant_records.filter(
+        participants = message.thread.participants.filter(
             user_id__in=recipient_ids,
             can_view=True,
             removed_at__isnull=True,
@@ -61,7 +61,7 @@ class CommunicationNotificationService:
         """
         Notify staff when a message is flagged.
         """
-        staff_participants = message.thread.participant_records.filter(
+        staff_participants = message.thread.participants.filter(
             role__in=["admin", "superadmin", "support"],
             can_view=True,
             removed_at__isnull=True,
@@ -90,7 +90,7 @@ class CommunicationNotificationService:
         """
         Notify staff when a thread is escalated.
         """
-        staff_participants = escalation.thread.participant_records.filter(
+        staff_participants = escalation.thread.participants.filter(
             role__in=["admin", "superadmin", "support"],
             can_view=True,
             removed_at__isnull=True,
@@ -117,7 +117,7 @@ class CommunicationNotificationService:
         """
         Notify admin and superadmin users about a pending link review.
         """
-        staff_participants = review.thread.participant_records.filter(
+        staff_participants = review.thread.participants.filter(
             role__in=["admin", "superadmin"],
             can_view=True,
             removed_at__isnull=True,

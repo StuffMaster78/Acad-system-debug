@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.db.models import QuerySet
 
+from wallets.constants import WalletType
 from wallets.models.wallet import Wallet
 
 
@@ -32,11 +33,11 @@ class WalletSelectors:
         return WalletSelectors.by_owner(
             website=website,
             owner_user=owner_user,
-        ).get(wallet_type="WRITER")
+        ).get(wallet_type=WalletType.WRITER)
 
     @staticmethod
     def client_wallet(*, website, owner_user) -> Wallet:
         return WalletSelectors.by_owner(
             website=website,
             owner_user=owner_user,
-        ).get(wallet_type="CLIENT")
+        ).get(wallet_type=WalletType.CLIENT)

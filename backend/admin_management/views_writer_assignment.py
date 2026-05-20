@@ -202,12 +202,15 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
             'client', 'paper_type', 'academic_level', 'subject', 'type_of_work', 'website'
         ).order_by('-created_at')
         
-        # Get pending requests
-        from writer_management.models import WriterOrderRequest
-        pending_requests = WriterOrderRequest.objects.filter(
-            writer=profile,
-            approved=False
-        ).select_related('order').count()
+        from orders.selectors.order_visibility_selector import (
+            OrderVisibilitySelector,
+        )
+
+        pending_requests = (
+            OrderVisibilitySelector.pending_interest_count_for_writer(
+                writer=writer,
+            )
+        )
         
         # Get recent completed orders
         recent_completed = Order.objects.filter(
@@ -259,4 +262,3 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                 ],
             }
         })
-

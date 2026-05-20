@@ -195,7 +195,7 @@ class AdminAdvanceListView(generics.ListAPIView):
                 website=website,
             )
             .select_related(
-                "writer__user",
+                "writer__account_profile__user",
                 "payment_window",
             )
             .prefetch_related("recoveries")

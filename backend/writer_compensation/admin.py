@@ -289,8 +289,8 @@ class CompensationEventAdmin(admin.ModelAdmin):
         "payment_window__website",
     )
     search_fields = (
-        "writer__user__email",
-        "writer__user__first_name",
+        "writer__account_profile__user__email",
+        "writer__account_profile__user__first_name",
         "idempotency_key",
         "source_id",
         "reference",
@@ -304,7 +304,7 @@ class CompensationEventAdmin(admin.ModelAdmin):
         "created_at", "updated_at",
     )
     ordering            = ("-created_at",)
-    list_select_related = ("writer__user", "payment_window")
+    list_select_related = ("writer__account_profile__user", "payment_window")
     date_hierarchy      = "created_at"
 
     fieldsets = (
@@ -421,8 +421,8 @@ class PayoutRecordAdmin(admin.ModelAdmin):
         "batch__payment_window__website",
     )
     search_fields = (
-        "writer__user__email",
-        "writer__user__first_name",
+        "writer__account_profile__user__email",
+        "writer__account_profile__user__first_name",
         "external_reference",
     )
     readonly_fields = (
@@ -431,7 +431,7 @@ class PayoutRecordAdmin(admin.ModelAdmin):
         "confirmed_at", "confirmed_by",
         "paid_at", "paid_by",
     )
-    list_select_related = ("writer__user", "batch")
+    list_select_related = ("writer__account_profile__user", "batch")
     autocomplete_fields = ("writer",)
     inlines             = (PayoutClearanceInline,)
     actions             = ("action_confirm", "action_mark_paid", "action_hold", "action_release")
@@ -500,7 +500,7 @@ class PayoutRecordAdmin(admin.ModelAdmin):
 class WriterPayoutPreferenceAdmin(admin.ModelAdmin):
     list_display    = ("id", "writer", "website", "cycle_type", "locked", "updated_at")
     list_filter     = ("cycle_type", "locked", "website")
-    search_fields   = ("writer__user__email",)
+    search_fields   = ("writer__account_profile__user__email",)
     readonly_fields = ("created_at", "updated_at")
     autocomplete_fields = ("writer",)
 
@@ -518,7 +518,7 @@ class PaymentWindowChangeRequestAdmin(admin.ModelAdmin):
         "reviewed_at", "created_at",
     )
     list_filter   = ("status", "website")
-    search_fields = ("writer__user__email",)
+    search_fields = ("writer__account_profile__user__email",)
     readonly_fields = (
         "writer", "website",
         "from_window", "requested_window",
@@ -548,7 +548,7 @@ class CompensationAdjustmentAdmin(admin.ModelAdmin):
         "created_by", "created_at",
     )
     list_filter   = ("adjustment_type", "direction", "is_applied", "website")
-    search_fields = ("writer__user__email", "reason")
+    search_fields = ("writer__account_profile__user__email", "reason")
     readonly_fields = (
         "website", "writer",
         "related_financial_event",
@@ -578,7 +578,7 @@ class AdvancePaymentRequestAdmin(admin.ModelAdmin):
         "advance_status", "reviewed_at", "created_at",
     )
     list_filter   = ("status", "website")
-    search_fields = ("writer__user__email", "reason")
+    search_fields = ("writer__account_profile__user__email", "reason")
     readonly_fields = (
         "writer", "website", "payment_window",
         "requested_by", "reviewed_by", "reviewed_at",
@@ -601,7 +601,7 @@ class AdvancePaymentRequestAdmin(admin.ModelAdmin):
 class AdvanceRecoveryAdmin(admin.ModelAdmin):
     list_display  = ("id", "advance_request", "amount", "settlement_period", "recovered_at")
     list_filter   = ("advance_request__website",)
-    search_fields = ("advance_request__writer__user__email",)
+    search_fields = ("advance_request__writer__account_profile__user__email",)
     readonly_fields = ("advance_request", "recovered_at")
 
 
@@ -617,7 +617,7 @@ class DeferredSettlementItemAdmin(admin.ModelAdmin):
         "reason", "deferred_by", "created_at",
     )
     list_filter   = ("reason", "from_payment_window__website")
-    search_fields = ("financial_event__writer__user__email",)
+    search_fields = ("financial_event__writer__account_profile__user__email",)
     readonly_fields = (
         "financial_event",
         "from_payment_window",
@@ -641,7 +641,7 @@ class CorrectionEventAdmin(admin.ModelAdmin):
         "resolved_at", "created_at",
     )
     list_filter   = ("correction_type", "status", "website")
-    search_fields = ("writer__user__email", "reason")
+    search_fields = ("writer__account_profile__user__email", "reason")
     readonly_fields = (
         "website", "writer",
         "expected", "actual",
@@ -668,7 +668,7 @@ class WriterBalanceSnapshotAdmin(admin.ModelAdmin):
         "total_advances", "captured_at",
     )
     list_filter   = ("website", "payment_window")
-    search_fields = ("writer__user__email",)
+    search_fields = ("writer__account_profile__user__email",)
     readonly_fields = (
         "website", "writer", "payment_window",
         "wallet_balance", "gross_earnings",
@@ -704,7 +704,7 @@ class ExposureLedgerAdmin(admin.ModelAdmin):
         "last_updated",
     )
     list_filter   = ("website",)
-    search_fields = ("writer__user__email",)
+    search_fields = ("writer__account_profile__user__email",)
     readonly_fields = (
         "website", "writer",
         "total_earned", "total_bonuses",
@@ -754,7 +754,7 @@ class PayoutClearanceAdmin(admin.ModelAdmin):
         "clearance_status", "processed_by", "processed_at",
     )
     list_filter   = ("status", "method", "website")
-    search_fields = ("external_reference", "payout_record__writer__user__email")
+    search_fields = ("external_reference", "payout_record__writer__account_profile__user__email")
     readonly_fields = (
         "website", "payout_record",
         "processed_by", "processed_at",
@@ -825,7 +825,7 @@ class ReversalChainAdmin(admin.ModelAdmin):
     )
     list_filter   = ("website",)
     search_fields = (
-        "original_event__writer__user__email",
+        "original_event__writer__account_profile__user__email",
         "reason",
     )
     readonly_fields = (

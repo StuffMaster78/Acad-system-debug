@@ -231,7 +231,7 @@ class WriterRequestService:
         Recalculate writer payment when additional pages/slides are added.
         Uses writer's level to calculate additional earnings.
         """
-        from writer_management.models.profile import WriterProfile
+        from writer_management.models.writer_profile import WriterProfile
         from writer_management.services.earnings_calculator import WriterEarningsCalculator
         from writer_compensation.models import WriterPayment
         from django.utils import timezone

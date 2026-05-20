@@ -22,7 +22,11 @@ class MockPaymentProvider(BasePaymentProvider):
         self,
         payment_intent: Any,
     ) -> ProviderCheckoutResult:
-        reference = getattr(payment_intent, "provider_reference", None) or str(uuid4())
+        reference = getattr(
+            payment_intent,
+            "provider_reference",
+            None) or str(
+            uuid4())
 
         return ProviderCheckoutResult(
             success=True,
@@ -80,12 +84,14 @@ class MockPaymentProvider(BasePaymentProvider):
         )
 
         return ProviderRefundResult(
+            success=True,
             provider_name=self.provider_name,
-            provider_reference=provider_reference,
-            refund_reference=str(uuid4()),
             status="success",
             amount=refund_amount,
             currency=currency,
+            provider_refund_id=str(uuid4()),
+            provider_transaction_id=provider_reference,
+            reference=str(getattr(payment_intent, "reference", "")),
             raw_response={
                 "message": "Mock refund completed successfully.",
             },

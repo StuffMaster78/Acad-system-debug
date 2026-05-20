@@ -17,6 +17,13 @@ from wallets.api.views.wallet_views import (
     MyWalletHoldListView,
     MyWalletView,
 )
+from wallets.api.views.writer_payout_request_views import (
+    AdminWriterPayoutRequestApproveView,
+    AdminWriterPayoutRequestListView,
+    AdminWriterPayoutRequestProcessView,
+    AdminWriterPayoutRequestRejectView,
+    MyWriterPayoutRequestListCreateView,
+)
 
 __all__ = [
     # User wallet views
@@ -36,4 +43,9 @@ __all__ = [
     "AdminWalletCaptureHoldView",
     "AdminWalletReconcileView",
     "AdminWalletRepairView",
+    "MyWriterPayoutRequestListCreateView",
+    "AdminWriterPayoutRequestListView",
+    "AdminWriterPayoutRequestApproveView",
+    "AdminWriterPayoutRequestRejectView",
+    "AdminWriterPayoutRequestProcessView",
 ]

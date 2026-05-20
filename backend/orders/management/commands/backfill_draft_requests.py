@@ -10,7 +10,8 @@ from django.utils import timezone
 
 from order_pricing_core.models import AdditionalService
 from orders.models.orders import Order
-from orders.models.legacy_models.drafts import DraftRequest, DraftFile
+from orders.models.legacy_models.drafts import DraftRequest
+from orders.services.order_file_service import OrderFileService
 
 
 class Command(BaseCommand):
@@ -63,7 +64,7 @@ class Command(BaseCommand):
                 extra_services__in=progressive_services,
             )
             .filter(draft_requests__isnull=True)
-            .select_related("website", "client", "assigned_writer")
+            .select_related("website", "client")
             .distinct()
             .order_by("-created_at")
         )
@@ -118,8 +119,8 @@ class Command(BaseCommand):
                             + timedelta(hours=random.randint(6, 36))
                         )
                         draft_request.save(update_fields=["fulfilled_at"])
-                        draft_file = self._create_draft_file(draft_request)
-                        if draft_file:
+                        draft_attachment = self._create_draft_attachment(draft_request)
+                        if draft_attachment:
                             created_files += 1
 
                 created_requests += 1
@@ -168,10 +169,12 @@ class Command(BaseCommand):
         pool = templates.get(status, templates["pending"])
         return random.choice(pool)
 
-    def _create_draft_file(self, draft_request: DraftRequest) -> DraftFile | None:
-        """Create a lightweight text file to simulate a draft upload."""
+    def _create_draft_attachment(self, draft_request: DraftRequest):
+        """Create a lightweight central file attachment for a draft upload."""
         order = draft_request.order
-        uploaded_by = order.assigned_writer
+        uploaded_by = self._resolve_writer_user(order=order)
+        if uploaded_by is None:
+            return None
 
         content = (
             f"Draft for order #{order.id}\n"
@@ -182,13 +185,30 @@ class Command(BaseCommand):
         filename = f"draft-order-{order.id}-{draft_request.id}.txt"
         file_obj = ContentFile(content, name=filename)
 
-        return DraftFile.objects.create(
-            website=order.website,
-            draft_request=draft_request,
+        attachment = OrderFileService.writer_upload_draft(
             order=order,
             uploaded_by=uploaded_by,
-            file=file_obj,
-            file_name=filename,
-            description="Auto-generated draft for historical backfill",
+            uploaded_file=file_obj,
         )
+        metadata = dict(attachment.metadata or {})
+        metadata.update(
+            {
+                "draft_request_id": draft_request.id,
+                "description": "Auto-generated draft for historical backfill",
+                "legacy_source": "draft_request_backfill",
+            }
+        )
+        attachment.metadata = metadata
+        attachment.display_name = attachment.display_name or filename
+        attachment.save(update_fields=["metadata", "display_name", "updated_at"])
+        return attachment
 
+    @staticmethod
+    def _resolve_writer_user(*, order: Order):
+        assigned_writer = getattr(order, "assigned_writer", None)
+        if assigned_writer is None:
+            return None
+        if hasattr(assigned_writer, "is_authenticated"):
+            return assigned_writer
+        account_profile = getattr(assigned_writer, "account_profile", None)
+        return getattr(account_profile, "user", None)

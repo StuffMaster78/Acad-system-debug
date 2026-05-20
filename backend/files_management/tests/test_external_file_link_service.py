@@ -9,7 +9,7 @@ from files_management.enums import (
 from files_management.exceptions import ExternalFileLinkError
 from files_management.models import FilePolicy
 from files_management.services import ExternalFileLinkService
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class ExternalFileLinkServiceTests(TestCase):
@@ -25,13 +25,13 @@ class ExternalFileLinkServiceTests(TestCase):
             domain="gradecrest.test",
         )
         self.user = user_model.objects.create_user(
-            username="Testuser2"
+            username="Testuser2",
             email="client@example.com",
             password="pass",
             website=self.website,
         )
         self.staff = user_model.objects.create_user(
-            username="Testusero"
+            username="Testusero",
             email="staff@example.com",
             password="pass",
             website=self.website,

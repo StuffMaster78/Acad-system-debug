@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
 from websites.models.websites import Website
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 from orders.models.orders import Order
 from django.core.exceptions import ValidationError
 from writer_management.models.configs import WriterConfig

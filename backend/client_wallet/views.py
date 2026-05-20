@@ -12,6 +12,46 @@ from django.shortcuts import get_object_or_404
 from decimal import Decimal
 from django.utils import timezone
 from admin_management.permissions import IsAdmin
+from wallet.services.wallet_transaction_service import WalletTransactionService
+from wallets.models import WalletEntry
+
+
+def _wallet_payload(wallet):
+    return {
+        "id": wallet.id,
+        "user": {
+            "id": wallet.owner_user_id,
+            "email": getattr(wallet.owner_user, "email", ""),
+            "username": getattr(wallet.owner_user, "username", ""),
+            "first_name": getattr(wallet.owner_user, "first_name", "") or "",
+            "last_name": getattr(wallet.owner_user, "last_name", "") or "",
+        },
+        "website": {
+            "id": wallet.website_id,
+            "name": getattr(wallet.website, "name", ""),
+            "domain": getattr(wallet.website, "domain", ""),
+        },
+        "balance": wallet.available_balance,
+        "available_balance": wallet.available_balance,
+        "pending_balance": wallet.pending_balance,
+        "currency": wallet.currency,
+        "wallet_type": wallet.wallet_type,
+        "last_updated": wallet.updated_at,
+    }
+
+
+def _entry_payload(entry):
+    return {
+        "id": entry.id,
+        "wallet": entry.wallet_id,
+        "amount": entry.amount,
+        "transaction_type": entry.entry_type,
+        "description": entry.description,
+        "created_at": entry.created_at,
+        "reference_id": entry.reference_id,
+        "source": entry.reference_type,
+        "is_credit": entry.direction == "credit",
+    }
 
 
 class WalletPagination(PageNumberPagination):
@@ -70,9 +110,25 @@ class ClientWalletViewSet(viewsets.ModelViewSet):
         amount = Decimal(amount)
 
         try:
-            wallet.debit_wallet(amount, reason)
-            return Response({"detail": "Amount deducted successfully."}, status=status.HTTP_200_OK)
-        except ValueError as e:
+            entry = WalletTransactionService.debit(
+                user=wallet.user,
+                website=wallet.website,
+                amount=amount,
+                description=reason,
+                source="client_wallet_api",
+                transaction_type="payment",
+                created_by=request.user,
+            )
+            wallet.balance = entry.balance_after
+            wallet.save(update_fields=["balance"])
+            return Response(
+                {
+                    "detail": "Amount deducted successfully.",
+                    "entry": _entry_payload(entry),
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
@@ -89,8 +145,24 @@ class ClientWalletViewSet(viewsets.ModelViewSet):
 
         amount = Decimal(amount)
 
-        wallet.credit_wallet(amount, reason)
-        return Response({"detail": "Amount credited successfully."}, status=status.HTTP_200_OK)
+        entry = WalletTransactionService.credit(
+            user=wallet.user,
+            website=wallet.website,
+            amount=amount,
+            description=reason,
+            source="client_wallet_api",
+            transaction_type="credit",
+            created_by=request.user,
+        )
+        wallet.balance = entry.balance_after
+        wallet.save(update_fields=["balance"])
+        return Response(
+            {
+                "detail": "Amount credited successfully.",
+                "entry": _entry_payload(entry),
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=True, methods=['post'])
     def convert_loyalty_points(self, request, pk=None):
@@ -132,16 +204,18 @@ class ClientWalletViewSet(viewsets.ModelViewSet):
         Get the authenticated client's wallet with transactions.
         """
         try:
-            wallet = ClientWallet.objects.select_related('user', 'website').get(user=request.user)
-            serializer = ClientWalletSerializer(wallet)
+            website = getattr(request.user, "website", None)
+            if website is None:
+                wallet = ClientWallet.objects.select_related('user', 'website').get(user=request.user)
+                website = wallet.website
+            wallet = WalletTransactionService.get_wallet(request.user, website)
             
             # Get recent transactions
-            transactions = ClientWalletTransaction.objects.filter(wallet=wallet).order_by('-created_at')[:50]
-            transaction_serializer = ClientWalletTransactionSerializer(transactions, many=True)
+            transactions = WalletEntry.objects.filter(wallet=wallet).order_by('-created_at')[:50]
             
             return Response({
-                'wallet': serializer.data,
-                'transactions': transaction_serializer.data
+                'wallet': _wallet_payload(wallet),
+                'transactions': [_entry_payload(entry) for entry in transactions]
             })
         except ClientWallet.DoesNotExist:
             return Response(
@@ -183,35 +257,37 @@ class ClientWalletViewSet(viewsets.ModelViewSet):
         # but we need to wrap select_for_update() in a transaction
         try:
             with transaction.atomic():
-                # Get wallet with row-level lock inside transaction
+                # Get legacy wallet if it exists, but write to canonical wallets.
                 try:
                     wallet = ClientWallet.objects.select_for_update().get(user=request.user)
+                    website = wallet.website
                 except ClientWallet.DoesNotExist:
-                    return Response(
-                        {"detail": "Wallet not found. Please contact support."},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
+                    website = getattr(request.user, "website", None)
+                    if website is None:
+                        return Response(
+                            {"detail": "Wallet not found. Please contact support."},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+                    wallet = None
                 
-                # Credit wallet with top-up transaction type
-                # credit_wallet() uses its own transaction.atomic(), which will be a savepoint
-                # in this outer transaction, which is fine
-                wallet.credit_wallet(amount, description or 'Wallet top-up')
-                
-                # Update transaction type to 'top-up' (client payment)
-                last_transaction = ClientWalletTransaction.objects.filter(
-                    wallet=wallet
-                ).order_by('-created_at').first()
-                if last_transaction:
-                    last_transaction.transaction_type = 'top-up'
-                    last_transaction.save()
+                entry = WalletTransactionService.credit(
+                    user=request.user,
+                    website=website,
+                    amount=amount,
+                    description=description or 'Wallet top-up',
+                    source="client_wallet_top_up",
+                    transaction_type="top-up",
+                    created_by=request.user,
+                )
+                if wallet is not None:
+                    wallet.balance = entry.balance_after
+                    wallet.save(update_fields=["balance"])
             
-            # Refresh wallet after transaction commits
-            wallet.refresh_from_db()
-            serializer = ClientWalletSerializer(wallet)
+            canonical_wallet = entry.wallet
             
             return Response({
                 'detail': f'Wallet topped up successfully! ${amount:,.2f} added.',
-                'wallet': serializer.data
+                'wallet': _wallet_payload(canonical_wallet)
             }, status=status.HTTP_200_OK)
         except Exception as e:
             # Log the error for debugging

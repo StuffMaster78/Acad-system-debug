@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -18,7 +19,8 @@ from tickets.api.serializers import (
     TicketUpdateSerializer,
 )
 from tickets.selectors import TicketSelector
-from tickets.services import TicketService
+from tickets.services import TicketNotificationService, TicketService
+from tickets.services.ticket_sla_service import TicketSLAService
 
 
 class TicketPagination(PageNumberPagination):
@@ -60,6 +62,23 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket = serializer.save()
         output = TicketDetailSerializer(ticket, context=self.get_serializer_context())
         return Response(output.data, status=status.HTTP_201_CREATED)
+
+    def perform_update(self, serializer):
+        ticket = self.get_object()
+        old_status = ticket.status
+        updated_ticket = serializer.save()
+
+        if old_status != updated_ticket.status:
+            if updated_ticket.status == "closed":
+                updated_ticket.resolution_time = updated_ticket.resolution_time or timezone.now()
+                updated_ticket.save(update_fields=["resolution_time", "updated_at"])
+                TicketSLAService.mark_resolved(ticket=updated_ticket)
+
+            TicketNotificationService.status_changed(
+                ticket=updated_ticket,
+                actor=self.request.user,
+                old_status=old_status,
+            )
 
     @action(
         detail=True,

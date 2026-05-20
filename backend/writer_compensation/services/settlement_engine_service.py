@@ -17,6 +17,9 @@ from writer_compensation.models.settlement_item import SettlementItem
 from writer_compensation.services.settlement_validation_layer import (
     SettlementValidationService,
 )
+from writer_compensation.services.wallet_sync_service import (
+    CompensationWalletSyncService,
+)
 
 
 try:
@@ -177,6 +180,11 @@ class SettlementEngineService:
         ).update(
             settlement_period=period,
             status=EventStatus.INCLUDED_IN_SETTLEMENT,
+        )
+
+        CompensationWalletSyncService.credit_settlement_to_wallet(
+            period=period,
+            actor=actor,
         )
 
         # Fire Celery task safely — import guard at top handles missing module.

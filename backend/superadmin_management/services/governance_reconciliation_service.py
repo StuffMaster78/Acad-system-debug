@@ -38,10 +38,32 @@ class GovernanceReconciliationService:
                 "Writer reconciliation: missing profile for user=%s",
                 user.pk,
             )
-            # decide policy: quarantine or flag
-            user.is_suspended = True
-            user.suspension_reason = "Writer profile missing (reconciled)"
-            user.save(update_fields=["is_suspended", "suspension_reason"])
+            website = getattr(user, "website", None)
+            if not website:
+                logger.warning(
+                    "Writer reconciliation skipped suspension for user=%s: "
+                    "no website context.",
+                    user.pk,
+                )
+                return
+
+            from accounts.models import AccountProfile
+            from accounts.services.account_activation_service import (
+                AccountActivationService,
+            )
+            from accounts.services.account_service import AccountService
+
+            account_profile = AccountService.get_or_create_account_profile(
+                website=website,
+                user=user,
+                is_primary=not AccountProfile.objects.filter(user=user).exists(),
+                metadata={"source": "governance_reconciliation"},
+            )
+            AccountActivationService.suspend_account(
+                account_profile=account_profile,
+                reason="Writer profile missing (reconciled)",
+                metadata={"source": "governance_reconciliation"},
+            )
 
     @staticmethod
     def _reconcile_non_writer(user):

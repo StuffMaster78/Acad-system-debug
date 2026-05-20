@@ -25,6 +25,8 @@ from django.core.cache import cache
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
+from accounts.enums import AccountStatus
+from accounts.models import AccountProfile
 from websites.models.websites import Website
 from tickets.models import Ticket
 from writer_management.models.tipping import Tip
@@ -43,11 +45,20 @@ class SuperadminOnlyView(APIView):
 class UserFilter(filters.FilterSet):
     """Custom filtering for users."""
     is_active = filters.BooleanFilter(field_name="is_active")
-    is_suspended = filters.BooleanFilter(field_name="is_suspended")
+    is_suspended = filters.BooleanFilter(method="filter_is_suspended")
 
     class Meta:
         model = User
         fields = ["role", "is_suspended", "is_active", "date_joined"]
+
+    def filter_is_suspended(self, queryset, name, value):
+        if value:
+            return queryset.filter(
+                account_profiles__status=AccountStatus.SUSPENDED,
+            ).distinct()
+        return queryset.exclude(
+            account_profiles__status=AccountStatus.SUSPENDED,
+        ).distinct()
 
 class SuperadminProfileFilter(filters.FilterSet):
     """Custom filtering for SuperadminProfile."""
@@ -55,11 +66,20 @@ class SuperadminProfileFilter(filters.FilterSet):
     email = filters.CharFilter(field_name="user__email", lookup_expr='icontains')
     role = filters.CharFilter(field_name="user__role")
     is_active = filters.BooleanFilter(field_name="user__is_active")
-    is_suspended = filters.BooleanFilter(field_name="user__is_suspended")
+    is_suspended = filters.BooleanFilter(method="filter_is_suspended")
 
     class Meta:
         model = SuperadminProfile
         fields = ["username", "email", "role", "is_active", "is_suspended", "created_at"]
+
+    def filter_is_suspended(self, queryset, name, value):
+        if value:
+            return queryset.filter(
+                user__account_profiles__status=AccountStatus.SUSPENDED,
+            ).distinct()
+        return queryset.exclude(
+            user__account_profiles__status=AccountStatus.SUSPENDED,
+        ).distinct()
 
 ### 🔹 2️⃣ Superadmin Profile API
 class SuperadminProfileViewSet(viewsets.ModelViewSet):
@@ -79,9 +99,8 @@ class UserManagementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsSuperadmin]
     pagination_class = SuperadminPagination  # Enable pagination
-    filter_backends = [DjangoFilterBackend, SearchFilter]  # Added search filter
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["role", "is_suspended", "date_joined"]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = UserFilter
     search_fields = ["username", "email", "role"]  # Search enabled
 
     @action(detail=False, methods=['post'], url_path='create_user')
@@ -168,9 +187,11 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             total_editors=Count("id", filter=Q(role="editor")),
             total_writers=Count("id", filter=Q(role="writer")),
             total_clients=Count("id", filter=Q(role="client")),
-            suspended_users=Count("id", filter=Q(is_suspended=True)),
             active_users=Count("id", filter=Q(is_active=True)),
         )
+        user_stats["suspended_users"] = AccountProfile.objects.filter(
+            status=AccountStatus.SUSPENDED,
+        ).values("user_id").distinct().count()
         
         # Financial Statistics
         financial_stats = OrderPayment.objects.aggregate(
@@ -368,8 +389,10 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             total_editors=Count("id", filter=Q(role="editor")),
             total_writers=Count("id", filter=Q(role="writer")),
             total_clients=Count("id", filter=Q(role="client")),
-            suspended_users=Count("id", filter=Q(is_suspended=True)),
         )
+        user_stats["suspended_users"] = AccountProfile.objects.filter(
+            status=AccountStatus.SUSPENDED,
+        ).values("user_id").distinct().count()
 
         financial_stats = OrderPayment.objects.aggregate(
             total_revenue=Sum("amount", default=0),
@@ -438,27 +461,35 @@ class AppealViewSet(viewsets.ModelViewSet):
         appeal.save()
         
         # Handle appeal type-specific actions
-        if appeal.appeal_type == 'probation':
-            # Remove from probation
-            from writer_management.models.discipline import Probation
-            Probation.objects.filter(
-                writer__user=appeal.user,
-                is_active=True
-            ).update(is_active=False)
-        elif appeal.appeal_type == 'blacklist':
-            # Remove from blacklist
-            from writer_management.models.discipline import WriterBlacklist
-            WriterBlacklist.objects.filter(
-                writer__user=appeal.user,
-                is_active=True
-            ).update(is_active=False)
-        elif appeal.appeal_type == 'suspension':
-            # Lift suspension
-            from writer_management.models.discipline import WriterSuspension
-            WriterSuspension.objects.filter(
-                writer__user=appeal.user,
-                is_active=True
-            ).update(is_active=False)
+        if appeal.user.role == "writer":
+            from writer_management.models import WriterProfile
+            from writer_management.services.discipline_service import DisciplineService
+
+            writer = WriterProfile.objects.filter(
+                account_profile__user=appeal.user,
+            ).first()
+            if writer:
+                try:
+                    if appeal.appeal_type == 'probation':
+                        DisciplineService.end_probation(
+                            writer=writer,
+                            ended_by=request.user,
+                            reason="Appeal approved",
+                        )
+                    elif appeal.appeal_type == 'blacklist':
+                        DisciplineService.lift_blacklist(
+                            writer=writer,
+                            lifted_by=request.user,
+                            reason="Appeal approved",
+                        )
+                    elif appeal.appeal_type == 'suspension':
+                        DisciplineService.lift_suspension(
+                            writer=writer,
+                            lifted_by=request.user,
+                            reason="Appeal approved",
+                        )
+                except Exception:
+                    pass
         
         # Log the action
         SuperadminLog.objects.create(

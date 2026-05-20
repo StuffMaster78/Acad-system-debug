@@ -12,8 +12,10 @@ from loyalty_management.serializers import  LoyaltyTierSerializer, LoyaltyTransa
 from core.utils.location import get_geolocation_from_ip
 from .permissions import IsAdminOrSuperAdmin, IsSelfOrAdmin
 from .pagination import StandardResultsSetPagination
-from wallet.models import Wallet
-from wallet.serializers import WalletTransactionSerializer
+from wallets.api.serializers import WalletEntrySerializer
+from wallets.constants import WalletType
+from wallets.selectors import WalletEntrySelectors
+from wallets.services import ClientWalletService
 # from .tasks import update_loyalty_points
 
 from client_management.models import BlacklistedEmail
@@ -79,17 +81,24 @@ class ClientWalletView(views.APIView):
     def get(self, request, client_id, *args, **kwargs):
         try:
             client = ClientProfile.objects.get(pk=client_id)
-            wallet = Wallet.objects.get(user=client.user)
-            transactions = wallet.transactions.all()
+            wallet = ClientWalletService.get_wallet(
+                website=client.website,
+                client=client.user,
+            )
+            transactions = WalletEntrySelectors.for_owner(
+                website=client.website,
+                owner_user=client.user,
+                wallet_type=WalletType.CLIENT,
+            ).order_by("-created_at", "-id")
             wallet_data = {
-                "balance": wallet.balance,
-                "transactions": WalletTransactionSerializer(transactions, many=True).data,
+                "balance": wallet.available_balance,
+                "wallet_id": wallet.pk,
+                "currency": wallet.currency,
+                "transactions": WalletEntrySerializer(transactions, many=True).data,
             }
             return Response(wallet_data, status=status.HTTP_200_OK)
         except ClientProfile.DoesNotExist:
             return Response({"error": "Client not found."}, status=status.HTTP_404_NOT_FOUND)
-        except Wallet.DoesNotExist:
-            return Response({"error": "Wallet not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
 # List and create loyalty tiers (Admin/Superadmin only)

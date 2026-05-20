@@ -34,7 +34,7 @@ from loyalty_management.services.redemption_service import RedemptionService
 from loyalty_management.services.analytics_service import LoyaltyAnalyticsService
 from websites.utils import get_current_website
 from rest_framework.generics import ListAPIView
-from wallet.services.wallet_transaction_service import WalletTransactionService
+from wallets.services.client_wallet_service import ClientWalletService
 
 
 
@@ -139,9 +139,13 @@ class LoyaltySummaryView(APIView):
         website = client.website
 
         config = LoyaltyPointsConversionConfig.objects.filter(website=website, active=True).first()
+        wallet = ClientWalletService.get_wallet(
+            website=website,
+            client=request.user,
+        )
         data = {
             "loyalty_points": client.loyalty_points,
-            "wallet_balance": WalletTransactionService.get_balance(request.user, website),  # Add website parameter
+            "wallet_balance": wallet.available_balance,
             "tier": client.tier.name if client.tier else "None",
             "conversion_rate": config.conversion_rate if config else "0.00"
         }

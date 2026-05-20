@@ -38,9 +38,9 @@ def api_root(request):
             'admin_management': '/api/v1/admin-management/',
             'superadmin_management': '/api/v1/superadmin-management/',
             'notifications': '/api/v1/notifications/',
-            'communications': '/api/v1/order-communications/',
+            'communications': '/api/v1/communications/',
             'tickets': '/api/v1/tickets/',
-            'wallet': '/api/v1/wallet/',
+            'wallets': '/api/v1/wallets/',
             'fines': '/api/v1/fines/',
             'blog_pages': '/api/v1/blog_pages_management/',
             'service_pages': '/api/v1/service-pages/',
@@ -48,4 +48,3 @@ def api_root(request):
         },
         'status': 'operational'
     })
-

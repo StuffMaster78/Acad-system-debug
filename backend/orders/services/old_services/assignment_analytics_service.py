@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.conf import settings
 from orders.models.legacy_models.writer_acceptance import WriterAssignmentAcceptance
 
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 
 User = settings.AUTH_USER_MODEL
 

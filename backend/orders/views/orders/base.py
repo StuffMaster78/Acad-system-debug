@@ -2,7 +2,7 @@ from datetime import datetime, time
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -20,11 +20,15 @@ from orders.order_enums import OrderFlags, OrderStatus
 from orders.permissions import IsOrderOwnerOrSupport
 from orders.serializers.orders import OrderSerializer
 from order_payments_management.models.payments import OrderPayment
+from order_payments_management.services.unified_payment_service import (
+    UnifiedPaymentService,
+)
 from orders.exceptions import InvalidTransitionError
-from orders.services.order_deletion_service import (
+from orders.services.old_services.order_deletion_service import (
     ALLOWED_STAFF_ROLES,
     OrderDeletionService,
 )
+from wallets.exceptions import InsufficientWalletBalanceError
 
 
 class LimitedPagination(PageNumberPagination):
@@ -314,130 +318,14 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             # Add explicit ordering to use created_at index
             base_qs = qs.filter(client_id=user.id).order_by('-created_at')
         elif user_role == 'writer':
-            # Writers see:
-            # 1. Orders assigned to them (always visible, regardless of payment status)
-            # 2. Paid orders that are available and not assigned to other writers
-            # 3. Paid orders that are preferred for them (unless they declined)
-            from writer_management.models.profile import WriterProfile
-            from orders.models import PreferredWriterResponse
-            
-            # Get writer's website from their profile - use select_related to avoid N+1
-            # Cache writer profile lookup to avoid repeated queries
-            from django.core.cache import cache
-            cache_key = f'writer_profile_website_{user.id}'
-            writer_website = cache.get(cache_key)
-            writer_profile = None
-            
-            if writer_website is None:
-                try:
-                    # Use get() instead of hasattr to ensure we get the profile
-                    writer_profile = WriterProfile.objects.select_related('website').only('website_id', 'user_id').get(user=user)
-                    writer_website = writer_profile.website
-                    # Cache for 5 minutes (website rarely changes)
-                    cache.set(cache_key, writer_website, 300)
-                except WriterProfile.DoesNotExist:
-                    writer_website = None
-                    # Cache None for 5 minutes to avoid repeated lookups
-                    cache.set(cache_key, None, 300)
-                except Exception as e:
-                    # Log error but continue with fallback
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.warning(f"Error getting writer profile for user {user.id}: {str(e)}")
-                    writer_website = None
-            
-            if writer_website:
-                # Cache declined and requested order IDs to avoid repeated queries
-                # Use longer cache TTLs and batch queries to reduce database load
-                declined_cache_key = f'writer_declined_orders_{user.id}'
-                requested_cache_key = f'writer_requested_orders_{user.id}'
-                
-                declined_order_ids = cache.get(declined_cache_key)
-                if declined_order_ids is None:
-                    # Use select_related to optimize the query
-                    declined_order_ids = list(PreferredWriterResponse.objects.filter(
-                        writer=user,
-                        response='declined'
-                    ).only('order_id').values_list('order_id', flat=True))
-                    # Cache for 5 minutes (declines don't change often)
-                    cache.set(declined_cache_key, declined_order_ids, 300)
-                
-                requested_order_ids = cache.get(requested_cache_key)
-                if requested_order_ids is None:
-                    # Get orders that the writer has requested (allows viewing requested orders)
-                    # BUT only if they are paid
-                    from writer_management.models.requests import WriterOrderRequest
-                    # Get writer_profile if not already available
-                    if writer_profile is None:
-                        try:
-                            writer_profile = WriterProfile.objects.only('id', 'user_id').get(user=user)
-                        except WriterProfile.DoesNotExist:
-                            writer_profile = None
-                    
-                    if writer_profile:
-                        # Use select_related and only() to optimize
-                        requested_order_ids = list(WriterOrderRequest.objects.filter(
-                            writer=writer_profile,
-                            order__is_paid=True  # Only include paid requested orders
-                        ).select_related('order').only('order_id').values_list('order_id', flat=True))
-                    else:
-                        requested_order_ids = []
-                    # Cache for 60 seconds (requests can change more frequently)
-                    cache.set(requested_cache_key, requested_order_ids, 60)
-                
-                # Filter by website for available orders
-                # Writers see ONLY PAID orders:
-                # 1. Orders assigned to them (only if paid)
-                # 2. Orders they have requested (only if paid)
-                # 3. Available paid orders that are:
-                #    - Not assigned to anyone
-                #    - In common pool (preferred_writer is None) OR preferred for this writer
-                #    - Not declined by this writer
-                
-                # Build query conditions more efficiently
-                # Start with the most selective filters first to use indexes better
-                conditions = []
-                
-                # 1. Assigned orders (most selective - uses assigned_writer index)
-                conditions.append(
-                    models.Q(assigned_writer=user)
-                )
-                
-                # 2. Requested orders (if any)
-                if requested_order_ids:
-                    conditions.append(
-                        models.Q(id__in=requested_order_ids, is_paid=True)
-                    )
-                
-                # 3. Available orders (use website and status indexes)
-                available_condition = models.Q(
-                    status=OrderStatus.AVAILABLE.value,
-                    assigned_writer__isnull=True,
-                    is_paid=True,
-                    website=writer_website,
-                ) & (
-                    models.Q(preferred_writer__isnull=True) | models.Q(preferred_writer=user)
-                )
-                conditions.append(available_condition)
-                
-                # Combine all conditions with OR
-                if len(conditions) == 1:
-                    base_qs = qs.filter(conditions[0])
-                else:
-                    combined_q = conditions[0]
-                    for condition in conditions[1:]:
-                        combined_q |= condition
-                    base_qs = qs.filter(combined_q)
-                
-                # Only exclude declined orders if there are any
-                if declined_order_ids:
-                    base_qs = base_qs.exclude(id__in=declined_order_ids)
-                
-                # Use distinct() to avoid duplicates from OR conditions
-                base_qs = base_qs.distinct()
-            else:
-                # Fallback: only show assigned paid orders if no website
-                base_qs = qs.filter(assigned_writer=user)
+            from orders.selectors.order_visibility_selector import (
+                OrderVisibilitySelector,
+            )
+
+            visible_ids = OrderVisibilitySelector.visible_to_writer(
+                writer=user,
+            ).values_list("id", flat=True)
+            base_qs = qs.filter(id__in=visible_ids)
         elif user_role in ['admin', 'support', 'editor']:
             # Admins, support, and editors see all orders (no website filtering)
             base_qs = qs
@@ -1288,8 +1176,8 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         from django.db import transaction
         from order_payments_management.services.payment_service import OrderPaymentService
         from orders.services.pricing_calculator import PricingCalculatorService
-        from wallet.models import Wallet
-        from wallet.exceptions import InsufficientWalletBalance
+        from wallets.models import Wallet
+        from wallets.services.client_wallet_service import ClientWalletService
         
         order = get_object_or_404(Order, pk=pk)
         user = request.user
@@ -1330,8 +1218,10 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     order.save(update_fields=["total_price"])
                 
                 # Ensure wallet exists (website-specific) and lock it for atomic operation
-                from wallet.services.wallet_transaction_service import WalletTransactionService
-                wallet = WalletTransactionService.get_wallet(client, order.website)
+                wallet = ClientWalletService.get_wallet(
+                    website=order.website,
+                    client=client,
+                )
                 wallet = Wallet.objects.select_for_update().get(id=wallet.id)
                 
                 # Create payment record first to get the actual discounted amount
@@ -1346,19 +1236,20 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 
                 # Check wallet balance against the actual discounted amount
                 payment_amount = payment.discounted_amount or payment.amount
-                if wallet.balance < payment_amount:
+                if wallet.available_balance < payment_amount:
                     return Response(
                         {
                             "detail": "Insufficient wallet balance.",
                             "required": float(payment_amount),
-                            "available": float(wallet.balance),
-                            "shortfall": float(payment_amount - wallet.balance)
+                            "available": float(wallet.available_balance),
+                            "shortfall": float(payment_amount - wallet.available_balance)
                         },
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 
                 # Process wallet payment (deducts from wallet and marks payment as completed)
                 payment = OrderPaymentService.process_wallet_payment(payment)
+                wallet.refresh_from_db()
                 
                 # Mark order as paid
                 order.is_paid = True
@@ -1395,7 +1286,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                         "status": payment.status,
                         "method": payment.payment_method
                     },
-                    "wallet_balance": float(wallet.balance)
+                    "wallet_balance": float(wallet.available_balance)
                 }, status=status.HTTP_200_OK)
                 
         except ValueError as e:
@@ -1404,7 +1295,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        except InsufficientWalletBalance as e:
+        except InsufficientWalletBalanceError as e:
             return Response(
                 {
                     "detail": "Insufficient wallet balance.",
@@ -1498,14 +1389,16 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 # If payment method is provided and it's wallet, process immediately
                 payment_method = request.data.get("payment_method")
                 if payment_method == "wallet" and additional_cost > 0:
-                    from wallet.models import Wallet
-                    from wallet.services.wallet_transaction_service import WalletTransactionService
-                    from wallet.exceptions import InsufficientWalletBalance
+                    from wallets.models import Wallet
+                    from wallets.services.client_wallet_service import ClientWalletService
                     
-                    wallet = WalletTransactionService.get_wallet(order.client, order.website)
+                    wallet = ClientWalletService.get_wallet(
+                        website=order.website,
+                        client=order.client,
+                    )
                     wallet = Wallet.objects.select_for_update().get(id=wallet.id)
                     
-                    if wallet.balance < additional_cost:
+                    if wallet.available_balance < additional_cost:
                         # Rollback order changes
                         order.number_of_pages -= additional_pages
                         order.number_of_slides -= additional_slides
@@ -1516,8 +1409,8 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                             {
                                 "detail": "Insufficient wallet balance.",
                                 "required": float(additional_cost),
-                                "available": float(wallet.balance),
-                                "shortfall": float(additional_cost - wallet.balance)
+                                "available": float(wallet.available_balance),
+                                "shortfall": float(additional_cost - wallet.available_balance)
                             },
                             status=status.HTTP_400_BAD_REQUEST
                         )
@@ -1658,14 +1551,16 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 # If payment method is provided and it's wallet, process immediately
                 payment_method = request.data.get("payment_method")
                 if payment_method == "wallet" and additional_cost > 0:
-                    from wallet.models import Wallet
-                    from wallet.services.wallet_transaction_service import WalletTransactionService
-                    from wallet.exceptions import InsufficientWalletBalance
+                    from wallets.models import Wallet
+                    from wallets.services.client_wallet_service import ClientWalletService
                     
-                    wallet = WalletTransactionService.get_wallet(order.client, order.website)
+                    wallet = ClientWalletService.get_wallet(
+                        website=order.website,
+                        client=order.client,
+                    )
                     wallet = Wallet.objects.select_for_update().get(id=wallet.id)
                     
-                    if wallet.balance < additional_cost:
+                    if wallet.available_balance < additional_cost:
                         # Rollback service addition
                         order.extra_services.remove(*services)
                         order.total_price = calculator.calculate_total_price()
@@ -1675,8 +1570,8 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                             {
                                 "detail": "Insufficient wallet balance.",
                                 "required": float(additional_cost),
-                                "available": float(wallet.balance),
-                                "shortfall": float(additional_cost - wallet.balance)
+                                "available": float(wallet.available_balance),
+                                "shortfall": float(additional_cost - wallet.available_balance)
                             },
                             status=status.HTTP_400_BAD_REQUEST
                         )

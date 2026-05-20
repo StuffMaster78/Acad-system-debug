@@ -5,6 +5,7 @@ from wallets.services.wallet_reconciliation_service import (
     WalletReconciliationService,
 )
 from wallets.services.wallet_service import WalletService
+from wallets.services.writer_payout_request_service import WriterPayoutRequestService
 from wallets.services.writer_wallet_service import WriterWalletService
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "WalletReconciliationResult",
     "ClientWalletService",
     "WriterWalletService",
+    "WriterPayoutRequestService",
 ]

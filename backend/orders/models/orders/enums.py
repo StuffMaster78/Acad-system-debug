@@ -28,6 +28,7 @@ class OrderStatus(models.TextChoices):
     COMPLETED = "completed", "Completed"
     DISPUTED = "disputed", "Disputed"
     CANCELLED = "cancelled", "Cancelled"
+    REFUNDED = "refunded", "Refunded"
     ARCHIVED = "archived", "Archived"
     REVISION_REQUESTED = "revision_requested", "Revision Requested"
 

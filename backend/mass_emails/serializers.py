@@ -6,6 +6,9 @@ recipient tracking, and reusable templates.
 """
 
 from rest_framework import serializers
+
+from mass_emails.services.attachment_service import CampaignAttachmentService
+
 from .models import (
     EmailCampaign,
     EmailRecipient,
@@ -19,9 +22,70 @@ class CampaignAttachmentSerializer(serializers.ModelSerializer):
     """
     Serializer for campaign attachments.
     """
+    uploaded_file = serializers.FileField(
+        write_only=True,
+        required=False,
+    )
+    campaign = serializers.PrimaryKeyRelatedField(
+        queryset=EmailCampaign.objects.all(),
+        write_only=True,
+    )
+    attachment_id = serializers.IntegerField(
+        source="attachment.id",
+        read_only=True,
+    )
+    file_name = serializers.CharField(
+        source="attachment.managed_file.original_name",
+        read_only=True,
+    )
+    file_url = serializers.SerializerMethodField()
+
     class Meta:
         model = CampaignAttachment
-        fields = ['id', 'name', 'file']
+        fields = [
+            "id",
+            "campaign",
+            "name",
+            "attachment_id",
+            "file_name",
+            "file_url",
+            "uploaded_file",
+            "created_by",
+            "created_at",
+        ]
+        read_only_fields = [
+            "attachment_id",
+            "file_name",
+            "file_url",
+            "created_by",
+            "created_at",
+        ]
+
+    def get_file_url(self, obj):
+        managed_file = getattr(obj.attachment, "managed_file", None)
+        if not managed_file or not managed_file.file:
+            return None
+        try:
+            return managed_file.file.url
+        except ValueError:
+            return None
+
+    def create(self, validated_data):
+        uploaded_file = validated_data.pop("uploaded_file", None)
+        campaign = validated_data.pop("campaign")
+        if uploaded_file is None:
+            raise serializers.ValidationError(
+                {"uploaded_file": "This field is required."}
+            )
+
+        request = self.context.get("request")
+        uploaded_by = getattr(request, "user", None)
+        return CampaignAttachmentService.upload_attachment(
+            campaign=campaign,
+            uploaded_by=uploaded_by,
+            uploaded_file=uploaded_file,
+            name=validated_data.get("name", ""),
+        )
 
 
 class EmailRecipientSerializer(serializers.ModelSerializer):
@@ -29,6 +93,7 @@ class EmailRecipientSerializer(serializers.ModelSerializer):
     Read-only serializer for recipients of a campaign.
     """
     campaign = serializers.SerializerMethodField()
+
     class Meta:
         model = EmailRecipient
         fields = [
@@ -57,21 +122,6 @@ class EmailCampaignListSerializer(serializers.ModelSerializer):
     """
     website = serializers.StringRelatedField()
     created_by = serializers.StringRelatedField()
-    template_id = serializers.IntegerField(
-        required=False, write_only=True,
-        help_text="Optional. Populate subject/body from this template."
-    )
-
-    def validate(self, attrs):
-        template_id = attrs.get("template_id")
-        if template_id:
-            try:
-                template = EmailTemplate.objects.get(id=template_id)
-                attrs['subject'] = template.subject
-                attrs['body'] = template.body
-            except EmailTemplate.DoesNotExist:
-                raise serializers.ValidationError("Template not found.")
-        return attrs
 
     class Meta:
         model = EmailCampaign
@@ -111,13 +161,49 @@ class EmailCampaignCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating/updating campaigns.
     """
+    template_id = serializers.IntegerField(
+        required=False,
+        write_only=True,
+        help_text="Optional. Populate subject/body from this template.",
+    )
+
     class Meta:
         model = EmailCampaign
         fields = [
             'title', 'subject', 'body',
             'website', 'email_type',
-            'target_roles', 'scheduled_time'
+            'target_roles', 'scheduled_time',
+            'template_id',
         ]
+
+    def validate_target_roles(self, value):
+        allowed = {"client", "writer"}
+        roles = value or []
+        invalid = sorted(set(roles) - allowed)
+        if invalid:
+            invalid_roles = ", ".join(invalid)
+            raise serializers.ValidationError(
+                "Mass emails can only target clients or writers. "
+                f"Invalid: {invalid_roles}"
+            )
+        if not roles:
+            raise serializers.ValidationError(
+                "At least one target role is required."
+            )
+        return sorted(set(roles))
+
+    def validate(self, attrs):
+        template_id = attrs.pop("template_id", None)
+        if template_id:
+            try:
+                template = EmailTemplate.objects.get(id=template_id)
+            except EmailTemplate.DoesNotExist as exc:
+                raise serializers.ValidationError(
+                    "Template not found."
+                ) from exc
+            attrs.setdefault("subject", template.subject)
+            attrs.setdefault("body", template.body)
+        return attrs
 
     def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user

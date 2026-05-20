@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.db.models import QuerySet
 
-from communications.models import CommunicationAttachment
 from communications.models.attachment import CommunicationAttachment
 from communications.services.thread_guard_service import (
     CommunicationThreadGuardService,
@@ -97,9 +96,9 @@ class CommunicationAttachmentSelector:
             base_qs
             .filter(
                 is_visible=True,
-                thread__participant_records__user=user,
-                thread__participant_records__can_view=True,
-                thread__participant_records__removed_at__isnull=True,
+                thread__participants__user=user,
+                thread__participants__can_view=True,
+                thread__participants__removed_at__isnull=True,
             )
             .distinct()
         )
@@ -126,9 +125,9 @@ class CommunicationAttachmentSelector:
             base_qs
             .filter(
                 is_visible=True,
-                thread__participant_records__user=user,
-                thread__participant_records__can_view=True,
-                thread__participant_records__removed_at__isnull=True,
+                thread__participants__user=user,
+                thread__participants__can_view=True,
+                thread__participants__removed_at__isnull=True,
             )
             .distinct()
         )

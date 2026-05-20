@@ -1,347 +1,221 @@
+from __future__ import annotations
+
 from decimal import Decimal
-from aiohttp import client
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from numpy.strings import title
-from loyalty_management.models import LoyaltyTransaction, LoyaltyPointsConversionConfig
-from wallet.models import Wallet  # Assume this exists
+
 from client_management.models import ClientProfile
-from django.db import models
-from django.utils.translation import gettext_lazy as _
-from loyalty_management.models import LoyaltyTier, Milestone, ClientBadge
-from client_management.models import ClientProfile
-from wallet.services.wallet_transaction_service import WalletTransactionService
-
-
-
+from loyalty_management.models import LoyaltyPointsConversionConfig
+from loyalty_management.services.points_service import LoyaltyPointsService
+from wallets.constants import WalletEntryType
+from wallets.services.client_wallet_service import ClientWalletService
+from wallets.services.wallet_service import WalletService
 
 
 class LoyaltyConversionService:
-    """Service class to handle loyalty points conversion to wallet balance.
-    This class encapsulates the logic for converting loyalty points into wallet balance,
-    ensuring that all business rules and validations are applied.
-    It includes methods for checking conversion eligibility, performing the conversion,
-    and updating the client's loyalty tier based on their total points.
+    """
+    Compatibility facade for loyalty earning and wallet conversion.
+
+    New point writes should go through LoyaltyPointsService directly. This
+    class remains as the public conversion API used by existing views/tasks.
     """
 
     @staticmethod
-    def convert_points_to_wallet(client: ClientProfile, website, points: int):
-        config = LoyaltyPointsConversionConfig.objects.filter(website=website, active=True).first()
+    def convert_points_to_wallet(
+        client: ClientProfile,
+        website,
+        points: int,
+    ) -> Decimal:
+        config = LoyaltyPointsConversionConfig.objects.filter(
+            website=website,
+            active=True,
+        ).first()
         if not config:
-            raise ValidationError("Loyalty conversion is not available for this website.")
+            raise ValidationError(
+                "Loyalty conversion is not available for this website.",
+            )
 
         if points < config.min_conversion_points:
-            raise ValidationError(f"Minimum {config.min_conversion_points} points required to convert.")
+            raise ValidationError(
+                f"Minimum {config.min_conversion_points} points required "
+                "to convert.",
+            )
 
-        current_balance = LoyaltyConversionService.get_total_points(client)
+        current_balance = LoyaltyPointsService.get_total_points(
+            client_profile=client,
+        )
         if points > current_balance:
             raise ValidationError("You do not have enough loyalty points.")
 
         amount = Decimal(points) * config.conversion_rate
-
         if amount > config.max_conversion_limit:
-            raise ValidationError(f"Cannot convert more than ${config.max_conversion_limit} at once.")
+            raise ValidationError(
+                f"Cannot convert more than ${config.max_conversion_limit} "
+                "at once.",
+            )
 
         with transaction.atomic():
-            # Deduct loyalty points
-            LoyaltyConversionService.deduct_points(
+            LoyaltyPointsService.deduct_points(
                 client_profile=client,
                 points=points,
                 website=website,
-                reason="Converted to wallet balance"
+                reason="Converted to wallet balance",
             )
-
-            # Add to wallet
-            wallet, _ = Wallet.objects.get_or_create(client=client, website=website)
-            wallet.balance += amount
-            wallet.save()
-
-            # Optional: Add a WalletTransaction for audit
-            wallet.transactions.create(
+            wallet = ClientWalletService.get_wallet(
+                website=website,
+                client=client.user,
+            )
+            WalletService.credit_wallet(
+                wallet=wallet,
+                website=website,
                 amount=amount,
-                type="credit",
-                source="loyalty_conversion",
-                note=f"Converted {points} points"
+                entry_type=WalletEntryType.LOYALTY_CONVERSION,
+                description="Loyalty Points Conversion",
+                reference=f"loyalty-conversion-{client.id}-{points}",
+                reference_type="loyalty_conversion",
+                reference_id=str(client.id),
+                metadata={"points": points, "note": f"Converted {points} points"},
+            )
+            LoyaltyConversionService._notify_points_converted(
+                client=client,
+                website=website,
+                points=points,
+                amount=amount,
             )
 
         return amount
-    
+
     @staticmethod
-    def calculate_points(order):
-        config = LoyaltyPointsConversionConfig.objects.filter(website=order.website, active=True).first()
+    def calculate_points(order) -> int:
+        config = LoyaltyPointsConversionConfig.objects.filter(
+            website=order.website,
+            active=True,
+        ).first()
         if not config:
             return 0
-        return int(order.total_cost * config.points_per_dollar)
 
-    
+        total = getattr(order, "total_price", None)
+        if total is None:
+            total = getattr(order, "total_cost", Decimal("0.00"))
+
+        return int(Decimal(total) * config.points_per_dollar)
+
     @staticmethod
     def add_points_from_order(order):
-        if order.status != 'completed':
-            return
+        if getattr(order, "status", None) != "completed":
+            return None
 
-        client_profile = order.client  # or use lookup if needed
-        if not client_profile:
-            return
+        client_user = getattr(order, "client", None)
+        if client_user is None:
+            return None
+
+        client_profile = ClientProfile.objects.filter(
+            user=client_user,
+            website=order.website,
+        ).first()
+        if client_profile is None:
+            return None
 
         points = LoyaltyConversionService.calculate_points(order)
         if points <= 0:
-            return
+            return None
 
-        client_profile.loyalty_points += points
-        client_profile.save()
-
-        LoyaltyTransaction.objects.create(
-            client=client_profile,
+        return LoyaltyPointsService.award_points(
+            client_profile=client_profile,
             website=order.website,
             points=points,
-            transaction_type='add',
             reason=f"Loyalty points for order #{order.id}",
+            metadata={"order_id": order.id},
         )
-
-        # Send notification
-        try:
-            from notifications_system.services.notification_service import NotificationService
-            NotificationService.notify(
-                event_key="loyalty_point_awarded",
-                recipient=client_profile,
-                website=order.website,
-                context={
-                    "title": "Loyalty Points Awarded",
-                    "total_points": client_profile.loyalty_points,
-                    "reason": f"Order #{order.id} completed",
-                },
-                channels=["email", "in_app"],
-                priority="normal",
-                is_critical=False,
-            )
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Failed to send loyalty points notification: {e}")
-
-        LoyaltyConversionService.update_loyalty_tier(client_profile)
-        LoyaltyConversionService.check_and_award_milestones(client_profile)
-
 
     @staticmethod
     def award_points(client_profile, points, website, reason):
-        client_profile.loyalty_points += points
-        client_profile.save()
-
-        LoyaltyTransaction.objects.create(
-            client=client_profile,
-            website=website,
+        return LoyaltyPointsService.award_points(
+            client_profile=client_profile,
             points=points,
-            transaction_type='add',
-            reason=reason
+            website=website,
+            reason=reason,
         )
-
-        # Send notification
-        try:
-            from notifications_system.services.notification_service import NotificationService
-            NotificationService.notify(
-                event_key="loyalty_points_awarded",
-                recipient=client_profile,
-                website=website,
-                context={
-                    "title": "Loyalty Points Awarded",
-                    "points": points,
-                    "reason": reason,
-                    "total_points": client_profile.loyalty_points
-                },
-                channels=["email", "in_app"],
-                priority="normal",
-                is_critical=False
-            )
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Failed to send loyalty points notification: {e}")
-
-        old_tier = client_profile.tier
-        LoyaltyConversionService.update_loyalty_tier(client_profile)
-        
-        # Check if tier was upgraded
-        if old_tier != client_profile.tier and client_profile.tier:
-            try:
-                from notifications_system.services.notification_service import NotificationService
-                NotificationService.notify(
-                    event_key="tier_upgraded",
-                    recipient=client_profile,
-                    website=client_profile.website,
-                    context={
-                        "title": "Tier Upgraded",
-                        "tier_name": client_profile.tier.name,
-                        "perks": client_profile.tier.perks or ""
-                    },
-                    channels=["email", "in_app"],
-                    priority="normal",
-                    is_critical=False
-                )
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Failed to send tier upgrade notification: {e}")
-        
-        LoyaltyConversionService.check_and_award_milestones(client_profile)
-        LoyaltyConversionService.try_auto_convert(client_profile, website)
-
-    @staticmethod
-    def get_total_points(client):
-        return client.loyalty_transactions.aggregate(
-            total=models.Sum('points')
-        )['total'] or 0
-    
-    @staticmethod
-    def update_loyalty_tier(client_profile):
-        total_points = client_profile.loyalty_points
-
-        tier = LoyaltyTier.objects.filter(
-            website=client_profile.website,
-            threshold__lte=total_points
-        ).order_by('-threshold').first()
-
-        if tier and client_profile.tier != tier:
-            client_profile.tier = tier
-            client_profile.save()
-
-    @staticmethod
-    def check_and_award_milestones(client_profile):
-        existing_badges = set(
-            client_profile.badges.filter(badge_name__startswith="Milestone: ").values_list('badge_name', flat=True)
-        )
-
-        milestones = Milestone.objects.filter(
-            website=client_profile.website,
-            target_type='loyalty_points',
-            target_value__lte=client_profile.loyalty_points
-        )
-
-        for milestone in milestones:
-            badge_name = f"Milestone: {milestone.name}"
-            if badge_name in existing_badges:
-                continue
-
-            # Award milestone points
-            client_profile.loyalty_points += milestone.reward_points
-            client_profile.save()
-
-            # Record badge
-            ClientBadge.objects.create(
-                client=client_profile,
-                website=client_profile.website,
-                badge_name=badge_name,
-                description=milestone.description
-            )
-
-            # Log transaction
-            LoyaltyTransaction.objects.create(
-                client=client_profile,
-                website=client_profile.website,
-                points=milestone.reward_points,
-                transaction_type='add',
-                reason=f"Milestone achieved: {milestone.name}"
-            )
 
     @staticmethod
     def deduct_points(client_profile, points, website, reason):
-        if client_profile.loyalty_points < points:
-            raise ValidationError("Insufficient loyalty points.")
-
-        client_profile.loyalty_points -= points
-        client_profile.save()
-
-        LoyaltyTransaction.objects.create(
-            client=client_profile,
+        return LoyaltyPointsService.deduct_points(
+            client_profile=client_profile,
+            points=points,
             website=website,
-            points=-points,
-            transaction_type='redeem',
-            reason=reason
+            reason=reason,
         )
 
     @staticmethod
-    def convert_points_to_wallet(client: ClientProfile, website, points: int):
-        config = LoyaltyPointsConversionConfig.objects.filter(website=website, active=True).first()
-        if not config:
-            raise ValidationError("Loyalty conversion is not available for this website.")
+    def get_total_points(client):
+        return LoyaltyPointsService.get_total_points(client_profile=client)
 
-        if points < config.min_conversion_points:
-            raise ValidationError(f"Minimum {config.min_conversion_points} points required to convert.")
+    @staticmethod
+    def update_loyalty_tier(client_profile):
+        return LoyaltyPointsService.update_tier(client_profile=client_profile)
 
-        current_balance = LoyaltyConversionService.get_total_points(client)
-        if points > current_balance:
-            raise ValidationError("You do not have enough loyalty points.")
-
-        amount = Decimal(points) * config.conversion_rate
-
-        if amount > config.max_conversion_limit:
-            raise ValidationError(f"Cannot convert more than ${config.max_conversion_limit} at once.")
-
-        with transaction.atomic():
-            # Deduct points (loyalty side)
-            LoyaltyConversionService.deduct_points(
-                client_profile=client,
-                points=points,
-                website=website,
-                reason="Converted to wallet balance"
-            )
-
-            # Credit wallet (wallet side)
-            WalletTransactionService.credit(
-                user=client.user,
-                website=website,
-                amount=amount,
-                transaction_type="loyalty_point",  # optional override
-                source="loyalty_conversion",
-                description="Loyalty Points Conversion",
-                note=f"Converted {points} points"
-            )
-
-        return amount
-    
+    @staticmethod
+    def check_and_award_milestones(client_profile):
+        return LoyaltyPointsService.award_milestones(
+            client_profile=client_profile,
+        )
 
     @staticmethod
     def try_auto_convert(client_profile, website):
-        config = LoyaltyPointsConversionConfig.objects.filter(website=website, active=True).first()
+        config = LoyaltyPointsConversionConfig.objects.filter(
+            website=website,
+            active=True,
+        ).first()
         if not config:
-            return
+            return None
 
         points = client_profile.loyalty_points
         if points < config.min_conversion_points:
-            return
+            return None
 
-        # Round down to nearest convertible block
-        convertible_points = (points // config.min_conversion_points) * config.min_conversion_points
+        convertible_points = (
+            points // config.min_conversion_points
+        ) * config.min_conversion_points
 
-        if convertible_points:
-            LoyaltyConversionService.convert_points_to_wallet(
-                client=client_profile,
-                website=website,
-                points=convertible_points
-            )
+        if not convertible_points:
+            return None
 
-            # Notify user
-            from notifications_system.services.notification_service import NotificationService
-            NotificationService.notify(
-                event_key="loyalty_points_auto_converted",
-                recipient=client_profile.user,
-                website=website,
-                context={
-                    "title": "Loyalty Points Converted",
-                    "convertible_points": convertible_points,
-                    "message": f"{convertible_points} loyalty points were converted to wallet balance.",
-                    "type": "wallet_credit"
-                },
-                channels=["email", "in_app"],
-                priority="normal",
-                is_critical=False,
-            )
+        return LoyaltyConversionService.convert_points_to_wallet(
+            client=client_profile,
+            website=website,
+            points=convertible_points,
+        )
 
     @staticmethod
     def sync_loyalty_cache(client_profile):
-        total = LoyaltyConversionService.get_total_points(client_profile)
-        if client_profile.loyalty_points != total:
-            client_profile.loyalty_points = total
-            client_profile.save()
+        return LoyaltyPointsService.sync_balance(
+            client_profile=client_profile,
+        )
 
-        return total
+    @staticmethod
+    def _notify_points_converted(
+        *,
+        client: ClientProfile,
+        website,
+        points: int,
+        amount: Decimal,
+    ) -> None:
+        try:
+            from notifications_system.services.notification_service import (
+                NotificationService,
+            )
+
+            client.refresh_from_db(fields=["loyalty_points"])
+            NotificationService.notify(
+                event_key="loyalty.points_converted",
+                recipient=client.user,
+                website=website,
+                context={
+                    "points": points,
+                    "amount": str(amount),
+                    "total_points": client.loyalty_points,
+                },
+            )
+        except Exception:
+            pass

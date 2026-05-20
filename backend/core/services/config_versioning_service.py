@@ -139,7 +139,10 @@ class ConfigVersioningService:
         # Get user from thread local (set by middleware) or instance attribute if not provided
         if changed_by is None:
             from core.middleware.config_versioning import get_current_user
-            changed_by = getattr(instance, '_versioning_user', None) or get_current_user()
+            changed_by = (
+                getattr(config_instance, '_versioning_user', None)
+                or get_current_user()
+            )
         
         # Create version
         version = ConfigVersion.objects.create(
@@ -226,4 +229,3 @@ class ConfigVersioningService:
                 config_instance.pk
             )
         )
-

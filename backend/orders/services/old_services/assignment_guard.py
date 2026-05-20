@@ -1,5 +1,5 @@
 from datetime import timezone
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 from writer_management.services.status_service import WriterStatusService
 
 def can_writer_take_order(writer: WriterProfile) -> bool:

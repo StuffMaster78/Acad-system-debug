@@ -7,7 +7,7 @@ from admin_management.models import AdminProfile, BlacklistedUser
 from orders.models.legacy_models.order_disputes import Dispute
 from admin_management.models import AdminActivityLog
 from notifications_system.services.notification_service import NotificationService
-from users.services.group_service import UserGroupService
+from users.services.services_legacy.group_service import UserGroupService
 
 User = get_user_model()
 
@@ -86,14 +86,16 @@ def notify_superadmins_new_admin(user):
             )
 
 def log_user_suspension_if_needed(user):
-    if user.is_suspended:
+    if getattr(user, "is_suspended", False):
         AdminActivityLog.objects.create(
             admin=user,
             action=f"User Suspension: {user.username} was suspended."
         )
 
 def log_user_suspension_if_changed(user, previous_state):
-    if not previous_state.is_suspended and user.is_suspended:
+    was_suspended = getattr(previous_state, "is_suspended", False)
+    is_suspended = getattr(user, "is_suspended", False)
+    if not was_suspended and is_suspended:
         AdminActivityLog.objects.create(
             admin=user,
             action=f"User Suspension: {user.username} was suspended."
@@ -163,7 +165,7 @@ def assign_admin_permissions_on_user_save(sender, instance, created, **kwargs):
         assign_admin_permissions(instance)
         notify_superadmins_new_admin(instance)
 
-    if created and instance.is_suspended:
+    if created and getattr(instance, "is_suspended", False):
         log_user_suspension_if_needed(instance)
 
     if not created:

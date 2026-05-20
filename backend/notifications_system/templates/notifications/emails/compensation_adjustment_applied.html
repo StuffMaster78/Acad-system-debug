@@ -1,0 +1,36 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Writer Earnings Adjusted{% endblock %}
+{% block tagline %}<div class="tagline">Writer Compensation</div>{% endblock %}
+
+{% block content %}
+<h1>Your earnings were adjusted</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    A {{ direction }} adjustment has been applied to your writer account.
+</p>
+
+<table class="detail-table">
+    <tr>
+        <td>Adjustment amount</td>
+        <td style="font-size:18px;font-weight:700;">{{ amount }}</td>
+    </tr>
+    <tr>
+        <td>Adjustment type</td>
+        <td>{{ direction|title }}</td>
+    </tr>
+    {% if event_id %}
+    <tr>
+        <td>Reference ID</td>
+        <td>{{ event_id }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<div class="info-box">
+    <p>
+        Adjustments update your compensation balance and are included in
+        payout calculations.
+    </p>
+</div>
+{% endblock %}

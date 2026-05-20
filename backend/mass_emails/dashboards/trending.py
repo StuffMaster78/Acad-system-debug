@@ -40,27 +40,36 @@ class CampaignTrendingAnalytics(APIView):
         # Daily opens
         opens = (
             EmailOpenTracker.objects
-            .filter(**base_filter, opened_at__date__range=[start_date, end_date])
+            .filter(
+                **base_filter,
+                opened_at__date__range=[start_date, end_date],
+            )
             .values("opened_at__date")
             .annotate(count=Count("id"))
         )
-        open_map = {o["opened_at__date"].isoformat(): o["count"] for o in opens}
+        open_map = {o["opened_at__date"].isoformat(): o["count"]
+                    for o in opens}
 
         # Daily clicks
         clicks = (
             EmailClickTracker.objects
-            .filter(**base_filter, clicked_at__date__range=[start_date, end_date])
+            .filter(
+                **base_filter,
+                clicked_at__date__range=[start_date, end_date],
+            )
             .values("clicked_at__date")
             .annotate(count=Count("id"))
         )
-        click_map = {c["clicked_at__date"].isoformat(): c["count"] for c in clicks}
+        click_map = {c["clicked_at__date"].isoformat(): c["count"]
+                     for c in clicks}
 
         # Daily unsubscribes
         emails = EmailRecipient.objects.filter(
             campaign_id=campaign_id
         ).values_list("email", flat=True) if campaign_id else None
 
-        unsub_filter = {"unsubscribed_at__date__range": [start_date, end_date]}
+        unsub_filter = {
+            "unsubscribed_at__date__range": [start_date, end_date]}
         if emails:
             unsub_filter["email__in"] = list(emails)
 
@@ -70,7 +79,8 @@ class CampaignTrendingAnalytics(APIView):
             .values("unsubscribed_at__date")
             .annotate(count=Count("id"))
         )
-        unsub_map = {u["unsubscribed_at__date"].isoformat(): u["count"] for u in unsubs}
+        unsub_map = {u["unsubscribed_at__date"].isoformat(): u["count"]
+                     for u in unsubs}
 
         # Build daily data series
         open_series = [open_map.get(date, 0) for date in labels]

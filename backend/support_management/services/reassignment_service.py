@@ -5,7 +5,7 @@ from django.db.models import Q, Count
 from django.utils import timezone
 from datetime import timedelta
 from support_management.models import OrderDisputeSLA, SupportProfile, SupportWorkloadTracker
-from orders.models.orders import Order, Dispute
+from orders.models import Order, OrderDispute
 from tickets.models import Ticket
 import logging
 
@@ -49,18 +49,18 @@ class SmartReassignmentService:
                 reassigned_tickets += 1
         
         # Reassign disputes
-        disputes = Dispute.objects.filter(
-            assigned_to__in=inactive_users,
-            status__in=['open', 'in_progress']
+        disputes = OrderDispute.objects.filter(
+            assigned_reviewer__in=inactive_users,
+            status__in=['open', 'in_review', 'escalated']
         )
         
         for dispute in disputes:
             new_agent = SmartReassignmentService.find_best_available_agent(
-                exclude_user=dispute.assigned_to
+                exclude_user=dispute.assigned_reviewer
             )
             if new_agent:
-                dispute.assigned_to = new_agent
-                dispute.save(update_fields=['assigned_to'])
+                dispute.assigned_reviewer = new_agent
+                dispute.save(update_fields=['assigned_reviewer'])
                 reassigned_disputes += 1
         
         return {

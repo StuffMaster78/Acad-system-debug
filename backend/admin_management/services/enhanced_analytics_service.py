@@ -5,7 +5,7 @@ Provides deeper insights and trend analysis.
 from django.db.models import Count, Sum, Avg, Q, F, DecimalField
 from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
 from django.utils import timezone
-from django.conf import settings
+from django.contrib.auth import get_user_model
 from datetime import timedelta
 from decimal import Decimal
 from typing import Dict, List, Any
@@ -13,10 +13,9 @@ from typing import Dict, List, Any
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from writer_management.models import WriterProfile
-from writer_wallet.models import WriterPayment
 
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 class EnhancedAnalyticsService:
     """Service for enhanced analytics and insights."""
@@ -275,4 +274,3 @@ class EnhancedAnalyticsService:
                 'new_clients': calculate_change(period1['new_clients'], period2['new_clients'])
             }
         }
-

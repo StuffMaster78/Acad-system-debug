@@ -1,0 +1,41 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Deduction Applied{% endblock %}
+{% block tagline %}<div class="tagline">Writer Compensation</div>{% endblock %}
+
+{% block content %}
+<h1>A deduction has been applied</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    A deduction has been applied to your writer account. It will be reflected
+    in your compensation balance.
+</p>
+
+<table class="detail-table">
+    <tr>
+        <td>Deduction amount</td>
+        <td style="font-size:18px;font-weight:700;color:#dc2626;">
+            {{ amount }}
+        </td>
+    </tr>
+    {% if source_label %}
+    <tr>
+        <td>Related to</td>
+        <td>{{ source_label }}</td>
+    </tr>
+    {% endif %}
+    {% if event_id %}
+    <tr>
+        <td>Reference ID</td>
+        <td>{{ event_id }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<div class="info-box danger">
+    <p>
+        If you believe this deduction is incorrect, please contact support
+        so the team can review it.
+    </p>
+</div>
+{% endblock %}

@@ -56,6 +56,27 @@ EVENT_CONFIG_DEFAULTS = {
         'priority': NotificationPriority.HIGH,
         'recipient_roles': ['writer'],
     },
+    'compensation.payment_processing': {
+        'recipient_roles': ['writer'],
+        'priority': NotificationPriority.NORMAL,
+    },
+    'compensation.payment_paid': {
+        'recipient_roles': ['writer'],
+        'priority': NotificationPriority.HIGH,
+        'user_can_disable': False,
+    },
+    'compensation.payment_on_hold': {
+        'recipient_roles': ['writer'],
+        'priority': NotificationPriority.HIGH,
+    },
+    'compensation.fine_applied': {
+        'recipient_roles': ['writer'],
+        'priority': NotificationPriority.HIGH,
+    },
+    'compensation.adjustment_applied': {
+        'recipient_roles': ['writer'],
+        'priority': NotificationPriority.NORMAL,
+    },
     'wallet.balance_low': {
         'priority': NotificationPriority.HIGH,
         'cooldown_seconds': 86400,  # once per day max
@@ -103,11 +124,61 @@ EVENT_CONFIG_DEFAULTS = {
     'ticket.created': {
         'recipient_roles': ['support'],
     },
+    'ticket.updated': {
+        'recipient_roles': ['support'],
+    },
     'ticket.assigned': {
         'recipient_roles': ['support'],
     },
+    'ticket.escalated': {
+        'recipient_roles': ['support', 'admin'],
+        'priority': NotificationPriority.HIGH,
+    },
     'ticket.resolved': {
         'recipient_roles': ['client'],
+    },
+    'ticket.closed': {
+        'recipient_roles': ['client'],
+    },
+    'ticket.reopened': {
+        'recipient_roles': ['client', 'support'],
+    },
+    'loyalty.points_awarded': {
+        'recipient_roles': ['client'],
+        'digest_eligible': True,
+        'digest_group': 'daily_summary',
+    },
+    'loyalty.points_converted': {
+        'recipient_roles': ['client'],
+    },
+    'loyalty.tier_upgraded': {
+        'recipient_roles': ['client'],
+        'priority': NotificationPriority.HIGH,
+    },
+    'referral.reward_earned': {
+        'recipient_roles': ['client'],
+        'priority': NotificationPriority.HIGH,
+    },
+    'communications.message.created': {
+        'recipient_roles': ['client', 'writer', 'support', 'admin'],
+        'cooldown_seconds': 300,
+        'digest_eligible': True,
+        'digest_group': 'daily_summary',
+    },
+    'communications.message.flagged': {
+        'recipient_roles': ['support', 'admin'],
+        'priority': NotificationPriority.HIGH,
+        'user_can_disable': False,
+    },
+    'communications.thread.escalated': {
+        'recipient_roles': ['support', 'admin'],
+        'priority': NotificationPriority.HIGH,
+        'user_can_disable': False,
+    },
+    'communications.link_review.created': {
+        'recipient_roles': ['admin'],
+        'priority': NotificationPriority.HIGH,
+        'user_can_disable': False,
     },
     'writer.approved': {
         'recipient_roles': ['writer'],
@@ -179,6 +250,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"\nDone. Created: {created} | Updated: {updated} | Skipped: {skipped}"
+                f"\nDone. Created: {created} | Updated: {updated} | "
+                f"Skipped: {skipped}"
             )
         )

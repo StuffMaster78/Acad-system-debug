@@ -89,6 +89,7 @@ class OrderApprovalService:
                 ),
             },
         )
+        cls._award_referral_reward(order=locked_order)
         return locked_order
 
     @classmethod
@@ -144,6 +145,7 @@ class OrderApprovalService:
                     ),
             },
         )
+        cls._award_referral_reward(order=locked_order)
         return locked_order
 
     @classmethod
@@ -267,3 +269,25 @@ class OrderApprovalService:
             actor=actor,
             metadata=metadata,
         )
+
+    @staticmethod
+    def _award_referral_reward(*, order: Order) -> None:
+        """
+        Award referral rewards after a first qualifying order is approved.
+        """
+        try:
+            from referrals.services.referral_reward_service import (
+                ReferralRewardService,
+            )
+
+            ReferralRewardService.award_for_qualifying_order(order=order)
+        except Exception:
+            # Approval should not be rolled back by non-critical reward failures.
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                "Failed to award referral reward for order_id=%s",
+                getattr(order, "id", None),
+                exc_info=True,
+            )

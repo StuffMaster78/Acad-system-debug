@@ -2,12 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
+import logging
+from django.conf import settings
 from communications.sse.event_bus import (
     CommunicationSSEEventBus,
 )
 from communications.sse.event_formatter import (
     CommunicationSSEEventFormatter,
 )
+
+log = logging.getLogger(__name__)
 
 
 class CommunicationEventService:
@@ -42,7 +46,16 @@ class CommunicationEventService:
             meta=resolved_meta,
         )
 
-        CommunicationSSEEventBus.publish(event=event)
+        if getattr(settings, "DISABLE_COMMUNICATION_EVENTS", False):
+            return
+
+        try:
+            CommunicationSSEEventBus.publish(event=event)
+        except Exception as exc:
+            log.warning(
+                "Communication event publish failed: %s",
+                exc,
+            )
 
     @staticmethod
     def message_created(*, message, recipient_user_ids: list[int]) -> None:

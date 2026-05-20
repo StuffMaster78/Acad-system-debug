@@ -1,12 +1,13 @@
-"""
-Signals for referral system - auto-generate codes for clients
-"""
+"""Signals for referral code lifecycle."""
+
+import logging
+
+from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.conf import settings
+
 from referrals.models import ReferralCode
 from referrals.services.referral_service import ReferralService
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -14,39 +15,49 @@ User = settings.AUTH_USER_MODEL
 
 
 @receiver(post_save, sender=User)
-def auto_generate_referral_code_for_clients(sender, instance, created, **kwargs):
+def auto_generate_referral_code_for_clients(
+    sender,
+    instance,
+    created,
+    **kwargs,
+):
     """
-    Automatically generate referral code when a client user is created.
-    Only clients can have referral codes - admins, superadmins, support, editors, and writers cannot.
+    Generate referral codes for clients once tenant context exists.
+
+    A client may be created before website assignment during tests, imports,
+    or staged onboarding. In that case we defer quietly and create the code
+    on the later save that attaches the website.
     """
-    if not created:
+    if instance.role != "client":
         return
-    
-    # Only generate referral codes for clients
-    if instance.role != 'client':
-        return
-    
-    # Ensure user has a website
+
     if not instance.website:
-        logger.warning(f"Cannot generate referral code for client {instance.id}: no website assigned")
+        logger.debug(
+            "Referral code generation deferred for client %s: no website.",
+            instance.id,
+        )
         return
-    
-    # Check if referral code already exists
-    try:
-        existing_code = ReferralCode.objects.get(user=instance, website=instance.website)
-        logger.debug(f"Referral code already exists for client {instance.id}: {existing_code.code}")
+
+    if ReferralCode.objects.filter(user=instance).exists():
         return
-    except ReferralCode.DoesNotExist:
-        pass
-    
-    # Generate unique referral code
+
     try:
-        code = ReferralService.generate_unique_code(instance, instance.website)
+        code = ReferralService.generate_unique_code(
+            instance,
+            instance.website,
+        )
         ReferralCode.objects.create(
             user=instance,
             website=instance.website,
-            code=code
+            code=code,
         )
-        logger.info(f"Auto-generated referral code {code} for client {instance.id}")
-    except Exception as e:
-        logger.error(f"Failed to auto-generate referral code for client {instance.id}: {e}", exc_info=True)
+        logger.info(
+            "Auto-generated referral code %s for client %s.",
+            code,
+            instance.id,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to auto-generate referral code for client %s.",
+            instance.id,
+        )

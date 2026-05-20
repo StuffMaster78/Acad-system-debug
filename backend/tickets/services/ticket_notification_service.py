@@ -35,8 +35,12 @@ class TicketNotificationService:
                 website=ticket.website,
                 context={
                     "ticket_id": ticket.id,
+                    "ticket_number": f"#{ticket.id}",
                     "ticket_title": ticket.title,
+                    "ticket_subject": ticket.title,
                     "ticket_status": ticket.status,
+                    "ticket_category": ticket.category,
+                    "ticket_priority": ticket.priority,
                     **(context or {}),
                 },
                 channels=["email", "in_app"],
@@ -75,13 +79,30 @@ class TicketNotificationService:
         recipients = [ticket.created_by, ticket.assigned_to]
         for recipient in {user for user in recipients if user and user != actor}:
             cls.notify(
-                event_key="ticket.reply",
+                event_key="ticket.comment_added",
                 ticket=ticket,
                 recipient=recipient,
                 actor=actor,
-                context={"communication_message_id": message.id},
+                context={
+                    "communication_message_id": message.id,
+                    "commenter_name": cls._display_name(actor),
+                    "response_message": message.body,
+                    "message_preview": message.body[:160],
+                },
                 priority="high",
             )
+
+    @classmethod
+    def escalated(cls, *, ticket, actor) -> None:
+        recipient = ticket.assigned_to or ticket.created_by
+        cls.notify(
+            event_key="ticket.escalated",
+            ticket=ticket,
+            recipient=recipient,
+            actor=actor,
+            context={"escalated_by": cls._display_name(actor)},
+            priority="high",
+        )
 
     @classmethod
     def status_changed(cls, *, ticket, actor, old_status: str) -> None:
@@ -94,3 +115,13 @@ class TicketNotificationService:
                 context={"old_status": old_status},
                 priority="high",
             )
+
+    @staticmethod
+    def _display_name(user) -> str:
+        if user is None:
+            return "System"
+        if hasattr(user, "get_full_name"):
+            full_name = user.get_full_name()
+            if full_name:
+                return full_name
+        return getattr(user, "username", None) or getattr(user, "email", str(user))

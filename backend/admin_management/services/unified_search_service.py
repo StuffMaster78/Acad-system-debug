@@ -4,17 +4,17 @@ Supports searching orders, users, payments, and messages.
 """
 from django.db.models import Q, Value, CharField
 from django.db.models.functions import Concat
+from django.contrib.auth import get_user_model
 from typing import Dict, List, Any, Optional
 from decimal import Decimal
 
 from orders.models.orders import Order
-from django.conf import settings
 from order_payments_management.models.payments import OrderPayment
 from communications.models import CommunicationMessage, CommunicationThread
-from client_wallet.models import ClientWalletTransaction
-from writer_wallet.models import WalletTransaction
+from wallets.constants import WalletEntryDirection
+from wallets.models import WalletEntry
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 class UnifiedSearchService:
     """Service for unified search across multiple models."""
@@ -220,23 +220,28 @@ class UnifiedSearchService:
                 'created_at': payment.created_at.isoformat() if payment.created_at else None,
             })
         
-        # Search Wallet Transactions (if admin/superadmin)
+        # Search canonical wallet entries (if admin/superadmin)
         if user_role in ['admin', 'superadmin']:
-            wallet_transactions = ClientWalletTransaction.objects.filter(
-                Q(transaction_reference__icontains=query) |
+            wallet_entries = WalletEntry.objects.filter(
+                Q(reference__icontains=query) |
+                Q(reference_id__icontains=query) |
+                Q(description__icontains=query) |
                 Q(id__icontains=query)
-            ).select_related('wallet__user')[:limit]
+            ).select_related('wallet', 'wallet__owner_user')[:limit]
             
-            for transaction in wallet_transactions:
+            for entry in wallet_entries:
                 results.append({
-                    'id': f'client_wallet_{transaction.id}',
+                    'id': f'wallet_entry_{entry.id}',
                     'type': 'payment',
-                    'title': f"Wallet Transaction #{transaction.transaction_reference or transaction.id}",
-                    'subtitle': f"Amount: ${transaction.amount} | Type: {'Credit' if transaction.is_credit else 'Debit'}",
-                    'url': f'/payments/history',
-                    'amount': float(transaction.amount),
-                    'status': 'completed',
-                    'created_at': transaction.created_at.isoformat() if transaction.created_at else None,
+                    'title': f"Wallet Entry #{entry.reference or entry.id}",
+                    'subtitle': (
+                        f"Amount: ${entry.amount} | "
+                        f"Type: {'Credit' if entry.direction == WalletEntryDirection.CREDIT else 'Debit'}"
+                    ),
+                    'url': f'/wallets/{entry.wallet_id}/entries',
+                    'amount': float(entry.amount),
+                    'status': entry.status,
+                    'created_at': entry.created_at.isoformat() if entry.created_at else None,
                 })
         
         return results[:limit]
@@ -266,4 +271,3 @@ class UnifiedSearchService:
             }
             for message in messages
         ]
-

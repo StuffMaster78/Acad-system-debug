@@ -8,6 +8,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from ledger.models.journal_entry import JournalEntry
 from ledger.models.ledger_account import LedgerAccount
+from ledger.constants import LedgerAccountStatus
 from ledger.services.journal_posting_service import (
     JournalLineInput,
     JournalPostingService,
@@ -53,15 +54,23 @@ class WalletLedgerIntegrationService:
         Ensure only positive money movements are posted.
         """
         if amount <= Decimal("0.00"):
-            raise ValidationError("Ledger posting amount must be greater than zero.")
+            raise ValidationError(
+                "Ledger posting amount must be greater than zero.")
 
     @staticmethod
     def _validate_wallet_tenant(*, website: Any, wallet: Any) -> None:
         """
         Prevent posting ledger entries for a wallet from another tenant.
         """
-        if getattr(wallet, "website_id", None) != getattr(website, "id", None):
-            raise PermissionDenied("Cross-tenant wallet ledger posting denied.")
+        if getattr(
+                wallet,
+                "website_id",
+                None) != getattr(
+                website,
+                "id",
+                None):
+            raise PermissionDenied(
+                "Cross-tenant wallet ledger posting denied.")
 
     @staticmethod
     def _get_account(*, website: Any, code: str) -> LedgerAccount:
@@ -71,7 +80,7 @@ class WalletLedgerIntegrationService:
         return LedgerAccount.objects.get(
             website=website,
             code=code,
-            is_active=True,
+            status=LedgerAccountStatus.ACTIVE,
         )
 
     @staticmethod
@@ -86,13 +95,19 @@ class WalletLedgerIntegrationService:
         if wallet_type == WalletType.CLIENT:
             return WalletLedgerIntegrationService._get_account(
                 website=website,
-                code=WalletLedgerIntegrationService.ACCOUNT_CLIENT_WALLET_LIABILITY,
+                code=(
+                    WalletLedgerIntegrationService
+                    .ACCOUNT_CLIENT_WALLET_LIABILITY
+                ),
             )
 
         if wallet_type == WalletType.WRITER:
             return WalletLedgerIntegrationService._get_account(
                 website=website,
-                code=WalletLedgerIntegrationService.ACCOUNT_WRITER_WALLET_LIABILITY,
+                code=(
+                    WalletLedgerIntegrationService
+                    .ACCOUNT_WRITER_WALLET_LIABILITY
+                ),
             )
 
         raise ValueError(f"Unsupported wallet type: {wallet_type}")
@@ -205,9 +220,11 @@ class WalletLedgerIntegrationService:
         Dr GATEWAY_CLEARING
         Cr CLIENT/WRITER_WALLET_LIABILITY
         """
-        wallet_liability = WalletLedgerIntegrationService._wallet_liability_account(
-            website=website,
-            wallet_type=wallet.wallet_type,
+        wallet_liability = (
+            WalletLedgerIntegrationService._wallet_liability_account(
+                website=website,
+                wallet_type=wallet.wallet_type,
+            )
         )
         gateway_clearing = WalletLedgerIntegrationService._get_account(
             website=website,
@@ -271,9 +288,11 @@ class WalletLedgerIntegrationService:
         Dr CLIENT_WALLET_LIABILITY
         Cr ORDER_FUNDS_HELD
         """
-        wallet_liability = WalletLedgerIntegrationService._wallet_liability_account(
-            website=website,
-            wallet_type=wallet.wallet_type,
+        wallet_liability = (
+            WalletLedgerIntegrationService._wallet_liability_account(
+                website=website,
+                wallet_type=wallet.wallet_type,
+            )
         )
         order_funds_held = WalletLedgerIntegrationService._get_account(
             website=website,
@@ -336,9 +355,11 @@ class WalletLedgerIntegrationService:
         Dr REFUND_CLEARING
         Cr CLIENT/WRITER_WALLET_LIABILITY
         """
-        wallet_liability = WalletLedgerIntegrationService._wallet_liability_account(
-            website=website,
-            wallet_type=wallet.wallet_type,
+        wallet_liability = (
+            WalletLedgerIntegrationService._wallet_liability_account(
+                website=website,
+                wallet_type=wallet.wallet_type,
+            )
         )
         refund_clearing = WalletLedgerIntegrationService._get_account(
             website=website,
@@ -370,7 +391,7 @@ class WalletLedgerIntegrationService:
 
         return WalletLedgerIntegrationService._post(
             website=website,
-            entry_type="wallet_refund",
+            entry_type="client_wallet_refund",
             wallet=wallet,
             amount=amount,
             description=description,
@@ -403,7 +424,10 @@ class WalletLedgerIntegrationService:
         """
         writer_wallet_liability = WalletLedgerIntegrationService._get_account(
             website=website,
-            code=WalletLedgerIntegrationService.ACCOUNT_WRITER_WALLET_LIABILITY,
+            code=(
+                WalletLedgerIntegrationService
+                .ACCOUNT_WRITER_WALLET_LIABILITY
+            ),
         )
         order_funds_held = WalletLedgerIntegrationService._get_account(
             website=website,
@@ -468,7 +492,10 @@ class WalletLedgerIntegrationService:
         """
         writer_wallet_liability = WalletLedgerIntegrationService._get_account(
             website=website,
-            code=WalletLedgerIntegrationService.ACCOUNT_WRITER_WALLET_LIABILITY,
+            code=(
+                WalletLedgerIntegrationService
+                .ACCOUNT_WRITER_WALLET_LIABILITY
+            ),
         )
         platform_adjustments = WalletLedgerIntegrationService._get_account(
             website=website,
@@ -533,7 +560,10 @@ class WalletLedgerIntegrationService:
         """
         writer_wallet_liability = WalletLedgerIntegrationService._get_account(
             website=website,
-            code=WalletLedgerIntegrationService.ACCOUNT_WRITER_WALLET_LIABILITY,
+            code=(
+                WalletLedgerIntegrationService
+                .ACCOUNT_WRITER_WALLET_LIABILITY
+            ),
         )
         platform_adjustments = WalletLedgerIntegrationService._get_account(
             website=website,
@@ -596,9 +626,11 @@ class WalletLedgerIntegrationService:
         Dr PLATFORM_ADJUSTMENTS
         Cr CLIENT/WRITER_WALLET_LIABILITY
         """
-        wallet_liability = WalletLedgerIntegrationService._wallet_liability_account(
-            website=website,
-            wallet_type=wallet.wallet_type,
+        wallet_liability = (
+            WalletLedgerIntegrationService._wallet_liability_account(
+                website=website,
+                wallet_type=wallet.wallet_type,
+            )
         )
         platform_adjustments = WalletLedgerIntegrationService._get_account(
             website=website,
@@ -661,9 +693,11 @@ class WalletLedgerIntegrationService:
         Dr CLIENT/WRITER_WALLET_LIABILITY
         Cr PLATFORM_ADJUSTMENTS
         """
-        wallet_liability = WalletLedgerIntegrationService._wallet_liability_account(
-            website=website,
-            wallet_type=wallet.wallet_type,
+        wallet_liability = (
+            WalletLedgerIntegrationService._wallet_liability_account(
+                website=website,
+                wallet_type=wallet.wallet_type,
+            )
         )
         platform_adjustments = WalletLedgerIntegrationService._get_account(
             website=website,

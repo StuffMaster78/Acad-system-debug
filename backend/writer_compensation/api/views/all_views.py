@@ -632,7 +632,7 @@ class AdminAdvanceListView(generics.ListAPIView):
         qs = (
             AdvancePaymentRequest.objects
             .filter(website=website)
-            .select_related("writer__user", "payment_window")
+            .select_related("writer__account_profile__user", "payment_window")
             .prefetch_related("recoveries")
             .order_by("-created_at")
         )

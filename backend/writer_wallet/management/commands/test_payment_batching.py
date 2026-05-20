@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from writer_wallet.services.payment_batching_service import PaymentBatchingService
 from writer_wallet.models import PaymentSchedule, ScheduledWriterPayment, PaymentOrderRecord
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 from writer_wallet.models import WriterWallet
 from websites.models.websites import Website
 from django.contrib.auth import get_user_model
@@ -189,7 +189,7 @@ class Command(BaseCommand):
 
     def _create_test_writers(self, website):
         """Create test writers with different payment schedule preferences."""
-        from writer_management.models.profile import WriterProfile
+        from writer_management.models.writer_profile import WriterProfile
         from writer_wallet.models import WriterWallet
         
         test_writers = [

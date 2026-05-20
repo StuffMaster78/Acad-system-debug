@@ -1,6 +1,6 @@
 import django_filters
 
-from writer_compensation.models.payout_record_models import PayoutRecord
+from writer_compensation.models import PayoutRecord
 from writer_compensation.filters.base import BaseFilterSet
 
 
@@ -10,7 +10,7 @@ class PayoutFilter(BaseFilterSet):
     """
 
     status = django_filters.CharFilter(field_name="status")
-    writer_wallet_id = django_filters.NumberFilter(field_name="writer_wallet_id")
+    writer_id = django_filters.NumberFilter(field_name="writer_id")
 
     min_amount = django_filters.NumberFilter(
         field_name="amount",
@@ -24,4 +24,4 @@ class PayoutFilter(BaseFilterSet):
 
     class Meta:
         model = PayoutRecord
-        fields = ["status", "writer_wallet_id"]
+        fields = ["status", "writer_id"]

@@ -10,6 +10,7 @@ class CoreConfig(AppConfig):
         You can use it to import signals or perform initialization tasks.
         """
         try:
+            import core.checks  # noqa: F401
             import core.signals  # noqa: F401
             import core.signals.config_versioning  # noqa: F401
             import users.signals  # noqa: F401

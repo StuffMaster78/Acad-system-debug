@@ -162,26 +162,31 @@ class WithdrawalRequest(WebsiteSpecificBaseModel):
         """
         Approve the withdrawal request and deduct the amount from the wallet.
         """
+        from wallet.services.wallet_transaction_service import WalletTransactionService
+
         if self.status != 'pending':
             raise ValueError("This withdrawal request has already been processed.")
 
-        if self.wallet.balance < self.amount:
+        balance = WalletTransactionService.get_balance(self.wallet.user, self.website)
+        if balance < self.amount:
             raise ValueError("Insufficient wallet balance for this withdrawal.")
 
-        self.wallet.balance -= self.amount
-        self.wallet.save()
+        entry = WalletTransactionService.debit(
+            user=self.wallet.user,
+            website=self.website,
+            amount=self.amount,
+            description=f"Approved withdrawal request by admin {admin_user.username}",
+            source="legacy_withdrawal_request",
+            reference=self.id,
+            transaction_type="withdrawal",
+            created_by=admin_user,
+        )
+        self.wallet.balance = entry.balance_after
+        self.wallet.save(update_fields=["balance"])
 
         self.status = 'approved'
         self.processed_at = now()
         self.save()
-
-        WalletTransaction.objects.create(
-            wallet=self.wallet,
-            transaction_type='withdrawal',
-            amount=self.amount,
-            description=f"Approved withdrawal request by admin {admin_user.username}",
-            website=self.website
-        )
 
     def reject(self, admin_user):
         """

@@ -1,0 +1,21 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<h1>New ticket reply</h1>
+<p>Hi {{ user.get_full_name|default:user.username }},</p>
+<p>{{ commenter_name|default:"A team member" }} replied to ticket {{ ticket_number|default:ticket_id }}.</p>
+{% if response_message %}
+<div class="info-box">
+  <div class="label">Message</div>
+  <p>{{ response_message|linebreaks }}</p>
+</div>
+{% endif %}
+<table class="detail-table">
+  <tr><td>Subject</td><td>{{ ticket_subject|default:ticket_title }}</td></tr>
+  <tr><td>Status</td><td>{{ ticket_status }}</td></tr>
+</table>
+{% if cta_url %}
+<div class="btn-wrapper">
+  <a href="{{ cta_url }}" class="btn">Reply</a>
+</div>
+{% endif %}
+{% endblock %}

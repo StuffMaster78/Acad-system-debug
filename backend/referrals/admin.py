@@ -6,11 +6,6 @@ from .models import (
 )
 from loyalty_management.models import LoyaltyTransaction
 
-from django.apps import apps
-
-ClientWalletTransaction = apps.get_model('client_wallet', 'ClientWalletTransaction')
-
-
 # Bulk Actions
 def mark_bonus_awarded(modeladmin, request, queryset):
     """Mark selected referrals as bonus awarded."""
@@ -54,9 +49,12 @@ class ReferralAdmin(admin.ModelAdmin):
         self.message_user(request, f"{flagged_referrals.count()} suspicious referrals detected.")
 
     def award_loyalty_bonus(self, request, queryset):
-        """Awards loyalty points and processes wallet transactions for referral bonuses"""
+        """Awards loyalty points and canonical wallet entries for referrals."""
+        from wallets.constants import WalletEntryType
+        from wallets.services.client_wallet_service import ClientWalletService
+        from wallets.services.wallet_service import WalletService
+
         for referral in queryset.filter(bonus_awarded=True):
-            client_wallet = referral.referrer.wallet
             bonus_config = referral.website.referralbonusconfig
 
             bonus_amount = bonus_config.first_order_bonus if bonus_config else 0
@@ -65,12 +63,23 @@ class ReferralAdmin(admin.ModelAdmin):
             # A client only becomes eligible after approving their first order to avoid abuse
             first_approved_order = referral.referee.orders_as_client.filter(status='approved').first()
             if first_approved_order:
-                # Add bonus to wallet
-                ClientWalletTransaction.objects.create(
+                client_wallet = ClientWalletService.get_wallet(
+                    website=referral.website,
+                    client=referral.referrer,
+                )
+                WalletService.credit_wallet(
                     wallet=client_wallet,
+                    website=referral.website,
                     amount=bonus_amount,
-                    transaction_type="credit",
-                    reason="Referral bonus for referring {}".format(referral.referee.username)
+                    entry_type=WalletEntryType.REFERRAL_BONUS,
+                    description="Referral bonus for referring {}".format(referral.referee.username),
+                    reference=f"referral-{referral.id}",
+                    reference_type="referral",
+                    reference_id=str(referral.id),
+                    metadata={
+                        "referral_id": referral.id,
+                        "referee_id": referral.referee_id,
+                    },
                 )
 
                 # Log transaction in loyalty management

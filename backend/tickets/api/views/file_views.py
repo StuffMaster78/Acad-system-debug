@@ -3,10 +3,12 @@ from __future__ import annotations
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
+from files_management.exceptions import FileManagementError
 from files_management.enums import FilePurpose
 from files_management.models import FileAttachment
 from tickets.api.permissions import IsTicketParticipantOrStaff
@@ -25,7 +27,11 @@ class TicketFileViewSet(viewsets.GenericViewSet):
     parser_classes = [MultiPartParser, FormParser]
 
     def list(self, request):
-        ticket = self._get_ticket_from_query()
+        ticket_id = request.query_params.get("ticket")
+        if not ticket_id:
+            return Response([])
+
+        ticket = self._get_ticket(ticket_id=ticket_id)
         files = self._files_for_ticket(ticket=ticket)
         page = self.paginate_queryset(files)
         serializer = TicketFileSerializer(page or files, many=True)
@@ -34,13 +40,16 @@ class TicketFileViewSet(viewsets.GenericViewSet):
         return Response(serializer.data)
 
     def create(self, request):
-        ticket = self._get_ticket_from_payload()
+        ticket = self._get_ticket(ticket_id=request.data.get("ticket"))
         serializer = TicketFileUploadSerializer(
             data=request.data,
             context={**self.get_serializer_context(), "ticket": ticket},
         )
         serializer.is_valid(raise_exception=True)
-        attachment = serializer.save()
+        try:
+            attachment = serializer.save()
+        except FileManagementError as exc:
+            raise ValidationError({"file": str(exc)}) from exc
         return Response(
             TicketFileSerializer(attachment).data,
             status=status.HTTP_201_CREATED,
@@ -61,15 +70,20 @@ class TicketFileViewSet(viewsets.GenericViewSet):
         self.check_object_permissions(request, attachment)
         return Response(TicketFileSerializer(attachment).data)
 
-    def _get_ticket_from_query(self) -> Ticket:
-        return TicketSelector.detail_visible_to_user(
-            user=self.request.user,
-        ).get(id=self.request.query_params.get("ticket"))
+    def _get_ticket(self, *, ticket_id) -> Ticket:
+        if not ticket_id:
+            raise ValidationError({"ticket": "This field is required."})
 
-    def _get_ticket_from_payload(self) -> Ticket:
-        return TicketSelector.detail_visible_to_user(
+        visible_ticket = TicketSelector.detail_visible_to_user(
             user=self.request.user,
-        ).get(id=self.request.data.get("ticket"))
+        ).filter(id=ticket_id).first()
+        if visible_ticket is not None:
+            return visible_ticket
+
+        if Ticket.objects.filter(id=ticket_id).exists():
+            raise PermissionDenied("You do not have access to this ticket.")
+
+        raise NotFound("Ticket not found.")
 
     def _files_for_ticket(self, *, ticket):
         content_type = ContentType.objects.get_for_model(

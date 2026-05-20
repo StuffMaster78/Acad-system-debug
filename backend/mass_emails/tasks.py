@@ -2,41 +2,15 @@
 Celery tasks for sending email campaigns.
 """
 import logging
+
 from celery import shared_task
 from django.utils import timezone
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
 
 from .models import EmailCampaign, EmailRecipient
 from .services import get_provider_client
-# from django.core.mail import EmailMultiAlternatives
-from django.contrib.auth import get_user_model
+from .services.campaign_service import MassEmailCampaignService
 
 logger = logging.getLogger(__name__)
-User = get_user_model()
-
-
-
-def _resolve_recipients(campaign):
-    """
-    Resolve users based on target_roles and website.
-    Returns a list of (email, user) tuples.
-    """
-    target_roles = campaign.target_roles or []
-    website = campaign.website
-
-    users = User.objects.filter(
-        role__in=target_roles,
-        website=website,
-        is_active=True,
-        email__isnull=False
-    ).exclude(email='')
-
-    recipients = []
-    for user in users:
-        recipients.append((user.email, user))
-
-    return recipients
 
 
 @shared_task(bind=True, max_retries=3)
@@ -50,30 +24,18 @@ def send_email_campaign(self, campaign_id):
             logger.warning(f"Invalid campaign status: {campaign.status}")
             return
 
-        campaign.status = 'sending'
-        campaign.save()
+        MassEmailCampaignService.mark_sending(campaign)
 
-        recipients = _resolve_recipients(campaign)
-
-        for email, user in recipients:
-            EmailRecipient.objects.get_or_create(
-                campaign=campaign,
-                email=email,
-                defaults={'user': user}
-            )
-
+        MassEmailCampaignService.sync_recipients(campaign)
         for recipient in campaign.recipients.all():
             send_single_email.delay(recipient.id)
 
-        campaign.status = 'sent'
-        campaign.sent_time = timezone.now()
-        campaign.save()
+        MassEmailCampaignService.mark_sent(campaign)
 
     except Exception as e:
         logger.exception(f"Campaign failed: {e}")
-        campaign.status = 'failed'
-        campaign.failure_report = str(e)
-        campaign.save()
+        if "campaign" in locals():
+            MassEmailCampaignService.mark_failed(campaign, e)
 
 
 @shared_task(bind=True, max_retries=3)
@@ -90,9 +52,16 @@ def send_single_email(self, recipient_id):
         provider = get_provider_client(campaign)
 
         subject = campaign.subject
-        from_email = f"{campaign.sender_name} <{campaign.sender_email}>"
+        from_email = (
+            f"{campaign.resolved_sender_name} "
+            f"<{campaign.resolved_sender_email}>"
+        )
         to = [recipient.email]
-        html_content = campaign.body
+        html_content = MassEmailCampaignService.render_body(
+            campaign=campaign,
+            user=recipient.user,
+            email=recipient.email,
+        )
 
         # Optional: Add unsubscribe footer or tracking pixel here
 
@@ -112,3 +81,26 @@ def send_single_email(self, recipient_id):
         recipient.status = 'failed'
         recipient.error_message = str(e)
         recipient.save()
+
+
+@shared_task(bind=True, max_retries=3)
+def send_single_test_email(self, campaign_id, to_email):
+    """
+    Send a campaign preview to one address without creating a recipient row.
+    """
+    campaign = EmailCampaign.objects.select_related("website").get(
+        id=campaign_id,
+    )
+    provider = get_provider_client(campaign)
+    provider.send_email(
+        subject=f"[Test] {campaign.subject}",
+        body_html=MassEmailCampaignService.render_body(
+            campaign=campaign,
+            email=to_email,
+        ),
+        from_email=(
+            f"{campaign.resolved_sender_name} "
+            f"<{campaign.resolved_sender_email}>"
+        ),
+        to=[to_email],
+    )

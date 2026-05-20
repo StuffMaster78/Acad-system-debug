@@ -215,54 +215,15 @@ class IsOrderOwnerOrSupport(BasePermission):
         if user_role in support_roles:
             return True
         
-        # Writers can see orders assigned to them ONLY if paid
-        if user_role == "writer" and obj.assigned_writer == request.user:
-            return obj.is_paid  # Only show if paid
-        
-        # Writers can see available PAID orders from their website
-        # (not assigned to anyone, or preferred for them unless they declined)
-        # OR orders they have requested (only if paid)
         if user_role == "writer":
-            from orders.order_enums import OrderStatus
-            from orders.models import PreferredWriterResponse
-            from writer_management.models.requests import WriterOrderRequest
-            
-            try:
-                writer_profile = request.user.writer_profile
-                
-                # Check if writer has requested this order (only if paid)
-                has_requested = WriterOrderRequest.objects.filter(
-                    writer=writer_profile,
-                    order=obj,
-                    order__is_paid=True  # Only paid requested orders
-                ).exists()
-                
-                if has_requested and obj.is_paid:
-                    return True
-                
-                # Check if order is available, paid, and from writer's website
-                if (obj.status == OrderStatus.AVAILABLE.value and 
-                    obj.assigned_writer is None and
-                    obj.is_paid and
-                    obj.website == writer_profile.website):
-                    
-                    # Check if writer has declined this order
-                    has_declined = PreferredWriterResponse.objects.filter(
-                        order=obj,
-                        writer=request.user,
-                        response='declined'
-                    ).exists()
-                    
-                    if has_declined:
-                        return False
-                    
-                    # Order is visible if:
-                    # 1. Not assigned to anyone (common pool), OR
-                    # 2. Preferred for this writer
-                    if obj.preferred_writer is None or obj.preferred_writer == request.user:
-                        return True
-            except Exception:
-                pass
+            from orders.selectors.order_visibility_selector import (
+                OrderVisibilitySelector,
+            )
+
+            return OrderVisibilitySelector.can_writer_view_order(
+                writer=request.user,
+                order=obj,
+            ).can_view
         
         return False
 

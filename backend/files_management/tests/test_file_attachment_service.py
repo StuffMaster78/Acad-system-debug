@@ -9,8 +9,8 @@ from files_management.services import (
     FileAttachmentService,
     FileUploadService,
 )
-from orders.models import Order
-from websites.models import Website
+from tickets.models import Ticket
+from websites.models.websites import Website
 
 
 @override_settings(DEFAULT_FILE_STORAGE="django.core.files.storage.InMemoryStorage")
@@ -27,14 +27,16 @@ class FileAttachmentServiceTests(TestCase):
             domain="gradecrest.test",
         )
         self.user = user_model.objects.create_user(
-            username="TestUser"
+            username="TestUser",
             email="client@example.com",
             password="pass",
             website=self.website,
         )
-        self.order = Order.objects.create(
+        self.order = Ticket.objects.create(
+            title="Attachment target",
+            description="Attach files here.",
             website=self.website,
-            client=self.user,
+            created_by=self.user,
         )
         uploaded = SimpleUploadedFile(
             "instructions.pdf",

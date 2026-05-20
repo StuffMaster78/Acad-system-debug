@@ -250,7 +250,8 @@ class WalletHoldService:
         locked_hold.status = WalletHoldStatus.RELEASED
         locked_hold.released_at = timezone.now()
         locked_wallet.last_activity_at = timezone.now()
-        locked_hold.save(update_fields=["status", "released_at", "last_activity_at", "updated_at"])
+        locked_wallet.save(update_fields=["last_activity_at", "updated_at"])
+        locked_hold.save(update_fields=["status", "released_at", "updated_at"])
 
         WalletHoldService._create_entry(
             website=locked_hold.website,
@@ -317,7 +318,8 @@ class WalletHoldService:
         locked_hold.status = WalletHoldStatus.CAPTURED
         locked_hold.captured_at = timezone.now()
         locked_wallet.last_activity_at = timezone.now()
-        locked_hold.save(update_fields=["status", "captured_at", "last_activity_at", "updated_at"])
+        locked_wallet.save(update_fields=["last_activity_at", "updated_at"])
+        locked_hold.save(update_fields=["status", "captured_at", "updated_at"])
 
         WalletHoldService._create_entry(
             website=locked_hold.website,
@@ -342,3 +344,28 @@ class WalletHoldService:
         )
 
         return locked_hold
+
+    @staticmethod
+    @transaction.atomic
+    def expire_hold(
+        *,
+        hold: WalletHold,
+        expired_by: Any | None = None,
+    ) -> WalletHold:
+        """
+        Expire an active hold and return reserved funds to available balance.
+        """
+        locked_hold = WalletHoldService._get_hold_for_update(
+            hold_id=cast(Any, hold).id,
+        )
+
+        if locked_hold.status != WalletHoldStatus.ACTIVE:
+            raise WalletHoldError("Only active holds can be expired.")
+
+        released_hold = WalletHoldService.release_hold(
+            hold=locked_hold,
+            released_by=expired_by,
+        )
+        released_hold.status = WalletHoldStatus.EXPIRED
+        released_hold.save(update_fields=["status", "updated_at"])
+        return released_hold

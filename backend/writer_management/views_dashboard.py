@@ -363,7 +363,12 @@ class WriterDashboardViewSet(viewsets.ViewSet):
     def get_order_queue(self, request):
         """Get available orders and order requests - with caching."""
         try:
+            from orders.models import OrderInterest
+            from orders.selectors.order_visibility_selector import (
+                OrderVisibilitySelector,
+            )
             from writer_management.models.configs import WriterConfig
+            from writer_management.utils import resolve_website_for_writer
             
             profile = self.get_writer_profile(request)
             if not profile:
@@ -374,51 +379,22 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             
             # Get writer config to check if takes are enabled
             try:
-                writer_config = WriterConfig.objects.get(website=profile.website)
+                website = resolve_website_for_writer(profile)
+                writer_config = WriterConfig.objects.get(website=website)
                 takes_enabled = writer_config.takes_enabled
             except WriterConfig.DoesNotExist:
                 takes_enabled = False
             
-            # Get available orders (orders that can be taken)
-            # Only show PAID orders that are available AND not already assigned
-            # Exclude orders where this writer has declined
-            from orders.models import PreferredWriterResponse
-            
-            declined_order_ids = list(PreferredWriterResponse.objects.filter(
-                writer=profile.user,
-                response='declined'
-            ).values_list('order_id', flat=True))
-            
-            # Available orders: paid orders in common pool (not preferred for anyone, or preferred for this writer)
-            available_orders = Order.objects.filter(
-                status='available',
-                website=profile.website,
-                assigned_writer__isnull=True,  # Only unassigned orders
-                is_paid=True,  # Only paid orders
-            ).filter(
-                # Either in common pool (preferred_writer is None) or preferred for this writer
-                models.Q(preferred_writer__isnull=True) | models.Q(preferred_writer=request.user)
-            )
-            
-            # Only exclude declined orders if there are any
-            if declined_order_ids:
-                available_orders = available_orders.exclude(id__in=declined_order_ids)
-            
-            # Optimized with select_related and prefetch_related
             available_orders = list(
-                available_orders.select_related(
-                    'client', 'type_of_work', 'paper_type', 'subject', 
-                    'academic_level', 'formatting_style', 'website'
-                ).prefetch_related('extra_services').order_by('-created_at')[:50]
+                OrderVisibilitySelector.visible_to_writer(
+                    writer=request.user,
+                ).order_by('-created_at')[:50]
             )
             
-            # Get writer's order requests (lazy import to avoid circular dependency)
-            # Only show requests for paid orders
-            from writer_management.models.requests import WriterOrderRequest
-            order_requests = WriterOrderRequest.objects.filter(
-                writer=profile,
-                order__is_paid=True  # Only show requests for paid orders
-            ).select_related('order').order_by('-requested_at')
+            order_requests = OrderInterest.objects.filter(
+                writer=request.user,
+                status__in=OrderVisibilitySelector.OPEN_INTEREST_STATUSES,
+            ).select_related('order').order_by('-created_at')
             
             # Get list of order IDs that this writer has already requested
             requested_order_ids = list(order_requests.values_list('order_id', flat=True))
@@ -437,24 +413,10 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             # Get preferred orders (if client has preferred writers)
             # Only show PAID orders that are available and not assigned
             # Exclude orders where this writer has declined
-            preferred_orders = Order.objects.filter(
-                status='available',
-                website=profile.website,
-                assigned_writer__isnull=True,  # Only unassigned orders
-                is_paid=True,  # Only paid orders
-                preferred_writer=request.user  # Preferred for this writer
-            )
-            
-            # Only exclude declined orders if there are any
-            if declined_order_ids:
-                preferred_orders = preferred_orders.exclude(id__in=declined_order_ids)
-            
-            # Optimized with select_related and prefetch_related
             preferred_orders = list(
-                preferred_orders.select_related(
-                    'client', 'type_of_work', 'paper_type', 'subject',
-                    'academic_level', 'formatting_style', 'website'
-                ).prefetch_related('extra_services').order_by('-created_at')[:20]
+                OrderVisibilitySelector.preferred_writer_visible_to_writer(
+                    writer=request.user,
+                ).order_by('-created_at')[:20]
             )
 
             # ------------------------------------------------------------------
@@ -1765,16 +1727,18 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         Get writer's order request status with real-time tracking.
         
         Returns comprehensive request status including:
-        - Order requests (WriterOrderRequest)
+        - Order interests (OrderInterest)
         - Writer requests (WriterRequest for additional pages/slides)
         - Status updates and review information
         - Statistics and trends
         """
         from django.core.cache import cache
         
-        # Import inside function to avoid circular import
-        from writer_management.models.requests import WriterOrderRequest
-        from orders.modelsi import WriterRequest
+        from orders.models import OrderInterest
+        from orders.models.legacy_models.requests import WriterRequest
+        from orders.selectors.order_visibility_selector import (
+            OrderVisibilitySelector,
+        )
         
         profile = self.get_writer_profile(request)
         if not profile:
@@ -1789,24 +1753,23 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         if cached_response is not None:
             return Response(cached_response)
         
-        # Limit to recent requests only (last 50) to reduce processing time
-        # Get all order requests for this writer - limit to recent ones
         order_requests = (
-            WriterOrderRequest.objects.filter(
-                writer=profile
+            OrderInterest.objects.filter(
+                writer=request.user,
+                status__in=OrderVisibilitySelector.OPEN_INTEREST_STATUSES,
             )
             .select_related(
                 'order',
                 'order__client',
-                'reviewed_by'
+                'reviewed_by',
             )
             .only(
-                'id', 'approved', 'requested_at', 'reason',
+                'id', 'status', 'created_at', 'message',
                 'order__id', 'order__topic', 'order__status', 'order__total_price',
                 'order__number_of_pages', 'order__number_of_slides',
-                'reviewed_by__username'
+                'reviewed_by__username',
             )
-            .order_by('-requested_at')[:50]  # Limit to 50 most recent
+            .order_by('-created_at')[:50]
         )
         
         # Also get WriterRequest (from orders app) - limit to recent
@@ -1827,16 +1790,12 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         # Combine and format requests
         requests_list = []
         
-        # Process WriterOrderRequest
+        # Process OrderInterest
         for req in order_requests:
             order = req.order
-            status = 'approved' if req.approved else 'pending'
-            if req.approved is False and req.reviewed_by:
-                status = 'rejected'
-            
             requests_list.append({
                 'id': req.id,
-                'type': 'order_request',
+                'type': 'order_interest',
                 'order_id': order.id,
                 'order_topic': order.topic or 'No topic',
                 'order_status': order.status,
@@ -1846,10 +1805,10 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 ),
                 'order_pages': self._get_order_pages(order),
                 'requested_at': (
-                    req.requested_at.isoformat()
-                    if req.requested_at else None
+                    req.created_at.isoformat()
+                    if req.created_at else None
                 ),
-                'status': status,
+                'status': req.status,
                 'reviewed_by': (
                     req.reviewed_by.username
                     if req.reviewed_by else None
@@ -1859,7 +1818,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     if hasattr(req, 'reviewed_at') and req.reviewed_at
                     else None
                 ),
-                'reason': getattr(req, 'request_reason', None) or getattr(req, 'reason', '') or '',
+                'reason': req.message or '',
             })
         
         # Process WriterRequest

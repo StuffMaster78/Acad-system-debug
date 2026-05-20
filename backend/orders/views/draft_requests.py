@@ -6,12 +6,17 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from files_management.api.serializers.response_serializers import (
+    FileAttachmentDetailSerializer,
+)
+from files_management.exceptions import FileManagementError
 from orders.models.orders import Order
 from orders.models.legacy_models.requests import DraftRequest
 from orders.models.legacy_models.drafts import DraftFile
 from orders.serializers.draft_requests import (
     DraftRequestSerializer, DraftRequestCreateSerializer, DraftFileSerializer
 )
+from orders.services.order_file_service import OrderFileService
 
 
 class DraftRequestViewSet(viewsets.ModelViewSet):
@@ -110,23 +115,39 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Create draft file
-        draft_file = DraftFile.objects.create(
-            website=draft_request.website,
-            draft_request=draft_request,
-            order=draft_request.order,
-            uploaded_by=request.user,
-            file=file,
-            file_name=file.name,
-            description=request.data.get('description', '')
+        try:
+            attachment = OrderFileService.writer_upload_draft(
+                order=draft_request.order,
+                uploaded_by=request.user,
+                uploaded_file=file,
+            )
+        except FileManagementError as exc:
+            return Response(
+                {"file": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        metadata = dict(attachment.metadata or {})
+        metadata.update(
+            {
+                "draft_request_id": draft_request.id,
+                "description": request.data.get("description", ""),
+                "legacy_source": "draft_request_upload",
+            }
         )
+        attachment.metadata = metadata
+        attachment.display_name = attachment.display_name or file.name
+        attachment.save(update_fields=["metadata", "display_name", "updated_at"])
         
         # Update draft request status
         if draft_request.status == 'pending':
             draft_request.status = 'in_progress'
             draft_request.save()
         
-        serializer = DraftFileSerializer(draft_file, context={'request': request})
+        serializer = FileAttachmentDetailSerializer(
+            attachment,
+            context={'request': request},
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'], url_path='mark-fulfilled')
@@ -312,4 +333,3 @@ class DraftFileViewSet(viewsets.ModelViewSet):
         )
         response['Content-Disposition'] = f'attachment; filename="{draft_file.file_name}"'
         return response
-

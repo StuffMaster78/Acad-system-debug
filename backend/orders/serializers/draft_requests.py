@@ -2,6 +2,11 @@
 Serializers for draft request functionality.
 """
 from rest_framework import serializers
+from files_management.api.serializers.response_serializers import (
+    FileAttachmentDetailSerializer,
+)
+from files_management.enums import FilePurpose
+from files_management.selectors import FileAttachmentSelector
 from orders.models.orders import Order
 from orders.models.legacy_models.drafts import DraftRequest, DraftFile
 from websites.models.websites import Website
@@ -45,7 +50,7 @@ class DraftRequestSerializer(serializers.ModelSerializer):
     requested_by_email = serializers.CharField(source='requested_by.email', read_only=True)
     order_topic = serializers.CharField(source='order.topic', read_only=True)
     order_status = serializers.CharField(source='order.status', read_only=True)
-    files = DraftFileSerializer(many=True, read_only=True)
+    files = serializers.SerializerMethodField()
     files_count = serializers.SerializerMethodField()
     can_request = serializers.SerializerMethodField()
     
@@ -61,7 +66,34 @@ class DraftRequestSerializer(serializers.ModelSerializer):
     
     def get_files_count(self, obj):
         """Get count of files uploaded for this request."""
-        return obj.files.count()
+        return len(self._central_files(obj)) + obj.files.count()
+
+    def get_files(self, obj):
+        """Get central file attachments for this draft request."""
+        central_files = self._central_files(obj)
+        if central_files:
+            return FileAttachmentDetailSerializer(
+                central_files,
+                many=True,
+                context=self.context,
+            ).data
+        return DraftFileSerializer(
+            obj.files.all(),
+            many=True,
+            context=self.context,
+        ).data
+
+    def _central_files(self, obj):
+        attachments = FileAttachmentSelector.for_object_and_purpose(
+            website=obj.website,
+            obj=obj.order,
+            purpose=FilePurpose.ORDER_DRAFT,
+        ).select_related("managed_file", "external_link", "attached_by")
+        return [
+            attachment
+            for attachment in attachments
+            if str((attachment.metadata or {}).get("draft_request_id")) == str(obj.id)
+        ]
     
     def get_can_request(self, obj):
         """Check if client or admin can request a draft."""
@@ -137,4 +169,3 @@ class DraftRequestCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(reason or "Cannot request draft")
         
         return value
-

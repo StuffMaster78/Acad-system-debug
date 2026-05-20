@@ -61,8 +61,8 @@ class DuplicateAccountDetectionViewSet(viewsets.ViewSet):
                         'date_joined': user.date_joined.isoformat() if user.date_joined else None,
                         'last_login': user.last_login.isoformat() if user.last_login else None,
                         'is_active': user.is_active,
-                        'is_suspended': user.is_suspended,
-                        'is_blacklisted': user.is_blacklisted,
+                        'is_suspended': getattr(user, 'is_suspended', False),
+                        'is_blacklisted': getattr(user, 'is_blacklisted', False),
                     })
                 
                 # Handle websites - they might be IDs or objects
@@ -227,4 +227,3 @@ class DuplicateAccountDetectionViewSet(viewsets.ViewSet):
                 {'error': 'Failed to get stats', 'detail': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-

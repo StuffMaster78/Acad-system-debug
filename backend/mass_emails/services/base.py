@@ -23,6 +23,7 @@ class EmailProviderBase:
     """
     Abstract base class for all email providers.
     """
+
     def send_email(self, subject, body_html, from_email, to):
         raise NotImplementedError
 

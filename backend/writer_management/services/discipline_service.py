@@ -43,7 +43,7 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils.timezone import now
 
-from writer_management.models.discipline import (
+from writer_management.models import (
     WriterBlacklist,
     WriterBlacklistHistory,
     WriterDisciplineConfig,
@@ -52,8 +52,8 @@ from writer_management.models.discipline import (
     WriterStrike,
     WriterSuspension,
     WriterSuspensionHistory,
+    WriterProfile,
 )
-from writer_management.models.writer_profile import WriterProfile
 from writer_management.exceptions import (
     WriterBlacklistedError,
     WriterSuspendedError,

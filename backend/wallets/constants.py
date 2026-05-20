@@ -26,11 +26,15 @@ class WalletEntryStatus(models.TextChoices):
 
 class WalletEntryType(models.TextChoices):
     FUNDING = "funding", "Funding"
+    REFERRAL_BONUS = "referral_bonus", "Referral Bonus"
+    LOYALTY_CONVERSION = "loyalty_conversion", "Loyalty Conversion"
     ORDER_PAYMENT = "order_payment", "Order Payment"
     ORDER_REFUND = "order_refund", "Order Refund"
     EARNING = "earning", "Earning"
     BONUS = "bonus", "Bonus"
     PENALTY = "penalty", "Penalty"
+    FINE = "fine", "Fine"
+    DEDUCTION = "deduction", "Deduction"
     ADMIN_ADJUSTMENT = "admin_adjustment", "Admin Adjustment"
     ADMIN_CREDIT = "admin_credit", "Admin Credit"
     ADMIN_DEBIT = "admin_debit", "Admin Debit"

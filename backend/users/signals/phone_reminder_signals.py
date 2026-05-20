@@ -6,7 +6,9 @@ import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from orders.models.orders import Order
-from users.services.phone_reminder_service import PhoneReminderService
+from users.services.services_legacy.phone_reminder_service import (
+    PhoneReminderService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,15 @@ def check_phone_reminder_on_order_update(sender, instance, created, **kwargs):
     
     # Check if reminder is needed
     phone_service = PhoneReminderService(instance.client)
-    if not phone_service.needs_phone_reminder():
+    try:
+        if not phone_service.needs_phone_reminder():
+            return
+    except AttributeError as exc:
+        logger.info(
+            "Skipping phone reminder for order %s: %s",
+            instance.id,
+            exc,
+        )
         return
     
     # Send reminder notification (only once per order to avoid spam)
@@ -45,4 +55,3 @@ def check_phone_reminder_on_order_update(sender, instance, created, **kwargs):
         )
     except Exception as e:
         logger.warning(f"Failed to send phone reminder for order {instance.id}: {e}")
-

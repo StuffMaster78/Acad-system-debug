@@ -3,8 +3,8 @@ from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.utils.translation import gettext_lazy as _
 from websites.models.websites import Website
-from writer_management.models.profile import WriterProfile
-from writer_management.models.requests import (
+from writer_management.models.writer_profile import WriterProfile
+from writer_management.models.old_models.requests import (
     WriterOrderRequest, WriterOrderTake,
     WriterOrderHoldRequest, WriterReassignmentRequest
 )

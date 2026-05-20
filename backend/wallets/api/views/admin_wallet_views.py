@@ -16,12 +16,16 @@ from wallets.api.permissions.permissions import (
     CanViewWallets,
 )
 from wallets.api.serializers import (
+    AdminCreateWalletHoldSerializer,
+    AdminWalletDebitSerializer,
+    AdminWalletFundSerializer,
     WalletEntrySerializer,
     WalletHoldSerializer,
     WalletSerializer,
 )
 from wallets.constants import WalletEntryType
 from wallets.models import Wallet, WalletEntry, WalletHold
+from wallets.selectors import WalletEntrySelectors, WalletHoldSelectors, WalletSelectors
 from wallets.services import (
     WalletHoldService,
     WalletReconciliationService,
@@ -80,7 +84,7 @@ class AdminWalletListView(AdminWalletQuerysetMixin, generics.ListAPIView):
 
         return cast(
             Any,
-            Wallet.objects.filter(website=website),
+            WalletSelectors.for_website(website=website),
         )
 
 
@@ -100,7 +104,7 @@ class AdminWalletDetailView(AdminWalletQuerysetMixin, generics.RetrieveAPIView):
 
         return cast(
             Any,
-            Wallet.objects.filter(website=website),
+            WalletSelectors.for_website(website=website),
         )
 
 
@@ -123,7 +127,10 @@ class AdminWalletEntryListView(
 
         return cast(
             Any,
-            WalletEntry.objects.filter(wallet=wallet).order_by("-created_at"),
+            WalletEntrySelectors.for_wallet(wallet=wallet).order_by(
+                "-created_at",
+                "-id",
+            ),
         )
 
 
@@ -146,7 +153,10 @@ class AdminWalletHoldListView(
 
         return cast(
             Any,
-            WalletHold.objects.filter(wallet=wallet).order_by("-created_at"),
+            WalletHoldSelectors.for_wallet(wallet=wallet).order_by(
+                "-created_at",
+                "-id",
+            ),
         )
 
 
@@ -163,7 +173,9 @@ class AdminWalletFundView(AdminWalletQuerysetMixin, APIView):
     def post(self, request: Request, wallet_id: int) -> Response:
         wallet = self.get_wallet(wallet_id)
         website = self.get_website()
-        data = cast(dict[str, Any], request.data)
+        serializer = AdminWalletFundSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
         entry = WalletService.credit_wallet(
             wallet=wallet,
@@ -172,6 +184,10 @@ class AdminWalletFundView(AdminWalletQuerysetMixin, APIView):
             website=website,
             created_by=request.user,
             description=data.get("description", ""),
+            reference=data.get("reference", ""),
+            reference_type=data.get("reference_type", "admin_funding"),
+            reference_id=data.get("reference_id", ""),
+            metadata=data.get("metadata", {}),
         )
 
         return Response(
@@ -193,7 +209,9 @@ class AdminWalletDebitView(AdminWalletQuerysetMixin, APIView):
     def post(self, request: Request, wallet_id: int) -> Response:
         wallet = self.get_wallet(wallet_id)
         website = self.get_website()
-        data = cast(dict[str, Any], request.data)
+        serializer = AdminWalletDebitSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
         entry = WalletService.debit_wallet(
             wallet=wallet,
@@ -202,6 +220,10 @@ class AdminWalletDebitView(AdminWalletQuerysetMixin, APIView):
             website=website,
             created_by=request.user,
             description=data.get("description", ""),
+            reference=data.get("reference", ""),
+            reference_type=data.get("reference_type", "admin_debit"),
+            reference_id=data.get("reference_id", ""),
+            metadata=data.get("metadata", {}),
         )
 
         return Response(
@@ -223,7 +245,9 @@ class AdminWalletCreateHoldView(AdminWalletQuerysetMixin, APIView):
     def post(self, request: Request, wallet_id: int) -> Response:
         wallet = self.get_wallet(wallet_id)
         website = self.get_website()
-        data = cast(dict[str, Any], request.data)
+        serializer = AdminCreateWalletHoldSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
         hold = WalletHoldService.create_hold(
             wallet=wallet,
@@ -231,6 +255,11 @@ class AdminWalletCreateHoldView(AdminWalletQuerysetMixin, APIView):
             website=website,
             reason=data["reason"],
             created_by=request.user,
+            reference=data.get("reference", ""),
+            reference_type=data.get("reference_type", ""),
+            reference_id=data.get("reference_id", ""),
+            expires_at=data.get("expires_at"),
+            metadata=data.get("metadata", {}),
         )
 
         return Response(

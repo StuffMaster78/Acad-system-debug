@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.conf import settings
 
 
 class WriterWalletConfig(AppConfig):
@@ -6,7 +7,9 @@ class WriterWalletConfig(AppConfig):
     name = 'writer_wallet'
     
     def ready(self):
-        """Import signals when app is ready"""
+        """Keep legacy writer_wallet signals disabled by default."""
+        if not getattr(settings, "ENABLE_LEGACY_WRITER_WALLET_SIGNALS", False):
+            return
         try:
             import writer_wallet.signals_advance  # noqa: F401
         except Exception:

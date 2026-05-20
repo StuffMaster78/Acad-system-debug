@@ -11,7 +11,7 @@ from writer_wallet.models import (
     PaymentSchedule, ScheduledWriterPayment, PaymentOrderRecord,
     WriterWallet, WalletTransaction
 )
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 from orders.models.orders import Order
 from writer_management.models.tipping import Tip
 from fines.models import Fine

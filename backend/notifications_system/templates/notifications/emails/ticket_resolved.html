@@ -1,0 +1,18 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<h1>Ticket resolved</h1>
+<p>Hi {{ user.get_full_name|default:user.username }},</p>
+<p>Your support ticket has been marked as resolved.</p>
+<div class="info-box success">
+  <div class="label">Ticket</div>
+  <div class="value">{{ ticket_number|default:ticket_id }} — {{ ticket_subject|default:ticket_title }}</div>
+</div>
+{% if resolution %}
+<p>{{ resolution }}</p>
+{% endif %}
+{% if cta_url %}
+<div class="btn-wrapper">
+  <a href="{{ cta_url }}" class="btn btn-success">View Resolution</a>
+</div>
+{% endif %}
+{% endblock %}

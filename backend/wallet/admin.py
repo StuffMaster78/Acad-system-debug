@@ -3,6 +3,7 @@ from .models import Wallet, WalletTransaction
 
 from django.contrib import admin
 from .models import Wallet, WalletTransaction, WithdrawalRequest
+from wallet.services.wallet_transaction_service import WalletTransactionService
 
 
 @admin.register(Wallet)
@@ -20,13 +21,28 @@ class WalletAdmin(admin.ModelAdmin):
         if change:  # Editing an existing wallet
             original_obj = Wallet.objects.get(pk=obj.pk)
             if original_obj.balance != obj.balance:
-                WalletTransaction.objects.create(
-                    wallet=obj,
-                    transaction_type='adjustment',
-                    amount=obj.balance - original_obj.balance,
-                    description=f"Admin adjustment by {request.user.username}",
-                    website=obj.website,
-                )
+                delta = obj.balance - original_obj.balance
+                if delta > 0:
+                    entry = WalletTransactionService.credit(
+                        user=obj.user,
+                        website=obj.website,
+                        amount=delta,
+                        description=f"Admin adjustment by {request.user.username}",
+                        source="legacy_wallet_admin",
+                        transaction_type="adjustment",
+                        created_by=request.user,
+                    )
+                else:
+                    entry = WalletTransactionService.debit(
+                        user=obj.user,
+                        website=obj.website,
+                        amount=abs(delta),
+                        description=f"Admin adjustment by {request.user.username}",
+                        source="legacy_wallet_admin",
+                        transaction_type="adjustment",
+                        created_by=request.user,
+                    )
+                obj.balance = entry.balance_after
         super().save_model(request, obj, form, change)
 
 @admin.register(WalletTransaction)

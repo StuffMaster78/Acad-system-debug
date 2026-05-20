@@ -1,0 +1,11 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<h1>Referral reward earned</h1>
+<p>Hi {{ user.get_full_name|default:user.username }},</p>
+<p>Your referral placed a qualifying order, so your reward has been credited.</p>
+<table class="detail-table">
+  <tr><td>Loyalty points</td><td>{{ loyalty_points }}</td></tr>
+  <tr><td>Wallet credit</td><td>{{ wallet_bonus }}</td></tr>
+  <tr><td>Order</td><td>#{{ order_id }}</td></tr>
+</table>
+{% endblock %}

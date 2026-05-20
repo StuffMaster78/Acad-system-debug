@@ -71,11 +71,17 @@ else:
             "NAME": ":memory:",  # Use in-memory database for faster tests
         }
     }
-    # For SQLite, temporarily exclude notifications_system from migrations
-    # to avoid PostgreSQL-specific ArrayField issues
-    MIGRATION_MODULES = {
-        'notifications_system': None,  # Skip migrations for this app with SQLite
-    }
+    # The local SQLite test path syncs models directly. Several local apps
+    # intentionally have partial or no migration chains in this checkout, so
+    # following migrations here makes isolated app tests fail before they run.
+    class DisableMigrations(dict):
+        def __contains__(self, item):
+            return True
+
+        def __getitem__(self, item):
+            return None
+
+    MIGRATION_MODULES = DisableMigrations()
 
 # For PostgreSQL tests, ensure pricing app has migrations or skip syncing
 if os.getenv("TEST_DB", "sqlite").lower() == "postgres" or database_url:
@@ -114,6 +120,13 @@ CACHES = {
         "LOCATION": "test-locmem",
     }
 }
+
+MIDDLEWARE = [
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+]
 
 # Avoid Celery/Redis dependencies
 CELERY_BROKER_URL = "memory://"
@@ -182,6 +195,7 @@ DISABLE_AUDIT_LOG_SIGNALS = True
 DISABLE_NOTIFICATION_SIGNALS = True
 DISABLE_SUPPORT_SIGNALS = True
 DISABLE_REFERRAL_SIGNALS = True
+DISABLE_COMMUNICATION_EVENTS = True
 
 # Test database configuration is set above in the DATABASES dict
 # No need to set it again here

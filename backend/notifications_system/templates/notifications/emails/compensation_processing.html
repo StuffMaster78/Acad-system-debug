@@ -1,0 +1,33 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Writer Payment Processing{% endblock %}
+{% block tagline %}<div class="tagline">Writer Compensation</div>{% endblock %}
+
+{% block content %}
+<h1>Your payment is being processed</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    Your writer payment for {{ window_label }} is now being processed.
+    We will notify you when it is paid.
+</p>
+
+<table class="detail-table">
+    <tr>
+        <td>Payment window</td>
+        <td>{{ window_label }}</td>
+    </tr>
+    {% if start_date and end_date %}
+    <tr>
+        <td>Period</td>
+        <td>{{ start_date }} to {{ end_date }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<div class="info-box">
+    <p>
+        Processing means the payout batch has started and your eligible
+        earnings are being prepared.
+    </p>
+</div>
+{% endblock %}

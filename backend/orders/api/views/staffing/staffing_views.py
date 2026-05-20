@@ -66,7 +66,7 @@ class RouteOrderToStaffingView(GenericAPIView):
             order_id=order_id,
         )
 
-        updated_order = OrderStaffingService.route_order_to_staffing(
+        updated_order = OrderStaffingService.route_to_staffing(
             order=order,
             triggered_by=request.user,
         )
@@ -76,9 +76,9 @@ class RouteOrderToStaffingView(GenericAPIView):
                 "message": "Order routed to staffing.",
                 "order_id": updated_order.pk,
                 "status": updated_order.status,
-                "visibility_mode": updated_order.visibility_mode,
+                "visibility_mode": getattr(updated_order, "visibility_mode", ""),
                 "preferred_writer_status": (
-                    updated_order.preferred_writer_status
+                    getattr(updated_order, "preferred_writer_status", "")
                 ),
             },
             status=status.HTTP_200_OK,
@@ -140,7 +140,7 @@ class ExpressInterestView(GenericAPIView):
                 "interest_id": interest.pk,
                 "order_id": order.pk,
                 "status": interest.status,
-                "interest_type": interest.interest_type,
+                "interest_type": getattr(interest, "interest_type", ""),
             },
             status=status.HTTP_201_CREATED,
         )
@@ -199,7 +199,7 @@ class TakeOrderView(GenericAPIView):
                 "order_id": order.pk,
                 "writer_id": assignment.writer.pk,
                 "status": assignment.status,
-                "source": assignment.source,
+                "source": getattr(assignment, "source", ""),
             },
             status=status.HTTP_200_OK,
         )
@@ -364,7 +364,7 @@ class AssignDirectView(GenericAPIView):
             writer_id=validated_data["writer_id"],
         )
 
-        assignment = OrderStaffingService.assign_directly(
+        assignment = OrderStaffingService.assign_direct(
             order=order,
             writer=writer,
             assigned_by=request.user,
@@ -377,7 +377,7 @@ class AssignDirectView(GenericAPIView):
                 "order_id": assignment.order.pk,
                 "writer_id": assignment.writer.pk,
                 "status": assignment.status,
-                "source": assignment.source,
+                "source": getattr(assignment, "source", ""),
             },
             status=status.HTTP_200_OK,
         )

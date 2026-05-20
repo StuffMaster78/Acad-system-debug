@@ -23,8 +23,8 @@ from payments_processor.selectors.payment_allocation_selectors import (
     payable_is_fully_allocated,
 )
 
+from wallets.constants import WalletHoldStatus
 from wallets.services.wallet_hold_service import WalletHoldService
-from wallets.services.client_wallet_service import ClientWalletService
 
 
 class PaymentAllocationApplicationService:
@@ -234,28 +234,23 @@ class PaymentAllocationApplicationService:
                 f"has no wallet hold."
             )
 
-        if wallet_allocation.status == PaymentAllocationStatus.RESERVED:
-            WalletHoldService.capture_hold(
-                hold=wallet_hold,
-            )
-
-        elif wallet_allocation.status == PaymentAllocationStatus.PENDING:
-            ClientWalletService.debit_for_order(
-                website=wallet_hold.website,
-                client=wallet_hold.wallet,
-                amount=wallet_allocation.amount,
-                reference=wallet_allocation.reference,
-                reference_type="payment allocation",
-                reference_id=str(wallet_allocation.pk),
-                metadata={
-                    "payment_allocation_id": wallet_allocation.pk,
-                },
-            )
-
-        else:
+        if wallet_allocation.status not in {
+            PaymentAllocationStatus.PENDING,
+            PaymentAllocationStatus.RESERVED,
+        }:
             raise PaymentError(
                 f"Cannot apply wallet allocation from status "
                 f"'{wallet_allocation.status}'."
+            )
+
+        if wallet_hold.status == WalletHoldStatus.ACTIVE:
+            WalletHoldService.capture_hold(
+                hold=wallet_hold,
+            )
+        elif wallet_hold.status != WalletHoldStatus.CAPTURED:
+            raise PaymentError(
+                f"Cannot apply wallet allocation with hold status "
+                f"'{wallet_hold.status}'."
             )
 
         wallet_allocation.status = PaymentAllocationStatus.APPLIED

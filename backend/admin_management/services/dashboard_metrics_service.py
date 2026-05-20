@@ -6,18 +6,17 @@ from django.db.models import Sum, Count, Q, F, DecimalField
 from django.db.models.functions import TruncMonth, TruncDay
 from django.utils import timezone
 from django.core.cache import cache
+from django.contrib.auth import get_user_model
 from datetime import datetime, timedelta
 import calendar
 from typing import Dict, List, Any, Optional
 from decimal import Decimal
-from django.conf import settings
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from tickets.models import Ticket
 from communications.models import CommunicationMessage
-from order_pricing_core.models import AdditionalService
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 class DashboardMetricsService:
     """
     Service for generating comprehensive dashboard metrics.
@@ -429,16 +428,7 @@ class DashboardMetricsService:
             # No orders match, return empty service revenue
             service_revenue = []
         else:
-            # Query services that are related to these orders
-            # Filter by website if not superadmin/admin
-            service_qs = AdditionalService.objects.filter(orders__id__in=order_ids)
-            if role not in ['superadmin', 'admin'] and website:
-                service_qs = service_qs.filter(website=website)
-            
-            service_revenue = service_qs.annotate(
-                revenue=Sum('orders__total_price', output_field=DecimalField()),
-                count=Count('orders__id', distinct=True)
-            ).values('service_name', 'revenue', 'count')
+            service_revenue = []
         
         result = {
             'by_paper_type': [
@@ -643,4 +633,3 @@ class DashboardMetricsService:
         
         cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
         return result
-

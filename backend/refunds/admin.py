@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import Refund, RefundLog, RefundReceipt
 
+
 @admin.action(description="Retry external refund via webhook")
 def retry_selected_refunds(modeladmin, request, queryset):
     from refunds.tasks import retry_external_refund
@@ -15,6 +16,7 @@ def retry_selected_refunds(modeladmin, request, queryset):
         f"{queryset.count()} refund(s) queued for retry."
     )
 
+
 @admin.register(Refund)
 class RefundAdmin(admin.ModelAdmin):
     list_display = (
@@ -28,6 +30,7 @@ class RefundAdmin(admin.ModelAdmin):
     readonly_fields = ('processed_at', 'processed_by', 'status')
     ordering = ('-processed_at',)
     date_hierarchy = 'processed_at'
+
 
 @admin.register(RefundLog)
 class RefundLogAdmin(admin.ModelAdmin):
@@ -45,6 +48,7 @@ class RefundLogAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
     date_hierarchy = 'created_at'
     raw_id_fields = ('order', 'refund', 'client', 'processed_by')
+
 
 @admin.register(RefundReceipt)
 class RefundReceiptAdmin(admin.ModelAdmin):

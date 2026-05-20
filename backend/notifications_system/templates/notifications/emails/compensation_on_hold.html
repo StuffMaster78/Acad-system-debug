@@ -1,0 +1,33 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Writer Payment On Hold{% endblock %}
+{% block tagline %}<div class="tagline">Writer Compensation</div>{% endblock %}
+
+{% block content %}
+<h1>Your payment is on hold</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    Your writer payment for {{ window_label }} is currently on hold.
+    Our team will review it and update you when the status changes.
+</p>
+
+<table class="detail-table">
+    <tr>
+        <td>Payment window</td>
+        <td>{{ window_label }}</td>
+    </tr>
+    {% if record_id %}
+    <tr>
+        <td>Record ID</td>
+        <td>{{ record_id }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<div class="info-box warning">
+    <p>
+        Hold details are reviewed internally. Contact support if you need
+        help understanding your payout status.
+    </p>
+</div>
+{% endblock %}

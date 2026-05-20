@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict, is_dataclass
 from decimal import Decimal
 from typing import Any, cast
 
@@ -263,6 +264,31 @@ class RefundExecutionService:
         Convert provider response to a dictionary for persistence.
         """
         if isinstance(source, dict):
-            return source
+            return RefundExecutionService._json_safe(source)
 
-        return dict(vars(source))
+        if is_dataclass(source):
+            return RefundExecutionService._json_safe(asdict(source))
+
+        return RefundExecutionService._json_safe(dict(vars(source)))
+
+    @staticmethod
+    def _json_safe(value: Any) -> Any:
+        """
+        Convert nested provider response values to JSON-safe primitives.
+        """
+        if isinstance(value, Decimal):
+            return str(value)
+
+        if isinstance(value, dict):
+            return {
+                key: RefundExecutionService._json_safe(nested)
+                for key, nested in value.items()
+            }
+
+        if isinstance(value, list):
+            return [
+                RefundExecutionService._json_safe(nested)
+                for nested in value
+            ]
+
+        return value

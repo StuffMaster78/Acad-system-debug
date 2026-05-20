@@ -15,8 +15,11 @@ from orders.models.orders import Order
 from special_orders.models import SpecialOrder, InstallmentPayment
 from class_management.models import ClassBundle, ClassInstallment
 from order_payments_management.models.payments import OrderPayment
-from writer_wallet.models import ScheduledWriterPayment, PaymentSchedule
+from writer_compensation.enums.compensation_enums import PayoutRecordStatus
+from writer_compensation.models import PayoutRecord
 from writer_management.models.tipping import Tip
+from wallets.constants import WalletEntryType
+from wallets.models import WalletEntry
 from websites.models.websites import Website
 
 
@@ -63,7 +66,7 @@ class FinancialOverviewViewSet(ViewSet):
         class_bundles_qs = ClassBundle.objects.filter(
             installments__is_paid=True
         ).distinct()
-        writer_payments_qs = ScheduledWriterPayment.objects.filter(status='Paid')
+        writer_payments_qs = PayoutRecord.objects.filter(status=PayoutRecordStatus.PAID)
         
         if website_id:
             orders_qs = orders_qs.filter(website_id=website_id)
@@ -83,7 +86,7 @@ class FinancialOverviewViewSet(ViewSet):
                 Q(admin_marked_paid=True, created_at__gte=date_from)
             ).distinct()
             class_bundles_qs = class_bundles_qs.filter(installments__paid_at__gte=date_from).distinct()
-            writer_payments_qs = writer_payments_qs.filter(payment_date__gte=date_from)
+            writer_payments_qs = writer_payments_qs.filter(paid_at__gte=date_from)
         
         if date_to:
             # Filter orders by OrderPayment created_at (when payment was made)
@@ -97,7 +100,7 @@ class FinancialOverviewViewSet(ViewSet):
                 Q(admin_marked_paid=True, created_at__lte=date_to)
             ).distinct()
             class_bundles_qs = class_bundles_qs.filter(installments__paid_at__lte=date_to).distinct()
-            writer_payments_qs = writer_payments_qs.filter(payment_date__lte=date_to)
+            writer_payments_qs = writer_payments_qs.filter(paid_at__lte=date_to)
         
         # Calculate earnings
         # Standard Orders
@@ -106,7 +109,7 @@ class FinancialOverviewViewSet(ViewSet):
             status='completed'
         )
         total_order_revenue = order_payments.aggregate(
-            total=Sum('amount')
+            total=Sum('total_amount')
         )['total'] or Decimal('0.00')
         
         # Special Orders
@@ -190,12 +193,12 @@ class FinancialOverviewViewSet(ViewSet):
             )
             month_class_revenue = month_classes.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
             
-            month_writer_payments = ScheduledWriterPayment.objects.filter(
-                status='Paid',
-                payment_date__gte=month_start,
-                payment_date__lte=month_end
+            month_writer_payments = PayoutRecord.objects.filter(
+                status=PayoutRecordStatus.PAID,
+                paid_at__gte=month_start,
+                paid_at__lte=month_end
             )
-            month_expenses = month_writer_payments.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            month_expenses = month_writer_payments.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
             
             period_breakdown.append({
                 'period': month_start.strftime('%Y-%m'),
@@ -253,43 +256,37 @@ class FinancialOverviewViewSet(ViewSet):
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
         
-        payments_qs = ScheduledWriterPayment.objects.select_related(
-            'writer_wallet__writer',  # writer_wallet.writer IS the User
+        payments_qs = PayoutRecord.objects.select_related(
+            'writer',
+            'writer__account_profile',
+            'writer__account_profile__user',
             'batch',
+            'batch__payment_window',
             'website'
-        ).prefetch_related('orders__order')
+        )
         
         if website_id:
             payments_qs = payments_qs.filter(website_id=website_id)
         if writer_id:
-            payments_qs = payments_qs.filter(writer_wallet__writer_id=writer_id)
+            payments_qs = payments_qs.filter(
+                Q(writer_id=writer_id) |
+                Q(writer__account_profile__user_id=writer_id)
+            )
         if status_filter:
             payments_qs = payments_qs.filter(status=status_filter)
         if date_from:
-            payments_qs = payments_qs.filter(payment_date__gte=date_from)
+            payments_qs = payments_qs.filter(paid_at__gte=date_from)
         if date_to:
-            payments_qs = payments_qs.filter(payment_date__lte=date_to)
+            payments_qs = payments_qs.filter(paid_at__lte=date_to)
         
         payments_data = []
-        for payment in payments_qs.order_by('-payment_date', '-id'):
-            # Skip payments with missing relationships
-            # writer_wallet.writer IS the User, not WriterProfile
-            if not payment.writer_wallet or not payment.writer_wallet.writer:
+        for payment in payments_qs.order_by('-paid_at', '-id'):
+            writer_profile = payment.writer
+            writer_user = getattr(writer_profile, "user", None)
+            if not writer_user:
                 continue
-            
-            # Get the User (which is writer_wallet.writer)
-            writer_user = payment.writer_wallet.writer
-            
-            # Get WriterProfile if it exists
-            writer_profile = None
-            try:
-                from writer_management.models.profile import WriterProfile
-                writer_profile = WriterProfile.objects.filter(user=writer_user).first()
-            except Exception:
-                pass
                 
-            order_records = payment.orders.all()
-            order_count = order_records.count()
+            order_count = 0
             
             # Calculate tips and fines if available
             tips_total = Decimal('0.00')
@@ -297,66 +294,69 @@ class FinancialOverviewViewSet(ViewSet):
             
             try:
                 from writer_management.models.tipping import Tip
-                from writer_wallet.models import WalletTransaction
                 
-                # Get tips for this payment period
                 if payment.batch:
-                    period_start = payment.batch.scheduled_date
-                    period_end = period_start + timedelta(days=14 if payment.batch.schedule_type == 'Bi-Weekly' else 30)
+                    window = payment.batch.payment_window
+                    period_start = window.start_date
+                    period_end = window.end_date
                     tips = Tip.objects.filter(
-                        writer=writer_user,  # writer_user is the User
+                        writer=writer_user,
                         website=payment.website,
                         sent_at__gte=period_start,
                         sent_at__lt=period_end
                     )
                     tips_total = sum(tip.writer_earning for tip in tips)
                 
-                # Get fines from wallet transactions
-                if payment.batch:
-                    fines_transactions = WalletTransaction.objects.filter(
-                        writer_wallet=payment.writer_wallet,
-                        transaction_type='Fine',
+                    fines_entries = WalletEntry.objects.filter(
+                        wallet__owner_user=writer_user,
+                        wallet__website=payment.website,
+                        entry_type__in=[WalletEntryType.FINE, WalletEntryType.PENALTY],
                         created_at__gte=period_start,
-                        created_at__lt=period_end
+                        created_at__lt=period_end,
                     )
-                    fines_total = sum(abs(t.amount) for t in fines_transactions)
+                    fines_total = sum(abs(entry.amount) for entry in fines_entries)
             except Exception:
                 pass
             
             # Calculate client total and platform margin for this payment
             client_total = Decimal('0.00')
             try:
-                for record in order_records:
-                    order = getattr(record, 'order', None)
-                    if order and getattr(order, 'total_price', None):
-                        client_total += order.total_price
+                if payment.settlement_period_id:
+                    for item in payment.settlement_period.items.select_related("financial_event"):
+                        metadata = item.financial_event.metadata or {}
+                        order_id = metadata.get("order_id")
+                        if order_id:
+                            order = Order.objects.filter(id=order_id).first()
+                            if order and getattr(order, 'total_price', None):
+                                client_total += order.total_price
+                                order_count += 1
             except Exception:
                 # Don't break the endpoint if any order is missing or invalid
                 client_total = Decimal('0.00')
 
-            platform_margin = client_total - (payment.amount or Decimal('0.00')) - tips_total
+            platform_margin = client_total - (payment.total_amount or Decimal('0.00')) - tips_total
             
             payments_data.append({
                 'id': payment.id,
-                'payment_id': payment.reference_code,
+                'payment_id': payment.external_reference or f"payout-{payment.id}",
                 'writer': {
-                    'id': writer_profile.id if writer_profile else writer_user.id,
+                    'id': writer_profile.id,
                     'name': writer_user.get_full_name() if writer_user else 'Unknown',
                     'email': writer_user.email if writer_user else '',
-                    'registration_id': writer_profile.registration_id if writer_profile else '',
+                    'registration_id': writer_profile.registration_id,
                 },
                 'number_of_orders': order_count,
                 'client_total': float(client_total),
                 'platform_margin': float(platform_margin),
-                'amount': float(payment.amount),
+                'amount': float(payment.total_amount),
                 'tips': float(tips_total),
                 'fines': float(fines_total),
-                'total_earnings': float(payment.amount + tips_total - fines_total),
-                'date': payment.payment_date.isoformat() if payment.payment_date else (payment.batch.scheduled_date.isoformat() if payment.batch and payment.batch.scheduled_date else None),
+                'total_earnings': float(payment.total_amount + tips_total - fines_total),
+                'date': payment.paid_at.isoformat() if payment.paid_at else None,
                 'status': payment.status,
-                'type': payment.batch.schedule_type if payment.batch else 'Manual',
-                'reference': payment.reference_code,
-                'batch_reference': payment.batch.reference_code if payment.batch else None,
+                'type': payment.batch.payment_window.cycle_type if payment.batch else 'Manual',
+                'reference': payment.external_reference or f"payout-{payment.id}",
+                'batch_reference': f"batch-{payment.batch_id}" if payment.batch_id else None,
             })
         
         return Response({
@@ -364,4 +364,3 @@ class FinancialOverviewViewSet(ViewSet):
             'total': len(payments_data),
             'total_amount': sum(p['amount'] for p in payments_data),
         })
-

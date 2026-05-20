@@ -1402,7 +1402,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         from django.db.models.functions import TruncWeek, TruncMonth, TruncDay
         from order_payments_management.models.payments import OrderPayment
         from tickets.models import Ticket
-        from writer_management.models.profile import WriterProfile
+        from writer_management.models import WriterProfile
         
         # Filter by website if needed
         website_filter = None

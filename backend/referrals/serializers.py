@@ -5,7 +5,7 @@ from .models import (
 )
 from users.models import User
 from websites.models.websites import Website
-from wallet.models import WalletTransaction
+from wallets.models import WalletEntry
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for the User model."""
@@ -122,11 +122,12 @@ class ReferralStatsSerializer(serializers.ModelSerializer):
 
 
 class WalletTransactionSerializer(serializers.ModelSerializer):
-    """Serializer for the WalletTransaction model."""
+    """Compatibility serializer for canonical wallet entries."""
     class Meta:
-        model = WalletTransaction
-        fields = ['id', 'wallet', 'transaction_type',
-                  'amount', 'description', 'website'
+        model = WalletEntry
+        fields = [
+            'id', 'wallet', 'entry_type',
+            'amount', 'description', 'website',
         ]
 
 

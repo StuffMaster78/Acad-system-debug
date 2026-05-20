@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import QuerySet
 
 from communications.models.thread import CommunicationThread
@@ -31,9 +32,9 @@ class CommunicationThreadSelector:
             base_qs
             .filter(
                 website=website,
-                participant_records__user=user,
-                participant_records__can_view=True,
-                participant_records__removed_at__isnull=True,
+                participants__user=user,
+                participants__can_view=True,
+                participants__removed_at__isnull=True,
             )
             .distinct()
         )
@@ -49,7 +50,7 @@ class CommunicationThreadSelector:
         """
         return CommunicationThread.objects.filter(
             website=website,
-            target_content_type=target._meta.model,
+            target_content_type=ContentType.objects.get_for_model(target),
             target_object_id=target.id,
         )
 
@@ -73,9 +74,9 @@ class CommunicationThreadSelector:
 
         return (
             qs.filter(
-                participant_records__user=user,
-                participant_records__can_view=True,
-                participant_records__removed_at__isnull=True,
+                participants__user=user,
+                participants__can_view=True,
+                participants__removed_at__isnull=True,
             )
             .distinct()
         )

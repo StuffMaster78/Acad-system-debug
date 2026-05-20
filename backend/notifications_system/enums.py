@@ -17,24 +17,37 @@ class NotificationEvent(TextChoices):
 
     # Orders — most events have a client version and a writer version
     ORDER_CREATED = 'order.created', _('Order Created')
-    ORDER_ASSIGNED = 'order.assigned', _('Order Assigned')                  # writer + client receive
-    ORDER_UPDATED = 'order.updated', _('Order Updated')                     # writer + client receive
+    ORDER_ASSIGNED = 'order.assigned', _(
+        'Order Assigned')                  # writer + client receive
+    # writer + client receive
+    ORDER_UPDATED = 'order.updated', _('Order Updated')
     ORDER_APPROVED = 'order.approved', _('Order Approved')
-    ORDER_COMPLETED = 'order.completed', _('Order Completed')               # writer + client receive
-    ORDER_CANCELLED = 'order.cancelled', _('Order Cancelled')               # writer + client receive
+    ORDER_COMPLETED = 'order.completed', _(
+        'Order Completed')               # writer + client receive
+    ORDER_CANCELLED = 'order.cancelled', _(
+        'Order Cancelled')               # writer + client receive
     ORDER_REJECTED = 'order.rejected', _('Order Rejected')
     ORDER_ON_HOLD = 'order.on_hold', _('Order On Hold')
-    ORDER_REOPENED = 'order.reopened', _('Order Reopened')                  # writer + client receive
-    ORDER_REASSIGNED = 'order.reassigned', _('Order Reassigned')            # writer receives
-    ORDER_REVISION_REQUESTED = 'order.revision_requested', _('Revision Requested')   # writer receives
-    ORDER_REVISION_COMPLETED = 'order.revision_completed', _('Revision Completed')   # writer + client receive
-    ORDER_DISPUTED = 'order.disputed', _('Order Disputed')                  # staff receives
-    ORDER_DISPUTE_RESOLVED = 'order.dispute_resolved', _('Dispute Resolved')         # writer + client receive
-    ORDER_DISPUTE_ESCALATED = 'order.dispute_escalated', _('Dispute Escalated')      # staff receives
-    ORDER_DEADLINE_APPROACHING = 'order.deadline_approaching', _('Deadline Approaching')  # writer receives
-    ORDER_RATED = 'order.rated', _('Order Rated')                           # writer receives
+    ORDER_REOPENED = 'order.reopened', _(
+        'Order Reopened')                  # writer + client receive
+    ORDER_REASSIGNED = 'order.reassigned', _(
+        'Order Reassigned')            # writer receives
+    ORDER_REVISION_REQUESTED = 'order.revision_requested', _(
+        'Revision Requested')   # writer receives
+    ORDER_REVISION_COMPLETED = 'order.revision_completed', _(
+        'Revision Completed')   # writer + client receive
+    ORDER_DISPUTED = 'order.disputed', _(
+        'Order Disputed')                  # staff receives
+    ORDER_DISPUTE_RESOLVED = 'order.dispute_resolved', _(
+        'Dispute Resolved')         # writer + client receive
+    ORDER_DISPUTE_ESCALATED = 'order.dispute_escalated', _(
+        'Dispute Escalated')      # staff receives
+    ORDER_DEADLINE_APPROACHING = 'order.deadline_approaching', _(
+        'Deadline Approaching')  # writer receives
+    # writer receives
+    ORDER_RATED = 'order.rated', _('Order Rated')
     ORDER_QA_REVIEW_READY = "order.qa_review_ready"
-    
+
     # Payments / Wallet
     WALLET_CREDITED = 'wallet.credited', _('Wallet Credited')
     WALLET_DEBITED = 'wallet.debited', _('Wallet Debited')
@@ -42,13 +55,45 @@ class NotificationEvent(TextChoices):
     WALLET_TX_FAILED = 'wallet.tx_failed', _('Transaction Failed')
     WALLET_REFUND_INITIATED = 'wallet.refund_initiated', _('Refund Initiated')
     WALLET_REFUND_COMPLETED = 'wallet.refund_completed', _('Refund Completed')
+    WALLET_CLIENT_FUNDED = 'wallet.client.funded', _('Client Wallet Funded')
+    WALLET_CLIENT_DEBITED = 'wallet.client.debited', _(
+        'Client Wallet Debited')
+    WALLET_CLIENT_REFUNDED = (
+        'wallet.client.refunded',
+        _('Client Wallet Refunded'),
+    )
 
-    # Payouts — writer-specific
-    PAYOUT_REQUESTED = 'payout.requested', _('Payout Requested')           # staff receives
-    PAYOUT_PROCESSING = 'payout.processing', _('Payout Processing')        # writer receives
-    PAYOUT_COMPLETED = 'payout.completed', _('Payout Completed')           # writer receives
-    PAYOUT_FAILED = 'payout.failed', _('Payout Failed')                    # writer receives
-    PAYOUT_ROLLED_OVER = 'payout.rolled_over', _('Payout Rolled Over')     # writer receives
+    # Payouts and compensation — writer-specific
+    PAYOUT_REQUESTED = 'payout.requested', _(
+        'Payout Requested')           # staff receives
+    PAYOUT_PROCESSING = 'payout.processing', _(
+        'Payout Processing')        # writer receives
+    PAYOUT_COMPLETED = 'payout.completed', _(
+        'Payout Completed')           # writer receives
+    PAYOUT_FAILED = 'payout.failed', _(
+        'Payout Failed')                    # writer receives
+    PAYOUT_ROLLED_OVER = 'payout.rolled_over', _(
+        'Payout Rolled Over')     # writer receives
+    COMPENSATION_PAYMENT_PROCESSING = (
+        'compensation.payment_processing',
+        _('Compensation Payment Processing'),
+    )
+    COMPENSATION_PAYMENT_PAID = (
+        'compensation.payment_paid',
+        _('Compensation Payment Paid'),
+    )
+    COMPENSATION_PAYMENT_ON_HOLD = (
+        'compensation.payment_on_hold',
+        _('Compensation Payment On Hold'),
+    )
+    COMPENSATION_FINE_APPLIED = (
+        'compensation.fine_applied',
+        _('Compensation Fine Applied'),
+    )
+    COMPENSATION_ADJUSTMENT_APPLIED = (
+        'compensation.adjustment_applied',
+        _('Compensation Adjustment Applied'),
+    )
 
     # Writer management — staff acts, writer receives
     WRITER_APPROVED = 'writer.approved', _('Writer Approved')
@@ -66,42 +111,78 @@ class NotificationEvent(TextChoices):
     WRITER_BADGE_EARNED = 'writer.badge_earned', _('Badge Earned')
 
     # Tickets — one version for user, one for staff
-    TICKET_CREATED = 'ticket.created', _('Ticket Created')                 # staff receives
+    TICKET_CREATED = 'ticket.created', _(
+        'Ticket Created')                 # staff receives
     TICKET_UPDATED = 'ticket.updated', _('Ticket Updated')
-    TICKET_ASSIGNED = 'ticket.assigned', _('Ticket Assigned')              # staff receives
-    TICKET_ESCALATED = 'ticket.escalated', _('Ticket Escalated')           # staff receives
-    TICKET_RESOLVED = 'ticket.resolved', _('Ticket Resolved')              # user receives
+    TICKET_ASSIGNED = 'ticket.assigned', _(
+        'Ticket Assigned')              # staff receives
+    TICKET_ESCALATED = 'ticket.escalated', _(
+        'Ticket Escalated')           # staff receives
+    TICKET_RESOLVED = 'ticket.resolved', _(
+        'Ticket Resolved')              # user receives
     TICKET_CLOSED = 'ticket.closed', _('Ticket Closed')
     TICKET_REOPENED = 'ticket.reopened', _('Ticket Reopened')
-    TICKET_COMMENT_ADDED = 'ticket.comment_added', _('Comment Added')      # user + staff receive
+    TICKET_COMMENT_ADDED = 'ticket.comment_added', _(
+        'Comment Added')      # user + staff receive
 
     # Account
     ACCOUNT_SUSPENDED = 'account.suspended', _('Account Suspended')
     ACCOUNT_BLACKLISTED = 'account.blacklisted', _('Account Blacklisted')
     ACCOUNT_REACTIVATED = 'account.reactivated', _('Account Reactivated')
-    ACCOUNT_DELETION_REQUESTED = 'account.deletion_requested', _('Deletion Requested')
-    ACCOUNT_DELETION_SCHEDULED = 'account.deletion_scheduled', _('Deletion Scheduled')
+    ACCOUNT_DELETION_REQUESTED = 'account.deletion_requested', _(
+        'Deletion Requested')
+    ACCOUNT_DELETION_SCHEDULED = 'account.deletion_scheduled', _(
+        'Deletion Scheduled')
     ACCOUNT_VERIFIED = 'account.verified', _('Account Verified')
-    ACCOUNT_LOGIN_NEW_DEVICE = 'account.login_new_device', _('Login from New Device')
-    ACCOUNT_PASSWORD_CHANGED = 'account.password_changed', _('Password Changed')
+    ACCOUNT_LOGIN_NEW_DEVICE = 'account.login_new_device', _(
+        'Login from New Device')
+    ACCOUNT_PASSWORD_CHANGED = 'account.password_changed', _(
+        'Password Changed')
     ACCOUNT_EMAIL_CHANGED = 'account.email_changed', _('Email Changed')
-    ACCOUNT_TWO_FACTOR_ENABLED = 'account.2fa_enabled', _('Two-Factor Enabled')
-    ACCOUNT_TWO_FACTOR_DISABLED = 'account.2fa_disabled', _('Two-Factor Disabled')
+    ACCOUNT_TWO_FACTOR_ENABLED = 'account.2fa_enabled', _(
+        'Two-Factor Enabled')
+    ACCOUNT_TWO_FACTOR_DISABLED = 'account.2fa_disabled', _(
+        'Two-Factor Disabled')
 
     # Files
     FILE_UPLOADED = 'file.uploaded', _('File Uploaded')
     FILE_UPDATED = 'file.updated', _('File Updated')
     FILE_DELETED = 'file.deleted', _('File Deleted')
 
+    # Loyalty and referrals
+    LOYALTY_POINTS_AWARDED = 'loyalty.points_awarded', _(
+        'Loyalty Points Awarded')
+    LOYALTY_POINTS_CONVERTED = 'loyalty.points_converted', _(
+        'Loyalty Points Converted')
+    LOYALTY_TIER_UPGRADED = 'loyalty.tier_upgraded', _(
+        'Loyalty Tier Upgraded')
+    REFERRAL_REWARD_EARNED = 'referral.reward_earned', _(
+        'Referral Reward Earned')
+
     # Messages
     MESSAGE_NEW = 'message.new', _('New Message')
+    COMMUNICATION_MESSAGE_CREATED = (
+        'communications.message.created',
+        _('Communication Message Created'),
+    )
+    COMMUNICATION_MESSAGE_FLAGGED = (
+        'communications.message.flagged',
+        _('Communication Message Flagged'),
+    )
+    COMMUNICATION_THREAD_ESCALATED = (
+        'communications.thread.escalated',
+        _('Communication Thread Escalated'),
+    )
+    COMMUNICATION_LINK_REVIEW_CREATED = (
+        'communications.link_review.created',
+        _('Communication Link Review Created'),
+    )
 
     # System / Admin — staff triggers, users receive
     SYSTEM_MAINTENANCE = 'system.maintenance', _('System Maintenance')
     SYSTEM_ALERT = 'system.alert', _('System Alert')
     SYSTEM_ANNOUNCEMENT = 'system.announcement', _('System Announcement')
     ADMIN_BROADCAST = 'system.broadcast', _('Admin Broadcast')
-
 
     WRITER_REWARD_ISSUED = "writer.reward.issued"
     WRITER_REWARD_REVOKED = "writer.reward.revoked"
@@ -127,18 +208,23 @@ class NotificationPriority(TextChoices):
 class NotificationCategory(TextChoices):
     ORDER = 'order', _('Order')
     PAYMENT = 'payment', _('Payment')
+    COMPENSATION = 'compensation', _('Compensation')
     WALLET = 'wallet', _('Wallet')
     WRITER = 'writer', _('Writer')
     ACCOUNT = 'account', _('Account')
     TICKET = 'ticket', _('Ticket')
     FILE = 'file', _('File')
+    LOYALTY = 'loyalty', _('Loyalty')
+    REFERRAL = 'referral', _('Referral')
     COMMUNICATION_MESSAGE = 'communication_message', _('Communicatin Message')
     SYSTEM = 'system', _('System')
     INFO = 'info', _('Info')
 
+
 class TemplateScope(TextChoices):
     GLOBAL = 'global', 'Global'
     WEBSITE = 'website', 'Website Override'
+
 
 class DeliveryStatus(TextChoices):
     PENDING = 'pending', _('Pending')
@@ -155,6 +241,7 @@ class DeliveryStatus(TextChoices):
     # ADD: distinguishes suppressed addresses (bounce/complaint/unsubscribe)
     # from genuine delivery failures — visible separately in admin views.
     SUPPRESSED = 'suppressed', _('Suppressed')
+
 
 class PreferenceSource(TextChoices):
     USER = 'user', 'Set by User'
@@ -180,11 +267,15 @@ def get_event_category(event_key: str) -> str:
         'order': NotificationCategory.ORDER,
         'wallet': NotificationCategory.WALLET,
         'payout': NotificationCategory.PAYMENT,
+        'compensation': NotificationCategory.COMPENSATION,
         'ticket': NotificationCategory.TICKET,
         'account': NotificationCategory.ACCOUNT,
         'writer': NotificationCategory.WRITER,
         'file': NotificationCategory.FILE,
-        'communitaion_message': NotificationCategory.COMMUNICATION_MESSAGE,
+        'loyalty': NotificationCategory.LOYALTY,
+        'referral': NotificationCategory.REFERRAL,
+        'message': NotificationCategory.COMMUNICATION_MESSAGE,
+        'communications': NotificationCategory.COMMUNICATION_MESSAGE,
         'system': NotificationCategory.SYSTEM,
     }
     prefix = event_key.split('.')[0] if '.' in event_key else ''

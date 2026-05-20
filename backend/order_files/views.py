@@ -54,21 +54,14 @@ class OrderFileViewSet(viewsets.ModelViewSet):
         
         # Writers can see files for orders they're assigned to or have requested
         if hasattr(user, 'role') and user.role == 'writer':
-            from writer_management.models.requests import WriterOrderRequest
-            try:
-                writer_profile = user.writer_profile
-                # Get orders the writer is assigned to or has requested
-                requested_orders = WriterOrderRequest.objects.filter(
-                    writer=writer_profile
-                ).values_list('order_id', flat=True)
-                
-                queryset = queryset.filter(
-                    Q(order__assigned_writer=user) |
-                    Q(order_id__in=requested_orders)
-                )
-            except Exception:
-                # Fallback to assigned orders only
-                queryset = queryset.filter(order__assigned_writer=user)
+            from orders.selectors.order_visibility_selector import (
+                OrderVisibilitySelector,
+            )
+
+            visible_orders = OrderVisibilitySelector.visible_to_writer(
+                writer=user,
+            ).values_list("id", flat=True)
+            queryset = queryset.filter(order_id__in=visible_orders)
         
         # Clients can see files for their orders
         if hasattr(user, 'role') and user.role == 'client':
@@ -394,21 +387,14 @@ class ExtraServiceFileViewSet(viewsets.ModelViewSet):
         
         # Writers can see extra service files for orders they're assigned to or have requested
         if hasattr(user, 'role') and user.role == 'writer':
-            from writer_management.models.requests import WriterOrderRequest
-            try:
-                writer_profile = user.writer_profile
-                # Get orders the writer is assigned to or has requested
-                requested_orders = WriterOrderRequest.objects.filter(
-                    writer=writer_profile
-                ).values_list('order_id', flat=True)
-                
-                queryset = queryset.filter(
-                    Q(order__assigned_writer=user) |
-                    Q(order_id__in=requested_orders)
-                )
-            except Exception:
-                # Fallback to assigned orders only
-                queryset = queryset.filter(order__assigned_writer=user)
+            from orders.selectors.order_visibility_selector import (
+                OrderVisibilitySelector,
+            )
+
+            visible_orders = OrderVisibilitySelector.visible_to_writer(
+                writer=user,
+            ).values_list("id", flat=True)
+            queryset = queryset.filter(order_id__in=visible_orders)
         
         # Clients can see extra service files for their orders
         if hasattr(user, 'role') and user.role == 'client':

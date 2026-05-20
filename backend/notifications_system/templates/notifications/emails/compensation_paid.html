@@ -1,0 +1,38 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Writer Payment Paid{% endblock %}
+{% block tagline %}<div class="tagline">Writer Compensation</div>{% endblock %}
+
+{% block content %}
+<h1>Your payment has been paid</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    Your writer payment for {{ window_label }} has been marked as paid.
+</p>
+
+<table class="detail-table">
+    <tr>
+        <td>Amount</td>
+        <td style="font-size:18px;font-weight:700;color:#16a34a;">
+            {{ amount }}
+        </td>
+    </tr>
+    <tr>
+        <td>Payment window</td>
+        <td>{{ window_label }}</td>
+    </tr>
+    {% if record_id %}
+    <tr>
+        <td>Record ID</td>
+        <td>{{ record_id }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<div class="info-box success">
+    <p>
+        This payment has been completed in the compensation system.
+        Please check your payout account for settlement timing.
+    </p>
+</div>
+{% endblock %}

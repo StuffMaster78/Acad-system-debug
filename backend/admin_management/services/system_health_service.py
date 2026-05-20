@@ -7,16 +7,19 @@ from datetime import timedelta
 from django.db.models import Count, Q, Avg, Max, Sum
 from django.core.cache import cache
 from django.db import connection
+from django.contrib.auth import get_user_model
+from accounts.enums import AccountStatus
+from accounts.models import AccountProfile
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus
-from django.conf import settings
 from writer_management.models import WriterProfile
-from writer_wallet.models import WriterPayment
+from writer_compensation.enums.compensation_enums import PayoutRecordStatus
+from writer_compensation.models import PayoutRecord
 from fines.models import Fine
 import logging
 
 logger = logging.getLogger(__name__)
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 class SystemHealthService:
     """Service for monitoring system health and performance."""
@@ -141,8 +144,9 @@ class SystemHealthService:
             count=Count('id')
         )
         
-        # Suspended users
-        suspended = User.objects.filter(is_suspended=True).count()
+        suspended = AccountProfile.objects.filter(
+            status=AccountStatus.SUSPENDED,
+        ).values("user_id").distinct().count()
         
         # Writers with issues (use correct related names: strikes / suspensions)
         writers_with_issues = WriterProfile.objects.filter(
@@ -174,17 +178,19 @@ class SystemHealthService:
     def _get_financial_health(last_24h, last_7d):
         """Get financial health metrics."""
         # Recent payments
-        payments_24h = WriterPayment.objects.filter(
-            payment_date__gte=last_24h
+        payments_24h = PayoutRecord.objects.filter(
+            status=PayoutRecordStatus.PAID,
+            paid_at__gte=last_24h
         ).aggregate(
-            total=Sum('amount'),
+            total=Sum('total_amount'),
             count=Count('id')
         )
         
-        payments_7d = WriterPayment.objects.filter(
-            payment_date__gte=last_7d
+        payments_7d = PayoutRecord.objects.filter(
+            status=PayoutRecordStatus.PAID,
+            paid_at__gte=last_7d
         ).aggregate(
-            total=Sum('amount'),
+            total=Sum('total_amount'),
             count=Count('id')
         )
         
@@ -290,4 +296,3 @@ class SystemHealthService:
             })
         
         return recommendations
-

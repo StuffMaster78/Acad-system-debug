@@ -10,6 +10,7 @@ from loyalty_management.models import (
 )
 from django.core.exceptions import ValidationError
 import logging
+from wallet.services.wallet_transaction_service import WalletTransactionService
 
 # Logger setup
 logger = logging.getLogger(__name__)
@@ -52,40 +53,33 @@ class ClientWallet(WebsiteSpecificBaseModel):
         """
         Deducts an amount from the wallet with transaction safety.
         """
-        user = self.user 
-        with transaction.atomic():
-            wallet = ClientWallet.objects.select_for_update().get(id=self.id)
-            # Locking related transactions as well
-            transactions = ClientWalletTransaction.objects.select_for_update().filter(wallet=wallet)
-            
-            if wallet.balance < amount and not user.is_admin:
-                raise ValueError("Insufficient funds")  # Changed to provide a more specific error message
-            wallet.balance -= amount
-            wallet.save(update_fields=['balance'])
-
-            # Log the wallet transaction
-            ClientWalletTransaction.objects.create(
-                wallet=wallet,
-                transaction_type='payment',
-                amount=-amount,
-                description=reason
-            )
+        entry = WalletTransactionService.debit(
+            user=self.user,
+            website=self.website,
+            amount=amount,
+            description=reason,
+            source="client_wallet",
+            transaction_type="payment",
+        )
+        self.balance = entry.balance_after
+        self.save(update_fields=["balance"])
+        return entry
 
     def credit_wallet(self, amount, reason=""):
         """
         Adds an amount to the wallet, either via refund or other credit.
         """
-        with transaction.atomic():
-            wallet = ClientWallet.objects.select_for_update().get(id=self.id)
-            wallet.balance += amount
-            wallet.save(update_fields=['balance'])
-
-            ClientWalletTransaction.objects.create(
-                wallet=wallet,
-                transaction_type='top-up',
-                amount=amount,
-                description=reason
-            )
+        entry = WalletTransactionService.credit(
+            user=self.user,
+            website=self.website,
+            amount=amount,
+            description=reason,
+            source="client_wallet",
+            transaction_type="top-up",
+        )
+        self.balance = entry.balance_after
+        self.save(update_fields=["balance"])
+        return entry
 
     def convert_loyalty_points_to_wallet(self):
         """
@@ -102,38 +96,25 @@ class ClientWallet(WebsiteSpecificBaseModel):
         if self.loyalty_points < config.min_conversion_points:
             raise ValidationError(f"Client needs at least {config.min_conversion_points} loyalty points to convert.")
 
-        total_conversion_amount = Decimal(self.loyalty_points) * config.conversion_rate
+        points_to_convert = self.loyalty_points
+        total_conversion_amount = Decimal(points_to_convert) * config.conversion_rate
 
         # Check if the total conversion amount exceeds the max limit
         if total_conversion_amount + self.balance > config.max_conversion_limit:
             raise ValidationError(f"Conversion exceeds the maximum wallet balance limit of {config.max_conversion_limit}.")
         
-        # Store the conversion rate at the time of transaction
-        conversion_rate_at_time = config.conversion_rate
+        from loyalty_management.services.loyalty_conversion_service import (
+            LoyaltyConversionService,
+        )
 
-        # Deduct the loyalty points
-        self.loyalty_points -= config.min_conversion_points  # Deduct the required points
-
-        with transaction.atomic():
-            self.save(update_fields=['loyalty_points'])  # Save the loyalty points deduction first
-            self.balance += total_conversion_amount
-            self.save(update_fields=['balance'])
-
-            # Log the transaction for loyalty conversion
-            ClientWalletTransaction.objects.create(
-                wallet=self,
-                transaction_type='loyalty_conversion',
-                amount=total_conversion_amount,
-                description=f"Converted {config.min_conversion_points} loyalty points to wallet balance.",
-                website=self.website
-            )
-
-            LoyaltyTransaction.objects.create(
-                client=self.user.client_profile,
-                points=-config.min_conversion_points,  # Record the exact points deducted
-                transaction_type='conversion',
-                reason="Loyalty points conversion to wallet"
-            )
+        total_conversion_amount = LoyaltyConversionService.convert_points_to_wallet(
+            client=self.user.client_profile,
+            website=self.website,
+            points=points_to_convert,
+        )
+        self.loyalty_points = 0
+        self.balance = WalletTransactionService.get_balance(self.user, self.website)
+        self.save(update_fields=["loyalty_points", "balance"])
 
         return total_conversion_amount
     
@@ -161,20 +142,21 @@ class ClientWallet(WebsiteSpecificBaseModel):
         - Logs both transactions.
         """
         with transaction.atomic():
-            wallet = ClientWallet.objects.select_for_update().get(id=self.id)
-            
-            wallet_amount = min(wallet.balance, total_amount)
+            wallet_amount = min(self.balance, total_amount)
             external_amount = total_amount - wallet_amount  # Adjust external method charge
 
             if wallet_amount > 0:
-                wallet.balance -= wallet_amount
-                wallet.save(update_fields=['balance'])
-                ClientWalletTransaction.objects.create(
-                    wallet=wallet,
-                    transaction_type='payment',
-                    amount=-wallet_amount,
-                    description=f"Partial payment for Order {order.id}"
+                entry = WalletTransactionService.debit(
+                    user=self.user,
+                    website=self.website,
+                    amount=wallet_amount,
+                    description=f"Partial payment for Order {order.id}",
+                    source="client_wallet_split_payment",
+                    reference=order.id,
+                    transaction_type="payment",
                 )
+                self.balance = entry.balance_after
+                self.save(update_fields=["balance"])
 
             # Process external payment logic here (API call, third-party processing)
 
@@ -201,14 +183,17 @@ class ClientWallet(WebsiteSpecificBaseModel):
 
         with transaction.atomic():
             if wallet_refund > 0:
-                self.balance += wallet_refund
-                self.save(update_fields=['balance'])
-                ClientWalletTransaction.objects.create(
-                    wallet=self,
-                    transaction_type='refund',
+                entry = WalletTransactionService.credit(
+                    user=self.user,
+                    website=self.website,
                     amount=wallet_refund,
-                    description=f"Refund for Order {order.id}"
+                    description=f"Refund for Order {order.id}",
+                    source="client_wallet_refund",
+                    reference=order.id,
+                    transaction_type="refund",
                 )
+                self.balance = entry.balance_after
+                self.save(update_fields=["balance"])
 
             # Process external refund logic here
 

@@ -1,0 +1,17 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<h1>Conversation escalated</h1>
+<p>Hi {{ user.get_full_name|default:user.username }},</p>
+<p>Conversation #{{ thread_id }} was escalated and needs attention.</p>
+{% if reason %}
+<div class="info-box">
+  <div class="label">Reason</div>
+  <p>{{ reason }}</p>
+</div>
+{% endif %}
+{% if cta_url %}
+<div class="btn-wrapper">
+  <a href="{{ cta_url }}" class="btn">Open escalation</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -2,6 +2,7 @@ from django.db import models
 
 
 class PaymentProvider(models.TextChoices):
+    MOCK = "mock", "Mock"
     STRIPE = "stripe", "Stripe"
     # PAYPAL = "paypal", "PayPal"
     # FLUTTERWAVE = "flutterwave", "Flutterwave"
@@ -48,7 +49,7 @@ class PaymentApplicationStatus(models.TextChoices):
     APPLYING = "applying", "Applying"
     APPLIED = "applied", "Applied"
     APPLICATION_FAILED = "application_failed", "Application Failed"
-    
+
 
 class WebhookProcessingStatus(models.TextChoices):
     RECEIVED = "received", "Received"
@@ -67,7 +68,11 @@ class PaymentIntentPurpose(models.TextChoices):
     INVOICE = "invoice", "Invoice"
     EXTRA_ORDER_CHARGE = "extra_order_charge", "Extra Order Charge"
     MANUAL_BILLING = "manual_billing", "Manual Billing"
-    BILLING_PAYMENT_REQUEST = "billing_payment_request", "Billing Payment Request"
+    BILLING_PAYMENT_REQUEST = (
+        "billing_payment_request",
+        "Billing Payment Request",
+    )
+
 
 class PaymentAllocationType(models.TextChoices):
     WALLET = "wallet", "Wallet"

@@ -5,6 +5,8 @@ from orders.models.orders import Order
 from tickets.models import Ticket
 from django.conf import settings
 from files_management.models import FileAttachment
+from files_management.enums import FilePurpose, FileVisibility
+from files_management.services import FileAttachmentService, FileUploadService
 
 from tickets.models import Ticket, TicketMessage
 from orders.models.legacy_models.order_disputes import Dispute
@@ -65,12 +67,38 @@ class SupportProfile(models.Model):
             order.save()
 
     def delete_order_file(self, order, file):
-        """Allows support agents to delete a file from an order."""
-        file.delete()
+        """Allows support agents to detach an order file centrally."""
+        return FileAttachmentService.deactivate_attachment(
+            attachment=file,
+            deactivated_by=self.user,
+        )
 
     def upload_order_file(self, order, file, description):
         """Allows support agents to upload files to an order."""
-        order.files.create(file=file, description=description, uploaded_by=self.user)
+        managed_file = FileUploadService.upload_file(
+            website=order.website,
+            uploaded_by=self.user,
+            uploaded_file=file,
+            purpose=FilePurpose.ORDER_REFERENCE,
+            is_public=False,
+            metadata={
+                "source_domain": "support_management",
+                "support_profile_id": self.pk,
+            },
+        )
+        return FileAttachmentService.attach_managed_file(
+            website=order.website,
+            obj=order,
+            managed_file=managed_file,
+            purpose=FilePurpose.ORDER_REFERENCE,
+            visibility=FileVisibility.CLIENT_WRITER_STAFF,
+            attached_by=self.user,
+            notes=description,
+            metadata={
+                "source_domain": "support_management",
+                "support_profile_id": self.pk,
+            },
+        )
 
     def disable_file_download(self, order):
         """Disables file downloads for an order."""
@@ -545,7 +573,7 @@ class SupportOrderManagement(models.Model):
 
     def restore_order_progress(self):
         """Restores an order back to 'In Progress'."""
-        if self.order.status in ["canceled", "hold", "paused", "completed"]:
+        if self.order.status in ["cancelled", "canceled", "on_hold", "hold", "paused", "completed"]:
             self.order.status = "in_progress"
             self.order.save()
 

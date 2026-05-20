@@ -1,0 +1,12 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<h1>Tier upgraded</h1>
+<p>Hi {{ user.get_full_name|default:user.username }},</p>
+<p>You reached the <strong>{{ tier_name }}</strong> loyalty tier.</p>
+{% if perks %}
+<div class="info-box">
+  <div class="label">Perks</div>
+  <p>{{ perks|linebreaks }}</p>
+</div>
+{% endif %}
+{% endblock %}

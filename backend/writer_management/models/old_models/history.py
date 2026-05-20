@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from writer_management.models.requests import (
+from writer_management.models.old_models.requests import (
     WriterOrderRequest, WriterOrderTake,
     WriterReassignmentRequest
 )

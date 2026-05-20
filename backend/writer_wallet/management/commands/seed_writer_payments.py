@@ -19,9 +19,9 @@ from order_configs.models import (
 )
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus, SpacingOptions
-from wallet.models import Wallet
+from wallets.models import Wallet
 from websites.models.websites import Website
-from writer_management.models.profile import WriterProfile
+from writer_management.models.writer_profile import WriterProfile
 from writer_wallet.models import (
     WriterWallet,
     PaymentSchedule,

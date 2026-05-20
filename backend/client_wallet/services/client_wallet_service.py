@@ -1,10 +1,7 @@
 from wallet.services.wallet_transaction_service import WalletTransactionService
 from loyalty_management.services.loyalty_conversion_service import LoyaltyConversionService
 from django.db import transaction
-from wallet.models import Wallet
-from django.core.exceptions import ValidationError
 
-from client_management.models import ClientProfile
 from referrals.models import Referral
 from referrals.services.referral_stats_service import ReferralStatsService
 
@@ -18,9 +15,11 @@ class ClientWalletService:
     @transaction.atomic
     def top_up(wallet, amount, source=None):
         return WalletTransactionService.credit(
-            wallet=wallet,
+            user=ClientWalletService._wallet_user(wallet),
+            website=wallet.website,
             amount=amount,
-            tx_type="top_up",
+            transaction_type="top-up",
+            source=source or "client_wallet",
             metadata={"source": source}
         )
 
@@ -29,10 +28,12 @@ class ClientWalletService:
     def make_payment(wallet, amount, order):
         """Deducts the specified amount from the wallet for a payment."""
         return WalletTransactionService.debit(
-            wallet=wallet,
+            user=ClientWalletService._wallet_user(wallet),
+            website=wallet.website,
             amount=amount,
-            tx_type="payment",
+            transaction_type="payment",
             reference=f"order-{order.id}",
+            source="order",
             metadata={"order_id": order.id}
         )
 
@@ -41,10 +42,12 @@ class ClientWalletService:
     def refund(wallet, amount, order):
         """Credits the specified amount back to the wallet for a refund."""
         return WalletTransactionService.credit(
-            wallet=wallet,
+            user=ClientWalletService._wallet_user(wallet),
+            website=wallet.website,
             amount=amount,
-            tx_type="refund",
+            transaction_type="refund",
             reference=f"refund-{order.id}",
+            source="refund",
             metadata={"order_id": order.id}
         )
 
@@ -56,14 +59,13 @@ class ClientWalletService:
             client=wallet.user.client_profile,
             website=wallet.website,
             points=points,
-            amount=amount
         )
 
 
     @staticmethod
     @transaction.atomic
     def process_split_payment(wallet, total_amount, order, external_method):
-        wallet_amount = min(wallet.balance, total_amount)
+        wallet_amount = min(ClientWalletService._wallet_balance(wallet), total_amount)
         external_amount = total_amount - wallet_amount
 
         if wallet_amount > 0:
@@ -96,8 +98,19 @@ class ClientWalletService:
         Called manually when wallet balance changes significantly.
         """
         # Implement threshold logic here
-        balance = wallet.balance
+        balance = ClientWalletService._wallet_balance(wallet)
         if balance < 10:
             pass  # maybe revoke bonus eligibility
         elif balance > 100:
             pass  # maybe issue bonus, unlock perk, etc.
+
+    @staticmethod
+    def _wallet_user(wallet):
+        return getattr(wallet, "owner_user", None) or wallet.user
+
+    @staticmethod
+    def _wallet_balance(wallet):
+        available_balance = getattr(wallet, "available_balance", None)
+        if available_balance is not None:
+            return available_balance
+        return wallet.balance

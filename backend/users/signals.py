@@ -5,7 +5,7 @@ from .models import UserProfile
 from django.conf import settings
 # from authentication.models import User
 from client_management.models import ClientProfile
-from writer_management.models.profile import WriterProfile
+from writer_management.models import WriterProfile
 from editor_management.models import EditorProfile
 from support_management.models import SupportProfile
 from admin_management.models import AdminProfile
@@ -66,7 +66,7 @@ def assign_user_to_role_group(sender, instance, created, **kwargs):
     """
     if created and instance.role:
         try:
-            from users.services.group_service import UserGroupService
+            from users.services.services_legacy.group_service import UserGroupService
             UserGroupService.assign_user_to_group(instance, instance.role)
         except Exception as e:
             # Log but don't fail user creation
@@ -84,7 +84,7 @@ def sync_user_groups_on_role_change(sender, instance, **kwargs):
             old_user = User.objects.get(pk=instance.pk)
             if old_user.role != instance.role:
                 # Role changed - update groups
-                from users.services.group_service import UserGroupService
+                from users.services.services_legacy.group_service import UserGroupService
                 UserGroupService.update_user_groups(instance, instance.role)
         except User.DoesNotExist:
             pass
@@ -123,26 +123,31 @@ def create_role_based_profiles(sender, instance, created, **kwargs):
                 pass
             if instance.website:  # writers must be tied to a website
                 try:
-                    from writer_management.models.profile import WriterProfile
-                    from wallet.models import Wallet
+                    from accounts.models import AccountProfile
+                    from accounts.services.account_service import AccountService
+                    from writer_management.models import WriterProfile
                     # Check if profile already exists
-                    if WriterProfile.objects.filter(user=instance).exists():
+                    if WriterProfile.objects.filter(
+                        account_profile__user=instance,
+                    ).exists():
                         return
                     import random
                     registration_id = f"Writer #{random.randint(10000, 99999)}"
                     while WriterProfile.objects.filter(registration_id=registration_id).exists():
                         registration_id = f"Writer #{random.randint(10000, 99999)}"
-                    wallet, _ = Wallet.objects.get_or_create(
-                        user=instance,
+                    account_profile = AccountService.get_or_create_account_profile(
                         website=instance.website,
-                        defaults={'balance': 0.00}
+                        user=instance,
+                        actor=None,
+                        is_primary=not AccountProfile.objects.filter(
+                            user=instance,
+                        ).exists(),
+                        metadata={"source": "users.signals.writer_profile"},
                     )
                     WriterProfile.objects.get_or_create(
-                        user=instance,
+                        account_profile=account_profile,
                         defaults={
-                            'website': instance.website,
                             'registration_id': registration_id,
-                            'wallet': wallet,
                         }
                     )
                 except Exception as e:

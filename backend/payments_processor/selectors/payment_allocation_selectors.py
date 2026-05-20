@@ -20,7 +20,7 @@ def get_payment_allocation_by_reference(
     return (
         PaymentAllocation.objects.select_related(
             "customer",
-            "wallet",
+            "wallet_hold",
             "payment_intent",
         )
         .filter(reference=reference)
@@ -37,7 +37,7 @@ def get_payment_allocation_by_payment_intent_id(
     return (
         PaymentAllocation.objects.select_related(
             "customer",
-            "wallet",
+            "wallet_hold",
             "payment_intent",
         )
         .filter(payment_intent_id=payment_intent_id)
@@ -54,7 +54,7 @@ def get_allocations_for_payable(*, payable):
     return (
         PaymentAllocation.objects.select_related(
             "customer",
-            "wallet",
+            "wallet_hold",
             "payment_intent",
         )
         .filter(
@@ -74,7 +74,7 @@ def get_wallet_allocation_for_payable(*, payable) -> Optional[PaymentAllocation]
     return (
         PaymentAllocation.objects.select_related(
             "customer",
-            "wallet",
+            "wallet_hold",
             "payment_intent",
         )
         .filter(
@@ -95,7 +95,7 @@ def get_external_allocation_for_payable(*, payable) -> Optional[PaymentAllocatio
     return (
         PaymentAllocation.objects.select_related(
             "customer",
-            "wallet",
+            "wallet_hold",
             "payment_intent",
         )
         .filter(

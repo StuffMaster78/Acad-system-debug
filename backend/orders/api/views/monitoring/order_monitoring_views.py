@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from typing import Any, cast
 
 from django.shortcuts import get_object_or_404
@@ -65,11 +65,18 @@ class OrderMonitoringView(GenericAPIView):
                 order=order,
             )
         )
+        state_payload = (
+            asdict(operational_state)
+            if is_dataclass(operational_state)
+            else vars(operational_state)
+            if hasattr(operational_state, "__dict__")
+            else operational_state
+        )
 
         return Response(
             {
                 "order_id": order.pk,
-                **asdict(operational_state),
+                **state_payload,
             },
             status=status.HTTP_200_OK,
         )

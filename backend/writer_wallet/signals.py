@@ -5,6 +5,7 @@ from django.conf import settings
 from notifications_system.services.notification_service import (
     NotificationService
 )
+from wallet.services.wallet_transaction_service import WalletTransactionService
 
 @receiver(post_save, sender=WalletTransaction)
 def update_writer_wallet(sender, instance, created, **kwargs):
@@ -14,10 +15,30 @@ def update_writer_wallet(sender, instance, created, **kwargs):
     if created:
         writer_wallet = instance.writer_wallet
         if instance.transaction_type in ["Earning", "Bonus", "Reward", "Adjustment"]:
-            writer_wallet.balance += instance.amount
+            entry = WalletTransactionService.credit(
+                user=writer_wallet.writer,
+                website=writer_wallet.website,
+                amount=instance.amount,
+                description=f"Legacy writer wallet transaction {instance.transaction_type}",
+                source="writer_wallet_signal",
+                reference=instance.id,
+                transaction_type="order_payment" if instance.transaction_type == "Earning" else "bonus",
+                metadata={"legacy_transaction_type": instance.transaction_type},
+            )
+            writer_wallet.balance = entry.balance_after
             writer_wallet.total_earnings += instance.amount
         elif instance.transaction_type in ["Fine", "Refund Deduction", "Payout"]:
-            writer_wallet.balance -= instance.amount
+            entry = WalletTransactionService.debit(
+                user=writer_wallet.writer,
+                website=writer_wallet.website,
+                amount=instance.amount,
+                description=f"Legacy writer wallet transaction {instance.transaction_type}",
+                source="writer_wallet_signal",
+                reference=instance.id,
+                transaction_type="payout" if instance.transaction_type == "Payout" else "fine",
+                metadata={"legacy_transaction_type": instance.transaction_type},
+            )
+            writer_wallet.balance = entry.balance_after
             if instance.transaction_type == "Fine":
                 writer_wallet.total_fines += instance.amount
         writer_wallet.save()

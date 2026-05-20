@@ -10,14 +10,39 @@ from datetime import timedelta
 from rest_framework.views import APIView
 from .models import Referral, ReferralBonusConfig, ReferralCode, ReferralStats
 from .serializers import ReferralSerializer, ReferralBonusConfigSerializer, ReferralCodeSerializer
-from wallet.models import Wallet, WalletTransaction
 from authentication.permissions import IsAdminOrSuperAdmin
+from wallets.constants import WalletEntryType
+from wallets.services.client_wallet_service import ClientWalletService
+from wallets.services.wallet_service import WalletService
 User = settings.AUTH_USER_MODEL 
 
 
 # Constants for transaction types
 TRANSACTION_TYPE_REFERRAL_BONUS = 'referral_bonus'
 TRANSACTION_TYPE_BONUS = 'bonus'
+
+
+def credit_referral_wallet(referral, *, amount, transaction_type, description, expires_at=None, created_by=None):
+    wallet = ClientWalletService.get_wallet(
+        website=referral.website,
+        client=referral.referrer,
+    )
+    return WalletService.credit_wallet(
+        wallet=wallet,
+        website=referral.website,
+        amount=amount,
+        entry_type=WalletEntryType.REFERRAL_BONUS,
+        created_by=created_by,
+        description=description,
+        reference=f"referral-{referral.id}",
+        reference_type="referral",
+        reference_id=str(referral.id),
+        metadata={
+            "referral_id": referral.id,
+            "transaction_type": transaction_type,
+            "expires_at": expires_at.isoformat() if expires_at else None,
+        },
+    )
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -106,17 +131,15 @@ class ReferralViewSet(viewsets.ModelViewSet):
         if not bonus_config:
             return Response({"error": "Referral bonus settings not found."}, status=status.HTTP_400_BAD_REQUEST)
 
-        wallet, _ = Wallet.objects.get_or_create(user=referral.referrer)
-
         expires_at = now() + timedelta(days=bonus_config.bonus_expiry_days)
 
-        WalletTransaction.objects.create(
-            wallet=wallet,
+        credit_referral_wallet(
+            referral,
             transaction_type=TRANSACTION_TYPE_REFERRAL_BONUS,
             amount=bonus_config.first_order_bonus,
             description="Referral Bonus: Successful Registration",
             expires_at=expires_at,
-            website=referral.website,
+            created_by=request.user,
         )
 
         referral.first_order_bonus_credited = True
@@ -378,19 +401,15 @@ class ReferralAdminViewSet(viewsets.ViewSet):
         if referral.registration_bonus_credited:
             return Response({"error": "Bonus already credited"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get or create the wallet for the referrer
-        wallet, _ = Wallet.objects.get_or_create(user=referral.referrer)
-
         expires_at = now() + timedelta(days=bonus_config.bonus_expiry_days)
 
-        # Create a transaction for the referral bonus
-        WalletTransaction.objects.create(
-            wallet=wallet,
+        credit_referral_wallet(
+            referral,
             transaction_type=TRANSACTION_TYPE_BONUS,
             amount=bonus_config.registration_bonus,
             description="Admin Credited Referral Bonus",
             expires_at=expires_at,
-            website=referral.website,
+            created_by=request.user,
         )
 
         # Mark the referral as credited
@@ -410,7 +429,6 @@ from datetime import timedelta
 
 from .models import Referral, ReferralBonusConfig, ReferralCode
 from .serializers import ReferralSerializer, ReferralBonusConfigSerializer, ReferralCodeSerializer
-from wallet.models import Wallet, WalletTransaction
 from authentication.permissions import IsAdminOrSuperAdmin  # Only admins can access
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -501,17 +519,15 @@ class ReferralViewSet(viewsets.ModelViewSet):
             return Response({"error": "Referral bonus can only be credited after the referred user places and pays for their order in full."},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        wallet, _ = Wallet.objects.get_or_create(user=referral.referrer)
-
         expires_at = now() + timedelta(days=bonus_config.bonus_expiry_days)
 
-        WalletTransaction.objects.create(
-            wallet=wallet,
+        credit_referral_wallet(
+            referral,
             transaction_type='referral_bonus',
             amount=bonus_config.first_order_bonus,
             description="Referral Bonus: Successful Registration",
             expires_at=expires_at,
-            website=referral.website,
+            created_by=request.user,
         )
 
         referral.first_order_bonus_credited = True
@@ -637,19 +653,15 @@ class ReferralAdminViewSet(viewsets.ViewSet):
         if referral.registration_bonus_credited:
             return Response({"error": "Bonus already credited"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get or create the wallet for the referrer
-        wallet, _ = Wallet.objects.get_or_create(user=referral.referrer)
-
         expires_at = now() + timedelta(days=bonus_config.bonus_expiry_days)
 
-        # Create a transaction for the referral bonus
-        WalletTransaction.objects.create(
-            wallet=wallet,
+        credit_referral_wallet(
+            referral,
             transaction_type='bonus',
             amount=bonus_config.registration_bonus,
             description="Admin Credited Referral Bonus",
             expires_at=expires_at,
-            website=referral.website,
+            created_by=request.user,
         )
 
         # Mark the referral as credited

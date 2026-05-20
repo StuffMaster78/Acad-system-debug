@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from orders.models.legacy_models.writer_progress import WriterProgress
 from orders.models.orders import Order
+from orders.selectors.order_visibility_selector import OrderVisibilitySelector
 from orders.serializers.progress import WriterProgressSerializer, WriterProgressListSerializer
 from authentication.permissions import IsAdmin, IsSuperadminOrAdmin
 
@@ -67,8 +68,14 @@ class WriterProgressViewSet(viewsets.ModelViewSet):
         
         # Validate that the writer is assigned to the order
         order = serializer.validated_data.get('order')
-        if order and order.assigned_writer != user:
-            raise serializers.ValidationError("You can only report progress for orders assigned to you.")
+        if order:
+            is_assigned = OrderVisibilitySelector.assigned_to_writer(
+                writer=user,
+            ).filter(pk=order.pk).exists()
+            if not is_assigned:
+                raise serializers.ValidationError(
+                    "You can only report progress for assigned orders."
+                )
         
         serializer.save()
     
@@ -107,23 +114,19 @@ class WriterProgressViewSet(viewsets.ModelViewSet):
         user = request.user
         user_role = getattr(user, 'role', None)
         
-        if user_role == 'writer' and order.assigned_writer != user:
-            # Check if writer has requested this order
-            from writer_management.models.requests import WriterOrderRequest
-            try:
-                writer_profile = user.writer_profile
-                has_requested = WriterOrderRequest.objects.filter(
-                    writer=writer_profile,
-                    order=order
-                ).exists()
-                if not has_requested:
-                    return Response(
-                        {'error': 'You can only view progress for your assigned orders or orders you have requested.'},
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-            except Exception:
+        if user_role == 'writer':
+            can_view = OrderVisibilitySelector.can_writer_view_order(
+                writer=user,
+                order=order,
+            ).can_view
+            if not can_view:
                 return Response(
-                    {'error': 'You can only view progress for your assigned orders.'},
+                    {
+                        'error': (
+                            'You can only view progress for assigned orders '
+                            'or orders you have active interest in.'
+                        )
+                    },
                     status=status.HTTP_403_FORBIDDEN
                 )
         elif user_role == 'client' and order.client != user:
@@ -161,11 +164,21 @@ class WriterProgressViewSet(viewsets.ModelViewSet):
         user = request.user
         user_role = getattr(user, 'role', None)
         
-        if user_role == 'writer' and order.assigned_writer != user:
-            return Response(
-                {'error': 'You can only view progress for your assigned orders.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        if user_role == 'writer':
+            can_view = OrderVisibilitySelector.can_writer_view_order(
+                writer=user,
+                order=order,
+            ).can_view
+            if not can_view:
+                return Response(
+                    {
+                        'error': (
+                            'You can only view progress for assigned orders '
+                            'or orders you have active interest in.'
+                        )
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
         elif user_role == 'client' and order.client != user:
             return Response(
                 {'error': 'You can only view progress for your orders.'},
@@ -186,4 +199,3 @@ class WriterProgressViewSet(viewsets.ModelViewSet):
             'total_reports': progress_reports.count(),
             'reports': serializer.data
         })
-

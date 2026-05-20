@@ -57,9 +57,9 @@ class CommunicationReadReceiptSelector:
             CommunicationMessage.objects
             .filter(
                 website=website,
-                thread__participant_records__user=user,
-                thread__participant_records__can_view=True,
-                thread__participant_records__removed_at__isnull=True,
+                thread__participants__user=user,
+                thread__participants__can_view=True,
+                thread__participants__removed_at__isnull=True,
             )
             .exclude(sender=user)
             .exclude(status=CommunicationMessageStatus.HIDDEN)
@@ -91,9 +91,9 @@ class CommunicationReadReceiptSelector:
             CommunicationThread.objects
             .filter(
                 website=website,
-                participant_records__user=user,
-                participant_records__can_view=True,
-                participant_records__removed_at__isnull=True,
+                participants__user=user,
+                participants__can_view=True,
+                participants__removed_at__isnull=True,
             )
             .annotate(
                 unread_count=Count(
