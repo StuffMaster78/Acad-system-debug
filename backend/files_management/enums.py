@@ -1,21 +1,16 @@
 """
 Enumerations for the files_management app.
 
-The values in this module are intentionally explicit because they are
-stored in the database, exposed through APIs, and used by domain policy
-classes.
+These values are stored in the database, exposed through APIs, and used
+by domain policy classes. Rename values carefully because migrations and
+existing rows may depend on them.
 """
 
 from django.db import models
 
 
 class FileKind(models.TextChoices):
-    """
-    High level type of the managed file.
-
-    The kind is used for validation, previews, processing jobs, and UI
-    grouping. It should not be used as the only access control input.
-    """
+    """High-level category of a managed file."""
 
     IMAGE = "image", "Image"
     DOCUMENT = "document", "Document"
@@ -23,31 +18,72 @@ class FileKind(models.TextChoices):
     AUDIO = "audio", "Audio"
     ARCHIVE = "archive", "Archive"
     EXTERNAL = "external", "External"
+
+    CMS_IMAGE = "cms_image", "CMS Image"
+    CMS_ATTACHMENT = "cms_attachment", "CMS Attachment"
+    CMS_MEDIA = "cms_media", "CMS Media"
+
+    USER_AVATAR = "user_avatar", "User Avatar"
+    AUTHOR_PHOTO = "author_photo", "Author Profile Photo"
+
+    ORDER_FILE = "order_file", "Order File"
+    ORDER_ATTACHMENT = "order_attachment", "Order Attachment"
+    WRITER_DELIVERABLE = "writer_deliverable", "Writer Deliverable"
+    REVISION_FILE = "revision_file", "Revision File"
+
+    MESSAGE_ATTACHMENT = "message_attachment", "Message Attachment"
+    TICKET_ATTACHMENT = "ticket_attachment", "Ticket Attachment"
+
+    CLASS_MATERIAL = "class_material", "Class Material"
+    SPECIAL_ORDER_FILE = "special_order_file", "Special Order File"
+
+    NEWSLETTER_IMAGE = "newsletter_image", "Newsletter Image"
+
+    SYSTEM_BACKUP = "system_backup", "System Backup"
+    SYSTEM_EXPORT = "system_export", "System Export"
+
     OTHER = "other", "Other"
 
 
 class FileLifecycleStatus(models.TextChoices):
-    """
-    Lifecycle status of a managed file.
+    """Lifecycle state of a managed file."""
 
-    Files are soft controlled through status transitions. Physical
-    deletion should be delayed and handled by retention aware services.
-    """
-
+    UPLOADING = "uploading", "Uploading"
+    PROCESSING = "processing", "Processing"
     ACTIVE = "active", "Active"
     PENDING_REVIEW = "pending_review", "Pending Review"
     QUARANTINED = "quarantined", "Quarantined"
     ARCHIVED = "archived", "Archived"
+    PENDING_DELETION = "pending_deletion", "Pending Deletion"
     DELETED = "deleted", "Deleted"
 
 
-class FilePurpose(models.TextChoices):
-    """
-    Business purpose of a file attachment.
+class FileScanStatus(models.TextChoices):
+    """Virus, malware, moderation, or safety scan state."""
 
-    Purpose explains why a file is attached to a domain object. It helps
-    APIs, frontend clients, policies, and audit flows understand context.
-    """
+    NOT_SCANNED = "not_scanned", "Not Scanned"
+    QUEUED = "queued", "Queued for Scan"
+    SCANNING = "scanning", "Scanning"
+    CLEAN = "clean", "Clean"
+    INFECTED = "infected", "Infected"
+    FAILED = "failed", "Failed"
+    FLAGGED = "flagged", "Flagged"
+    ERROR = "error", "Error"
+    SKIPPED = "skipped", "Skipped"
+
+
+class FileProcessingStatus(models.TextChoices):
+    """Background processing job state."""
+
+    PENDING = "pending", "Pending"
+    RUNNING = "running", "Running"
+    SUCCEEDED = "succeeded", "Succeeded"
+    FAILED = "failed", "Failed"
+    CANCELLED = "cancelled", "Cancelled"
+
+
+class FilePurpose(models.TextChoices):
+    """Business reason a file is attached to a domain object."""
 
     ORDER_INSTRUCTION = "order_instruction", "Order Instruction"
     ORDER_REFERENCE = "order_reference", "Order Reference"
@@ -80,10 +116,8 @@ class FilePurpose(models.TextChoices):
     INVOICE = "invoice", "Invoice"
     REFUND_EVIDENCE = "refund_evidence", "Refund Evidence"
     PAYOUT_EVIDENCE = "payout_evidence", "Payout Evidence"
-    MASS_EMAIL_ATTACHMENT = (
-        "mass_email_attachment",
-        "Mass Email Attachment",
-    )
+
+    MASS_EMAIL_ATTACHMENT = "mass_email_attachment", "Mass Email Attachment"
 
     ADMIN_INTERNAL = "admin_internal", "Admin Internal"
     LEGAL_DOCUMENT = "legal_document", "Legal Document"
@@ -92,12 +126,7 @@ class FilePurpose(models.TextChoices):
 
 
 class FileVisibility(models.TextChoices):
-    """
-    Visibility level for a file attachment.
-
-    Visibility is a broad access hint. Final access decisions should
-    still be delegated to file access services and domain policies.
-    """
+    """Visibility hint used by file access policies."""
 
     PRIVATE = "private", "Private"
     PUBLIC = "public", "Public"
@@ -118,9 +147,7 @@ class FileVisibility(models.TextChoices):
 
 
 class FileAccessAction(models.TextChoices):
-    """
-    Access action requested against a file.
-    """
+    """Action requested against a file."""
 
     VIEW = "view", "View"
     DOWNLOAD = "download", "Download"
@@ -131,64 +158,57 @@ class FileAccessAction(models.TextChoices):
     DETACH = "detach", "Detach"
 
 
-class FileScanStatus(models.TextChoices):
-    """
-    Result status for antivirus, moderation, or processing scans.
-    """
+class FileAccessType(models.TextChoices):
+    """Recorded access event type for audit logs."""
 
-    NOT_SCANNED = "not_scanned", "Not Scanned"
-    PENDING = "pending", "Pending"
-    PASSED = "passed", "Passed"
-    FAILED = "failed", "Failed"
-    FLAGGED = "flagged", "Flagged"
-    ERROR = "error", "Error"
-
-
-class FileProcessingStatus(models.TextChoices):
-    """
-    Status for background processing jobs.
-    """
-
-    PENDING = "pending", "Pending"
-    RUNNING = "running", "Running"
-    SUCCEEDED = "succeeded", "Succeeded"
-    FAILED = "failed", "Failed"
-    CANCELLED = "cancelled", "Cancelled"
+    VIEW = "view", "Viewed"
+    DOWNLOAD = "download", "Downloaded"
+    PREVIEW = "preview", "Preview Generated"
+    UPLOAD = "upload", "Uploaded"
+    UPDATE = "update", "Updated"
+    DELETE = "delete", "Deleted"
+    SCAN = "scan", "Virus Scanned"
+    DERIVE = "derive", "Derivative Generated"
 
 
-# class ExternalFileProvider(models.TextChoices):
-#     """
-#     Supported external file providers.
+class BucketType(models.TextChoices):
+    """Logical bucket categories."""
 
-#     These values allow the system to manage files that are referenced
-#     externally instead of uploaded into platform storage.
-#     """
-
-#     GOOGLE_DRIVE = "google_drive", "Google Drive"
-#     DROPBOX = "dropbox", "Dropbox"
-#     ONE_DRIVE = "one_drive", "OneDrive"
-#     YOUTUBE = "youtube", "YouTube"
-#     VIMEO = "vimeo", "Vimeo"
-#     LOOM = "loom", "Loom"
-#     OTHER = "other", "Other"
+    TENANT_PUBLIC = "tenant_public", "Tenant Public Files"
+    TENANT_PRIVATE = "tenant_private", "Tenant Private Files"
+    ORDER_FILES = "order_files", "Order Files"
+    WRITER_DELIVERABLES = "writer_deliverables", "Writer Deliverables"
+    CMS_ATTACHMENTS = "cms_attachments", "CMS Attachments"
+    CMS_MEDIA = "cms_media", "CMS Media"
+    USER_AVATARS = "user_avatars", "User Avatars"
+    SYSTEM = "system", "System Files"
 
 
-class DeletionRequestStatus(models.TextChoices):
-    """
-    Status of a file deletion request.
-    """
+class RetentionPolicy(models.TextChoices):
+    """How long a file is kept before deletion eligibility."""
 
-    PENDING = "pending", "Pending"
-    APPROVED = "approved", "Approved"
-    REJECTED = "rejected", "Rejected"
-    COMPLETED = "completed", "Completed"
-    CANCELLED = "cancelled", "Cancelled"
+    FOREVER = "forever", "Keep Forever"
+    DAYS_30 = "30_days", "Delete After 30 Days"
+    DAYS_90 = "90_days", "Delete After 90 Days"
+    YEAR_1 = "1_year", "Delete After 1 Year"
+    ORDER_COMPLETE_30 = "order_complete_30", "30 Days After Order Completion"
+    ORDER_COMPLETE_90 = "order_complete_90", "90 Days After Order Completion"
+
+
+class DerivativeType(models.TextChoices):
+    """Generated derivative type for transformed files."""
+
+    ORIGINAL = "", "Original"
+    THUMBNAIL_SM = "thumbnail_sm", "Small Thumbnail"
+    THUMBNAIL_MD = "thumbnail_md", "Medium Thumbnail"
+    THUMBNAIL_LG = "thumbnail_lg", "Large Thumbnail"
+    PREVIEW_PDF = "preview_pdf", "PDF Preview"
+    OPTIMIZED = "optimized", "Optimized Version"
+    WEBP = "webp", "WebP Version"
 
 
 class ExternalFileProvider(models.TextChoices):
-    """
-    Supported external file providers.
-    """
+    """Supported external file providers."""
 
     GOOGLE_DRIVE = "google_drive", "Google Drive"
     GOOGLE_DOCS = "google_docs", "Google Docs"
@@ -203,9 +223,7 @@ class ExternalFileProvider(models.TextChoices):
 
 
 class ExternalFileReviewStatus(models.TextChoices):
-    """
-    Staff review status for external file links.
-    """
+    """Staff review status for external file links."""
 
     PENDING = "pending", "Pending"
     APPROVED = "approved", "Approved"
@@ -213,10 +231,18 @@ class ExternalFileReviewStatus(models.TextChoices):
     EXPIRED = "expired", "Expired"
 
 
+class DeletionRequestStatus(models.TextChoices):
+    """Status of a file deletion request."""
+
+    PENDING = "pending", "Pending"
+    APPROVED = "approved", "Approved"
+    REJECTED = "rejected", "Rejected"
+    COMPLETED = "completed", "Completed"
+    CANCELLED = "cancelled", "Cancelled"
+
+
 class DeletionRequestScope(models.TextChoices):
-    """
-    Defines what an approved deletion request should remove.
-    """
+    """Defines what an approved deletion request should remove."""
 
     DETACH_ONLY = "detach_only", "Detach Only"
     ARCHIVE_FILE = "archive_file", "Archive File"
