@@ -122,6 +122,26 @@ ENABLE_LEGACY_WRITER_WALLET_SIGNALS = (
 # Application definition
 
 INSTALLED_APPS = [
+     # ===========================================
+    # WAGTAIL (must come before django.contrib)
+    # ===========================================
+    "wagtail.contrib.forms",
+    "wagtail.contrib.redirects",
+    "wagtail.contrib.settings",
+    "wagtail.embeds",
+    "wagtail.sites",
+    "wagtail.users",
+    "wagtail.snippets",
+    "wagtail.documents",
+    "wagtail.images",
+    "wagtail.search",
+    "wagtail.admin",
+    "wagtail",
+
+    # Wagtail dependencies
+    "modelcluster",
+    "taggit", 
+
     # Django Default Apps
     'django.contrib.admin',
     'django.contrib.auth',
@@ -129,6 +149,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',
     'drf_spectacular',
     'drf_spectacular_sidecar',
     'django_ratelimit',
@@ -153,7 +174,23 @@ INSTALLED_APPS = [
     'django_countries',
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
-    "import_export", 
+    "import_export",
+
+   
+     # ===========================================
+    # CMS APPS (dependency order — do not reorder)
+    # ===========================================
+    "files_management",        # 1. no CMS dependencies, everything else uses it
+    "cms_core",                # 2. depends on: wagtail, files_management
+    "cms_authors",             # 3. depends on: cms_core, files_management
+    "cms_blog",                # 4. depends on: cms_core, cms_authors
+    "cms_service_pages",       # 5. depends on: cms_core, cms_authors
+    "cms_content_graph",       # 6. depends on: cms_blog, cms_service_pages
+    "cms_references",          # 7. depends on: cms_blog, cms_core
+    "cms_attachments",         # 8. depends on: cms_core, cms_authors, cms_service_pages, files_management
+    "cms_engagement",          # 9. depends on: cms_core
+    "cms_intelligence",        # 10. depends on: cms_blog, cms_service_pages, cms_content_graph, cms_engagement
+    "cms_newsletters",         # 11. depends on: cms_core, cms_attachments
 
 
     # Core Project Apps
@@ -251,6 +288,8 @@ MIDDLEWARE = [
     'core.middleware.compression.EnhancedCompressionMiddleware',  # Enhanced compression with better control
     "activity.middleware.ActivityAuditMiddleware",
     "core.middleware.performance_monitoring.PerformanceMonitoringMiddleware",  # Performance monitoring
+    "wagtail.contrib.redirects.middleware.RedirectMiddleware",  # Wagtail redirects (add at end)
+    'cms_core.middleware.TenantMiddleware',     # Tenant resolution for multi-tenancy (after authentication to access tenant-specific dataT
 ]
 
 ROOT_URLCONF = 'writing_system.urls'
@@ -1152,6 +1191,10 @@ CELERY_BEAT_SCHEDULE = {
     "payment-reminders": {
         "task": "class_management.tasks.class_reminder_tasks.send_payment_reminders",
         "schedule": crontab(hour="*/2"),
+    },
+    'tenant-health-check': {
+        'task': 'cms_core.tasks.tenant_health_check',
+        'schedule': 86400,  # daily
     },
 }
 
