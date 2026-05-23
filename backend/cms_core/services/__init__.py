@@ -18,6 +18,7 @@ from .tenant_service import (
 )
 from .permissions_service import TenantPermissionsService
 from .workflow_service import WorkflowService
+from .content_importer import ContentImporter
 
 __all__ = [
     # Tenant bridge
@@ -34,4 +35,6 @@ __all__ = [
     "TenantPermissionsService",
     # Workflow
     "WorkflowService",
+    # Content import
+    "ContentImporter",
 ]
