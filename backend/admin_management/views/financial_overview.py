@@ -4,15 +4,15 @@ Provides comprehensive financial analytics including earnings, expenses, and net
 """
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ViewSet
-from django.db.models import Sum, Count, Q, Exists, OuterRef
+from django.db.models import Q, Sum
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 from orders.models.orders import Order
-from special_orders.models import SpecialOrder, InstallmentPayment
+from special_orders.constants import PaymentApplicationStatus
+from special_orders.models import SpecialOrderPaymentApplication
 from class_management.models import ClassBundle, ClassInstallment
 from order_payments_management.models.payments import OrderPayment
 from writer_compensation.enums.compensation_enums import PayoutRecordStatus
@@ -20,7 +20,6 @@ from writer_compensation.models import PayoutRecord
 from writer_management.models.tipping import Tip
 from wallets.constants import WalletEntryType
 from wallets.models import WalletEntry
-from websites.models.websites import Website
 
 
 class FinancialOverviewViewSet(ViewSet):
@@ -38,9 +37,6 @@ class FinancialOverviewViewSet(ViewSet):
         - Net revenue
         - Breakdown by period
         """
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        
         # Check admin access
         if not (request.user.is_staff or request.user.role in ['admin', 'superadmin']):
             return Response({"error": "Unauthorized"}, status=403)
@@ -52,26 +48,16 @@ class FinancialOverviewViewSet(ViewSet):
         
         # Build base querysets
         orders_qs = Order.objects.filter(is_paid=True)
-        # Special orders: filter by admin_marked_paid OR having paid installments
-        special_orders_qs = SpecialOrder.objects.filter(
-            Q(admin_marked_paid=True) | 
-            Exists(
-                InstallmentPayment.objects.filter(
-                    special_order=OuterRef('pk'),
-                    is_paid=True
-                )
-            )
+        special_payment_qs = SpecialOrderPaymentApplication.objects.filter(
+            status=PaymentApplicationStatus.APPLIED,
         )
-        # Class bundles use installments with is_paid field, not the bundle itself
-        class_bundles_qs = ClassBundle.objects.filter(
-            installments__is_paid=True
-        ).distinct()
         writer_payments_qs = PayoutRecord.objects.filter(status=PayoutRecordStatus.PAID)
         
         if website_id:
             orders_qs = orders_qs.filter(website_id=website_id)
-            special_orders_qs = special_orders_qs.filter(website_id=website_id)
-            class_bundles_qs = class_bundles_qs.filter(website_id=website_id)
+            special_payment_qs = special_payment_qs.filter(
+                website_id=website_id,
+            )
             writer_payments_qs = writer_payments_qs.filter(website_id=website_id)
         
         if date_from:
@@ -80,12 +66,9 @@ class FinancialOverviewViewSet(ViewSet):
                 payments__status='completed',
                 payments__created_at__gte=date_from
             ).distinct()
-            # For special orders, filter by installments paid_at or created_at
-            special_orders_qs = special_orders_qs.filter(
-                Q(installments__paid_at__gte=date_from) | 
-                Q(admin_marked_paid=True, created_at__gte=date_from)
-            ).distinct()
-            class_bundles_qs = class_bundles_qs.filter(installments__paid_at__gte=date_from).distinct()
+            special_payment_qs = special_payment_qs.filter(
+                applied_at__gte=date_from,
+            )
             writer_payments_qs = writer_payments_qs.filter(paid_at__gte=date_from)
         
         if date_to:
@@ -94,12 +77,9 @@ class FinancialOverviewViewSet(ViewSet):
                 payments__status='completed',
                 payments__created_at__lte=date_to
             ).distinct()
-            # For special orders, filter by installments paid_at or created_at
-            special_orders_qs = special_orders_qs.filter(
-                Q(installments__paid_at__lte=date_to) | 
-                Q(admin_marked_paid=True, created_at__lte=date_to)
-            ).distinct()
-            class_bundles_qs = class_bundles_qs.filter(installments__paid_at__lte=date_to).distinct()
+            special_payment_qs = special_payment_qs.filter(
+                applied_at__lte=date_to,
+            )
             writer_payments_qs = writer_payments_qs.filter(paid_at__lte=date_to)
         
         # Calculate earnings
@@ -113,8 +93,8 @@ class FinancialOverviewViewSet(ViewSet):
         )['total'] or Decimal('0.00')
         
         # Special Orders
-        special_order_revenue = special_orders_qs.aggregate(
-            total=Sum('total_cost')
+        special_order_revenue = special_payment_qs.aggregate(
+            total=Sum('amount')
         )['total'] or Decimal('0.00')
         
         # Class Bundles - sum from installments that are paid
@@ -173,18 +153,26 @@ class FinancialOverviewViewSet(ViewSet):
                 month_orders = month_orders.filter(order__website_id=website_id)
             month_order_revenue = month_orders.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
             
-            month_special = SpecialOrder.objects.filter(
-                Q(admin_marked_paid=True) | 
-                Exists(
-                    InstallmentPayment.objects.filter(
-                        special_order=OuterRef('pk'),
-                        is_paid=True,
-                        paid_at__gte=month_start,
-                        paid_at__lte=month_end
-                    )
+            month_special_revenue = (
+                SpecialOrderPaymentApplication.objects.filter(
+                    status=PaymentApplicationStatus.APPLIED,
+                    applied_at__gte=month_start,
+                    applied_at__lte=month_end,
                 )
-            ).distinct()
-            month_special_revenue = month_special.aggregate(total=Sum('total_cost'))['total'] or Decimal('0.00')
+                .aggregate(total=Sum('amount'))['total']
+                or Decimal('0.00')
+            )
+            if website_id:
+                month_special_revenue = (
+                    SpecialOrderPaymentApplication.objects.filter(
+                        website_id=website_id,
+                        status=PaymentApplicationStatus.APPLIED,
+                        applied_at__gte=month_start,
+                        applied_at__lte=month_end,
+                    )
+                    .aggregate(total=Sum('amount'))['total']
+                    or Decimal('0.00')
+                )
             
             month_classes = ClassInstallment.objects.filter(
                 is_paid=True,

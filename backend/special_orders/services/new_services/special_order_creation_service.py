@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from functools import partial
 from typing import Any
 
 from django.db import transaction
@@ -22,8 +23,8 @@ from special_orders.models import (
     SpecialOrderFundingMilestone,
     SpecialOrderPricingSnapshot,
 )
-from special_orders.services.new_services.special_order_fixed_pricing_service import (
-    SpecialOrderFixedPricingService,
+from special_orders.services.new_services import (
+    special_order_fixed_pricing_service,
 )
 from special_orders.integrations.discount_bridge import (
     SpecialOrderDiscountBridge,
@@ -84,12 +85,12 @@ class SpecialOrderCreationService:
             currency=currency,
         )
 
-        transaction.on_commit(
-            lambda: CommunicationThreadBootstrapService.bootstrap_for_special_order(
-                special_order=special_order,
-                created_by=created_by,
-            ),
+        bootstrap_thread = partial(
+            CommunicationThreadBootstrapService.bootstrap_for_special_order,
+            special_order=special_order,
+            created_by=created_by,
         )
+        transaction.on_commit(bootstrap_thread)
 
         return special_order
 
@@ -145,19 +146,23 @@ class SpecialOrderCreationService:
             predefined_duration=predefined_duration,
         )
 
-        transaction.on_commit(
-            lambda: CommunicationThreadBootstrapService.bootstrap_for_special_order(
-                special_order=special_order,
-                created_by=created_by,
-            ),
+        bootstrap_thread = partial(
+            CommunicationThreadBootstrapService.bootstrap_for_special_order,
+            special_order=special_order,
+            created_by=created_by,
         )
+        transaction.on_commit(bootstrap_thread)
 
-        gross_quote = SpecialOrderFixedPricingService.calculate_gross_price(
-            predefined_config=predefined_config,
-            predefined_duration=predefined_duration,
-            currency=currency,
-            platform=platform,
-            writer_level=writer_level,
+        gross_quote = (
+            special_order_fixed_pricing_service
+            .SpecialOrderFixedPricingService
+            .calculate_gross_price(
+                predefined_config=predefined_config,
+                predefined_duration=predefined_duration,
+                currency=currency,
+                platform=platform,
+                writer_level=writer_level,
+            )
         )
 
         discount_result = SpecialOrderDiscountBridge.apply_discount(
@@ -193,6 +198,14 @@ class SpecialOrderCreationService:
             metadata=metadata,
         )
 
+        cls._create_fixed_funding_plan(
+            special_order=special_order,
+            snapshot=snapshot,
+            predefined_config=predefined_config,
+            locked_by=created_by,
+            metadata=metadata,
+        )
+
         return special_order
 
     @classmethod
@@ -212,7 +225,7 @@ class SpecialOrderCreationService:
         """
         Create immutable fixed pricing snapshot.
         """
-        total_amount = predefined_duration.price
+        total_amount = final_amount
         deposit_amount = total_amount
 
         return SpecialOrderPricingSnapshot.objects.create(

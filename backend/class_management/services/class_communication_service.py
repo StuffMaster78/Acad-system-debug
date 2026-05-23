@@ -4,10 +4,17 @@ from typing import Any
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
+from django.utils import timezone
 
+from communications.constants import (
+    CommunicationMessageStatus,
+    CommunicationThreadKind,
+    CommunicationThreadStatus,
+)
 from communications.models import (
     CommRole,
     CommunicationMessage,
+    CommunicationParticipant,
     CommunicationThread,
     MessageType,
 )
@@ -44,15 +51,17 @@ class ClassCommunicationService:
 
         thread, created = CommunicationThread.objects.get_or_create(
             website=class_order.website,
-            thread_type=cls.THREAD_TYPE,
-            content_type=content_type,
-            object_id=class_order.pk,
+            kind=CommunicationThreadKind.CLIENT_WRITER,
+            target_content_type=content_type,
+            target_object_id=class_order.pk,
             defaults={
                 "subject": cls._build_subject(class_order=class_order),
-                "sender_role": sender_role,
-                "recipient_role": recipient_role,
-                "is_active": True,
-                "allow_messaging": True,
+                "reference": f"class:{class_order.pk}",
+                "metadata": {
+                    "thread_type": cls.THREAD_TYPE,
+                    "sender_role": sender_role,
+                    "recipient_role": recipient_role,
+                },
             },
         )
 
@@ -117,23 +126,30 @@ class ClassCommunicationService:
 
         cls._ensure_messaging_allowed(thread=thread)
 
-        thread.participants.add(sender, recipient)
-
-        created_message = CommunicationMessage.objects.create(
+        cls._upsert_participant(
             thread=thread,
-            sender=sender,
-            recipient=recipient,
-            sender_role=sender_role,
-            recipient_role=recipient_role,
-            message=message,
-            message_type=message_type,
-            is_internal_note=is_internal_note,
-            metadata=metadata or {},
-            is_system=message_type == MessageType.SYSTEM,
+            user=sender,
+            role=sender_role,
+        )
+        cls._upsert_participant(
+            thread=thread,
+            user=recipient,
+            role=recipient_role,
         )
 
-        thread.updated_at = created_message.sent_at
-        thread.save(update_fields=["updated_at"])
+        created_message = CommunicationMessage.objects.create(
+            website=class_order.website,
+            thread=thread,
+            sender=sender,
+            body=message,
+            message_type=message_type,
+            is_internal=is_internal_note,
+            metadata=metadata or {},
+            is_system_generated=message_type == MessageType.SYSTEM,
+        )
+
+        thread.last_message_at = created_message.created_at
+        thread.save(update_fields=["last_message_at", "updated_at"])
 
         return created_message
 
@@ -182,9 +198,9 @@ class ClassCommunicationService:
         return (
             CommunicationThread.objects.filter(
                 website=class_order.website,
-                thread_type=cls.THREAD_TYPE,
-                content_type=content_type,
-                object_id=class_order.pk,
+                kind=CommunicationThreadKind.CLIENT_WRITER,
+                target_content_type=content_type,
+                target_object_id=class_order.pk,
             )
             .prefetch_related("participants")
             .first()
@@ -207,11 +223,12 @@ class ClassCommunicationService:
         return (
             CommunicationMessage.objects.filter(
                 thread=thread,
-                is_deleted=False,
-                is_hidden=False,
+                deleted_at__isnull=True,
+                hidden_at__isnull=True,
+                status=CommunicationMessageStatus.ACTIVE,
             )
-            .select_related("sender", "recipient")
-            .order_by("sent_at")
+            .select_related("sender")
+            .order_by("created_at")
         )
 
     @classmethod
@@ -229,7 +246,9 @@ class ClassCommunicationService:
         if thread is None:
             return
 
-        thread.disable_messaging()
+        thread.status = CommunicationThreadStatus.LOCKED
+        thread.locked_at = thread.locked_at or timezone.now()
+        thread.save(update_fields=["status", "locked_at", "updated_at"])
 
     @classmethod
     @transaction.atomic
@@ -247,7 +266,9 @@ class ClassCommunicationService:
             cls.get_or_create_thread(class_order=class_order)
             return
 
-        thread.enable_messaging()
+        thread.status = CommunicationThreadStatus.OPEN
+        thread.locked_at = None
+        thread.save(update_fields=["status", "locked_at", "updated_at"])
 
     @classmethod
     def _add_default_participants(
@@ -259,7 +280,11 @@ class ClassCommunicationService:
         """
         Add client and assigned writer when available.
         """
-        thread.participants.add(class_order.client)
+        cls._upsert_participant(
+            thread=thread,
+            user=class_order.client,
+            role=CommRole.CLIENT,
+        )
 
         assigned_writer = cls._get_related_obj(
             obj=class_order,
@@ -267,7 +292,34 @@ class ClassCommunicationService:
         )
 
         if assigned_writer is not None:
-            thread.participants.add(assigned_writer)
+            cls._upsert_participant(
+                thread=thread,
+                user=assigned_writer,
+                role=CommRole.WRITER,
+            )
+
+    @staticmethod
+    def _upsert_participant(
+        *,
+        thread: CommunicationThread,
+        user,
+        role: str,
+    ) -> None:
+        """
+        Ensure a user is an active participant in the thread.
+        """
+        CommunicationParticipant.objects.update_or_create(
+            website=thread.website,
+            thread=thread,
+            user=user,
+            defaults={
+                "role": role,
+                "can_view": True,
+                "can_send": True,
+                "can_upload": True,
+                "removed_at": None,
+            },
+        )
 
     @staticmethod
     def _build_subject(*, class_order: ClassOrder) -> str:
@@ -281,7 +333,7 @@ class ClassCommunicationService:
         """
         Block sends when the thread is inactive or locked.
         """
-        if not thread.is_active or not thread.allow_messaging:
+        if thread.status != CommunicationThreadStatus.OPEN:
             raise ValueError("Messaging is disabled for this class order.")
 
     @staticmethod

@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import update_last_login
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum, Count, Q
 from django.db import models
@@ -913,7 +914,10 @@ class BlacklistedUserViewSet(mixins.ListModelMixin,
     def add_to_blacklist(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        result = blacklist_user(request.user, **serializer.validated_data)
+        result = BlacklistService.blacklist_user(
+            blacklisted_by=request.user,
+            **serializer.validated_data,
+        )
         return Response(result, status=status.HTTP_201_CREATED)
 
     @action(
@@ -923,7 +927,9 @@ class BlacklistedUserViewSet(mixins.ListModelMixin,
     def remove_from_blacklist(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        result = remove_from_blacklist(**serializer.validated_data)
+        result = BlacklistService.remove_blacklist(
+            **serializer.validated_data
+        )
         return Response(result, status=status.HTTP_200_OK)
 
 
@@ -2447,13 +2453,20 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get special order statistics dashboard."""
-        from special_orders.models import SpecialOrder
+        from special_orders.constants import FundingMilestoneStatus
+        from special_orders.models import (
+            SpecialOrder,
+            SpecialOrderFundingMilestone,
+        )
         from django.db.models import Count, Sum, Avg, Q
         from django.utils import timezone
         from datetime import timedelta
         
         # Get all special orders
-        all_orders = SpecialOrder.objects.all().select_related('client', 'writer', 'website', 'predefined_type')
+        all_orders = SpecialOrder.objects.all().select_related(
+            'client', 'writer', 'website', 'predefined_config',
+            'funding_plan'
+        )
         
         # Filter by website if user has website context and is not superadmin
         if request.user.role != 'superadmin':
@@ -2467,7 +2480,7 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         )
         
         # Order type breakdown
-        type_breakdown = all_orders.values('order_type').annotate(
+        type_breakdown = all_orders.values('pricing_mode').annotate(
             count=Count('id')
         )
         
@@ -2477,11 +2490,21 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         # Status and approval counts in one query
         status_counts = all_orders.aggregate(
             inquiry_orders=Count('id', filter=Q(status='inquiry')),
-            awaiting_approval=Count('id', filter=Q(status='awaiting_approval')),
+            awaiting_approval=Count('id', filter=Q(status='quote_pending')),
             in_progress=Count('id', filter=Q(status='in_progress')),
             completed=Count('id', filter=Q(status='completed')),
-            needs_approval=Count('id', filter=Q(status__in=['inquiry', 'awaiting_approval'], is_approved=False)),
-            needs_estimation=Count('id', filter=Q(order_type='estimated', total_cost__isnull=True, status__in=['inquiry', 'awaiting_approval'])),
+            needs_approval=Count(
+                'id',
+                filter=Q(status__in=['inquiry', 'quote_pending']),
+            ),
+            needs_estimation=Count(
+                'id',
+                filter=Q(
+                    pricing_mode='quoted',
+                    pricing_snapshot__isnull=True,
+                    status__in=['inquiry', 'quote_pending'],
+                ),
+            ),
             recent_orders=Count('id', filter=Q(created_at__gte=month_ago))
         )
         
@@ -2495,19 +2518,26 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         
         # Revenue aggregations in one query
         revenue_stats = all_orders.aggregate(
-            total_revenue=Sum('total_cost', filter=Q(status='completed')),
-            avg_order_value=Avg('total_cost')
+            total_revenue=Sum(
+                'funding_plan__funded_amount',
+                filter=Q(status='completed'),
+            ),
+            avg_order_value=Avg('funding_plan__total_amount')
         )
         
         total_revenue = revenue_stats['total_revenue'] or 0
         avg_order_value = revenue_stats['avg_order_value'] or 0
         
-        # Pending installments
-        from special_orders.models import InstallmentPayment
-        pending_installments = InstallmentPayment.objects.filter(
-            is_paid=False,
-            special_order__status__in=['in_progress', 'completed']
-        ).count()
+        pending_funding_milestones = (
+            SpecialOrderFundingMilestone.objects.filter(
+                status__in=[
+                    FundingMilestoneStatus.PENDING,
+                    FundingMilestoneStatus.PARTIALLY_PAID,
+                    FundingMilestoneStatus.OVERDUE,
+                ],
+                special_order__status__in=['in_progress', 'completed']
+            ).count()
+        )
         
         return Response({
             'summary': {
@@ -2521,14 +2551,14 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
                 'recent_orders': recent_orders,
                 'total_revenue': float(total_revenue),
                 'avg_order_value': float(avg_order_value),
-                'pending_installments': pending_installments,
+                'pending_funding_milestones': pending_funding_milestones,
             },
             'status_breakdown': {
                 item['status']: item['count']
                 for item in status_breakdown
             },
             'type_breakdown': {
-                item['order_type']: item['count']
+                item['pricing_mode']: item['count']
                 for item in type_breakdown
             }
         })
@@ -2541,9 +2571,10 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         
         # Orders awaiting approval
         orders = SpecialOrder.objects.filter(
-            status__in=['inquiry', 'awaiting_approval'],
-            is_approved=False
-        ).select_related('client', 'writer', 'website', 'predefined_type').order_by('-created_at')
+            status__in=['inquiry', 'quote_pending']
+        ).select_related(
+            'client', 'writer', 'website', 'predefined_config'
+        ).order_by('-created_at')
         
         # Filter by website if user has website context and is not superadmin
         if request.user.role != 'superadmin':
@@ -2554,20 +2585,22 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         # Get query parameters
         limit = int(request.query_params.get('limit', 50))
         status_filter = request.query_params.get('status', None)
-        order_type_filter = request.query_params.get('order_type', None)
+        pricing_mode_filter = request.query_params.get(
+            'pricing_mode',
+            request.query_params.get('order_type', None),
+        )
         
         if status_filter:
             orders = orders.filter(status=status_filter)
         
-        if order_type_filter:
-            orders = orders.filter(order_type=order_type_filter)
+        if pricing_mode_filter:
+            orders = orders.filter(pricing_mode=pricing_mode_filter)
         
         orders = orders[:limit]
         
         serializer = SpecialOrderSerializer(orders, many=True)
         total_awaiting_approval = SpecialOrder.objects.filter(
-            status__in=['inquiry', 'awaiting_approval'],
-            is_approved=False
+            status__in=['inquiry', 'quote_pending']
         ).count()
         return Response({
             'results': serializer.data,
@@ -2583,9 +2616,9 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         
         # Orders needing cost estimation
         orders = SpecialOrder.objects.filter(
-            order_type='estimated',
-            total_cost__isnull=True,
-            status__in=['inquiry', 'awaiting_approval']
+            pricing_mode='quoted',
+            pricing_snapshot__isnull=True,
+            status__in=['inquiry', 'quote_pending']
         ).select_related('client', 'website').order_by('-created_at')
         
         # Filter by website if user has website context and is not superadmin
@@ -2600,9 +2633,9 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         
         serializer = SpecialOrderSerializer(orders, many=True)
         total_needing_estimation = SpecialOrder.objects.filter(
-            order_type='estimated',
-            total_cost__isnull=True,
-            status__in=['inquiry', 'awaiting_approval']
+            pricing_mode='quoted',
+            pricing_snapshot__isnull=True,
+            status__in=['inquiry', 'quote_pending']
         ).count()
         return Response({
             'results': serializer.data,
@@ -2610,61 +2643,81 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
             'total_needing_estimation': total_needing_estimation
         })
     
-    @action(detail=False, methods=['get'], url_path='installment-tracking')
-    def installment_tracking(self, request):
-        """Get installment payment tracking."""
-        from special_orders.models import InstallmentPayment, SpecialOrder
-        from special_orders.serializers import InstallmentPaymentSerializer
+    @action(detail=False, methods=['get'], url_path='funding-milestones')
+    def funding_milestones(self, request):
+        """Get special-order funding milestone tracking."""
+        from special_orders.constants import FundingMilestoneStatus
+        from special_orders.models import (
+            SpecialOrderFundingMilestone,
+        )
+        from special_orders.serializers import FundingMilestoneSerializer
         from django.utils import timezone
-        from django.db.models import Q, Sum
+        from django.db.models import Sum
         
-        now = timezone.now().date()
+        now = timezone.now()
         
-        # Get all installments
-        installments = InstallmentPayment.objects.filter(
+        milestones = SpecialOrderFundingMilestone.objects.filter(
             special_order__status__in=['in_progress', 'completed']
-        ).select_related('special_order', 'special_order__client', 'payment_record').order_by('due_date')
+        ).select_related(
+            'special_order', 'special_order__client'
+        ).order_by('due_at')
         
         # Filter by website if user has website context
         website = getattr(request.user, 'website', None)
         if website:
-            installments = installments.filter(special_order__website=website)
+            milestones = milestones.filter(special_order__website=website)
         
         # Get query parameters
         limit = int(request.query_params.get('limit', 50))
         status_filter = request.query_params.get('status', None)  # paid, unpaid, overdue
         
         if status_filter == 'paid':
-            installments = installments.filter(is_paid=True)
+            milestones = milestones.filter(
+                status=FundingMilestoneStatus.PAID,
+            )
         elif status_filter == 'unpaid':
-            installments = installments.filter(is_paid=False, due_date__gte=now)
+            milestones = milestones.exclude(
+                status=FundingMilestoneStatus.PAID,
+            ).filter(due_at__gte=now)
         elif status_filter == 'overdue':
-            installments = installments.filter(is_paid=False, due_date__lt=now)
+            milestones = milestones.exclude(
+                status=FundingMilestoneStatus.PAID,
+            ).filter(due_at__lt=now)
         
-        installments = installments[:limit]
+        milestones = milestones[:limit]
         
-        serializer = InstallmentPaymentSerializer(installments, many=True)
+        serializer = FundingMilestoneSerializer(milestones, many=True)
         
         # Calculate statistics
-        total_installments = InstallmentPayment.objects.filter(
+        total_milestones = SpecialOrderFundingMilestone.objects.filter(
             special_order__status__in=['in_progress', 'completed']
         )
         if website:
-            total_installments = total_installments.filter(special_order__website=website)
+            total_milestones = total_milestones.filter(
+                special_order__website=website
+            )
         
-        paid_count = total_installments.filter(is_paid=True).count()
-        unpaid_count = total_installments.filter(is_paid=False, due_date__gte=now).count()
-        overdue_count = total_installments.filter(is_paid=False, due_date__lt=now).count()
+        paid_count = total_milestones.filter(
+            status=FundingMilestoneStatus.PAID,
+        ).count()
+        unpaid_count = total_milestones.exclude(
+            status=FundingMilestoneStatus.PAID,
+        ).filter(due_at__gte=now).count()
+        overdue_count = total_milestones.exclude(
+            status=FundingMilestoneStatus.PAID,
+        ).filter(due_at__lt=now).count()
         
-        total_due = total_installments.filter(is_paid=False).aggregate(
+        total_due = total_milestones.exclude(
+            status=FundingMilestoneStatus.PAID,
+        ).aggregate(
             total=Sum('amount_due')
         )['total'] or 0
         
         return Response({
-            'installments': serializer.data,
+            'funding_milestones': serializer.data,
             'count': len(serializer.data),
             'statistics': {
-                'total_installments': total_installments.count(),
+                'total_funding_milestones': total_milestones.count(),
                 'paid': paid_count,
                 'unpaid': unpaid_count,
                 'overdue': overdue_count,
@@ -2701,7 +2754,10 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         ).values('month').annotate(
             count=Count('id'),
             completed=Count('id', filter=Q(status='completed')),
-            total_revenue=Sum('total_cost', filter=Q(status='completed'))
+            total_revenue=Sum(
+                'funding_plan__funded_amount',
+                filter=Q(status='completed'),
+            )
         ).order_by('month')
         
         # Weekly trends
@@ -2713,9 +2769,12 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         ).order_by('week')
         
         # Order type breakdown
-        type_breakdown = orders.values('order_type').annotate(
+        type_breakdown = orders.values('pricing_mode').annotate(
             count=Count('id'),
-            total_revenue=Sum('total_cost', filter=Q(status='completed'))
+            total_revenue=Sum(
+                'funding_plan__funded_amount',
+                filter=Q(status='completed'),
+            )
         ).order_by('-count')
         
         # Status trends over time
@@ -2725,10 +2784,13 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         
         # Predefined type breakdown
         predefined_breakdown = orders.filter(
-            order_type='predefined'
-        ).values('predefined_type__name').annotate(
+            pricing_mode='fixed_config'
+        ).values('predefined_config__name').annotate(
             count=Count('id'),
-            total_revenue=Sum('total_cost', filter=Q(status='completed'))
+            total_revenue=Sum(
+                'funding_plan__funded_amount',
+                filter=Q(status='completed'),
+            )
         ).order_by('-count')
         
         # Average completion time
@@ -2768,7 +2830,7 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
             ],
             'type_breakdown': [
                 {
-                    'order_type': item['order_type'],
+                    'pricing_mode': item['pricing_mode'],
                     'count': item['count'],
                     'total_revenue': float(item['total_revenue'] or 0)
                 }
@@ -2780,7 +2842,9 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
             },
             'predefined_breakdown': [
                 {
-                    'predefined_type': item['predefined_type__name'] or 'Unknown',
+                    'predefined_config': (
+                        item['predefined_config__name'] or 'Unknown'
+                    ),
                     'count': item['count'],
                     'total_revenue': float(item['total_revenue'] or 0)
                 }
@@ -2793,6 +2857,7 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get', 'post'], url_path='configs')
     def configs(self, request):
         """Get or create/update predefined order configs."""
+        from django.utils.text import slugify
         from special_orders.models import PredefinedSpecialOrderConfig, PredefinedSpecialOrderDuration
         from special_orders.serializers import (
             PredefinedSpecialOrderConfigSerializer,
@@ -2855,6 +2920,7 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
                 # Create new config
                 config = PredefinedSpecialOrderConfig.objects.create(
                     name=name,
+                    slug=slugify(name),
                     description=description,
                     website=website,
                     is_active=is_active
@@ -2908,7 +2974,7 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
         )
         
         # Level breakdown
-        level_breakdown = all_bundles.values('level').annotate(
+        level_breakdown = all_bundles.values('complexity_level').annotate(
             count=Count('id')
         )
         
@@ -2918,8 +2984,10 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
         exhausted = all_bundles.filter(status='exhausted').count()
         completed = all_bundles.filter(status='completed').count()
         
-        # Bundles with installments enabled
-        with_installments = all_bundles.filter(installments_enabled=True).count()
+        # Class orders with payment schedules.
+        with_payment_schedules = all_bundles.filter(
+            installment_plan__isnull=False
+        ).count()
         
         # Recent bundles (last 30 days)
         month_ago = timezone.now() - timedelta(days=30)
@@ -2929,26 +2997,29 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
         total_revenue = all_bundles.filter(
             status='completed'
         ).aggregate(
-            total=Sum('total_price')
+            total=Sum('final_amount')
         )['total'] or 0
         
         # Average bundle value
         avg_bundle_value = all_bundles.aggregate(
-            avg=Avg('total_price')
+            avg=Avg('final_amount')
         )['avg'] or 0
         
-        # Pending installments
+        # Pending payment milestones.
+        from class_management.constants import ClassInstallmentStatus
         from class_management.models import ClassInstallment
-        pending_installments = ClassInstallment.objects.filter(
-            is_paid=False,
-            class_bundle__status__in=['in_progress', 'completed']
+        pending_payment_milestones = ClassInstallment.objects.filter(
+            status__in=[
+                ClassInstallmentStatus.PENDING,
+                ClassInstallmentStatus.DUE,
+                ClassInstallmentStatus.OVERDUE,
+            ],
+            plan__class_order__status__in=['in_progress', 'completed']
         ).count()
         
-        # Pending deposits
-        pending_deposits = all_bundles.filter(
-            deposit_required__gt=0,
-            deposit_paid__lt=models.F('deposit_required'),
-            status__in=['not_started', 'in_progress']
+        pending_funding = all_bundles.filter(
+            balance_amount__gt=0,
+            status__in=['pending_payment', 'partially_paid', 'in_progress']
         ).count()
         
         return Response({
@@ -2958,80 +3029,104 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
                 'in_progress': in_progress,
                 'exhausted': exhausted,
                 'completed': completed,
-                'with_installments': with_installments,
+                'with_payment_schedules': with_payment_schedules,
                 'recent_bundles': recent_bundles,
                 'total_revenue': float(total_revenue),
                 'avg_bundle_value': float(avg_bundle_value),
-                'pending_installments': pending_installments,
-                'pending_deposits': pending_deposits,
+                'pending_payment_milestones': pending_payment_milestones,
+                'pending_funding': pending_funding,
             },
             'status_breakdown': {
                 item['status']: item['count']
                 for item in status_breakdown
             },
             'level_breakdown': {
-                item['level'] or 'Unknown': item['count']
+                item['complexity_level'] or 'Unknown': item['count']
                 for item in level_breakdown
             }
         })
     
     @action(detail=False, methods=['get'], url_path='installment-tracking')
     def installment_tracking(self, request):
-        """Get installment payment tracking."""
-        from class_management.models import ClassInstallment, ClassBundle
-        from class_management.serializers import ClassInstallmentSerializer
+        """Compatibility endpoint for old admin installment callers."""
+        return self.payment_milestones(request)
+
+    @action(detail=False, methods=['get'], url_path='payment-milestones')
+    def payment_milestones(self, request):
+        """Get class payment milestone tracking."""
+        from class_management.constants import ClassInstallmentStatus
+        from class_management.models import ClassInstallment
+        from class_management.api.serializers import (
+            ClassPaymentMilestoneSerializer,
+        )
         from django.utils import timezone
         from django.db.models import Q, Sum, Count
-        
-        now = timezone.now().date()
-        
-        # Get all installments
-        installments = ClassInstallment.objects.filter(
-            class_bundle__status__in=['in_progress', 'completed']
-        ).select_related('class_bundle', 'class_bundle__client', 'payment_record').order_by('due_date')
-        
-        # Filter by website if user has website context
+
+        now = timezone.now()
+        milestones = ClassInstallment.objects.filter(
+            plan__class_order__status__in=['in_progress', 'completed']
+        ).select_related(
+            'plan', 'plan__class_order', 'plan__class_order__client'
+        ).order_by('due_at')
+
         website = getattr(request.user, 'website', None)
         if website:
-            installments = installments.filter(class_bundle__website=website)
-        
-        # Get query parameters
+            milestones = milestones.filter(plan__class_order__website=website)
+
         limit = int(request.query_params.get('limit', 50))
-        status_filter = request.query_params.get('status', None)  # paid, unpaid, overdue
-        
+        status_filter = request.query_params.get('status', None)
+
         if status_filter == 'paid':
-            installments = installments.filter(is_paid=True)
+            milestones = milestones.filter(status=ClassInstallmentStatus.PAID)
         elif status_filter == 'unpaid':
-            installments = installments.filter(is_paid=False, due_date__gte=now)
+            milestones = milestones.exclude(
+                status=ClassInstallmentStatus.PAID,
+            ).filter(due_at__gte=now)
         elif status_filter == 'overdue':
-            installments = installments.filter(is_paid=False, due_date__lt=now)
-        
-        installments = installments[:limit]
-        
-        serializer = ClassInstallmentSerializer(installments, many=True)
-        
-        # Calculate statistics - combined into single query for better performance
-        total_installments = ClassInstallment.objects.filter(
-            class_bundle__status__in=['in_progress', 'completed']
+            milestones = milestones.exclude(
+                status=ClassInstallmentStatus.PAID,
+            ).filter(due_at__lt=now)
+
+        milestones = milestones[:limit]
+        serializer = ClassPaymentMilestoneSerializer(milestones, many=True)
+
+        total_milestones = ClassInstallment.objects.filter(
+            plan__class_order__status__in=['in_progress', 'completed']
         )
         if website:
-            total_installments = total_installments.filter(class_bundle__website=website)
-        
-        # Combined aggregation query - reduces from 5 queries to 1 query
-        from django.db.models import Q, Count
-        stats = total_installments.aggregate(
-            total_installments=Count('id'),
-            paid_count=Count('id', filter=Q(is_paid=True)),
-            unpaid_count=Count('id', filter=Q(is_paid=False, due_date__gte=now)),
-            overdue_count=Count('id', filter=Q(is_paid=False, due_date__lt=now)),
-            total_due=Sum('amount', filter=Q(is_paid=False))
+            total_milestones = total_milestones.filter(
+                plan__class_order__website=website
+            )
+
+        stats = total_milestones.aggregate(
+            total_payment_milestones=Count('id'),
+            paid_count=Count(
+                'id',
+                filter=Q(status=ClassInstallmentStatus.PAID),
+            ),
+            unpaid_count=Count(
+                'id',
+                filter=~Q(status=ClassInstallmentStatus.PAID)
+                & Q(due_at__gte=now),
+            ),
+            overdue_count=Count(
+                'id',
+                filter=~Q(status=ClassInstallmentStatus.PAID)
+                & Q(due_at__lt=now),
+            ),
+            total_due=Sum(
+                'amount',
+                filter=~Q(status=ClassInstallmentStatus.PAID),
+            ),
         )
-        
+
         return Response({
-            'installments': serializer.data,
+            'payment_milestones': serializer.data,
             'count': len(serializer.data),
             'statistics': {
-                'total_installments': stats['total_installments'] or 0,
+                'total_payment_milestones': (
+                    stats['total_payment_milestones'] or 0
+                ),
                 'paid': stats['paid_count'] or 0,
                 'unpaid': stats['unpaid_count'] or 0,
                 'overdue': stats['overdue_count'] or 0,
@@ -3041,16 +3136,14 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'], url_path='deposit-pending')
     def deposit_pending(self, request):
-        """Get bundles with pending deposits."""
+        """Get class orders with pending funding."""
         from class_management.models import ClassBundle
-        from class_management.serializers import ClassBundleSerializer
+        from class_management.api.serializers import ClassOrderListSerializer
         
-        # Bundles with pending deposits
         bundles = ClassBundle.objects.filter(
-            deposit_required__gt=0,
-            deposit_paid__lt=models.F('deposit_required'),
-            status__in=['not_started', 'in_progress']
-        ).select_related('client', 'website', 'config').order_by('-created_at')
+            balance_amount__gt=0,
+            status__in=['pending_payment', 'partially_paid', 'in_progress']
+        ).select_related('client', 'website').order_by('-created_at')
         
         # Filter by website if user has website context
         website = getattr(request.user, 'website', None)
@@ -3061,14 +3154,17 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
         limit = int(request.query_params.get('limit', 50))
         bundles = bundles[:limit]
         
-        serializer = ClassBundleSerializer(bundles, many=True)
+        serializer = ClassOrderListSerializer(bundles, many=True)
         return Response({
-            'bundles': serializer.data,
+            'class_orders': serializer.data,
             'count': len(serializer.data),
-            'total_pending_deposits': ClassBundle.objects.filter(
-                deposit_required__gt=0,
-                deposit_paid__lt=models.F('deposit_required'),
-                status__in=['not_started', 'in_progress']
+            'total_pending_funding': ClassBundle.objects.filter(
+                balance_amount__gt=0,
+                status__in=[
+                    'pending_payment',
+                    'partially_paid',
+                    'in_progress',
+                ]
             ).count()
         })
     
@@ -3101,7 +3197,7 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
         ).values('month').annotate(
             count=Count('id'),
             completed=Count('id', filter=Q(status='completed')),
-            total_revenue=Sum('total_price', filter=Q(status='completed'))
+            total_revenue=Sum('final_amount', filter=Q(status='completed'))
         ).order_by('month')
         
         # Weekly trends
@@ -3112,10 +3208,10 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
             completed=Count('id', filter=Q(status='completed'))
         ).order_by('week')
         
-        # Level breakdown
-        level_breakdown = bundles.values('level').annotate(
+        # Complexity breakdown
+        level_breakdown = bundles.values('complexity_level').annotate(
             count=Count('id'),
-            total_revenue=Sum('total_price', filter=Q(status='completed'))
+            total_revenue=Sum('final_amount', filter=Q(status='completed'))
         ).order_by('-count')
         
         # Status trends over time
@@ -3123,10 +3219,10 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
             count=Count('id')
         ).order_by('-count')
         
-        # Pricing source breakdown
-        pricing_breakdown = bundles.values('pricing_source').annotate(
+        # Payment status breakdown
+        payment_breakdown = bundles.values('payment_status').annotate(
             count=Count('id'),
-            total_revenue=Sum('total_price', filter=Q(status='completed'))
+            total_revenue=Sum('final_amount', filter=Q(status='completed'))
         ).order_by('-count')
         
         # Average completion time
@@ -3166,7 +3262,9 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
             ],
             'level_breakdown': [
                 {
-                    'level': item['level'] or 'Unknown',
+                    'complexity_level': (
+                        item['complexity_level'] or 'Unknown'
+                    ),
                     'count': item['count'],
                     'total_revenue': float(item['total_revenue'] or 0)
                 }
@@ -3176,13 +3274,13 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
                 item['status']: item['count']
                 for item in status_trends
             },
-            'pricing_breakdown': [
+            'payment_breakdown': [
                 {
-                    'pricing_source': item['pricing_source'],
+                    'payment_status': item['payment_status'],
                     'count': item['count'],
                     'total_revenue': float(item['total_revenue'] or 0)
                 }
-                for item in pricing_breakdown
+                for item in payment_breakdown
             ],
             'avg_completion_days': avg_completion_days,
             'conversion_rate': conversion_rate,

@@ -49,13 +49,13 @@ class WriterReward(models.Model):
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
-        related_name="writer_rewards",
+        related_name="compensation_writer_rewards",
     )
 
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
-        related_name="rewards",
+        related_name="compensation_rewards",
     )
 
     reward_rule = models.ForeignKey(

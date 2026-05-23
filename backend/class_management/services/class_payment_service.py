@@ -327,8 +327,15 @@ class ClassPaymentService:
             },
         )
 
-        payment_intent = checkout.get("payment_intent")
-        provider_data = checkout.get("provider_data", {})
+        payment_intent = cls._get_checkout_value(
+            checkout=checkout,
+            key="payment_intent",
+        )
+        provider_data = cls._get_checkout_value(
+            checkout=checkout,
+            key="provider_data",
+            default={},
+        )
 
         source_type = (
             ClassPaymentSourceType.SPLIT
@@ -342,10 +349,54 @@ class ClassPaymentService:
             wallet_amount=wallet_amount,
             external_amount=external_amount,
             source_type=source_type,
-            checkout_url=str(provider_data.get("checkout_url", "")),
-            payment_intent_id=str(
-                getattr(payment_intent, "reference", ""),
+            checkout_url=cls._resolve_checkout_url(
+                checkout=checkout,
+                provider_data=provider_data,
             ),
+            payment_intent_id=str(
+                getattr(
+                    payment_intent,
+                    "reference",
+                    cls._get_checkout_value(
+                        checkout=checkout,
+                        key="payment_intent_id",
+                        default="",
+                    ),
+                ),
+            ),
+        )
+
+    @staticmethod
+    def _get_checkout_value(*, checkout, key: str, default=None):
+        """
+        Read checkout data from dicts or simple result objects.
+        """
+        if isinstance(checkout, dict):
+            return checkout.get(key, default)
+
+        return getattr(checkout, key, default)
+
+    @classmethod
+    def _resolve_checkout_url(
+        cls,
+        *,
+        checkout,
+        provider_data,
+    ) -> str:
+        """
+        Extract checkout URL from gateway result shapes.
+        """
+        if isinstance(provider_data, dict):
+            checkout_url = provider_data.get("checkout_url", "")
+            if checkout_url:
+                return str(checkout_url)
+
+        return str(
+            cls._get_checkout_value(
+                checkout=checkout,
+                key="checkout_url",
+                default="",
+            )
         )
 
     @classmethod

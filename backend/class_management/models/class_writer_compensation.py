@@ -92,15 +92,14 @@ class ClassWriterCompensation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
-class Meta:
-    constraints = [
-        models.CheckConstraint(
-            check=models.Q(final_amount__gte=0),
-            name="class_writer_comp_final_amount_non_negative",
-        ),
-        models.CheckConstraint(
-            check=models.Q(paid_amount__gte=0),
-            name="class_writer_comp_paid_amount_non_negative",
-        ),
-    ]
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(final_amount__gte=0),
+                name="class_writer_comp_final_amount_non_negative",
+            ),
+            models.CheckConstraint(
+                check=models.Q(paid_amount__gte=0),
+                name="class_writer_comp_paid_amount_non_negative",
+            ),
+        ]

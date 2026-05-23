@@ -1,10 +1,13 @@
+from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
+from django.core.mail import send_mail
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.core.mail import send_mail
-from django.contrib.auth import get_user_model
 
-from .models import SpecialOrder, InstallmentPayment
+from communications.constants import CommunicationThreadKind
 from communications.models import CommunicationThread
+from special_orders.constants import FundingMilestoneStatus
+from special_orders.models import SpecialOrder, SpecialOrderFundingMilestone
 
 User = get_user_model()
 
@@ -48,12 +51,21 @@ def handle_new_special_order(sender, instance, created, **kwargs):
             recipients=admin_emails
         )
 
-    CommunicationThread.objects.create(
+    content_type = ContentType.objects.get_for_model(SpecialOrder)
+    CommunicationThread.objects.get_or_create(
         website=instance.website,
-        thread_type='special',
-        special_order=instance,
-        sender_role='client',
-        recipient_role='admin'
+        kind=CommunicationThreadKind.ADMIN_CLIENT,
+        target_content_type=content_type,
+        target_object_id=instance.pk,
+        defaults={
+            "subject": f"Special Order #{instance.pk}: {instance.title}",
+            "reference": f"special:{instance.pk}",
+            "metadata": {
+                "thread_type": "special_order",
+                "sender_role": "client",
+                "recipient_role": "admin",
+            },
+        },
     )
 
 
@@ -91,25 +103,15 @@ def handle_order_completion(sender, instance, created, **kwargs):
         )
 
 
-@receiver(post_save, sender=SpecialOrder)
-def handle_admin_payment_override(sender, instance, created, **kwargs):
+@receiver(post_save, sender=SpecialOrderFundingMilestone)
+def handle_funding_milestone_payment(sender, instance, created, **kwargs):
     """
-    Notify client when admin manually confirms payment.
+    Notify admin and client when a funding milestone is paid.
     """
-    if created or not instance.admin_marked_paid:
-        return
-
-    subject = f"Payment Confirmation for Order #{instance.id}"
-    message = "Admin has confirmed your payment manually."
-    notify_users(subject, message, [instance.client.email])
-
-
-@receiver(post_save, sender=InstallmentPayment)
-def handle_installment_payment(sender, instance, created, **kwargs):
-    """
-    Notify admin and client when an installment payment is recorded.
-    """
-    if not (created and instance.is_paid):
+    if not (
+        created
+        and instance.status == FundingMilestoneStatus.PAID
+    ):
         return
 
     subject = f"Payment Received for Order #{instance.special_order.id}"

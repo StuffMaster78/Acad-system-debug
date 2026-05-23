@@ -198,6 +198,8 @@ class ClassWriterCompensationService:
         """
         Credit earned class compensation to the writer wallet.
         """
+        compensation.refresh_from_db()
+
         if compensation.status != ClassWriterCompensationStatus.EARNED:
             raise ClassWriterCompensationError(
                 "Only earned compensation can be posted to wallet."

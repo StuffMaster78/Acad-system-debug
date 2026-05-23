@@ -30,7 +30,10 @@ from .class_payment_serializers import (
     ClassInstallmentSerializer,
     ClassInvoiceLinkSerializer,
     ClassPaymentAllocationSerializer,
+    ClassPaymentMilestoneSerializer,
+    ClassPaymentScheduleSerializer,
     CreateEqualInstallmentPlanSerializer,
+    CreateEqualPaymentScheduleSerializer,
     PrepareClassPaymentSerializer,
 )
 from .class_pricing_serializers import (
@@ -68,6 +71,8 @@ __all__ = [
     "ClassOrderDetailSerializer",
     "ClassOrderListSerializer",
     "ClassPaymentAllocationSerializer",
+    "ClassPaymentMilestoneSerializer",
+    "ClassPaymentScheduleSerializer",
     "ClassPriceCounterOfferSerializer",
     "ClassPriceProposalSerializer",
     "ClassScopeAssessmentSerializer",
@@ -80,6 +85,7 @@ __all__ = [
     "ClassWriterCompensationSerializer",
     "CreateCounterOfferSerializer",
     "CreateEqualInstallmentPlanSerializer",
+    "CreateEqualPaymentScheduleSerializer",
     "CreatePriceProposalSerializer",
     "GrantAccessSerializer",
     "PrepareClassPaymentSerializer",

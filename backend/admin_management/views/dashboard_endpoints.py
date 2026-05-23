@@ -18,6 +18,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count, Sum, Avg, Q, F
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal
 from django.shortcuts import get_object_or_404
 
 from admin_management.permissions import IsAdmin
@@ -1028,10 +1029,10 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
             count=Count('id')
         )
         
-        # Pending deposits
-        pending_deposits = all_bundles.filter(
-            status='pending_deposit',
-            deposit_paid=False
+        # Pending funding.
+        pending_funding = all_bundles.filter(
+            balance_amount__gt=0,
+            status__in=['pending_payment', 'partially_paid', 'in_progress']
         )
         
         # Active bundles
@@ -1043,34 +1044,36 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
         total_revenue = all_bundles.filter(
             status='completed'
         ).aggregate(
-            total=Sum('total_cost')
+            total=Sum('final_amount')
         )['total'] or 0
         
-        # Installment tracking
-        bundles_with_installments = all_bundles.filter(
-            payment_plan='installment'
+        # Payment schedule tracking.
+        bundles_with_payment_schedules = all_bundles.filter(
+            installment_plan__isnull=False
         )
         
         return Response({
             'summary': {
                 'total_bundles': all_bundles.count(),
-                'pending_deposits': pending_deposits.count(),
+                'pending_funding': pending_funding.count(),
                 'active_bundles': active_bundles.count(),
                 'total_revenue': str(total_revenue),
-                'installment_bundles': bundles_with_installments.count(),
+                'payment_schedule_bundles': (
+                    bundles_with_payment_schedules.count()
+                ),
             },
             'status_breakdown': {
                 item['status']: item['count'] for item in status_breakdown
             },
-            'pending_deposits_list': [
+            'pending_funding_list': [
                 {
                     'id': bundle.id,
                     'client_id': bundle.client.id if bundle.client else None,
-                    'total_cost': str(bundle.total_cost),
-                    'deposit_amount': str(bundle.deposit_amount),
+                    'funding_total_amount': str(bundle.final_amount),
+                    'funding_balance_amount': str(bundle.balance_amount),
                     'created_at': bundle.created_at.isoformat() if bundle.created_at else None,
                 }
-                for bundle in pending_deposits[:20]
+                for bundle in pending_funding[:20]
             ],
         })
     
@@ -1096,7 +1099,7 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
         ).values('week').annotate(
             created=Count('id'),
             completed=Count('id', filter=Q(status='completed')),
-            revenue=Sum('total_cost', filter=Q(status='completed'))
+            revenue=Sum('final_amount', filter=Q(status='completed'))
         ).order_by('week')
         
         return Response({
@@ -1113,37 +1116,49 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'], url_path='installment-tracking')
     def installment_tracking(self, request):
-        """Get installment payment tracking."""
-        bundles_with_installments = ClassBundle.objects.filter(
-            payment_plan='installment'
+        """Compatibility endpoint for old admin installment callers."""
+        return self.payment_milestones(request)
+
+    @action(detail=False, methods=['get'], url_path='payment-milestones')
+    def payment_milestones(self, request):
+        """Get class orders with pending payment milestones."""
+        bundles_with_payment_schedules = ClassBundle.objects.filter(
+            installment_plan__isnull=False
         ).select_related('client', 'website')
         
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
-                bundles_with_installments = bundles_with_installments.filter(website=website)
+                bundles_with_payment_schedules = (
+                    bundles_with_payment_schedules.filter(website=website)
+                )
         
-        # Get bundles with pending installments
-        pending_installments = []
-        for bundle in bundles_with_installments:
-            # Check if there are pending installments
-            installments = ClassInstallment.objects.filter(
+        pending_payment_milestones = []
+        for bundle in bundles_with_payment_schedules:
+            milestones = ClassInstallment.objects.filter(
                 plan__class_order=bundle,
                 status=ClassInstallmentStatus.PENDING,
             )
-            if installments.exists():
-                pending_installments.append({
+            if milestones.exists():
+                next_milestone = milestones.order_by('due_at').first()
+                pending_payment_milestones.append({
                     'bundle_id': bundle.id,
                     'client_id': bundle.client.id if bundle.client else None,
                     'total_cost': str(bundle.final_amount),
-                    'pending_installments': installments.count(),
-                    'next_due_date': installments.order_by('due_at').first().due_at.isoformat() if installments.exists() else None,
+                    'pending_payment_milestones': milestones.count(),
+                    'next_due_date': (
+                        next_milestone.due_at.isoformat()
+                        if next_milestone and next_milestone.due_at
+                        else None
+                    ),
                 })
         
         return Response({
-            'bundles_with_installments': len(bundles_with_installments),
-            'pending_installments': pending_installments[:20],
+            'bundles_with_payment_schedules': (
+                len(bundles_with_payment_schedules)
+            ),
+            'pending_payment_milestones': pending_payment_milestones[:20],
         })
 
 
@@ -1159,7 +1174,8 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
     def dashboard(self, request):
         """Get special orders statistics dashboard."""
         all_special_orders = SpecialOrder.objects.all().select_related(
-            'client', 'writer', 'website', 'predefined_type'
+            'client', 'writer', 'website', 'predefined_config',
+            'funding_plan'
         )
         
         # Filter by website if needed
@@ -1173,15 +1189,14 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
             count=Count('id')
         )
         
-        # Order type breakdown
-        type_breakdown = all_special_orders.values('order_type').annotate(
+        # Pricing mode breakdown
+        type_breakdown = all_special_orders.values('pricing_mode').annotate(
             count=Count('id')
         )
         
         # Pending approvals
         pending_approvals = all_special_orders.filter(
-            status='awaiting_approval',
-            is_approved=False
+            status__in=['inquiry', 'quote_pending']
         )
         
         # In progress orders
@@ -1191,22 +1206,28 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
         total_revenue = all_special_orders.filter(
             status='completed'
         ).aggregate(
-            total=Sum('total_cost')
+            total=Sum('funding_plan__funded_amount')
         )['total'] or 0
         
-        # Pending deposits
-        pending_deposits = all_special_orders.filter(
-            status__in=['inquiry', 'awaiting_approval', 'in_progress']
-        ).exclude(deposit_required__isnull=True).exclude(deposit_required=0)
+        pending_funding_milestones = SpecialOrderFundingMilestone.objects.filter(
+            special_order__in=all_special_orders,
+            status__in=[
+                FundingMilestoneStatus.PENDING,
+                FundingMilestoneStatus.PARTIALLY_PAID,
+                FundingMilestoneStatus.OVERDUE,
+            ],
+        )
         
-        # Calculate total pending deposit amount
-        total_pending_deposits = pending_deposits.aggregate(
-            total=Sum('deposit_required')
+        total_pending_funding = pending_funding_milestones.aggregate(
+            total=Sum('amount_due')
         )['total'] or 0
         
-        # Orders with pending installments
-        orders_with_installments = all_special_orders.filter(
-            installments__is_paid=False
+        orders_with_funding_milestones = all_special_orders.filter(
+            funding_milestones__status__in=[
+                FundingMilestoneStatus.PENDING,
+                FundingMilestoneStatus.PARTIALLY_PAID,
+                FundingMilestoneStatus.OVERDUE,
+            ],
         ).distinct()
         
         return Response({
@@ -1216,23 +1237,34 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                 'in_progress': in_progress.count(),
                 'completed': all_special_orders.filter(status='completed').count(),
                 'total_revenue': str(total_revenue),
-                'total_pending_deposits': str(total_pending_deposits),
-                'orders_with_installments': orders_with_installments.count(),
+                'total_pending_funding': str(total_pending_funding),
+                'orders_with_funding_milestones': (
+                    orders_with_funding_milestones.count()
+                ),
             },
             'status_breakdown': {
                 item['status']: item['count'] for item in status_breakdown
             },
             'type_breakdown': {
-                item['order_type']: item['count'] for item in type_breakdown
+                item['pricing_mode']: item['count']
+                for item in type_breakdown
             },
             'pending_approvals_list': [
                 {
                     'id': order.id,
                     'client_id': order.client.id if order.client else None,
                     'client_username': order.client.username if order.client else None,
-                    'order_type': order.order_type,
-                    'total_cost': str(order.total_cost) if order.total_cost else None,
-                    'deposit_required': str(order.deposit_required) if order.deposit_required else None,
+                    'pricing_mode': order.pricing_mode,
+                    'funding_total_amount': (
+                        str(order.funding_plan.total_amount)
+                        if hasattr(order, 'funding_plan')
+                        else None
+                    ),
+                    'funding_deposit_amount': (
+                        str(order.funding_plan.deposit_amount)
+                        if hasattr(order, 'funding_plan')
+                        else None
+                    ),
                     'duration_days': order.duration_days,
                     'inquiry_details': order.inquiry_details[:200] if order.inquiry_details else None,
                     'created_at': order.created_at.isoformat() if order.created_at else None,
@@ -1263,23 +1295,26 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
         ).values('week').annotate(
             created=Count('id'),
             completed=Count('id', filter=Q(status='completed')),
-            revenue=Sum('total_cost', filter=Q(status='completed'))
+            revenue=Sum(
+                'funding_plan__funded_amount',
+                filter=Q(status='completed'),
+            )
         ).order_by('week')
         
-        # Revenue by order type
+        # Revenue by pricing mode
         revenue_by_type = all_special_orders.filter(
             status='completed'
-        ).values('order_type').annotate(
+        ).values('pricing_mode').annotate(
             count=Count('id'),
-            revenue=Sum('total_cost')
+            revenue=Sum('funding_plan__funded_amount')
         )
         
         # Average order value
         avg_order_value = all_special_orders.filter(
             status='completed',
-            total_cost__isnull=False
+            funding_plan__isnull=False
         ).aggregate(
-            avg=Avg('total_cost')
+            avg=Avg('funding_plan__total_amount')
         )['avg'] or 0
         
         # Average duration
@@ -1299,7 +1334,7 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
             ],
             'revenue_by_type': [
                 {
-                    'order_type': item['order_type'],
+                    'pricing_mode': item['pricing_mode'],
                     'count': item['count'],
                     'revenue': str(item['revenue'] or 0),
                 }
@@ -1315,9 +1350,10 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
     def approval_queue(self, request):
         """Get special orders awaiting approval."""
         pending_approvals = SpecialOrder.objects.filter(
-            status='awaiting_approval',
-            is_approved=False
-        ).select_related('client', 'website', 'predefined_type').order_by('-created_at')
+            status__in=['inquiry', 'quote_pending']
+        ).select_related(
+            'client', 'website', 'predefined_config'
+        ).order_by('-created_at')
         
         # Filter by website if needed
         if request.user.role != 'superadmin':
@@ -1340,9 +1376,9 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
             'count': pending_approvals.count(),
         })
     
-    @action(detail=False, methods=['get'], url_path='installment-tracking')
-    def installment_tracking(self, request):
-        """Get special orders with pending installments."""
+    @action(detail=False, methods=['get'], url_path='funding-milestones')
+    def funding_milestones(self, request):
+        """Get special orders with pending funding milestones."""
         all_special_orders = SpecialOrder.objects.all().select_related(
             'client', 'website'
         )
@@ -1353,10 +1389,10 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
             if website:
                 all_special_orders = all_special_orders.filter(website=website)
         
-        # Get orders with pending installments
-        pending_installments = []
+        # Get orders with pending funding milestones.
+        pending_funding_milestones = []
         for order in all_special_orders:
-            installments = SpecialOrderFundingMilestone.objects.filter(
+            milestones = SpecialOrderFundingMilestone.objects.filter(
                 special_order=order,
                 status__in=[
                     FundingMilestoneStatus.PENDING,
@@ -1365,30 +1401,47 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                 ],
             ).order_by('due_at')
             
-            if installments.exists():
-                next_installment = installments.first()
-                total_pending = installments.aggregate(
+            if milestones.exists():
+                next_milestone = milestones.first()
+                total_pending = milestones.aggregate(
                     total=Sum('amount_due')
                 )['total'] or 0
                 
-                pending_installments.append({
+                pending_funding_milestones.append({
                     'order_id': order.id,
                     'client_id': order.client.id if order.client else None,
                     'client_username': order.client.username if order.client else None,
-                    'total_cost': str(order.total_cost) if order.total_cost else None,
+                    'funding_total_amount': (
+                        str(order.funding_plan.total_amount)
+                        if hasattr(order, 'funding_plan')
+                        else None
+                    ),
                     'status': order.status,
-                    'pending_installments_count': installments.count(),
+                    'pending_funding_milestones_count': milestones.count(),
                     'total_pending_amount': str(total_pending),
-                    'next_due_date': next_installment.due_at.isoformat() if next_installment and next_installment.due_at else None,
-                    'next_due_amount': str(next_installment.amount_due) if next_installment else None,
+                    'next_due_date': (
+                        next_milestone.due_at.isoformat()
+                        if next_milestone and next_milestone.due_at
+                        else None
+                    ),
+                    'next_due_amount': (
+                        str(next_milestone.amount_due)
+                        if next_milestone
+                        else None
+                    ),
                 })
         
         # Sort by next due date
-        pending_installments.sort(key=lambda x: x['next_due_date'] or '', reverse=False)
+        pending_funding_milestones.sort(
+            key=lambda x: x['next_due_date'] or '',
+            reverse=False,
+        )
         
         return Response({
-            'orders_with_pending_installments': len(pending_installments),
-            'pending_installments': pending_installments[:50],
+            'orders_with_pending_funding_milestones': (
+                len(pending_funding_milestones)
+            ),
+            'pending_funding_milestones': pending_funding_milestones[:50],
         })
 
 

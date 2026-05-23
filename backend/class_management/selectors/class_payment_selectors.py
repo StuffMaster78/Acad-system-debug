@@ -11,7 +11,7 @@ from class_management.models import (
 
 class ClassPaymentSelector:
     """
-    Read/query helpers for class payments and installments.
+    Read/query helpers for class payments and payment milestones.
     """
 
     @staticmethod
@@ -33,7 +33,7 @@ class ClassPaymentSelector:
         ).order_by("-created_at")
 
     @staticmethod
-    def installments_for_order(
+    def payment_milestones_for_order(
         *,
         class_order,
     ) -> QuerySet[ClassInstallment]:
@@ -42,7 +42,17 @@ class ClassPaymentSelector:
         ).order_by("due_at")
 
     @staticmethod
-    def overdue_installments(*, website) -> QuerySet[ClassInstallment]:
+    def installments_for_order(
+        *,
+        class_order,
+    ) -> QuerySet[ClassInstallment]:
+        """Compatibility alias for existing installment callers."""
+        return ClassPaymentSelector.payment_milestones_for_order(
+            class_order=class_order,
+        )
+
+    @staticmethod
+    def overdue_payment_milestones(*, website) -> QuerySet[ClassInstallment]:
         return (
             ClassInstallment.objects.filter(
                 plan__class_order__website=website,
@@ -50,4 +60,11 @@ class ClassPaymentSelector:
             )
             .select_related("plan", "plan__class_order")
             .order_by("due_at")
+        )
+
+    @staticmethod
+    def overdue_installments(*, website) -> QuerySet[ClassInstallment]:
+        """Compatibility alias for existing installment callers."""
+        return ClassPaymentSelector.overdue_payment_milestones(
+            website=website,
         )

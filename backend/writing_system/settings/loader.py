@@ -1,13 +1,13 @@
+from __future__ import annotations
+
 import os
-from .core import get_settings
-
-settings = get_settings()
 
 
-def get_environment():
-    return os.getenv("DJANGO_ENV") or (
-        "development" if settings.DEBUG else "production"
-    )
+def get_environment() -> str:
+    """
+    Return the normalized runtime environment name.
+    """
+    return os.getenv("DJANGO_ENV", "development").strip().lower()
 
 
 ENV = get_environment()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Container
 from decimal import Decimal
+from functools import partial
 from typing import Any
 
 from django.db import transaction
@@ -108,12 +109,12 @@ class ClassOrderService:
             updated_by=created_by,
         )
 
-        transaction.on_commit(
-            lambda: CommunicationThreadBootstrapService.bootstrap_for_class_order(
-                class_order=class_order,
-                created_by=created_by,
-            ),
+        bootstrap_thread = partial(
+            CommunicationThreadBootstrapService.bootstrap_for_class_order,
+            class_order=class_order,
+            created_by=created_by,
         )
+        transaction.on_commit(bootstrap_thread)
 
         ClassTimelineService.record(
             class_order=class_order,
@@ -349,15 +350,22 @@ class ClassOrderService:
         if class_order.payment_status == ClassPaymentStatus.PAID:
             next_status = ClassOrderStatus.PAID
 
+        transition_metadata = {
+            "amount": str(amount),
+            "paid_amount": str(class_order.paid_amount),
+            "balance_amount": str(class_order.balance_amount),
+        }
+        can_transition = ClassOrderStateMachine.can_transition(
+            from_status=class_order.status,
+            to_status=next_status,
+        )
+
         class_order = ClassOrderStateMachine.transition(
             class_order=class_order,
             to_status=next_status,
             triggered_by=triggered_by,
-            metadata={
-                "amount": str(amount),
-                "paid_amount": str(class_order.paid_amount),
-                "balance_amount": str(class_order.balance_amount),
-            },
+            metadata=transition_metadata,
+            force=not can_transition,
         )
 
         return class_order

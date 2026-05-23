@@ -187,7 +187,7 @@ class NotificationEvent(TextChoices):
     WRITER_REWARD_ISSUED = "writer.reward.issued"
     WRITER_REWARD_REVOKED = "writer.reward.revoked"
 
-
+    FILE_INFECTED_DETECTED = "file.infected_detected", "Infected file detected"
 class NotificationChannel(TextChoices):
     """
     Delivery channels.

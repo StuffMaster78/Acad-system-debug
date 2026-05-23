@@ -1196,6 +1196,18 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'cms_core.tasks.tenant_health_check',
         'schedule': 86400,  # daily
     },
+        "recalculate-file-quotas": {
+        "task": "files_management.tasks.recalculate_all_quotas",
+        "schedule": 86400,
+    },
+    "cleanup-expired-files": {
+        "task": "files_management.tasks.cleanup_expired_files",
+        "schedule": 86400,
+    },
+    "compute-engagement-summaries": {
+        "task": "cms_engagement.tasks.aggregation.compute_engagement_summaries",
+        "schedule": 86400,  # daily
+    },
 }
 
 RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW", "default")
@@ -1365,3 +1377,13 @@ except ImportError:
             'level': 'INFO',
         },
     }
+
+# Virus scanning
+CLAMAV_HOST = "127.0.0.1"  # or your ClamAV droplet IP
+CLAMAV_PORT = 3310
+CLAMAV_TIMEOUT = 60
+CLAMAV_ENABLED = False  # set True when ClamAV is deployed
+
+# DigitalOcean Spaces
+DO_SPACES_KEY = "your-access-key"
+DO_SPACES_SECRET = "your-secret-key"

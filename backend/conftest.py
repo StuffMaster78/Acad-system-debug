@@ -14,8 +14,11 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from websites.models.websites import Website
 from decimal import Decimal
+from django.contrib.auth import get_user_model
+from wagtail.models import Page, Site
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
+
 
 
 # ============================================================================
@@ -112,17 +115,17 @@ def db_with_website(db):
 # User Fixtures
 # ============================================================================
 
-@pytest.fixture
-def website(db):
-    """Create a test website."""
-    return Website.objects.get_or_create(
-        domain="test.local",
-        defaults={
-            "name": "Test Website",
-            "slug": "test",
-            "is_active": True
-        }
-    )[0]
+# @pytest.fixture
+# def website(db):
+#     """Create a test website."""
+#     return Website.objects.get_or_create(
+#         domain="test.local",
+#         defaults={
+#             "name": "Test Website",
+#             "slug": "test",
+#             "is_active": True
+#         }
+#     )[0]
 
 
 @pytest.fixture
@@ -185,30 +188,30 @@ def client_user(website):
     )
 
 
-@pytest.fixture
-def writer_user(website):
-    """Create a test writer user."""
-    return User.objects.create_user(
-        username="test_writer",
-        email="writer@test.com",
-        password="testpass123",
-        role="writer",
-        website=website,
-        is_active=True
-    )
+# @pytest.fixture
+# def writer_user(website):
+#     """Create a test writer user."""
+#     return User.objects.create_user(
+#         username="test_writer",
+#         email="writer@test.com",
+#         password="testpass123",
+#         role="writer",
+#         website=website,
+#         is_active=True
+#     )
 
 
-@pytest.fixture
-def editor_user(website):
-    """Create a test editor user."""
-    return User.objects.create_user(
-        username="test_editor",
-        email="editor@test.com",
-        password="testpass123",
-        role="editor",
-        website=website,
-        is_active=True
-    )
+# @pytest.fixture
+# def editor_user(website):
+#     """Create a test editor user."""
+#     return User.objects.create_user(
+#         username="test_editor",
+#         email="editor@test.com",
+#         password="testpass123",
+#         role="editor",
+#         website=website,
+#         is_active=True
+#     )
 
 
 @pytest.fixture
@@ -224,18 +227,18 @@ def support_user(website):
     )
 
 
-@pytest.fixture
-def admin_user(website):
-    """Create a test admin user."""
-    return User.objects.create_user(
-        username="test_admin",
-        email="admin@test.com",
-        password="testpass123",
-        role="admin",
-        website=website,
-        is_active=True,
-        is_staff=True
-    )
+# @pytest.fixture
+# def admin_user(website):
+#     """Create a test admin user."""
+#     return User.objects.create_user(
+#         username="test_admin",
+#         email="admin@test.com",
+#         password="testpass123",
+#         role="admin",
+#         website=website,
+#         is_active=True,
+#         is_staff=True
+#     )
 
 
 @pytest.fixture
@@ -512,4 +515,254 @@ def other_client(website):
         website=website,
         is_active=True
     )
+
+
+@pytest.fixture
+def root_page():
+    """The Wagtail root page (always exists after migrations)."""
+    return Page.objects.filter(depth=1).first()
+
+
+@pytest.fixture
+def tenant_site(root_page):
+    """A test tenant: Site + TenantHomePage + child index pages."""
+    from cms_core.models import (
+        AuthorIndexPage,
+        ResourceIndexPage,
+        TenantHomePage,
+    )
+
+    home = TenantHomePage(title="Test Tenant", slug="test-tenant")
+    root_page.add_child(instance=home)
+
+    site = Site.objects.create(
+        hostname="test.localhost",
+        root_page=home,
+        is_default_site=False,
+        site_name="Test Tenant",
+    )
+
+    # Create index pages
+    try:
+        from cms_blog.models import BlogIndexPage
+        home.add_child(instance=BlogIndexPage(title="Blog", slug="blog"))
+    except ImportError:
+        pass
+
+    try:
+        from cms_service_pages.models import ServiceIndexPage
+        home.add_child(instance=ServiceIndexPage(title="Services", slug="services"))
+    except ImportError:
+        pass
+
+    home.add_child(instance=AuthorIndexPage(title="Authors", slug="authors"))
+    home.add_child(instance=ResourceIndexPage(title="Resources", slug="resources"))
+
+    return site
+
+
+@pytest.fixture
+def website(tenant_site):
+    """A Website model instance linked to the test tenant site.
+    Adjust this if your Website model has required fields beyond domain."""
+    try:
+        from websites.models import Website
+
+        w, _ = Website.objects.get_or_create(
+            domain="test.localhost",
+            defaults={
+                "name": "Test Tenant",
+                "is_active": True,
+            },
+        )
+        if hasattr(w, "wagtail_site"):
+            w.wagtail_site = tenant_site
+            w.save(update_fields=["wagtail_site"])
+        return w
+    except ImportError:
+        return None
+
+
+@pytest.fixture
+def admin_user(db):
+    """A superuser for admin tests."""
+    return User.objects.create_superuser(
+        username="admin",
+        email="admin@test.localhost",
+        password="testpass123",
+    )
+
+
+@pytest.fixture
+def editor_user(db, tenant_site):
+    """An editor with permissions on the test tenant."""
+    user = User.objects.create_user(
+        username="editor",
+        email="editor@test.localhost",
+        password="testpass123",
+    )
+    try:
+        from cms_core.services.permissions_service import TenantPermissionsService
+        TenantPermissionsService.assign_user_to_tenant(user, tenant_site, role="editor")
+    except Exception:
+        pass
+    return user
+
+
+@pytest.fixture
+def writer_user(db, tenant_site):
+    """A writer with limited permissions on the test tenant."""
+    user = User.objects.create_user(
+        username="writer",
+        email="writer@test.localhost",
+        password="testpass123",
+    )
+    try:
+        from cms_core.services.permissions_service import TenantPermissionsService
+        TenantPermissionsService.assign_user_to_tenant(user, tenant_site, role="writer")
+    except Exception:
+        pass
+    return user
+
+
+@pytest.fixture
+def test_author(tenant_site):
+    """A test Author snippet."""
+    from cms_authors.models import Author
+
+    return Author.objects.create(
+        site=tenant_site,
+        name="Dr. Jane Smith",
+        slug="jane-smith",
+        bio="Board-certified RN with 15 years of nursing education experience.",
+        credentials="MSN, RN, CCRN",
+        degrees=[{"degree": "MSN", "institution": "Johns Hopkins", "year": 2015}],
+        areas_of_expertise="Nursing Care Plans, Evidence-Based Practice",
+        years_experience=15,
+        role="senior_writer",
+        is_active=True,
+        show_publicly=True,
+    )
+
+
+@pytest.fixture
+def blog_category(tenant_site):
+    """A test blog category."""
+    from cms_core.models import BlogCategory
+
+    return BlogCategory.objects.create(
+        site=tenant_site,
+        name="Nursing Guides",
+        slug="nursing-guides",
+        is_active=True,
+    )
+
+
+@pytest.fixture
+def service_category(tenant_site):
+    """A test service category."""
+    from cms_core.models import ServiceCategory
+
+    return ServiceCategory.objects.create(
+        site=tenant_site,
+        name="Nursing Services",
+        slug="nursing-services",
+    )
+
+
+@pytest.fixture
+def blog_index(tenant_site):
+    """The blog index page for the test tenant."""
+    from cms_blog.models import BlogIndexPage
+
+    return BlogIndexPage.objects.descendant_of(
+        tenant_site.root_page
+    ).first()
+
+
+@pytest.fixture
+def service_index(tenant_site):
+    """The service index page for the test tenant."""
+    from cms_service_pages.models import ServiceIndexPage
+
+    return ServiceIndexPage.objects.descendant_of(
+        tenant_site.root_page
+    ).first()
+
+
+@pytest.fixture
+def test_blog_post(blog_index, test_author, blog_category):
+    """A published test blog post."""
+    from cms_blog.models import BlogPostPage
+
+    post = BlogPostPage(
+        title="How to Write a Nursing Care Plan",
+        slug="how-to-write-nursing-care-plan",
+        primary_author=test_author,
+        category=blog_category,
+        excerpt="A step-by-step guide to writing effective nursing care plans.",
+        body=[
+            ("heading", {"text": "Introduction", "level": "h2"}),
+            ("paragraph", "<p>Nursing care plans are essential documents...</p>"),
+            ("heading", {"text": "Step 1: Assessment", "level": "h2"}),
+            ("paragraph", "<p>Begin by assessing the patient...</p>"),
+            ("heading", {"text": "Step 2: Diagnosis", "level": "h2"}),
+            ("paragraph", "<p>Use NANDA-I nursing diagnoses...</p>"),
+        ],
+    )
+    blog_index.add_child(instance=post)
+    post.save_revision().publish()
+    return post
+
+
+@pytest.fixture
+def test_service_page(service_index, service_category):
+    """A published test service page."""
+    from cms_service_pages.models import ServicePage
+
+    page = ServicePage(
+        title="Nursing Care Plan Writing Help",
+        slug="nursing-care-plan-writing",
+        service_category=service_category,
+        pricing_from=15.99,
+        pricing_to=45.99,
+        turnaround_hours_fastest=6,
+        turnaround_hours_standard=168,
+        primary_cta_text="Order Now",
+        primary_cta_url="/order/",
+        body=[
+            ("hero", {
+                "headline": "Expert Nursing Care Plan Writing",
+                "subheadline": "Written by real RNs",
+                "cta_text": "Order Now",
+                "cta_url": "/order/",
+            }),
+            ("paragraph", "<p>Our team of certified nurses...</p>"),
+        ],
+    )
+    service_index.add_child(instance=page)
+    page.save_revision().publish()
+    return page
+
+
+@pytest.fixture
+def test_pillar(tenant_site, test_service_page, test_blog_post):
+    """A test content pillar linking a service page to blog content."""
+    from cms_content_graph.models import ContentPillar
+
+    pillar = ContentPillar.objects.create(
+        site=tenant_site,
+        name="Nursing Care Plans",
+        slug="nursing-care-plans",
+        service_page=test_service_page,
+        hub_post=test_blog_post,
+        target_keywords=["nursing care plan", "care plan example"],
+    )
+
+    # Link the blog post to this pillar
+    test_blog_post.pillar = pillar
+    test_blog_post.primary_service = test_service_page
+    test_blog_post.save()
+
+    return pillar
 

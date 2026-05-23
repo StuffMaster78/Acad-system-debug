@@ -66,7 +66,9 @@ price_proposals = ClassPriceProposalViewSet.as_view({
 price_proposal_send = ClassPriceProposalViewSet.as_view({"post": "send"})
 price_proposal_accept = ClassPriceProposalViewSet.as_view({"post": "accept"})
 price_proposal_reject = ClassPriceProposalViewSet.as_view({"post": "reject"})
-price_proposal_counter = ClassPriceProposalViewSet.as_view({"post": "counter"})
+price_proposal_counter = ClassPriceProposalViewSet.as_view({
+    "post": "counter",
+})
 
 access_details = ClassAccessViewSet.as_view({
     "put": "details",
@@ -91,11 +93,20 @@ two_factor_resolve = ClassAccessViewSet.as_view({
 
 payment_invoices = ClassPaymentViewSet.as_view({"get": "invoices"})
 payment_allocations = ClassPaymentViewSet.as_view({"get": "allocations"})
+payment_milestones = ClassPaymentViewSet.as_view({
+    "get": "payment_milestones",
+})
+payment_create_equal_schedule = ClassPaymentViewSet.as_view({
+    "post": "create_equal_payment_schedule",
+})
 payment_installments = ClassPaymentViewSet.as_view({"get": "installments"})
 payment_create_equal_installments = ClassPaymentViewSet.as_view({
     "post": "create_equal_installments",
 })
 payment_prepare = ClassPaymentViewSet.as_view({"post": "prepare_payment"})
+payment_waive_milestone = ClassPaymentViewSet.as_view({
+    "post": "waive_payment_milestone",
+})
 payment_waive_installment = ClassPaymentViewSet.as_view({
     "post": "waive_installment",
 })
@@ -318,9 +329,19 @@ urlpatterns = [
         name="class-payment-allocations",
     ),
     path(
+        "classes/<int:class_order_pk>/payments/milestones/",
+        payment_milestones,
+        name="class-payment-milestones",
+    ),
+    path(
         "classes/<int:class_order_pk>/payments/installments/",
         payment_installments,
         name="class-payment-installments",
+    ),
+    path(
+        "classes/<int:class_order_pk>/payments/create-equal-schedule/",
+        payment_create_equal_schedule,
+        name="class-payment-create-equal-schedule",
     ),
     path(
         "classes/<int:class_order_pk>/payments/create-equal-installments/",
@@ -331,6 +352,12 @@ urlpatterns = [
         "classes/<int:class_order_pk>/payments/prepare/",
         payment_prepare,
         name="class-payment-prepare",
+    ),
+    path(
+        "classes/<int:class_order_pk>/payments/"
+        "milestones/<int:milestone_id>/waive/",
+        payment_waive_milestone,
+        name="class-payment-waive-milestone",
     ),
     path(
         "classes/<int:class_order_pk>/payments/"
