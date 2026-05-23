@@ -1,0 +1,11 @@
+{% load wagtailcore_tags %}
+<section class="related-posts">
+    <h2>{{ self.heading }}</h2>
+    <div class="related-posts-grid">
+        {% for post in self.posts %}
+        <a href="{% pageurl post %}" class="related-post-card">
+            <h3>{{ post.title }}</h3>
+        </a>
+        {% endfor %}
+    </div>
+</section>

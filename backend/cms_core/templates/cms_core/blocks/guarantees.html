@@ -1,0 +1,12 @@
+<section class="guarantees">
+    <h2>{{ self.heading }}</h2>
+    <div class="guarantee-grid">
+        {% for g in self.guarantees %}
+        <div class="guarantee-item">
+            {% if g.icon_name %}<div class="guarantee-icon">{{ g.icon_name }}</div>{% endif %}
+            <h3>{{ g.title }}</h3>
+            <p>{{ g.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>

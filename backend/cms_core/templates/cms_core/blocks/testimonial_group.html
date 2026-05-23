@@ -1,0 +1,18 @@
+<section class="testimonials">
+    <h2>{{ self.heading }}</h2>
+    <div class="testimonial-grid">
+        {% for t in self.testimonials %}
+        <div class="testimonial-card" itemscope itemtype="https://schema.org/Review">
+            <div class="testimonial-rating" itemprop="reviewRating" itemscope itemtype="https://schema.org/Rating">
+                <meta itemprop="ratingValue" content="{{ t.rating }}">
+                {% for i in "12345" %}{% if forloop.counter <= t.rating %}★{% else %}☆{% endif %}{% endfor %}
+            </div>
+            <blockquote itemprop="reviewBody">{{ t.quote }}</blockquote>
+            <div class="testimonial-author" itemprop="author" itemscope itemtype="https://schema.org/Person">
+                <strong itemprop="name">{{ t.author_name }}</strong>
+                {% if t.author_title %}<span>{{ t.author_title }}</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>

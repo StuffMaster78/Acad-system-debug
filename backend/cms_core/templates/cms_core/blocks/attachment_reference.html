@@ -1,0 +1,13 @@
+<div class="attachment-embed attachment-embed--{{ self.display_style }}">
+    <div class="attachment-info">
+        <h4 class="attachment-title">{{ self.custom_title|default:self.attachment.title }}</h4>
+        <p class="attachment-description">{{ self.attachment.description }}</p>
+        <div class="attachment-meta">
+            <span class="attachment-type">{{ self.attachment.get_attachment_type_display }}</span>
+            {% if self.attachment.file_format %}<span class="attachment-format">{{ self.attachment.file_format|upper }}</span>{% endif %}
+        </div>
+    </div>
+    <a href="/resources/{{ self.attachment.slug }}/" class="attachment-cta">
+        {{ self.custom_cta_text|default:"Download Now" }}
+    </a>
+</div>

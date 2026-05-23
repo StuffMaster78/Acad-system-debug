@@ -1,0 +1,12 @@
+<section class="feature-grid">
+    <h2>{{ self.heading }}</h2>
+    <div class="features">
+        {% for feature in self.features %}
+        <div class="feature-item">
+            {% if feature.icon_name %}<div class="feature-icon">{{ feature.icon_name }}</div>{% endif %}
+            <h3>{{ feature.title }}</h3>
+            <div class="feature-description">{{ feature.description }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</section>

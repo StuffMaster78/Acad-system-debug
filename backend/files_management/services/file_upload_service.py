@@ -4,7 +4,7 @@ from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 
 from files_management.enums import FileLifecycleStatus, FileScanStatus
-from files_management.models import ManagedFile
+from files_management.models.managed_file import ManagedFile
 from files_management.services.file_policy_service import FilePolicyService
 from files_management.storage import (
     FileStorageBackend,
@@ -57,7 +57,7 @@ class FileUploadService:
             The created ManagedFile record.
         """
 
-        original_name = normalize_filename(uploaded_file.name)
+        original_filename = normalize_filename(uploaded_file.name)
 
         mime_type = FilePolicyService.validate_uploaded_file(
             website=website,
@@ -67,7 +67,7 @@ class FileUploadService:
 
         storage_key = FileStoragePathBuilder.build_key(
             website_id=website.id,
-            original_name=original_name,
+            original_name=original_filename,
             purpose=purpose,
         )
 
@@ -78,15 +78,15 @@ class FileUploadService:
 
         file_kind = MimeTypeDetector.detect_kind(
             mime_type=mime_type,
-            filename=original_name,
+            filename=original_filename,
         )
 
         return ManagedFile.objects.create(
             website=website,
             uploaded_by=uploaded_by,
             file=saved_name,
-            original_name=original_name,
-            file_size=uploaded_file.size,
+            original_name=original_filename,
+            file_size_bytes=uploaded_file.size,
             mime_type=mime_type,
             file_kind=file_kind,
             storage_key=saved_name,

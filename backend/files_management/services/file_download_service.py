@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from django.db import transaction
 
+from backend.order_files.models import FileDownloadLog
 from files_management.enums import FileAccessAction
 from files_management.exceptions import FileNotAvailable
-from files_management.models import FileAttachment, FileDownloadLog
+from files_management.models.file_attachment import FileAttachment
+from files_management.models.file_download_log import FileDownloadLog
 from files_management.services.file_access_service import FileAccessService
 from files_management.storage import SignedUrlBuilder
 

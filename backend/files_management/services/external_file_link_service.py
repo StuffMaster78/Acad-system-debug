@@ -10,7 +10,7 @@ from files_management.enums import (
     ExternalFileReviewStatus,
 )
 from files_management.exceptions import ExternalFileLinkError
-from files_management.models import ExternalFileLink
+from files_management.models.external_file_link import ExternalFileLink
 from files_management.services.file_policy_service import FilePolicyService
 
 

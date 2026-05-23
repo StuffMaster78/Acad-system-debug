@@ -1,0 +1,8 @@
+{% load wagtailimages_tags %}
+<section class="hero-section"{% if self.background_image %} style="background-image: url('{% image self.background_image width-1920 as bg %}{{ bg.url }}')"{% endif %}>
+    <div class="hero-content">
+        <h1 class="hero-headline">{{ self.headline }}</h1>
+        {% if self.subheadline %}<p class="hero-subheadline">{{ self.subheadline }}</p>{% endif %}
+        <a href="{{ self.cta_url }}" class="hero-cta">{{ self.cta_text }}</a>
+    </div>
+</section>

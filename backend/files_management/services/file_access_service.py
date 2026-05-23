@@ -7,7 +7,8 @@ from files_management.enums import (
     FileScanStatus,
 )
 from files_management.exceptions import FileAccessDenied, FileNotAvailable
-from files_management.models import FileAttachment, ManagedFile
+from files_management.models.file_attachment import FileAttachment
+from files_management.models.managed_file import  ManagedFile
 from files_management.policies import FilePolicyRegistry
 from files_management.selectors import FileAccessGrantSelector
 

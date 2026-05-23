@@ -10,7 +10,8 @@ from files_management.enums import (
     FileLifecycleStatus,
 )
 from files_management.exceptions import FileDeletionError
-from files_management.models import FileAttachment, FileDeletionRequest
+from files_management.models.file_attachment import FileAttachment
+from files_management.models.file_deletion_request import FileDeletionRequest
 from files_management.services.file_access_service import FileAccessService
 from files_management.services.file_attachment_service import (
     FileAttachmentService,
@@ -314,6 +315,12 @@ class FileDeletionService:
             return
         
         managed_file = deletion_request.managed_file
+
+        if managed_file is None:
+            raise FileDeletionError(
+                "Archive-file deletion requires a managed file."
+            )
+        
         managed_file.lifecycle_status = FileLifecycleStatus.ARCHIVED
         managed_file.full_clean()
         managed_file.save(
@@ -341,6 +348,10 @@ class FileDeletionService:
             return
         
         managed_file = deletion_request.managed_file
+        if managed_file is None:
+            raise FileDeletionError(
+                "Archive-file deletion requires a managed file."
+            )
 
         if managed_file.storage_key:
             FileStorageBackend.delete(

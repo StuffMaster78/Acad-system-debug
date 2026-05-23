@@ -1,0 +1,11 @@
+<section class="comparison-table">
+    <h2>{{ self.heading }}</h2>
+    <table>
+        <thead><tr><th>Feature</th><th>Us</th><th>{{ self.competitor_name }}</th></tr></thead>
+        <tbody>
+            {% for row in self.rows %}
+            <tr><td>{{ row.feature }}</td><td>{{ row.us }}</td><td>{{ row.competitor }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>

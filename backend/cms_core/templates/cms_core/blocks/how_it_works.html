@@ -1,0 +1,12 @@
+<section class="how-it-works">
+    <h2>{{ self.heading }}</h2>
+    <div class="steps">
+        {% for step in self.steps %}
+        <div class="step">
+            <div class="step-number">{{ step.step_number }}</div>
+            <h3>{{ step.title }}</h3>
+            <div class="step-description">{{ step.description }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</section>

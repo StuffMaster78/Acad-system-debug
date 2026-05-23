@@ -3,8 +3,10 @@ from __future__ import annotations
 from django.db import transaction
 from django.utils import timezone
 
+from backend.files_management.services.storage_service import ManagedFile
 from files_management.enums import FileLifecycleStatus, FileScanStatus
-from files_management.models import FileScanResult, ManagedFile
+from files_management.models.file_scan_result import FileScanResult
+from files_management.models.managed_file import ManagedFile
 
 
 class FileScanService:
@@ -32,13 +34,13 @@ class FileScanService:
         Mark a file scan as pending.
         """
 
-        managed_file.scan_status = FileScanStatus.PENDING
+        managed_file.scan_status = FileScanStatus.QUEUED
         managed_file.save(update_fields=["scan_status", "updated_at"])
 
         return FileScanResult.objects.create(
             managed_file=managed_file,
             scan_type=scan_type,
-            status=FileScanStatus.PENDING,
+            status=FileScanStatus.QUEUED,
             provider=provider,
             result_payload=result_payload or {},
         )

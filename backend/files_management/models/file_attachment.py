@@ -33,7 +33,7 @@ class FileAttachment(models.Model):
 
     managed_file = models.ForeignKey(
         "files_management.ManagedFile",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="attachments",
@@ -141,8 +141,8 @@ class FileAttachment(models.Model):
         admin, serializers, tests, and service level validation.
         """
 
-        has_managed_file = self.managed_file_id is not None
-        has_external_link = self.external_link_id is not None
+        has_managed_file = self.managed_file is not None
+        has_external_link = self.external_link is not None
 
         if has_managed_file == has_external_link:
             raise ValidationError(
@@ -150,16 +150,21 @@ class FileAttachment(models.Model):
                 "source."
             )
 
-        if self.managed_file and self.managed_file.website_id != self.website.id:
+        if (
+            self.managed_file is not None
+            and self.managed_file.website_id != self.website.pk
+        ):
             raise ValidationError(
                 "Managed file must belong to the same website."
             )
 
-        if self.external_link:
-            if self.external_link.website_id != self.website.id:
-                raise ValidationError(
-                    "External file link must belong to the same website."
-                )
+        if (
+            self.external_link is not None
+            and self.external_link.website_id != self.website.pk
+        ):
+            raise ValidationError(
+                "External file link must belong to the same website."
+            )
 
     @property
     def source(self):

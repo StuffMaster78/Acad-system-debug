@@ -4,7 +4,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from files_management.exceptions import FileAccessDenied
-from files_management.models import FileAccessGrant, FileAttachment
+from files_management.models.file_access_grant import FileAccessGrant
+from files_management.models.file_attachment import FileAttachment
 
 
 class FileAccessGrantService:

@@ -1,0 +1,11 @@
+{% load wagtailcore_tags %}
+<a href="{% pageurl self.page %}" class="internal-link-card">
+    <div class="link-card-content">
+        <h3 class="link-card-title">{{ self.custom_title|default:self.page.title }}</h3>
+        {% if self.custom_description %}
+            <p class="link-card-description">{{ self.custom_description }}</p>
+        {% elif self.page.specific.excerpt %}
+            <p class="link-card-description">{{ self.page.specific.excerpt }}</p>
+        {% endif %}
+    </div>
+</a>

@@ -4,9 +4,13 @@ from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models import Max
 
+from typing import Any, cast
+
 from files_management.enums import FileAccessAction
 from files_management.exceptions import FileVersionError
-from files_management.models import FileAttachment, FileVersion, ManagedFile
+from files_management.models.file_attachment import FileAttachment
+from files_management.models.file_version import FileVersion
+from files_management.models.managed_file import ManagedFile
 from files_management.services.file_access_service import FileAccessService
 from files_management.services.file_upload_service import FileUploadService
 
@@ -79,7 +83,8 @@ class FileVersionService:
             notes=notes,
         )
 
-        attachment.managed_file = new_file
+        attachment_for_update = cast(Any, attachment)
+        attachment_for_update.managed_file_id = new_file.pk
         
         attachment.full_clean()
         attachment.save(

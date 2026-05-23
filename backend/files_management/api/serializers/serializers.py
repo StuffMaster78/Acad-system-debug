@@ -2,27 +2,40 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from files_management.models import FileAttachment, ManagedFile
+from files_management.models.file_attachment import FileAttachment
+from files_management.models.managed_file import ManagedFile
+from files_management.models.file_quota import FileQuota
+
 
 
 class ManagedFileSerializer(serializers.ModelSerializer):
     """
     Read-only representation of uploaded files.
     """
+    public_url = serializers.CharField(read_only=True)
+    download_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ManagedFile
         fields = [
-            "id",
-            "original_name",
-            "file_size",
-            "mime_type",
-            "file_kind",
-            "lifecycle_status",
-            "scan_status",
+            "uuid",
+            "original_filename",
+            "file_size_bytes",
+            "mime_type", "file_extension", "file_kind",
+            "width_px", "height_px", "page_count",
+            "scan_status", "lifecycle_status",
+            "is_public", "derivative_type",
+            "public_url", "download_url",
             "created_at",
         ]
         read_only_fields = fields
+
+
+    def get_download_url(self, obj) -> str | None:
+        if obj.is_public and obj.public_url:
+            return obj.public_url
+        return None
+
 
 
 class FileAttachmentSerializer(serializers.ModelSerializer):
@@ -45,6 +58,8 @@ class FileAttachmentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+
+
 class FileUploadSerializer(serializers.Serializer):
     """
     Upload input serializer.
@@ -52,7 +67,9 @@ class FileUploadSerializer(serializers.Serializer):
 
     file = serializers.FileField()
     purpose = serializers.CharField(max_length=64)
-    is_public = serializers.BooleanField(default=False)
+    bucket_id = serializers.IntegerField(required=False)
+    file_kind = serializers.CharField(default="other")
+    is_public = serializers.BooleanField(default=False, required=False)
 
 
 class FileAttachSerializer(serializers.Serializer):
@@ -75,3 +92,16 @@ class FileDeletionRequestSerializer(serializers.Serializer):
     attachment_id = serializers.IntegerField()
     reason = serializers.CharField()
     scope = serializers.CharField(default="detach_only")
+
+
+class FileQuotaSerializer(serializers.ModelSerializer):
+    usage_percent = serializers.FloatField(read_only=True, source="usage_percent")
+    remaining_bytes = serializers.IntegerField(read_only=True, source="remaining_bytes")
+
+    class Meta:
+        model = FileQuota
+        fields = [
+            "max_total_size_bytes", "max_file_size_bytes", "max_files_count",
+            "current_size_bytes", "current_files_count",
+            "usage_percent", "remaining_bytes",
+        ]

@@ -1,0 +1,14 @@
+<div class="video-embed">
+    <div class="video-wrapper">
+        {% if "youtube" in self.url %}
+            {% with video_id=self.url|cut:"https://www.youtube.com/watch?v=" %}
+            <iframe src="https://www.youtube-nocookie.com/embed/{{ video_id }}" frameborder="0" allowfullscreen loading="lazy" title="{{ self.caption|default:'Video' }}"></iframe>
+            {% endwith %}
+        {% elif "vimeo" in self.url %}
+            {% with video_id=self.url|cut:"https://vimeo.com/" %}
+            <iframe src="https://player.vimeo.com/video/{{ video_id }}" frameborder="0" allowfullscreen loading="lazy" title="{{ self.caption|default:'Video' }}"></iframe>
+            {% endwith %}
+        {% endif %}
+    </div>
+    {% if self.caption %}<p class="video-caption">{{ self.caption }}</p>{% endif %}
+</div>

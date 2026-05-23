@@ -70,6 +70,7 @@ class FileScanStatus(models.TextChoices):
     FLAGGED = "flagged", "Flagged"
     ERROR = "error", "Error"
     SKIPPED = "skipped", "Skipped"
+    PASSED = "passed", "Passed"
 
 
 class FileProcessingStatus(models.TextChoices):

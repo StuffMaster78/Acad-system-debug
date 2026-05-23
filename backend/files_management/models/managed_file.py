@@ -137,7 +137,8 @@ class ManagedFile(models.Model):
     scan_completed_at = models.DateTimeField(null=True, blank=True)
     scan_engine = models.CharField(max_length=50, blank=True)
     scan_result_detail = models.TextField(blank=True)
-
+    scanned_at = models.DateTimeField(null=True, blank=True)
+    
     # Lifecycle
     lifecycle_status = models.CharField(
         max_length=32,

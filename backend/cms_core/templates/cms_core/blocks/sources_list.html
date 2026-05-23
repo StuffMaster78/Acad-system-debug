@@ -1,0 +1,17 @@
+<section class="sources-section" aria-label="Sources">
+    <h2 class="sources-heading">{{ self.heading }}</h2>
+    <ol class="sources-list">
+        {% for source in self.sources %}
+        <li class="source-item">
+            {% if source.author %}{{ source.author }}. {% endif %}
+            {% if source.url %}
+                <a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.title }}</a>
+            {% else %}
+                {{ source.title }}
+            {% endif %}
+            {% if source.publication %}<em>{{ source.publication }}</em>{% endif %}
+            {% if source.year %}({{ source.year }}){% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+</section>
