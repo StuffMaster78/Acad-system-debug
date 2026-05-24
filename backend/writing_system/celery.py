@@ -261,28 +261,6 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
         "task": "support_management.tasks.calculate_support_performance_metrics",
         "schedule": crontab(minute=0, hour=2),  # Daily at 2 AM
     },
-    # Content Management Metrics
-    "recalculate-website-content-metrics": {
-        "task": "blog_pages_management.tasks.recalculate_website_content_metrics",
-        "schedule": crontab(minute=0, hour=3),  # Daily at 3 AM
-    },
-    "recalculate-service-website-content-metrics": {
-        "task": "blog_pages_management.tasks.recalculate_service_website_content_metrics",
-        "schedule": crontab(minute=15, hour=3),  # Daily at 3:15 AM
-    },
-    # Content Reminders
-    "send-content-freshness-reminders": {
-        "task": "blog_pages_management.tasks.send_content_freshness_reminders",
-        "schedule": crontab(minute=0, hour=9, day_of_week="monday"),  # Weekly on Monday at 9 AM
-    },
-    "send-monthly-publishing-reminders": {
-        "task": "blog_pages_management.tasks.send_monthly_publishing_reminders",
-        "schedule": crontab(minute=0, hour=10),  # Daily at 10 AM
-    },
-    "send-content-reminder-email-digest": {
-        "task": "blog_pages_management.tasks.send_content_reminder_email_digest",
-        "schedule": crontab(minute=0, hour=8, day_of_week="monday"),  # Weekly on Monday at 8 AM
-    },
     "orders-send-writer-acknowledgement-reminders-every-30-minutes": {
             "task": "orders.tasks.order_monitoring_tasks.send_writer_acknowledgement_reminders",
             "schedule": crontab(minute="*/30"),
@@ -408,17 +386,7 @@ def setup_periodic_tasks(sender=None, **kwargs):
     except Exception:
         return  # beat not installed; skip dynamically registered tasks
 
-    every_5_min, _ = IntervalSchedule.objects.get_or_create(every=5, period=IntervalSchedule.MINUTES)
-    every_24h, _ = IntervalSchedule.objects.get_or_create(every=1440, period=IntervalSchedule.MINUTES)
-
-    periodic_tasks = [
-        {"name": "Sync Blog Clicks", "task": "blog_pages_management.tasks.sync_blog_clicks_to_db", "interval": every_5_min},
-        {"name": "Sync Blog Conversions", "task": "blog_pages_management.tasks.sync_blog_conversions_to_db", "interval": every_5_min},
-        {"name": "Update Freshness Scores", "task": "blog_pages_management.tasks.update_freshness_scores", "interval": every_24h},
-        {"name": "Publish Scheduled Blogs", "task": "blog_pages_management.tasks.publish_scheduled_blogs", "interval": every_5_min},
-        {"name": "Cleanup Soft Deleted Blogs", "task": "blog_pages_management.tasks.cleanup_soft_deleted_blogs", "interval": every_24h},
-        {"name": "Warn Admins Before Deletion", "task": "blog_pages_management.tasks.warn_admins_before_deletion", "interval": every_24h},
-    ]
+    periodic_tasks = []
 
     for t in periodic_tasks:
         PeriodicTask.objects.update_or_create(
@@ -426,13 +394,7 @@ def setup_periodic_tasks(sender=None, **kwargs):
             defaults={"interval": t["interval"], "task": t["task"], "args": json.dumps([]), "enabled": True},
         )
 
-    weekly, _ = CrontabSchedule.objects.get_or_create(minute=0, hour=8, day_of_week=1)
-    sunday, _ = CrontabSchedule.objects.get_or_create(minute=0, hour=9, day_of_week=0)
-
-    crontab_tasks = [
-        {"name": "Send Weekly Newsletter", "task": "blog_pages_management.tasks.send_weekly_newsletter", "crontab": weekly},
-        {"name": "Check for Broken Links", "task": "blog_pages_management.tasks.check_for_broken_links", "crontab": sunday},
-    ]
+    crontab_tasks = []
     for t in crontab_tasks:
         PeriodicTask.objects.update_or_create(
             name=t["name"],

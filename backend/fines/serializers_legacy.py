@@ -123,6 +123,7 @@ class FineSerializer(serializers.ModelSerializer):
             "amount",
             "reason",
             "status",
+            "issued_by",
             "imposed_at",
             "waived_by",
             "waived_at",
@@ -136,6 +137,7 @@ class FineSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "status",
+            "issued_by",
             "imposed_at",
             "waived_by",
             "waived_at",
@@ -192,7 +194,7 @@ class FineAppealSerializer(serializers.ModelSerializer):
     Validates appeal ownership and ensures only one appeal per fine.
     """
 
-    appealed_by = UserSerializer(read_only=True)
+    appealed_by = UserSerializer(source="submitted_by", read_only=True)
     reviewed_by = UserSerializer(read_only=True)
     escalated_to_username = serializers.CharField(source="escalated_to.username", read_only=True)
     fine_id = serializers.IntegerField(write_only=True, required=False)
@@ -203,6 +205,8 @@ class FineAppealSerializer(serializers.ModelSerializer):
     order_topic = serializers.CharField(source="fine.order.topic", read_only=True)
     events = serializers.SerializerMethodField()
     evidence_files = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(source="submitted_at", read_only=True)
+    accepted = serializers.SerializerMethodField()
 
     class Meta:
         model = FineAppeal
@@ -239,6 +243,13 @@ class FineAppealSerializer(serializers.ModelSerializer):
             "evidence_files",
         ]
 
+    def get_accepted(self, obj):
+        if obj.review_decision == "accepted":
+            return True
+        if obj.review_decision == "rejected":
+            return False
+        return None
+
     def validate_fine_id(self, fine_id):
         """Ensure the fine exists and has not already been appealed."""
         if not Fine.objects.filter(id=fine_id).exists():
@@ -255,7 +266,7 @@ class FineAppealSerializer(serializers.ModelSerializer):
         """
         request = self.context.get("request")
         if request:
-            validated_data["appealed_by"] = request.user
+            validated_data["submitted_by"] = request.user
         
         fine_id = validated_data.pop('fine_id', None)
         if fine_id:

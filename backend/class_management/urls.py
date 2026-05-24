@@ -149,23 +149,14 @@ portal_work_log_reject = ClassPortalWorkLogViewSet.as_view({
 })
 scope_item_detail = ClassScopeItemViewSet.as_view({
     "get": "retrieve",
-    "put": "update",
-    "patch": "partial_update",
-    "delete": "destroy",
 })
 
 task_detail = ClassTaskViewSet.as_view({
     "get": "retrieve",
-    "put": "update",
-    "patch": "partial_update",
-    "delete": "destroy",
 })
 
 price_proposal_detail = ClassPriceProposalViewSet.as_view({
     "get": "retrieve",
-    "put": "update",
-    "patch": "partial_update",
-    "delete": "destroy",
 })
 
 urlpatterns = [

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import status
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from files_management.api.serializers.serializers import (
     FileAttachSerializer,
@@ -33,23 +33,27 @@ from files_management.models.managed_file import ManagedFile
 
 from files_management.api.serializers.serializers import (
     FileQuotaSerializer,
-    FileUploadSerializer,
     ManagedFileSerializer,
 )
 
-class FileUploadView(APIView):
+def _get_request_website(request):
+    return getattr(request, "website", None) or getattr(request.user, "website", None)
+
+
+class FileUploadView(GenericAPIView):
     """
     Upload a file.
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = FileUploadSerializer
 
     def post(self, request):
         serializer = FileUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         file = FileUploadService.upload_file(
-            website=request.user.website,
+            website=_get_request_website(request),
             uploaded_by=request.user,
             uploaded_file=serializer.validated_data["file"],
             purpose=serializer.validated_data["purpose"],
@@ -62,20 +66,22 @@ class FileUploadView(APIView):
         )
 
 
-class FileAttachView(APIView):
+class FileAttachView(GenericAPIView):
     """
     Attach file to domain object.
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = FileAttachSerializer
 
     def post(self, request):
         serializer = FileAttachSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        website = _get_request_website(request)
 
         file = ManagedFileSelector.by_id_for_website(
             file_id=serializer.validated_data["file_id"],
-            website=request.user.website,
+            website=website,
         )
 
         content_type = ContentType.objects.get(
@@ -87,7 +93,7 @@ class FileAttachView(APIView):
         )
 
         attachment = FileAttachmentService.attach_managed_file(
-            website=request.user.website,
+            website=website,
             obj=obj,
             managed_file=file,
             purpose=serializer.validated_data["purpose"],
@@ -101,22 +107,24 @@ class FileAttachView(APIView):
         )
 
 
-class FileDownloadView(APIView):
+class FileDownloadView(GenericAPIView):
     """
     Get download URL.
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = FileAttachmentSerializer
 
     def get(self, request, attachment_id: int):
+        website = _get_request_website(request)
         attachment = FileAttachmentSelector.by_id_for_website(
             attachment_id=attachment_id,
-            website=request.user.website,
+            website=website,
         )
 
         url = FileDownloadService.get_download_url(
             user=request.user,
-            website=request.user.website,
+            website=website,
             attachment=attachment,
             ip_address=request.META.get("REMOTE_ADDR"),
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
@@ -125,24 +133,26 @@ class FileDownloadView(APIView):
         return Response({"url": url})
 
 
-class FileDeletionRequestView(APIView):
+class FileDeletionRequestView(GenericAPIView):
     """
     Request deletion.
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = FileDeletionRequestSerializer
 
     def post(self, request):
         serializer = FileDeletionRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        website = _get_request_website(request)
 
         attachment = FileAttachmentSelector.by_id_for_website(
             attachment_id=serializer.validated_data["attachment_id"],
-            website=request.user.website,
+            website=website,
         )
 
         req = FileDeletionService.request_deletion(
-            website=request.user.website,
+            website=website,
             requested_by=request.user,
             attachment=attachment,
             reason=serializer.validated_data["reason"],
@@ -280,6 +290,7 @@ class ManagedFileViewSet(viewsets.ReadOnlyModelViewSet):
 class FileQuotaView(viewsets.ViewSet):
     """GET /cms-api/files/quota/ — current tenant's storage quota."""
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = FileQuotaSerializer
 
     def list(self, request):
         website = getattr(request, "website", None)
@@ -288,4 +299,3 @@ class FileQuotaView(viewsets.ViewSet):
 
         quota, _ = FileQuota.objects.get_or_create(website=website)
         return Response(FileQuotaSerializer(quota).data)
-

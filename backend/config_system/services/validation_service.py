@@ -1,4 +1,4 @@
-from backend.config_system.core.schema import ConfigType
+from config_system.core.schema import ConfigType
 
 
 class ValidationService:

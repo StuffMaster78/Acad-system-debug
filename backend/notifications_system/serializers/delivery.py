@@ -21,6 +21,13 @@ class DeliverySerializer(serializers.ModelSerializer):
 
 
 class NotificationLogSerializer(serializers.ModelSerializer):
+    provider_msg_id = serializers.CharField(
+        source='delivery.provider_msg_id',
+        read_only=True,
+        allow_blank=True,
+        allow_null=True,
+    )
+
     class Meta:
         model = NotificationLog
         fields = [

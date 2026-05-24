@@ -26,4 +26,5 @@ urlpatterns = [
         FileDeletionRequestView.as_view(),
         name="file-deletion-request",
     ),
+    path("", include(router.urls)),
 ]

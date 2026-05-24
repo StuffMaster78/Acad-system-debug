@@ -100,8 +100,6 @@ INSTALLED_APPS = [
     "reputation_system",
     "privacy",
     "users_state",
-    "blog_pages_management",
-    "service_pages_management",
     "seo_pages",
     "media_management",
     "tickets",

@@ -17,10 +17,11 @@ class CmsFilePolicy(BaseFilePolicy):
 
     CMS_APP_LABELS = {
         "cms",
+        "cms_blog",
+        "cms_service_pages",
+        "cms_attachments",
         "cms_content",
         "seo_pages",
-        "blog_pages_management",
-        "service_pages_management",
         "media_management",
     }
 

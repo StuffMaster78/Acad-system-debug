@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.db import transaction
 from django.utils import timezone
 
-from backend.files_management.services.storage_service import ManagedFile
 from files_management.enums import FileLifecycleStatus, FileScanStatus
 from files_management.models.file_scan_result import FileScanResult
 from files_management.models.managed_file import ManagedFile

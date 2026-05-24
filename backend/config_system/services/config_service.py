@@ -1,5 +1,5 @@
 from config_system.cache.redis_cache import ConfigCacheService
-from backend.config_system.registry import CONFIG_REGISTRY
+from config_system.registry import CONFIG_REGISTRY
 from config_system.storage.models import ConfigItem
 
 

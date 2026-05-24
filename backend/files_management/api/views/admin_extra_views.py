@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from django.db.models import Q
 from rest_framework import status
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from files_management.api.permissions import IsTenantStaff
 from files_management.api.serializers.admin_extra_serializers import (
@@ -22,23 +22,28 @@ from files_management.services import (
 )
 
 
-class AdminFileListView(APIView):
+def _get_request_website(request):
+    return getattr(request, "website", None) or getattr(request.user, "website", None)
+
+
+class AdminFileListView(GenericAPIView):
     """
     List and search files across tenant.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = FileAttachmentSerializer
 
     def get(self, request):
         query = request.query_params.get("q", "")
 
         qs = ManagedFile.objects.filter(
-            website=request.user.website,
+            website=_get_request_website(request),
         )
 
         if query:
             qs = qs.filter(
-                Q(original_name__icontains=query)
+                Q(original_filename__icontains=query)
                 | Q(mime_type__icontains=query)
                 | Q(storage_key__icontains=query)
             )
@@ -48,8 +53,8 @@ class AdminFileListView(APIView):
         data = [
             {
                 "id": f.id,
-                "name": f.original_name,
-                "size": f.file_size,
+                "name": f.original_filename,
+                "size": f.file_size_bytes,
                 "type": f.mime_type,
                 "status": f.lifecycle_status,
                 "created_at": f.created_at,
@@ -60,12 +65,13 @@ class AdminFileListView(APIView):
         return Response(data)
 
 
-class AdminFileReplaceView(APIView):
+class AdminFileReplaceView(GenericAPIView):
     """
     Replace file (versioning).
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = AdminFileReplaceSerializer
 
     def post(self, request, attachment_id: int):
         serializer = AdminFileReplaceSerializer(data=request.data)
@@ -75,11 +81,11 @@ class AdminFileReplaceView(APIView):
 
         attachment = FileAttachmentSelector.by_id_for_website(
             attachment_id=attachment_id,
-            website=request.user.website,
+            website=_get_request_website(request),
         )
 
         updated_attachment = FileVersionService.replace_attachment_file(
-            website=request.user.website,
+            website=_get_request_website(request),
             replaced_by=request.user,
             attachment=attachment,
             uploaded_file=serializer.validated_data["file"],
@@ -91,16 +97,17 @@ class AdminFileReplaceView(APIView):
         )
 
 
-class AdminExternalLinkListCreateView(APIView):
+class AdminExternalLinkListCreateView(GenericAPIView):
     """
     Submit and list external links.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = ExternalLinkSubmitSerializer
 
     def get(self, request):
         links = ExternalFileLink.objects.filter(
-            website=request.user.website,
+            website=_get_request_website(request),
         ).order_by("-created_at")[:100]
 
         data = [
@@ -121,7 +128,7 @@ class AdminExternalLinkListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
 
         link = ExternalFileLinkService.submit_link(
-            website=request.user.website,
+            website=_get_request_website(request),
             submitted_by=request.user,
             url=serializer.validated_data["url"],
             purpose=serializer.validated_data["purpose"],
@@ -134,19 +141,20 @@ class AdminExternalLinkListCreateView(APIView):
         )
 
 
-class CMSFileUploadView(APIView):
+class CMSFileUploadView(GenericAPIView):
     """
     Content manager upload endpoint.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = CMSUploadSerializer
 
     def post(self, request):
         serializer = CMSUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         file = FileUploadService.upload_file(
-            website=request.user.website,
+            website=_get_request_website(request),
             uploaded_by=request.user,
             uploaded_file=serializer.validated_data["file"],
             purpose=serializer.validated_data["purpose"],
@@ -157,7 +165,7 @@ class CMSFileUploadView(APIView):
         return Response(
             {
                 "file_id": file.id,
-                "name": file.original_name,
+                "name": file.original_filename,
             },
             status=status.HTTP_201_CREATED,
         )

@@ -48,12 +48,12 @@ class ManagedFileAdmin(admin.ModelAdmin):
     """
 
     list_display = (
-        "original_name",
+        "original_filename",
         "website",
         "uploaded_by",
         "file_kind",
         "mime_type",
-        "file_size",
+        "file_size_bytes",
         "lifecycle_status",
         "scan_status",
         "is_public",
@@ -67,7 +67,7 @@ class ManagedFileAdmin(admin.ModelAdmin):
         "is_public",
     )
     search_fields = (
-        "original_name",
+        "original_filename",
         "mime_type",
         "checksum",
         "storage_key",
@@ -109,7 +109,7 @@ class FileAttachmentAdmin(admin.ModelAdmin):
     search_fields = (
         "display_name",
         "notes",
-        "managed_file__original_name",
+        "managed_file__original_filename",
         "external_link__title",
         "external_link__url",
     )
@@ -135,8 +135,8 @@ class FileVersionAdmin(admin.ModelAdmin):
     )
     list_filter = ("created_at",)
     search_fields = (
-        "file__original_name",
-        "replaced_file__original_name",
+        "file__original_filename",
+        "replaced_file__original_filename",
         "notes",
     )
     readonly_fields = ("created_at",)
@@ -160,7 +160,7 @@ class FileDownloadLogAdmin(admin.ModelAdmin):
     )
     list_filter = ("downloaded_at",)
     search_fields = (
-        "file__original_name",
+        "file__original_filename",
         "downloaded_by__email",
         "ip_address",
         "user_agent",
@@ -244,7 +244,7 @@ class FileDeletionRequestAdmin(admin.ModelAdmin):
         "created_at",
     )
     search_fields = (
-        "managed_file__original_name",
+        "managed_file__original_filename",
         "requested_by__email",
         "reason",
         "admin_comment",
@@ -284,7 +284,7 @@ class FileAccessGrantAdmin(admin.ModelAdmin):
         "revoked_at",
     )
     search_fields = (
-        "managed_file__original_name",
+        "managed_file__original_filename",
         "grantee__email",
         "granted_by__email",
         "reason",
@@ -345,7 +345,7 @@ class FileScanResultAdmin(admin.ModelAdmin):
         "scanned_at",
     )
     search_fields = (
-        "managed_file__original_name",
+        "managed_file__original_filename",
         "scan_type",
         "provider",
         "summary",
@@ -376,7 +376,7 @@ class FileProcessingJobAdmin(admin.ModelAdmin):
         "completed_at",
     )
     search_fields = (
-        "managed_file__original_name",
+        "managed_file__original_filename",
         "job_type",
         "last_error",
     )

@@ -42,7 +42,6 @@ from .config_management import (
     NotificationConfigManagementViewSet,
     SystemConfigManagementViewSet,
     ScreenedWordManagementViewSet,
-    BlogAuthorPersonaManagementViewSet,
 )
 from .duplicate_detection import DuplicateAccountDetectionViewSet
 from .dashboard_endpoints import (
@@ -79,7 +78,6 @@ __all__ = [
     'NotificationConfigManagementViewSet',
     'SystemConfigManagementViewSet',
     'ScreenedWordManagementViewSet',
-    'BlogAuthorPersonaManagementViewSet',
     'DuplicateAccountDetectionViewSet',
     'AdminDisputeDashboardViewSet',
     'AdminRefundDashboardViewSet',
@@ -91,4 +89,3 @@ __all__ = [
     'AdminAdvancedAnalyticsDashboardViewSet',
     'AdminAdvancePaymentsDashboardViewSet',
 ]
-

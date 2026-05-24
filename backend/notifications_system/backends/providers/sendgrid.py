@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from backend.notifications_system.backends.providers.base import BaseEmailBackend
+from notifications_system.backends.providers.base import BaseEmailBackend
 
 logger = logging.getLogger(__name__)
 

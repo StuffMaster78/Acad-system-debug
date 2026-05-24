@@ -22,7 +22,7 @@ def api_root(request):
         },
         'authentication': {
             'login': '/api/v1/auth/login/',
-            'token_refresh': '/api/v1/auth/refresh-token/',
+            'token_refresh': '/api/v1/auth/token/refresh/',
             'method': 'JWT Bearer Token',
         },
         'endpoints': {
@@ -42,8 +42,6 @@ def api_root(request):
             'tickets': '/api/v1/tickets/',
             'wallets': '/api/v1/wallets/',
             'fines': '/api/v1/fines/',
-            'blog_pages': '/api/v1/blog_pages_management/',
-            'service_pages': '/api/v1/service-pages/',
             'dropdown_options': '/api/v1/dropdown-options/',
         },
         'status': 'operational'

@@ -33,7 +33,6 @@ class CommunicationModerationFlagSerializer(serializers.ModelSerializer):
             "resolution_note",
             "metadata",
             "created_at",
-            "updated_at",
         ]
         read_only_fields = fields
 

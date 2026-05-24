@@ -13,7 +13,7 @@
 4. [Architecture Overview](#architecture-overview)
 5. [Coding Standards](#coding-standards)
 6. [API Development](#api-development)
-7. [Frontend Development](#frontend-development)
+7. [Frontend Contract Notes](#frontend-contract-notes)
 8. [Testing](#testing)
 9. [Deployment](#deployment)
 
@@ -24,7 +24,6 @@
 ### Prerequisites
 
 - Python 3.9+
-- Node.js 18+
 - PostgreSQL 13+
 - Redis (optional, for caching)
 - Docker & Docker Compose (recommended)
@@ -52,10 +51,8 @@
    python manage.py migrate
    python manage.py runserver
 
-   # Frontend
-   cd frontend
-   npm install
-   npm run dev
+   # Frontend work now lives outside this backend repo.
+   # See docs/PACKAGING_STRATEGY.md before creating a new app.
    ```
 
 ---
@@ -74,14 +71,6 @@ writing_project/
 │   ├── core/              # Core utilities
 │   ├── writing_system/    # Main settings
 │   └── manage.py
-├── frontend/              # Vue.js frontend
-│   ├── src/
-│   │   ├── api/          # API client methods
-│   │   ├── components/    # Vue components
-│   │   ├── views/         # Page views
-│   │   ├── router/        # Vue Router
-│   │   └── stores/        # Pinia stores
-│   └── package.json
 └── docs/                  # Documentation
 ```
 
@@ -115,20 +104,9 @@ writing_project/
 
 ### Frontend Setup
 
-1. **Install Dependencies**
-   ```bash
-   npm install
-   ```
-
-2. **Run Development Server**
-   ```bash
-   npm run dev
-   ```
-
-3. **Build for Production**
-   ```bash
-   npm run build
-   ```
+There is no active frontend package in this repository. The next frontend will
+be created from scratch in a separate package or repository and should consume
+the backend through the OpenAPI contract.
 
 ---
 
@@ -142,19 +120,15 @@ writing_project/
 - **API Style**: RESTful API
 - **Documentation**: drf-spectacular (OpenAPI/Swagger)
 
-### Frontend Architecture
+### Frontend Boundary
 
-- **Framework**: Vue.js 3 with Composition API
-- **Build Tool**: Vite
-- **State Management**: Pinia
-- **Routing**: Vue Router
-- **HTTP Client**: Axios
-- **Styling**: Tailwind CSS
+The old frontend has been removed. Backend development should focus on stable
+API contracts, serializers, permissions, schema annotations, and domain
+services. Do not add frontend application code to this repository.
 
 ### Key Design Patterns
 
 - **MVC** - Model-View-Controller (Django)
-- **Component-Based** - Vue components
 - **Repository Pattern** - API service layer
 - **Observer Pattern** - Event handling
 
@@ -186,36 +160,6 @@ def get_order_details(order_id: int) -> dict:
     order = Order.objects.get(id=order_id)
     return serialize_order(order)
 ```
-
-### JavaScript (Frontend)
-
-- **Style Guide**: ESLint with Vue plugin
-- **Formatter**: Prettier
-- **Naming**: camelCase for variables, PascalCase for components
-
-```javascript
-// Component
-export default {
-  name: 'OrderCard',
-  props: {
-    orderId: {
-      type: Number,
-      required: true
-    }
-  },
-  setup(props) {
-    const order = ref(null)
-    
-    const fetchOrder = async () => {
-      order.value = await ordersAPI.getOrder(props.orderId)
-    }
-    
-    return { order, fetchOrder }
-  }
-}
-```
-
----
 
 ## 🔌 API Development
 
@@ -265,59 +209,18 @@ export default {
 
 ---
 
-## 🎨 Frontend Development
+## Frontend Contract Notes
 
-### Creating Components
+The upcoming frontend should be designed as a separate app that depends on
+backend contracts, not backend internals.
 
-1. **Component Structure**
-   ```vue
-   <template>
-     <div class="component-name">
-       <!-- Template content -->
-     </div>
-   </template>
-   
-   <script setup>
-   import { ref, computed } from 'vue'
-   
-   const props = defineProps({
-     // Props definition
-   })
-   
-   const emit = defineEmits(['event-name'])
-   
-   // Component logic
-   </script>
-   
-   <style scoped>
-   /* Component styles */
-   </style>
-   ```
+Before frontend implementation begins:
 
-2. **Using API Methods**
-   ```javascript
-   import ordersAPI from '@/api/orders'
-   
-   const orders = ref([])
-   
-   const fetchOrders = async () => {
-     try {
-       const response = await ordersAPI.getOrders()
-       orders.value = response.data.results
-     } catch (error) {
-       console.error('Failed to fetch orders:', error)
-     }
-   }
-   ```
-
-### Component Best Practices
-
-- Use Composition API
-- Keep components focused and reusable
-- Use props for data input
-- Use emits for events
-- Handle loading and error states
-- Make components accessible
+- Generate and review the OpenAPI schema.
+- Reduce drf-spectacular warnings that would make generated clients unreliable.
+- Keep `backend/API_CONTRACT_FRONTEND.md` updated with temporary contract notes.
+- Prefer canonical endpoints over dashboard-specific duplicates.
+- Mark deprecated endpoints before the new frontend adopts them.
 
 ---
 
@@ -343,33 +246,10 @@ class OrderTestCase(TestCase):
         self.assertEqual(response.status_code, 201)
 ```
 
-### Frontend Testing
-
-```javascript
-// frontend/src/components/__tests__/OrderCard.spec.js
-import { mount } from '@vue/test-utils'
-import OrderCard from '@/components/OrderCard.vue'
-
-describe('OrderCard', () => {
-  it('renders order information', () => {
-    const wrapper = mount(OrderCard, {
-      props: {
-        orderId: 1
-      }
-    })
-    expect(wrapper.text()).toContain('Order')
-  })
-})
-```
-
 ### Running Tests
 
 ```bash
-# Backend
 python manage.py test
-
-# Frontend
-npm run test
 ```
 
 ---
@@ -398,8 +278,7 @@ SECRET_KEY=your-secret-key
 DATABASE_URL=postgresql://...
 ALLOWED_HOSTS=yourdomain.com
 
-# Frontend
-VITE_API_BASE_URL=https://api.yourdomain.com
+# Frontend variables belong in the future frontend package, not this backend repo.
 ```
 
 ---
@@ -408,10 +287,7 @@ VITE_API_BASE_URL=https://api.yourdomain.com
 
 - [Django Documentation](https://docs.djangoproject.com/)
 - [Django REST Framework](https://www.django-rest-framework.org/)
-- [Vue.js Documentation](https://vuejs.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
 
 ---
 
 **Last Updated**: December 2025
-

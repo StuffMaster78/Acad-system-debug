@@ -59,8 +59,6 @@ class UserGroupService:
             'permissions': [
                 'orders.view_order', 'orders.change_order',
                 'users.view_user',
-                'blog_pages_management.add_blogpost', 'blog_pages_management.change_blogpost',
-                'blog_pages_management.view_blogpost',
             ]
         },
         'writer': {
@@ -306,4 +304,3 @@ class UserGroupService:
             raise ValidationError("User must have a role attribute")
         
         return cls.update_user_groups(user, role)
-

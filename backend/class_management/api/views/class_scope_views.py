@@ -35,6 +35,15 @@ class ClassScopeItemViewSet(ClassTenantViewMixin, viewsets.GenericViewSet):
             class_order_id=self.kwargs["class_order_pk"],
         )
 
+    def get_scope_item(self) -> ClassScopeItem:
+        class_order = self.get_class_order()
+        item = ClassScopeItem.objects.get(
+            pk=self.kwargs["pk"],
+            class_order=class_order,
+        )
+        self.check_object_permissions(self.request, item)
+        return item
+
     def list(self, request, *args, **kwargs):
         class_order = self.get_class_order()
         items = ClassScopeSelector.scope_items_for_order(
@@ -67,6 +76,10 @@ class ClassScopeItemViewSet(ClassTenantViewMixin, viewsets.GenericViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    def retrieve(self, request, pk=None, *args, **kwargs):
+        item = self.get_scope_item()
+        return Response(ClassScopeItemSerializer(item).data)
+
 
 class ClassTaskViewSet(ClassTenantViewMixin, viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated, ClassScopePermission]
@@ -85,6 +98,10 @@ class ClassTaskViewSet(ClassTenantViewMixin, viewsets.GenericViewSet):
         )
         self.check_object_permissions(self.request, task)
         return task
+
+    def retrieve(self, request, pk=None, *args, **kwargs):
+        task = self.get_task()
+        return Response(ClassTaskSerializer(task).data)
 
     def list(self, request, *args, **kwargs):
         class_order = self.get_class_order()

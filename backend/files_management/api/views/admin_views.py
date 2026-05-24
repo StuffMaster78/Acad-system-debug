@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.generics import (
+    GenericAPIView,
     ListCreateAPIView,
     RetrieveUpdateAPIView,
 )
@@ -37,6 +38,10 @@ from files_management.services import (
 )
 
 
+def _get_request_website(request):
+    return getattr(request, "website", None) or getattr(request.user, "website", None)
+
+
 class IsTenantStaff(IsAuthenticated):
     """
     Permission allowing only authenticated tenant staff.
@@ -64,12 +69,13 @@ class IsTenantStaff(IsAuthenticated):
         )
 
 
-class AdminExternalFileLinkApproveView(APIView):
+class AdminExternalFileLinkApproveView(GenericAPIView):
     """
     Approve an external file link after staff review.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = AdminExternalLinkReviewSerializer
 
     def post(self, request, link_id: int):
         serializer = AdminExternalLinkReviewSerializer(data=request.data)
@@ -77,7 +83,7 @@ class AdminExternalFileLinkApproveView(APIView):
 
         external_link = ExternalFileLink.objects.get(
             id=link_id,
-            website=request.user.website,
+            website=_get_request_website(request),
         )
 
         external_link = ExternalFileLinkService.approve_link(
@@ -91,12 +97,13 @@ class AdminExternalFileLinkApproveView(APIView):
         )
 
 
-class AdminExternalFileLinkRejectView(APIView):
+class AdminExternalFileLinkRejectView(GenericAPIView):
     """
     Reject an external file link after staff review.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = AdminExternalLinkReviewSerializer
 
     def post(self, request, link_id: int):
         serializer = AdminExternalLinkReviewSerializer(data=request.data)
@@ -104,7 +111,7 @@ class AdminExternalFileLinkRejectView(APIView):
 
         external_link = ExternalFileLink.objects.get(
             id=link_id,
-            website=request.user.website,
+            website=_get_request_website(request),
         )
 
         external_link = ExternalFileLinkService.reject_link(
@@ -136,16 +143,17 @@ class AdminDeletionRequestListView(ListCreateAPIView):
         """
 
         return FileDeletionRequest.objects.filter(
-            website=self.request.user.website,
+            website=_get_request_website(self.request),
         ).order_by("-created_at")
 
 
-class AdminDeletionRequestApproveView(APIView):
+class AdminDeletionRequestApproveView(GenericAPIView):
     """
     Approve a pending deletion request.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = AdminDeletionReviewSerializer
 
     def post(self, request, request_id: int):
         serializer = AdminDeletionReviewSerializer(data=request.data)
@@ -153,7 +161,7 @@ class AdminDeletionRequestApproveView(APIView):
 
         deletion_request = FileDeletionRequest.objects.get(
             id=request_id,
-            website=request.user.website,
+            website=_get_request_website(request),
         )
 
         deletion_request = FileDeletionService.approve_request(
@@ -170,12 +178,13 @@ class AdminDeletionRequestApproveView(APIView):
         )
 
 
-class AdminDeletionRequestRejectView(APIView):
+class AdminDeletionRequestRejectView(GenericAPIView):
     """
     Reject a pending deletion request.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = AdminDeletionRejectSerializer
 
     def post(self, request, request_id: int):
         serializer = AdminDeletionRejectSerializer(data=request.data)
@@ -183,7 +192,7 @@ class AdminDeletionRequestRejectView(APIView):
 
         deletion_request = FileDeletionRequest.objects.get(
             id=request_id,
-            website=request.user.website,
+            website=_get_request_website(request),
         )
 
         deletion_request = FileDeletionService.reject_request(
@@ -197,12 +206,13 @@ class AdminDeletionRequestRejectView(APIView):
         )
 
 
-class AdminDeletionRequestCompleteView(APIView):
+class AdminDeletionRequestCompleteView(GenericAPIView):
     """
     Complete an approved deletion request.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = AdminDeletionCompleteSerializer
 
     def post(self, request, request_id: int):
         serializer = AdminDeletionCompleteSerializer(data=request.data)
@@ -210,7 +220,7 @@ class AdminDeletionRequestCompleteView(APIView):
 
         deletion_request = FileDeletionRequest.objects.get(
             id=request_id,
-            website=request.user.website,
+            website=_get_request_website(request),
         )
 
         deletion_request = FileDeletionService.complete_request(
@@ -241,7 +251,7 @@ class AdminFilePolicyListCreateView(ListCreateAPIView):
         """
 
         return FilePolicy.objects.filter(
-            website=self.request.user.website,
+            website=_get_request_website(self.request),
         ).order_by("purpose")
 
     def perform_create(self, serializer) -> None:
@@ -249,7 +259,7 @@ class AdminFilePolicyListCreateView(ListCreateAPIView):
         Create a policy for the current tenant.
         """
 
-        serializer.save(website=self.request.user.website)
+        serializer.save(website=_get_request_website(self.request))
 
 
 class AdminFilePolicyDetailView(RetrieveUpdateAPIView):
@@ -267,16 +277,17 @@ class AdminFilePolicyDetailView(RetrieveUpdateAPIView):
         """
 
         return FilePolicy.objects.filter(
-            website=self.request.user.website,
+            website=_get_request_website(self.request),
         )
 
 
-class AdminFileAccessGrantCreateView(APIView):
+class AdminFileAccessGrantCreateView(GenericAPIView):
     """
     Grant explicit temporary or permanent file access.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = FileAccessGrantCreateSerializer
 
     def post(self, request):
         serializer = FileAccessGrantCreateSerializer(data=request.data)
@@ -287,11 +298,11 @@ class AdminFileAccessGrantCreateView(APIView):
 
         managed_file = ManagedFile.objects.get(
             id=data["managed_file_id"],
-            website=request.user.website,
+            website=_get_request_website(request),
         )
         grantee = user_model.objects.get(
             id=data["grantee_id"],
-            website=request.user.website,
+            website=_get_request_website(request),
         )
 
         attachment = None
@@ -299,11 +310,11 @@ class AdminFileAccessGrantCreateView(APIView):
         if data.get("attachment_id"):
             attachment = FileAttachment.objects.get(
                 id=data["attachment_id"],
-                website=request.user.website,
+                website=_get_request_website(request),
             )
 
         grant = FileAccessGrantService.grant_access(
-            website=request.user.website,
+            website=_get_request_website(request),
             managed_file=managed_file,
             grantee=grantee,
             granted_by=request.user,
@@ -319,17 +330,18 @@ class AdminFileAccessGrantCreateView(APIView):
         )
 
 
-class AdminFileAccessGrantRevokeView(APIView):
+class AdminFileAccessGrantRevokeView(GenericAPIView):
     """
     Revoke an explicit file access grant.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = FileAccessGrantSerializer
 
     def post(self, request, grant_id: int):
         grant = FileAccessGrant.objects.get(
             id=grant_id,
-            website=request.user.website,
+            website=_get_request_website(request),
         )
 
         grant = FileAccessGrantService.revoke_access(
@@ -340,12 +352,13 @@ class AdminFileAccessGrantRevokeView(APIView):
         return Response(FileAccessGrantSerializer(grant).data)
 
 
-class AdminQuarantineReleaseView(APIView):
+class AdminQuarantineReleaseView(GenericAPIView):
     """
     Release a quarantined file after staff review.
     """
 
     permission_classes = [IsTenantStaff]
+    serializer_class = AdminQuarantineReleaseSerializer
 
     def post(self, request, file_id: int):
         serializer = AdminQuarantineReleaseSerializer(data=request.data)
@@ -353,7 +366,7 @@ class AdminQuarantineReleaseView(APIView):
 
         managed_file = ManagedFile.objects.get(
             id=file_id,
-            website=request.user.website,
+            website=_get_request_website(request),
         )
 
         managed_file = FileScanService.release_from_quarantine(

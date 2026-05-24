@@ -9,6 +9,7 @@ class TipDetailSerializer(serializers.ModelSerializer):
 
     sender_id = serializers.IntegerField(source="sender.id", read_only=True)
     receiver_id = serializers.IntegerField(source="receiver.id", read_only=True)
+    message = serializers.CharField(source="client_note", read_only=True)
 
     class Meta:
         model = Tip

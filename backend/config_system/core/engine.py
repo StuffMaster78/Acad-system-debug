@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from config_system.registry import require_config_definition
-from backend.config_system.rollout.cohort_engine import (
+from config_system.rollout.cohort_engine import (
     CohortEngine,
     RolloutContext,
     RolloutRule,

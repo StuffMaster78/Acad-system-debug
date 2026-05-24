@@ -10,7 +10,7 @@ from django.utils import timezone
 from config_system.audit.models import ConfigAuditLog
 from config_system.cache.keys import build_config_cache_key
 from config_system.cache.redis_cache import cache_delete_pattern
-from backend.config_system.registry import CONFIG_REGISTRY
+from config_system.registry import CONFIG_REGISTRY
 from config_system.core.schema import ConfigDefinition, ConfigType
 from config_system.storage.models import ConfigItem
 

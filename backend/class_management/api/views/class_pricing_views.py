@@ -107,6 +107,13 @@ class ClassPriceProposalViewSet(ClassTenantViewMixin, viewsets.GenericViewSet):
         output = ClassPriceProposalSerializer(proposal)
         return Response(output.data, status=status.HTTP_201_CREATED)
 
+    def retrieve(self, request, pk=None, *args, **kwargs):
+        """
+        Return a single price proposal for a class order.
+        """
+        proposal = self.get_proposal()
+        return Response(ClassPriceProposalSerializer(proposal).data)
+
     @action(detail=True, methods=["post"])
     def send(self, request, pk=None, *args, **kwargs):
         """

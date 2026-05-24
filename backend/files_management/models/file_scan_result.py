@@ -26,7 +26,7 @@ class FileScanResult(models.Model):
     status = models.CharField(
         max_length=32,
         choices=FileScanStatus.choices,
-        default=FileScanStatus.PENDING,
+        default=FileScanStatus.QUEUED,
     )
 
     provider = models.CharField(

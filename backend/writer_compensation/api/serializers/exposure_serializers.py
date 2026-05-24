@@ -23,8 +23,8 @@ class ExposureLedgerSerializer(serializers.ModelSerializer):
             "total_advance_taken",
             "recoverable_balance",
             "risk_cap_percentage",
-            "created_at",
-            "updated_at",
+            "metadata",
+            "last_updated",
         ]
 
         read_only_fields = fields

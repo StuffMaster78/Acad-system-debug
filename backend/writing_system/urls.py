@@ -14,9 +14,15 @@ from drf_spectacular.views import (
 
 from core.api_root import api_root
 from core.views.health import health_check, health_live, health_ready
-from wagtail.admin import urls as wagtailadmin_urls
-from wagtail import urls as wagtail_urls
-from cms_core.api import api_router
+
+try:
+    from wagtail.admin import urls as wagtailadmin_urls
+    from wagtail import urls as wagtail_urls
+    from cms_core.api import api_router
+except ModuleNotFoundError:
+    wagtailadmin_urls = None
+    wagtail_urls = None
+    api_router = None
 
 support_urls = ("support_management.urls", "support_management")
 writer_urls = ("writer_management.urls", "writer_management")
@@ -69,6 +75,7 @@ urlpatterns = [
         "api/v1/superadmin-management/",
         include("superadmin_management.urls"),
     ),
+    path("api/v1/accounts/", include("accounts.urls")),
     path("api/v1/referrals/", include("referrals.urls")),
     path("api/v1/refunds/", include("refunds.urls")),
     path("api/v1/order-configs/", include("order_configs.urls")),
@@ -86,11 +93,6 @@ urlpatterns = [
         include("writer_compensation.urls"),
     ),
     path("api/v1/mass-emails/", include("mass_emails.urls")),
-    path(
-        "api/v1/blog_pages_management/",
-        include("blog_pages_management.urls"),
-    ),
-    path("api/v1/service-pages/", include("service_pages_management.urls")),
     path("api/v1/fines/", include("fines.urls")),
     path("api/v1/reviews/", include("reviews_system.urls")),
     path("api/v1/class-management/", include("class_management.urls")),
@@ -116,10 +118,15 @@ urlpatterns = [
     ),
     path("api/v1/communications/", include("communications.urls")),
     path("api/v1/tips/", include("tips.urls")),
-    path("cms-admin/", include(wagtailadmin_urls)),    # Wagtail admin
-    path("api/v2/", api_router.urls),                  # Wagtail headless API
-    path("", include(wagtail_urls)),                   # Wagtail page serving (keep last)
 ]
+
+
+if wagtailadmin_urls and wagtail_urls and api_router:
+    urlpatterns += [
+        path("cms-admin/", include(wagtailadmin_urls)),    # Wagtail admin
+        path("api/v2/", api_router.urls),                  # Wagtail headless API
+        path("", include(wagtail_urls)),                   # Wagtail page serving (keep last)
+    ]
 
 
 if settings.DEBUG:

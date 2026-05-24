@@ -37,8 +37,8 @@ from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.utils import timezone
 
-from backend.files_management.models.file_quota import FileQuota
-from backend.files_management.models.managed_file import ManagedFile
+from files_management.models.file_quota import FileQuota
+from files_management.models.managed_file import ManagedFile
 
 if TYPE_CHECKING:
     from files_management.models.file_bucket import FileBucket

@@ -138,10 +138,6 @@ class WebsiteSEOUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'meta_title',
             'meta_description',
-            'meta_keywords',
-            'og_title',
-            'og_description',
-            'og_image',
             'google_analytics_id',
             'google_search_console_id',
             'bing_webmaster_id',

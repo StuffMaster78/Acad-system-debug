@@ -11,7 +11,7 @@
 2. [Environment Setup](#environment-setup)
 3. [Database Setup](#database-setup)
 4. [Backend Deployment](#backend-deployment)
-5. [Frontend Deployment](#frontend-deployment)
+5. [Frontend Boundary](#frontend-boundary)
 6. [SSL/HTTPS Configuration](#sslhttps-configuration)
 7. [Monitoring & Logging](#monitoring--logging)
 8. [Backup & Recovery](#backup--recovery)
@@ -209,44 +209,15 @@ server {
 
 ---
 
-## 🎨 Frontend Deployment
+## Frontend Boundary
 
-### Build for Production
+There is no active frontend deployment in this repository. The next frontend
+will be created from scratch and should ship from its own package or
+repository.
 
-```bash
-cd frontend
-npm run build
-```
-
-### Serve with Nginx
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-
-    root /path/to/writing_project/frontend/dist;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location /api {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-### Environment Variables
-
-Create `.env.production`:
-
-```bash
-VITE_API_BASE_URL=https://api.yourdomain.com
-```
+For now, deploy this repository as the backend API only. When the new frontend
+exists, document its build, environment variables, hosting, and reverse-proxy
+rules in that frontend package or in a dedicated infrastructure repository.
 
 ---
 
@@ -414,4 +385,3 @@ For deployment assistance:
 ---
 
 **Last Updated**: December 2025
-

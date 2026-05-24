@@ -257,8 +257,6 @@ INSTALLED_APPS = [
     'reviews_system',
 
     # Content Management Apps
-    'blog_pages_management',
-    'service_pages_management',
     'seo_pages',
 
     # Media & Content Assets
@@ -869,10 +867,6 @@ CELERY_BEAT_SCHEDULE = {
     "archive-approved-orders-everyday": {
         "task": "orders.tasks.archive_approved_orders",
         "schedule": crontab(hour=1, minute=0),  # every 1 am daily
-    },
-    'aggregate-content-metrics': {
-        'task': 'blog_pages_management.tasks.aggregate_content_metrics',
-        'schedule': timedelta(hours=6),  # Run every 6 hours
     },
     'rebuild-unread-counts-weekly': {
         'task': 'notifications_system.tasks.maintenance.rebuild_unread_counts',

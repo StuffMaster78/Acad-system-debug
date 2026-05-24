@@ -2,7 +2,6 @@ import uuid
  
 from django.conf import settings
 from django.db import models
-from managed_file import ManagedFile
 
 class FileQuota(models.Model):
     """Per-tenant storage quotas."""

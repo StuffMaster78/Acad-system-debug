@@ -1,4 +1,4 @@
-from backend.config_system.registry import CONFIG_REGISTRY
+from config_system.registry import CONFIG_REGISTRY
 
 
 class RegistryService:

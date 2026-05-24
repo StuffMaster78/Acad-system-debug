@@ -17,8 +17,8 @@ class ManagedFileListSerializer(serializers.ModelSerializer):
         model = ManagedFile
         fields = [
             "id",
-            "original_name",
-            "file_size",
+            "original_filename",
+            "file_size_bytes",
             "mime_type",
             "file_kind",
             "lifecycle_status",

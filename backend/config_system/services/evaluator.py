@@ -9,7 +9,7 @@ from config_system.registry import CONFIG_REGISTRY
 from config_system.core.schema import ConfigType
 from config_system.storage.models import ConfigItem
 from config_system.rollout.kill_switch import KillSwitchEngine
-from backend.config_system.rollout.cohort_engine import RolloutEngine
+from config_system.rollout.cohort_engine import RolloutEngine
 
 
 class ConfigEvaluationError(Exception):

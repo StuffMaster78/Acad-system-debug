@@ -221,18 +221,20 @@ Run the migration to create the table:
 python manage.py migrate websites
 ```
 
-## Frontend Integration
+## API Integration
 
-The frontend API is available at `frontend/src/api/websites.js`:
+The removed legacy frontend used to keep a website integration helper. New
+frontend work should generate or hand-write its client from the backend API
+contract instead.
 
 ```javascript
-import websitesAPI from '@/api/websites'
-
 // List integrations for a website
-const integrations = await websitesAPI.listIntegrations({ website: 1 })
+await api.get('/api/v1/websites/integrations/', {
+  params: { website: 1 },
+})
 
 // Create integration
-await websitesAPI.createIntegration({
+await api.post('/api/v1/websites/integrations/', {
   website: 1,
   integration_type: 'stripe',
   api_key: 'sk_live_...',
@@ -241,7 +243,7 @@ await websitesAPI.createIntegration({
 })
 
 // Update integration
-await websitesAPI.updateIntegration(integrationId, {
+await api.patch(`/api/v1/websites/integrations/${integrationId}/`, {
   is_active: false
 })
 ```
@@ -317,4 +319,3 @@ export TOKEN_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet;
 - Check `is_active=True`
 - Verify `website` and `integration_type` match
 - Check if `name` parameter is required
-

@@ -11,6 +11,8 @@ from writer_compensation.models.settlement_item import (
 
 
 class SettlementItemSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(source="included_at", read_only=True)
+
     class Meta:
         model = SettlementItem
 

@@ -12,7 +12,7 @@ class ManagedFileSerializer(serializers.ModelSerializer):
     """
     Read-only representation of uploaded files.
     """
-    public_url = serializers.CharField(read_only=True)
+    public_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -32,9 +32,13 @@ class ManagedFileSerializer(serializers.ModelSerializer):
 
 
     def get_download_url(self, obj) -> str | None:
-        if obj.is_public and obj.public_url:
-            return obj.public_url
+        public_url = self.get_public_url(obj)
+        if public_url:
+            return public_url
         return None
+
+    def get_public_url(self, obj) -> str | None:
+        return obj.public_url
 
 
 
@@ -95,8 +99,8 @@ class FileDeletionRequestSerializer(serializers.Serializer):
 
 
 class FileQuotaSerializer(serializers.ModelSerializer):
-    usage_percent = serializers.FloatField(read_only=True, source="usage_percent")
-    remaining_bytes = serializers.IntegerField(read_only=True, source="remaining_bytes")
+    usage_percent = serializers.FloatField(read_only=True)
+    remaining_bytes = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = FileQuota

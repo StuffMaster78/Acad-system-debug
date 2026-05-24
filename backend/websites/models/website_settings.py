@@ -1,11 +1,6 @@
 # from core.models.base import BaseModel
 from django.db import models
-from django.core.exceptions import ValidationError
-from django.utils import timezone 
-from django.utils.text import slugify
 import re  # Fix missing import
-from django.utils.timezone import now  # Fix missing import
-from django.contrib.postgres.fields import JSONField  # PostgreSQL JSON support
 from django.conf import settings
 from websites.models.websites import Website
 from websites.models.static_pages import WebsiteStaticPage

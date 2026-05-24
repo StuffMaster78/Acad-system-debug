@@ -77,7 +77,7 @@ class BroadcastMessageSerializer(serializers.ModelSerializer):
             'website', 'website_name', 'website_domain',
             'target_roles', 'channels',
             'is_active', 'is_blocking', 'require_acknowledgement',
-            'pinned', 'dismissible', 'send_email', 'show_in_dashboard',
+            'pinned', 'dismissible', 'show_in_dashboard',
             'scheduled_for', 'sent_at', 'expires_at',
             'created_by', 'created_by_email', 'created_by_username',
             'created_at', 'updated_at',
@@ -94,7 +94,7 @@ class BroadcastMessageCreateSerializer(serializers.ModelSerializer):
             'title', 'message', 'event_type',
             'website', 'target_roles', 'channels',
             'is_active', 'is_blocking', 'require_acknowledgement',
-            'pinned', 'dismissible', 'send_email', 'show_in_dashboard',
+            'pinned', 'dismissible', 'show_in_dashboard',
             'scheduled_for', 'expires_at',
         ]
     
@@ -106,4 +106,3 @@ class BroadcastMessageCreateSerializer(serializers.ModelSerializer):
                 if channel not in valid_channels:
                     raise serializers.ValidationError(f"Invalid channel: {channel}")
         return value
-

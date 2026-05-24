@@ -47,10 +47,10 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     """
     client_username = serializers.CharField(source="user.username", read_only=True)
     preferred_writers = serializers.StringRelatedField(many=True)
-    loyalty_points = serializers.IntegerField(source="loyalty_points", read_only=True)
+    loyalty_points = serializers.IntegerField(read_only=True)
     loyalty_tier = serializers.CharField(source="loyalty_tier.name", read_only=True)
     wallet_balance = serializers.DecimalField(
-        max_digits=10, decimal_places=2, source="wallet_balance", read_only=True, min_value=Decimal("0.00")
+        max_digits=10, decimal_places=2, read_only=True, min_value=Decimal("0.00")
     )
     milestones = MilestoneSerializer(source="get_milestones", many=True, read_only=True)
     loyalty_transactions = serializers.SerializerMethodField()

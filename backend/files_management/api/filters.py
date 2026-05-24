@@ -22,7 +22,7 @@ class FileQueryFilter:
             return queryset
 
         return queryset.filter(
-            Q(original_name__icontains=query)
+            Q(original_filename__icontains=query)
             | Q(mime_type__icontains=query)
             | Q(storage_key__icontains=query)
         )
