@@ -11,8 +11,7 @@ from datetime import timedelta
 from django.db.models import Avg, Count
 from django.conf import settings
 
-from orders.services.archive_order_service import ArchiveOrderService
-from orders.services.auto_archive_service import AutoArchiveService
+from orders.services.order_archival_service import OrderArchivalService
 from orders.services.status_transition_service import StatusTransitionService
 
 from orders.models.legacy_models.requests import OrderRequest
@@ -21,7 +20,6 @@ from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.workflow.state_machine import GenericStateMachineService
 # from orders.models.orders import OrderReview
-from orders.services.order_request_service import OrderRequestService
 from users.models import User
 from websites.models.websites import Website
 from audit_logging.services.audit_log_service import AuditLogEntry
@@ -143,19 +141,51 @@ def release_stale_preferred_orders():
 @shared_task
 def archive_approved_orders():
     """
-    Archive orders that are in 'approved' state older than 2 weeks.
+    Legacy Celery task retained for schedule compatibility.
+
+    The redesigned lifecycle archives completed orders through
+    OrderArchivalService; the previous "approved" state is no longer part of
+    the active order status enum.
     """
-    cutoff_date = now() - timedelta(weeks=2)
-    AutoArchiveService.archive_orders_older_than(cutoff_date, status="approved")
+    archive_completed_orders()
 
 
 @shared_task
 def archive_closed_orders():
     """
-    Archive orders that are in 'closed' state older than 30 days.
+    Legacy Celery task retained for schedule compatibility.
+
+    The redesigned lifecycle uses "completed" before archival; "closed" is no
+    longer an active order status.
     """
-    cutoff_date = now() - timedelta(days=30)
-    AutoArchiveService.archive_orders_older_than(cutoff_date, status="closed")
+    archive_completed_orders()
+
+
+@shared_task
+def archive_completed_orders():
+    """
+    Auto-archive completed orders that have passed the retention window.
+    """
+    archived = 0
+    candidates = Order.objects.filter(
+        status=OrderStatus.COMPLETED,
+        archived_at__isnull=True,
+        completed_at__isnull=False,
+    )
+
+    for order in candidates.iterator():
+        if not OrderArchivalService.can_auto_archive(order=order):
+            continue
+        try:
+            OrderArchivalService.auto_archive_order(
+                order=order,
+                triggered_by="celery:archive_completed_orders",
+            )
+            archived += 1
+        except Exception:
+            logger.exception("Failed to auto-archive order %s", order.pk)
+
+    return archived
 
 
 @shared_task

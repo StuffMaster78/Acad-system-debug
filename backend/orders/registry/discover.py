@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import pkgutil
 import inspect
 import logging
 from types import ModuleType
@@ -11,17 +10,16 @@ logger = logging.getLogger(__name__)
 
 def _iter_action_modules(pkg: ModuleType) -> Tuple[str, ...]:
     """
-    Yield fully-qualified module names under the given package,
-    recursively (skips private/dunder and tests).
+    Yield fully-qualified current action module names.
+
+    Legacy action wrappers still live in ``orders.actions`` while the backend is
+    being redesigned, but most point at removed service modules. Keep startup
+    discovery explicit so Django only registers action classes backed by the
+    active service layer.
     """
     pkg_name = pkg.__name__
-    for m in pkgutil.walk_packages(pkg.__path__, prefix=pkg_name + "."):
-        name = m.name
-        # skip private modules/packages and tests
-        base = name.rsplit(".", 1)[-1]
-        if base.startswith("_") or base.startswith("test"):
-            continue
-        yield name
+    for module_name in getattr(pkg, "CURRENT_ACTION_MODULES", ()):
+        yield f"{pkg_name}.{module_name}"
 
 def _is_action_class(obj, base_cls) -> bool:
     try:

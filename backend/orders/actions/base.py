@@ -11,7 +11,7 @@ class BaseOrderAction(ABC):
     Abstract base class for order actions.
     """
 
-    def __init__(self, order_id: int, user=None, **params: Any):
+    def __init__(self, order_id: int, user=None, actor=None, **params: Any):
         """
         Initialize the action with the order ID and optional parameters.
 
@@ -20,7 +20,7 @@ class BaseOrderAction(ABC):
             **params: Additional parameters for the action.
         """
         self.order_id = order_id
-        self.user = user
+        self.user = user or actor
 
         # lazy model fetch to avoid circular imports
         Order = apps.get_model("orders", "Order")

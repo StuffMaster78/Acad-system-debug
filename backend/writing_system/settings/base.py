@@ -1,6 +1,15 @@
+"""
+Shared settings inherited by development.py, production.py, and test.py.
+
+Keep secrets in environment variables or environment-specific settings. This
+module owns shared application wiring, middleware, API defaults, cache, Celery,
+authentication, static/media defaults, and backend-wide feature settings.
+"""
+
 from __future__ import annotations
 
 import base64
+import importlib.util
 from datetime import timedelta
 from urllib.parse import quote_plus
 
@@ -39,6 +48,13 @@ AUTH_USER_MODEL = "users.User"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
+def module_available(module_name: str) -> bool:
+    """
+    Return whether an optional package is importable in the current environment.
+    """
+    return importlib.util.find_spec(module_name) is not None
+
+
 LEGACY_COMPAT_APPS = [
     "wallet",
     "client_wallet",
@@ -49,37 +65,91 @@ ENABLE_LEGACY_WRITER_WALLET_SIGNALS = env_bool(
     False,
 )
 
+WAGTAIL_AVAILABLE = module_available("wagtail")
+WHITENOISE_AVAILABLE = module_available("whitenoise")
 
-INSTALLED_APPS = [
+DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sitemaps",
+    "django.contrib.sites",
+]
+
+WAGTAIL_APPS = [
+    "wagtail.contrib.forms",
+    "wagtail.contrib.redirects",
+    "wagtail.contrib.settings",
+    "wagtail.embeds",
+    "wagtail.sites",
+    "wagtail.users",
+    "wagtail.snippets",
+    "wagtail.documents",
+    "wagtail.images",
+    "wagtail.search",
+    "wagtail.admin",
+    "wagtail",
+    "modelcluster",
+    "taggit",
+] if WAGTAIL_AVAILABLE else []
+
+OPTIONAL_THIRD_PARTY_APPS = [
+    app
+    for module_name, app in [
+        ("storages", "storages"),
+        ("anymail", "anymail"),
+        ("actstream", "actstream"),
+    ]
+    if module_available(module_name)
+]
+
+THIRD_PARTY_APPS = [
     "rest_framework",
-    "django_filters",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_spectacular",
     "drf_spectacular_sidecar",
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
+    "django_filters",
+    "channels",
+    "django_celery_beat",
     "django_otp",
     "django_otp.plugins.otp_totp",
-    "django_celery_beat",
+    "django_otp.plugins.otp_static",
     "django_ratelimit",
-    "channels",
     "django_countries",
-    "import_export",
-    "notifications_system.apps.NotificationsSystemConfig",
+    *OPTIONAL_THIRD_PARTY_APPS,
+]
+
+CMS_APPS = [
+    "cms_core",
+    "cms_authors",
+    "cms_attachments",
+    "cms_blog",
+    "cms_service_pages",
+    "cms_newsletters",
+    "cms_references",
+    "cms_engagement",
+    "cms_content_graph",
+    "cms_intelligence",
+] if WAGTAIL_AVAILABLE else []
+
+LOCAL_APPS = [
     "core",
     "websites",
     "users",
     "accounts",
+    "notifications_system.apps.NotificationsSystemConfig",
     "authentication",
     "audit_logging",
     "event_system",
+    "activity",
     "communications",
+    "files_management",
+    *CMS_APPS,
     "orders",
     "order_configs",
     "order_pricing_core",
@@ -96,7 +166,6 @@ INSTALLED_APPS = [
     "refunds",
     "tips",
     "fines",
-    "files_management",
     "reputation_system",
     "privacy",
     "users_state",
@@ -114,10 +183,17 @@ INSTALLED_APPS = [
     "superadmin_management",
     "governance",
     "loyalty_management",
-    "activity",
     "reviews_system",
     "holiday_management",
     "writer_compensation.apps.WriterCompensationConfig",
+]
+
+
+INSTALLED_APPS = [
+    *DJANGO_APPS,
+    *WAGTAIL_APPS,
+    *THIRD_PARTY_APPS,
+    *LOCAL_APPS,
 ]
 
 
@@ -142,7 +218,10 @@ MIDDLEWARE = [
         "authentication.middleware.session_activity_middleware."
         "SessionActivityMiddleware"
     ),
-    "authentication.middleware.session_timeout.SessionTimeoutMiddleware",
+    (
+        "authentication.middleware.login_session_activity_sync_middleware."
+        "LoginSessionActivitySyncMiddleware"
+    ),
     "audit_logging.middleware.AuditUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -152,11 +231,23 @@ MIDDLEWARE = [
     "core.middleware.performance_monitoring.PerformanceMonitoringMiddleware",
 ]
 
+if WHITENOISE_AVAILABLE:
+    MIDDLEWARE.insert(
+        MIDDLEWARE.index("corsheaders.middleware.CorsMiddleware"),
+        "whitenoise.middleware.WhiteNoiseMiddleware",
+    )
+
+if WAGTAIL_AVAILABLE:
+    MIDDLEWARE.insert(
+        MIDDLEWARE.index("django.middleware.csrf.CsrfViewMiddleware"),
+        "wagtail.contrib.redirects.middleware.RedirectMiddleware",
+    )
+
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -180,6 +271,41 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 STORAGE_BACKEND = env("STORAGE_BACKEND", "local")
+USE_S3 = env_bool("USE_S3", STORAGE_BACKEND in {"s3", "do_spaces"})
+WAGTAILADMIN_BASE_URL = env(
+    "WAGTAILADMIN_BASE_URL",
+    "http://localhost:8000",
+)
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if WHITENOISE_AVAILABLE
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
+    },
+}
+
+SITE_ID = env_int("SITE_ID", 1)
+WAGTAIL_SITE_NAME = env("WAGTAIL_SITE_NAME", "Writing System Platform")
+DATA_UPLOAD_MAX_NUMBER_FIELDS = env_int(
+    "DATA_UPLOAD_MAX_NUMBER_FIELDS",
+    10000,
+)
+
+ACTSTREAM_SETTINGS = {
+    "MANAGER": "actstream.managers.ActionManager",
+    "FETCH_RELATIONS": True,
+    "USE_PREFETCH": True,
+    "USE_JSONFIELD": True,
+    "GFK_FETCH_DEPTH": 1,
+}
+
+MULTI_TENANT_ENABLED = env_bool("MULTI_TENANT_ENABLED", True)
 
 
 AUTHENTICATION_BACKENDS = [
@@ -277,6 +403,11 @@ CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", REDIS_URL)
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = env("CELERY_TIMEZONE", "UTC")
+CELERY_BEAT_SCHEDULER = (
+    "django_celery_beat.schedulers:DatabaseScheduler"
+)
+CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", False)
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_ACKS_LATE = True
@@ -408,7 +539,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": (
         "rest_framework.pagination.PageNumberPagination"
     ),
-    "PAGE_SIZE": 10,
+    "PAGE_SIZE": env_int("DRF_PAGE_SIZE", 25),
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
@@ -470,3 +601,10 @@ X_FRAME_OPTIONS = "DENY"
 
 
 SILENCED_SYSTEM_CHECKS = env_list("SILENCED_SYSTEM_CHECKS", "")
+
+if not WAGTAIL_AVAILABLE:
+    SILENCED_SYSTEM_CHECKS = [
+        *SILENCED_SYSTEM_CHECKS,
+        "fields.E300",
+        "fields.E307",
+    ]

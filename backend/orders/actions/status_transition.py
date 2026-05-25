@@ -16,8 +16,16 @@ class StatusTransitionAction(BaseOrderAction):
     """
     def execute(self):
         old_status = self.order.status
-        service = StatusTransitionService()
-        result = service.transition_order_to_status(self.order_id, **self.params)
+        target_status = self.params.pop("target_status", None) or self.params.pop("new_status", None)
+        if not target_status:
+            raise ValueError("target_status is required for status_transition.")
+
+        service = StatusTransitionService(user=self.user)
+        result = service.transition_order_to_status(
+            self.order,
+            target_status=target_status,
+            metadata=self.params,
+        )
         new_status = self.order.status
 
         AuditLogService.log_auto(

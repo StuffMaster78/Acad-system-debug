@@ -31,14 +31,6 @@ class OrdersConfig(AppConfig):
         from orders.registry.discover import auto_discover_order_actions
         count = auto_discover_order_actions()
         log.info("[orders] loaded %d actions", count)
-        
-        # 1) Actions autodiscovery (your existing mechanism)
-        try:
-            from . import actions  # local import to avoid import loops
-            loaded = actions.autodiscover()
-        except Exception as exc:  # pragma: no cover
-            loaded = []
-            log.exception("[orders] actions autodiscover failed: %s", exc)
 
         # Optional: list registered actions if helper is available.
         keys = []
@@ -54,7 +46,7 @@ class OrdersConfig(AppConfig):
             log.warning(
                 "[orders.actions] base loaded but no actions found. "
                 "Imported: %s",
-                ", ".join(loaded) or "<none>",
+                "<none>",
             )
         else:
             log.info("[orders.actions] loaded: %s", ", ".join(keys))

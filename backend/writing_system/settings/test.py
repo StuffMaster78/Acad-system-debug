@@ -1,3 +1,10 @@
+"""
+writing_system/settings/test.py
+────────────────────────────────────────────────────────────────────────────────
+Test environment settings. Fast DB, no external services.
+────────────────────────────────────────────────────────────────────────────────
+"""
+
 from __future__ import annotations
 
 import os
@@ -8,10 +15,15 @@ from .env import env
 
 
 DJANGO_ENV = "test"
-DEBUG = True
+DEBUG = False
+SECRET_KEY = "test-secret-key-not-for-production"
 TOKEN_ENCRYPTION_KEY = env(
     "TOKEN_ENCRYPTION_KEY",
     "test-token-encryption-key",
+)
+FIELD_ENCRYPTION_KEY = env(
+    "FIELD_ENCRYPTION_KEY",
+    "test-field-encryption-key",
 )
 
 
@@ -36,14 +48,15 @@ if database_url:
         },
     }
 elif test_db == "postgres":
-    _db_name = os.getenv("POSTGRES_DB_NAME") or "writingsondo"
+    _db_name = os.getenv("POSTGRES_DB_NAME") or "writing_system_db"
+    _db_host = os.getenv("DB_HOST") or os.getenv("POSTGRES_HOST") or "localhost"
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": _db_name,
             "USER": os.getenv("POSTGRES_USER_NAME") or "postgres",
             "PASSWORD": os.getenv("POSTGRES_PASSWORD") or "postgres",
-            "HOST": os.getenv("DB_HOST", "localhost"),
+            "HOST": _db_host,
             "PORT": int(os.getenv("DB_PORT", 5432)),
             "TEST": {
                 "NAME": f"test_{_db_name}",
@@ -73,12 +86,8 @@ else:
     MIGRATION_MODULES = DisableMigrations()
 
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "test-locmem",
-    },
-}
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 
 CHANNEL_LAYERS = {
     "default": {
@@ -95,7 +104,19 @@ MIDDLEWARE = [
 
 CELERY_BROKER_URL = "memory://"
 CELERY_RESULT_BACKEND = "cache+memory://"
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+SENTRY_DSN = ""
+STORAGE_BACKEND = "local"
+USE_S3 = False
+MEDIA_ROOT = "/tmp/writing-system-test-media/"
+
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
 for _app in [
     "drf_spectacular_sidecar",

@@ -10,11 +10,11 @@ class TransitionToPendingAction(BaseOrderAction):
         old_status = self.order.status
         new_status = "pending"
 
-        service = StatusTransitionService()
+        service = StatusTransitionService(user=self.user)
         result = service.transition_order_to_status(
-            self.order_id,
+            self.order,
             target_status=new_status,
-            performed_by=self.user
+            metadata={"performed_by_id": getattr(self.user, "id", None)},
         )
 
         AuditLogService.log_auto(

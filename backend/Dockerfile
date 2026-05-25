@@ -1,81 +1,87 @@
-# --------------------
-# 1. Builder Stage
-# --------------------
-FROM python:3.11-slim AS builder
+# =============================================================================
+# Writing System Platform - Backend Dockerfile
+# Multi-stage: builder installs deps, runner is the lean production image
+# Python 3.12 | Django/Wagtail backend
+# =============================================================================
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+# Stage 1: dependency builder
+FROM python:3.12-slim AS builder
 
-WORKDIR /app
-
-# Install system dependencies for building packages
-RUN apt-get update -y --no-install-recommends \
-    && apt-get install -y --no-install-recommends \
-       build-essential \
-       libpq-dev \
-       curl \
-       git \
-       wget \
-       gcc \
-       libc6-dev \
-       libffi-dev \
-       postgresql-client \
-       pkg-config \
-    && apt-get clean \
+# Build deps needed for psycopg2, Pillow, argon2-cffi, cryptography
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    libwebp-dev \
+    libffi-dev \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pip tooling (don’t auto-upgrade, just ensure they exist)
-RUN pip install --no-cache-dir "pip==24.0" "setuptools==65.5.1" "wheel"
+WORKDIR /build
 
-# Copy requirements file
 COPY requirements.txt .
 
-# Install dependencies (skip hashes for now, enforce later for prod)
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip \
+    && pip install --prefix=/install --no-cache-dir -r requirements.txt
 
-# Install the spaCy model (matches installed spaCy version)
-# RUN python -m spacy download en_core_web_md
+# Stage 2: production runner
+FROM python:3.12-slim AS runner
 
-# Copy source code
-COPY . .
+LABEL org.opencontainers.image.title="Writing System Platform"
+LABEL org.opencontainers.image.description="Multi-tenant academic writing services backend"
 
-# --------------------
-# 2. Runtime Stage
-# --------------------
-FROM python:3.11-slim AS runtime
+# Runtime libs only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    libjpeg62-turbo \
+    zlib1g \
+    libwebp7 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+# Non-root user for security
+RUN groupadd --gid 1001 appgroup \
+    && useradd --uid 1001 --gid appgroup --no-create-home --shell /bin/false appuser
+
+# Copy installed packages from builder
+COPY --from=builder /install /usr/local
 
 WORKDIR /app
 
-# Install only minimal system dependencies for runtime
-RUN apt-get update -y --no-install-recommends \
-    && apt-get install -y --no-install-recommends \
-       libpq-dev \
-       postgresql-client \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Copy application code
+COPY --chown=appuser:appgroup . .
 
-# Copy installed Python packages from builder
-COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Create required runtime directories
+RUN mkdir -p /var/log/writing-system /app/staticfiles /app/media \
+    && chown -R appuser:appgroup /var/log/writing-system /app/staticfiles /app/media
 
-# Copy application code (includes gunicorn_config.py from builder stage)
-COPY --from=builder /app /app
+# Entrypoint handles migrations + collectstatic before starting the service
+COPY --chown=appuser:appgroup scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Create non-root user for security
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Create necessary directories and set permissions
-RUN mkdir -p /app/media /app/static && \
-    chown -R appuser:appuser /app
-
-# Switch to non-root user
 USER appuser
+
+ARG DJANGO_ENV=production
+ENV DJANGO_ENV=${DJANGO_ENV}
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Health check hits the public liveness endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health/live/ || exit 1
 
 EXPOSE 8000
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["gunicorn", "writing_system.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "3", \
+     "--threads", "2", \
+     "--worker-class", "gthread", \
+     "--worker-tmp-dir", "/dev/shm", \
+     "--timeout", "120", \
+     "--keep-alive", "5", \
+     "--log-level", "info", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]

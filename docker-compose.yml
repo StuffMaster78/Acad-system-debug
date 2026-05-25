@@ -1,173 +1,159 @@
-services:
-  web:
-    # Remove platform specification to use native architecture (ARM64 on Apple Silicon)
-    # This prevents emulation and improves performance significantly
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    volumes:
-      - ./backend:/app
-    working_dir: /app
-    ports:
-      - "8000:8000"  # Expose Django app to localhost
-    env_file:
-      - ./backend/.env
-    depends_on:
-      - db
-      - redis
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
+# =============================================================================
+# Writing System Platform - docker-compose.yml (DEVELOPMENT)
+# Usage: docker-compose up -d
+# =============================================================================
 
+services:
+  # PostgreSQL 16
   db:
-    # Use multi-platform image that supports both ARM64 and AMD64
-    image: postgres:15
-    # Remove platform specification to use native architecture
-    env_file:
-      - ./backend/.env
+    image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB_NAME:-writingsondo}  # Load database name with default
-      POSTGRES_USER: ${POSTGRES_USER_NAME:-awinorick}  # Load database user with default
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Nyakach2030}  # Load database password with default
-      # Reduce PostgreSQL log verbosity (only log warnings and errors)
-      POSTGRES_INITDB_ARGS: "-E UTF8"
-    command: >
-      postgres
-      -c log_min_messages=warning
-      -c log_checkpoints=off
-      -c log_connections=off
-      -c log_disconnections=off
-      -c log_lock_waits=on
-      -c log_temp_files=-1
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-writing_system_db}
+      POSTGRES_USER: ${POSTGRES_USER_NAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"  # Expose PostgreSQL for local dev (using 5433 to avoid conflict with host PostgreSQL)
+      - "5432:5432" # exposed for local DB tools in dev only
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER_NAME:-awinorick} -d ${POSTGRES_DB_NAME:-writingsondo}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 1G
 
+  # Redis 7
   redis:
-    # Use multi-platform image that supports both ARM64 and AMD64
-    image: redis:latest
-    # Remove platform specification to use native architecture
-    restart: always
-    # Require password from .env file (only if set)
-    # Reduce Redis log verbosity (only log warnings and errors)
-    command: >
-      sh -c "
-      if [ -n \"$$REDIS_PASSWORD\" ] && [ \"$$REDIS_PASSWORD\" != \"\" ]; then
-        redis-server --requirepass \"$$REDIS_PASSWORD\" --loglevel warning
-      else
-        redis-server --loglevel warning
-      fi
-      "
-    env_file:
-      - ./backend/.env
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - DJANGO_SETTINGS_MODULE=writing_system.settings
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-devpassword}
+    volumes:
+      - redis_data:/data
     ports:
-      - "6380:6379"  # Expose Redis (using 6380 to avoid conflict with host Redis)
+      - "6379:6379" # exposed for local inspection in dev only
     healthcheck:
-      # Healthcheck with password if set
-      test: >
-        sh -c "
-        if [ -n \"$$REDIS_PASSWORD\" ] && [ \"$$REDIS_PASSWORD\" != \"\" ]; then
-          redis-cli -a \"$$REDIS_PASSWORD\" ping
-        else
-          redis-cli ping
-        fi
-        "
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-devpassword}", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
+      retries: 5
 
-  celery:
-      # Remove platform specification to use native architecture (ARM64 on Apple Silicon)
-      build:
-        context: ./backend
-        dockerfile: Dockerfile
-      command: celery -A writing_system worker --loglevel=info
-      environment:
-        - REDIS_HOST=redis
-        - REDIS_PORT=6379
-        - DEBUG=${DEBUG}
-        - REDIS_PASSWORD=${REDIS_PASSWORD}
-        - DJANGO_SETTINGS_MODULE=writing_system.settings
-        - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
-        - POSTGRES_USER_NAME=${POSTGRES_USER_NAME}
-        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-        - DB_HOST=${DB_HOST:-db}
-        - DB_PORT=${DB_PORT:-5432}
-      volumes:
-        - ./backend:/app
-      env_file:
-        - ./backend/.env
-      depends_on:
-        - db
-        - redis
-
-  beat:
-    # Remove platform specification to use native architecture (ARM64 on Apple Silicon)
+  # Django / Wagtail backend
+  web:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: celery -A writing_system beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      target: runner
+      args:
+        DJANGO_ENV: development
+    restart: unless-stopped
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - DEBUG=${DEBUG}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - DJANGO_SETTINGS_MODULE=writing_system.settings
-      - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
-      - POSTGRES_USER_NAME=${POSTGRES_USER_NAME}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - DB_HOST=${DB_HOST:-db}
-      - DB_PORT=${DB_PORT:-5432}
+      DJANGO_ENV: development
+      DJANGO_SETTINGS_MODULE: writing_system.settings
+      SECRET_KEY: ${SECRET_KEY:-dev-insecure-key}
+      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME:-writing_system_db}
+      POSTGRES_USER_NAME: ${POSTGRES_USER_NAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+      DB_HOST: db
+      POSTGRES_HOST: db
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-devpassword}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
+      COMMUNICATIONS_REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/2
+      CHANNEL_REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/3
+      CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:3000"
+      USE_S3: "False"
+      WAGTAILADMIN_BASE_URL: "http://localhost:8000"
+    volumes:
+      - ./backend:/app # live code reload in dev
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+  # Celery worker
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        DJANGO_ENV: development
+    restart: unless-stopped
+    environment:
+      DJANGO_ENV: development
+      DJANGO_SETTINGS_MODULE: writing_system.settings
+      SECRET_KEY: ${SECRET_KEY:-dev-insecure-key}
+      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME:-writing_system_db}
+      POSTGRES_USER_NAME: ${POSTGRES_USER_NAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+      DB_HOST: db
+      POSTGRES_HOST: db
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-devpassword}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
+      COMMUNICATIONS_REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/2
+      CHANNEL_REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/3
+      USE_S3: "False"
     volumes:
       - ./backend:/app
-    working_dir: /app
     depends_on:
-      - db
-      - redis
-    env_file:
-      - ./backend/.env
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "writing_system", "worker", "--loglevel=info", "--concurrency=2"]
+
+  # Celery Beat scheduler
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        DJANGO_ENV: development
+    restart: unless-stopped
+    environment:
+      DJANGO_ENV: development
+      DJANGO_SETTINGS_MODULE: writing_system.settings
+      SECRET_KEY: ${SECRET_KEY:-dev-insecure-key}
+      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME:-writing_system_db}
+      POSTGRES_USER_NAME: ${POSTGRES_USER_NAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+      DB_HOST: db
+      POSTGRES_HOST: db
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-devpassword}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
+      USE_S3: "False"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "writing_system", "beat", "--loglevel=info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
+
 volumes:
   postgres_data:
-
-
-
-
-
-# For production
-# command: gunicorn your_project_name.wsgi:application --bind 0.0.0.0:8000 --workers=3
+  redis_data:
+  static_volume:
+  media_volume:

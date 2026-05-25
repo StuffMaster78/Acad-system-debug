@@ -1,19 +1,21 @@
 import importlib
-import pkgutil
 import logging
 
 log = logging.getLogger(__name__)
-_SKIP = {"__init__", "base", "registry", "discover", "helpers"}
+
+CURRENT_ACTION_MODULES = (
+    "status_transition",
+    "transition_to_pending",
+)
+
 
 def autodiscover() -> list[str]:
     loaded: list[str] = []
     pkg = __name__  # "orders.actions"
-    for _, modname, ispkg in pkgutil.iter_modules(__path__):  # type: ignore[name-defined]
-        if ispkg or modname in _SKIP or modname.startswith("_"):
-            continue
+    for modname in CURRENT_ACTION_MODULES:
         try:
             importlib.import_module(f"{pkg}.{modname}")
             loaded.append(modname)
         except Exception as exc:
-            log.warning("[actions] failed to import %s: %s", modname, exc, exc_info=True)
+            log.exception("[actions] failed to import current action %s: %s", modname, exc)
     return loaded
