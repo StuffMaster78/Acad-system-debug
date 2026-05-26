@@ -8,9 +8,12 @@ import {
 } from "@/api/adminPublishing";
 import { useAuthStore } from "@/stores/auth";
 import type {
+  PublishingAdminLink,
   PublishingContentType,
+  PublishingFlowStep,
   PublishingItem,
   PublishingMetric,
+  PublishingRoleResponsibility,
 } from "@/types/adminPublishing";
 
 type ListResponse<T> = T[] | { results: T[] };
@@ -54,6 +57,12 @@ function normalizeSeoPage(record: SeoPageRecord): PublishingItem {
     publishedAt: record.publish_date ?? null,
     summary: record.meta_description,
   };
+}
+
+function contentTypeLabel(type: PublishingContentType) {
+  if (type === "blog") return "blog article";
+  if (type === "service") return "service page";
+  return "SEO landing page";
 }
 
 function previewItems(): PublishingItem[] {
@@ -108,11 +117,110 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
 
   const draft = ref({
     website: 1,
+    type: "seo" as PublishingContentType,
     title: "New service landing page",
     slug: "new-service-landing-page",
+    primary_keyword: "academic writing help",
+    audience: "Clients comparing writing services",
     meta_description: "Describe this service page for search and conversion.",
+    cta_label: "Start an order",
+    cta_href: "/client/new-order",
+    review_notes: "Check keyword intent, internal links, and website fit before publishing.",
     is_published: false,
   });
+
+  const flowSteps: PublishingFlowStep[] = [
+    {
+      label: "Plan",
+      detail: "Choose website, audience, keyword intent, and page type before drafting.",
+      owner: "Admin / support",
+    },
+    {
+      label: "Draft",
+      detail: "Write blog articles and rich service pages in Wagtail; use this desk for SEO landing pages.",
+      owner: "Editor / support",
+    },
+    {
+      label: "SEO",
+      detail: "Set slug, meta title, meta description, CTA, canonical structure, and internal links.",
+      owner: "Editor",
+    },
+    {
+      label: "Review",
+      detail: "Check accuracy, service claims, brand tone, page ownership, and publishing readiness.",
+      owner: "Admin / editor",
+    },
+    {
+      label: "Publish",
+      detail: "Publish Wagtail pages through CMS workflow; publish SEO landing pages through the API.",
+      owner: "Admin / superadmin",
+    },
+    {
+      label: "Monitor",
+      detail: "Track freshness, ranking gaps, conversion quality, and outdated service promises.",
+      owner: "Superadmin / admin",
+    },
+  ];
+
+  const roleResponsibilities: PublishingRoleResponsibility[] = [
+    {
+      role: "superadmin",
+      label: "Superadmin",
+      scope: "Cross-tenant publishing strategy and final authority for global pages.",
+      actions: ["Approve tenant-wide SEO structures", "Publish or retire sensitive pages", "Audit content coverage"],
+    },
+    {
+      role: "admin",
+      label: "Admin",
+      scope: "Website-level publishing operations for blogs, services, and landing pages.",
+      actions: ["Create SEO pages", "Publish approved pages", "Assign editorial follow-up"],
+    },
+    {
+      role: "editor",
+      label: "Editor",
+      scope: "Quality, structure, SEO intent, and content readiness before anything goes live.",
+      actions: ["Draft and review Wagtail pages", "Fix content quality", "Validate metadata and links"],
+    },
+    {
+      role: "support",
+      label: "Support",
+      scope: "Operational content requests, help/service updates, and intake from client conversations.",
+      actions: ["Request new service pages", "Prepare support-led drafts", "Flag outdated public content"],
+    },
+  ];
+
+  const adminLinks: PublishingAdminLink[] = [
+    {
+      label: "Authors",
+      href: "/cms-admin/snippets/cms_authors/author/",
+      detail: "Create credentialed author records with bio, photo, role, expertise, degrees, licenses, and identity links.",
+      owner: "Superadmin / admin",
+    },
+    {
+      label: "Author profile pages",
+      href: "/cms-admin/pages/",
+      detail: "Create public /authors/<slug>/ pages under the tenant Author Index and attach an Author record.",
+      owner: "Editor",
+    },
+    {
+      label: "Blog categories",
+      href: "/cms-admin/snippets/cms_core/blogcategory/",
+      detail: "Set tenant-scoped blog category names, slugs, descriptions, featured state, ordering, and SEO metadata.",
+      owner: "Admin / editor",
+    },
+    {
+      label: "Blog tags",
+      href: "/cms-admin/snippets/cms_core/blogtag/",
+      detail: "Manage tenant-scoped tags used to group and filter blog articles.",
+      owner: "Editor / support",
+    },
+    {
+      label: "Service categories",
+      href: "/cms-admin/snippets/cms_core/servicecategory/",
+      detail: "Manage tenant-scoped service groupings such as Nursing, Business, Programming, or General.",
+      owner: "Admin / support",
+    },
+  ];
 
   const filteredItems = computed(() => {
     const needle = query.value.trim().toLowerCase();
@@ -160,6 +268,22 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
     ];
   });
 
+  const selectedWritePath = computed(() => {
+    if (draft.value.type === "seo") {
+      return {
+        title: "Direct API publishing",
+        detail: "SEO landing pages can be saved or published from this desk through /api/v1/seo-pages/.",
+        actionLabel: "Publish SEO page",
+      };
+    }
+
+    return {
+      title: "Wagtail CMS workflow",
+      detail: `${contentTypeLabel(draft.value.type)} drafts use Wagtail so staff get rich blocks, preview, media, revisions, and approvals.`,
+      actionLabel: "Queue CMS draft",
+    };
+  });
+
   async function hydrate() {
     const auth = useAuthStore();
     isLoading.value = true;
@@ -205,7 +329,54 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
     }
   }
 
-  async function createLandingPage(publish = false) {
+  function buildSeoPayload(publish = false): SeoPagePayload {
+    const now = new Date().toISOString();
+    return {
+      website: draft.value.website,
+      title: draft.value.title,
+      slug: draft.value.slug,
+      meta_title: draft.value.title,
+      meta_description: draft.value.meta_description,
+      is_published: publish,
+      publish_date: publish ? now : null,
+      blocks: [
+        {
+          type: "hero",
+          value: {
+            heading: draft.value.title,
+            audience: draft.value.audience,
+            keyword: draft.value.primary_keyword,
+          },
+        },
+        { type: "paragraph", value: draft.value.meta_description },
+        { type: "cta", value: { label: draft.value.cta_label, href: draft.value.cta_href } },
+      ],
+    };
+  }
+
+  function queueCmsDraft(publish = false) {
+    const now = new Date().toISOString();
+    items.value = [
+      {
+        id: `queued-${Date.now()}`,
+        type: draft.value.type,
+        title: draft.value.title,
+        slug: draft.value.slug,
+        status: publish ? "ready for CMS" : "draft",
+        source: "wagtail",
+        updatedAt: now,
+        publishedAt: null,
+        url: "/cms-admin/pages/",
+        summary: draft.value.meta_description,
+        keyword: draft.value.primary_keyword,
+        ownerRole: "editorial",
+      },
+      ...items.value,
+    ];
+    notice.value = `${contentTypeLabel(draft.value.type)} queued for Wagtail. Open CMS pages to create the rich page with revisions and approval.`;
+  }
+
+  async function createContentDraft(publish = false) {
     const auth = useAuthStore();
     isMutating.value = true;
     notice.value = "";
@@ -213,20 +384,16 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
 
     try {
       const now = new Date().toISOString();
-      const payload: SeoPagePayload = {
-        website: draft.value.website,
-        title: draft.value.title,
-        slug: draft.value.slug,
-        meta_title: draft.value.title,
-        meta_description: draft.value.meta_description,
-        is_published: publish,
-        publish_date: publish ? now : null,
-        blocks: [
-          { type: "hero", value: { heading: draft.value.title } },
-          { type: "paragraph", value: draft.value.meta_description },
-          { type: "cta", value: { label: "Start an order", href: "/client/new-order" } },
-        ],
-      };
+      const payload = buildSeoPayload(publish);
+
+      if (draft.value.type !== "seo") {
+        if (auth.isPreviewSession) {
+          queueCmsDraft(publish);
+        } else {
+          notice.value = `${contentTypeLabel(draft.value.type)} drafts belong in Wagtail so media, revisions, preview, and approvals are preserved. Open CMS pages to create it there.`;
+        }
+        return;
+      }
 
       if (auth.isPreviewSession) {
         items.value = [
@@ -240,22 +407,63 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
             updatedAt: now,
             publishedAt: payload.publish_date ?? null,
             summary: payload.meta_description,
+            keyword: draft.value.primary_keyword,
           },
           ...items.value,
         ];
-        notice.value = publish ? "Preview landing page published." : "Preview landing page drafted.";
+        notice.value = publish ? "Preview SEO page published." : "Preview SEO page drafted.";
         return;
       }
 
       await adminPublishingApi.createSeoPage(payload);
-      notice.value = publish ? "Landing page published." : "Landing page draft created.";
+      notice.value = publish ? "SEO landing page published." : "SEO landing page draft created.";
       await hydrate();
     } catch (caught) {
-      error.value = "Unable to create landing page.";
+      error.value = "Unable to create publishing draft.";
       throw caught;
     } finally {
       isMutating.value = false;
     }
+  }
+
+  async function setPublishState(item: PublishingItem, publish: boolean) {
+    const auth = useAuthStore();
+    notice.value = "";
+    error.value = "";
+
+    if (item.source !== "seo_pages") {
+      notice.value = "Blog articles and rich service pages are published inside Wagtail so revisions and approvals stay intact.";
+      return;
+    }
+
+    isMutating.value = true;
+    try {
+      const now = new Date().toISOString();
+      if (auth.isPreviewSession) {
+        item.status = publish ? "published" : "draft";
+        item.publishedAt = publish ? now : null;
+        item.updatedAt = now;
+        notice.value = publish ? "Preview SEO page published." : "Preview SEO page moved back to draft.";
+        return;
+      }
+
+      await adminPublishingApi.updateSeoPage(Number(item.id), {
+        is_published: publish,
+        publish_date: publish ? now : null,
+      });
+      notice.value = publish ? "SEO page published." : "SEO page moved back to draft.";
+      await hydrate();
+    } catch (caught) {
+      error.value = "Unable to update SEO page status.";
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function createLandingPage(publish = false) {
+    draft.value.type = "seo";
+    await createContentDraft(publish);
   }
 
   return {
@@ -269,7 +477,13 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
     notice,
     filteredItems,
     metrics,
+    flowSteps,
+    roleResponsibilities,
+    adminLinks,
+    selectedWritePath,
     hydrate,
+    createContentDraft,
     createLandingPage,
+    setPublishState,
   };
 });

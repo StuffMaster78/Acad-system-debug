@@ -16,6 +16,12 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       props: { role },
     },
     {
+      path: "activity",
+      name: `${role}-activity`,
+      component: () => import("@/views/shared/ActivityView.vue"),
+      props: { role },
+    },
+    {
       path: ":section",
       name: `${role}-section`,
       component: RoleDashboard,
@@ -60,6 +66,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminOrdersView.vue"),
       },
       {
+        path: "ops",
+        name: "admin-ops",
+        component: () => import("@/views/admin/AdminOpsView.vue"),
+      },
+      {
         path: "files",
         name: "admin-files",
         component: () => import("@/views/admin/AdminFilesView.vue"),
@@ -80,9 +91,24 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminPaymentsView.vue"),
       },
       {
+        path: "wallets",
+        name: "admin-wallets",
+        component: () => import("@/views/admin/AdminWalletsView.vue"),
+      },
+      {
+        path: "access",
+        name: "admin-access",
+        component: () => import("@/views/admin/AdminAccessView.vue"),
+      },
+      {
         path: "communications",
         name: "admin-communications",
         component: () => import("@/views/admin/AdminCommsView.vue"),
+      },
+      {
+        path: "growth",
+        name: "admin-growth",
+        component: () => import("@/views/admin/AdminGrowthView.vue"),
       },
       {
         path: "publishing",
@@ -131,6 +157,175 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "earnings",
         name: "writer-earnings",
         component: () => import("@/views/writer/WriterWorkspaceView.vue"),
+      },
+    );
+  }
+
+  if (role === "editor") {
+    roleChildren[0] = {
+      path: "",
+      name: "editor-dashboard",
+      component: () => import("@/views/editor/EditorWorkspaceView.vue"),
+    };
+
+    roleChildren.splice(
+      1,
+      0,
+      {
+        path: "qa",
+        name: "editor-qa",
+        component: () => import("@/views/editor/EditorWorkspaceView.vue"),
+      },
+      {
+        path: "publishing",
+        name: "editor-publishing",
+        component: () => import("@/views/admin/AdminPublishingView.vue"),
+      },
+      {
+        path: "workload",
+        name: "editor-workload",
+        component: () => import("@/views/editor/EditorWorkspaceView.vue"),
+      },
+      {
+        path: "analytics",
+        name: "editor-analytics",
+        component: () => import("@/views/editor/EditorWorkspaceView.vue"),
+      },
+    );
+  }
+
+  if (role === "support") {
+    roleChildren[0] = {
+      path: "",
+      name: "support-dashboard",
+      component: () => import("@/views/support/SupportWorkspaceView.vue"),
+    };
+
+    roleChildren.splice(
+      1,
+      0,
+      {
+        path: "tickets",
+        name: "support-tickets",
+        component: () => import("@/views/support/SupportWorkspaceView.vue"),
+      },
+      {
+        path: "orders",
+        name: "support-orders",
+        component: () => import("@/views/support/SupportWorkspaceView.vue"),
+      },
+      {
+        path: "publishing",
+        name: "support-publishing",
+        component: () => import("@/views/admin/AdminPublishingView.vue"),
+      },
+      {
+        path: "escalations",
+        name: "support-escalations",
+        component: () => import("@/views/support/SupportWorkspaceView.vue"),
+      },
+      {
+        path: "replies",
+        name: "support-replies",
+        component: () => import("@/views/support/SupportWorkspaceView.vue"),
+      },
+    );
+  }
+
+  if (role === "superadmin") {
+    roleChildren[0] = {
+      path: "",
+      name: "superadmin-dashboard",
+      component: () => import("@/views/superadmin/SuperadminCommandView.vue"),
+    };
+
+    roleChildren.splice(
+      1,
+      0,
+      {
+        path: "tenants",
+        name: "superadmin-tenants",
+        component: () => import("@/views/superadmin/SuperadminCommandView.vue"),
+      },
+      {
+        path: "ops",
+        name: "superadmin-ops",
+        component: () => import("@/views/admin/AdminOpsView.vue"),
+      },
+      {
+        path: "orders",
+        name: "superadmin-orders",
+        component: () => import("@/views/admin/AdminOrdersView.vue"),
+      },
+      {
+        path: "writers",
+        name: "superadmin-writers",
+        component: () => import("@/views/admin/AdminWritersView.vue"),
+      },
+      {
+        path: "clients",
+        name: "superadmin-clients",
+        component: () => import("@/views/admin/AdminClientsView.vue"),
+      },
+      {
+        path: "payments",
+        name: "superadmin-payments",
+        component: () => import("@/views/superadmin/SuperadminFinanceView.vue"),
+      },
+      {
+        path: "wallets",
+        name: "superadmin-wallets",
+        component: () => import("@/views/admin/AdminWalletsView.vue"),
+      },
+      {
+        path: "access",
+        name: "superadmin-access",
+        component: () => import("@/views/admin/AdminAccessView.vue"),
+      },
+      {
+        path: "communications",
+        name: "superadmin-communications",
+        component: () => import("@/views/admin/AdminCommsView.vue"),
+      },
+      {
+        path: "growth",
+        name: "superadmin-growth",
+        component: () => import("@/views/admin/AdminGrowthView.vue"),
+      },
+      {
+        path: "publishing",
+        name: "superadmin-publishing",
+        component: () => import("@/views/admin/AdminPublishingView.vue"),
+      },
+      {
+        path: "files",
+        name: "superadmin-files",
+        component: () => import("@/views/admin/AdminFilesView.vue"),
+      },
+      {
+        path: "analytics",
+        name: "superadmin-analytics",
+        component: () => import("@/views/admin/AdminAnalyticsView.vue"),
+      },
+      {
+        path: "operations",
+        name: "superadmin-operations",
+        component: () => import("@/views/superadmin/SuperadminCommandView.vue"),
+      },
+      {
+        path: "finance",
+        name: "superadmin-finance",
+        component: () => import("@/views/superadmin/SuperadminFinanceView.vue"),
+      },
+      {
+        path: "settings",
+        name: "superadmin-settings",
+        component: () => import("@/views/admin/AdminSettingsView.vue"),
+      },
+      {
+        path: "support",
+        name: "superadmin-support",
+        component: () => import("@/views/admin/AdminSupportView.vue"),
       },
     );
   }

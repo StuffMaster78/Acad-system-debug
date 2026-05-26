@@ -14,5 +14,10 @@ router.register(
 )
 
 urlpatterns = [
+    path(
+        "",
+        ActivityFeedViewSet.as_view({"get": "list"}),
+        name="activity-list",
+    ),
     path("", include(router.urls)),
 ]

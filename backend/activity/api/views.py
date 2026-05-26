@@ -59,6 +59,11 @@ class ActivityFeedViewSet(
         website = getattr(request, "website", None)
 
         if website is None:
+            role = getattr(request.user, "role", "")
+            if role in {"admin", "superadmin"} or getattr(request.user, "is_superuser", False):
+                return ActivityEventSelector.visible_to_user_global(
+                    user=request.user,
+                )
             return ActivityEvent.objects.none()
 
         return ActivityEventSelector.visible_to_user(

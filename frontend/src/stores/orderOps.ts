@@ -196,7 +196,9 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
   const activeQueue = ref<OrderOpsQueueKey>("pending_staffing");
   const rows = ref<OrderOpsRow[]>([]);
   const isLoading = ref(false);
+  const isMutating = ref(false);
   const error = ref("");
+  const notice = ref("");
 
   const activeDefinition = computed(
     () =>
@@ -265,13 +267,169 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
   }
 
   async function routeToStaffing(orderId: number) {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        rows.value = rows.value.map((row) =>
+          row.id === orderId ? { ...row, status: "staffing" } : row,
+        );
+        notice.value = "Preview order routed to staffing.";
+        return;
+      }
     await orderOpsApi.routeToStaffing(orderId);
     await refresh();
+      notice.value = "Order routed to staffing.";
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function assignDirect(orderId: number, writerId: number, note = "") {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        rows.value = rows.value.map((row) =>
+          row.id === orderId ? { ...row, status: "assigned", preferred_writer_id: writerId } : row,
+        );
+        notice.value = `Preview assigned order #${orderId} to writer #${writerId}.`;
+        return;
+      }
+      await orderOpsApi.assignDirect(orderId, writerId, note);
+      notice.value = "Order assigned.";
+      await refresh();
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function releaseToPool(orderId: number, reason = "") {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        rows.value = rows.value.map((row) =>
+          row.id === orderId ? { ...row, status: "staffing", preferred_writer_id: null } : row,
+        );
+        notice.value = "Preview order released to pool.";
+        return;
+      }
+      await orderOpsApi.releaseToPool(orderId, reason);
+      notice.value = "Order released to pool.";
+      await refresh();
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function approveForDelivery(orderId: number, notes = "") {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        rows.value = rows.value.map((row) =>
+          row.id === orderId ? { ...row, status: "approved_for_delivery" } : row,
+        );
+        notice.value = "Preview order approved for delivery.";
+        return;
+      }
+      await orderOpsApi.approveForDelivery(orderId, notes);
+      notice.value = "Order approved for delivery.";
+      await refresh();
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function returnToWriter(orderId: number, notes: string) {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        rows.value = rows.value.map((row) =>
+          row.id === orderId ? { ...row, status: "returned_to_writer" } : row,
+        );
+        notice.value = "Preview order returned to writer.";
+        return;
+      }
+      await orderOpsApi.returnToWriter(orderId, notes);
+      notice.value = "Order returned to writer.";
+      await refresh();
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function requestRevision(orderId: number, instructions: string) {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        rows.value = rows.value.map((row) =>
+          row.id === orderId ? { ...row, status: "revision_requested" } : row,
+        );
+        notice.value = "Preview revision requested.";
+        return;
+      }
+      await orderOpsApi.requestRevision(orderId, instructions);
+      notice.value = "Revision requested.";
+      await refresh();
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function cancel(orderId: number, reason: string) {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        rows.value = rows.value.map((row) =>
+          row.id === orderId ? { ...row, status: "cancelled" } : row,
+        );
+        notice.value = "Preview order cancelled.";
+        return;
+      }
+      await orderOpsApi.cancel(orderId, reason);
+      notice.value = "Order cancelled.";
+      await refresh();
+    } finally {
+      isMutating.value = false;
+    }
   }
 
   async function archive(orderId: number) {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        rows.value = rows.value.filter((row) => row.id !== orderId);
+        notice.value = "Preview order archived.";
+        return;
+      }
     await orderOpsApi.archive(orderId);
     await refresh();
+      notice.value = "Order archived.";
+    } finally {
+      isMutating.value = false;
+    }
   }
 
   return {
@@ -279,12 +437,20 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
     activeQueue,
     rows,
     isLoading,
+    isMutating,
     error,
+    notice,
     activeDefinition,
     fetchSummary,
     fetchQueue,
     refresh,
     routeToStaffing,
+    assignDirect,
+    releaseToPool,
+    approveForDelivery,
+    returnToWriter,
+    requestRevision,
+    cancel,
     archive,
   };
 });

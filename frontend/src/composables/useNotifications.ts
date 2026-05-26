@@ -1,10 +1,12 @@
 import { onUnmounted, ref, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notifications";
+import { useWalletStore } from "@/stores/wallets";
 
 export function useNotifications() {
   const auth = useAuthStore();
   const notifications = useNotificationStore();
+  const wallet = useWalletStore();
   const isConnected = ref(false);
   const error = ref("");
   let eventSource: EventSource | null = null;
@@ -36,7 +38,13 @@ export function useNotifications() {
     };
     eventSource.onmessage = (event) => {
       try {
-        notifications.push(JSON.parse(event.data));
+        const payload = JSON.parse(event.data);
+        const eventType = String(payload.type ?? payload.event_type ?? "");
+        if (eventType === "wallet_update") {
+          wallet.fetchWallet().catch(() => undefined);
+        } else {
+          notifications.push(payload);
+        }
       } catch {
         notifications.push({ message: event.data });
       }

@@ -3,12 +3,21 @@ import { defineStore } from "pinia";
 import {
   adminPaymentsApi,
   type AdminWalletRecord,
+  type FinancialOverviewResponse,
+  type FinanceDashboardResponse,
   type RefundRecord,
+  type QueueResponse,
   type WalletEntryRecord,
+  type WriterPaymentRecord,
   type WriterPayoutRequestRecord,
 } from "@/api/adminPayments";
 import { useAuthStore } from "@/stores/auth";
-import type { AdminPaymentFeedItem, AdminPaymentMetric } from "@/types/adminPayments";
+import type {
+  AdminPaymentFeedItem,
+  AdminPaymentMetric,
+  FinanceOpsItem,
+  FinanceOpsSummary,
+} from "@/types/adminPayments";
 
 type ListResponse<T> = T[] | { results: T[] };
 type PaymentFilter = "all" | "client" | "writer" | "refund";
@@ -30,6 +39,34 @@ function money(value: string | number | undefined | null, currency = "USD") {
     currency,
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+function pickNumber(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (value !== undefined && value !== null && value !== "") return numeric(value as string | number);
+  }
+  return 0;
+}
+
+function pickString(record: Record<string, unknown>, keys: string[], fallback = "") {
+  for (const key of keys) {
+    const value = record[key];
+    if (value !== undefined && value !== null && value !== "") return String(value);
+  }
+  return fallback;
+}
+
+function asRecords(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null) : [];
+}
+
+function recordsFromQueue(data: QueueResponse, keys: string[]) {
+  for (const key of keys) {
+    const records = asRecords(data[key]);
+    if (records.length) return records;
+  }
+  return asRecords(data.results);
 }
 
 function previewWallets(): AdminWalletRecord[] {
@@ -178,6 +215,17 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
   const walletEntries = ref<WalletEntryRecord[]>([]);
   const payouts = ref<WriterPayoutRequestRecord[]>([]);
   const refunds = ref<RefundRecord[]>([]);
+  const financialOverview = ref<FinancialOverviewResponse>({});
+  const writerPayments = ref<WriterPaymentRecord[]>([]);
+  const refundDashboard = ref<FinanceDashboardResponse>({});
+  const disputeDashboard = ref<FinanceDashboardResponse>({});
+  const tipDashboard = ref<FinanceDashboardResponse>({});
+  const pendingRefundQueue = ref<FinanceOpsItem[]>([]);
+  const disputeQueue = ref<FinanceOpsItem[]>([]);
+  const paymentMilestones = ref<FinanceOpsItem[]>([]);
+  const pendingDeposits = ref<FinanceOpsItem[]>([]);
+  const tipQueue = ref<FinanceOpsItem[]>([]);
+  const opsFilter = ref<"all" | FinanceOpsItem["source"]>("all");
   const query = ref("");
   const filter = ref<PaymentFilter>("all");
   const isLoading = ref(false);
@@ -275,6 +323,146 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
     ];
   });
 
+  const platformMetrics = computed<AdminPaymentMetric[]>(() => {
+    const summary = financialOverview.value.summary;
+    if (!summary) return metrics.value;
+
+    return [
+      {
+        label: "Gross revenue",
+        value: money(summary.total_revenue),
+        detail: `Orders ${money(summary.revenue_breakdown?.orders)} · special ${money(summary.revenue_breakdown?.special_orders)} · classes ${money(summary.revenue_breakdown?.classes)}.`,
+        tone: "good",
+      },
+      {
+        label: "Writer expenses",
+        value: money(summary.total_expenses),
+        detail: `Payouts ${money(summary.expenses_breakdown?.writer_payments)} · tips ${money(summary.expenses_breakdown?.tips)}.`,
+        tone: "warn",
+      },
+      {
+        label: "Net revenue",
+        value: money(summary.net_revenue),
+        detail: `${Number(summary.profit_margin ?? 0).toFixed(1)}% platform margin.`,
+        tone: numeric(summary.net_revenue) >= 0 ? "good" : "risk",
+      },
+      {
+        label: "Payout records",
+        value: String(writerPayments.value.length),
+        detail: "Historical writer payment rows from finance overview.",
+        tone: "neutral",
+      },
+    ];
+  });
+
+  const financeOpsItems = computed(() => {
+    const items = [
+      ...pendingRefundQueue.value,
+      ...disputeQueue.value,
+      ...paymentMilestones.value,
+      ...pendingDeposits.value,
+      ...tipQueue.value,
+    ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+
+    return items.filter((item) => opsFilter.value === "all" || item.source === opsFilter.value);
+  });
+
+  const financeOpsMetrics = computed<FinanceOpsSummary[]>(() => {
+    const refundSummary = refundDashboard.value.summary ?? {};
+    const disputeSummary = disputeDashboard.value.summary ?? {};
+    const tipSummary = tipDashboard.value.summary ?? {};
+    return [
+      {
+        label: "Pending refunds",
+        value: refundSummary.pending_refunds ?? pendingRefundQueue.value.length,
+        detail: `${money(refundSummary.pending_amount as number | string | undefined)} pending refund exposure.`,
+        tone: pendingRefundQueue.value.length ? "risk" : "neutral",
+      },
+      {
+        label: "Open disputes",
+        value: disputeSummary.pending_disputes ?? disputeQueue.value.length,
+        detail: `${disputeSummary.awaiting_response ?? 0} awaiting response.`,
+        tone: disputeQueue.value.length ? "warn" : "neutral",
+      },
+      {
+        label: "Class funding",
+        value: pendingDeposits.value.length + paymentMilestones.value.length,
+        detail: "Pending deposits and unpaid class milestones.",
+        tone: pendingDeposits.value.length || paymentMilestones.value.length ? "warn" : "good",
+      },
+      {
+        label: "Tips volume",
+        value: money(tipSummary.total_tip_amount as number | string | undefined),
+        detail: `${tipSummary.total_tips ?? tipQueue.value.length} tip records visible.`,
+        tone: "good",
+      },
+    ];
+  });
+
+  function normalizeRefundOps(record: Record<string, unknown>): FinanceOpsItem {
+    return {
+      id: record.id as number | string,
+      source: "refund",
+      title: `Refund #${record.id}`,
+      subtitle: pickString(record, ["reason", "client", "order", "order_payment_id"], "Refund request"),
+      amount: pickNumber(record, ["amount", "wallet_amount", "external_amount", "total_amount"]),
+      status: pickString(record, ["status"], "pending"),
+      date: pickString(record, ["created_at", "processed_at"], ""),
+      meta: record,
+    };
+  }
+
+  function normalizeDisputeOps(record: Record<string, unknown>): FinanceOpsItem {
+    return {
+      id: record.id as number | string,
+      source: "dispute",
+      title: pickString(record, ["order_topic", "topic"], `Dispute #${record.id}`),
+      subtitle: pickString(record, ["raised_by", "client", "order_id"], "Order dispute"),
+      status: pickString(record, ["status", "dispute_status"], "open"),
+      date: pickString(record, ["created_at", "updated_at"], ""),
+      meta: record,
+    };
+  }
+
+  function normalizeMilestoneOps(record: Record<string, unknown>): FinanceOpsItem {
+    return {
+      id: record.id as number | string,
+      source: "milestone",
+      title: pickString(record, ["title", "label", "class_order", "order_title"], `Milestone #${record.id}`),
+      subtitle: pickString(record, ["client_email", "client", "description"], "Class payment milestone"),
+      amount: pickNumber(record, ["amount", "due_amount", "balance_amount"]),
+      status: pickString(record, ["status"], "unpaid"),
+      date: pickString(record, ["due_at", "created_at"], ""),
+      meta: record,
+    };
+  }
+
+  function normalizeDepositOps(record: Record<string, unknown>): FinanceOpsItem {
+    return {
+      id: record.id as number | string,
+      source: "deposit",
+      title: pickString(record, ["topic", "title", "class_name"], `Class order #${record.id}`),
+      subtitle: pickString(record, ["client_email", "client", "status"], "Pending class funding"),
+      amount: pickNumber(record, ["balance_amount", "amount_due", "final_amount"]),
+      status: pickString(record, ["status"], "pending_payment"),
+      date: pickString(record, ["created_at", "updated_at"], ""),
+      meta: record,
+    };
+  }
+
+  function normalizeTipOps(record: Record<string, unknown>): FinanceOpsItem {
+    return {
+      id: record.id as number | string,
+      source: "tip",
+      title: pickString(record, ["writer_email", "receiver_email", "writer", "receiver"], `Tip #${record.id}`),
+      subtitle: pickString(record, ["client_email", "sender_email", "tip_type", "payment_status"], "Tip record"),
+      amount: pickNumber(record, ["tip_amount", "amount", "writer_earning"]),
+      status: pickString(record, ["payment_status", "status"], "pending"),
+      date: pickString(record, ["sent_at", "created_at"], ""),
+      meta: record,
+    };
+  }
+
   async function hydrate() {
     const auth = useAuthStore();
     isLoading.value = true;
@@ -312,6 +500,173 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
       throw caught;
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  async function hydratePlatformFinance() {
+    const auth = useAuthStore();
+    await hydrate();
+
+    if (auth.isPreviewSession) {
+      financialOverview.value = {
+        summary: {
+          total_revenue: 1243700,
+          revenue_breakdown: { orders: 982400, special_orders: 141800, classes: 119500 },
+          total_expenses: 462900,
+          expenses_breakdown: { writer_payments: 438200, tips: 24700 },
+          net_revenue: 780800,
+          profit_margin: 62.8,
+        },
+        period_breakdown: [
+          {
+            period: "2026-05",
+            month: "May 2026",
+            revenue: { orders: 184200, special_orders: 20800, classes: 14200, total: 219200 },
+            expenses: { writer_payments: 78100, total: 78100 },
+            net_revenue: 141100,
+          },
+          {
+            period: "2026-04",
+            month: "April 2026",
+            revenue: { orders: 164900, special_orders: 17600, classes: 10900, total: 193400 },
+            expenses: { writer_payments: 70400, total: 70400 },
+            net_revenue: 123000,
+          },
+        ],
+      };
+      writerPayments.value = [
+        {
+          id: 501,
+          writer_email: "amina.writer@preview.local",
+          website: "WritePro Global",
+          amount: 1240,
+          status: "paid",
+          paid_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+          order_count: 8,
+          client_total: 2840,
+          platform_margin: 1600,
+        },
+        {
+          id: 502,
+          writer_email: "jon.writer@preview.local",
+          website: "EssayDesk",
+          amount: 860,
+          status: "paid",
+          paid_at: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(),
+          order_count: 5,
+          client_total: 1930,
+          platform_margin: 1070,
+        },
+      ];
+      refundDashboard.value = {
+        summary: { pending_refunds: 1, pending_amount: 90, processed_recent: 7, processed_amount: 840 },
+      };
+      disputeDashboard.value = {
+        summary: { pending_disputes: 2, awaiting_response: 1, resolved_recent: 6 },
+      };
+      tipDashboard.value = {
+        summary: { total_tips: 42, total_tip_amount: 24700, total_writer_earnings: 19800, total_platform_profit: 4900 },
+      };
+      pendingRefundQueue.value = previewRefunds().map((refund) => normalizeRefundOps(refund as Record<string, unknown>));
+      disputeQueue.value = [
+        {
+          id: 801,
+          source: "dispute",
+          title: "Healthcare policy brief dispute",
+          subtitle: "Raised by caleb@example.com",
+          status: "open",
+          date: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+        },
+        {
+          id: 802,
+          source: "dispute",
+          title: "Class weekly quiz dispute",
+          subtitle: "Awaiting writer response",
+          status: "open",
+          date: new Date(Date.now() - 1000 * 60 * 60 * 11).toISOString(),
+        },
+      ];
+      paymentMilestones.value = [
+        {
+          id: 901,
+          source: "milestone",
+          title: "Nursing class milestone 2",
+          subtitle: "Due this week",
+          amount: 320,
+          status: "due",
+          date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString(),
+        },
+      ];
+      pendingDeposits.value = [
+        {
+          id: 902,
+          source: "deposit",
+          title: "Statistics class bundle",
+          subtitle: "Partial funding still required",
+          amount: 480,
+          status: "partially_paid",
+          date: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+        },
+      ];
+      tipQueue.value = [
+        {
+          id: 1001,
+          source: "tip",
+          title: "amina.writer@preview.local",
+          subtitle: "Client tip posted",
+          amount: 35,
+          status: "completed",
+          date: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
+        },
+      ];
+      return;
+    }
+
+    const [
+      overviewRes,
+      writerPaymentsRes,
+      refundDashRes,
+      pendingRefundsRes,
+      disputeDashRes,
+      pendingDisputesRes,
+      milestonesRes,
+      depositsRes,
+      tipDashRes,
+      tipsRes,
+    ] = await Promise.allSettled([
+      adminPaymentsApi.financialOverview(),
+      adminPaymentsApi.allWriterPayments({ page_size: 100 }),
+      adminPaymentsApi.refundDashboard(),
+      adminPaymentsApi.pendingRefunds(),
+      adminPaymentsApi.disputeDashboard(),
+      adminPaymentsApi.pendingDisputes(),
+      adminPaymentsApi.classPaymentMilestones(),
+      adminPaymentsApi.pendingClassDeposits(),
+      adminPaymentsApi.tipDashboard(),
+      adminPaymentsApi.tipList(),
+    ]);
+    if (overviewRes.status === "fulfilled") financialOverview.value = overviewRes.value.data;
+    if (writerPaymentsRes.status === "fulfilled") {
+      const data = writerPaymentsRes.value.data;
+      writerPayments.value = Array.isArray(data) ? data : data.payments ?? data.results ?? [];
+    }
+    if (refundDashRes.status === "fulfilled") refundDashboard.value = refundDashRes.value.data;
+    if (pendingRefundsRes.status === "fulfilled") {
+      pendingRefundQueue.value = recordsFromQueue(pendingRefundsRes.value.data, ["refunds"]).map(normalizeRefundOps);
+    }
+    if (disputeDashRes.status === "fulfilled") disputeDashboard.value = disputeDashRes.value.data;
+    if (pendingDisputesRes.status === "fulfilled") {
+      disputeQueue.value = recordsFromQueue(pendingDisputesRes.value.data, ["disputes"]).map(normalizeDisputeOps);
+    }
+    if (milestonesRes.status === "fulfilled") {
+      paymentMilestones.value = recordsFromQueue(milestonesRes.value.data, ["payment_milestones"]).map(normalizeMilestoneOps);
+    }
+    if (depositsRes.status === "fulfilled") {
+      pendingDeposits.value = recordsFromQueue(depositsRes.value.data, ["class_orders"]).map(normalizeDepositOps);
+    }
+    if (tipDashRes.status === "fulfilled") tipDashboard.value = tipDashRes.value.data;
+    if (tipsRes.status === "fulfilled") {
+      tipQueue.value = recordsFromQueue(tipsRes.value.data, ["results"]).map(normalizeTipOps);
     }
   }
 
@@ -384,14 +739,74 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
     }
   }
 
+  function patchFinanceOpsItem(itemId: number | string, source: FinanceOpsItem["source"], status: string) {
+    const patch = (item: FinanceOpsItem) =>
+      item.id === itemId && item.source === source ? { ...item, status } : item;
+
+    pendingRefundQueue.value = pendingRefundQueue.value.map(patch);
+    disputeQueue.value = disputeQueue.value.map(patch);
+    paymentMilestones.value = paymentMilestones.value.map(patch);
+    pendingDeposits.value = pendingDeposits.value.map(patch);
+    tipQueue.value = tipQueue.value.map(patch);
+  }
+
+  async function applyFinanceControl(item: FinanceOpsItem, action: string, note: string) {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+
+    try {
+      if (auth.isPreviewSession) {
+        patchFinanceOpsItem(item.id, item.source, action);
+        notice.value = `Preview finance action applied: ${action}.`;
+        return;
+      }
+
+      if (item.source === "refund" && action === "process_refund") {
+        await adminPaymentsApi.processRefund(item.id, note);
+      } else if (item.source === "refund" && action === "cancel_refund") {
+        await adminPaymentsApi.cancelRefund(item.id, note);
+      } else if (item.source === "dispute" && action === "resolve_dispute") {
+        await adminPaymentsApi.resolveDispute(item.id, note);
+      } else if (item.source === "dispute" && action === "close_dispute") {
+        await adminPaymentsApi.closeDispute(item.id, note);
+      } else {
+        patchFinanceOpsItem(item.id, item.source, action);
+      }
+
+      notice.value = "Finance control applied.";
+      await hydratePlatformFinance();
+    } catch (caught) {
+      error.value = "Unable to apply finance control.";
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   return {
     wallets,
     walletEntries,
     payouts,
     refunds,
+    financialOverview,
+    writerPayments,
+    refundDashboard,
+    disputeDashboard,
+    tipDashboard,
+    pendingRefundQueue,
+    disputeQueue,
+    paymentMilestones,
+    pendingDeposits,
+    tipQueue,
     clientPayments,
     feed,
     metrics,
+    platformMetrics,
+    financeOpsItems,
+    financeOpsMetrics,
+    opsFilter,
     query,
     filter,
     isLoading,
@@ -399,8 +814,10 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
     error,
     notice,
     hydrate,
+    hydratePlatformFinance,
     approvePayout,
     processPayout,
     rejectPayout,
+    applyFinanceControl,
   };
 });

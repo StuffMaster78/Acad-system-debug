@@ -41,6 +41,71 @@ export interface ConfigItem {
   [key: string]: unknown;
 }
 
+export interface ScreenedWordRecord {
+  id?: number;
+  word: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
+export interface ScreenedWordBulkResponse {
+  created?: ScreenedWordRecord[];
+  errors?: string[];
+  created_count?: number;
+  error_count?: number;
+}
+
+export interface AdminActivityLogRecord {
+  id: number;
+  admin?: string | null;
+  admin_id?: number | null;
+  admin_username?: string | null;
+  action: string;
+  timestamp?: string;
+}
+
+export interface SystemHealthResponse {
+  status?: string;
+  timestamp?: string;
+  alerts?: Array<Record<string, unknown> | string>;
+  recommendations?: string[];
+  database?: Record<string, unknown>;
+  order_metrics?: Record<string, unknown>;
+  user_metrics?: Record<string, unknown>;
+  performance_metrics?: Record<string, unknown>;
+  financial_health?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface SystemAlertsResponse {
+  alerts?: Array<Record<string, unknown> | string>;
+  recommendations?: string[];
+}
+
+export interface SpecialDayRecord {
+  id?: number;
+  name: string;
+  description?: string;
+  event_type?: string;
+  date: string;
+  is_annual?: boolean;
+  is_international?: boolean;
+  countries?: string[];
+  priority?: string;
+  reminder_days_before?: number;
+  send_broadcast_reminder?: boolean;
+  auto_generate_discount?: boolean;
+  discount_percentage?: string | number | null;
+  is_active?: boolean;
+  days_until?: number;
+  is_upcoming?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
 type ListResponse<T> = T[] | { results: T[] };
 
 export const adminSettingsApi = {
@@ -83,4 +148,36 @@ export const adminSettingsApi = {
       website_id,
       default_set,
     }),
+  screenedWords: () =>
+    api.get<ListResponse<ScreenedWordRecord>>(
+      apiPath("/admin-management/configs/screened-words/"),
+    ),
+  bulkCreateScreenedWords: (words: string[]) =>
+    api.post<ScreenedWordBulkResponse>(
+      apiPath("/admin-management/configs/screened-words/bulk_create/"),
+      { words },
+    ),
+  systemHealth: () =>
+    api.get<SystemHealthResponse>(
+      apiPath("/admin-management/system-health/health/"),
+    ),
+  systemAlerts: () =>
+    api.get<SystemAlertsResponse>(
+      apiPath("/admin-management/system-health/alerts/"),
+    ),
+  activityLogs: (params?: Record<string, unknown>) =>
+    api.get<ListResponse<AdminActivityLogRecord>>(
+      apiPath("/admin-management/activity-logs/"),
+      { params },
+    ),
+  specialDays: (params?: Record<string, unknown>) =>
+    api.get<ListResponse<SpecialDayRecord>>(
+      apiPath("/holidays/special-days/"),
+      { params },
+    ),
+  createSpecialDay: (payload: Partial<SpecialDayRecord>) =>
+    api.post<SpecialDayRecord>(
+      apiPath("/holidays/special-days/"),
+      payload,
+    ),
 };

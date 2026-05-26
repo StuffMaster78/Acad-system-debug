@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
-import { Bell, LogOut, Menu, Search } from "@lucide/vue";
+import { LogOut, Menu } from "@lucide/vue";
+import ActivityShortcut from "@/components/layout/ActivityShortcut.vue";
+import GlobalSearch from "@/components/layout/GlobalSearch.vue";
+import NotificationBell from "@/components/layout/NotificationBell.vue";
+import WalletBalancePill from "@/components/wallet/WalletBalancePill.vue";
 import { navigationByRole } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth";
+import { useUiStore } from "@/stores/ui";
 import { useNotifications } from "@/composables/useNotifications";
 import type { UserRole } from "@/types/roles";
 
@@ -13,7 +18,8 @@ const props = defineProps<{
 
 const route = useRoute();
 const auth = useAuthStore();
-const { notifications, isConnected } = useNotifications();
+const ui = useUiStore();
+const { isConnected } = useNotifications();
 const navItems = computed(() => navigationByRole[props.role]);
 
 function isActive(path: string) {
@@ -24,8 +30,15 @@ function isActive(path: string) {
 
 <template>
   <div class="min-h-screen bg-slate-50 text-ink">
+    <div
+      v-if="ui.sidebarOpen"
+      class="fixed inset-0 z-20 bg-ink/30 lg:hidden"
+      role="presentation"
+      @click="ui.closeSidebar()"
+    />
     <aside
-      class="fixed inset-y-0 left-0 z-20 hidden w-72 border-r border-slate-200 bg-white lg:block"
+      class="fixed inset-y-0 left-0 z-30 w-72 border-r border-slate-200 bg-white transition-transform lg:z-20 lg:translate-x-0"
+      :class="ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
       <div class="flex h-16 items-center border-b border-slate-200 px-5">
         <RouterLink to="/" class="text-base font-semibold tracking-normal">
@@ -54,33 +67,15 @@ function isActive(path: string) {
           class="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 lg:hidden"
           type="button"
           title="Open navigation"
+          @click="ui.toggleSidebar()"
         >
           <Menu class="h-5 w-5" />
         </button>
-        <div class="relative max-w-xl flex-1">
-          <Search
-            class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-          />
-          <input
-            class="focus-ring h-10 w-full rounded-md border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm"
-            placeholder="Search orders, users, tickets, files"
-            type="search"
-          />
-        </div>
+        <GlobalSearch :role="role" />
         <div class="flex items-center gap-2">
-          <button
-            class="focus-ring relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white"
-            type="button"
-            title="Notifications"
-          >
-            <Bell class="h-5 w-5" />
-            <span
-              v-if="notifications.unreadCount"
-              class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-berry px-1 text-xs font-semibold text-white"
-            >
-              {{ notifications.unreadCount }}
-            </span>
-          </button>
+          <WalletBalancePill />
+          <ActivityShortcut :role="role" />
+          <NotificationBell />
           <span
             class="hidden rounded-md border px-2 py-1 text-xs font-medium md:inline-flex"
             :class="isConnected ? 'border-emerald-200 text-signal' : 'border-slate-200 text-slate-500'"

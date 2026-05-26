@@ -34,10 +34,15 @@ class CanViewActivityEvent(BasePermission):
         """
         website = getattr(request, "website", None)
 
+        role = getattr(request.user, "role", "")
         if website is None:
-            return False
-
-        if obj.website_id != website.id:
+            if role not in {"admin", "superadmin"} and not getattr(
+                request.user,
+                "is_superuser",
+                False,
+            ):
+                return False
+        elif obj.website_id != website.id:
             return False
 
         return ActivityEventSelector.user_can_view(

@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive } from "vue";
-import { AlertTriangle, RefreshCw, ShieldOff, UserCheck, Users } from "@lucide/vue";
+import { AlertTriangle, BadgeMinus, Ban, BriefcaseBusiness, FileText, RefreshCw, ShieldOff, UserCheck, Users } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminWritersStore } from "@/stores/adminWriters";
 
 const writers = useAdminWritersStore();
 const actionForm = reactive({
   reason: "Staff review action from writer operations console.",
+  penaltyAmount: "25",
+  probationDays: 14,
+  note: "Internal writer ops note.",
+  pinNote: false,
 });
 
 const selected = computed(() => writers.selectedWriter);
@@ -199,6 +203,15 @@ onMounted(() => {
               Issue warning
             </button>
             <button
+              class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-amber-300 px-4 py-3 text-sm font-semibold text-amber-900 disabled:cursor-not-allowed disabled:opacity-60"
+              type="button"
+              :disabled="writers.isMutating || actionForm.reason.length < 10"
+              @click="writers.issueStrike(actionForm.reason)"
+            >
+              <BadgeMinus class="h-4 w-4" />
+              Issue strike
+            </button>
+            <button
               class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 px-4 py-3 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-60"
               type="button"
               :disabled="writers.isMutating || actionForm.reason.length < 10"
@@ -211,14 +224,136 @@ onMounted(() => {
               class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-rose-300 px-4 py-3 text-sm font-semibold text-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
               type="button"
               :disabled="writers.isMutating || actionForm.reason.length < 10"
+              @click="writers.toggleBlacklist(actionForm.reason)"
+            >
+              <Ban class="h-4 w-4" />
+              {{ selected.is_blacklisted ? "Lift blacklist" : "Blacklist writer" }}
+            </button>
+            <div class="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <label class="block text-sm font-medium text-ink">
+                Probation days
+                <input
+                  v-model.number="actionForm.probationDays"
+                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                  min="1"
+                  type="number"
+                >
+              </label>
+              <button
+                class="focus-ring self-end rounded-md border border-amber-300 px-4 py-3 text-sm font-semibold text-amber-900 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                :disabled="writers.isMutating || actionForm.reason.length < 10"
+                @click="writers.placeProbation(actionForm.reason, actionForm.probationDays)"
+              >
+                Probation
+              </button>
+            </div>
+            <div class="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <label class="block text-sm font-medium text-ink">
+                Penalty amount
+                <input
+                  v-model.trim="actionForm.penaltyAmount"
+                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                  inputmode="decimal"
+                >
+              </label>
+              <button
+                class="focus-ring self-end rounded-md border border-slate-300 px-4 py-3 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                :disabled="writers.isMutating || actionForm.reason.length < 10 || !actionForm.penaltyAmount"
+                @click="writers.applyPenalty(actionForm.reason, actionForm.penaltyAmount)"
+              >
+                Apply penalty
+              </button>
+            </div>
+            <button
+              class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-rose-300 px-4 py-3 text-sm font-semibold text-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+              type="button"
+              :disabled="writers.isMutating || actionForm.reason.length < 10"
               @click="writers.toggleDeleted(actionForm.reason)"
             >
               <Users class="h-4 w-4" />
               {{ selected.is_deleted ? "Restore writer" : "Remove writer" }}
             </button>
           </div>
+
+          <div class="mt-5 rounded-md border border-slate-200 p-4">
+            <div class="flex items-center gap-2">
+              <FileText class="h-4 w-4 text-signal" />
+              <p class="text-sm font-semibold text-ink">Internal note</p>
+            </div>
+            <textarea
+              v-model.trim="actionForm.note"
+              class="focus-ring mt-3 min-h-20 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            />
+            <label class="mt-3 flex items-center gap-2 text-sm text-graphite">
+              <input v-model="actionForm.pinNote" class="h-4 w-4 rounded border-slate-300" type="checkbox">
+              Pin note
+            </label>
+            <button
+              class="focus-ring mt-3 inline-flex h-10 w-full items-center justify-center rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:opacity-60"
+              type="button"
+              :disabled="writers.isMutating || actionForm.note.length < 5"
+              @click="writers.createNote(actionForm.note, actionForm.pinNote)"
+            >
+              Save note
+            </button>
+          </div>
         </template>
       </aside>
+    </section>
+
+    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="flex items-center gap-2">
+        <BriefcaseBusiness class="h-5 w-5 text-signal" />
+        <h2 class="text-lg font-semibold text-ink">Writer workload controls</h2>
+      </div>
+      <p class="mt-1 text-sm text-graphite">
+        Capacity, availability, and discipline risk in one routing table for assignment decisions.
+      </p>
+
+      <div class="mt-5 overflow-x-auto rounded-md border border-slate-200">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
+            <tr>
+              <th class="px-4 py-3">Writer</th>
+              <th class="px-4 py-3">Level</th>
+              <th class="px-4 py-3">Active orders</th>
+              <th class="px-4 py-3">Availability</th>
+              <th class="px-4 py-3">Risk</th>
+              <th class="px-4 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="row in writers.workloadRows" :key="row.registration_id">
+              <td class="px-4 py-4">
+                <p class="font-semibold text-ink">{{ row.name }}</p>
+                <p class="mt-1 text-xs text-graphite">{{ row.registration_id }}</p>
+              </td>
+              <td class="px-4 py-4 text-graphite">{{ row.level }}</td>
+              <td class="px-4 py-4 font-semibold text-ink">{{ row.active_orders_count }}</td>
+              <td class="px-4 py-4">
+                <StatusPill :label="row.accepting ? row.capacity : 'not accepting'" :tone="row.accepting ? 'success' : 'warning'" />
+              </td>
+              <td class="px-4 py-4">
+                <StatusPill
+                  :label="row.risk"
+                  :tone="row.risk === 'restricted' ? 'danger' : row.risk === 'watch' ? 'warning' : 'success'"
+                />
+              </td>
+              <td class="px-4 py-4 text-right">
+                <button
+                  class="focus-ring rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-signal"
+                  type="button"
+                  @click="writers.selectWriter(row.registration_id)"
+                >
+                  Inspect
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 </template>

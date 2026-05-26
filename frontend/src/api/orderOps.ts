@@ -13,6 +13,23 @@ export const orderOpsApi = {
     ),
   routeToStaffing: (orderId: number) =>
     api.post(ordersApiPath(`/orders/${orderId}/staffing/route/`), {}),
+  assignDirect: (orderId: number, writerId: number, note = "") =>
+    api.post(ordersApiPath(`/orders/${orderId}/staffing/assign-direct/`), {
+      writer_id: writerId,
+      note,
+    }),
+  releaseToPool: (orderId: number, reason = "") =>
+    api.post(ordersApiPath(`/orders/${orderId}/staffing/release-to-pool/`), {
+      reason,
+    }),
+  approveForDelivery: (orderId: number, notes = "") =>
+    api.post(ordersApiPath(`/orders/${orderId}/qa/approve/`), { notes }),
+  returnToWriter: (orderId: number, notes: string) =>
+    api.post(ordersApiPath(`/orders/${orderId}/qa/return/`), { notes }),
+  requestRevision: (orderId: number, instructions: string) =>
+    api.post(ordersApiPath(`/orders/${orderId}/revisions/`), { instructions }),
+  cancel: (orderId: number, reason: string) =>
+    api.post(ordersApiPath(`/orders/${orderId}/cancel/`), { reason }),
   archive: (orderId: number) =>
     api.post(ordersApiPath(`/orders/${orderId}/archive/`), {}),
 };

@@ -2,9 +2,14 @@ import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import {
   adminSettingsApi,
+  type AdminActivityLogRecord,
   type ConfigItem,
   type ScreenedWordStats,
+  type ScreenedWordRecord,
+  type SpecialDayRecord,
+  type SystemHealthResponse,
 } from "@/api/adminSettings";
+import { useUiStore } from "@/stores/ui";
 import { useAuthStore } from "@/stores/auth";
 import type {
   AdminConfigGroup,
@@ -32,6 +37,27 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
   const writerConfigs = ref<ConfigItem[]>([]);
   const discountConfigs = ref<ConfigItem[]>([]);
   const notificationProfiles = ref<ConfigItem[]>([]);
+  const screenedWords = ref<ScreenedWordRecord[]>([]);
+  const activityLogs = ref<AdminActivityLogRecord[]>([]);
+  const specialDays = ref<SpecialDayRecord[]>([]);
+  const systemHealth = ref<SystemHealthResponse>({});
+  const systemAlerts = ref<Array<Record<string, unknown> | string>>([]);
+  const recommendations = ref<string[]>([]);
+  const selectedGroupKey = ref<AdminConfigGroup["key"]>("pricing");
+  const query = ref("");
+  const screenedWordDraft = ref("spamword, payment outside platform, external contact");
+  const defaultPopulationForm = ref({
+    website_id: 1,
+    default_set: "",
+  });
+  const specialDayForm = ref({
+    name: "Black Friday",
+    date: new Date().toISOString().slice(0, 10),
+    event_type: "seasonal",
+    priority: "high",
+    is_annual: true,
+    is_international: true,
+  });
   const screenedWordStats = ref<ScreenedWordStats>({
     total_screened_words: 0,
     total_flagged_messages: 0,
@@ -80,6 +106,20 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
     },
   ]);
 
+  const selectedGroup = computed(() =>
+    groups.value.find((group) => group.key === selectedGroupKey.value) ?? groups.value[0],
+  );
+
+  const filteredSelectedItems = computed(() => {
+    const needle = query.value.trim().toLowerCase();
+    if (!needle) return selectedGroup.value.items;
+    return selectedGroup.value.items.filter((item) =>
+      [item.name, item.title, item.code, item.website, item.description]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(needle)),
+    );
+  });
+
   const metrics = computed<AdminSettingsMetric[]>(() => [
     {
       label: "Config groups",
@@ -102,8 +142,8 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
     {
       label: "Default sets",
       value: defaultSets.value.length,
-      detail: "Available bootstrap sets for tenant/order configuration.",
-      tone: "neutral",
+      detail: `${systemAlerts.value.length} system alerts currently visible.`,
+      tone: systemAlerts.value.length ? "risk" : "neutral",
     },
   ]);
 
@@ -118,6 +158,45 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
         writerConfigs.value = [previewConfig("Default writer eligibility"), previewConfig("Probation thresholds")];
         discountConfigs.value = [previewConfig("Returning client coupon"), previewConfig("First order offer", false)];
         notificationProfiles.value = [previewConfig("Default client notifications"), previewConfig("Writer critical alerts")];
+        screenedWords.value = [
+          { id: 1, word: "external contact", is_active: true },
+          { id: 2, word: "payment outside platform", is_active: true },
+        ];
+        activityLogs.value = [
+          {
+            id: 1,
+            admin: "admin preview",
+            admin_username: "admin.preview",
+            action: "Updated pricing configuration",
+            timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+          },
+          {
+            id: 2,
+            admin: "admin preview",
+            admin_username: "admin.preview",
+            action: "Bulk added screened words",
+            timestamp: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
+          },
+        ];
+        specialDays.value = [
+          {
+            id: 1,
+            name: "Black Friday",
+            event_type: "seasonal",
+            date: "2026-11-27",
+            priority: "high",
+            is_active: true,
+            days_until: 186,
+          },
+        ];
+        systemHealth.value = {
+          status: "healthy",
+          database: { status: "healthy" },
+          performance_metrics: { avg_response_time_ms: 180 },
+          financial_health: { status: "stable" },
+        };
+        systemAlerts.value = [];
+        recommendations.value = ["Keep config defaults aligned before launching new tenant websites."];
         screenedWordStats.value = {
           total_screened_words: 42,
           total_flagged_messages: 8,
@@ -138,11 +217,21 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
         screenedRes,
         usageRes,
         defaultSetsRes,
+        screenedWordsRes,
+        healthRes,
+        alertsRes,
+        activityRes,
+        specialDaysRes,
       ] = await Promise.allSettled([
         adminSettingsApi.configSummary(),
         adminSettingsApi.screenedWordStats(),
         adminSettingsApi.orderConfigUsage(),
         adminSettingsApi.defaultSets(),
+        adminSettingsApi.screenedWords(),
+        adminSettingsApi.systemHealth(),
+        adminSettingsApi.systemAlerts(),
+        adminSettingsApi.activityLogs({ page_size: 10 }),
+        adminSettingsApi.specialDays({ page_size: 20 }),
       ]);
 
       if (summaryRes.status === "fulfilled") {
@@ -177,6 +266,14 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
         const data = defaultSetsRes.value.data;
         defaultSets.value = data.default_sets ?? data.available_sets ?? data.sets ?? [];
       }
+      if (screenedWordsRes.status === "fulfilled") screenedWords.value = normalizeList(screenedWordsRes.value.data);
+      if (healthRes.status === "fulfilled") systemHealth.value = healthRes.value.data;
+      if (alertsRes.status === "fulfilled") {
+        systemAlerts.value = alertsRes.value.data.alerts ?? [];
+        recommendations.value = alertsRes.value.data.recommendations ?? [];
+      }
+      if (activityRes.status === "fulfilled") activityLogs.value = normalizeList(activityRes.value.data);
+      if (specialDaysRes.status === "fulfilled") specialDays.value = normalizeList(specialDaysRes.value.data);
     } catch (caught) {
       error.value = "Unable to load admin configuration data.";
       throw caught;
@@ -201,14 +298,121 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
     }
   }
 
+  async function populateDefaults() {
+    const auth = useAuthStore();
+    const ui = useUiStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        notice.value = "Preview default set populated.";
+        ui.toast(notice.value, "success");
+        return;
+      }
+      await adminSettingsApi.populateDefaults(
+        defaultPopulationForm.value.website_id,
+        defaultPopulationForm.value.default_set || undefined,
+      );
+      notice.value = "Default configuration set populated.";
+      ui.toast(notice.value, "success");
+      await hydrate();
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function bulkCreateScreenedWords() {
+    const auth = useAuthStore();
+    const ui = useUiStore();
+    const words = screenedWordDraft.value
+      .split(/[,\n]/)
+      .map((word) => word.trim())
+      .filter(Boolean);
+    if (!words.length) return;
+
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        const created = words.map((word, index) => ({
+          id: Date.now() + index,
+          word: word.toLowerCase(),
+          is_active: true,
+          created_at: new Date().toISOString(),
+        }));
+        screenedWords.value = [...created, ...screenedWords.value];
+        screenedWordStats.value.total_screened_words += created.length;
+        notice.value = `Preview added ${created.length} screened words.`;
+        ui.toast(notice.value, "success");
+        return;
+      }
+      const { data } = await adminSettingsApi.bulkCreateScreenedWords(words);
+      notice.value = `Added ${data.created_count ?? 0} screened words.`;
+      if (data.errors?.length) {
+        error.value = data.errors.join(" ");
+        ui.toast(error.value, "warn");
+      } else {
+        ui.toast(notice.value, "success");
+      }
+      await hydrate();
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function createSpecialDay() {
+    const auth = useAuthStore();
+    const ui = useUiStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        specialDays.value = [
+          {
+            id: Date.now(),
+            ...specialDayForm.value,
+            is_active: true,
+            days_until: 30,
+          },
+          ...specialDays.value,
+        ];
+        notice.value = "Preview special day created.";
+        ui.toast(notice.value, "success");
+        return;
+      }
+      const { data } = await adminSettingsApi.createSpecialDay(specialDayForm.value);
+      specialDays.value = [data, ...specialDays.value];
+      notice.value = "Special day created.";
+      ui.toast(notice.value, "success");
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   return {
     pricingConfigs,
     writerConfigs,
     discountConfigs,
     notificationProfiles,
+    screenedWords,
+    activityLogs,
+    specialDays,
+    systemHealth,
+    systemAlerts,
+    recommendations,
     screenedWordStats,
     defaultSets,
     orderConfigUsage,
+    selectedGroupKey,
+    selectedGroup,
+    filteredSelectedItems,
+    query,
+    screenedWordDraft,
+    defaultPopulationForm,
+    specialDayForm,
     groups,
     metrics,
     isLoading,
@@ -217,5 +421,8 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
     notice,
     hydrate,
     checkDefaults,
+    populateDefaults,
+    bulkCreateScreenedWords,
+    createSpecialDay,
   };
 });

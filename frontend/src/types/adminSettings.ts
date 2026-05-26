@@ -6,7 +6,7 @@ export interface AdminSettingsMetric {
 }
 
 export interface AdminConfigGroup {
-  key: string;
+  key: "pricing" | "writer" | "discount" | "notifications";
   label: string;
   description: string;
   count: number;

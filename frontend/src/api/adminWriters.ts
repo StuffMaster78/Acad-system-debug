@@ -70,6 +70,11 @@ export const adminWritersApi = {
       apiPath(`/writer-management/writers/${registrationId}/warnings/issue/`),
       { reason, category },
     ),
+  issueStrike: (registrationId: string, reason: string, category = "quality") =>
+    api.post<WriterActionResponse>(
+      apiPath(`/writer-management/writers/${registrationId}/strikes/issue/`),
+      { reason, category },
+    ),
   suspend: (registrationId: string, reason: string, duration_days = 7) =>
     api.post<WriterActionResponse>(
       apiPath(`/writer-management/writers/${registrationId}/suspend/`),
@@ -89,5 +94,30 @@ export const adminWritersApi = {
     api.post<WriterActionResponse>(
       apiPath(`/writer-management/writers/${registrationId}/restore/`),
       { reason },
+    ),
+  blacklist: (registrationId: string, reason: string) =>
+    api.post<WriterActionResponse>(
+      apiPath(`/writer-management/writers/${registrationId}/blacklist/`),
+      { reason },
+    ),
+  liftBlacklist: (registrationId: string, reason: string) =>
+    api.post<WriterActionResponse>(
+      apiPath(`/writer-management/writers/${registrationId}/lift-blacklist/`),
+      { reason },
+    ),
+  placeProbation: (registrationId: string, reason: string, duration_days = 14) =>
+    api.post<WriterActionResponse>(
+      apiPath(`/writer-management/writers/${registrationId}/probation/`),
+      { reason, duration_days },
+    ),
+  applyPenalty: (registrationId: string, reason: string, amount: string | number) =>
+    api.post<WriterActionResponse>(
+      apiPath(`/writer-management/writers/${registrationId}/penalties/`),
+      { reason, amount },
+    ),
+  createNote: (registrationId: string, body: string, is_pinned = false) =>
+    api.post<WriterActionResponse>(
+      apiPath(`/writer-management/writers/${registrationId}/notes/create/`),
+      { body, is_pinned },
     ),
 };

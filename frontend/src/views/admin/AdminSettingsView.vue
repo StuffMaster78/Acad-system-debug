@@ -2,7 +2,10 @@
 import { onMounted } from "vue";
 import {
   Bell,
+  CalendarDays,
   CreditCard,
+  DatabaseZap,
+  History,
   Percent,
   RefreshCw,
   Settings,
@@ -10,6 +13,7 @@ import {
   SlidersHorizontal,
   UserCog,
 } from "@lucide/vue";
+import BaseDataTable, { type DataTableColumn } from "@/components/ui/BaseDataTable.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminSettingsStore } from "@/stores/adminSettings";
 
@@ -29,6 +33,19 @@ const icons = {
   notifications: Bell,
 };
 
+const configColumns: DataTableColumn[] = [
+  { key: "name", label: "Config", sortable: true },
+  { key: "website", label: "Website", sortable: true },
+  { key: "status", label: "Status" },
+  { key: "updated", label: "Updated", sortable: true },
+];
+
+const activityColumns: DataTableColumn[] = [
+  { key: "action", label: "Action", sortable: true },
+  { key: "admin", label: "Admin", sortable: true },
+  { key: "timestamp", label: "Time", sortable: true },
+];
+
 function nameFor(item: Record<string, unknown>) {
   return String(item.name ?? item.title ?? item.code ?? `Config #${item.id ?? "new"}`);
 }
@@ -36,6 +53,37 @@ function nameFor(item: Record<string, unknown>) {
 function statusFor(item: Record<string, unknown>) {
   if (item.is_active === false) return "inactive";
   return "active";
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "Not set";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function healthStatus() {
+  return String(settings.systemHealth.status ?? "unknown");
+}
+
+function configRows() {
+  return settings.filteredSelectedItems.map((item) => ({
+    id: item.id ?? nameFor(item),
+    name: nameFor(item),
+    website: item.website ?? "Global",
+    status: statusFor(item),
+    updated: formatDate(String(item.updated_at ?? item.created_at ?? "")),
+  }));
+}
+
+function activityRows() {
+  return settings.activityLogs.map((log) => ({
+    id: log.id,
+    action: log.action,
+    admin: log.admin_username || log.admin || "System",
+    timestamp: formatDate(log.timestamp),
+  }));
 }
 
 onMounted(() => {
@@ -92,45 +140,191 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.8fr)]">
-      <div class="grid gap-4 md:grid-cols-2">
-        <section
-          v-for="group in settings.groups"
-          :key="group.key"
-          class="rounded-md border border-slate-200 bg-white p-4 shadow-panel"
-        >
-          <div class="flex items-start gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-md bg-mist text-signal">
-              <component :is="icons[group.key as keyof typeof icons]" class="h-5 w-5" />
-            </div>
+      <div class="space-y-6">
+        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h2 class="text-base font-semibold">{{ group.label }}</h2>
-              <p class="mt-1 text-sm leading-5 text-graphite">{{ group.description }}</p>
+              <div class="flex items-center gap-2">
+                <DatabaseZap class="h-5 w-5 text-signal" />
+                <h2 class="text-base font-semibold">Configuration workbench</h2>
+              </div>
+              <p class="mt-1 max-w-2xl text-sm leading-6 text-graphite">
+                Browse pricing, writer, discount, and notification records from the backend configuration APIs.
+              </p>
             </div>
+            <label class="block min-w-72">
+              <span class="text-xs font-semibold uppercase text-graphite">Search configs</span>
+              <input
+                v-model="settings.query"
+                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                type="search"
+                placeholder="Search name, website, code"
+              >
+            </label>
           </div>
 
-          <div class="mt-4 space-y-2">
-            <article
-              v-for="item in group.items.slice(0, 4)"
-              :key="`${group.key}-${item.id ?? nameFor(item)}`"
-              class="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3"
+          <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <button
+              v-for="group in settings.groups"
+              :key="group.key"
+              class="focus-ring rounded-md border p-3 text-left"
+              :class="settings.selectedGroupKey === group.key ? 'border-signal bg-mist' : 'border-slate-200 bg-white'"
+              type="button"
+              @click="settings.selectedGroupKey = group.key"
             >
-              <div>
-                <p class="text-sm font-semibold text-ink">{{ nameFor(item) }}</p>
-                <p class="mt-1 text-xs text-graphite">{{ item.website ?? "Global" }}</p>
+              <div class="flex items-center gap-2">
+                <component :is="icons[group.key]" class="h-4 w-4 text-signal" />
+                <span class="text-sm font-semibold text-ink">{{ group.label }}</span>
               </div>
-              <StatusPill
-                :label="statusFor(item)"
-                :tone="statusFor(item) === 'active' ? 'success' : 'neutral'"
-              />
-            </article>
-            <p v-if="!group.items.length" class="rounded-md border border-slate-200 p-3 text-sm text-graphite">
-              No configs loaded yet.
-            </p>
+              <p class="mt-2 text-2xl font-semibold text-ink">{{ group.count }}</p>
+              <p class="mt-1 text-xs leading-5 text-graphite">{{ group.description }}</p>
+            </button>
           </div>
+
+          <BaseDataTable
+            class="mt-4 shadow-none"
+            :columns="configColumns"
+            :rows="configRows()"
+            :searchable="false"
+            :loading="settings.isLoading"
+            empty-title="No configs loaded"
+            empty-message="This group has no records yet or the backend endpoint is unavailable."
+          >
+            <template #cell-status="{ value }">
+              <StatusPill
+                :label="String(value)"
+                :tone="String(value) === 'active' ? 'success' : 'neutral'"
+              />
+            </template>
+          </BaseDataTable>
+        </section>
+
+        <section class="grid gap-6 xl:grid-cols-2">
+          <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+            <div class="flex items-center gap-2">
+              <ShieldAlert class="h-5 w-5 text-signal" />
+              <h2 class="text-base font-semibold">Screened words</h2>
+            </div>
+            <p class="mt-1 text-sm leading-6 text-graphite">
+              Add moderation terms in bulk. Separate words with commas or new lines.
+            </p>
+            <textarea
+              v-model="settings.screenedWordDraft"
+              class="focus-ring mt-4 min-h-28 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+            />
+            <button
+              class="focus-ring mt-3 inline-flex h-10 items-center justify-center rounded-md bg-ink px-4 text-sm font-semibold text-white"
+              type="button"
+              :disabled="settings.isMutating"
+              @click="settings.bulkCreateScreenedWords().catch(() => undefined)"
+            >
+              Add screened words
+            </button>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <StatusPill
+                v-for="word in settings.screenedWords.slice(0, 12)"
+                :key="word.id ?? word.word"
+                :label="word.word"
+                tone="warning"
+              />
+            </div>
+          </section>
+
+          <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+            <div class="flex items-center gap-2">
+              <CalendarDays class="h-5 w-5 text-signal" />
+              <h2 class="text-base font-semibold">Holiday rules</h2>
+            </div>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="text-xs font-semibold uppercase text-graphite">Name</span>
+                <input
+                  v-model="settings.specialDayForm.name"
+                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                  type="text"
+                >
+              </label>
+              <label class="block">
+                <span class="text-xs font-semibold uppercase text-graphite">Date</span>
+                <input
+                  v-model="settings.specialDayForm.date"
+                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                  type="date"
+                >
+              </label>
+              <label class="block">
+                <span class="text-xs font-semibold uppercase text-graphite">Type</span>
+                <select
+                  v-model="settings.specialDayForm.event_type"
+                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                >
+                  <option value="holiday">Holiday</option>
+                  <option value="special_day">Special day</option>
+                  <option value="seasonal">Seasonal</option>
+                  <option value="cultural">Cultural</option>
+                </select>
+              </label>
+              <label class="block">
+                <span class="text-xs font-semibold uppercase text-graphite">Priority</span>
+                <select
+                  v-model="settings.specialDayForm.priority"
+                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </label>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-3">
+              <label class="flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-sm">
+                <input v-model="settings.specialDayForm.is_annual" type="checkbox">
+                Annual
+              </label>
+              <label class="flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-sm">
+                <input v-model="settings.specialDayForm.is_international" type="checkbox">
+                International
+              </label>
+            </div>
+            <button
+              class="focus-ring mt-3 inline-flex h-10 items-center justify-center rounded-md bg-ink px-4 text-sm font-semibold text-white"
+              type="button"
+              :disabled="settings.isMutating"
+              @click="settings.createSpecialDay().catch(() => undefined)"
+            >
+              Create special day
+            </button>
+          </section>
         </section>
       </div>
 
       <aside class="space-y-6">
+        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <DatabaseZap class="h-5 w-5 text-signal" />
+              <h2 class="text-base font-semibold">System health</h2>
+            </div>
+            <StatusPill
+              :label="healthStatus()"
+              :tone="healthStatus() === 'healthy' ? 'success' : settings.systemAlerts.length ? 'danger' : 'warning'"
+            />
+          </div>
+          <div class="mt-4 space-y-3 text-sm">
+            <div
+              v-for="alert in settings.systemAlerts.slice(0, 4)"
+              :key="String(typeof alert === 'string' ? alert : alert.message ?? alert.type ?? JSON.stringify(alert))"
+              class="rounded-md border border-rose-200 bg-rose-50 p-3 text-rose-900"
+            >
+              {{ typeof alert === "string" ? alert : alert.message ?? alert.type ?? JSON.stringify(alert) }}
+            </div>
+            <p v-if="!settings.systemAlerts.length" class="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">
+              No active system alerts.
+            </p>
+          </div>
+        </section>
+
         <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
           <div class="flex items-center gap-2">
             <SlidersHorizontal class="h-5 w-5 text-signal" />
@@ -155,6 +349,41 @@ onMounted(() => {
             <Settings class="h-4 w-4" />
             Check defaults
           </button>
+          <div class="mt-4 grid gap-2">
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Website ID</span>
+              <input
+                v-model.number="settings.defaultPopulationForm.website_id"
+                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                type="number"
+                min="1"
+              >
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Default set</span>
+              <select
+                v-model="settings.defaultPopulationForm.default_set"
+                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+              >
+                <option value="">Backend default</option>
+                <option
+                  v-for="set in settings.defaultSets"
+                  :key="set"
+                  :value="set"
+                >
+                  {{ set }}
+                </option>
+              </select>
+            </label>
+            <button
+              class="focus-ring inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-ink px-3 text-sm font-semibold text-white"
+              type="button"
+              :disabled="settings.isMutating"
+              @click="settings.populateDefaults().catch(() => undefined)"
+            >
+              Populate defaults
+            </button>
+          </div>
         </section>
 
         <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
@@ -183,6 +412,22 @@ onMounted(() => {
               :label="set"
             />
           </div>
+        </section>
+
+        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="flex items-center gap-2">
+            <History class="h-5 w-5 text-signal" />
+            <h2 class="text-base font-semibold">Recent admin activity</h2>
+          </div>
+          <BaseDataTable
+            class="mt-4 shadow-none"
+            :columns="activityColumns"
+            :rows="activityRows()"
+            :searchable="false"
+            :loading="settings.isLoading"
+            empty-title="No activity logs"
+            empty-message="Admin activity will appear here after backend data loads."
+          />
         </section>
       </aside>
     </section>

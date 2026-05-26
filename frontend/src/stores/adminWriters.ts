@@ -126,6 +126,38 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
       return Boolean(detail.is_suspended || detail.is_on_probation || detail.active_strike_count);
     }),
   );
+  const workloadRows = computed(() =>
+    writers.value
+      .map((writer) => {
+        const detail = writer as AdminWriterDetail;
+        const active = detail.active_orders_count ?? 0;
+        const capacity = detail.is_suspended || detail.is_blacklisted
+          ? "blocked"
+          : detail.is_accepting_orders === false
+            ? "paused"
+            : active >= 5
+              ? "heavy"
+              : active >= 3
+                ? "steady"
+                : "available";
+
+        return {
+          registration_id: writer.registration_id,
+          name: writer.pen_name || writer.full_name || writer.registration_id,
+          level: writer.level_name || "Unleveled",
+          active_orders_count: active,
+          accepting: detail.is_accepting_orders !== false && !detail.is_suspended && !detail.is_blacklisted,
+          risk:
+            detail.is_suspended || detail.is_blacklisted
+              ? "restricted"
+              : detail.is_on_probation || (detail.active_strike_count ?? 0) > 0
+                ? "watch"
+                : "clear",
+          capacity,
+        };
+      })
+      .sort((a, b) => b.active_orders_count - a.active_orders_count),
+  );
 
   async function hydrate() {
     const auth = useAuthStore();
@@ -214,6 +246,33 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
     }
   }
 
+  async function issueStrike(reason: string) {
+    const auth = useAuthStore();
+    if (!selectedWriter.value) return;
+    isMutating.value = true;
+    error.value = "";
+    notice.value = "";
+
+    try {
+      if (auth.isPreviewSession) {
+        patchWriter(selectedWriter.value.registration_id, {
+          active_strike_count: (selectedWriter.value.active_strike_count ?? 0) + 1,
+          is_on_probation: true,
+        });
+        notice.value = "Preview strike issued.";
+        return;
+      }
+      await adminWritersApi.issueStrike(selectedWriter.value.registration_id, reason);
+      notice.value = "Strike issued.";
+      await selectWriter(selectedWriter.value.registration_id);
+    } catch (caught) {
+      error.value = "Unable to issue strike.";
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   async function toggleSuspension(reason: string) {
     const auth = useAuthStore();
     if (!selectedWriter.value) return;
@@ -274,6 +333,105 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
     }
   }
 
+  async function toggleBlacklist(reason: string) {
+    const auth = useAuthStore();
+    if (!selectedWriter.value) return;
+    isMutating.value = true;
+    error.value = "";
+    notice.value = "";
+
+    try {
+      const nextBlacklisted = !selectedWriter.value.is_blacklisted;
+      if (auth.isPreviewSession) {
+        patchWriter(selectedWriter.value.registration_id, {
+          is_blacklisted: nextBlacklisted,
+          can_take_orders: !nextBlacklisted,
+          is_accepting_orders: nextBlacklisted ? false : selectedWriter.value.is_accepting_orders,
+        });
+        notice.value = nextBlacklisted ? "Preview writer blacklisted." : "Preview blacklist lifted.";
+        return;
+      }
+      if (nextBlacklisted) await adminWritersApi.blacklist(selectedWriter.value.registration_id, reason);
+      else await adminWritersApi.liftBlacklist(selectedWriter.value.registration_id, reason);
+      notice.value = nextBlacklisted ? "Writer blacklisted." : "Blacklist lifted.";
+      await selectWriter(selectedWriter.value.registration_id);
+    } catch (caught) {
+      error.value = "Unable to update blacklist state.";
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function placeProbation(reason: string, durationDays: number) {
+    const auth = useAuthStore();
+    if (!selectedWriter.value) return;
+    isMutating.value = true;
+    error.value = "";
+    notice.value = "";
+
+    try {
+      if (auth.isPreviewSession) {
+        patchWriter(selectedWriter.value.registration_id, { is_on_probation: true });
+        notice.value = "Preview probation placed.";
+        return;
+      }
+      await adminWritersApi.placeProbation(selectedWriter.value.registration_id, reason, durationDays);
+      notice.value = "Writer placed on probation.";
+      await selectWriter(selectedWriter.value.registration_id);
+    } catch (caught) {
+      error.value = "Unable to place probation.";
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function applyPenalty(reason: string, amount: string | number) {
+    const auth = useAuthStore();
+    if (!selectedWriter.value) return;
+    isMutating.value = true;
+    error.value = "";
+    notice.value = "";
+
+    try {
+      if (auth.isPreviewSession) {
+        notice.value = `Preview penalty recorded for ${amount}.`;
+        return;
+      }
+      await adminWritersApi.applyPenalty(selectedWriter.value.registration_id, reason, amount);
+      notice.value = "Penalty applied.";
+      await selectWriter(selectedWriter.value.registration_id);
+    } catch (caught) {
+      error.value = "Unable to apply penalty.";
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function createNote(body: string, isPinned = false) {
+    const auth = useAuthStore();
+    if (!selectedWriter.value) return;
+    isMutating.value = true;
+    error.value = "";
+    notice.value = "";
+
+    try {
+      if (auth.isPreviewSession) {
+        notice.value = isPinned ? "Preview pinned note created." : "Preview note created.";
+        return;
+      }
+      await adminWritersApi.createNote(selectedWriter.value.registration_id, body, isPinned);
+      notice.value = "Writer note created.";
+    } catch (caught) {
+      error.value = "Unable to create writer note.";
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   return {
     writers,
     selectedWriter,
@@ -286,10 +444,16 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
     activeWriters,
     verifiedWriters,
     riskWriters,
+    workloadRows,
     hydrate,
     selectWriter,
     issueWarning,
+    issueStrike,
     toggleSuspension,
     toggleDeleted,
+    toggleBlacklist,
+    placeProbation,
+    applyPenalty,
+    createNote,
   };
 });

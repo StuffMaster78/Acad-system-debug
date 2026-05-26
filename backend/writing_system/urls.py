@@ -100,6 +100,7 @@ urlpatterns = [
     path("api/v1/media/", include("media_management.urls")),
     path("api/v1/seo-pages/", include("seo_pages.urls")),
     path("api/v1/public/", include("seo_pages.urls")),
+    path("cms-api/", include("cms_core.urls")),
     path("api/v1/announcements/", include("announcements.urls")),
     path("api-auth/", include("rest_framework.urls")),
     path("api/v1/analytics/", include("analytics.urls")),

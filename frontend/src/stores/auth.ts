@@ -94,6 +94,10 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  function adoptSession(tokens: { access: string; refresh: string }, nextUser: AuthUser) {
+    persist(tokens, nextUser);
+  }
+
   function previewAs(roleName: AuthUser["role"]) {
     if (!import.meta.env.DEV) return;
     persist(
@@ -122,6 +126,7 @@ export const useAuthStore = defineStore("auth", () => {
     loadMe,
     refreshToken,
     logout,
+    adoptSession,
     clearSession,
     previewAs,
   };
