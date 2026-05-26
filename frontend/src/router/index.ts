@@ -146,7 +146,7 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "available",
         name: "writer-available",
-        component: () => import("@/views/writer/WriterWorkspaceView.vue"),
+        component: () => import("@/views/writer/WriterAvailableView.vue"),
       },
       {
         path: "assignments",

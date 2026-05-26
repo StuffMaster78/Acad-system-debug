@@ -9,6 +9,7 @@ import type {
   WriterEvent,
   WriterProfile,
 } from "@/types/writer";
+import type { OrderSummary } from "@/types/orders";
 
 export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
   const profile = ref<WriterProfile | null>(null);
@@ -17,9 +18,13 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
   const balance = ref<WriterBalance | null>(null);
   const summary = ref<WriterCompensationSummary | null>(null);
   const events = ref<WriterEvent[]>([]);
+  const poolOrders = ref<OrderSummary[]>([]);
+  const poolPagination = ref({ page: 1, pageSize: 20, count: 0 });
   const isLoading = ref(false);
+  const isPoolLoading = ref(false);
   const isMutating = ref(false);
   const error = ref("");
+  const poolError = ref("");
   const notice = ref("");
 
   const isUnavailable = computed(() => Boolean(availability.value?.active_window));
@@ -121,6 +126,32 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
     }
   }
 
+  async function fetchPoolOrders(page = 1, params?: Record<string, unknown>) {
+    isPoolLoading.value = true;
+    poolError.value = "";
+    try {
+      const { data } = await writerApi.poolOrders({
+        page,
+        page_size: poolPagination.value.pageSize,
+        ...params,
+      });
+      if (Array.isArray(data)) {
+        poolOrders.value = data;
+      } else {
+        poolOrders.value = data.results;
+        poolPagination.value = { ...poolPagination.value, page, count: data.count };
+      }
+    } catch {
+      poolError.value = "Could not load available orders from the backend.";
+    } finally {
+      isPoolLoading.value = false;
+    }
+  }
+
+  function removePoolOrder(orderId: number | string) {
+    poolOrders.value = poolOrders.value.filter((o) => String(o.id) !== String(orderId));
+  }
+
   async function withdrawInterest(interestId: number | string) {
     isMutating.value = true;
     error.value = "";
@@ -144,13 +175,19 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
     balance,
     summary,
     events,
+    poolOrders,
+    poolPagination,
     isLoading,
+    isPoolLoading,
     isMutating,
     error,
+    poolError,
     notice,
     isUnavailable,
     isAcceptingOrders,
     hydrate,
+    fetchPoolOrders,
+    removePoolOrder,
     toggleAcceptingOrders,
     expressInterest,
     takeOrder,

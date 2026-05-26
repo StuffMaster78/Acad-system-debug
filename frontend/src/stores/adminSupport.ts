@@ -124,6 +124,7 @@ function previewReplies(): SavedReplyRecord[] {
 
 export const useAdminSupportStore = defineStore("admin-support", () => {
   const tickets = ref<SupportTicketRecord[]>([]);
+  const ticketPagination = ref({ page: 1, pageSize: 25, count: 0 });
   const queue = ref<SupportQueueResponse>({});
   const workload = ref<SupportWorkloadResponse>({});
   const escalations = ref<CommunicationEscalationRecord[]>([]);
@@ -224,14 +225,20 @@ export const useAdminSupportStore = defineStore("admin-support", () => {
       }
 
       const [ticketsRes, queueRes, workloadRes, escalationRes, repliesRes] = await Promise.allSettled([
-        adminSupportApi.tickets({ page_size: 75, ordering: "-created_at" }),
+        adminSupportApi.tickets({ page_size: ticketPagination.value.pageSize, ordering: "-created_at" }),
         adminSupportApi.queue(),
         adminSupportApi.workload(),
         adminSupportApi.escalations(),
         adminSupportApi.savedReplies(),
       ]);
 
-      if (ticketsRes.status === "fulfilled") tickets.value = normalizeList(ticketsRes.value.data);
+      if (ticketsRes.status === "fulfilled") {
+        const d = ticketsRes.value.data;
+        tickets.value = normalizeList(d);
+        if (!Array.isArray(d) && "count" in d) {
+          ticketPagination.value = { ...ticketPagination.value, page: 1, count: d.count };
+        }
+      }
       if (queueRes.status === "fulfilled") queue.value = queueRes.value.data;
       if (workloadRes.status === "fulfilled") workload.value = workloadRes.value.data;
       if (escalationRes.status === "fulfilled") escalations.value = normalizeList(escalationRes.value.data);
@@ -239,6 +246,26 @@ export const useAdminSupportStore = defineStore("admin-support", () => {
     } catch (caught) {
       error.value = "Unable to load admin support operations.";
       throw caught;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function fetchTickets(page: number) {
+    isLoading.value = true;
+    error.value = "";
+    try {
+      const { data } = await adminSupportApi.tickets({
+        page,
+        page_size: ticketPagination.value.pageSize,
+        ordering: "-created_at",
+      });
+      tickets.value = normalizeList(data);
+      if (!Array.isArray(data) && "count" in data) {
+        ticketPagination.value = { ...ticketPagination.value, page, count: data.count };
+      }
+    } catch {
+      error.value = "Unable to load tickets.";
     } finally {
       isLoading.value = false;
     }
@@ -340,6 +367,7 @@ export const useAdminSupportStore = defineStore("admin-support", () => {
 
   return {
     tickets,
+    ticketPagination,
     queue,
     workload,
     escalations,
@@ -354,6 +382,7 @@ export const useAdminSupportStore = defineStore("admin-support", () => {
     metrics,
     filteredTickets,
     hydrate,
+    fetchTickets,
     closeTicket,
     escalateTicket,
     resolveEscalation,

@@ -84,7 +84,7 @@ export interface CreateSavedReplyPayload {
   category?: string;
 }
 
-type ListResponse<T> = T[] | { results: T[] };
+type ListResponse<T> = T[] | { count: number; next: string | null; previous: string | null; results: T[] };
 
 export const adminSupportApi = {
   tickets: (params?: Record<string, unknown>) =>

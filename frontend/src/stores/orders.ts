@@ -66,12 +66,13 @@ export const useOrderStore = defineStore("orders", () => {
   const isMutating = ref(false);
   const error = ref("");
   const notice = ref("");
+  const pagination = ref({ page: 1, pageSize: 20, count: 0 });
 
   const openOrders = computed(() =>
     orders.value.filter((order) => !["completed", "archived", "cancelled"].includes(order.status)),
   );
 
-  async function fetchOrders(params?: Record<string, unknown>) {
+  async function fetchOrders(page = 1, params?: Record<string, unknown>) {
     const auth = useAuthStore();
     isLoading.value = true;
     error.value = "";
@@ -87,10 +88,20 @@ export const useOrderStore = defineStore("orders", () => {
           ][index],
           status: ["in_progress", "awaiting_approval", "draft"][index],
         }));
+        pagination.value = { page: 1, pageSize: 20, count: 3 };
         return;
       }
-      const { data } = await ordersApi.list(params);
-      orders.value = Array.isArray(data) ? data : data.results;
+      const { data } = await ordersApi.list({
+        page,
+        page_size: pagination.value.pageSize,
+        ...params,
+      });
+      if (Array.isArray(data)) {
+        orders.value = data;
+      } else {
+        orders.value = data.results;
+        pagination.value = { ...pagination.value, page, count: data.count };
+      }
     } catch (caught) {
       error.value = "Unable to load orders.";
       throw caught;
@@ -293,6 +304,7 @@ export const useOrderStore = defineStore("orders", () => {
     isMutating,
     error,
     notice,
+    pagination,
     openOrders,
     fetchOrders,
     fetchOrder,

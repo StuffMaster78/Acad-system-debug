@@ -3,16 +3,33 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { Calculator, RefreshCw, Send } from "@lucide/vue";
 import ConfigSelect from "@/components/forms/ConfigSelect.vue";
+import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector.vue";
+import type { PaymentMethod } from "@/components/payment/PaymentMethodSelector.vue";
 import { useOrderConfigStore } from "@/stores/orderConfig";
 import { useOrderStore } from "@/stores/orders";
+import { useWalletStore } from "@/stores/wallets";
 import type { PaperQuotePayload } from "@/types/orders";
 
 const router = useRouter();
 const orders = useOrderStore();
 const config = useOrderConfigStore();
+const wallets = useWalletStore();
 const error = ref("");
 const success = ref("");
 const showAdvancedIds = ref(false);
+const paymentMethod = ref<PaymentMethod>("wallet");
+
+const providerFor: Record<PaymentMethod, { payment_provider?: string; payment_method_code?: string }> = {
+  wallet: {},
+  stripe: { payment_provider: "stripe", payment_method_code: "card" },
+  mock: { payment_provider: "mock", payment_method_code: "mock_card" },
+};
+
+const quotedPrice = computed(() => {
+  const raw = orders.latestQuote?.calculated_price;
+  if (raw == null) return null;
+  return Number(raw);
+});
 
 const form = reactive({
   topic: "",
@@ -33,8 +50,6 @@ const form = reactive({
   formatting_style_id: null as number | null,
   english_type_id: null as number | null,
   writer_level_id: null as number | null,
-  payment_provider: "",
-  payment_method_code: "",
 });
 
 const canQuote = computed(
@@ -69,6 +84,7 @@ async function loadConfig() {
   } catch {
     showAdvancedIds.value = true;
   }
+  wallets.fetchWallet().catch(() => undefined);
 }
 
 async function calculate() {
@@ -86,6 +102,7 @@ async function submit() {
   error.value = "";
   success.value = "";
   try {
+    const provider = providerFor[paymentMethod.value];
     const created = await orders.createPaperOrder(quotePayload(), {
       topic: form.topic,
       order_instructions: form.order_instructions,
@@ -98,13 +115,19 @@ async function submit() {
       english_type_id: form.english_type_id,
       writer_level_id: form.writer_level_id,
       is_urgent: form.deadline_hours <= 24,
-      payment_provider: form.payment_provider || undefined,
-      payment_method_code: form.payment_method_code || undefined,
+      ...provider,
     });
+    if (created.checkout_started) {
+      const checkoutUrl = (created.payment_intent as Record<string, unknown> | null)?.checkout_url;
+      if (typeof checkoutUrl === "string") {
+        window.location.href = checkoutUrl;
+        return;
+      }
+    }
     success.value = created.message;
     await router.push("/client/orders");
   } catch {
-    error.value = "Order creation failed. The next step is wiring live config pickers from the backend.";
+    error.value = "Order creation failed. Check that all fields are complete and try again.";
   }
 }
 
@@ -304,6 +327,9 @@ onMounted(loadConfig);
               {{ orders.latestQuote.currency }} {{ orders.latestQuote.calculated_price }}
             </p>
           </div>
+          <div class="mt-4">
+            <PaymentMethodSelector v-model="paymentMethod" :price="quotedPrice" />
+          </div>
           <div class="mt-4 grid gap-2">
             <button
               class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold"
@@ -320,7 +346,7 @@ onMounted(loadConfig);
               type="submit"
             >
               <Send class="h-4 w-4" />
-              {{ orders.isCreating ? "Creating" : "Create order" }}
+              {{ orders.isCreating ? "Creating order…" : "Create order" }}
             </button>
           </div>
           <p v-if="error" class="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">{{ error }}</p>

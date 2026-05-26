@@ -3,13 +3,18 @@ import { onMounted } from "vue";
 import { RouterLink } from "vue-router";
 import { ClipboardList, Plus } from "@lucide/vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
+import Pagination from "@/components/ui/Pagination.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useOrderStore } from "@/stores/orders";
 
 const orders = useOrderStore();
 
+function goToPage(page: number) {
+  orders.fetchOrders(page).catch(() => undefined);
+}
+
 onMounted(() => {
-  orders.fetchOrders().catch(() => undefined);
+  orders.fetchOrders(1).catch(() => undefined);
 });
 </script>
 
@@ -76,6 +81,13 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      <Pagination
+        v-if="orders.pagination.count > orders.pagination.pageSize"
+        :page="orders.pagination.page"
+        :page-size="orders.pagination.pageSize"
+        :count="orders.pagination.count"
+        @update:page="goToPage"
+      />
     </div>
 
     <EmptyState

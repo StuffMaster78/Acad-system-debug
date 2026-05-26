@@ -10,6 +10,7 @@ import {
   Siren,
 } from "@lucide/vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
+import Pagination from "@/components/ui/Pagination.vue";
 import RichTextEditor from "@/components/forms/RichTextEditor.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminSupportStore } from "@/stores/adminSupport";
@@ -195,6 +196,14 @@ onMounted(() => {
             message="Adjust the queue filter or refresh after the backend is connected."
           />
         </div>
+
+        <Pagination
+          v-if="!support.query && support.filter === 'all'"
+          :page="support.ticketPagination.page"
+          :page-size="support.ticketPagination.pageSize"
+          :count="support.ticketPagination.count"
+          @update:page="support.fetchTickets($event).catch(() => undefined)"
+        />
       </div>
 
       <aside class="space-y-6">

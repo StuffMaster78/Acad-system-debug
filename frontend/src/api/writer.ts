@@ -8,8 +8,15 @@ import type {
   WriterEvent,
   WriterProfile,
 } from "@/types/writer";
+import type { OrderSummary } from "@/types/orders";
+
+type ListResponse<T> = T[] | { count: number; next: string | null; previous: string | null; results: T[] };
 
 export const writerApi = {
+  poolOrders: (params?: Record<string, unknown>) =>
+    api.get<ListResponse<OrderSummary>>(apiPath("/orders/"), {
+      params: { status: "ready_for_staffing", ...params },
+    }),
   profile: () => api.get<WriterProfile>(apiPath("/writer-management/me/profile/")),
   availability: () =>
     api.get<WriterAvailability>(apiPath("/writer-management/me/availability/")),
