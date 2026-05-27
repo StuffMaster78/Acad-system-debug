@@ -13,10 +13,13 @@ import {
   RefreshCw,
   RotateCcw,
   Send,
+  Star,
   ThumbsUp,
   XCircle,
 } from "@lucide/vue";
 import { filesApi, type FilePurpose, type FileVisibility } from "@/api/files";
+import { reviewsApi } from "@/api/reviews";
+import type { Review } from "@/types/reviews";
 import { supportApi } from "@/api/support";
 import { tipsApi, type TipRecord } from "@/api/tips";
 import StatusPill from "@/components/ui/StatusPill.vue";
@@ -81,13 +84,69 @@ const isTerminal = computed(() => {
 
 const canCancel = computed(() => !isTerminal.value);
 
+const TERMINAL_STATUSES = ["completed", "reviewed", "rated", "approved", "archived"];
+
 const canTip = computed(() => {
   const s = order.value?.status;
   return (
-    (s === "completed" || s === "reviewed" || s === "rated" || s === "approved" || s === "archived") &&
+    TERMINAL_STATUSES.includes(s ?? "") &&
     lifecycle.value?.current_writer_id != null
   );
 });
+
+const existingReview = ref<Review | null>(null);
+const reviewLoading = ref(false);
+const reviewRating = ref(0);
+const reviewHoverRating = ref(0);
+const reviewTitle = ref("");
+const reviewBody = ref("");
+const reviewPublic = ref(true);
+const reviewSubmitting = ref(false);
+const reviewError = ref("");
+
+const canReview = computed(() =>
+  TERMINAL_STATUSES.includes(order.value?.status ?? "") &&
+  lifecycle.value?.current_writer_id != null &&
+  existingReview.value === null &&
+  !reviewLoading.value,
+);
+
+async function fetchExistingReview() {
+  reviewLoading.value = true;
+  try {
+    const { data } = await reviewsApi.forOrder(orderId.value);
+    existingReview.value = data;
+  } catch {
+    existingReview.value = null;
+  } finally {
+    reviewLoading.value = false;
+  }
+}
+
+async function submitReview() {
+  reviewError.value = "";
+  if (!reviewRating.value) {
+    reviewError.value = "Select a star rating before submitting.";
+    return;
+  }
+  reviewSubmitting.value = true;
+  try {
+    const { data } = await reviewsApi.submit(orderId.value, {
+      rating: reviewRating.value,
+      title: reviewTitle.value.trim() || undefined,
+      body: reviewBody.value.trim() || undefined,
+      is_public: reviewPublic.value,
+    });
+    existingReview.value = data;
+    reviewRating.value = 0;
+    reviewTitle.value = "";
+    reviewBody.value = "";
+  } catch {
+    reviewError.value = "Review submission failed. Please try again.";
+  } finally {
+    reviewSubmitting.value = false;
+  }
+}
 
 const TIP_PRESETS = [500, 1000, 2000, 5000]; // cents: $5, $10, $20, $50
 const tipPreset = ref<number | null>(null);
@@ -245,6 +304,7 @@ function attachmentName(attachmentId: number, filename?: string) {
 onMounted(() => {
   void orders.fetchOrder(orderId.value);
   communications.loadOrderThread(orderId.value).catch(() => undefined);
+  fetchExistingReview();
 });
 </script>
 
@@ -709,6 +769,85 @@ onMounted(() => {
             <Loader2 v-if="isTipping" class="h-4 w-4 animate-spin" />
             <Gift v-else class="h-4 w-4" />
             {{ isTipping ? "Sending tip…" : tipAmount ? `Send ${centsToDisplay(tipAmount)}` : "Select amount" }}
+          </button>
+        </template>
+      </section>
+
+      <!-- Rate your writer -->
+      <section v-if="canReview || existingReview" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <Star class="h-5 w-5 text-saffron" />
+          <h2 class="text-lg font-semibold text-ink">Rate your writer</h2>
+        </div>
+
+        <!-- Already submitted -->
+        <template v-if="existingReview">
+          <p class="mt-2 text-sm text-graphite">You rated this order.</p>
+          <div class="mt-3 flex items-center gap-1">
+            <Star
+              v-for="n in 5"
+              :key="n"
+              class="h-5 w-5"
+              :class="n <= existingReview.rating ? 'text-saffron fill-saffron' : 'text-slate-300'"
+            />
+            <span class="ml-2 text-sm font-semibold text-ink">{{ existingReview.rating }}/5</span>
+          </div>
+          <p v-if="existingReview.title" class="mt-2 text-sm font-semibold text-ink">{{ existingReview.title }}</p>
+          <p v-if="existingReview.body" class="mt-1 text-sm text-graphite">{{ existingReview.body }}</p>
+        </template>
+
+        <!-- Review form -->
+        <template v-else>
+          <p class="mt-1 text-sm text-graphite">How was the work? Your rating helps us match you with great writers.</p>
+
+          <div class="mt-4 flex items-center gap-1">
+            <button
+              v-for="n in 5"
+              :key="n"
+              type="button"
+              class="focus-ring rounded p-0.5 transition-transform hover:scale-110"
+              :aria-label="`Rate ${n} star${n > 1 ? 's' : ''}`"
+              @click="reviewRating = n"
+              @mouseenter="reviewHoverRating = n"
+              @mouseleave="reviewHoverRating = 0"
+            >
+              <Star
+                class="h-7 w-7 transition-colors"
+                :class="n <= (reviewHoverRating || reviewRating) ? 'text-saffron fill-saffron' : 'text-slate-300'"
+              />
+            </button>
+          </div>
+
+          <div class="mt-4 grid gap-3">
+            <input
+              v-model.trim="reviewTitle"
+              class="focus-ring w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              placeholder="Title (optional)"
+              maxlength="120"
+            />
+            <textarea
+              v-model.trim="reviewBody"
+              class="focus-ring min-h-20 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              placeholder="Share your experience (optional)"
+              maxlength="1000"
+            />
+            <label class="flex items-center gap-2 text-sm text-graphite">
+              <input v-model="reviewPublic" type="checkbox" class="h-4 w-4 rounded" />
+              Make review public on writer profile
+            </label>
+          </div>
+
+          <p v-if="reviewError" class="mt-2 text-sm text-berry">{{ reviewError }}</p>
+
+          <button
+            class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            type="button"
+            :disabled="reviewSubmitting || !reviewRating"
+            @click="submitReview"
+          >
+            <Loader2 v-if="reviewSubmitting" class="h-4 w-4 animate-spin" />
+            <Star v-else class="h-4 w-4" />
+            Submit review
           </button>
         </template>
       </section>
