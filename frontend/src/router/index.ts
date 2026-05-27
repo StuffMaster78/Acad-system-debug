@@ -367,7 +367,12 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "tenants",
         name: "superadmin-tenants",
-        component: () => import("@/views/superadmin/SuperadminCommandView.vue"),
+        component: () => import("@/views/superadmin/SuperadminTenantsView.vue"),
+      },
+      {
+        path: "tenants/:id",
+        name: "superadmin-tenant-detail",
+        component: () => import("@/views/superadmin/SuperadminTenantDetailView.vue"),
       },
       {
         path: "ops",

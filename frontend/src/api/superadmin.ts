@@ -6,7 +6,10 @@ import type {
   SuperadminLog,
   SuperadminUser,
   TenantComparisonResponse,
+  TenantCreatePayload,
+  TenantDetail,
   TenantListResponse,
+  TenantUpdatePayload,
 } from "@/types/superadmin";
 import type { UserRole } from "@/types/roles";
 
@@ -20,6 +23,24 @@ export const superadminApi = {
       apiPath("/superadmin-management/tenants/list_tenants/"),
       { params },
     ),
+  getTenant: (id: number | string) =>
+    api.get<TenantDetail>(apiPath(`/superadmin-management/tenants/${id}/`)),
+  createTenant: (payload: TenantCreatePayload) =>
+    api.post<TenantDetail>(apiPath("/superadmin-management/tenants/"), payload),
+  updateTenant: (id: number | string, payload: TenantUpdatePayload) =>
+    api.patch<TenantDetail>(apiPath(`/superadmin-management/tenants/${id}/`), payload),
+  suspendTenant: (id: number | string, reason?: string) =>
+    api.post<TenantDetail>(apiPath(`/superadmin-management/tenants/${id}/suspend/`), { reason }),
+  activateTenant: (id: number | string) =>
+    api.post<TenantDetail>(apiPath(`/superadmin-management/tenants/${id}/activate/`), {}),
+  tenantStaff: (id: number | string) =>
+    api.get<ListResponse<import("@/types/superadmin").TenantStaffMember>>(
+      apiPath(`/superadmin-management/tenants/${id}/staff/`),
+    ),
+  addTenantStaff: (id: number | string, userId: number) =>
+    api.post(apiPath(`/superadmin-management/tenants/${id}/staff/`), { user_id: userId }),
+  removeTenantStaff: (tenantId: number | string, staffId: number) =>
+    api.delete(apiPath(`/superadmin-management/tenants/${tenantId}/staff/${staffId}/`)),
   tenantComparison: () =>
     api.get<TenantComparisonResponse>(
       apiPath("/superadmin-management/tenants/comparison/"),

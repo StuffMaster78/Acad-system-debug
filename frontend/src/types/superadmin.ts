@@ -126,6 +126,57 @@ export interface SuperadminLog {
   formatted_timestamp?: string;
 }
 
+export interface TenantStaffMember {
+  id: number;
+  user_id: number;
+  username: string;
+  email: string;
+  role: string;
+  joined_at: string;
+}
+
+export interface TenantBillingPlan {
+  name: string;
+  price_per_month: number | null;
+  features: string[];
+}
+
+export interface TenantDetail extends TenantSummary {
+  slug: string;
+  billing_email: string | null;
+  support_email: string | null;
+  writer_count: number;
+  client_count: number;
+  admin_count: number;
+  plan: TenantBillingPlan;
+  feature_flags: Record<string, boolean>;
+  allowed_subjects: string[];
+  staff: TenantStaffMember[];
+  recent_orders: Array<Record<string, unknown>>;
+  created_at: string;
+  updated_at: string;
+  suspended_at: string | null;
+  suspension_reason: string | null;
+}
+
+export interface TenantCreatePayload {
+  name: string;
+  domain: string;
+  slug: string;
+  billing_email?: string;
+  support_email?: string;
+  plan_name?: string;
+}
+
+export interface TenantUpdatePayload {
+  name?: string;
+  domain?: string;
+  billing_email?: string;
+  support_email?: string;
+  feature_flags?: Record<string, boolean>;
+  allowed_subjects?: string[];
+}
+
 export interface SuperadminAppeal {
   id: number;
   user?: number;
