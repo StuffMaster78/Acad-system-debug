@@ -61,8 +61,7 @@ urlpatterns = [
     # ── Orders & fulfilment ────────────────────────────────────────────────────
     path("api/v1/orders/", include("orders.urls")),
     path("api/v1/order-configs/", include("order_configs.urls")),
-    path("api/v1/order-files/", include("order_files.urls")),
-    path("api/v1/special-orders/", include("special_orders.urls")),
+path("api/v1/special-orders/", include("special_orders.urls")),
     path("api/v1/class-management/", include("class_management.urls")),
     path("api/v1/files/", include("files_management.urls")),
 
@@ -124,7 +123,6 @@ urlpatterns = [
     path("api/v1/announcements/", include("announcements.urls")),
 
     # ── Content & media ────────────────────────────────────────────────────────
-    path("api/v1/media/", include("media_management.urls")),
     path("api/v1/seo-pages/", include("seo_pages.urls")),
     path("cms-api/", include("cms_core.urls")),
 ]

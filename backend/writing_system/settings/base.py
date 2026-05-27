@@ -162,7 +162,6 @@ LOCAL_APPS = [
     "privacy",
     "users_state",
     "seo_pages",
-    "media_management",
     "tickets",
     "mass_emails",
     "announcements",

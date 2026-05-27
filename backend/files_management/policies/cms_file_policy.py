@@ -22,7 +22,6 @@ class CmsFilePolicy(BaseFilePolicy):
         "cms_attachments",
         "cms_content",
         "seo_pages",
-        "media_management",
     }
 
     def supports(self, *, attachment: FileAttachment) -> bool:
