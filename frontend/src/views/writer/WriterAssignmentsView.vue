@@ -8,12 +8,16 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  Send,
+  X,
   Zap,
 } from "@lucide/vue";
 import { RouterLink } from "vue-router";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import Pagination from "@/components/ui/Pagination.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import { bidsApi } from "@/api/bids";
+import type { Bid } from "@/types/bids";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 import type { OrderSummary } from "@/types/orders";
 
@@ -71,6 +75,47 @@ function compensation(order: OrderSummary): string {
   }).format(n);
 }
 
+const myBids = ref<Bid[]>([]);
+const bidsLoading = ref(false);
+const withdrawingId = ref<number | null>(null);
+
+async function fetchMyBids() {
+  bidsLoading.value = true;
+  try {
+    const { data } = await bidsApi.listMine({ page_size: 20 });
+    myBids.value = Array.isArray(data) ? data : (data as { results: Bid[] }).results ?? [];
+  } catch {
+    // non-critical
+  } finally {
+    bidsLoading.value = false;
+  }
+}
+
+async function withdrawBid(bidId: number) {
+  withdrawingId.value = bidId;
+  try {
+    await bidsApi.withdraw(bidId);
+    const idx = myBids.value.findIndex((b) => b.id === bidId);
+    if (idx !== -1) myBids.value[idx] = { ...myBids.value[idx], status: "withdrawn" };
+  } catch {
+    // non-critical
+  } finally {
+    withdrawingId.value = null;
+  }
+}
+
+function bidStatusTone(status: string): "success" | "warning" | "danger" | "neutral" {
+  if (status === "accepted") return "success";
+  if (status === "pending") return "warning";
+  if (status === "rejected" || status === "expired") return "danger";
+  return "neutral";
+}
+
+function bidMoney(bid: Bid): string {
+  const n = Number(bid.price);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: bid.currency ?? "USD" }).format(n);
+}
+
 async function switchTab(tab: StatusTab) {
   activeTab.value = tab;
   await workspace.fetchAssignments(1, tabDefs.find((t) => t.key === tab)?.statuses.join(","));
@@ -82,6 +127,7 @@ function goToPage(page: number) {
 
 onMounted(() => {
   void workspace.fetchAssignments(1, statusParam.value);
+  void fetchMyBids();
 });
 </script>
 
@@ -235,5 +281,69 @@ onMounted(() => {
         @update:page="goToPage"
       />
     </div>
+    <!-- My bids -->
+    <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <div class="flex items-center gap-2">
+          <Send class="h-4 w-4 text-signal" />
+          <h2 class="text-base font-semibold text-ink">My bids</h2>
+        </div>
+        <button
+          class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink"
+          type="button"
+          :disabled="bidsLoading"
+          @click="fetchMyBids"
+        >
+          <Loader2 v-if="bidsLoading" class="h-3 w-3 animate-spin" />
+          <RefreshCw v-else class="h-3 w-3" />
+          Refresh
+        </button>
+      </div>
+
+      <div v-if="bidsLoading && !myBids.length" class="px-5 py-8 text-center text-sm text-graphite">
+        Loading bids…
+      </div>
+
+      <div v-else-if="!myBids.length" class="px-5 py-8">
+        <EmptyState
+          :icon="Send"
+          title="No bids yet"
+          message="Bids you submit on available orders will appear here."
+        />
+      </div>
+
+      <div v-else class="divide-y divide-slate-100">
+        <div
+          v-for="bid in myBids"
+          :key="bid.id"
+          class="flex items-center gap-4 px-5 py-4"
+        >
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold text-ink">
+              #{{ bid.order_id }} {{ bid.order_topic }}
+            </p>
+            <p class="mt-0.5 text-xs text-graphite">
+              {{ bidMoney(bid) }} · {{ bid.delivery_hours }}h delivery
+              <template v-if="bid.pitch">· "{{ bid.pitch.slice(0, 60) }}{{ bid.pitch.length > 60 ? '…' : '' }}"</template>
+            </p>
+            <p v-if="bid.rejection_reason && bid.status === 'rejected'" class="mt-0.5 text-xs text-berry">
+              {{ bid.rejection_reason }}
+            </p>
+          </div>
+          <StatusPill :label="bid.status" :tone="bidStatusTone(bid.status)" />
+          <button
+            v-if="bid.status === 'pending'"
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:border-rose-300 hover:text-berry disabled:opacity-50"
+            type="button"
+            :disabled="withdrawingId === bid.id"
+            @click="withdrawBid(bid.id)"
+          >
+            <Loader2 v-if="withdrawingId === bid.id" class="h-3 w-3 animate-spin" />
+            <X v-else class="h-3 w-3" />
+            Withdraw
+          </button>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
