@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { AlertTriangle, BadgeMinus, Ban, BriefcaseBusiness, FileText, RefreshCw, ShieldOff, UserCheck, Users } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import BulkActionBar from "@/components/ui/BulkActionBar.vue";
 import { useAdminWritersStore } from "@/stores/adminWriters";
 
 const writers = useAdminWritersStore();
@@ -12,6 +13,67 @@ const actionForm = reactive({
   note: "Internal writer ops note.",
   pinNote: false,
 });
+
+// ── Bulk selection ─────────────────────────────────────────────────────────────
+const selectedIds = ref<Set<string>>(new Set());
+const isBulkLoading = ref(false);
+const bulkNotice = ref<string | null>(null);
+
+const selectedCount = computed(() => selectedIds.value.size);
+
+function isSelected(id: string) {
+  return selectedIds.value.has(id);
+}
+
+function toggleSelect(id: string) {
+  const s = new Set(selectedIds.value);
+  if (s.has(id)) s.delete(id);
+  else s.add(id);
+  selectedIds.value = s;
+}
+
+function selectAll() {
+  selectedIds.value = new Set(writers.writers.map((w) => w.registration_id));
+}
+
+function clearSelection() {
+  selectedIds.value = new Set();
+}
+
+function exportSelectedCSV() {
+  const selected = writers.writers.filter((w) => selectedIds.value.has(w.registration_id));
+  const headers = ["registration_id", "pen_name", "full_name", "email", "level_name", "verification_status", "is_verified", "joined_at"];
+  const rows = selected.map((w) => headers.map((h) => JSON.stringify((w as Record<string, unknown>)[h] ?? "")).join(","));
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `writers-export-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  bulkNotice.value = `Exported ${selected.length} writers.`;
+}
+
+async function bulkSuspend() {
+  const ids = [...selectedIds.value];
+  isBulkLoading.value = true;
+  try {
+    for (const id of ids) {
+      writers.selectWriter(id);
+      await writers.toggleSuspension("Bulk suspension action.").catch(() => undefined);
+    }
+    bulkNotice.value = `Suspended ${ids.length} writer(s).`;
+    clearSelection();
+  } finally {
+    isBulkLoading.value = false;
+  }
+}
+
+async function handleBulkAction(key: string) {
+  if (key === "export") { exportSelectedCSV(); return; }
+  if (key === "suspend") { await bulkSuspend(); return; }
+}
 
 const selected = computed(() => writers.selectedWriter);
 
@@ -109,8 +171,21 @@ onMounted(() => {
           </form>
         </div>
 
+        <div v-if="bulkNotice" class="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          {{ bulkNotice }}
+        </div>
+
         <div class="mt-5 overflow-hidden rounded-md border border-slate-200">
-          <div class="grid grid-cols-[1fr_120px_140px_120px_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div class="grid grid-cols-[32px_1fr_120px_140px_120px_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                class="rounded border-slate-300"
+                :checked="selectedCount > 0 && selectedCount === writers.writers.length"
+                :indeterminate="selectedCount > 0 && selectedCount < writers.writers.length"
+                @change="selectedCount === writers.writers.length ? clearSelection() : selectAll()"
+              />
+            </label>
             <span>Writer</span>
             <span>Level</span>
             <span>Verification</span>
@@ -119,25 +194,56 @@ onMounted(() => {
           </div>
           <div v-if="writers.isLoading" class="px-4 py-6 text-sm text-graphite">Loading writers...</div>
           <div v-else-if="!writers.writers.length" class="px-4 py-6 text-sm text-graphite">No writers loaded.</div>
-          <button
+          <div
             v-for="writer in writers.writers"
             v-else
             :key="writer.registration_id"
-            class="focus-ring grid w-full grid-cols-[1fr_120px_140px_120px_auto] items-center gap-3 border-t border-slate-100 px-4 py-3 text-left text-sm hover:bg-slate-50"
-            :class="writer.registration_id === selected?.registration_id ? 'bg-slate-50' : 'bg-white'"
-            type="button"
-            @click="writers.selectWriter(writer.registration_id)"
+            class="grid w-full grid-cols-[32px_1fr_120px_140px_120px_auto] items-center gap-3 border-t border-slate-100 px-4 py-3 text-sm"
+            :class="[
+              writer.registration_id === selected?.registration_id ? 'bg-slate-50' : 'bg-white hover:bg-slate-50',
+              isSelected(writer.registration_id) ? 'bg-signal/5' : '',
+            ]"
           >
-            <div>
+            <label class="flex items-center" @click.stop>
+              <input
+                type="checkbox"
+                class="rounded border-slate-300"
+                :checked="isSelected(writer.registration_id)"
+                @change="toggleSelect(writer.registration_id)"
+              />
+            </label>
+            <button
+              class="focus-ring text-left"
+              type="button"
+              @click="writers.selectWriter(writer.registration_id)"
+            >
               <p class="font-semibold text-ink">{{ writer.pen_name || writer.full_name || writer.registration_id }}</p>
               <p class="mt-1 text-xs text-graphite">{{ writer.full_name || writer.registration_id }} · joined {{ dateLabel(writer.joined_at) }}</p>
-            </div>
+            </button>
             <span class="text-graphite">{{ writer.level_name || "Unleveled" }}</span>
             <StatusPill :label="writer.verification_status" :tone="writer.is_verified ? 'success' : 'warning'" />
             <StatusPill :label="(writer as any).is_suspended ? 'suspended' : (writer as any).is_on_probation ? 'probation' : 'clear'" :tone="riskTone(writer as any)" />
-            <span class="text-right text-xs font-semibold text-signal">Inspect</span>
-          </button>
+            <button
+              class="focus-ring text-right text-xs font-semibold text-signal"
+              type="button"
+              @click="writers.selectWriter(writer.registration_id)"
+            >Inspect</button>
+          </div>
         </div>
+
+        <!-- Bulk action bar -->
+        <BulkActionBar
+          :selected-count="selectedCount"
+          :total-count="writers.writers.length"
+          :is-loading="isBulkLoading"
+          :actions="[
+            { key: 'export', label: 'Export CSV', variant: 'default' },
+            { key: 'suspend', label: 'Suspend selected', variant: 'danger' },
+          ]"
+          @action="handleBulkAction"
+          @clear-selection="clearSelection"
+          @select-all="selectAll"
+        />
       </div>
 
       <aside class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">

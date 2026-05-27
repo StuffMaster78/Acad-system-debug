@@ -4,6 +4,7 @@ import {
   BookOpen,
   CheckCircle2,
   Clock3,
+  DollarSign,
   FileText,
   Loader2,
   RefreshCw,
@@ -14,9 +15,11 @@ import {
 import Pagination from "@/components/ui/Pagination.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
+import { useBidsStore } from "@/stores/bids";
 import type { OrderSummary } from "@/types/orders";
 
 const workspace = useWriterWorkspaceStore();
+const bids = useBidsStore();
 
 const searchQuery = ref("");
 const urgentOnly = ref(false);
@@ -73,8 +76,18 @@ function toggleInterestForm(orderId: number) {
   if (expandedOrderId.value === orderId) {
     expandedOrderId.value = null;
     interestMessage.value = "";
+    bids.closeBidForm();
   } else {
     expandedOrderId.value = orderId;
+    interestMessage.value = "";
+    bids.openBidForm(orderId);
+  }
+}
+
+async function submitBid(order: OrderSummary) {
+  await bids.submitBid();
+  if (!bids.error) {
+    expandedOrderId.value = null;
     interestMessage.value = "";
   }
 }
@@ -249,15 +262,16 @@ onMounted(() => {
         </div>
 
         <div class="border-t border-slate-100 px-5 py-3">
+          <!-- Collapsed: action buttons -->
           <div v-if="expandedOrderId !== order.id" class="flex flex-wrap gap-2">
             <button
               class="focus-ring inline-flex items-center gap-2 rounded-md bg-signal px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
               type="button"
-              :disabled="workspace.isMutating"
+              :disabled="workspace.isMutating || bids.isSaving"
               @click="toggleInterestForm(order.id)"
             >
-              <Send class="h-3.5 w-3.5" />
-              Express interest
+              <DollarSign class="h-3.5 w-3.5" />
+              Submit a bid
             </button>
             <button
               class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-ink disabled:opacity-60"
@@ -267,28 +281,64 @@ onMounted(() => {
             >
               <Loader2 v-if="workspace.isMutating" class="h-3.5 w-3.5 animate-spin" />
               <CheckCircle2 v-else class="h-3.5 w-3.5" />
-              Take order
+              Take order directly
             </button>
           </div>
 
+          <!-- Expanded: bid form -->
           <div v-else class="space-y-3">
-            <textarea
-              v-model="interestMessage"
-              class="focus-ring w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              rows="3"
-              placeholder="Brief note for the assignment team (optional)"
-              autofocus
-            />
+            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Your Bid</p>
+
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block">
+                <span class="text-xs font-medium text-graphite">Your price ($) *</span>
+                <div class="relative mt-1">
+                  <DollarSign class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                  <input
+                    v-model="bids.bidForm.price"
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    placeholder="e.g. 45.00"
+                    class="focus-ring h-9 w-full rounded-md border border-slate-300 pl-8 pr-3 text-sm"
+                  />
+                </div>
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-graphite">Delivery time *</span>
+                <select v-model.number="bids.bidForm.delivery_hours" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-300 px-3 text-sm">
+                  <option :value="6">6 hours</option>
+                  <option :value="12">12 hours</option>
+                  <option :value="24">24 hours</option>
+                  <option :value="48">48 hours</option>
+                  <option :value="72">3 days</option>
+                  <option :value="120">5 days</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="block">
+              <span class="text-xs font-medium text-graphite">Pitch message (optional)</span>
+              <textarea
+                v-model="bids.bidForm.pitch"
+                class="focus-ring mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                rows="2"
+                placeholder="Why are you the best fit for this order? Keep it brief."
+              />
+            </label>
+
+            <p v-if="bids.error" class="text-xs text-rose-600">{{ bids.error }}</p>
+
             <div class="flex gap-2">
               <button
                 class="focus-ring inline-flex items-center gap-2 rounded-md bg-signal px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
                 type="button"
-                :disabled="workspace.isMutating"
-                @click="submitInterest(order)"
+                :disabled="bids.isSaving || !bids.bidForm.price"
+                @click="submitBid(order)"
               >
-                <Loader2 v-if="workspace.isMutating" class="h-3.5 w-3.5 animate-spin" />
+                <Loader2 v-if="bids.isSaving" class="h-3.5 w-3.5 animate-spin" />
                 <Send v-else class="h-3.5 w-3.5" />
-                Submit interest
+                Submit bid
               </button>
               <button
                 class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-ink"

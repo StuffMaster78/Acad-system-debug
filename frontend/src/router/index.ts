@@ -183,6 +183,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminConfigHubView.vue"),
       },
       {
+        path: "bids",
+        name: "admin-bids",
+        component: () => import("@/views/admin/AdminBidsView.vue"),
+      },
+      {
         path: "classes",
         name: "admin-classes",
         component: () => import("@/views/admin/AdminClassesView.vue"),

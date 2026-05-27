@@ -298,7 +298,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
 
   async function sendMessage(
     body: string,
-    opts?: { isInternal?: boolean; recipientRole?: string },
+    opts?: { isInternal?: boolean; recipientRole?: string; attachments?: Array<{ name: string; type: string; dataUrl: string }> },
   ) {
     const auth = useAuthStore();
     if (!activeThread.value) return null;
@@ -308,6 +308,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
 
     const isInternal = opts?.isInternal ?? false;
     const recipientRole = opts?.recipientRole;
+    const attachments = opts?.attachments;
 
     try {
       if (auth.isPreviewSession) {
@@ -323,6 +324,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
           is_internal: isInternal,
           is_system_generated: false,
           is_edited: false,
+          attachments: attachments?.map((a) => ({ name: a.name, type: a.type, dataUrl: a.dataUrl })),
           metadata: { source: "preview", recipient_role: recipientRole },
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -336,6 +338,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
         {
           body,
           is_internal: isInternal,
+          ...(attachments?.length ? { attachments } : {}),
           metadata: {
             source: "message_thread",
             ...(recipientRole ? { recipient_role: recipientRole } : {}),

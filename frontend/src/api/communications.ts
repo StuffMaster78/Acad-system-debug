@@ -27,6 +27,13 @@ export interface CommunicationThread {
   updated_at: string;
 }
 
+export interface MessageAttachment {
+  name: string;
+  type: string;
+  url?: string;
+  dataUrl?: string;
+}
+
 export interface CommunicationMessage {
   id: number;
   thread: number;
@@ -41,6 +48,7 @@ export interface CommunicationMessage {
   is_internal: boolean;
   is_system_generated: boolean;
   is_edited: boolean;
+  attachments?: MessageAttachment[];
   metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -60,6 +68,7 @@ export interface CommunicationMessageCreatePayload {
   body: string;
   parent?: number | null;
   is_internal?: boolean;
+  attachments?: MessageAttachment[];
   metadata?: Record<string, unknown>;
 }
 

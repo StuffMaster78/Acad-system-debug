@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
-import { ExternalLink, Inbox, Lock, Loader2, Pencil, RefreshCw, Send, X } from "@lucide/vue";
+import { ExternalLink, FileText, Image, Inbox, Lock, Loader2, Paperclip, Pencil, RefreshCw, Send, X } from "@lucide/vue";
 import type { CommunicationMessage, CommunicationThread, CommunicationThreadKind } from "@/api/communications";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
 import { useCommunicationsStore } from "@/stores/communications";
 import { useAuthStore } from "@/stores/auth";
 import type { UserRole } from "@/types/roles";
+
+interface AttachmentFile {
+  name: string;
+  size: number;
+  type: string;
+  dataUrl: string;
+  isImage: boolean;
+}
 
 const props = defineProps<{
   role: UserRole;
@@ -19,6 +27,60 @@ const comms = useCommunicationsStore();
 const composer = ref("");
 const selectedRecipient = ref("");
 const scrollEl = ref<HTMLElement | null>(null);
+
+// ── File attachments ───────────────────────────────────────────────────────────
+const attachments = ref<AttachmentFile[]>([]);
+const fileInputEl = ref<HTMLInputElement | null>(null);
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILES = 5;
+
+function openFilePicker() {
+  fileInputEl.value?.click();
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleFilePick(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const files = Array.from(input.files ?? []);
+  input.value = "";
+
+  const remaining = MAX_FILES - attachments.value.length;
+  const toAdd = files.slice(0, remaining);
+
+  for (const file of toAdd) {
+    if (file.size > MAX_FILE_SIZE) continue;
+    const dataUrl = await readFileAsDataUrl(file);
+    attachments.value.push({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      dataUrl,
+      isImage: file.type.startsWith("image/"),
+    });
+  }
+}
+
+function removeAttachment(index: number) {
+  attachments.value.splice(index, 1);
+}
+
+function clearAttachments() {
+  attachments.value = [];
+}
 
 // ── New message compose ────────────────────────────────────────────────────────
 const showCompose = ref(false);
@@ -280,11 +342,15 @@ watch(
 
 // ── Send ──────────────────────────────────────────────────────────────────────
 async function sendMessage() {
-  if (!composer.value.trim()) return;
+  if (!composer.value.trim() && !attachments.value.length) return;
   const isInternal = selectedRecipient.value === "internal";
   const recipientRole = isInternal ? undefined : selectedRecipient.value;
-  await comms.sendMessage(composer.value.trim(), { isInternal, recipientRole });
+  const attachmentPayload = attachments.value.length
+    ? attachments.value.map((a) => ({ name: a.name, type: a.type, dataUrl: a.dataUrl }))
+    : undefined;
+  await comms.sendMessage(composer.value.trim(), { isInternal, recipientRole, attachments: attachmentPayload });
   composer.value = "";
+  clearAttachments();
 }
 
 // ── Stub avatar user shape for UserAvatar ─────────────────────────────────────
@@ -590,7 +656,21 @@ function senderUser(group: MessageGroup) {
                         : `rounded-bl-sm border border-slate-200 border-l-4 bg-white text-graphite ${roleStyle(group.senderRole).border}`,
                   ]"
                 >
-                  <p class="whitespace-pre-wrap">{{ msg.body }}</p>
+                  <p v-if="msg.body" class="whitespace-pre-wrap">{{ msg.body }}</p>
+                  <!-- Attachments in received messages -->
+                  <div v-if="msg.attachments?.length" class="mt-2 flex flex-wrap gap-2">
+                    <a
+                      v-for="(att, ai) in (msg.attachments as Array<{name: string; type: string; url?: string; dataUrl?: string}>)"
+                      :key="ai"
+                      :href="att.url ?? att.dataUrl ?? '#'"
+                      target="_blank"
+                      class="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-xs hover:bg-white/20"
+                    >
+                      <Image v-if="att.type?.startsWith('image/')" class="h-3.5 w-3.5 shrink-0" />
+                      <FileText v-else class="h-3.5 w-3.5 shrink-0" />
+                      <span class="max-w-[120px] truncate">{{ att.name }}</span>
+                    </a>
+                  </div>
                   <p
                     class="mt-1 text-right text-xs"
                     :class="group.isOwn && !msg.is_internal ? 'text-white/60' : 'text-slate-400'"
@@ -652,27 +732,78 @@ function senderUser(group: MessageGroup) {
             This message will only be visible to staff — clients and writers will not see it.
           </p>
 
+          <!-- Attachment previews -->
+          <div v-if="attachments.length" class="flex flex-wrap gap-2">
+            <div
+              v-for="(att, i) in attachments"
+              :key="i"
+              class="group relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-graphite"
+            >
+              <!-- Thumbnail or file icon -->
+              <img
+                v-if="att.isImage"
+                :src="att.dataUrl"
+                :alt="att.name"
+                class="h-8 w-8 rounded object-cover"
+              />
+              <FileText v-else class="h-4 w-4 shrink-0 text-slate-400" />
+              <div class="min-w-0">
+                <p class="max-w-[120px] truncate font-medium text-ink">{{ att.name }}</p>
+                <p class="text-slate-400">{{ formatFileSize(att.size) }}</p>
+              </div>
+              <button
+                type="button"
+                class="ml-1 rounded-full p-0.5 text-slate-400 hover:text-rose-500"
+                @click="removeAttachment(i)"
+              >
+                <X class="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+
           <!-- Textarea + send button -->
           <div class="flex items-end gap-2">
-            <textarea
-              v-model.trim="composer"
-              class="focus-ring min-h-[80px] flex-1 resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 placeholder:text-slate-400"
-              :class="selectedRecipient === 'internal' ? 'bg-slate-50' : ''"
-              placeholder="Write a message…"
-              @keydown.enter.exact.prevent="sendMessage"
-            />
+            <div class="relative flex-1">
+              <textarea
+                v-model.trim="composer"
+                class="focus-ring min-h-[80px] w-full resize-none rounded-xl border border-slate-200 px-4 py-3 pr-10 text-sm leading-6 placeholder:text-slate-400"
+                :class="selectedRecipient === 'internal' ? 'bg-slate-50' : ''"
+                placeholder="Write a message…"
+                @keydown.enter.exact.prevent="sendMessage"
+              />
+              <!-- Attach button inside textarea -->
+              <button
+                type="button"
+                class="absolute bottom-2.5 right-2.5 rounded-md p-1 text-slate-400 hover:text-signal disabled:opacity-40"
+                :disabled="attachments.length >= MAX_FILES"
+                :title="attachments.length >= MAX_FILES ? `Max ${MAX_FILES} files` : 'Attach files'"
+                @click="openFilePicker"
+              >
+                <Paperclip class="h-4 w-4" />
+              </button>
+            </div>
             <button
               class="focus-ring mb-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-50"
               :class="selectedRecipient === 'internal' ? 'bg-slate-500' : 'bg-signal'"
               type="submit"
-              :disabled="comms.isSending || !composer || !selectedRecipient"
+              :disabled="comms.isSending || (!composer && !attachments.length) || !selectedRecipient"
               :title="comms.isSending ? 'Sending…' : 'Send (Enter)'"
             >
               <Loader2 v-if="comms.isSending" class="h-4 w-4 animate-spin" />
               <Send v-else class="h-4 w-4" />
             </button>
           </div>
-          <p class="text-right text-xs text-slate-400">Enter to send · Shift+Enter for new line</p>
+          <p class="text-right text-xs text-slate-400">Enter to send · Shift+Enter for new line · Max 5 files, 10MB each</p>
+
+          <!-- Hidden file input -->
+          <input
+            ref="fileInputEl"
+            type="file"
+            multiple
+            accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.pptx,.zip"
+            class="hidden"
+            @change="handleFilePick"
+          />
         </form>
       </div>
     </main>
