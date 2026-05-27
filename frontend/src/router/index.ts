@@ -272,6 +272,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/writer/WriterAvailableView.vue"),
       },
       {
+        path: "calendar",
+        name: "writer-calendar",
+        component: () => import("@/views/writer/WriterCalendarView.vue"),
+      },
+      {
         path: "assignments",
         name: "writer-assignments",
         component: () => import("@/views/writer/WriterAssignmentsView.vue"),
