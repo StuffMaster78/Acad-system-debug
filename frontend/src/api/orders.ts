@@ -6,6 +6,7 @@ import type {
   OrderActionResponse,
   OrderLifecycle,
   OrderSummary,
+  RevisionRequest,
   RevisionRequestPayload,
 } from "@/types/orders";
 
@@ -29,4 +30,8 @@ export const ordersApi = {
     api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/cancel/`), payload),
   archive: (id: number | string, payload: Record<string, unknown>) =>
     api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/archive/`), payload),
+  raiseDispute: (id: number | string, reason: string) =>
+    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/dispute/`), { reason }),
+  revisions: (id: number | string) =>
+    api.get<RevisionRequest[] | { count: number; results: RevisionRequest[] }>(ordersApiPath(`/orders/${id}/revisions/`)),
 };

@@ -258,6 +258,35 @@ export const useOrderStore = defineStore("orders", () => {
     }
   }
 
+  async function raiseDispute(id: number | string, reason: string) {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    error.value = "";
+    notice.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        if (selectedLifecycle.value) {
+          selectedLifecycle.value = {
+            ...selectedLifecycle.value,
+            has_active_dispute: true,
+            active_dispute_id: Date.now(),
+          };
+        }
+        notice.value = "Preview dispute raised.";
+        return;
+      }
+      const { data } = await ordersApi.raiseDispute(id, reason);
+      await fetchOrder(id);
+      notice.value = (data as { message?: string }).message ?? "Dispute raised.";
+      return data;
+    } catch (caught) {
+      error.value = "Unable to raise dispute.";
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   async function pricePaperOrder(payload: PaperQuotePayload) {
     isLoading.value = true;
     error.value = "";
@@ -311,6 +340,7 @@ export const useOrderStore = defineStore("orders", () => {
     approveOrder,
     requestRevision,
     cancelOrder,
+    raiseDispute,
     pricePaperOrder,
     createPaperOrder,
   };

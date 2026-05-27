@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { editorApi } from "@/api/editor";
+import { useUiStore } from "@/stores/ui";
 import { useAuthStore } from "@/stores/auth";
 import type { MetricDefinition } from "@/config/dashboard";
 import type {
@@ -274,6 +275,7 @@ export const useEditorWorkspaceStore = defineStore("editorWorkspace", () => {
 
   async function mutateTask(action: "start" | "complete" | "reject" | "unclaim", taskId: number | string, payload = "") {
     const auth = useAuthStore();
+    const ui = useUiStore();
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -287,6 +289,7 @@ export const useEditorWorkspaceStore = defineStore("editorWorkspace", () => {
           return { ...task, review_status: "unclaimed" };
         });
         notice.value = "Preview task updated.";
+        ui.toast("Task updated.", "success");
         return;
       }
 
@@ -296,8 +299,10 @@ export const useEditorWorkspaceStore = defineStore("editorWorkspace", () => {
       if (action === "unclaim") await editorApi.unclaim(taskId);
       await refreshTasks();
       notice.value = "Task updated.";
+      ui.toast("Task updated.", "success");
     } catch (caught) {
       error.value = "Unable to update that editor task.";
+      ui.toast("Unable to update that editor task.", "error");
       throw caught;
     } finally {
       isMutating.value = false;
@@ -306,6 +311,7 @@ export const useEditorWorkspaceStore = defineStore("editorWorkspace", () => {
 
   async function submitReview(payload: SubmitEditorReviewPayload) {
     const auth = useAuthStore();
+    const ui = useUiStore();
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -314,9 +320,12 @@ export const useEditorWorkspaceStore = defineStore("editorWorkspace", () => {
         await editorApi.submitReview(payload);
         await refreshTasks();
       }
-      notice.value = payload.requires_revision ? "Review submitted with revision request." : "Review submitted for delivery.";
+      const msg = payload.requires_revision ? "Review submitted with revision request." : "Review submitted for delivery.";
+      notice.value = msg;
+      ui.toast(msg, "success");
     } catch (caught) {
       error.value = "Unable to submit the review.";
+      ui.toast("Unable to submit the review.", "error");
       throw caught;
     } finally {
       isMutating.value = false;
@@ -325,6 +334,7 @@ export const useEditorWorkspaceStore = defineStore("editorWorkspace", () => {
 
   async function claim(orderId: number | string) {
     const auth = useAuthStore();
+    const ui = useUiStore();
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -340,8 +350,10 @@ export const useEditorWorkspaceStore = defineStore("editorWorkspace", () => {
         await refreshTasks();
       }
       notice.value = `Order ${orderId} claimed for QA.`;
+      ui.toast(`Order ${orderId} claimed for QA.`, "success");
     } catch (caught) {
       error.value = "Unable to claim that order.";
+      ui.toast("Unable to claim that order.", "error");
       throw caught;
     } finally {
       isMutating.value = false;

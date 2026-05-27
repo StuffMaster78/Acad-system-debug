@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
+import { RouterLink } from "vue-router";
 import {
   Banknote,
+  Briefcase,
+  CalendarOff,
   CheckCircle2,
+  ChevronRight,
   Clock3,
-  Hand,
   Loader2,
   PauseCircle,
-  Send,
-  Undo2,
+  RefreshCw,
+  Search,
+  X,
 } from "@lucide/vue";
 import MetricTile from "@/components/ui/MetricTile.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
@@ -16,30 +20,25 @@ import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 
 const workspace = useWriterWorkspaceStore();
 
-const actionForm = reactive({
-  orderId: "",
-  interestId: "",
-  message: "",
-});
-
 const levelLabel = computed(() => {
   const level = workspace.profile?.writer_level;
   if (!level) return "Writer";
   if (typeof level === "string") return level;
-  return level.name ?? level.label ?? "Writer";
+  return (level as { name?: string; label?: string }).name ?? (level as { name?: string; label?: string }).label ?? "Writer";
 });
+
+const activeAssignments = computed(() =>
+  workspace.assignments.filter((a) => ["in_progress", "revision_requested"].includes(String(a.status))),
+);
 
 const activeWindow = computed(() => workspace.availability?.active_window);
 const upcomingWindows = computed(() => workspace.availability?.upcoming_windows ?? []);
 
 function money(value: string | number | undefined | null): string {
   if (value === undefined || value === null || value === "") return "$0.00";
-  const numberValue = Number(value);
-  if (Number.isNaN(numberValue)) return String(value);
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(numberValue);
+  const n = Number(value);
+  if (Number.isNaN(n)) return String(value);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 }
 
 function dateLabel(value: string | undefined | null): string {
@@ -52,25 +51,51 @@ function dateLabel(value: string | undefined | null): string {
   }).format(new Date(value));
 }
 
-async function submitInterest() {
-  if (!actionForm.orderId) return;
-  await workspace.expressInterest(actionForm.orderId, actionForm.message);
-  actionForm.message = "";
+function relativeDeadline(deadline?: string | null): string {
+  if (!deadline) return "No deadline";
+  const diff = new Date(deadline).getTime() - Date.now();
+  const hours = Math.round(diff / (1000 * 60 * 60));
+  if (hours < 0) return `${Math.abs(hours)}h overdue`;
+  if (hours < 24) return `${hours}h left`;
+  return `${Math.round(hours / 24)}d left`;
 }
 
-async function takeOrder() {
-  if (!actionForm.orderId) return;
-  await workspace.takeOrder(actionForm.orderId);
+function deadlineTone(deadline?: string | null): "danger" | "warning" | "neutral" {
+  if (!deadline) return "neutral";
+  const hours = (new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60);
+  if (hours < 0) return "danger";
+  if (hours < 24) return "warning";
+  return "neutral";
 }
 
-async function withdrawInterest() {
-  if (!actionForm.interestId) return;
-  await workspace.withdrawInterest(actionForm.interestId);
-  actionForm.interestId = "";
+const showWindowForm = ref(false);
+const windowForm = reactive({ start_at: "", end_at: "", reason: "" });
+const windowFormError = ref("");
+
+async function submitWindow() {
+  windowFormError.value = "";
+  if (!windowForm.start_at) {
+    windowFormError.value = "Start date is required.";
+    return;
+  }
+  try {
+    await workspace.scheduleUnavailability({
+      start_at: windowForm.start_at,
+      end_at: windowForm.end_at || null,
+      reason: windowForm.reason || undefined,
+    });
+    windowForm.start_at = "";
+    windowForm.end_at = "";
+    windowForm.reason = "";
+    showWindowForm.value = false;
+  } catch {
+    windowFormError.value = "Failed to schedule. Check the dates and try again.";
+  }
 }
 
-onMounted(() => {
-  void workspace.hydrate();
+onMounted(async () => {
+  await workspace.hydrate();
+  if (!workspace.assignments.length) workspace.fetchAssignments(1, "in_progress,revision_requested").catch(() => undefined);
 });
 </script>
 
@@ -83,21 +108,33 @@ onMounted(() => {
           {{ workspace.profile?.display_name ?? "Assignment desk" }}
         </h1>
         <p class="mt-2 max-w-2xl text-sm text-graphite">
-          {{ levelLabel }} desk with availability, assignment actions, and payout signals wired to the backend.
+          {{ levelLabel }} · availability, active orders, and earnings at a glance.
         </p>
       </div>
 
-      <button
-        class="focus-ring inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-3 text-sm font-semibold text-white shadow-panel transition hover:bg-graphite disabled:cursor-not-allowed disabled:opacity-60"
-        type="button"
-        :disabled="workspace.isMutating"
-        @click="workspace.toggleAcceptingOrders()"
-      >
-        <Loader2 v-if="workspace.isMutating" class="h-4 w-4 animate-spin" />
-        <CheckCircle2 v-else-if="workspace.isAcceptingOrders" class="h-4 w-4" />
-        <PauseCircle v-else class="h-4 w-4" />
-        {{ workspace.isAcceptingOrders ? "Accepting orders" : "Paused" }}
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+          type="button"
+          :disabled="workspace.isLoading"
+          @click="workspace.hydrate()"
+        >
+          <RefreshCw class="h-4 w-4" :class="workspace.isLoading ? 'animate-spin' : ''" />
+          Refresh
+        </button>
+        <button
+          class="focus-ring inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+          :class="workspace.isAcceptingOrders ? 'bg-ink text-white' : 'border border-slate-200 bg-white text-ink'"
+          type="button"
+          :disabled="workspace.isMutating"
+          @click="workspace.toggleAcceptingOrders()"
+        >
+          <Loader2 v-if="workspace.isMutating" class="h-4 w-4 animate-spin" />
+          <CheckCircle2 v-else-if="workspace.isAcceptingOrders" class="h-4 w-4" />
+          <PauseCircle v-else class="h-4 w-4" />
+          {{ workspace.isAcceptingOrders ? "Accepting orders" : "Paused" }}
+        </button>
+      </div>
     </section>
 
     <div v-if="workspace.error" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -126,8 +163,8 @@ onMounted(() => {
       />
       <MetricTile
         :metric="{
-          label: 'Lifetime balance',
-          value: money(workspace.balance?.lifetime),
+          label: 'Lifetime earned',
+          value: money(workspace.summary?.total_earned ?? workspace.balance?.lifetime),
           detail: 'Matured and paid',
           tone: 'neutral',
         }"
@@ -136,7 +173,7 @@ onMounted(() => {
         :metric="{
           label: 'Completed orders',
           value: String(workspace.summary?.completed_orders ?? 0),
-          detail: 'Backend summary',
+          detail: 'All time',
           tone: 'neutral',
         }"
       />
@@ -144,114 +181,215 @@ onMounted(() => {
 
     <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
       <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center justify-between gap-3">
           <div>
-            <h2 class="text-lg font-semibold text-ink">Availability</h2>
-            <p class="mt-1 text-sm text-graphite">Live capacity state from writer management.</p>
+            <h2 class="text-lg font-semibold text-ink">Active orders</h2>
+            <p class="mt-1 text-sm text-graphite">In-progress and revision-requested assignments.</p>
           </div>
-          <StatusPill
-            :label="workspace.isUnavailable ? 'Unavailable window active' : 'Available for routing'"
-            :tone="workspace.isUnavailable ? 'warning' : 'success'"
-          />
+          <Briefcase class="h-5 w-5 text-signal" />
         </div>
 
-        <div class="mt-5 grid gap-4 md:grid-cols-2">
-          <div class="rounded-md border border-slate-200 p-4">
-            <div class="flex items-center gap-2 text-sm font-semibold text-ink">
-              <Clock3 class="h-4 w-4 text-signal" />
-              Active window
+        <div class="mt-5">
+          <div v-if="workspace.isAssignmentsLoading" class="py-4 text-sm text-graphite">
+            Loading assignments...
+          </div>
+          <div v-else-if="!activeAssignments.length" class="rounded-md border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-graphite">
+            No active assignments — browse the
+            <RouterLink class="font-semibold text-signal underline-offset-2 hover:underline" to="/writer/available">
+              job pool
+            </RouterLink>
+            to pick up work.
+          </div>
+          <div v-else class="overflow-hidden rounded-md border border-slate-200">
+            <div class="grid grid-cols-[1fr_auto_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <span>Order</span>
+              <span>Status</span>
+              <span class="text-right">Deadline</span>
             </div>
-            <p class="mt-3 text-sm text-graphite">
-              <template v-if="activeWindow">
-                {{ dateLabel(activeWindow.start_at) }} to {{ dateLabel(activeWindow.end_at) }}
-              </template>
-              <template v-else>No active unavailability window.</template>
-            </p>
+            <RouterLink
+              v-for="order in activeAssignments.slice(0, 5)"
+              :key="String(order.id)"
+              :to="`/writer/orders/${order.id}`"
+              class="grid grid-cols-[1fr_auto_auto] gap-3 border-t border-slate-100 px-4 py-3 text-sm transition hover:bg-slate-50"
+            >
+              <span class="min-w-0">
+                <span class="block truncate font-semibold text-ink">{{ order.topic ?? `Order #${order.id}` }}</span>
+                <span class="mt-0.5 block truncate text-xs text-graphite">
+                  #{{ order.id }} · {{ order.academic_level ?? "" }}
+                </span>
+              </span>
+              <StatusPill :label="String(order.status ?? 'in_progress')" tone="warning" />
+              <span class="text-right">
+                <StatusPill
+                  :label="relativeDeadline(order.writer_deadline ?? order.client_deadline)"
+                  :tone="deadlineTone(order.writer_deadline ?? order.client_deadline)"
+                />
+              </span>
+            </RouterLink>
           </div>
 
-          <div class="rounded-md border border-slate-200 p-4">
-            <div class="flex items-center gap-2 text-sm font-semibold text-ink">
-              <Clock3 class="h-4 w-4 text-saffron" />
-              Upcoming
-            </div>
-            <p class="mt-3 text-sm text-graphite">
-              {{ upcomingWindows.length ? `${upcomingWindows.length} scheduled window(s)` : "Nothing scheduled." }}
-            </p>
-          </div>
+          <RouterLink
+            class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-ink hover:bg-slate-50"
+            to="/writer/assignments"
+          >
+            View all assignments
+            <ChevronRight class="h-4 w-4" />
+          </RouterLink>
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <h2 class="text-lg font-semibold text-ink">Assignment actions</h2>
-            <p class="mt-1 text-sm text-graphite">Use backend staffing actions while the marketplace feed is finalized.</p>
-          </div>
-          <Hand class="h-5 w-5 text-signal" />
-        </div>
-
-        <div class="mt-5 space-y-4">
-          <label class="block text-sm font-medium text-ink">
-            Order ID
-            <input
-              v-model.trim="actionForm.orderId"
-              class="focus-ring mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              inputmode="numeric"
-              placeholder="Example: 4821"
-            />
-          </label>
-
-          <label class="block text-sm font-medium text-ink">
-            Interest message
-            <textarea
-              v-model.trim="actionForm.message"
-              class="focus-ring mt-2 min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              placeholder="Short note for the assignment team"
-            />
-          </label>
-
-          <div class="grid gap-3 sm:grid-cols-2">
-            <button
-              class="focus-ring inline-flex items-center justify-center gap-2 rounded-md bg-signal px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-              type="button"
-              :disabled="workspace.isMutating || !actionForm.orderId"
-              @click="submitInterest"
-            >
-              <Send class="h-4 w-4" />
-              Express interest
-            </button>
-            <button
-              class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-60"
-              type="button"
-              :disabled="workspace.isMutating || !actionForm.orderId"
-              @click="takeOrder"
-            >
-              <CheckCircle2 class="h-4 w-4" />
-              Take order
-            </button>
+      <div class="space-y-4">
+        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-base font-semibold text-ink">Availability</h2>
+            <div class="flex items-center gap-2">
+              <StatusPill
+                :label="workspace.isUnavailable ? 'Unavailable' : 'Available'"
+                :tone="workspace.isUnavailable ? 'warning' : 'success'"
+              />
+              <button
+                class="focus-ring inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
+                type="button"
+                :disabled="workspace.isMutating"
+                @click="showWindowForm = !showWindowForm"
+              >
+                <CalendarOff class="h-3.5 w-3.5" />
+                Schedule off
+              </button>
+            </div>
           </div>
 
-          <div class="border-t border-slate-200 pt-4">
-            <label class="block text-sm font-medium text-ink">
-              Interest ID
+          <div v-if="showWindowForm" class="mt-4 space-y-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">New unavailability window</p>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="text-xs font-medium text-graphite">Start</span>
+                <input
+                  v-model="windowForm.start_at"
+                  class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+                  type="datetime-local"
+                />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-graphite">End (optional)</span>
+                <input
+                  v-model="windowForm.end_at"
+                  class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+                  type="datetime-local"
+                />
+              </label>
+            </div>
+            <label class="block">
+              <span class="text-xs font-medium text-graphite">Reason (optional)</span>
               <input
-                v-model.trim="actionForm.interestId"
-                class="focus-ring mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                inputmode="numeric"
-                placeholder="Withdraw a pending interest"
+                v-model="windowForm.reason"
+                class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+                type="text"
+                placeholder="e.g. Holiday, illness, personal leave"
               />
             </label>
-            <button
-              class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-60"
-              type="button"
-              :disabled="workspace.isMutating || !actionForm.interestId"
-              @click="withdrawInterest"
-            >
-              <Undo2 class="h-4 w-4" />
-              Withdraw interest
-            </button>
+            <p v-if="windowFormError" class="text-xs text-berry">{{ windowFormError }}</p>
+            <div class="flex gap-2">
+              <button
+                class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                type="button"
+                :disabled="workspace.isMutating || !windowForm.start_at"
+                @click="submitWindow"
+              >
+                <Loader2 v-if="workspace.isMutating" class="h-3 w-3 animate-spin" />
+                <CheckCircle2 v-else class="h-3 w-3" />
+                Save
+              </button>
+              <button
+                class="focus-ring rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-white"
+                type="button"
+                @click="showWindowForm = false; windowFormError = ''"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4 space-y-3">
+            <div class="rounded-md border p-3" :class="activeWindow ? 'border-amber-200 bg-amber-50' : 'border-slate-200'">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-graphite">
+                  <Clock3 class="h-3.5 w-3.5" />
+                  Active window
+                </div>
+                <button
+                  v-if="activeWindow"
+                  class="focus-ring inline-flex h-6 items-center gap-1 rounded px-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                  type="button"
+                  :disabled="workspace.isMutating"
+                  @click="workspace.cancelAvailabilityWindow(activeWindow.id).catch(() => undefined)"
+                >
+                  <X class="h-3 w-3" />
+                  End now
+                </button>
+              </div>
+              <p class="mt-2 text-sm text-ink">
+                <template v-if="activeWindow">
+                  {{ dateLabel(activeWindow.start_at) }} – {{ dateLabel(activeWindow.end_at) }}
+                  <span v-if="activeWindow.reason" class="block text-xs text-graphite">{{ activeWindow.reason }}</span>
+                </template>
+                <template v-else>No active unavailability window.</template>
+              </p>
+            </div>
+
+            <div v-if="upcomingWindows.length" class="space-y-2">
+              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Upcoming</p>
+              <div
+                v-for="window in upcomingWindows"
+                :key="window.id"
+                class="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2.5"
+              >
+                <div class="min-w-0">
+                  <p class="text-sm text-ink">
+                    {{ dateLabel(window.start_at) }} – {{ dateLabel(window.end_at) }}
+                  </p>
+                  <p v-if="window.reason" class="mt-0.5 text-xs text-graphite">{{ window.reason }}</p>
+                </div>
+                <button
+                  class="focus-ring shrink-0 rounded px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                  type="button"
+                  :disabled="workspace.isMutating"
+                  @click="workspace.cancelAvailabilityWindow(window.id).catch(() => undefined)"
+                >
+                  <X class="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+
+        <RouterLink
+          class="focus-ring flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-panel hover:bg-slate-50"
+          to="/writer/available"
+        >
+          <div class="flex items-center gap-3">
+            <Search class="h-5 w-5 text-signal" />
+            <div>
+              <p class="text-sm font-semibold text-ink">Job pool</p>
+              <p class="mt-0.5 text-xs text-graphite">Browse and claim new orders</p>
+            </div>
+          </div>
+          <ChevronRight class="h-4 w-4 text-graphite" />
+        </RouterLink>
+
+        <RouterLink
+          class="focus-ring flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-panel hover:bg-slate-50"
+          to="/writer/earnings"
+        >
+          <div class="flex items-center gap-3">
+            <Banknote class="h-5 w-5 text-signal" />
+            <div>
+              <p class="text-sm font-semibold text-ink">Earnings & payouts</p>
+              <p class="mt-0.5 text-xs text-graphite">Events, balance, and payout requests</p>
+            </div>
+          </div>
+          <ChevronRight class="h-4 w-4 text-graphite" />
+        </RouterLink>
       </div>
     </section>
 
@@ -259,7 +397,7 @@ onMounted(() => {
       <div class="flex items-center justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-ink">Recent earnings events</h2>
-          <p class="mt-1 text-sm text-graphite">Compensation events from the writer payout service.</p>
+          <p class="mt-1 text-sm text-graphite">Latest compensation events from the payout service.</p>
         </div>
         <Banknote class="h-5 w-5 text-signal" />
       </div>
@@ -273,7 +411,7 @@ onMounted(() => {
         <div v-if="workspace.isLoading" class="px-4 py-6 text-sm text-graphite">Loading writer workspace...</div>
         <div v-else-if="!workspace.events.length" class="px-4 py-6 text-sm text-graphite">No earnings events yet.</div>
         <div
-          v-for="event in workspace.events"
+          v-for="event in workspace.events.slice(0, 5)"
           v-else
           :key="String(event.id ?? event.created_at ?? event.event_type)"
           class="grid grid-cols-[1fr_auto_auto] gap-3 border-t border-slate-100 px-4 py-3 text-sm"
@@ -283,6 +421,14 @@ onMounted(() => {
           <span class="text-right font-semibold text-ink">{{ money(event.net_amount ?? event.amount) }}</span>
         </div>
       </div>
+
+      <RouterLink
+        class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-ink hover:bg-slate-50"
+        to="/writer/earnings"
+      >
+        Full earnings history
+        <ChevronRight class="h-4 w-4" />
+      </RouterLink>
     </section>
   </div>
 </template>

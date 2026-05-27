@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import {
+  AlertTriangle,
   ArrowLeft,
-  CheckCircle2,
   Download,
   FileUp,
+  LifeBuoy,
   Loader2,
   MessageSquare,
   RefreshCw,
   RotateCcw,
   Send,
+  ThumbsUp,
   XCircle,
 } from "@lucide/vue";
 import { filesApi, type FilePurpose, type FileVisibility } from "@/api/files";
+import { supportApi } from "@/api/support";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import OrderTimeline from "@/components/orders/OrderTimeline.vue";
 import { useCommunicationsStore } from "@/stores/communications";
 import { useFilesStore } from "@/stores/files";
 import { useOrderStore } from "@/stores/orders";
@@ -37,6 +41,13 @@ const cancelForm = reactive({
   notes: "",
 });
 
+const disputeForm = reactive({ reason: "" });
+
+const supportTicketForm = reactive({ title: "", description: "" });
+const isTicketSending = ref(false);
+const ticketError = ref("");
+const ticketNotice = ref("");
+
 const fileForm = reactive<{
   file: File | null;
   purpose: FilePurpose;
@@ -53,6 +64,20 @@ const messageForm = reactive({
 
 const order = computed(() => orders.selectedOrder);
 const lifecycle = computed(() => orders.selectedLifecycle);
+
+const canApprove = computed(() => {
+  const s = order.value?.status;
+  return s === "delivered" || s === "awaiting_approval";
+});
+
+const canRequestRevision = computed(() => lifecycle.value?.is_revision_window_open ?? false);
+
+const isTerminal = computed(() => {
+  const s = order.value?.status;
+  return s === "completed" || s === "cancelled" || s === "archived";
+});
+
+const canCancel = computed(() => !isTerminal.value);
 
 function money(amount: string | number | undefined | null, currency = "USD") {
   if (amount === undefined || amount === null || amount === "") return `${currency} 0.00`;
@@ -90,6 +115,34 @@ async function submitCancel() {
   });
   cancelForm.reason = "";
   cancelForm.notes = "";
+}
+
+async function submitDispute() {
+  if (!disputeForm.reason) return;
+  await orders.raiseDispute(orderId.value, disputeForm.reason);
+  disputeForm.reason = "";
+}
+
+async function submitSupportTicket() {
+  if (!supportTicketForm.title || !supportTicketForm.description) return;
+  isTicketSending.value = true;
+  ticketError.value = "";
+  ticketNotice.value = "";
+  try {
+    await supportApi.createTicket({
+      title: supportTicketForm.title,
+      description: supportTicketForm.description,
+      category: "order",
+      object_id: orderId.value,
+    });
+    ticketNotice.value = "Support ticket created. Our team will follow up shortly.";
+    supportTicketForm.title = "";
+    supportTicketForm.description = "";
+  } catch {
+    ticketError.value = "Unable to create support ticket.";
+  } finally {
+    isTicketSending.value = false;
+  }
 }
 
 function selectFile(event: Event) {
@@ -206,6 +259,46 @@ onMounted(() => {
           </p>
           <p class="mt-2 text-sm text-graphite">{{ lifecycle?.revision_window_days ?? 0 }} day window</p>
         </div>
+      </section>
+
+      <section v-if="canApprove" class="rounded-lg border-2 border-signal bg-emerald-50 p-5 shadow-panel">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-start gap-3">
+            <ThumbsUp class="mt-0.5 h-5 w-5 shrink-0 text-signal" />
+            <div>
+              <h2 class="text-lg font-semibold text-ink">Your work is ready for review</h2>
+              <p class="mt-1 text-sm leading-6 text-graphite">
+                Download the deliverable below and accept when you're satisfied. You have
+                {{ lifecycle?.revision_window_days ?? 7 }} days to request a free revision after accepting.
+              </p>
+            </div>
+          </div>
+          <button
+            class="focus-ring inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-signal px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            type="button"
+            :disabled="orders.isMutating"
+            @click="orders.approveOrder(orderId)"
+          >
+            <Loader2 v-if="orders.isMutating" class="h-4 w-4 animate-spin" />
+            <ThumbsUp v-else class="h-4 w-4" />
+            Accept delivery
+          </button>
+        </div>
+      </section>
+
+      <section v-if="isTerminal" class="rounded-lg border border-slate-200 bg-slate-50 p-5 shadow-panel">
+        <p class="text-sm font-semibold capitalize text-ink">Order {{ order?.status }}</p>
+        <p class="mt-2 text-sm leading-6 text-graphite">
+          <template v-if="order?.status === 'completed'">
+            This order is complete. Your deliverable files remain available above for download.
+          </template>
+          <template v-else-if="order?.status === 'cancelled'">
+            This order was cancelled. Contact support if you have questions about your refund.
+          </template>
+          <template v-else>
+            This order is archived and no longer active.
+          </template>
+        </p>
       </section>
 
       <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
@@ -399,63 +492,102 @@ onMounted(() => {
         </div>
       </section>
 
-      <section class="grid gap-6 xl:grid-cols-3">
-        <form class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel" @submit.prevent="orders.approveOrder(orderId)">
-          <div class="flex items-center gap-2">
-            <CheckCircle2 class="h-5 w-5 text-signal" />
-            <h2 class="text-lg font-semibold text-ink">Approve delivery</h2>
-          </div>
-          <p class="mt-3 text-sm leading-6 text-graphite">
-            Confirms the submitted work and completes the order when the backend allows approval.
-          </p>
-          <button
-            class="focus-ring mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-signal px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-            type="submit"
-            :disabled="orders.isMutating"
-          >
-            <Loader2 v-if="orders.isMutating" class="h-4 w-4 animate-spin" />
-            Approve order
-          </button>
-        </form>
-
-        <form class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel xl:col-span-2" @submit.prevent="submitRevision">
-          <div class="flex items-center gap-2">
-            <RotateCcw class="h-5 w-5 text-saffron" />
-            <h2 class="text-lg font-semibold text-ink">Request revision</h2>
-          </div>
-          <div class="mt-4 grid gap-4 md:grid-cols-2">
-            <label class="block text-sm font-medium text-ink">
-              Reason
-              <input
-                v-model.trim="revisionForm.reason"
-                class="focus-ring mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                placeholder="What needs to change?"
-              />
-            </label>
-            <label class="flex items-center gap-3 rounded-md border border-slate-200 px-3 py-3 text-sm font-medium text-ink">
-              <input v-model="revisionForm.is_within_original_scope" class="h-4 w-4" type="checkbox" />
-              Within original scope
-            </label>
-          </div>
-          <label class="mt-4 block text-sm font-medium text-ink">
-            Scope summary
-            <textarea
-              v-model.trim="revisionForm.scope_summary"
-              class="focus-ring mt-2 min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              placeholder="Describe the exact revision scope"
+      <form v-if="canRequestRevision" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel" @submit.prevent="submitRevision">
+        <div class="flex items-center gap-2">
+          <RotateCcw class="h-5 w-5 text-saffron" />
+          <h2 class="text-lg font-semibold text-ink">Request revision</h2>
+        </div>
+        <div class="mt-4 grid gap-4 md:grid-cols-2">
+          <label class="block text-sm font-medium text-ink">
+            Reason
+            <input
+              v-model.trim="revisionForm.reason"
+              class="focus-ring mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              placeholder="What needs to change?"
             />
           </label>
+          <label class="flex items-center gap-3 rounded-md border border-slate-200 px-3 py-3 text-sm font-medium text-ink">
+            <input v-model="revisionForm.is_within_original_scope" class="h-4 w-4" type="checkbox" />
+            Within original scope
+          </label>
+        </div>
+        <label class="mt-4 block text-sm font-medium text-ink">
+          Scope summary
+          <textarea
+            v-model.trim="revisionForm.scope_summary"
+            class="focus-ring mt-2 min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            placeholder="Describe the exact revision scope"
+          />
+        </label>
+        <button
+          class="focus-ring mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          type="submit"
+          :disabled="orders.isMutating || !revisionForm.reason || !revisionForm.scope_summary"
+        >
+          Submit revision request
+        </button>
+      </form>
+
+      <section v-if="lifecycle && !lifecycle.has_active_dispute && !isTerminal" class="rounded-lg border border-amber-200 bg-amber-50 p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <AlertTriangle class="h-5 w-5 text-amber-700" />
+          <h2 class="text-lg font-semibold text-amber-950">Raise a dispute</h2>
+        </div>
+        <p class="mt-2 text-sm leading-6 text-amber-900">
+          Use this only if there is a serious issue that cannot be resolved through a revision request. Our team will review the dispute and respond.
+        </p>
+        <form class="mt-4 flex flex-col gap-3 sm:flex-row" @submit.prevent="submitDispute">
+          <input
+            v-model.trim="disputeForm.reason"
+            class="focus-ring flex-1 rounded-md border border-amber-200 bg-white px-3 py-2 text-sm"
+            placeholder="Describe the issue clearly"
+          />
           <button
-            class="focus-ring mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            class="focus-ring inline-flex items-center justify-center rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             type="submit"
-            :disabled="orders.isMutating || !revisionForm.reason || !revisionForm.scope_summary"
+            :disabled="orders.isMutating || !disputeForm.reason"
           >
-            Submit revision request
+            Raise dispute
+          </button>
+        </form>
+      </section>
+      <div v-else-if="lifecycle?.has_active_dispute" class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        Dispute #{{ lifecycle.active_dispute_id }} is currently active on this order. Our team is reviewing it.
+      </div>
+
+      <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <LifeBuoy class="h-5 w-5 text-signal" />
+          <h2 class="text-lg font-semibold text-ink">Open a support ticket</h2>
+        </div>
+        <p class="mt-2 text-sm leading-6 text-graphite">
+          Need help with this order? Our support team will respond within 24 hours.
+        </p>
+        <div v-if="ticketError" class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ ticketError }}</div>
+        <div v-if="ticketNotice" class="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{{ ticketNotice }}</div>
+        <form class="mt-4 grid gap-3" @submit.prevent="submitSupportTicket">
+          <input
+            v-model.trim="supportTicketForm.title"
+            class="focus-ring w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            placeholder="Brief summary of the issue"
+          />
+          <textarea
+            v-model.trim="supportTicketForm.description"
+            class="focus-ring min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            placeholder="Describe the issue in detail"
+          />
+          <button
+            class="focus-ring inline-flex items-center justify-center gap-2 self-start rounded-md bg-signal px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            type="submit"
+            :disabled="isTicketSending || !supportTicketForm.title || !supportTicketForm.description"
+          >
+            <Loader2 v-if="isTicketSending" class="h-4 w-4 animate-spin" />
+            Submit ticket
           </button>
         </form>
       </section>
 
-      <form class="rounded-lg border border-rose-200 bg-rose-50 p-5 shadow-panel" @submit.prevent="submitCancel">
+      <form v-if="canCancel" class="rounded-lg border border-rose-200 bg-rose-50 p-5 shadow-panel" @submit.prevent="submitCancel">
         <div class="flex items-center gap-2">
           <XCircle class="h-5 w-5 text-rose-700" />
           <h2 class="text-lg font-semibold text-rose-950">Cancel order</h2>
@@ -487,6 +619,7 @@ onMounted(() => {
           </button>
         </div>
       </form>
+      <OrderTimeline :order-id="orderId" class="mt-6" />
     </template>
   </div>
 </template>

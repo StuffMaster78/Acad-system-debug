@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  Bell,
   BriefcaseBusiness,
   ClipboardList,
   CreditCard,
@@ -20,6 +21,7 @@ import {
   ShieldCheck,
   Users,
   Wallet,
+  Wrench,
 } from "@lucide/vue";
 import type { Component } from "vue";
 import type { UserRole } from "@/types/roles";
@@ -59,6 +61,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Analytics", to: "/superadmin/analytics", icon: BarChart3 },
     { label: "Settings", to: "/superadmin/settings", icon: Settings },
     { label: "Support", to: "/superadmin/support", icon: LifeBuoy },
+    { label: "Config Hub", to: "/superadmin/config", icon: Wrench },
   ],
   admin: [
     { label: "Operations", to: "/admin", icon: Gauge },
@@ -77,6 +80,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Analytics", to: "/admin/analytics", icon: BarChart3 },
     { label: "Settings", to: "/admin/settings", icon: Settings },
     { label: "Support", to: "/admin/support", icon: LifeBuoy },
+    { label: "Config Hub", to: "/admin/config", icon: Wrench },
   ],
   writer: [
     { label: "Workspace", to: "/writer", icon: Home },
@@ -85,6 +89,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Assignments", to: "/writer/assignments", icon: ClipboardList },
     { label: "Earnings", to: "/writer/earnings", icon: Wallet },
     { label: "Messages", to: "/writer/messages", icon: MessageSquare },
+    { label: "Notifications", to: "/writer/notifications", icon: Bell },
   ],
   client: [
     { label: "Home", to: "/client", icon: Home },
@@ -93,6 +98,8 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "New Order", to: "/client/new-order", icon: FileText },
     { label: "Wallet", to: "/client/wallet", icon: Wallet },
     { label: "Messages", to: "/client/messages", icon: MessageSquare },
+    { label: "Support", to: "/client/support", icon: LifeBuoy },
+    { label: "Notifications", to: "/client/notifications", icon: Bell },
   ],
   editor: [
     { label: "Desk", to: "/editor", icon: Home },
@@ -101,6 +108,9 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Publishing", to: "/editor/publishing", icon: Newspaper },
     { label: "Workload", to: "/editor/workload", icon: Gauge },
     { label: "Analytics", to: "/editor/analytics", icon: BarChart3 },
+    { label: "Messages", to: "/editor/messages", icon: MessageSquare },
+    { label: "Notifications", to: "/editor/notifications", icon: Bell },
+    { label: "Settings", to: "/editor/config", icon: Wrench },
   ],
   support: [
     { label: "Queue", to: "/support", icon: Headphones },
@@ -110,5 +120,8 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Publishing", to: "/support/publishing", icon: Newspaper },
     { label: "Escalations", to: "/support/escalations", icon: ShieldCheck },
     { label: "Saved Replies", to: "/support/replies", icon: MessageSquare },
+    { label: "Messages", to: "/support/messages", icon: MessageSquare },
+    { label: "Notifications", to: "/support/notifications", icon: Bell },
+    { label: "Settings", to: "/support/config", icon: Wrench },
   ],
 };

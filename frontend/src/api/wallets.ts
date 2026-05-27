@@ -2,6 +2,8 @@ import { api, apiPath } from "./client";
 import type {
   PayoutRequest,
   PayoutRequestPayload,
+  TopupPayload,
+  TopupResponse,
   WalletBalance,
   WalletEntry,
   WalletHold,
@@ -19,4 +21,6 @@ export const walletsApi = {
     api.get<ListResponse<PayoutRequest>>(apiPath("/wallets/me/payout-requests/"), { params }),
   requestPayout: (payload: PayoutRequestPayload) =>
     api.post<PayoutRequest>(apiPath("/wallets/me/payout-requests/"), payload),
+  initiateTopup: (payload: TopupPayload) =>
+    api.post<TopupResponse>(apiPath("/wallets/me/topup/"), payload),
 };

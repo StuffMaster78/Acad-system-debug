@@ -279,6 +279,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
       });
       activeThread.value = data;
       orderThreads.value = [data, ...orderThreads.value];
+      inboxThreads.value = [data, ...inboxThreads.value];
       messages.value = [];
       notice.value = "Order message thread created.";
       return data;
@@ -295,12 +296,18 @@ export const useCommunicationsStore = defineStore("communications", () => {
     messages.value = normalizeList(data);
   }
 
-  async function sendMessage(body: string) {
+  async function sendMessage(
+    body: string,
+    opts?: { isInternal?: boolean; recipientRole?: string },
+  ) {
     const auth = useAuthStore();
     if (!activeThread.value) return null;
     isSending.value = true;
     error.value = "";
     notice.value = "";
+
+    const isInternal = opts?.isInternal ?? false;
+    const recipientRole = opts?.recipientRole;
 
     try {
       if (auth.isPreviewSession) {
@@ -308,15 +315,15 @@ export const useCommunicationsStore = defineStore("communications", () => {
           id: Date.now(),
           thread: activeThread.value.id,
           sender: 0,
-          sender_display: "Client preview",
+          sender_display: "You (preview)",
           message_type: "user",
           status: "active",
           body,
           parent: null,
-          is_internal: false,
+          is_internal: isInternal,
           is_system_generated: false,
           is_edited: false,
-          metadata: { source: "preview" },
+          metadata: { source: "preview", recipient_role: recipientRole },
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -328,9 +335,10 @@ export const useCommunicationsStore = defineStore("communications", () => {
         activeThread.value.id,
         {
           body,
-          is_internal: false,
+          is_internal: isInternal,
           metadata: {
-            source: "client_order_workbench",
+            source: "message_thread",
+            ...(recipientRole ? { recipient_role: recipientRole } : {}),
           },
         },
       );

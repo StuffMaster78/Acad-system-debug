@@ -1,6 +1,9 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { writerApi } from "@/api/writer";
+import { walletsApi } from "@/api/wallets";
+import { useUiStore } from "@/stores/ui";
+import type { PayoutRequest, PayoutRequestPayload } from "@/types/wallet";
 import type {
   WriterAvailability,
   WriterBalance,
@@ -20,11 +23,17 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
   const events = ref<WriterEvent[]>([]);
   const poolOrders = ref<OrderSummary[]>([]);
   const poolPagination = ref({ page: 1, pageSize: 20, count: 0 });
+  const assignments = ref<OrderSummary[]>([]);
+  const assignmentsPagination = ref({ page: 1, pageSize: 20, count: 0 });
+  const payoutRequests = ref<PayoutRequest[]>([]);
+  const eventsPagination = ref({ page: 1, pageSize: 20, count: 0 });
   const isLoading = ref(false);
   const isPoolLoading = ref(false);
+  const isAssignmentsLoading = ref(false);
   const isMutating = ref(false);
   const error = ref("");
   const poolError = ref("");
+  const assignmentsError = ref("");
   const notice = ref("");
 
   const isUnavailable = computed(() => Boolean(availability.value?.active_window));
@@ -53,7 +62,10 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
       if (windowRes.status === "fulfilled") currentWindow.value = windowRes.value.data;
       if (balanceRes.status === "fulfilled") balance.value = balanceRes.value.data;
       if (summaryRes.status === "fulfilled") summary.value = summaryRes.value.data;
-      if (eventsRes.status === "fulfilled") events.value = eventsRes.value.data;
+      if (eventsRes.status === "fulfilled") {
+        const d = eventsRes.value.data;
+        events.value = Array.isArray(d) ? d : d.results;
+      }
 
       const failed = [
         profileRes,
@@ -72,7 +84,25 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
     }
   }
 
+  async function saveProfile(payload: Partial<Pick<WriterProfile, "display_name"> & { bio?: string }>) {
+    const ui = useUiStore();
+    isMutating.value = true;
+    error.value = "";
+    try {
+      const { data } = await writerApi.updateProfile(payload);
+      profile.value = { ...(profile.value ?? {}), ...data };
+      ui.toast("Profile updated.", "success");
+    } catch (caught) {
+      error.value = "Could not update profile.";
+      ui.toast("Could not update profile.", "error");
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   async function toggleAcceptingOrders() {
+    const ui = useUiStore();
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -83,11 +113,12 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
         ...(profile.value ?? {}),
         is_accepting_orders: data.is_accepting_orders,
       };
-      notice.value = data.is_accepting_orders
-        ? "You are accepting new orders."
-        : "You are paused for new orders.";
+      const msg = data.is_accepting_orders ? "You are accepting new orders." : "You are paused for new orders.";
+      notice.value = msg;
+      ui.toast(msg, "info");
     } catch (caught) {
       error.value = "Unable to update availability.";
+      ui.toast("Unable to update availability.", "error");
       throw caught;
     } finally {
       isMutating.value = false;
@@ -95,15 +126,18 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
   }
 
   async function expressInterest(orderId: number | string, message: string) {
+    const ui = useUiStore();
     isMutating.value = true;
     error.value = "";
     notice.value = "";
     try {
       const { data } = await writerApi.expressInterest(orderId, message);
       notice.value = data.message;
+      ui.toast(data.message ?? "Interest expressed.", "success");
       return data;
     } catch (caught) {
       error.value = "Unable to express interest in that order.";
+      ui.toast("Unable to express interest in that order.", "error");
       throw caught;
     } finally {
       isMutating.value = false;
@@ -111,15 +145,18 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
   }
 
   async function takeOrder(orderId: number | string) {
+    const ui = useUiStore();
     isMutating.value = true;
     error.value = "";
     notice.value = "";
     try {
       const { data } = await writerApi.takeOrder(orderId);
       notice.value = data.message;
+      ui.toast(data.message ?? "Order taken.", "success");
       return data;
     } catch (caught) {
       error.value = "Unable to take that order.";
+      ui.toast("Unable to take that order.", "error");
       throw caught;
     } finally {
       isMutating.value = false;
@@ -152,6 +189,131 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
     poolOrders.value = poolOrders.value.filter((o) => String(o.id) !== String(orderId));
   }
 
+  async function fetchAssignments(page = 1, status?: string) {
+    isAssignmentsLoading.value = true;
+    assignmentsError.value = "";
+    try {
+      const params: Record<string, unknown> = {
+        page,
+        page_size: assignmentsPagination.value.pageSize,
+      };
+      if (status) params.status = status;
+      const { data } = await writerApi.assignments(params);
+      if (Array.isArray(data)) {
+        assignments.value = data;
+      } else {
+        assignments.value = data.results;
+        assignmentsPagination.value = { ...assignmentsPagination.value, page, count: data.count };
+      }
+    } catch {
+      assignmentsError.value = "Could not load assignments from the backend.";
+    } finally {
+      isAssignmentsLoading.value = false;
+    }
+  }
+
+  async function fetchEvents(page = 1) {
+    isLoading.value = true;
+    try {
+      const { data } = await writerApi.events({
+        page,
+        page_size: eventsPagination.value.pageSize,
+      });
+      if (Array.isArray(data)) {
+        events.value = data;
+      } else {
+        events.value = (data as { results: WriterEvent[] }).results;
+        eventsPagination.value = {
+          ...eventsPagination.value,
+          page,
+          count: (data as { count: number }).count,
+        };
+      }
+    } catch {
+      // non-critical
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function fetchPayoutRequests() {
+    try {
+      const { data } = await walletsApi.payoutRequests({ page_size: 20 });
+      payoutRequests.value = Array.isArray(data) ? data : data.results;
+    } catch {
+      // non-critical
+    }
+  }
+
+  async function requestPayout(payload: PayoutRequestPayload) {
+    const ui = useUiStore();
+    isMutating.value = true;
+    error.value = "";
+    notice.value = "";
+    try {
+      await walletsApi.requestPayout(payload);
+      notice.value = "Payout request submitted.";
+      ui.toast("Payout request submitted.", "success");
+      await fetchPayoutRequests();
+    } catch (caught) {
+      error.value = "Unable to submit payout request.";
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function scheduleUnavailability(payload: { start_at: string; end_at?: string | null; reason?: string }) {
+    const ui = useUiStore();
+    isMutating.value = true;
+    error.value = "";
+    notice.value = "";
+    try {
+      const { data } = await writerApi.createAvailabilityWindow(payload);
+      if (availability.value) {
+        availability.value = {
+          ...availability.value,
+          upcoming_windows: [...(availability.value.upcoming_windows ?? []), data],
+        };
+      }
+      notice.value = "Unavailability window scheduled.";
+      ui.toast("Unavailability window scheduled.", "info");
+    } catch (caught) {
+      error.value = "Unable to schedule that unavailability window.";
+      ui.toast("Unable to schedule that unavailability window.", "error");
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function cancelAvailabilityWindow(windowId: number | string) {
+    const ui = useUiStore();
+    isMutating.value = true;
+    error.value = "";
+    notice.value = "";
+    try {
+      await writerApi.cancelAvailabilityWindow(windowId);
+      if (availability.value) {
+        const active = availability.value.active_window;
+        availability.value = {
+          active_window: active?.id === windowId ? null : active,
+          upcoming_windows: (availability.value.upcoming_windows ?? []).filter(
+            (w) => w.id !== windowId,
+          ),
+        };
+      }
+      notice.value = "Availability window cancelled.";
+      ui.toast("Availability window cancelled.", "success");
+    } catch (caught) {
+      error.value = "Unable to cancel that window.";
+      ui.toast("Unable to cancel that window.", "error");
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   async function withdrawInterest(interestId: number | string) {
     isMutating.value = true;
     error.value = "";
@@ -175,20 +337,33 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
     balance,
     summary,
     events,
+    eventsPagination,
     poolOrders,
     poolPagination,
+    assignments,
+    assignmentsPagination,
+    payoutRequests,
     isLoading,
     isPoolLoading,
+    isAssignmentsLoading,
     isMutating,
     error,
     poolError,
+    assignmentsError,
     notice,
     isUnavailable,
     isAcceptingOrders,
     hydrate,
     fetchPoolOrders,
     removePoolOrder,
+    fetchAssignments,
+    fetchEvents,
+    fetchPayoutRequests,
+    requestPayout,
+    saveProfile,
     toggleAcceptingOrders,
+    scheduleUnavailability,
+    cancelAvailabilityWindow,
     expressInterest,
     takeOrder,
     withdrawInterest,

@@ -1,0 +1,439 @@
+<script setup lang="ts">
+import { onMounted, reactive, ref } from "vue";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Banknote,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Loader2,
+  Lock,
+  RefreshCw,
+  Smartphone,
+  TrendingUp,
+} from "@lucide/vue";
+import EmptyState from "@/components/ui/EmptyState.vue";
+import StatusPill from "@/components/ui/StatusPill.vue";
+import { useWalletStore } from "@/stores/wallets";
+import { useAuthStore } from "@/stores/auth";
+
+const wallets = useWalletStore();
+const auth = useAuthStore();
+
+const PRESETS = [10, 25, 50, 100, 200];
+
+const topup = reactive({
+  preset: null as number | null,
+  custom: "",
+  provider: "stripe" as "stripe" | "mpesa",
+  phone: "",
+});
+const topupError = ref("");
+const mpesaPending = ref(false);
+const previewSuccess = ref(false);
+
+const topupAmount = () => {
+  if (topup.preset !== null) return topup.preset;
+  const n = Number(topup.custom);
+  return n > 0 ? n : null;
+};
+
+function selectPreset(val: number) {
+  topup.preset = topup.preset === val ? null : val;
+  topup.custom = "";
+}
+
+function onCustomInput() {
+  topup.preset = null;
+}
+
+async function checkout() {
+  topupError.value = "";
+  previewSuccess.value = false;
+  mpesaPending.value = false;
+
+  const amount = topupAmount();
+  if (!amount) {
+    topupError.value = "Select or enter an amount to continue.";
+    return;
+  }
+  if (topup.provider === "mpesa" && !topup.phone.trim()) {
+    topupError.value = "Enter your M-Pesa phone number.";
+    return;
+  }
+
+  try {
+    const result = await wallets.initiateTopup({
+      amount,
+      payment_provider: topup.provider,
+      payment_method_code: topup.provider === "mpesa" ? "mpesa" : "card",
+      phone: topup.provider === "mpesa" ? topup.phone.trim() : undefined,
+    });
+
+    if (auth.isPreviewSession) {
+      previewSuccess.value = true;
+      topup.preset = null;
+      topup.custom = "";
+      return;
+    }
+
+    if (topup.provider === "mpesa" && !result.checkout_url) {
+      mpesaPending.value = true;
+    }
+  } catch {
+    topupError.value = "Checkout failed. Please try again.";
+  }
+}
+
+function money(value: string | number | undefined | null, currency = wallets.currency): string {
+  if (value === undefined || value === null || value === "") return `${currency} 0.00`;
+  const n = Number(value);
+  if (Number.isNaN(n)) return `${currency} ${value}`;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
+}
+
+function dateLabel(value: string | undefined | null): string {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function entryTone(direction?: string): "success" | "danger" | "neutral" {
+  if (direction === "credit") return "success";
+  if (direction === "debit") return "danger";
+  return "neutral";
+}
+
+function holdStatusTone(status: string): "warning" | "success" | "neutral" {
+  if (status === "active" || status === "pending") return "warning";
+  if (status === "released") return "success";
+  return "neutral";
+}
+
+onMounted(() => {
+  wallets.hydrate().catch(() => undefined);
+});
+</script>
+
+<template>
+  <div class="space-y-6">
+    <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-wide text-signal">Client</p>
+        <h1 class="mt-2 text-3xl font-semibold text-ink">Wallet</h1>
+        <p class="mt-2 max-w-2xl text-sm text-graphite">
+          Your platform balance, transaction history, and active holds.
+        </p>
+      </div>
+      <button
+        class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+        type="button"
+        :disabled="wallets.isLoading"
+        @click="wallets.hydrate().catch(() => undefined)"
+      >
+        <RefreshCw class="h-4 w-4" :class="wallets.isLoading ? 'animate-spin' : ''" />
+        Refresh
+      </button>
+    </section>
+
+    <div v-if="wallets.error" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      {{ wallets.error }}
+    </div>
+
+    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <Banknote class="h-4 w-4 text-signal" />
+          <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Available</p>
+        </div>
+        <p class="mt-3 text-2xl font-semibold text-ink">
+          {{ money(wallets.wallet?.available_balance) }}
+        </p>
+        <p class="mt-1 text-xs text-graphite">Ready to use for orders</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <Clock3 class="h-4 w-4 text-saffron" />
+          <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Pending</p>
+        </div>
+        <p class="mt-3 text-2xl font-semibold text-ink">
+          {{ money(wallets.wallet?.pending_balance) }}
+        </p>
+        <p class="mt-1 text-xs text-graphite">Processing — not yet available</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <ArrowDownLeft class="h-4 w-4 text-emerald-500" />
+          <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Total credited</p>
+        </div>
+        <p class="mt-3 text-2xl font-semibold text-ink">
+          {{ money(wallets.wallet?.total_credited) }}
+        </p>
+        <p class="mt-1 text-xs text-graphite">All-time funds added</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <ArrowUpRight class="h-4 w-4 text-rose-400" />
+          <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Total spent</p>
+        </div>
+        <p class="mt-3 text-2xl font-semibold text-ink">
+          {{ money(wallets.wallet?.total_debited) }}
+        </p>
+        <p class="mt-1 text-xs text-graphite">All-time funds used</p>
+      </div>
+    </section>
+
+    <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
+      <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+        <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+          <TrendingUp class="h-5 w-5 text-signal" />
+          <div>
+            <h2 class="text-base font-semibold text-ink">Transaction ledger</h2>
+            <p class="text-sm text-graphite">Credits and debits on your wallet account.</p>
+          </div>
+        </div>
+
+        <div v-if="wallets.isLoading && !wallets.entries.length" class="space-y-px">
+          <div
+            v-for="n in 5"
+            :key="n"
+            class="animate-pulse border-b border-slate-100 px-5 py-4"
+            aria-hidden="true"
+          >
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex-1 space-y-2">
+                <div class="h-4 w-1/2 rounded bg-slate-200" />
+                <div class="h-3 w-1/3 rounded bg-slate-100" />
+              </div>
+              <div class="h-4 w-20 rounded bg-slate-100" />
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="!wallets.entries.length" class="p-8">
+          <EmptyState
+            :icon="TrendingUp"
+            title="No transactions yet"
+            message="Wallet entries will appear here once funds are added or orders are placed."
+          />
+        </div>
+
+        <div v-else class="divide-y divide-slate-100">
+          <div
+            v-for="entry in wallets.entries"
+            :key="entry.id"
+            class="grid gap-4 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_auto_auto]"
+          >
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <component
+                  :is="entry.direction === 'credit' ? ArrowDownLeft : ArrowUpRight"
+                  class="h-3.5 w-3.5 shrink-0"
+                  :class="entry.direction === 'credit' ? 'text-emerald-500' : 'text-rose-400'"
+                />
+                <p class="truncate font-semibold text-ink">
+                  {{ entry.description || entry.entry_type || (entry.direction === "credit" ? "Credit" : "Debit") }}
+                </p>
+                <StatusPill :label="entry.status ?? 'posted'" :tone="entryTone(entry.direction)" />
+              </div>
+              <p class="mt-1 text-xs text-graphite">
+                {{ entry.reference_type ? `${entry.reference_type} · ` : "" }}{{ dateLabel(entry.created_at) }}
+              </p>
+            </div>
+            <div class="text-right">
+              <p
+                class="font-semibold"
+                :class="entry.direction === 'credit' ? 'text-emerald-700' : 'text-rose-700'"
+              >
+                {{ entry.direction === "credit" ? "+" : "−" }}{{ money(entry.amount) }}
+              </p>
+              <p v-if="entry.balance_after != null" class="mt-0.5 text-xs text-graphite">
+                Balance: {{ money(entry.balance_after) }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="space-y-6">
+        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+          <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+            <Lock class="h-4 w-4 text-signal" />
+            <h2 class="text-base font-semibold text-ink">Active holds</h2>
+          </div>
+
+          <div v-if="!wallets.holds.length" class="px-5 py-8">
+            <EmptyState
+              :icon="Lock"
+              title="No holds"
+              message="Funds reserved for pending orders appear here."
+            />
+          </div>
+
+          <div v-else class="divide-y divide-slate-100">
+            <div
+              v-for="hold in wallets.holds"
+              :key="hold.id"
+              class="px-5 py-4"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-ink">{{ money(hold.amount) }}</p>
+                  <p v-if="hold.reason" class="mt-0.5 text-xs text-graphite">{{ hold.reason }}</p>
+                  <p class="mt-0.5 text-xs text-graphite">{{ dateLabel(hold.created_at) }}</p>
+                  <p v-if="hold.expires_at" class="mt-0.5 text-xs text-graphite">
+                    Expires {{ dateLabel(hold.expires_at) }}
+                  </p>
+                </div>
+                <StatusPill :label="hold.status" :tone="holdStatusTone(hold.status)" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+          <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+            <CreditCard class="h-4 w-4 text-signal" />
+            <h2 class="text-base font-semibold text-ink">Top up wallet</h2>
+          </div>
+
+          <!-- M-Pesa STK pending state -->
+          <div v-if="mpesaPending" class="space-y-4 px-5 py-6">
+            <div class="flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4">
+              <Smartphone class="mt-0.5 h-5 w-5 shrink-0 text-signal" />
+              <div>
+                <p class="text-sm font-semibold text-ink">Check your phone</p>
+                <p class="mt-1 text-sm text-graphite">
+                  An M-Pesa payment prompt has been sent to <strong>{{ topup.phone }}</strong>.
+                  Enter your PIN to complete the top-up.
+                </p>
+              </div>
+            </div>
+            <button
+              class="focus-ring w-full rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-graphite hover:bg-slate-50"
+              type="button"
+              @click="mpesaPending = false"
+            >
+              ← Use a different method
+            </button>
+          </div>
+
+          <!-- Preview success -->
+          <div v-else-if="previewSuccess" class="space-y-4 px-5 py-6">
+            <div class="flex items-center gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4">
+              <CheckCircle2 class="h-5 w-5 shrink-0 text-signal" />
+              <p class="text-sm font-semibold text-ink">Wallet topped up (preview mode)</p>
+            </div>
+            <button
+              class="focus-ring w-full rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-graphite hover:bg-slate-50"
+              type="button"
+              @click="previewSuccess = false"
+            >
+              Top up again
+            </button>
+          </div>
+
+          <!-- Checkout form -->
+          <div v-else class="space-y-5 px-5 py-5">
+            <!-- Amount presets -->
+            <div>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Amount</p>
+              <div class="grid grid-cols-5 gap-1.5">
+                <button
+                  v-for="preset in PRESETS"
+                  :key="preset"
+                  class="focus-ring rounded-md border py-2 text-sm font-semibold transition-colors"
+                  :class="topup.preset === preset
+                    ? 'border-ink bg-ink text-white'
+                    : 'border-slate-200 bg-white text-ink hover:border-slate-400'"
+                  type="button"
+                  @click="selectPreset(preset)"
+                >
+                  {{ preset }}
+                </button>
+              </div>
+              <div class="relative mt-2">
+                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-graphite">
+                  {{ wallets.currency }}
+                </span>
+                <input
+                  v-model="topup.custom"
+                  class="focus-ring h-10 w-full rounded-md border border-slate-200 pl-14 pr-3 text-sm"
+                  :class="topup.preset === null && topup.custom ? 'border-ink ring-1 ring-ink' : ''"
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  placeholder="Custom amount"
+                  @input="onCustomInput"
+                />
+              </div>
+            </div>
+
+            <!-- Payment method -->
+            <div>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Pay with</p>
+              <div class="space-y-2">
+                <label
+                  class="flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors"
+                  :class="topup.provider === 'stripe' ? 'border-ink bg-slate-50 ring-1 ring-ink' : 'border-slate-200 hover:border-slate-400'"
+                >
+                  <input v-model="topup.provider" class="sr-only" type="radio" value="stripe" />
+                  <CreditCard class="h-4 w-4 shrink-0 text-graphite" />
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-ink">Card</p>
+                    <p class="text-xs text-graphite">Visa, Mastercard — you'll be redirected to checkout</p>
+                  </div>
+                  <CheckCircle2 v-if="topup.provider === 'stripe'" class="h-4 w-4 shrink-0 text-ink" />
+                </label>
+
+                <label
+                  class="flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors"
+                  :class="topup.provider === 'mpesa' ? 'border-ink bg-slate-50 ring-1 ring-ink' : 'border-slate-200 hover:border-slate-400'"
+                >
+                  <input v-model="topup.provider" class="sr-only" type="radio" value="mpesa" />
+                  <Smartphone class="h-4 w-4 shrink-0 text-graphite" />
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-ink">M-Pesa</p>
+                    <p class="text-xs text-graphite">STK push to your registered number</p>
+                  </div>
+                  <CheckCircle2 v-if="topup.provider === 'mpesa'" class="h-4 w-4 shrink-0 text-ink" />
+                </label>
+              </div>
+            </div>
+
+            <!-- M-Pesa phone -->
+            <div v-if="topup.provider === 'mpesa'">
+              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5" for="topup-phone">
+                M-Pesa phone number
+              </label>
+              <input
+                id="topup-phone"
+                v-model="topup.phone"
+                class="focus-ring h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                type="tel"
+                placeholder="e.g. 0712 345 678"
+              />
+            </div>
+
+            <p v-if="topupError" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">
+              {{ topupError }}
+            </p>
+
+            <button
+              class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              type="button"
+              :disabled="wallets.isMutating"
+              @click="checkout"
+            >
+              <Loader2 v-if="wallets.isMutating" class="h-4 w-4 animate-spin" />
+              <template v-else>
+                {{ topup.provider === "mpesa" ? "Send M-Pesa prompt" : "Proceed to checkout" }}
+                <span v-if="topupAmount()">— {{ wallets.currency }} {{ topupAmount() }}</span>
+              </template>
+            </button>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+</template>

@@ -48,3 +48,18 @@ export interface PayoutRequestPayload {
   reason?: string;
   metadata?: Record<string, unknown>;
 }
+
+export interface TopupPayload {
+  amount: string | number;
+  payment_provider: "stripe" | "mpesa";
+  payment_method_code?: string;
+  phone?: string;
+}
+
+export interface TopupResponse {
+  status: string;
+  message?: string;
+  checkout_url?: string;
+  reference?: string;
+  checkout_started?: boolean;
+}

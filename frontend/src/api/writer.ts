@@ -1,5 +1,6 @@
 import { api, apiPath, ordersApiPath } from "./client";
 import type {
+  AvailabilityWindow,
   StaffingActionResponse,
   WriterAvailability,
   WriterBalance,
@@ -17,7 +18,16 @@ export const writerApi = {
     api.get<ListResponse<OrderSummary>>(apiPath("/orders/"), {
       params: { status: "ready_for_staffing", ...params },
     }),
+  assignments: (params?: Record<string, unknown>) =>
+    api.get<ListResponse<OrderSummary>>(apiPath("/orders/"), { params }),
+  submitOrder: (orderId: number | string, payload: Record<string, unknown>) =>
+    api.post<{ message: string; status?: string }>(
+      ordersApiPath(`/orders/${orderId}/submit/`),
+      payload,
+    ),
   profile: () => api.get<WriterProfile>(apiPath("/writer-management/me/profile/")),
+  updateProfile: (payload: Partial<Pick<WriterProfile, "display_name"> & { bio?: string }>) =>
+    api.patch<WriterProfile>(apiPath("/writer-management/me/profile/"), payload),
   availability: () =>
     api.get<WriterAvailability>(apiPath("/writer-management/me/availability/")),
   toggleAcceptingOrders: (isAcceptingOrders: boolean) =>
@@ -25,6 +35,10 @@ export const writerApi = {
       apiPath("/writer-management/me/availability/toggle/"),
       { is_accepting_orders: isAcceptingOrders },
     ),
+  createAvailabilityWindow: (payload: { start_at: string; end_at?: string | null; reason?: string; note?: string }) =>
+    api.post<AvailabilityWindow>(apiPath("/writer-management/me/availability/"), payload),
+  cancelAvailabilityWindow: (windowId: number | string) =>
+    api.delete(apiPath(`/writer-management/me/availability/${windowId}/`)),
   currentWindow: () =>
     api.get<WriterCurrentWindow>(
       apiPath("/writer-compensation/writer/compensation/current-window/"),
@@ -38,7 +52,7 @@ export const writerApi = {
       apiPath("/writer-compensation/writer/compensation/balance/"),
     ),
   events: (params?: Record<string, unknown>) =>
-    api.get<WriterEvent[]>(
+    api.get<ListResponse<WriterEvent>>(
       apiPath("/writer-compensation/writer/compensation/events/"),
       { params },
     ),

@@ -3,6 +3,7 @@ import { api, apiPath } from "./client";
 export type FilePurpose =
   | "order_instruction"
   | "order_reference"
+  | "order_deliverable"
   | "style_reference"
   | "order_revision"
   | "message_attachment";
@@ -106,6 +107,11 @@ export const filesApi = {
     }),
   attach: (payload: FileAttachPayload) =>
     api.post<FileAttachment>(apiPath("/files/attach/"), payload),
+  orderAttachments: (orderId: number | string, params?: Record<string, unknown>) =>
+    api.get<FileAttachment[] | { results: FileAttachment[] }>(
+      apiPath("/files/attachments/"),
+      { params: { content_type: "order", object_id: orderId, ...params } },
+    ),
   downloadUrl: (attachmentId: number | string) =>
     apiPath(`/files/download/${attachmentId}/`),
   adminFiles: (params?: Record<string, unknown>) =>

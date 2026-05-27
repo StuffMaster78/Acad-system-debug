@@ -22,6 +22,18 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       props: { role },
     },
     {
+      path: "notifications",
+      name: `${role}-notifications`,
+      component: () => import("@/views/shared/NotificationsView.vue"),
+      props: { role },
+    },
+    {
+      path: "account",
+      name: `${role}-account`,
+      component: () => import("@/views/shared/AccountView.vue"),
+      props: { role },
+    },
+    {
       path: ":section",
       name: `${role}-section`,
       component: RoleDashboard,
@@ -44,6 +56,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/client/ClientOrderDetailView.vue"),
       },
       {
+        path: "support",
+        name: "client-support",
+        component: () => import("@/views/client/ClientSupportView.vue"),
+      },
+      {
         path: "new-order",
         name: "client-new-order",
         component: () => import("@/views/client/NewOrderView.vue"),
@@ -52,6 +69,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "messages",
         name: "client-messages",
         component: () => import("@/views/client/ClientMessagesView.vue"),
+      },
+      {
+        path: "wallet",
+        name: "client-wallet",
+        component: () => import("@/views/client/ClientWalletView.vue"),
       },
     );
   }
@@ -130,6 +152,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "admin-support",
         component: () => import("@/views/admin/AdminSupportView.vue"),
       },
+      {
+        path: "config",
+        name: "admin-config",
+        component: () => import("@/views/admin/AdminConfigHubView.vue"),
+      },
     );
   }
 
@@ -151,12 +178,22 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "assignments",
         name: "writer-assignments",
-        component: () => import("@/views/writer/WriterWorkspaceView.vue"),
+        component: () => import("@/views/writer/WriterAssignmentsView.vue"),
+      },
+      {
+        path: "orders/:id",
+        name: "writer-order-detail",
+        component: () => import("@/views/writer/WriterOrderDetailView.vue"),
       },
       {
         path: "earnings",
         name: "writer-earnings",
-        component: () => import("@/views/writer/WriterWorkspaceView.vue"),
+        component: () => import("@/views/writer/WriterEarningsView.vue"),
+      },
+      {
+        path: "messages",
+        name: "writer-messages",
+        component: () => import("@/views/writer/WriterMessagesView.vue"),
       },
     );
   }
@@ -174,7 +211,7 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "qa",
         name: "editor-qa",
-        component: () => import("@/views/editor/EditorWorkspaceView.vue"),
+        component: () => import("@/views/editor/EditorQAView.vue"),
       },
       {
         path: "publishing",
@@ -184,12 +221,22 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "workload",
         name: "editor-workload",
-        component: () => import("@/views/editor/EditorWorkspaceView.vue"),
+        component: () => import("@/views/editor/EditorWorkloadView.vue"),
       },
       {
         path: "analytics",
         name: "editor-analytics",
-        component: () => import("@/views/editor/EditorWorkspaceView.vue"),
+        component: () => import("@/views/editor/EditorAnalyticsView.vue"),
+      },
+      {
+        path: "messages",
+        name: "editor-messages",
+        component: () => import("@/views/editor/EditorMessagesView.vue"),
+      },
+      {
+        path: "config",
+        name: "editor-config",
+        component: () => import("@/views/admin/AdminConfigHubView.vue"),
       },
     );
   }
@@ -207,12 +254,17 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "tickets",
         name: "support-tickets",
-        component: () => import("@/views/support/SupportWorkspaceView.vue"),
+        component: () => import("@/views/support/SupportTicketsView.vue"),
+      },
+      {
+        path: "tickets/:id",
+        name: "support-ticket-detail",
+        component: () => import("@/views/support/SupportTicketDetailView.vue"),
       },
       {
         path: "orders",
         name: "support-orders",
-        component: () => import("@/views/support/SupportWorkspaceView.vue"),
+        component: () => import("@/views/support/SupportOrdersView.vue"),
       },
       {
         path: "publishing",
@@ -222,12 +274,22 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "escalations",
         name: "support-escalations",
-        component: () => import("@/views/support/SupportWorkspaceView.vue"),
+        component: () => import("@/views/support/SupportEscalationsView.vue"),
       },
       {
         path: "replies",
         name: "support-replies",
-        component: () => import("@/views/support/SupportWorkspaceView.vue"),
+        component: () => import("@/views/support/SupportRepliesView.vue"),
+      },
+      {
+        path: "messages",
+        name: "support-messages",
+        component: () => import("@/views/support/SupportMessagesView.vue"),
+      },
+      {
+        path: "config",
+        name: "support-config",
+        component: () => import("@/views/admin/AdminConfigHubView.vue"),
       },
     );
   }
@@ -327,6 +389,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "superadmin-support",
         component: () => import("@/views/admin/AdminSupportView.vue"),
       },
+      {
+        path: "config",
+        name: "superadmin-config",
+        component: () => import("@/views/admin/AdminConfigHubView.vue"),
+      },
     );
   }
 
@@ -359,6 +426,16 @@ export const router = createRouter({
       name: "login",
       component: () => import("@/views/auth/LoginView.vue"),
     },
+    {
+      path: "/auth/forgot-password",
+      name: "forgot-password",
+      component: () => import("@/views/auth/ForgotPasswordView.vue"),
+    },
+    {
+      path: "/auth/reset-password",
+      name: "reset-password",
+      component: () => import("@/views/auth/ResetPasswordView.vue"),
+    },
     roleRoute("client"),
     roleRoute("writer"),
     roleRoute("editor"),
@@ -369,6 +446,11 @@ export const router = createRouter({
       path: "/unauthorized",
       name: "unauthorized",
       component: () => import("@/views/public/HomeView.vue"),
+    },
+    {
+      path: "/:pathMatch(.*)*",
+      name: "not-found",
+      component: () => import("@/views/public/NotFoundView.vue"),
     },
   ],
 });

@@ -1,7 +1,16 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
-import { ClipboardList, Plus } from "@lucide/vue";
+import {
+  ClipboardList,
+  Clock3,
+  ExternalLink,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Search,
+  Zap,
+} from "@lucide/vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import Pagination from "@/components/ui/Pagination.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
@@ -9,8 +18,82 @@ import { useOrderStore } from "@/stores/orders";
 
 const orders = useOrderStore();
 
+type StatusTab = "all" | "active" | "pending" | "delivered" | "completed" | "cancelled";
+
+const activeTab = ref<StatusTab>("all");
+const searchQuery = ref("");
+
+const tabDefs: Array<{ key: StatusTab; label: string; statuses?: string[] }> = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active", statuses: ["in_progress", "under_editing", "revision_requested"] },
+  { key: "pending", label: "Pending", statuses: ["placed", "payment_pending", "assigned", "draft"] },
+  { key: "delivered", label: "Delivered", statuses: ["awaiting_approval", "submitted"] },
+  { key: "completed", label: "Completed", statuses: ["completed", "approved"] },
+  { key: "cancelled", label: "Cancelled", statuses: ["cancelled", "archived"] },
+];
+
+const statusParam = computed(() => tabDefs.find((t) => t.key === activeTab.value)?.statuses?.join(","));
+
+const filteredOrders = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return orders.orders;
+  return orders.orders.filter(
+    (o) =>
+      String(o.id).includes(q) ||
+      (o.topic ?? "").toLowerCase().includes(q) ||
+      (o.service_code ?? "").toLowerCase().includes(q),
+  );
+});
+
+function statusTone(status: string): "success" | "warning" | "danger" | "neutral" {
+  const s = status.toLowerCase();
+  if (["completed", "approved"].includes(s)) return "success";
+  if (["revision_requested", "awaiting_approval", "submitted"].includes(s)) return "warning";
+  if (["cancelled", "archived"].includes(s)) return "danger";
+  return "neutral";
+}
+
+function paymentTone(status?: string): "success" | "warning" | "danger" | "neutral" {
+  if (!status) return "neutral";
+  if (status === "paid") return "success";
+  if (status === "pending") return "warning";
+  if (status === "failed" || status === "refunded") return "danger";
+  return "neutral";
+}
+
+function deadlineLabel(value?: string | null): string {
+  if (!value) return "Not set";
+  const h = (new Date(value).getTime() - Date.now()) / 3600000;
+  if (h < 0) return `${Math.round(Math.abs(h))}h overdue`;
+  if (h < 24) return `${Math.round(h)}h left`;
+  const d = Math.round(h / 24);
+  return `${d}d left`;
+}
+
+function deadlineTone(value?: string | null): "danger" | "warning" | "neutral" {
+  if (!value) return "neutral";
+  const h = (new Date(value).getTime() - Date.now()) / 3600000;
+  if (h < 0) return "danger";
+  if (h < 24) return "warning";
+  return "neutral";
+}
+
+function money(amount?: string | number | null, currency = "USD"): string {
+  if (amount === undefined || amount === null || amount === "") return `${currency} 0.00`;
+  const n = Number(amount);
+  if (Number.isNaN(n)) return `${currency} ${amount}`;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
+}
+
+async function switchTab(tab: StatusTab) {
+  activeTab.value = tab;
+  searchQuery.value = "";
+  const statusDef = tabDefs.find((t) => t.key === tab);
+  await orders.fetchOrders(1, statusDef?.statuses ? { status: statusDef.statuses.join(",") } : {});
+}
+
 function goToPage(page: number) {
-  orders.fetchOrders(page).catch(() => undefined);
+  orders.fetchOrders(page, statusParam.value ? { status: statusParam.value } : {}).catch(() => undefined);
 }
 
 onMounted(() => {
@@ -23,7 +106,7 @@ onMounted(() => {
     <section class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase text-signal">Client</p>
-        <h1 class="mt-2 text-3xl font-semibold">Orders</h1>
+        <h1 class="mt-2 text-3xl font-semibold text-ink">Orders</h1>
         <p class="mt-2 max-w-2xl text-sm leading-6 text-graphite">
           Track active work, payments, delivery status, revisions, and archived files.
         </p>
@@ -41,60 +124,152 @@ onMounted(() => {
       v-if="orders.error"
       class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
     >
-      {{ orders.error }} Showing the workspace shell while the API is unavailable.
+      {{ orders.error }}
     </p>
 
-    <div v-if="orders.orders.length" class="overflow-hidden rounded-md border border-slate-200 bg-white shadow-panel">
-      <table class="min-w-full divide-y divide-slate-200 text-sm">
-        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="inline-flex flex-wrap gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-1">
+        <button
+          v-for="tab in tabDefs"
+          :key="tab.key"
+          class="focus-ring rounded-md px-3 py-2 text-xs font-semibold transition-colors"
+          :class="activeTab === tab.key ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+          type="button"
+          @click="switchTab(tab.key)"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div class="relative">
+          <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            v-model="searchQuery"
+            class="focus-ring h-10 w-56 rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm"
+            type="search"
+            placeholder="Search orders…"
+          />
+        </div>
+        <button
+          class="focus-ring inline-flex h-10 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold disabled:opacity-60"
+          type="button"
+          :disabled="orders.isLoading"
+          @click="orders.fetchOrders(orders.pagination.page, statusParam ? { status: statusParam } : {}).catch(() => undefined)"
+        >
+          <Loader2 v-if="orders.isLoading" class="h-4 w-4 animate-spin" />
+          <RefreshCw v-else class="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+
+    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+      <div v-if="orders.isLoading && !orders.orders.length" class="divide-y divide-slate-100">
+        <div
+          v-for="n in 5"
+          :key="n"
+          class="animate-pulse px-5 py-4"
+          aria-hidden="true"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 space-y-2">
+              <div class="h-4 w-2/3 rounded bg-slate-200" />
+              <div class="h-3 w-1/3 rounded bg-slate-100" />
+            </div>
+            <div class="flex gap-2">
+              <div class="h-6 w-16 rounded-full bg-slate-100" />
+              <div class="h-6 w-16 rounded-full bg-slate-100" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="!filteredOrders.length" class="p-10">
+        <EmptyState
+          :icon="ClipboardList"
+          :title="searchQuery ? 'No matching orders' : `No ${activeTab === 'all' ? '' : activeTab + ' '}orders`"
+          :message="searchQuery
+            ? 'Try a different search term or clear the filter.'
+            : activeTab === 'all'
+              ? 'Place your first order to get started.'
+              : `No orders in this status group.`"
+        />
+      </div>
+
+      <table v-else class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
           <tr>
-            <th class="px-4 py-3">Order</th>
-            <th class="px-4 py-3">Status</th>
-            <th class="px-4 py-3">Payment</th>
-            <th class="px-4 py-3">Deadline</th>
-            <th class="px-4 py-3 text-right">Total</th>
-            <th class="px-4 py-3 text-right">Action</th>
+            <th class="px-5 py-3">Order</th>
+            <th class="px-5 py-3">Status</th>
+            <th class="px-5 py-3">Payment</th>
+            <th class="px-5 py-3">Deadline</th>
+            <th class="px-5 py-3 text-right">Total</th>
+            <th class="px-5 py-3"></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-          <tr v-for="order in orders.orders" :key="order.id">
-            <td class="px-4 py-4">
-              <p class="font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
-              <p class="mt-1 text-xs text-graphite">{{ order.service_code || "paper" }}</p>
+          <tr
+            v-for="order in filteredOrders"
+            :key="order.id"
+            class="transition-colors hover:bg-slate-50"
+          >
+            <td class="px-5 py-4">
+              <div class="flex items-center gap-2">
+                <p class="font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
+                <span
+                  v-if="order.is_urgent"
+                  class="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-semibold text-red-700"
+                >
+                  <Zap class="h-3 w-3" />
+                  Urgent
+                </span>
+              </div>
+              <p class="mt-0.5 text-xs text-graphite">
+                {{ order.service_code || "Academic paper" }}
+                <span v-if="order.number_of_pages"> · {{ order.number_of_pages }} pages</span>
+              </p>
             </td>
-            <td class="px-4 py-4">
-              <StatusPill :label="order.status" />
+            <td class="px-5 py-4">
+              <StatusPill :label="order.status" :tone="statusTone(order.status)" />
             </td>
-            <td class="px-4 py-4 text-graphite">{{ order.payment_status || "pending" }}</td>
-            <td class="px-4 py-4 text-graphite">{{ order.client_deadline || "Not set" }}</td>
-            <td class="px-4 py-4 text-right font-semibold">
-              {{ order.currency || "USD" }} {{ order.total_price || "0.00" }}
+            <td class="px-5 py-4">
+              <StatusPill
+                :label="order.payment_status || 'pending'"
+                :tone="paymentTone(order.payment_status)"
+              />
             </td>
-            <td class="px-4 py-4 text-right">
+            <td class="px-5 py-4">
+              <div class="flex items-center gap-1.5">
+                <Clock3 class="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                <StatusPill
+                  :label="deadlineLabel(order.client_deadline)"
+                  :tone="deadlineTone(order.client_deadline)"
+                />
+              </div>
+            </td>
+            <td class="px-5 py-4 text-right font-semibold text-ink">
+              {{ money(order.total_price, order.currency) }}
+            </td>
+            <td class="px-5 py-4 text-right">
               <RouterLink
-                class="focus-ring inline-flex items-center justify-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-ink hover:bg-slate-50"
+                class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
                 :to="`/client/orders/${order.id}`"
               >
+                <ExternalLink class="h-3 w-3" />
                 Open
               </RouterLink>
             </td>
           </tr>
         </tbody>
       </table>
+
       <Pagination
-        v-if="orders.pagination.count > orders.pagination.pageSize"
+        v-if="!searchQuery && orders.pagination.count > orders.pagination.pageSize"
         :page="orders.pagination.page"
         :page-size="orders.pagination.pageSize"
         :count="orders.pagination.count"
         @update:page="goToPage"
       />
     </div>
-
-    <EmptyState
-      v-else
-      :icon="ClipboardList"
-      title="No orders loaded"
-      message="Create the first order or connect to the backend with a client account to load existing work."
-    />
   </div>
 </template>

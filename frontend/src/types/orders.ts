@@ -140,6 +140,15 @@ export interface PaperQuotePayload {
   instructions?: string;
 }
 
+export interface RevisionRequest {
+  id: number;
+  reason: string;
+  scope_summary: string;
+  is_within_original_scope: boolean;
+  status: string;
+  created_at: string;
+}
+
 export interface PaperQuoteStartResponse {
   session_id: string;
   status: string;

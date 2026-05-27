@@ -62,4 +62,12 @@ export const supportApi = {
       apiPath("/communications/saved-replies/"),
       payload,
     ),
+  createTicket: (payload: { title: string; description: string; category?: string; object_id?: number | string }) =>
+    api.post<SupportTicketRecord>(apiPath("/tickets/tickets/"), payload),
+  getTicket: (id: number | string) =>
+    api.get<SupportTicketRecord>(apiPath(`/tickets/tickets/${id}/`)),
+  ticketMessages: (id: number | string) =>
+    api.get<ListResponse<Record<string, unknown>>>(apiPath(`/tickets/tickets/${id}/messages/`)),
+  addMessage: (id: number | string, body: string) =>
+    api.post<Record<string, unknown>>(apiPath(`/tickets/tickets/${id}/messages/`), { body }),
 };

@@ -5,6 +5,8 @@ import { useAuthStore } from "@/stores/auth";
 import type {
   PayoutRequest,
   PayoutRequestPayload,
+  TopupPayload,
+  TopupResponse,
   WalletBalance,
   WalletEntry,
   WalletHold,
@@ -108,6 +110,40 @@ export const useWalletStore = defineStore("wallets", () => {
     return payoutRequests.value;
   }
 
+  async function initiateTopup(payload: TopupPayload): Promise<TopupResponse> {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    try {
+      if (auth.isPreviewSession) {
+        const previewAmount = Number(payload.amount);
+        wallet.value = {
+          ...(wallet.value ?? { currency: "USD", available_balance: 0 }),
+          available_balance: (Number(wallet.value?.available_balance ?? 0) + previewAmount).toFixed(2),
+        };
+        entries.value = [
+          {
+            id: Date.now(),
+            entry_type: "topup",
+            direction: "credit",
+            status: "posted",
+            amount: payload.amount,
+            description: `Preview top-up via ${payload.payment_provider}`,
+            created_at: new Date().toISOString(),
+          },
+          ...entries.value,
+        ];
+        return { status: "success", checkout_started: false };
+      }
+      const { data } = await walletsApi.initiateTopup(payload);
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      }
+      return data;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   async function hydrate() {
     await fetchWallet();
     await Promise.allSettled([
@@ -160,5 +196,6 @@ export const useWalletStore = defineStore("wallets", () => {
     fetchPayoutRequests,
     hydrate,
     requestPayout,
+    initiateTopup,
   };
 });

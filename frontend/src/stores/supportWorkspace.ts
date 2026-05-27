@@ -2,6 +2,7 @@ import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { supportApi } from "@/api/support";
 import { useAuthStore } from "@/stores/auth";
+import { useUiStore } from "@/stores/ui";
 import type { CreateSavedReplyPayload } from "@/api/adminSupport";
 import type {
   CommunicationEscalationRecord,
@@ -305,6 +306,7 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
 
   async function closeTicket(ticketId: number) {
     const auth = useAuthStore();
+    const ui = useUiStore();
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -314,13 +316,16 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
           ticket.id === ticketId ? { ...ticket, status: "closed", updated_at: new Date().toISOString() } : ticket,
         );
         notice.value = "Preview ticket closed.";
+        ui.toast("Ticket closed.", "success");
         return;
       }
       await supportApi.closeTicket(ticketId, "Closed from support workspace.");
       notice.value = "Ticket closed.";
+      ui.toast("Ticket closed.", "success");
       await hydrate();
     } catch (caught) {
       error.value = "Unable to close that ticket.";
+      ui.toast("Unable to close that ticket.", "error");
       throw caught;
     } finally {
       isMutating.value = false;
@@ -329,6 +334,7 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
 
   async function escalateTicket(ticketId: number) {
     const auth = useAuthStore();
+    const ui = useUiStore();
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -338,13 +344,44 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
           ticket.id === ticketId ? { ...ticket, is_escalated: true, priority: "critical" } : ticket,
         );
         notice.value = "Preview ticket escalated.";
+        ui.toast("Ticket escalated.", "warn");
         return;
       }
       await supportApi.escalateTicket(ticketId);
       notice.value = "Ticket escalated.";
+      ui.toast("Ticket escalated.", "warn");
       await hydrate();
     } catch (caught) {
       error.value = "Unable to escalate that ticket.";
+      ui.toast("Unable to escalate that ticket.", "error");
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function reopenTicket(ticketId: number) {
+    const auth = useAuthStore();
+    const ui = useUiStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        tickets.value = tickets.value.map((t) =>
+          t.id === ticketId ? { ...t, status: "open" } : t,
+        );
+        notice.value = "Preview ticket reopened.";
+        ui.toast("Ticket reopened.", "success");
+        return;
+      }
+      await supportApi.reopenTicket(ticketId);
+      notice.value = "Ticket reopened.";
+      ui.toast("Ticket reopened.", "success");
+      await hydrate();
+    } catch (caught) {
+      error.value = "Unable to reopen that ticket.";
+      ui.toast("Unable to reopen that ticket.", "error");
       throw caught;
     } finally {
       isMutating.value = false;
@@ -353,6 +390,7 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
 
   async function resolveEscalation(escalationId: number) {
     const auth = useAuthStore();
+    const ui = useUiStore();
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -364,13 +402,16 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
             : escalation,
         );
         notice.value = "Preview escalation resolved.";
+        ui.toast("Escalation resolved.", "success");
         return;
       }
       await supportApi.resolveEscalation(escalationId, "Resolved from support workspace.");
       notice.value = "Escalation resolved.";
+      ui.toast("Escalation resolved.", "success");
       await hydrate();
     } catch (caught) {
       error.value = "Unable to resolve that escalation.";
+      ui.toast("Unable to resolve that escalation.", "error");
       throw caught;
     } finally {
       isMutating.value = false;
@@ -379,6 +420,7 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
 
   async function createSavedReply() {
     const auth = useAuthStore();
+    const ui = useUiStore();
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -396,13 +438,16 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
           ...savedReplies.value,
         ];
         notice.value = "Preview saved reply created.";
+        ui.toast("Saved reply created.", "success");
         return;
       }
       const { data } = await supportApi.createSavedReply(replyComposer.value);
       savedReplies.value = [data, ...savedReplies.value];
       notice.value = "Saved reply created.";
+      ui.toast("Saved reply created.", "success");
     } catch (caught) {
       error.value = "Unable to create that saved reply.";
+      ui.toast("Unable to create that saved reply.", "error");
       throw caught;
     } finally {
       isMutating.value = false;
@@ -430,6 +475,7 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
     filteredTickets,
     hydrate,
     closeTicket,
+    reopenTicket,
     escalateTicket,
     resolveEscalation,
     createSavedReply,

@@ -6,6 +6,12 @@ export type CommunicationThreadKind =
   | "revision"
   | "dispute";
 
+export interface ThreadParticipant {
+  id: number;
+  name: string;
+  role: string;
+}
+
 export interface CommunicationThread {
   id: number;
   target_type: string;
@@ -15,6 +21,7 @@ export interface CommunicationThread {
   subject: string;
   reference: string;
   last_message_at?: string | null;
+  participants?: ThreadParticipant[];
   metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -25,6 +32,8 @@ export interface CommunicationMessage {
   thread: number;
   sender?: number | null;
   sender_display: string;
+  sender_role?: string | null;
+  sender_name?: string | null;
   message_type: string;
   status: string;
   body: string;

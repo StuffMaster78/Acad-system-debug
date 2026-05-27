@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
-import { LogOut, Menu } from "@lucide/vue";
+import { LogOut, Menu, Settings } from "@lucide/vue";
 import ActivityShortcut from "@/components/layout/ActivityShortcut.vue";
 import GlobalSearch from "@/components/layout/GlobalSearch.vue";
 import NotificationBell from "@/components/layout/NotificationBell.vue";
+import UserAvatar from "@/components/ui/UserAvatar.vue";
 import WalletBalancePill from "@/components/wallet/WalletBalancePill.vue";
 import { navigationByRole } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth";
@@ -21,11 +22,22 @@ const auth = useAuthStore();
 const ui = useUiStore();
 const { isConnected } = useNotifications();
 const navItems = computed(() => navigationByRole[props.role]);
+const userMenuOpen = ref(false);
+const userMenuRoot = ref<HTMLElement | null>(null);
 
 function isActive(path: string) {
   if (path === `/${props.role}`) return route.path === path;
   return route.path === path || route.path.startsWith(`${path}/`);
 }
+
+function onUserMenuOutsideClick(event: MouseEvent) {
+  if (userMenuRoot.value && !userMenuRoot.value.contains(event.target as Node)) {
+    userMenuOpen.value = false;
+  }
+}
+
+document.addEventListener("mousedown", onUserMenuOutsideClick);
+onUnmounted(() => document.removeEventListener("mousedown", onUserMenuOutsideClick));
 </script>
 
 <template>
@@ -82,14 +94,43 @@ function isActive(path: string) {
           >
             {{ isConnected ? "Live" : "Offline" }}
           </span>
-          <button
-            class="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white"
-            type="button"
-            title="Sign out"
-            @click="auth.logout()"
-          >
-            <LogOut class="h-5 w-5" />
-          </button>
+
+          <div ref="userMenuRoot" class="relative">
+            <button
+              class="focus-ring inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-2 pr-3 text-sm font-medium"
+              type="button"
+              @click="userMenuOpen = !userMenuOpen"
+            >
+              <UserAvatar :user="auth.user" size="sm" />
+              <span class="hidden max-w-32 truncate md:inline">{{ auth.user?.full_name || auth.user?.email }}</span>
+            </button>
+
+            <div
+              v-if="userMenuOpen"
+              class="absolute right-0 top-12 z-30 w-52 overflow-hidden rounded-md border border-slate-200 bg-white shadow-panel"
+            >
+              <div class="border-b border-slate-100 px-4 py-3">
+                <p class="truncate text-sm font-semibold text-ink">{{ auth.user?.full_name || auth.user?.email }}</p>
+                <p class="mt-0.5 truncate text-xs text-graphite">{{ auth.user?.email }}</p>
+              </div>
+              <RouterLink
+                class="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
+                :to="`/${role}/account`"
+                @click="userMenuOpen = false"
+              >
+                <Settings class="h-4 w-4 text-graphite" />
+                My account
+              </RouterLink>
+              <button
+                class="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-2.5 text-sm font-medium text-berry hover:bg-rose-50"
+                type="button"
+                @click="auth.logout()"
+              >
+                <LogOut class="h-4 w-4" />
+                Sign out
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 

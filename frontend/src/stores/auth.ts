@@ -114,6 +114,12 @@ export const useAuthStore = defineStore("auth", () => {
     );
   }
 
+  function updateUser(patch: Partial<AuthUser>) {
+    if (!user.value) return;
+    user.value = { ...user.value, ...patch };
+    window.localStorage.setItem(USER_KEY, JSON.stringify(user.value));
+  }
+
   return {
     accessToken,
     refresh,
@@ -129,5 +135,6 @@ export const useAuthStore = defineStore("auth", () => {
     adoptSession,
     clearSession,
     previewAs,
+    updateUser,
   };
 });

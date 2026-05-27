@@ -42,11 +42,11 @@ export function useNotifications() {
         const eventType = String(payload.type ?? payload.event_type ?? "");
         if (eventType === "wallet_update") {
           wallet.fetchWallet().catch(() => undefined);
-        } else {
+        } else if (!notifications.isDndActive) {
           notifications.push(payload);
         }
       } catch {
-        notifications.push({ message: event.data });
+        if (!notifications.isDndActive) notifications.push({ message: event.data });
       }
     };
   }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import { LogIn } from "@lucide/vue";
 import { roleHome } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth";
@@ -58,7 +58,12 @@ async function preview(role: UserRole) {
           />
         </label>
         <label class="block">
-          <span class="text-sm font-medium text-graphite">Password</span>
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-graphite">Password</span>
+            <RouterLink class="text-xs text-signal hover:underline" to="/auth/forgot-password">
+              Forgot password?
+            </RouterLink>
+          </div>
           <input
             v-model="form.password"
             class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3"
