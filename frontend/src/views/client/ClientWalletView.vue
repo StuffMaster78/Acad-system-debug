@@ -127,12 +127,59 @@ interface LoyaltySummary {
   conversion_rate: string;
 }
 
+interface RedemptionItem {
+  id: number;
+  name: string;
+  description: string | null;
+  points_required: number;
+  redemption_type: string;
+  is_available: boolean;
+  can_redeem: { can_redeem: boolean; message: string } | null;
+}
+
 const loyalty = ref<LoyaltySummary | null>(null);
 const loyaltyLoading = ref(false);
 const loyaltyConvertPoints = ref("");
 const loyaltyConvertError = ref("");
 const loyaltyConvertSubmitting = ref(false);
 const loyaltyConvertSuccess = ref<{ converted: number; amount: string } | null>(null);
+const loyaltyTab = ref<"convert" | "redeem">("convert");
+
+const redemptionItems = ref<RedemptionItem[]>([]);
+const redemptionLoading = ref(false);
+const redeemingItemId = ref<number | null>(null);
+const redemptionError = ref("");
+const redemptionSuccess = ref<string | null>(null);
+
+async function fetchRedemptionItems() {
+  redemptionLoading.value = true;
+  try {
+    const { data } = await api.get<RedemptionItem[] | { results: RedemptionItem[] }>(
+      apiPath("/loyalty-management/redemption-items/"),
+    );
+    redemptionItems.value = Array.isArray(data) ? data : (data as { results: RedemptionItem[] }).results ?? [];
+  } catch {
+    // Not critical
+  } finally {
+    redemptionLoading.value = false;
+  }
+}
+
+async function redeemItem(itemId: number) {
+  redemptionError.value = "";
+  redemptionSuccess.value = null;
+  redeemingItemId.value = itemId;
+  try {
+    await api.post(apiPath("/loyalty-management/redemption-requests/"), { item_id: itemId });
+    redemptionSuccess.value = "Redemption request submitted! We'll process it shortly.";
+    await fetchLoyalty();
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    redemptionError.value = detail ?? "Redemption failed. Please try again.";
+  } finally {
+    redeemingItemId.value = null;
+  }
+}
 
 async function fetchLoyalty() {
   loyaltyLoading.value = true;
@@ -214,6 +261,7 @@ onMounted(() => {
   wallets.hydrate().catch(() => undefined);
   fetchReferralCode();
   fetchLoyalty();
+  fetchRedemptionItems();
 });
 </script>
 
@@ -553,48 +601,103 @@ onMounted(() => {
                 <p class="text-3xl font-semibold text-ink">{{ loyalty.loyalty_points.toLocaleString() }}</p>
                 <p class="mt-0.5 text-xs text-graphite">points available</p>
               </div>
-              <div class="text-right">
-                <span class="inline-block rounded-full border border-saffron/30 bg-saffron/10 px-3 py-1 text-xs font-semibold text-saffron">
-                  {{ loyalty.tier }}
-                </span>
-              </div>
+              <span class="inline-block rounded-full border border-saffron/30 bg-saffron/10 px-3 py-1 text-xs font-semibold text-saffron">
+                {{ loyalty.tier }}
+              </span>
             </div>
 
-            <p class="text-xs text-graphite">
-              {{ loyalty.conversion_rate }} points = $1.00 wallet credit
-            </p>
+            <!-- Tab switcher -->
+            <div class="flex gap-1 rounded-md border border-slate-200 bg-slate-50 p-1">
+              <button
+                class="flex-1 rounded py-1.5 text-xs font-semibold transition-colors"
+                :class="loyaltyTab === 'convert' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+                type="button"
+                @click="loyaltyTab = 'convert'"
+              >
+                Convert
+              </button>
+              <button
+                class="flex-1 rounded py-1.5 text-xs font-semibold transition-colors"
+                :class="loyaltyTab === 'redeem' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+                type="button"
+                @click="loyaltyTab = 'redeem'"
+              >
+                Redeem
+              </button>
+            </div>
 
-            <!-- Convert form -->
-            <div class="space-y-2">
-              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite" for="loyalty-pts">
-                Convert to credits
-              </label>
-              <div class="flex gap-2">
-                <input
-                  id="loyalty-pts"
-                  v-model="loyaltyConvertPoints"
-                  class="focus-ring h-9 flex-1 rounded-md border border-slate-200 px-3 text-sm"
-                  type="number"
-                  min="1"
-                  :max="loyalty.loyalty_points"
-                  placeholder="Points to convert"
-                />
-                <button
-                  class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md bg-ink px-3 text-xs font-semibold text-white disabled:opacity-60"
-                  type="button"
-                  :disabled="loyaltyConvertSubmitting || loyalty.loyalty_points === 0"
-                  @click="convertLoyaltyPoints"
+            <!-- Convert tab -->
+            <template v-if="loyaltyTab === 'convert'">
+              <p class="text-xs text-graphite">{{ loyalty.conversion_rate }} points = $1.00 wallet credit</p>
+              <div class="space-y-2">
+                <div class="flex gap-2">
+                  <input
+                    id="loyalty-pts"
+                    v-model="loyaltyConvertPoints"
+                    class="focus-ring h-9 flex-1 rounded-md border border-slate-200 px-3 text-sm"
+                    type="number"
+                    min="1"
+                    :max="loyalty.loyalty_points"
+                    placeholder="Points to convert"
+                  />
+                  <button
+                    class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md bg-ink px-3 text-xs font-semibold text-white disabled:opacity-60"
+                    type="button"
+                    :disabled="loyaltyConvertSubmitting || loyalty.loyalty_points === 0"
+                    @click="convertLoyaltyPoints"
+                  >
+                    <Loader2 v-if="loyaltyConvertSubmitting" class="h-3 w-3 animate-spin" />
+                    <CheckCircle2 v-else class="h-3 w-3" />
+                    Convert
+                  </button>
+                </div>
+                <p v-if="loyaltyConvertError" class="text-xs text-berry">{{ loyaltyConvertError }}</p>
+                <p v-if="loyaltyConvertSuccess" class="text-xs font-semibold text-signal">
+                  Converted {{ loyaltyConvertSuccess.converted }} pts → ${{ loyaltyConvertSuccess.amount }} added
+                </p>
+              </div>
+            </template>
+
+            <!-- Redeem tab -->
+            <template v-else>
+              <p v-if="redemptionError" class="text-xs text-berry">{{ redemptionError }}</p>
+              <p v-if="redemptionSuccess" class="text-xs font-semibold text-signal">{{ redemptionSuccess }}</p>
+
+              <div v-if="redemptionLoading" class="flex items-center justify-center py-4">
+                <Loader2 class="h-4 w-4 animate-spin text-slate-400" />
+              </div>
+              <div v-else-if="!redemptionItems.length" class="py-4 text-center text-xs text-graphite">
+                No rewards available right now.
+              </div>
+              <div v-else class="space-y-2">
+                <div
+                  v-for="item in redemptionItems"
+                  :key="item.id"
+                  class="flex items-start gap-3 rounded-md border border-slate-200 p-3"
+                  :class="item.can_redeem?.can_redeem ? 'bg-white' : 'bg-slate-50 opacity-70'"
                 >
-                  <Loader2 v-if="loyaltyConvertSubmitting" class="h-3 w-3 animate-spin" />
-                  <CheckCircle2 v-else class="h-3 w-3" />
-                  Convert
-                </button>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-xs font-semibold text-ink">{{ item.name }}</p>
+                    <p v-if="item.description" class="mt-0.5 text-xs text-graphite">{{ item.description }}</p>
+                    <p class="mt-1 text-xs font-semibold text-saffron">{{ item.points_required.toLocaleString() }} pts</p>
+                    <p v-if="item.can_redeem && !item.can_redeem.can_redeem" class="mt-0.5 text-xs text-graphite">
+                      {{ item.can_redeem.message }}
+                    </p>
+                  </div>
+                  <button
+                    v-if="item.can_redeem?.can_redeem"
+                    class="focus-ring mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md bg-ink px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                    type="button"
+                    :disabled="redeemingItemId === item.id"
+                    @click="redeemItem(item.id)"
+                  >
+                    <Loader2 v-if="redeemingItemId === item.id" class="h-3 w-3 animate-spin" />
+                    <CheckCircle2 v-else class="h-3 w-3" />
+                    Redeem
+                  </button>
+                </div>
               </div>
-              <p v-if="loyaltyConvertError" class="text-xs text-berry">{{ loyaltyConvertError }}</p>
-              <p v-if="loyaltyConvertSuccess" class="text-xs font-semibold text-signal">
-                Converted {{ loyaltyConvertSuccess.converted }} pts → ${{ loyaltyConvertSuccess.amount }} added to wallet
-              </p>
-            </div>
+            </template>
           </div>
         </section>
 
