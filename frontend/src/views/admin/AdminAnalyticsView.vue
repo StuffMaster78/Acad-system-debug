@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { BarChart3, RefreshCw, ShieldAlert, Users } from "@lucide/vue";
+import { computed, onMounted } from "vue";
+import { BarChart3, Download, RefreshCw, ShieldAlert, TrendingUp, Users } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminAnalyticsStore } from "@/stores/adminAnalytics";
 
@@ -20,6 +20,45 @@ function percent(value: number | string | undefined | null) {
 
 function numberLabel(value: number | string | undefined | null) {
   return new Intl.NumberFormat("en-US").format(Number(value ?? 0));
+}
+
+const revenueBarMax = computed(() => {
+  const vals = analytics.clients.map((c) => Number(c.total_spend ?? 0));
+  return Math.max(...vals, 1);
+});
+
+const writerEarningsMax = computed(() => {
+  const vals = analytics.writers.map((w) => Number(w.total_earnings ?? 0));
+  return Math.max(...vals, 1);
+});
+
+function barWidth(value: number | string | undefined | null, max: number) {
+  const n = Number(value ?? 0);
+  return `${Math.max((n / max) * 100, 2).toFixed(1)}%`;
+}
+
+function exportCSV() {
+  const rows = [
+    ["Client", "Period start", "Period end", "Total spend", "Orders", "On-time %", "Revision %", "Avg writer rating"],
+    ...analytics.clients.map((c) => [
+      c.client_name ?? c.client_email ?? String(c.client ?? ""),
+      c.period_start,
+      c.period_end,
+      Number(c.total_spend ?? 0).toFixed(2),
+      String(c.total_orders ?? 0),
+      Number(c.on_time_delivery_rate ?? 0).toFixed(1),
+      Number(c.revision_rate ?? 0).toFixed(1),
+      Number(c.average_writer_rating ?? 0).toFixed(1),
+    ]),
+  ];
+  const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `client-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 onMounted(() => {
@@ -46,6 +85,15 @@ onMounted(() => {
         >
           <RefreshCw class="h-4 w-4" />
           Refresh
+        </button>
+        <button
+          class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-300 px-4 text-sm font-semibold text-ink"
+          type="button"
+          :disabled="!analytics.clients.length"
+          @click="exportCSV"
+        >
+          <Download class="h-4 w-4" />
+          Export CSV
         </button>
         <button
           class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white"
@@ -166,6 +214,64 @@ onMounted(() => {
               </div>
             </div>
           </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Revenue trend bars -->
+    <section class="grid gap-6 xl:grid-cols-2">
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="flex items-center gap-2 mb-4">
+          <TrendingUp class="h-5 w-5 text-signal" />
+          <h2 class="text-lg font-semibold text-ink">Revenue by client</h2>
+        </div>
+        <div v-if="!analytics.clients.length" class="text-sm text-graphite py-6 text-center">No client data loaded.</div>
+        <div v-else class="space-y-3">
+          <div
+            v-for="client in analytics.clients"
+            :key="client.id"
+            class="space-y-1"
+          >
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-ink truncate max-w-[60%]">{{ client.client_name ?? client.client_email ?? `Client #${client.client}` }}</span>
+              <span class="text-graphite shrink-0">{{ money(client.total_spend) }}</span>
+            </div>
+            <div class="h-2 rounded-full bg-slate-100">
+              <div
+                class="h-2 rounded-full bg-signal transition-all"
+                :style="{ width: barWidth(client.total_spend, revenueBarMax) }"
+              />
+            </div>
+            <p class="text-xs text-graphite">{{ client.total_orders }} orders · {{ percent(client.on_time_delivery_rate) }} on-time</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="flex items-center gap-2 mb-4">
+          <BarChart3 class="h-5 w-5 text-signal" />
+          <h2 class="text-lg font-semibold text-ink">Earnings by writer</h2>
+        </div>
+        <div v-if="!analytics.writers.length" class="text-sm text-graphite py-6 text-center">No writer data loaded.</div>
+        <div v-else class="space-y-3">
+          <div
+            v-for="writer in analytics.writers"
+            :key="writer.id"
+            class="space-y-1"
+          >
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-ink truncate max-w-[60%]">{{ writer.writer_name ?? writer.writer_email ?? `Writer #${writer.writer}` }}</span>
+              <span class="text-graphite shrink-0">{{ money(writer.total_earnings) }}</span>
+            </div>
+            <div class="h-2 rounded-full bg-slate-100">
+              <div
+                class="h-2 rounded-full transition-all"
+                :class="Number(writer.quality_score) >= 85 ? 'bg-emerald-500' : 'bg-amber-400'"
+                :style="{ width: barWidth(writer.total_earnings, writerEarningsMax) }"
+              />
+            </div>
+            <p class="text-xs text-graphite">Quality {{ writer.quality_score }} · {{ writer.total_orders_completed }} completed</p>
+          </div>
         </div>
       </div>
     </section>

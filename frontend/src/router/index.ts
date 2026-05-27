@@ -100,6 +100,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "client-special-order-detail",
         component: () => import("@/views/client/ClientSpecialOrderDetailView.vue"),
       },
+      {
+        path: "disputes",
+        name: "client-disputes",
+        component: () => import("@/views/client/ClientDisputesView.vue"),
+      },
     );
   }
 
@@ -206,6 +211,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "special-orders/:id",
         name: "admin-special-order-detail",
         component: () => import("@/views/admin/AdminSpecialOrderDetailView.vue"),
+      },
+      {
+        path: "disputes",
+        name: "admin-disputes",
+        component: () => import("@/views/admin/AdminDisputesView.vue"),
       },
     );
   }
