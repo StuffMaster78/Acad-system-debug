@@ -226,6 +226,7 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
   const pendingDeposits = ref<FinanceOpsItem[]>([]);
   const tipQueue = ref<FinanceOpsItem[]>([]);
   const opsFilter = ref<"all" | FinanceOpsItem["source"]>("all");
+  const cycleFilter = ref<"all" | "BIWEEKLY" | "MONTHLY">("all");
   const query = ref("");
   const filter = ref<PaymentFilter>("all");
   const isLoading = ref(false);
@@ -399,6 +400,26 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
     ];
   });
 
+  const filteredWriterPayments = computed(() => {
+    if (cycleFilter.value === "all") return writerPayments.value;
+    return writerPayments.value.filter(
+      (p) => (p.type ?? "").toUpperCase() === cycleFilter.value,
+    );
+  });
+
+  const cycleBreakdown = computed(() => {
+    const groups: Record<string, { count: number; total: number; writerTotal: number; margin: number }> = {};
+    for (const p of writerPayments.value) {
+      const key = (p.type ?? "Manual").toUpperCase();
+      if (!groups[key]) groups[key] = { count: 0, total: 0, writerTotal: 0, margin: 0 };
+      groups[key].count += 1;
+      groups[key].total += numeric(p.client_total ?? p.total_amount ?? p.amount);
+      groups[key].writerTotal += numeric(p.total_earnings ?? p.total_amount ?? p.amount);
+      groups[key].margin += numeric(p.platform_margin);
+    }
+    return Object.entries(groups).map(([cycle, stats]) => ({ cycle, ...stats }));
+  });
+
   function normalizeRefundOps(record: Record<string, unknown>): FinanceOpsItem {
     return {
       id: record.id as number | string,
@@ -537,25 +558,66 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
       writerPayments.value = [
         {
           id: 501,
+          payment_id: "payout-501",
           writer_email: "amina.writer@preview.local",
+          writer: { name: "Amina K.", email: "amina.writer@preview.local", registration_id: "WR-0041" },
           website: "WritePro Global",
+          type: "BIWEEKLY",
           amount: 1240,
+          total_earnings: 1275,
+          tips: 35,
+          fines: 0,
           status: "paid",
           paid_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+          date: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+          number_of_orders: 8,
           order_count: 8,
           client_total: 2840,
           platform_margin: 1600,
+          reference: "payout-501",
+          batch_reference: "batch-71",
         },
         {
           id: 502,
+          payment_id: "payout-502",
           writer_email: "jon.writer@preview.local",
+          writer: { name: "Jon M.", email: "jon.writer@preview.local", registration_id: "WR-0055" },
           website: "EssayDesk",
+          type: "MONTHLY",
           amount: 860,
+          total_earnings: 820,
+          tips: 0,
+          fines: 40,
           status: "paid",
           paid_at: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(),
+          date: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(),
+          number_of_orders: 5,
           order_count: 5,
           client_total: 1930,
           platform_margin: 1070,
+          reference: "payout-502",
+          batch_reference: "batch-70",
+        },
+        {
+          id: 503,
+          payment_id: "payout-503",
+          writer_email: "priya.writer@preview.local",
+          writer: { name: "Priya S.", email: "priya.writer@preview.local", registration_id: "WR-0062" },
+          website: "WritePro Global",
+          type: "BIWEEKLY",
+          amount: 720,
+          total_earnings: 720,
+          tips: 0,
+          fines: 0,
+          status: "paid",
+          paid_at: new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString(),
+          date: new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString(),
+          number_of_orders: 4,
+          order_count: 4,
+          client_total: 1540,
+          platform_margin: 820,
+          reference: "payout-503",
+          batch_reference: "batch-71",
         },
       ];
       refundDashboard.value = {
@@ -807,6 +869,9 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
     financeOpsItems,
     financeOpsMetrics,
     opsFilter,
+    cycleFilter,
+    filteredWriterPayments,
+    cycleBreakdown,
     query,
     filter,
     isLoading,

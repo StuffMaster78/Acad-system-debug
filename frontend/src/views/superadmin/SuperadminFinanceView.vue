@@ -471,31 +471,73 @@ onMounted(() => {
       </div>
 
       <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
-        <h2 class="text-lg font-semibold text-ink">Writer payment history</h2>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 class="text-lg font-semibold text-ink">Writer payment history</h2>
+          <div class="inline-flex rounded-md border border-slate-200 bg-slate-50 p-1">
+            <button
+              v-for="opt in [{ key: 'all', label: 'All' }, { key: 'BIWEEKLY', label: 'Bi-weekly' }, { key: 'MONTHLY', label: 'Monthly' }]"
+              :key="opt.key"
+              class="focus-ring min-h-8 rounded px-3 text-xs font-semibold"
+              :class="finance.cycleFilter === opt.key ? 'bg-white text-ink shadow-sm' : 'text-graphite'"
+              type="button"
+              @click="finance.cycleFilter = opt.key as 'all' | 'BIWEEKLY' | 'MONTHLY'"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Cycle summary tiles -->
+        <div v-if="finance.cycleBreakdown.length" class="mt-4 grid gap-3 sm:grid-cols-3">
+          <div
+            v-for="row in finance.cycleBreakdown"
+            :key="row.cycle"
+            class="rounded-md border border-slate-200 bg-slate-50 p-3 text-center"
+          >
+            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">{{ row.cycle === "BIWEEKLY" ? "Bi-weekly" : row.cycle === "MONTHLY" ? "Monthly" : row.cycle }}</p>
+            <p class="mt-1 text-lg font-semibold text-ink">{{ formatAmount(row.writerTotal) }}</p>
+            <p class="text-xs text-graphite">{{ row.count }} payout(s) · {{ formatAmount(row.margin) }} margin</p>
+          </div>
+        </div>
+
         <div class="mt-4 space-y-3">
           <article
-            v-for="payment in finance.writerPayments"
+            v-for="payment in finance.filteredWriterPayments"
             :key="payment.id || `${payment.writer_email}-${payment.paid_at}`"
             class="rounded-md border border-slate-200 p-4"
           >
             <div class="flex items-start justify-between gap-3">
               <div>
-                <p class="font-semibold text-ink">{{ payment.writer_email || payment.writer_username || `Writer #${payment.writer_id}` }}</p>
+                <div class="flex items-center gap-2">
+                  <p class="font-semibold text-ink">
+                    {{ payment.writer?.name || payment.writer_email || payment.writer_username || `Writer #${payment.writer_id}` }}
+                  </p>
+                  <span
+                    v-if="payment.type"
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                    :class="payment.type === 'BIWEEKLY' ? 'bg-sky-100 text-sky-700' : payment.type === 'MONTHLY' ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-graphite'"
+                  >
+                    {{ payment.type === "BIWEEKLY" ? "Bi-weekly" : payment.type === "MONTHLY" ? "Monthly" : payment.type }}
+                  </span>
+                </div>
                 <p class="mt-1 text-sm text-graphite">
-                  {{ payment.website || `Site #${payment.website_id || "n/a"}` }} · {{ payment.order_count ?? 0 }} order(s)
+                  {{ payment.website || `Site #${payment.website_id || "n/a"}` }}
+                  · {{ payment.number_of_orders ?? payment.order_count ?? 0 }} order(s)
+                  <span v-if="Number(payment.tips) > 0"> · {{ formatAmount(payment.tips) }} tips</span>
+                  <span v-if="Number(payment.fines) > 0"> · {{ formatAmount(payment.fines) }} fines</span>
                 </p>
               </div>
               <div class="text-right">
-                <p class="font-semibold text-ink">{{ formatAmount(payment.total_amount ?? payment.amount) }}</p>
+                <p class="font-semibold text-ink">{{ formatAmount(payment.total_earnings ?? payment.total_amount ?? payment.amount) }}</p>
                 <StatusPill :label="payment.status || 'paid'" :tone="statusTone(payment.status || 'paid')" />
               </div>
             </div>
             <p class="mt-2 text-xs text-graphite">
-              Client total {{ formatAmount(payment.client_total) }} · Margin {{ formatAmount(payment.platform_margin) }} · {{ formatDate(payment.paid_at) }}
+              Client {{ formatAmount(payment.client_total) }} · Margin {{ formatAmount(payment.platform_margin) }} · {{ formatDate(payment.date ?? payment.paid_at) }}
             </p>
           </article>
           <EmptyState
-            v-if="!finance.writerPayments.length"
+            v-if="!finance.filteredWriterPayments.length"
             :icon="WalletCards"
             title="No writer payments"
             message="Historical writer payment records will appear here."

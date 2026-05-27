@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from "vue";
 import {
   AlertTriangle,
   Banknote,
+  CalendarClock,
   CheckCircle2,
   Clock3,
   Gift,
@@ -11,6 +12,7 @@ import {
   Send,
   TrendingUp,
 } from "@lucide/vue";
+import { writerApi } from "@/api/writer";
 import { finesApi, type FineRecord } from "@/api/fines";
 import { tipsApi, type TipRecord } from "@/api/tips";
 import MetricTile from "@/components/ui/MetricTile.vue";
@@ -19,6 +21,112 @@ import StatusPill from "@/components/ui/StatusPill.vue";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 
 const workspace = useWriterWorkspaceStore();
+
+// — Payout cycle ————————————————————————————————————————
+interface PayoutHistoryRecord {
+  id: number;
+  total_amount: string;
+  status: string;
+  window_label: string;
+  paid_at: string | null;
+}
+
+interface PayoutPreference {
+  id: number;
+  cycle_type: string;
+  locked: boolean;
+}
+
+const payoutHistory = ref<PayoutHistoryRecord[]>([]);
+const payoutHistoryLoading = ref(false);
+const preference = ref<PayoutPreference | null>(null);
+const preferenceLoading = ref(false);
+const showCycleForm = ref(false);
+const cycleFormMode = ref<"set" | "request">("set");
+const selectedCycle = ref("BIWEEKLY");
+const cycleReason = ref("");
+const cycleSubmitting = ref(false);
+const cycleError = ref("");
+const cycleSuccess = ref("");
+
+const cycleOptions = [
+  { value: "BIWEEKLY", label: "Bi-weekly" },
+  { value: "MONTHLY", label: "Monthly" },
+];
+
+async function fetchPayoutHistory() {
+  payoutHistoryLoading.value = true;
+  try {
+    const { data } = await writerApi.payoutHistory();
+    payoutHistory.value = Array.isArray(data) ? data : [];
+  } catch {
+    // non-critical
+  } finally {
+    payoutHistoryLoading.value = false;
+  }
+}
+
+async function fetchPreference() {
+  preferenceLoading.value = true;
+  try {
+    const { data } = await writerApi.payoutPreference();
+    preference.value = data;
+  } catch {
+    // 404 = no preference set yet
+    preference.value = null;
+  } finally {
+    preferenceLoading.value = false;
+  }
+}
+
+function openCycleForm() {
+  cycleError.value = "";
+  cycleSuccess.value = "";
+  cycleReason.value = "";
+  selectedCycle.value = preference.value?.cycle_type ?? "BIWEEKLY";
+  cycleFormMode.value = preference.value?.locked ? "request" : "set";
+  showCycleForm.value = true;
+}
+
+async function submitCycleChange() {
+  cycleError.value = "";
+  cycleSuccess.value = "";
+  cycleSubmitting.value = true;
+  try {
+    if (cycleFormMode.value === "set") {
+      const { data } = await writerApi.setPayoutPreference(selectedCycle.value);
+      preference.value = data;
+      cycleSuccess.value = `Payment cycle set to ${data.cycle_type.toLowerCase()}.`;
+    } else {
+      if (!cycleReason.value.trim()) {
+        cycleError.value = "Please provide a reason for the cycle change request.";
+        return;
+      }
+      await writerApi.requestCycleChange(selectedCycle.value, cycleReason.value.trim());
+      cycleSuccess.value = "Cycle change request submitted — an admin will review it.";
+    }
+    showCycleForm.value = false;
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    cycleError.value = detail ?? "Could not update cycle. Try again.";
+  } finally {
+    cycleSubmitting.value = false;
+  }
+}
+
+function cycleTone(cycle: string | undefined) {
+  if (cycle === "BIWEEKLY") return "bg-sky-100 text-sky-700";
+  if (cycle === "MONTHLY") return "bg-violet-100 text-violet-700";
+  return "bg-slate-100 text-graphite";
+}
+
+function cycleLabel(cycle: string | undefined) {
+  if (cycle === "BIWEEKLY") return "Bi-weekly";
+  if (cycle === "MONTHLY") return "Monthly";
+  return cycle ?? "Not set";
+}
+
+// — end payout cycle ————————————————————————————————————
 
 const showPayoutForm = ref(false);
 const payoutForm = reactive({ amount: "", reason: "" });
@@ -139,6 +247,8 @@ onMounted(async () => {
     workspace.fetchPayoutRequests(),
     fetchReceivedTips(),
     fetchFines(),
+    fetchPayoutHistory(),
+    fetchPreference(),
   ]);
 });
 </script>
@@ -342,6 +452,109 @@ onMounted(async () => {
                 <p class="mt-0.5 text-xs text-graphite">{{ formatDate(req.created_at) }}</p>
               </div>
               <StatusPill :label="req.workflow_status ?? req.status" :tone="payoutStatusTone(req.workflow_status ?? req.status)" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Payout cycle -->
+        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+          <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div class="flex items-center gap-2">
+              <CalendarClock class="h-5 w-5 text-signal" />
+              <h2 class="text-base font-semibold text-ink">Payment cycle</h2>
+            </div>
+            <button
+              class="focus-ring text-xs font-semibold text-signal underline-offset-2 hover:underline"
+              type="button"
+              @click="openCycleForm"
+            >
+              {{ preference?.locked ? "Request change" : "Set cycle" }}
+            </button>
+          </div>
+
+          <div class="px-5 py-4 space-y-3">
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-graphite">Current cycle:</span>
+              <span
+                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                :class="cycleTone(preference?.cycle_type)"
+              >
+                {{ preferenceLoading ? "…" : cycleLabel(preference?.cycle_type) }}
+              </span>
+              <span v-if="preference?.locked" class="text-xs text-graphite">(locked)</span>
+            </div>
+            <p v-if="cycleSuccess" class="text-xs font-semibold text-signal">{{ cycleSuccess }}</p>
+
+            <!-- Cycle change form -->
+            <div v-if="showCycleForm" class="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-semibold text-ink">
+                {{ cycleFormMode === "set" ? "Set payment cycle" : "Request cycle change" }}
+              </p>
+              <div class="flex gap-2">
+                <button
+                  v-for="opt in cycleOptions"
+                  :key="opt.value"
+                  class="focus-ring flex-1 rounded-md border px-3 py-2 text-xs font-semibold transition-colors"
+                  :class="selectedCycle === opt.value
+                    ? 'border-ink bg-ink text-white'
+                    : 'border-slate-200 bg-white text-graphite'"
+                  type="button"
+                  @click="selectedCycle = opt.value"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+              <textarea
+                v-if="cycleFormMode === 'request'"
+                v-model="cycleReason"
+                class="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs"
+                rows="2"
+                placeholder="Reason for requesting a cycle change…"
+              />
+              <p v-if="cycleError" class="text-xs text-berry">{{ cycleError }}</p>
+              <div class="flex gap-2">
+                <button
+                  class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                  type="button"
+                  :disabled="cycleSubmitting"
+                  @click="submitCycleChange"
+                >
+                  <Loader2 v-if="cycleSubmitting" class="h-3 w-3 animate-spin" />
+                  <CheckCircle2 v-else class="h-3 w-3" />
+                  {{ cycleFormMode === "set" ? "Save" : "Submit request" }}
+                </button>
+                <button
+                  class="focus-ring rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink"
+                  type="button"
+                  @click="showCycleForm = false; cycleError = ''"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payout history -->
+          <div class="border-t border-slate-200">
+            <p class="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-graphite">Payout history</p>
+            <div v-if="payoutHistoryLoading" class="px-5 pb-4 text-center">
+              <Loader2 class="mx-auto h-4 w-4 animate-spin text-slate-400" />
+            </div>
+            <div v-else-if="!payoutHistory.length" class="px-5 pb-5 text-center">
+              <p class="text-sm text-graphite">No settled payouts yet.</p>
+            </div>
+            <div v-else class="divide-y divide-slate-100">
+              <div
+                v-for="payout in payoutHistory"
+                :key="payout.id"
+                class="flex items-center gap-3 px-5 py-3"
+              >
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-semibold text-ink">{{ money(payout.total_amount) }}</p>
+                  <p class="mt-0.5 truncate text-xs text-graphite">{{ payout.window_label }}</p>
+                </div>
+                <StatusPill :label="payout.status" :tone="payoutStatusTone(payout.status)" />
+              </div>
             </div>
           </div>
         </section>

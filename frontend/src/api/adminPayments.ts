@@ -108,20 +108,30 @@ export interface FinancialOverviewResponse {
 
 export interface WriterPaymentRecord {
   id?: number;
+  payment_id?: string;
   writer_id?: number;
   writer_username?: string;
   writer_email?: string;
+  writer?: { id?: number; name?: string; email?: string; registration_id?: string };
   website?: string;
   website_id?: number;
   amount?: string | number;
   total_amount?: string | number;
+  total_earnings?: string | number;
   status?: string;
+  type?: string;
   paid_at?: string | null;
+  date?: string | null;
   batch_id?: number | null;
+  batch_reference?: string | null;
+  reference?: string;
   client_total?: string | number;
   platform_margin?: string | number;
   order_count?: number;
+  number_of_orders?: number;
+  tips?: string | number;
   tips_total?: string | number;
+  fines?: string | number;
   fines_total?: string | number;
   [key: string]: unknown;
 }

@@ -56,6 +56,24 @@ export const writerApi = {
       apiPath("/writer-compensation/writer/compensation/events/"),
       { params },
     ),
+  payoutHistory: () =>
+    api.get<{ id: number; total_amount: string; status: string; window_label: string; paid_at: string | null }[]>(
+      apiPath("/writer-compensation/writer/compensation/payouts/"),
+    ),
+  payoutPreference: () =>
+    api.get<{ id: number; cycle_type: string; locked: boolean; created_at: string; updated_at: string }>(
+      apiPath("/writer-compensation/writer/compensation/preference/"),
+    ),
+  setPayoutPreference: (cycleType: string) =>
+    api.post<{ id: number; cycle_type: string; locked: boolean }>(
+      apiPath("/writer-compensation/writer/compensation/preference/"),
+      { cycle_type: cycleType },
+    ),
+  requestCycleChange: (requestedCycle: string, reason: string) =>
+    api.post<{ id: number; requested_cycle: string; status: string }>(
+      apiPath("/writer-compensation/writer/compensation/cycle-change/"),
+      { requested_cycle: requestedCycle, reason },
+    ),
   expressInterest: (orderId: number | string, message = "") =>
     api.post<StaffingActionResponse>(
       ordersApiPath(`/orders/${orderId}/staffing/interests/`),

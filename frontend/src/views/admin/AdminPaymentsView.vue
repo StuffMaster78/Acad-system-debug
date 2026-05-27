@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
 import {
+  CalendarClock,
   CheckCircle2,
   CreditCard,
   RefreshCw,
@@ -111,6 +112,33 @@ onMounted(() => {
         <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
         <p class="mt-3 text-3xl font-semibold text-ink">{{ metric.value }}</p>
         <p class="mt-2 text-sm leading-5 text-graphite">{{ metric.detail }}</p>
+      </div>
+    </section>
+
+    <!-- Writer payment cycle breakdown -->
+    <section v-if="payments.cycleBreakdown.length" class="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="flex items-center gap-2">
+        <CalendarClock class="h-5 w-5 text-signal" />
+        <h2 class="text-base font-semibold text-ink">Writer payment cycles</h2>
+      </div>
+      <p class="mt-1 text-sm text-graphite">Disbursements classified by payment window cycle.</p>
+      <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        <div
+          v-for="row in payments.cycleBreakdown"
+          :key="row.cycle"
+          class="rounded-md border p-4 text-center"
+          :class="row.cycle === 'BIWEEKLY' ? 'border-sky-200 bg-sky-50' : row.cycle === 'MONTHLY' ? 'border-violet-200 bg-violet-50' : 'border-slate-200 bg-slate-50'"
+        >
+          <p
+            class="text-xs font-semibold uppercase tracking-wide"
+            :class="row.cycle === 'BIWEEKLY' ? 'text-sky-700' : row.cycle === 'MONTHLY' ? 'text-violet-700' : 'text-graphite'"
+          >
+            {{ row.cycle === "BIWEEKLY" ? "Bi-weekly" : row.cycle === "MONTHLY" ? "Monthly" : row.cycle }}
+          </p>
+          <p class="mt-2 text-2xl font-semibold text-ink">{{ formatAmount(row.writerTotal) }}</p>
+          <p class="mt-1 text-xs text-graphite">{{ row.count }} payout(s) to writers</p>
+          <p class="mt-0.5 text-xs text-graphite">{{ formatAmount(row.margin) }} platform margin</p>
+        </div>
       </div>
     </section>
 
