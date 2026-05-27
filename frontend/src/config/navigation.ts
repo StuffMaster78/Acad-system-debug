@@ -58,6 +58,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Tenants", to: "/superadmin/tenants", icon: BriefcaseBusiness },
     { label: "Ops Intel", to: "/superadmin/ops", icon: BarChart3 },
     { label: "Activity", to: "/superadmin/activity", icon: Activity },
+    { label: "Audit Log", to: "/superadmin/audit", icon: ShieldAlert },
     { label: "Orders", to: "/superadmin/orders", icon: ClipboardList },
     { label: "Writers", to: "/superadmin/writers", icon: Users },
     { label: "Clients", to: "/superadmin/clients", icon: Users },
