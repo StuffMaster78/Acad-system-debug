@@ -1,4 +1,11 @@
 export type DisputeStatus = "open" | "under_review" | "resolved" | "closed" | "withdrawn";
+export type DisputeVerdict = "writer_wins" | "client_wins";
+export type DisputeRemedy =
+  | "partial_refund"
+  | "full_refund"
+  | "reassign"
+  | "revision"
+  | "cancel_refund";
 
 export interface Dispute {
   id: number;
@@ -10,6 +17,9 @@ export interface Dispute {
   assigned_admin_username?: string | null;
   status: DisputeStatus;
   reason: string;
+  verdict?: DisputeVerdict | null;
+  remedy?: DisputeRemedy | null;
+  refund_amount?: string | null;
   resolution?: string | null;
   admin_notes?: string | null;
   created_at: string;
@@ -23,5 +33,8 @@ export interface RaiseDisputePayload {
 }
 
 export interface ResolveDisputePayload {
+  verdict: DisputeVerdict;
+  remedy?: DisputeRemedy;
+  refund_amount?: string;
   resolution: string;
 }

@@ -1,5 +1,5 @@
 import { api, apiPath } from "./client";
-import type { Dispute } from "@/types/disputes";
+import type { Dispute, ResolveDisputePayload } from "@/types/disputes";
 
 type ListResponse<T> = T[] | { results: T[]; count?: number };
 
@@ -12,8 +12,8 @@ export const disputesApi = {
     api.get<Dispute>(apiPath(`/disputes/${id}/`)),
   raise: (orderId: number | string, reason: string) =>
     api.post<Dispute>(apiPath(`/orders/${orderId}/dispute/`), { reason }),
-  resolve: (id: number | string, resolution: string) =>
-    api.post<Dispute>(apiPath(`/disputes/${id}/resolve/`), { resolution }),
+  resolve: (id: number | string, payload: ResolveDisputePayload) =>
+    api.post<Dispute>(apiPath(`/disputes/${id}/resolve/`), payload),
   close: (id: number | string, notes?: string) =>
     api.post<Dispute>(apiPath(`/disputes/${id}/close/`), { notes: notes ?? "" }),
   withdraw: (id: number | string) =>
