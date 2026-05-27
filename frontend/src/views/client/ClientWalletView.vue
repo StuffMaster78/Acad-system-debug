@@ -6,13 +6,16 @@ import {
   Banknote,
   CheckCircle2,
   Clock3,
+  Copy,
   CreditCard,
+  Gift,
   Loader2,
   Lock,
   RefreshCw,
   Smartphone,
   TrendingUp,
 } from "@lucide/vue";
+import { api, apiPath } from "@/api/client";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useWalletStore } from "@/stores/wallets";
@@ -110,8 +113,49 @@ function holdStatusTone(status: string): "warning" | "success" | "neutral" {
   return "neutral";
 }
 
+interface ReferralCode {
+  code: string;
+  referral_link: string;
+  usage_stats?: { total_referrals?: number; successful_referrals?: number };
+}
+
+const referralCode = ref<ReferralCode | null>(null);
+const referralCodeLoading = ref(false);
+const referralCodeCopied = ref(false);
+
+async function fetchReferralCode() {
+  if (auth.isPreviewSession) {
+    referralCode.value = {
+      code: "PREVIEW10",
+      referral_link: "https://example.com?ref=PREVIEW10",
+      usage_stats: { total_referrals: 3, successful_referrals: 1 },
+    };
+    return;
+  }
+  referralCodeLoading.value = true;
+  try {
+    const { data } = await api.get<ReferralCode | ReferralCode[]>(
+      apiPath("/referrals/referral-codes/my-code/"),
+    );
+    referralCode.value = Array.isArray(data) ? data[0] ?? null : data;
+  } catch {
+    // Not all accounts have referral codes enabled
+  } finally {
+    referralCodeLoading.value = false;
+  }
+}
+
+function copyReferralCode() {
+  if (!referralCode.value?.code) return;
+  navigator.clipboard.writeText(referralCode.value.code).then(() => {
+    referralCodeCopied.value = true;
+    setTimeout(() => { referralCodeCopied.value = false; }, 2000);
+  });
+}
+
 onMounted(() => {
   wallets.hydrate().catch(() => undefined);
+  fetchReferralCode();
 });
 </script>
 
@@ -431,6 +475,52 @@ onMounted(() => {
                 <span v-if="topupAmount()">— {{ wallets.currency }} {{ topupAmount() }}</span>
               </template>
             </button>
+          </div>
+        </section>
+
+        <!-- Refer a friend -->
+        <section v-if="referralCode || referralCodeLoading" class="rounded-lg border border-slate-200 bg-white shadow-panel">
+          <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+            <Gift class="h-4 w-4 text-amber-500" />
+            <h2 class="text-base font-semibold text-ink">Refer a friend</h2>
+          </div>
+
+          <div v-if="referralCodeLoading" class="flex items-center justify-center px-5 py-6">
+            <Loader2 class="h-5 w-5 animate-spin text-slate-400" />
+          </div>
+
+          <div v-else-if="referralCode" class="px-5 py-5 space-y-4">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Your referral code</p>
+              <div class="mt-2 flex items-center gap-2">
+                <code class="flex-1 rounded-md bg-slate-100 px-3 py-2 text-base font-bold tracking-widest text-ink">
+                  {{ referralCode.code }}
+                </code>
+                <button
+                  class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 px-3 text-xs font-semibold text-ink transition-colors hover:bg-slate-50"
+                  type="button"
+                  @click="copyReferralCode"
+                >
+                  <Copy class="h-3.5 w-3.5" />
+                  {{ referralCodeCopied ? "Copied!" : "Copy" }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="referralCode.usage_stats" class="flex gap-4 text-sm">
+              <div>
+                <span class="font-semibold text-ink">{{ referralCode.usage_stats.total_referrals ?? 0 }}</span>
+                <span class="ml-1 text-graphite">referred</span>
+              </div>
+              <div>
+                <span class="font-semibold text-ink">{{ referralCode.usage_stats.successful_referrals ?? 0 }}</span>
+                <span class="ml-1 text-graphite">converted</span>
+              </div>
+            </div>
+
+            <p class="text-xs text-graphite leading-5">
+              Share your code and earn a bonus when friends place their first order.
+            </p>
           </div>
         </section>
       </aside>
