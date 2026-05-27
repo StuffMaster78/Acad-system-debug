@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
 import {
+  AlertTriangle,
   Banknote,
   CheckCircle2,
   Clock3,
@@ -10,6 +11,7 @@ import {
   Send,
   TrendingUp,
 } from "@lucide/vue";
+import { finesApi, type FineRecord } from "@/api/fines";
 import { tipsApi, type TipRecord } from "@/api/tips";
 import MetricTile from "@/components/ui/MetricTile.vue";
 import Pagination from "@/components/ui/Pagination.vue";
@@ -24,6 +26,63 @@ const payoutError = ref("");
 
 const tips = ref<TipRecord[]>([]);
 const tipsLoading = ref(false);
+
+const fines = ref<FineRecord[]>([]);
+const finesLoading = ref(false);
+const disputingFineId = ref<number | null>(null);
+const disputeReason = ref("");
+const disputeError = ref("");
+const disputeSubmitting = ref(false);
+
+async function fetchFines() {
+  finesLoading.value = true;
+  try {
+    const { data } = await finesApi.list({ page_size: 20 });
+    fines.value = Array.isArray(data) ? data : (data as { results: FineRecord[] }).results ?? [];
+  } catch {
+    // Non-critical
+  } finally {
+    finesLoading.value = false;
+  }
+}
+
+function openDisputeForm(fineId: number) {
+  disputingFineId.value = fineId;
+  disputeReason.value = "";
+  disputeError.value = "";
+}
+
+function closeDisputeForm() {
+  disputingFineId.value = null;
+  disputeReason.value = "";
+  disputeError.value = "";
+}
+
+async function submitDispute(fineId: number) {
+  disputeError.value = "";
+  if (!disputeReason.value.trim()) {
+    disputeError.value = "Please explain why you are disputing this fine.";
+    return;
+  }
+  disputeSubmitting.value = true;
+  try {
+    const { data } = await finesApi.dispute(fineId, disputeReason.value.trim());
+    const idx = fines.value.findIndex((f) => f.id === fineId);
+    if (idx !== -1) fines.value[idx] = data;
+    closeDisputeForm();
+  } catch {
+    disputeError.value = "Dispute submission failed. Try again shortly.";
+  } finally {
+    disputeSubmitting.value = false;
+  }
+}
+
+function fineStatusTone(status: string): "success" | "warning" | "danger" | "neutral" {
+  if (status === "waived") return "success";
+  if (status === "disputed" || status === "escalated" || status === "appealed") return "warning";
+  if (status === "issued") return "danger";
+  return "neutral";
+}
 
 async function fetchReceivedTips() {
   tipsLoading.value = true;
@@ -79,6 +138,7 @@ onMounted(async () => {
     workspace.fetchEvents(1),
     workspace.fetchPayoutRequests(),
     fetchReceivedTips(),
+    fetchFines(),
   ]);
 });
 </script>
@@ -282,6 +342,90 @@ onMounted(async () => {
                 <p class="mt-0.5 text-xs text-graphite">{{ formatDate(req.created_at) }}</p>
               </div>
               <StatusPill :label="req.workflow_status ?? req.status" :tone="payoutStatusTone(req.workflow_status ?? req.status)" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Fines & disputes -->
+        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+          <div class="flex items-center gap-2 border-b border-slate-200 px-5 py-4">
+            <AlertTriangle class="h-5 w-5 text-berry" />
+            <h2 class="text-base font-semibold text-ink">Fines</h2>
+          </div>
+
+          <div v-if="finesLoading" class="px-5 py-6 text-center">
+            <Loader2 class="mx-auto h-5 w-5 animate-spin text-slate-400" />
+          </div>
+          <div v-else-if="!fines.length" class="px-5 py-8 text-center">
+            <AlertTriangle class="mx-auto h-7 w-7 text-slate-300" />
+            <p class="mt-3 text-sm text-graphite">No fines on record.</p>
+          </div>
+          <div v-else class="divide-y divide-slate-100">
+            <div
+              v-for="fine in fines"
+              :key="fine.id"
+              class="px-5 py-3"
+            >
+              <div class="flex items-start gap-4">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-ink">
+                    {{ money(fine.amount) }}
+                    <span v-if="fine.fine_type_name" class="ml-1 text-xs font-normal text-graphite">{{ fine.fine_type_name }}</span>
+                  </p>
+                  <p v-if="fine.order_topic" class="mt-0.5 truncate text-xs text-graphite">{{ fine.order_topic }}</p>
+                  <p class="mt-0.5 text-xs text-graphite">{{ formatDate(fine.imposed_at) }}</p>
+                </div>
+                <div class="flex shrink-0 flex-col items-end gap-1.5">
+                  <StatusPill :label="fine.status" :tone="fineStatusTone(fine.status)" />
+                  <button
+                    v-if="fine.can_dispute"
+                    class="focus-ring text-xs font-semibold text-signal underline-offset-2 hover:underline"
+                    type="button"
+                    @click="openDisputeForm(fine.id)"
+                  >
+                    Dispute
+                  </button>
+                </div>
+              </div>
+
+              <!-- Inline dispute form -->
+              <div v-if="disputingFineId === fine.id" class="mt-3 space-y-3 rounded-md border border-amber-200 bg-amber-50 p-4">
+                <p class="text-xs font-semibold text-amber-900">Dispute this fine</p>
+                <textarea
+                  v-model="disputeReason"
+                  class="focus-ring w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm"
+                  rows="3"
+                  placeholder="Explain why you believe this fine was issued in error…"
+                />
+                <p v-if="disputeError" class="text-xs text-berry">{{ disputeError }}</p>
+                <div class="flex gap-2">
+                  <button
+                    class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                    type="button"
+                    :disabled="disputeSubmitting"
+                    @click="submitDispute(fine.id)"
+                  >
+                    <Loader2 v-if="disputeSubmitting" class="h-3 w-3 animate-spin" />
+                    <CheckCircle2 v-else class="h-3 w-3" />
+                    Submit dispute
+                  </button>
+                  <button
+                    class="focus-ring rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink"
+                    type="button"
+                    @click="closeDisputeForm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+
+              <!-- Existing appeal status -->
+              <div v-else-if="fine.appeal" class="mt-2 rounded-md bg-slate-50 px-3 py-2">
+                <p class="text-xs font-medium text-graphite">
+                  Dispute {{ fine.appeal.accepted === true ? 'accepted' : fine.appeal.accepted === false ? 'rejected' : 'under review' }}
+                </p>
+                <p v-if="fine.appeal.resolution_notes" class="mt-0.5 text-xs text-graphite">{{ fine.appeal.resolution_notes }}</p>
+              </div>
             </div>
           </div>
         </section>
