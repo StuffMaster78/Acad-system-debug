@@ -76,6 +76,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/client/ClientWalletView.vue"),
       },
       {
+        path: "loyalty",
+        name: "client-loyalty",
+        component: () => import("@/views/client/ClientLoyaltyView.vue"),
+      },
+      {
         path: "classes",
         name: "client-classes",
         component: () => import("@/views/client/ClientClassesView.vue"),
@@ -259,6 +264,16 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "earnings",
         name: "writer-earnings",
         component: () => import("@/views/writer/WriterEarningsView.vue"),
+      },
+      {
+        path: "bids",
+        name: "writer-bids",
+        component: () => import("@/views/writer/WriterBidsView.vue"),
+      },
+      {
+        path: "fines",
+        name: "writer-fines",
+        component: () => import("@/views/writer/WriterFinesView.vue"),
       },
       {
         path: "messages",
