@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Download,
   FileUp,
+  Gift,
   LifeBuoy,
   Loader2,
   MessageSquare,
@@ -17,6 +18,7 @@ import {
 } from "@lucide/vue";
 import { filesApi, type FilePurpose, type FileVisibility } from "@/api/files";
 import { supportApi } from "@/api/support";
+import { tipsApi, type TipRecord } from "@/api/tips";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import OrderTimeline from "@/components/orders/OrderTimeline.vue";
 import { useCommunicationsStore } from "@/stores/communications";
@@ -78,6 +80,67 @@ const isTerminal = computed(() => {
 });
 
 const canCancel = computed(() => !isTerminal.value);
+
+const canTip = computed(() => {
+  const s = order.value?.status;
+  return (
+    (s === "completed" || s === "reviewed" || s === "rated" || s === "approved" || s === "archived") &&
+    lifecycle.value?.current_writer_id != null
+  );
+});
+
+const TIP_PRESETS = [500, 1000, 2000, 5000]; // cents: $5, $10, $20, $50
+const tipPreset = ref<number | null>(null);
+const tipCustomCents = ref("");
+const tipMessage = ref("");
+const isTipping = ref(false);
+const tipError = ref("");
+const tipSuccess = ref<TipRecord | null>(null);
+
+const tipAmount = computed(() => {
+  if (tipPreset.value !== null) return tipPreset.value;
+  const n = Math.round(Number(tipCustomCents.value) * 100);
+  return Number.isFinite(n) && n > 0 ? n : null;
+});
+
+function selectTipPreset(cents: number) {
+  tipPreset.value = tipPreset.value === cents ? null : cents;
+  tipCustomCents.value = "";
+}
+
+function onCustomTipInput() {
+  tipPreset.value = null;
+}
+
+function centsToDisplay(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+async function submitTip() {
+  const writerId = lifecycle.value?.current_writer_id;
+  const amount = tipAmount.value;
+  if (!writerId || !amount) return;
+  isTipping.value = true;
+  tipError.value = "";
+  try {
+    const { data } = await tipsApi.create({
+      receiver_id: writerId,
+      gross_amount_cents: amount,
+      currency: "USD",
+      context_type: "order",
+      message: tipMessage.value.trim() || undefined,
+      idempotency_key: crypto.randomUUID(),
+    });
+    tipSuccess.value = data;
+    tipPreset.value = null;
+    tipCustomCents.value = "";
+    tipMessage.value = "";
+  } catch {
+    tipError.value = "Unable to send tip. Please try again.";
+  } finally {
+    isTipping.value = false;
+  }
+}
 
 function money(amount: string | number | undefined | null, currency = "USD") {
   if (amount === undefined || amount === null || amount === "") return `${currency} 0.00`;
@@ -585,6 +648,69 @@ onMounted(() => {
             Submit ticket
           </button>
         </form>
+      </section>
+
+      <!-- Tip your writer -->
+      <section v-if="canTip" class="rounded-lg border border-amber-200 bg-amber-50 p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <Gift class="h-5 w-5 text-amber-700" />
+          <h2 class="text-lg font-semibold text-amber-950">Tip your writer</h2>
+        </div>
+        <p class="mt-1 text-sm text-amber-800">
+          Satisfied with the work? Send a tip to show your appreciation.
+        </p>
+
+        <div v-if="tipSuccess" class="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          Tip of {{ centsToDisplay(tipSuccess.gross_amount_cents) }} sent — thank you!
+        </div>
+
+        <template v-else>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button
+              v-for="cents in TIP_PRESETS"
+              :key="cents"
+              type="button"
+              class="focus-ring rounded-md border px-4 py-2 text-sm font-semibold transition-colors"
+              :class="tipPreset === cents
+                ? 'border-amber-600 bg-amber-600 text-white'
+                : 'border-amber-300 bg-white text-amber-900 hover:border-amber-500'"
+              @click="selectTipPreset(cents)"
+            >
+              {{ centsToDisplay(cents) }}
+            </button>
+            <input
+              v-model="tipCustomCents"
+              class="focus-ring h-10 w-28 rounded-md border border-amber-300 bg-white px-3 text-sm placeholder-amber-400"
+              type="number"
+              min="1"
+              step="0.01"
+              placeholder="Custom $"
+              @input="onCustomTipInput"
+            />
+          </div>
+
+          <div class="mt-3">
+            <input
+              v-model="tipMessage"
+              class="focus-ring w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm placeholder-amber-400"
+              placeholder="Add a message (optional)"
+              maxlength="200"
+            />
+          </div>
+
+          <p v-if="tipError" class="mt-2 text-sm text-rose-700">{{ tipError }}</p>
+
+          <button
+            class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            type="button"
+            :disabled="isTipping || tipAmount === null"
+            @click="submitTip"
+          >
+            <Loader2 v-if="isTipping" class="h-4 w-4 animate-spin" />
+            <Gift v-else class="h-4 w-4" />
+            {{ isTipping ? "Sending tip…" : tipAmount ? `Send ${centsToDisplay(tipAmount)}` : "Select amount" }}
+          </button>
+        </template>
       </section>
 
       <form v-if="canCancel" class="rounded-lg border border-rose-200 bg-rose-50 p-5 shadow-panel" @submit.prevent="submitCancel">

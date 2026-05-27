@@ -4,11 +4,13 @@ import {
   Banknote,
   CheckCircle2,
   Clock3,
+  Gift,
   Loader2,
   RefreshCw,
   Send,
   TrendingUp,
 } from "@lucide/vue";
+import { tipsApi, type TipRecord } from "@/api/tips";
 import MetricTile from "@/components/ui/MetricTile.vue";
 import Pagination from "@/components/ui/Pagination.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
@@ -19,6 +21,21 @@ const workspace = useWriterWorkspaceStore();
 const showPayoutForm = ref(false);
 const payoutForm = reactive({ amount: "", reason: "" });
 const payoutError = ref("");
+
+const tips = ref<TipRecord[]>([]);
+const tipsLoading = ref(false);
+
+async function fetchReceivedTips() {
+  tipsLoading.value = true;
+  try {
+    const { data } = await tipsApi.received({ page_size: 10 });
+    tips.value = Array.isArray(data) ? data : (data as { results: TipRecord[] }).results ?? [];
+  } catch {
+    // Non-critical — don't surface error
+  } finally {
+    tipsLoading.value = false;
+  }
+}
 
 function money(value: string | number | undefined | null): string {
   if (value === undefined || value === null || value === "") return "$0.00";
@@ -61,6 +78,7 @@ onMounted(async () => {
   await Promise.all([
     workspace.fetchEvents(1),
     workspace.fetchPayoutRequests(),
+    fetchReceivedTips(),
   ]);
 });
 </script>
@@ -264,6 +282,40 @@ onMounted(async () => {
                 <p class="mt-0.5 text-xs text-graphite">{{ formatDate(req.created_at) }}</p>
               </div>
               <StatusPill :label="req.workflow_status ?? req.status" :tone="payoutStatusTone(req.workflow_status ?? req.status)" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Received tips -->
+        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+          <div class="flex items-center gap-2 border-b border-slate-200 px-5 py-4">
+            <Gift class="h-5 w-5 text-amber-500" />
+            <h2 class="text-base font-semibold text-ink">Tips received</h2>
+          </div>
+
+          <div v-if="tipsLoading" class="px-5 py-6 text-center">
+            <Loader2 class="mx-auto h-5 w-5 animate-spin text-slate-400" />
+          </div>
+          <div v-else-if="!tips.length" class="px-5 py-8 text-center">
+            <Gift class="mx-auto h-7 w-7 text-slate-300" />
+            <p class="mt-3 text-sm text-graphite">No tips yet.</p>
+            <p class="mt-1 text-xs text-graphite">Tips appear here when clients send them after order completion.</p>
+          </div>
+          <div v-else class="divide-y divide-slate-100">
+            <div
+              v-for="tip in tips"
+              :key="tip.id"
+              class="flex items-center gap-4 px-5 py-3"
+            >
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-ink">
+                  {{ money((tip.writer_share_cents / 100).toFixed(2)) }}
+                  <span class="ml-1 text-xs font-normal text-graphite">your share</span>
+                </p>
+                <p v-if="tip.message" class="mt-0.5 truncate text-xs text-graphite">{{ tip.message }}</p>
+                <p class="mt-0.5 text-xs text-graphite">{{ formatDate(tip.created_at) }}</p>
+              </div>
+              <StatusPill :label="tip.status" :tone="tip.status === 'settled' ? 'success' : 'neutral'" />
             </div>
           </div>
         </section>
