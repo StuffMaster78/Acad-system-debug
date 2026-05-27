@@ -197,15 +197,25 @@ function previewRefunds(): RefundRecord[] {
   return [
     {
       id: 71,
-      order: "ORD-1038",
-      client: "caleb@example.com",
-      amount: "90.00",
+      order_payment: null,
+      payment_refund: null,
+      order: 1038,
+      client: 5,
+      website: null,
+      type: null,
       wallet_amount: "90.00",
       external_amount: "0.00",
-      status: "pending",
       refund_method: "wallet",
       reason: "Client cancellation within grace period",
+      processed_by: null,
+      processed_at: null,
+      status: "pending",
+      metadata: null,
+      error_message: null,
+      total_amount: "90.00",
+      refundable_amount: "90.00",
       created_at: new Date(now - 1000 * 60 * 60 * 7).toISOString(),
+      updated_at: new Date(now - 1000 * 60 * 60 * 7).toISOString(),
     },
   ];
 }
@@ -266,7 +276,7 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
         source: "refund" as const,
         title: `Refund #${refund.id}`,
         subtitle: refund.reason || String(refund.order || "Refund request"),
-        amount: refund.amount ?? refund.wallet_amount ?? refund.external_amount ?? 0,
+        amount: refund.total_amount ?? refund.wallet_amount ?? refund.external_amount ?? 0,
         status: refund.status,
         date: refund.created_at,
       })),
@@ -629,7 +639,7 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
       tipDashboard.value = {
         summary: { total_tips: 42, total_tip_amount: 24700, total_writer_earnings: 19800, total_platform_profit: 4900 },
       };
-      pendingRefundQueue.value = previewRefunds().map((refund) => normalizeRefundOps(refund as Record<string, unknown>));
+      pendingRefundQueue.value = previewRefunds().map((refund) => normalizeRefundOps(refund as unknown as Record<string, unknown>));
       disputeQueue.value = [
         {
           id: 801,

@@ -58,18 +58,53 @@ export interface WalletEntryRecord {
 
 export interface RefundRecord {
   id: number;
-  order?: number | string | null;
-  client?: number | string | null;
-  website?: number | string | null;
-  amount?: string | number;
-  wallet_amount?: string | number;
-  external_amount?: string | number;
+  order_payment: number | null;
+  payment_refund: number | null;
+  order: number | null;
+  client: number | null;
+  website: number | null;
+  type: string | null;
+  wallet_amount: string;
+  external_amount: string;
+  refund_method: string | null;
+  reason: string | null;
+  processed_by: number | null;
+  processed_at: string | null;
   status: string;
-  refund_method?: string;
-  reason?: string;
-  created_at?: string;
-  processed_at?: string | null;
-  [key: string]: unknown;
+  metadata: Record<string, unknown> | null;
+  error_message: string | null;
+  total_amount: string;
+  refundable_amount: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RefundLogRecord {
+  id: number;
+  order: number | null;
+  amount: string;
+  website: number | null;
+  source: string | null;
+  status: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  refund: number | null;
+  client: number | null;
+  processed_by: number | null;
+  action: string | null;
+}
+
+export interface RefundReceiptRecord {
+  id: number;
+  website: number | null;
+  refund: number | null;
+  generated_at: string;
+  reference_code: string;
+  amount: string;
+  order_payment: number | null;
+  client: number | null;
+  processed_by: number | null;
+  reason: string | null;
 }
 
 export interface FinancialOverviewResponse {
@@ -195,14 +230,23 @@ export const adminPaymentsApi = {
     api.post(apiPath(`/wallets/admin/payout-requests/${holdId}/process/`), {
       external_reference,
     }),
-  refunds: () =>
+  refunds: (params?: Record<string, unknown>) =>
     api.get<ListResponse<RefundRecord>>(
       apiPath("/refunds/refunds/"),
+      { params },
     ),
-  processRefund: (refundId: number | string, notes = "") =>
-    api.post(apiPath(`/refunds/refunds/${refundId}/process/`), { notes }),
+  refund: (refundId: number | string) =>
+    api.get<RefundRecord>(apiPath(`/refunds/refunds/${refundId}/`)),
+  processRefund: (refundId: number | string, reason = "") =>
+    api.post<RefundRecord>(apiPath(`/refunds/refunds/${refundId}/process/`), { reason }),
   cancelRefund: (refundId: number | string, reason: string) =>
-    api.post(apiPath(`/refunds/refunds/${refundId}/cancel/`), { reason }),
+    api.post<{ success: string }>(apiPath(`/refunds/refunds/${refundId}/cancel/`), { reason }),
+  retryRefund: (refundId: number | string) =>
+    api.post<RefundRecord>(apiPath(`/refunds/refunds/${refundId}/retry/`), {}),
+  refundLogs: (params?: Record<string, unknown>) =>
+    api.get<ListResponse<RefundLogRecord>>(apiPath("/refunds/refund-logs/"), { params }),
+  refundReceipts: (params?: Record<string, unknown>) =>
+    api.get<ListResponse<RefundReceiptRecord>>(apiPath("/refunds/refund-receipts/"), { params }),
   refundDashboard: () =>
     api.get<FinanceDashboardResponse>(
       apiPath("/admin-management/refunds/dashboard/dashboard/"),
