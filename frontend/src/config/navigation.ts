@@ -35,6 +35,7 @@ export interface NavItem {
   label: string;
   to: string;
   icon: Component;
+  separator?: boolean;
 }
 
 export const roleHome: Record<UserRole, string> = {
@@ -64,7 +65,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Publishing", to: "/superadmin/publishing", icon: Newspaper },
     { label: "Files", to: "/superadmin/files", icon: FolderOpen },
     { label: "Analytics", to: "/superadmin/analytics", icon: BarChart3 },
-    { label: "Settings", to: "/superadmin/settings", icon: Settings },
+    { label: "Settings", to: "/superadmin/settings", icon: Settings, separator: true },
     { label: "Support", to: "/superadmin/support", icon: LifeBuoy },
     { label: "Config Hub", to: "/superadmin/config", icon: Wrench },
   ],
@@ -88,7 +89,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Publishing", to: "/admin/publishing", icon: Newspaper },
     { label: "Files", to: "/admin/files", icon: FolderOpen },
     { label: "Analytics", to: "/admin/analytics", icon: BarChart3 },
-    { label: "Settings", to: "/admin/settings", icon: Settings },
+    { label: "Settings", to: "/admin/settings", icon: Settings, separator: true },
     { label: "Support", to: "/admin/support", icon: LifeBuoy },
     { label: "Config Hub", to: "/admin/config", icon: Wrench },
   ],
@@ -124,7 +125,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Analytics", to: "/editor/analytics", icon: BarChart3 },
     { label: "Messages", to: "/editor/messages", icon: MessageSquare },
     { label: "Notifications", to: "/editor/notifications", icon: Bell },
-    { label: "Settings", to: "/editor/config", icon: Wrench },
+    { label: "Settings", to: "/editor/config", icon: Wrench, separator: true },
   ],
   support: [
     { label: "Queue", to: "/support", icon: Headphones },
@@ -136,6 +137,6 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Saved Replies", to: "/support/replies", icon: MessageSquare },
     { label: "Messages", to: "/support/messages", icon: MessageSquare },
     { label: "Notifications", to: "/support/notifications", icon: Bell },
-    { label: "Settings", to: "/support/config", icon: Wrench },
+    { label: "Settings", to: "/support/config", icon: Wrench, separator: true },
   ],
 };

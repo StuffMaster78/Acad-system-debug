@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
-import { LogOut, Menu, Settings } from "@lucide/vue";
+import { LogOut, Menu, Settings, UserCircle } from "@lucide/vue";
 import ActivityShortcut from "@/components/layout/ActivityShortcut.vue";
 import GlobalSearch from "@/components/layout/GlobalSearch.vue";
 import NotificationBell from "@/components/layout/NotificationBell.vue";
@@ -49,26 +49,50 @@ onUnmounted(() => document.removeEventListener("mousedown", onUserMenuOutsideCli
       @click="ui.closeSidebar()"
     />
     <aside
-      class="fixed inset-y-0 left-0 z-30 w-72 border-r border-slate-200 bg-white transition-transform lg:z-20 lg:translate-x-0"
+      class="fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-slate-200 bg-white transition-transform lg:z-20 lg:translate-x-0"
       :class="ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
-      <div class="flex h-16 items-center border-b border-slate-200 px-5">
+      <!-- Brand -->
+      <div class="flex h-16 shrink-0 items-center border-b border-slate-200 px-5">
         <RouterLink to="/" class="text-base font-semibold tracking-normal">
           Writing System
         </RouterLink>
       </div>
-      <nav class="space-y-1 px-3 py-4">
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          class="focus-ring flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-graphite"
-          :class="isActive(item.to) ? 'bg-mist text-ink' : 'hover:bg-slate-100'"
-        >
-          <component :is="item.icon" class="h-4 w-4" aria-hidden="true" />
-          <span>{{ item.label }}</span>
-        </RouterLink>
+
+      <!-- Scrollable nav -->
+      <nav class="flex-1 overflow-y-auto px-3 py-4">
+        <template v-for="item in navItems" :key="item.to">
+          <div v-if="item.separator" class="my-3 border-t border-slate-100" />
+          <RouterLink
+            :to="item.to"
+            class="focus-ring flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-graphite"
+            :class="isActive(item.to) ? 'bg-mist text-ink' : 'hover:bg-slate-100'"
+          >
+            <component :is="item.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{{ item.label }}</span>
+          </RouterLink>
+        </template>
       </nav>
+
+      <!-- Pinned bottom strip -->
+      <div class="shrink-0 border-t border-slate-200 px-3 py-3 space-y-1">
+        <RouterLink
+          :to="`/${role}/account`"
+          class="focus-ring flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-graphite hover:bg-slate-100"
+          :class="isActive(`/${role}/account`) ? 'bg-mist text-ink' : ''"
+        >
+          <UserCircle class="h-4 w-4 shrink-0 text-graphite" aria-hidden="true" />
+          <span>My account</span>
+        </RouterLink>
+        <button
+          class="focus-ring flex w-full min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-graphite hover:bg-rose-50 hover:text-berry"
+          type="button"
+          @click="auth.logout()"
+        >
+          <LogOut class="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>Sign out</span>
+        </button>
+      </div>
     </aside>
 
     <div class="lg:pl-72">
