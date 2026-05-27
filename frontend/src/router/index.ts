@@ -75,6 +75,31 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "client-wallet",
         component: () => import("@/views/client/ClientWalletView.vue"),
       },
+      {
+        path: "classes",
+        name: "client-classes",
+        component: () => import("@/views/client/ClientClassesView.vue"),
+      },
+      {
+        path: "classes/:id",
+        name: "client-class-detail",
+        component: () => import("@/views/client/ClientClassDetailView.vue"),
+      },
+      {
+        path: "special-orders",
+        name: "client-special-orders",
+        component: () => import("@/views/client/ClientSpecialOrdersView.vue"),
+      },
+      {
+        path: "special-orders/new",
+        name: "client-special-order-new",
+        component: () => import("@/views/client/NewSpecialOrderView.vue"),
+      },
+      {
+        path: "special-orders/:id",
+        name: "client-special-order-detail",
+        component: () => import("@/views/client/ClientSpecialOrderDetailView.vue"),
+      },
     );
   }
 
@@ -157,6 +182,26 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "admin-config",
         component: () => import("@/views/admin/AdminConfigHubView.vue"),
       },
+      {
+        path: "classes",
+        name: "admin-classes",
+        component: () => import("@/views/admin/AdminClassesView.vue"),
+      },
+      {
+        path: "classes/:id",
+        name: "admin-class-detail",
+        component: () => import("@/views/admin/AdminClassDetailView.vue"),
+      },
+      {
+        path: "special-orders",
+        name: "admin-special-orders",
+        component: () => import("@/views/admin/AdminSpecialOrdersView.vue"),
+      },
+      {
+        path: "special-orders/:id",
+        name: "admin-special-order-detail",
+        component: () => import("@/views/admin/AdminSpecialOrderDetailView.vue"),
+      },
     );
   }
 
@@ -194,6 +239,16 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "messages",
         name: "writer-messages",
         component: () => import("@/views/writer/WriterMessagesView.vue"),
+      },
+      {
+        path: "classes",
+        name: "writer-classes",
+        component: () => import("@/views/writer/WriterClassesView.vue"),
+      },
+      {
+        path: "classes/:id",
+        name: "writer-class-detail",
+        component: () => import("@/views/writer/WriterClassDetailView.vue"),
       },
     );
   }
