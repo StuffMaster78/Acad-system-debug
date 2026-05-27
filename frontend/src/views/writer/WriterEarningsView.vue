@@ -6,13 +6,14 @@ import {
   CalendarClock,
   CheckCircle2,
   Clock3,
+  CreditCard,
   Gift,
   Loader2,
   RefreshCw,
   Send,
   TrendingUp,
 } from "@lucide/vue";
-import { writerApi } from "@/api/writer";
+import { writerApi, type AdvanceRecord } from "@/api/writer";
 import { finesApi, type FineRecord } from "@/api/fines";
 import { tipsApi, type TipRecord } from "@/api/tips";
 import MetricTile from "@/components/ui/MetricTile.vue";
@@ -127,6 +128,64 @@ function cycleLabel(cycle: string | undefined) {
 }
 
 // — end payout cycle ————————————————————————————————————
+
+// — Advance payments ————————————————————————————————————
+const advances = ref<AdvanceRecord[]>([]);
+const advancesLoading = ref(false);
+const showAdvanceForm = ref(false);
+const advanceAmount = ref("");
+const advanceReason = ref("");
+const advanceSubmitting = ref(false);
+const advanceError = ref("");
+const advanceSuccess = ref("");
+
+async function fetchAdvances() {
+  advancesLoading.value = true;
+  try {
+    const { data } = await writerApi.advances();
+    advances.value = Array.isArray(data) ? data : [];
+  } catch {
+    // non-critical
+  } finally {
+    advancesLoading.value = false;
+  }
+}
+
+async function submitAdvance() {
+  advanceError.value = "";
+  advanceSuccess.value = "";
+  const amt = Number(advanceAmount.value);
+  if (!amt || amt <= 0) {
+    advanceError.value = "Enter a valid amount.";
+    return;
+  }
+  if (!advanceReason.value.trim()) {
+    advanceError.value = "Please provide a reason for the advance.";
+    return;
+  }
+  advanceSubmitting.value = true;
+  try {
+    const { data } = await writerApi.requestAdvance(advanceAmount.value, advanceReason.value.trim());
+    advances.value = [data, ...advances.value];
+    advanceSuccess.value = "Advance request submitted — an admin will review it shortly.";
+    advanceAmount.value = "";
+    advanceReason.value = "";
+    showAdvanceForm.value = false;
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    advanceError.value = detail ?? "Advance request failed. Check the amount and try again.";
+  } finally {
+    advanceSubmitting.value = false;
+  }
+}
+
+function advanceStatusTone(status: string): "success" | "warning" | "danger" | "neutral" {
+  if (status === "APPROVED" || status === "RECOVERED") return "success";
+  if (status === "PENDING" || status === "PARTIALLY_RECOVERED") return "warning";
+  if (status === "REJECTED") return "danger";
+  return "neutral";
+}
+// — end advance payments ————————————————————————————————
 
 const showPayoutForm = ref(false);
 const payoutForm = reactive({ amount: "", reason: "" });
@@ -249,6 +308,7 @@ onMounted(async () => {
     fetchFines(),
     fetchPayoutHistory(),
     fetchPreference(),
+    fetchAdvances(),
   ]);
 });
 </script>
@@ -555,6 +615,100 @@ onMounted(async () => {
                 </div>
                 <StatusPill :label="payout.status" :tone="payoutStatusTone(payout.status)" />
               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Advance payments -->
+        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+          <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div class="flex items-center gap-2">
+              <CreditCard class="h-5 w-5 text-signal" />
+              <h2 class="text-base font-semibold text-ink">Advance payments</h2>
+            </div>
+            <button
+              class="focus-ring inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-3 text-xs font-semibold text-ink"
+              type="button"
+              @click="showAdvanceForm = !showAdvanceForm; advanceError = ''"
+            >
+              <Send class="h-3.5 w-3.5" />
+              Request
+            </button>
+          </div>
+
+          <p v-if="advanceSuccess" class="px-5 py-3 text-sm font-semibold text-signal">{{ advanceSuccess }}</p>
+
+          <div v-if="showAdvanceForm" class="space-y-3 border-b border-slate-200 p-5">
+            <label class="block">
+              <span class="text-sm font-medium text-graphite">Amount</span>
+              <input
+                v-model="advanceAmount"
+                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                type="number"
+                min="1"
+                step="0.01"
+                placeholder="0.00"
+              />
+            </label>
+            <label class="block">
+              <span class="text-sm font-medium text-graphite">Reason</span>
+              <textarea
+                v-model="advanceReason"
+                class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                rows="2"
+                placeholder="Why do you need this advance?"
+              />
+            </label>
+            <p v-if="advanceError" class="text-xs text-berry">{{ advanceError }}</p>
+            <div class="flex gap-2">
+              <button
+                class="focus-ring inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                type="button"
+                :disabled="advanceSubmitting"
+                @click="submitAdvance"
+              >
+                <Loader2 v-if="advanceSubmitting" class="h-3.5 w-3.5 animate-spin" />
+                <CheckCircle2 v-else class="h-3.5 w-3.5" />
+                Submit
+              </button>
+              <button
+                class="focus-ring rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-ink"
+                type="button"
+                @click="showAdvanceForm = false; advanceError = ''"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <div v-if="advancesLoading && !advances.length" class="px-5 py-6 text-center">
+            <Loader2 class="mx-auto h-5 w-5 animate-spin text-slate-400" />
+          </div>
+          <div v-else-if="!advances.length" class="px-5 py-8 text-center">
+            <CreditCard class="mx-auto h-7 w-7 text-slate-300" />
+            <p class="mt-3 text-sm text-graphite">No advance requests yet.</p>
+          </div>
+          <div v-else class="divide-y divide-slate-100">
+            <div
+              v-for="adv in advances"
+              :key="adv.id"
+              class="px-5 py-3"
+            >
+              <div class="flex items-start gap-3">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-ink">{{ money(adv.requested_amount) }} requested</p>
+                  <p v-if="adv.approved_amount" class="mt-0.5 text-xs text-graphite">
+                    {{ money(adv.approved_amount) }} approved
+                    <span v-if="Number(adv.outstanding_balance) > 0"> · {{ money(adv.outstanding_balance) }} outstanding</span>
+                  </p>
+                  <p class="mt-0.5 truncate text-xs text-graphite">{{ adv.reason }}</p>
+                  <p class="mt-0.5 text-xs text-graphite">{{ formatDate(adv.created_at) }}</p>
+                </div>
+                <StatusPill :label="adv.status" :tone="advanceStatusTone(adv.status)" />
+              </div>
+              <p v-if="adv.admin_notes" class="mt-1.5 rounded-md bg-slate-50 px-3 py-2 text-xs text-graphite">
+                {{ adv.admin_notes }}
+              </p>
             </div>
           </div>
         </section>

@@ -110,6 +110,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "client-disputes",
         component: () => import("@/views/client/ClientDisputesView.vue"),
       },
+      {
+        path: "referrals",
+        name: "client-referrals",
+        component: () => import("@/views/client/ClientReferralsView.vue"),
+      },
     );
   }
 

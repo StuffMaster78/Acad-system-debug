@@ -13,6 +13,20 @@ import type { OrderSummary } from "@/types/orders";
 
 type ListResponse<T> = T[] | { count: number; next: string | null; previous: string | null; results: T[] };
 
+export interface AdvanceRecord {
+  id: number;
+  status: string;
+  requested_amount: string;
+  approved_amount: string | null;
+  recovered_amount: string;
+  outstanding_balance: string;
+  reason: string;
+  admin_notes: string;
+  reviewed_at: string | null;
+  created_at: string;
+  recoveries: Array<{ id: number; amount: string; notes: string; recovered_at: string }>;
+}
+
 export const writerApi = {
   poolOrders: (params?: Record<string, unknown>) =>
     api.get<ListResponse<OrderSummary>>(apiPath("/orders/"), {
@@ -74,6 +88,10 @@ export const writerApi = {
       apiPath("/writer-compensation/writer/compensation/cycle-change/"),
       { requested_cycle: requestedCycle, reason },
     ),
+  advances: () =>
+    api.get<AdvanceRecord[]>(apiPath("/writer-compensation/advances/")),
+  requestAdvance: (amount: string, reason: string) =>
+    api.post<AdvanceRecord>(apiPath("/writer-compensation/advances/"), { amount, reason }),
   expressInterest: (orderId: number | string, message = "") =>
     api.post<StaffingActionResponse>(
       ordersApiPath(`/orders/${orderId}/staffing/interests/`),

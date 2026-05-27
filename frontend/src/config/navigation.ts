@@ -28,6 +28,7 @@ import {
   Star,
   User,
   Users,
+  Users2,
   Wallet,
   Wrench,
 } from "@lucide/vue";
@@ -119,6 +120,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Disputes", to: "/client/disputes", icon: ShieldAlert },
     { label: "Wallet", to: "/client/wallet", icon: Wallet },
     { label: "Loyalty", to: "/client/loyalty", icon: Star },
+    { label: "Referrals", to: "/client/referrals", icon: Users2 },
     { label: "Messages", to: "/client/messages", icon: MessageSquare },
     { label: "Support", to: "/client/support", icon: LifeBuoy },
     { label: "Notifications", to: "/client/notifications", icon: Bell },
