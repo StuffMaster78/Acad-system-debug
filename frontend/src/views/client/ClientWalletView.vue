@@ -13,6 +13,7 @@ import {
   Lock,
   RefreshCw,
   Smartphone,
+  Star,
   TrendingUp,
 } from "@lucide/vue";
 import { api, apiPath } from "@/api/client";
@@ -119,6 +120,62 @@ interface ReferralCode {
   usage_stats?: { total_referrals?: number; successful_referrals?: number };
 }
 
+interface LoyaltySummary {
+  loyalty_points: number;
+  wallet_balance: string;
+  tier: string;
+  conversion_rate: string;
+}
+
+const loyalty = ref<LoyaltySummary | null>(null);
+const loyaltyLoading = ref(false);
+const loyaltyConvertPoints = ref("");
+const loyaltyConvertError = ref("");
+const loyaltyConvertSubmitting = ref(false);
+const loyaltyConvertSuccess = ref<{ converted: number; amount: string } | null>(null);
+
+async function fetchLoyalty() {
+  loyaltyLoading.value = true;
+  try {
+    const { data } = await api.get<LoyaltySummary>(apiPath("/loyalty-management/loyalty/summary/"));
+    loyalty.value = data;
+  } catch {
+    // Not all accounts have loyalty enabled
+  } finally {
+    loyaltyLoading.value = false;
+  }
+}
+
+async function convertLoyaltyPoints() {
+  loyaltyConvertError.value = "";
+  loyaltyConvertSuccess.value = null;
+  const pts = parseInt(loyaltyConvertPoints.value, 10);
+  if (!pts || pts <= 0) {
+    loyaltyConvertError.value = "Enter a valid number of points.";
+    return;
+  }
+  if (loyalty.value && pts > loyalty.value.loyalty_points) {
+    loyaltyConvertError.value = "You don't have that many points.";
+    return;
+  }
+  loyaltyConvertSubmitting.value = true;
+  try {
+    const { data } = await api.post<{ converted: number; amount: string }>(
+      apiPath("/loyalty-management/loyalty/convert/"),
+      { points: pts },
+    );
+    loyaltyConvertSuccess.value = data;
+    loyaltyConvertPoints.value = "";
+    // Refresh summary and wallet balance
+    await Promise.all([fetchLoyalty(), wallets.hydrate()]);
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string; points?: string[] } } })?.response?.data;
+    loyaltyConvertError.value = detail?.detail ?? detail?.points?.[0] ?? "Conversion failed. Try again.";
+  } finally {
+    loyaltyConvertSubmitting.value = false;
+  }
+}
+
 const referralCode = ref<ReferralCode | null>(null);
 const referralCodeLoading = ref(false);
 const referralCodeCopied = ref(false);
@@ -156,6 +213,7 @@ function copyReferralCode() {
 onMounted(() => {
   wallets.hydrate().catch(() => undefined);
   fetchReferralCode();
+  fetchLoyalty();
 });
 </script>
 
@@ -475,6 +533,68 @@ onMounted(() => {
                 <span v-if="topupAmount()">— {{ wallets.currency }} {{ topupAmount() }}</span>
               </template>
             </button>
+          </div>
+        </section>
+
+        <!-- Loyalty points -->
+        <section v-if="loyalty || loyaltyLoading" class="rounded-lg border border-slate-200 bg-white shadow-panel">
+          <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+            <Star class="h-4 w-4 text-saffron" />
+            <h2 class="text-base font-semibold text-ink">Loyalty points</h2>
+          </div>
+
+          <div v-if="loyaltyLoading" class="flex items-center justify-center px-5 py-6">
+            <Loader2 class="h-5 w-5 animate-spin text-slate-400" />
+          </div>
+
+          <div v-else-if="loyalty" class="space-y-4 px-5 py-5">
+            <div class="flex items-end justify-between gap-3">
+              <div>
+                <p class="text-3xl font-semibold text-ink">{{ loyalty.loyalty_points.toLocaleString() }}</p>
+                <p class="mt-0.5 text-xs text-graphite">points available</p>
+              </div>
+              <div class="text-right">
+                <span class="inline-block rounded-full border border-saffron/30 bg-saffron/10 px-3 py-1 text-xs font-semibold text-saffron">
+                  {{ loyalty.tier }}
+                </span>
+              </div>
+            </div>
+
+            <p class="text-xs text-graphite">
+              {{ loyalty.conversion_rate }} points = $1.00 wallet credit
+            </p>
+
+            <!-- Convert form -->
+            <div class="space-y-2">
+              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite" for="loyalty-pts">
+                Convert to credits
+              </label>
+              <div class="flex gap-2">
+                <input
+                  id="loyalty-pts"
+                  v-model="loyaltyConvertPoints"
+                  class="focus-ring h-9 flex-1 rounded-md border border-slate-200 px-3 text-sm"
+                  type="number"
+                  min="1"
+                  :max="loyalty.loyalty_points"
+                  placeholder="Points to convert"
+                />
+                <button
+                  class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md bg-ink px-3 text-xs font-semibold text-white disabled:opacity-60"
+                  type="button"
+                  :disabled="loyaltyConvertSubmitting || loyalty.loyalty_points === 0"
+                  @click="convertLoyaltyPoints"
+                >
+                  <Loader2 v-if="loyaltyConvertSubmitting" class="h-3 w-3 animate-spin" />
+                  <CheckCircle2 v-else class="h-3 w-3" />
+                  Convert
+                </button>
+              </div>
+              <p v-if="loyaltyConvertError" class="text-xs text-berry">{{ loyaltyConvertError }}</p>
+              <p v-if="loyaltyConvertSuccess" class="text-xs font-semibold text-signal">
+                Converted {{ loyaltyConvertSuccess.converted }} pts → ${{ loyaltyConvertSuccess.amount }} added to wallet
+              </p>
+            </div>
           </div>
         </section>
 
