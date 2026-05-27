@@ -51,7 +51,72 @@ export interface ClientPaymentRequest {
   is_fully_paid: boolean;
 }
 
+export interface AdminInvoice {
+  id: number;
+  reference: string;
+  title: string;
+  purpose: string;
+  description: string | null;
+  amount: string;
+  currency: string;
+  status: string;
+  client: number | null;
+  recipient_email: string | null;
+  recipient_name: string | null;
+  order_number: string | null;
+  issued_at: string | null;
+  due_at: string | null;
+  paid_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateInvoicePayload {
+  title: string;
+  purpose: string;
+  amount: string;
+  due_at: string;
+  description?: string;
+  recipient_email?: string;
+  recipient_name?: string;
+  currency?: string;
+  order_number?: string;
+}
+
+export interface AdminPaymentRequest {
+  id: number;
+  reference: string;
+  title: string;
+  purpose: string;
+  description: string | null;
+  amount: string;
+  currency: string;
+  status: string;
+  recipient_email: string | null;
+  recipient_name: string | null;
+  issued_at: string | null;
+  due_at: string | null;
+  paid_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePaymentRequestPayload {
+  title: string;
+  purpose: string;
+  amount: string;
+  due_at: string;
+  description?: string;
+  recipient_email?: string;
+  recipient_name?: string;
+}
+
+type ListResponse<T> = T[] | { count: number; next: string | null; previous: string | null; results: T[] };
+
 export const billingApi = {
+  // Client-facing
   myInvoices: () =>
     api.get<ClientInvoice[]>(apiPath("/billing/my/invoices/")),
   myInvoice: (id: number) =>
@@ -60,4 +125,20 @@ export const billingApi = {
     api.get<ClientPaymentRequest[]>(apiPath("/billing/my/payment-requests/")),
   myPaymentRequest: (id: number) =>
     api.get<ClientPaymentRequest>(apiPath(`/billing/my/payment-requests/${id}/`)),
+
+  // Admin-facing — invoices
+  invoices: (params?: Record<string, unknown>) =>
+    api.get<ListResponse<AdminInvoice>>(apiPath("/billing/invoices/"), { params }),
+  createInvoice: (payload: CreateInvoicePayload) =>
+    api.post<AdminInvoice>(apiPath("/billing/invoices/"), payload),
+  issueInvoice: (id: number) =>
+    api.post<AdminInvoice>(apiPath(`/billing/invoices/${id}/issue/`), {}),
+
+  // Admin-facing — payment requests
+  paymentRequests: (params?: Record<string, unknown>) =>
+    api.get<ListResponse<AdminPaymentRequest>>(apiPath("/billing/payment-requests/"), { params }),
+  createPaymentRequest: (payload: CreatePaymentRequestPayload) =>
+    api.post<AdminPaymentRequest>(apiPath("/billing/payment-requests/"), payload),
+  issuePaymentRequest: (id: number) =>
+    api.post<AdminPaymentRequest>(apiPath(`/billing/payment-requests/${id}/issue/`), {}),
 };

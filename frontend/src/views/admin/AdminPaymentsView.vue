@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import {
   CalendarClock,
   CheckCircle2,
   CreditCard,
+  FileText,
+  Loader2,
+  Plus,
+  Receipt,
   RefreshCw,
   Search,
   Send,
@@ -13,8 +17,147 @@ import {
 import EmptyState from "@/components/ui/EmptyState.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminPaymentsStore } from "@/stores/adminPayments";
+import {
+  billingApi,
+  type AdminInvoice,
+  type AdminPaymentRequest,
+  type CreateInvoicePayload,
+  type CreatePaymentRequestPayload,
+} from "@/api/billing";
 
 const payments = useAdminPaymentsStore();
+
+// ─── Billing: invoices & payment requests ────────────────────────────────────
+const invoices = ref<AdminInvoice[]>([]);
+const invoicesLoading = ref(false);
+const invoicesError = ref("");
+
+const prList = ref<AdminPaymentRequest[]>([]);
+const prLoading = ref(false);
+
+const billingTab = ref<"invoices" | "payment-requests">("invoices");
+const showInvForm = ref(false);
+const showPrForm = ref(false);
+const billingMutating = ref(false);
+const billingSuccess = ref("");
+const billingError = ref("");
+
+const invForm = ref<CreateInvoicePayload>({
+  title: "",
+  purpose: "",
+  amount: "",
+  due_at: "",
+  description: "",
+  recipient_email: "",
+  recipient_name: "",
+  currency: "USD",
+});
+
+const prForm = ref<CreatePaymentRequestPayload>({
+  title: "",
+  purpose: "",
+  amount: "",
+  due_at: "",
+  description: "",
+  recipient_email: "",
+  recipient_name: "",
+});
+
+async function fetchInvoices() {
+  invoicesLoading.value = true;
+  invoicesError.value = "";
+  try {
+    const { data } = await billingApi.invoices({ ordering: "-created_at" });
+    invoices.value = Array.isArray(data) ? data : (data as { results: AdminInvoice[] }).results ?? [];
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    invoicesError.value = detail ?? "Could not load invoices.";
+  } finally {
+    invoicesLoading.value = false;
+  }
+}
+
+async function fetchPaymentRequests() {
+  prLoading.value = true;
+  try {
+    const { data } = await billingApi.paymentRequests({ ordering: "-created_at" });
+    prList.value = Array.isArray(data) ? data : (data as { results: AdminPaymentRequest[] }).results ?? [];
+  } catch {
+    // non-critical
+  } finally {
+    prLoading.value = false;
+  }
+}
+
+async function createInvoice() {
+  billingMutating.value = true;
+  billingError.value = "";
+  billingSuccess.value = "";
+  try {
+    const { data } = await billingApi.createInvoice(invForm.value);
+    invoices.value.unshift(data);
+    billingSuccess.value = `Invoice "${data.reference}" created as draft.`;
+    showInvForm.value = false;
+    invForm.value = { title: "", purpose: "", amount: "", due_at: "", description: "", recipient_email: "", recipient_name: "", currency: "USD" };
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string; title?: string[] } } })?.response?.data;
+    billingError.value = detail?.detail ?? detail?.title?.[0] ?? "Failed to create invoice.";
+  } finally {
+    billingMutating.value = false;
+  }
+}
+
+async function issueInvoice(inv: AdminInvoice) {
+  billingMutating.value = true;
+  billingError.value = "";
+  billingSuccess.value = "";
+  try {
+    const { data } = await billingApi.issueInvoice(inv.id);
+    const idx = invoices.value.findIndex((i) => i.id === inv.id);
+    if (idx !== -1) invoices.value[idx] = data;
+    billingSuccess.value = `Invoice ${data.reference} issued.`;
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    billingError.value = detail ?? "Issue failed.";
+  } finally {
+    billingMutating.value = false;
+  }
+}
+
+async function createPaymentRequest() {
+  billingMutating.value = true;
+  billingError.value = "";
+  billingSuccess.value = "";
+  try {
+    const { data } = await billingApi.createPaymentRequest(prForm.value);
+    prList.value.unshift(data);
+    billingSuccess.value = `Payment request "${data.reference}" created.`;
+    showPrForm.value = false;
+    prForm.value = { title: "", purpose: "", amount: "", due_at: "", description: "", recipient_email: "", recipient_name: "" };
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    billingError.value = detail ?? "Failed to create payment request.";
+  } finally {
+    billingMutating.value = false;
+  }
+}
+
+async function issuePaymentRequest(pr: AdminPaymentRequest) {
+  billingMutating.value = true;
+  billingError.value = "";
+  try {
+    const { data } = await billingApi.issuePaymentRequest(pr.id);
+    const idx = prList.value.findIndex((p) => p.id === pr.id);
+    if (idx !== -1) prList.value[idx] = data;
+    billingSuccess.value = `Payment request ${data.reference} issued.`;
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    billingError.value = detail ?? "Issue failed.";
+  } finally {
+    billingMutating.value = false;
+  }
+}
+// ─── End Billing ─────────────────────────────────────────────────────────────
 
 const metricToneClasses = {
   neutral: "border-slate-200 bg-white",
@@ -64,6 +207,8 @@ function statusTone(status?: string | null) {
 
 onMounted(() => {
   payments.hydrate().catch(() => undefined);
+  fetchInvoices();
+  fetchPaymentRequests();
 });
 </script>
 
@@ -324,6 +469,260 @@ onMounted(() => {
           </div>
         </section>
       </aside>
+    </section>
+
+    <!-- ─── Billing: Invoices & Payment Requests ──────────────────────────── -->
+    <section class="space-y-4">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 class="text-lg font-semibold text-ink">Invoices & Payment Requests</h2>
+        <div class="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <button
+            class="focus-ring rounded-md px-4 py-2 text-xs font-semibold transition-colors"
+            :class="billingTab === 'invoices' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+            type="button"
+            @click="billingTab = 'invoices'"
+          >
+            Invoices
+            <span v-if="invoices.length" class="ml-1 text-xs text-graphite">({{ invoices.length }})</span>
+          </button>
+          <button
+            class="focus-ring rounded-md px-4 py-2 text-xs font-semibold transition-colors"
+            :class="billingTab === 'payment-requests' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+            type="button"
+            @click="billingTab = 'payment-requests'"
+          >
+            Payment Requests
+            <span v-if="prList.length" class="ml-1 text-xs text-graphite">({{ prList.length }})</span>
+          </button>
+        </div>
+      </div>
+
+      <p v-if="billingError" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ billingError }}</p>
+      <p v-if="billingSuccess" class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{{ billingSuccess }}</p>
+
+      <!-- INVOICES TAB -->
+      <template v-if="billingTab === 'invoices'">
+        <div class="flex justify-end">
+          <button
+            class="focus-ring inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+            type="button"
+            @click="showInvForm = !showInvForm"
+          >
+            <Plus class="h-4 w-4" />
+            {{ showInvForm ? "Cancel" : "New Invoice" }}
+          </button>
+        </div>
+
+        <!-- Create invoice form -->
+        <div v-if="showInvForm" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+          <h3 class="mb-4 text-sm font-semibold text-ink">Create draft invoice</h3>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block sm:col-span-2">
+              <span class="text-xs font-semibold uppercase text-graphite">Title</span>
+              <input v-model="invForm.title" type="text" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="Invoice title" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Purpose</span>
+              <input v-model="invForm.purpose" type="text" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="e.g. order_payment" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Amount</span>
+              <input v-model="invForm.amount" type="number" step="0.01" min="0" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="0.00" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Due date</span>
+              <input v-model="invForm.due_at" type="datetime-local" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Currency</span>
+              <input v-model="invForm.currency" type="text" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="USD" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Recipient email</span>
+              <input v-model="invForm.recipient_email" type="email" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Recipient name</span>
+              <input v-model="invForm.recipient_name" type="text" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+            </label>
+            <label class="block sm:col-span-2">
+              <span class="text-xs font-semibold uppercase text-graphite">Description</span>
+              <textarea v-model="invForm.description" rows="2" class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm" />
+            </label>
+          </div>
+          <div class="mt-4">
+            <button
+              class="focus-ring inline-flex items-center gap-2 rounded-md bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              type="button"
+              :disabled="billingMutating || !invForm.title || !invForm.amount || !invForm.due_at"
+              @click="createInvoice"
+            >
+              <Loader2 v-if="billingMutating" class="h-4 w-4 animate-spin" />
+              <FileText v-else class="h-4 w-4" />
+              Create Invoice
+            </button>
+          </div>
+        </div>
+
+        <div v-if="invoicesError" class="text-sm text-berry">{{ invoicesError }}</div>
+
+        <div v-if="invoicesLoading && !invoices.length" class="space-y-2">
+          <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+            <div class="h-3 w-1/3 rounded bg-slate-200" />
+            <div class="mt-2 h-3 w-1/2 rounded bg-slate-100" />
+          </div>
+        </div>
+
+        <div v-else-if="!invoices.length" class="rounded-lg border border-slate-200 bg-white p-8 shadow-panel">
+          <EmptyState :icon="FileText" title="No invoices" message="Create the first invoice above." />
+        </div>
+
+        <div v-else class="rounded-lg border border-slate-200 bg-white shadow-panel overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
+              <tr>
+                <th class="px-5 py-3">Reference</th>
+                <th class="px-5 py-3">Title</th>
+                <th class="px-5 py-3">Recipient</th>
+                <th class="px-5 py-3">Amount</th>
+                <th class="px-5 py-3">Status</th>
+                <th class="px-5 py-3">Due</th>
+                <th class="px-5 py-3" />
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr v-for="inv in invoices" :key="inv.id" class="hover:bg-slate-50">
+                <td class="px-5 py-3 font-mono text-xs text-graphite">{{ inv.reference }}</td>
+                <td class="px-5 py-3 font-medium text-ink">{{ inv.title }}</td>
+                <td class="px-5 py-3 text-graphite">{{ inv.recipient_email ?? "—" }}</td>
+                <td class="px-5 py-3 font-semibold text-ink">{{ formatAmount(inv.amount, inv.currency) }}</td>
+                <td class="px-5 py-3"><StatusPill :label="inv.status" :tone="statusTone(inv.status)" /></td>
+                <td class="px-5 py-3 text-graphite">{{ inv.due_at ? formatDate(inv.due_at) : "—" }}</td>
+                <td class="px-5 py-3">
+                  <button
+                    v-if="inv.status === 'draft'"
+                    class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
+                    type="button"
+                    :disabled="billingMutating"
+                    @click="issueInvoice(inv)"
+                  >
+                    <Send class="h-3.5 w-3.5" />
+                    Issue
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+
+      <!-- PAYMENT REQUESTS TAB -->
+      <template v-else>
+        <div class="flex justify-end">
+          <button
+            class="focus-ring inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+            type="button"
+            @click="showPrForm = !showPrForm"
+          >
+            <Plus class="h-4 w-4" />
+            {{ showPrForm ? "Cancel" : "New Payment Request" }}
+          </button>
+        </div>
+
+        <div v-if="showPrForm" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+          <h3 class="mb-4 text-sm font-semibold text-ink">Create payment request</h3>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block sm:col-span-2">
+              <span class="text-xs font-semibold uppercase text-graphite">Title</span>
+              <input v-model="prForm.title" type="text" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="Payment request title" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Purpose</span>
+              <input v-model="prForm.purpose" type="text" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Amount</span>
+              <input v-model="prForm.amount" type="number" step="0.01" min="0" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="0.00" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Due date</span>
+              <input v-model="prForm.due_at" type="datetime-local" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Recipient email</span>
+              <input v-model="prForm.recipient_email" type="email" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Recipient name</span>
+              <input v-model="prForm.recipient_name" type="text" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+            </label>
+            <label class="block sm:col-span-2">
+              <span class="text-xs font-semibold uppercase text-graphite">Description</span>
+              <textarea v-model="prForm.description" rows="2" class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm" />
+            </label>
+          </div>
+          <div class="mt-4">
+            <button
+              class="focus-ring inline-flex items-center gap-2 rounded-md bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              type="button"
+              :disabled="billingMutating || !prForm.title || !prForm.amount || !prForm.due_at"
+              @click="createPaymentRequest"
+            >
+              <Loader2 v-if="billingMutating" class="h-4 w-4 animate-spin" />
+              <Receipt v-else class="h-4 w-4" />
+              Create
+            </button>
+          </div>
+        </div>
+
+        <div v-if="prLoading && !prList.length" class="space-y-2">
+          <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+            <div class="h-3 w-1/3 rounded bg-slate-200" />
+          </div>
+        </div>
+
+        <div v-else-if="!prList.length" class="rounded-lg border border-slate-200 bg-white p-8 shadow-panel">
+          <EmptyState :icon="Receipt" title="No payment requests" message="Create the first payment request above." />
+        </div>
+
+        <div v-else class="rounded-lg border border-slate-200 bg-white shadow-panel overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
+              <tr>
+                <th class="px-5 py-3">Reference</th>
+                <th class="px-5 py-3">Title</th>
+                <th class="px-5 py-3">Recipient</th>
+                <th class="px-5 py-3">Amount</th>
+                <th class="px-5 py-3">Status</th>
+                <th class="px-5 py-3">Due</th>
+                <th class="px-5 py-3" />
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr v-for="pr in prList" :key="pr.id" class="hover:bg-slate-50">
+                <td class="px-5 py-3 font-mono text-xs text-graphite">{{ pr.reference }}</td>
+                <td class="px-5 py-3 font-medium text-ink">{{ pr.title }}</td>
+                <td class="px-5 py-3 text-graphite">{{ pr.recipient_email ?? "—" }}</td>
+                <td class="px-5 py-3 font-semibold text-ink">{{ formatAmount(pr.amount, pr.currency) }}</td>
+                <td class="px-5 py-3"><StatusPill :label="pr.status" :tone="statusTone(pr.status)" /></td>
+                <td class="px-5 py-3 text-graphite">{{ pr.due_at ? formatDate(pr.due_at) : "—" }}</td>
+                <td class="px-5 py-3">
+                  <button
+                    v-if="pr.status === 'draft'"
+                    class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
+                    type="button"
+                    :disabled="billingMutating"
+                    @click="issuePaymentRequest(pr)"
+                  >
+                    <Send class="h-3.5 w-3.5" />
+                    Issue
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </section>
   </div>
 </template>
