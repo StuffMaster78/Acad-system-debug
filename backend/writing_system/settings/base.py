@@ -55,15 +55,8 @@ def module_available(module_name: str) -> bool:
     return importlib.util.find_spec(module_name) is not None
 
 
-LEGACY_COMPAT_APPS = [
-    "wallet",
-    "client_wallet",
-    "writer_wallet",
-]
-ENABLE_LEGACY_WRITER_WALLET_SIGNALS = env_bool(
-    "ENABLE_LEGACY_WRITER_WALLET_SIGNALS",
-    False,
-)
+LEGACY_COMPAT_APPS: list[str] = []
+ENABLE_LEGACY_WRITER_WALLET_SIGNALS = False
 
 WAGTAIL_AVAILABLE = module_available("wagtail")
 WHITENOISE_AVAILABLE = module_available("whitenoise")

@@ -7,16 +7,9 @@ import pytest
 
 @pytest.fixture
 def client_wallet(client_user, website):
-    from client_wallet.models import ClientWallet
+    from wallets.services.client_wallet_service import ClientWalletService
 
-    wallet, _ = ClientWallet.objects.get_or_create(
-        client=client_user,
-        website=website,
-        defaults={
-            "balance": Decimal("0.00"),
-        },
-    )
-    return wallet
+    return ClientWalletService.get_wallet(website=website, client=client_user)
 
 
 @pytest.fixture

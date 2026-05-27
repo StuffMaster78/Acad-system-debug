@@ -223,10 +223,11 @@ class TestWalletTopUpAndPaymentFlow:
     
     def test_top_up_and_pay_order(self, authenticated_client, client_user, website):
         """Test wallet top-up followed by order payment."""
-        from wallet.services.wallet_transaction_service import WalletTransactionService
-        
+        from wallets.services.wallet_service import WalletService
+
         # Get initial balance
-        initial_balance = WalletTransactionService.get_balance(client_user, website)
+        wallet = WalletService.get_client_wallet(website=website, owner_user=client_user)
+        initial_balance = wallet.balance
         
         # Top up wallet
         top_up_url = '/api/v1/wallet/wallets/top-up/'
@@ -239,7 +240,8 @@ class TestWalletTopUpAndPaymentFlow:
         assert top_up_response.status_code == status.HTTP_200_OK
         
         # Verify balance increased
-        new_balance = WalletTransactionService.get_balance(client_user, website)
+        wallet.refresh_from_db()
+        new_balance = wallet.balance
         assert new_balance == initial_balance + Decimal('200.00')
         
         # Create order

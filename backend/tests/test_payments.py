@@ -14,13 +14,7 @@ from tests.factories import (
 from orders.models.orders import Order
 from payments_processor.models import PaymentIntent  # noqa: F401 - kept for test compatibility
 from unittest import skip  # OrderPaymentService removed — tests need rewrite
-try:
-    from wallet.exceptions import InsufficientWalletBalance
-except ImportError:
-    # Fallback if wallet app structure is different
-    class InsufficientWalletBalance(Exception):
-        """Raised when wallet balance is insufficient."""
-        pass
+from wallets.exceptions import InsufficientWalletBalanceError as InsufficientWalletBalance
 
 
 @pytest.mark.api

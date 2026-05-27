@@ -10,7 +10,7 @@ from datetime import timedelta
 from orders.models.orders import Order
 from payments_processor.models import PaymentIntent  # noqa: F401 - kept for test compatibility
 from unittest import skip  # OrderPaymentService removed — tests need rewrite
-from client_wallet.models import ClientWallet
+from wallets.models import Wallet as ClientWallet  # canonical replacement
 
 
 @pytest.mark.integration

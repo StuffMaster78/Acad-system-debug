@@ -415,16 +415,8 @@ def order(client_user, website):
 @pytest.fixture
 def client_wallet(client_user, website):
     """Create a test client wallet."""
-    from client_wallet.models import ClientWallet
-    
-    wallet, _ = ClientWallet.objects.get_or_create(
-        client=client_user,
-        website=website,
-        defaults={
-            'balance': Decimal('0.00')
-        }
-    )
-    return wallet
+    from wallets.services.client_wallet_service import ClientWalletService
+    return ClientWalletService.get_wallet(website=website, client=client_user)
 
 
 @pytest.fixture

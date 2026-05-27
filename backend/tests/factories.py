@@ -16,7 +16,7 @@ from faker import Faker
 
 from websites.models.websites import Website
 from orders.models.orders import Order
-from client_wallet.models import ClientWallet
+from wallets.models import Wallet as ClientWallet  # canonical replacement
 from writer_management.models import WriterProfile
 
 User = settings.AUTH_USER_MODEL
@@ -109,14 +109,16 @@ class WriterProfileFactory(factory.django.DjangoModelFactory):
 
 
 class ClientWalletFactory(factory.django.DjangoModelFactory):
-    """Factory for creating ClientWallet instances."""
-    
+    """Factory for creating Wallet instances (client type)."""
+
     class Meta:
         model = ClientWallet
-        django_get_or_create = ('client', 'website')
-    
-    client = factory.SubFactory(ClientUserFactory)
-    website = factory.LazyAttribute(lambda obj: obj.client.website)
+        django_get_or_create = ('owner_user', 'website', 'wallet_type', 'currency')
+
+    owner_user = factory.SubFactory(ClientUserFactory)
+    website = factory.LazyAttribute(lambda obj: obj.owner_user.website)
+    wallet_type = 'client'
+    currency = 'USD'
     balance = Decimal('1000.00')
 
 
