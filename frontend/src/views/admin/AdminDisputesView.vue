@@ -2,7 +2,7 @@
 import { onMounted, ref } from "vue";
 import { AlertCircle, CheckCircle2, Clock, Search, ShieldAlert } from "@lucide/vue";
 import { useDisputesStore } from "@/stores/disputes";
-import type { Dispute } from "@/types/disputes";
+import type { Dispute, DisputeRemedy } from "@/types/disputes";
 
 const disputes = useDisputesStore();
 const expandedId = ref<number | null>(null);
@@ -36,6 +36,37 @@ function canResolve(d: Dispute) {
 function isResolvePanelOpen(id: number) {
   return disputes.resolveForm.disputeId === id;
 }
+
+function verdictLabel(v: string | null | undefined) {
+  if (v === "writer_wins") return "Writer wins";
+  if (v === "client_wins") return "Client wins";
+  return "";
+}
+
+function remedyLabel(r: string | null | undefined) {
+  const map: Record<string, string> = {
+    partial_refund: "Partial refund",
+    full_refund: "Full refund",
+    reassign: "Reassign writer",
+    revision: "Request revision",
+    cancel_refund: "Cancel + full refund",
+  };
+  return r ? (map[r] ?? r) : "";
+}
+
+const remedyOptions: { key: DisputeRemedy; label: string; description: string }[] = [
+  { key: "partial_refund", label: "Partial refund", description: "Issue a partial refund to the client" },
+  { key: "full_refund", label: "Full refund", description: "Issue a full refund of the order amount" },
+  { key: "reassign", label: "Reassign writer", description: "Assign the order to a different writer" },
+  { key: "revision", label: "Request revision", description: "Send the order back for a free revision" },
+  { key: "cancel_refund", label: "Cancel + full refund", description: "Cancel the order and issue a full refund" },
+];
+
+const canConfirmResolve = () => {
+  if (!disputes.resolveForm.verdict || !disputes.resolveForm.resolution.trim()) return false;
+  if (disputes.resolveForm.verdict === "client_wins" && !disputes.resolveForm.remedy) return false;
+  return true;
+};
 
 const statusOptions = [
   { key: "all", label: "All" },
@@ -145,6 +176,9 @@ const statusOptions = [
               >
                 {{ dispute.status.replace("_", " ") }}
               </span>
+              <span v-if="dispute.verdict" class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-violet-50 text-violet-700 border-violet-200">
+                {{ verdictLabel(dispute.verdict) }}
+              </span>
             </div>
             <p class="text-xs text-graphite mt-0.5">
               Order #{{ dispute.order_id }} · Raised by {{ dispute.raised_by_username }} · {{ formatDate(dispute.created_at) }}
@@ -180,28 +214,109 @@ const statusOptions = [
           <div v-if="dispute.resolution">
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-1">Resolution</p>
             <p class="text-sm text-ink leading-relaxed bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">{{ dispute.resolution }}</p>
-            <p v-if="dispute.resolved_at" class="text-xs text-graphite mt-1">Resolved {{ formatDate(dispute.resolved_at) }}</p>
+            <div class="mt-1 flex items-center gap-3 flex-wrap text-xs text-graphite">
+              <span v-if="dispute.remedy">Remedy: <span class="font-medium text-ink">{{ remedyLabel(dispute.remedy) }}</span></span>
+              <span v-if="dispute.refund_amount">Refund: <span class="font-medium text-ink">${{ dispute.refund_amount }}</span></span>
+              <span v-if="dispute.resolved_at">Resolved {{ formatDate(dispute.resolved_at) }}</span>
+            </div>
           </div>
 
           <!-- Actions -->
-          <div v-if="canResolve(dispute)" class="space-y-3 pt-2 border-t border-slate-100">
-            <!-- Resolve form -->
-            <div v-if="isResolvePanelOpen(dispute.id)" class="space-y-2">
-              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Resolution note *</p>
-              <textarea
-                v-model="disputes.resolveForm.resolution"
-                rows="3"
-                placeholder="Describe how the dispute is being resolved…"
-                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal/30"
-              />
+          <div v-if="canResolve(dispute)" class="space-y-4 pt-2 border-t border-slate-100">
+
+            <!-- Resolve panel (open) -->
+            <div v-if="isResolvePanelOpen(dispute.id)" class="space-y-4 rounded-xl bg-slate-50 border border-slate-200 p-4">
+
+              <!-- Step 1: Verdict -->
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-2">Step 1 — Who wins?</p>
+                <div class="flex gap-2">
+                  <button
+                    class="flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-colors"
+                    :class="disputes.resolveForm.verdict === 'writer_wins'
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                      : 'border-slate-200 bg-white text-graphite hover:border-emerald-300 hover:text-emerald-700'"
+                    type="button"
+                    @click="disputes.resolveForm.verdict = 'writer_wins'; disputes.resolveForm.remedy = null; disputes.resolveForm.refundAmount = ''"
+                  >
+                    Writer wins
+                    <span class="block text-xs font-normal opacity-70">No action taken</span>
+                  </button>
+                  <button
+                    class="flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-colors"
+                    :class="disputes.resolveForm.verdict === 'client_wins'
+                      ? 'border-rose-500 bg-rose-50 text-rose-800'
+                      : 'border-slate-200 bg-white text-graphite hover:border-rose-300 hover:text-rose-700'"
+                    type="button"
+                    @click="disputes.resolveForm.verdict = 'client_wins'"
+                  >
+                    Client wins
+                    <span class="block text-xs font-normal opacity-70">Select a remedy below</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Step 2: Remedy (only when client wins) -->
+              <div v-if="disputes.resolveForm.verdict === 'client_wins'">
+                <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-2">Step 2 — Choose remedy</p>
+                <div class="space-y-2">
+                  <label
+                    v-for="opt in remedyOptions"
+                    :key="opt.key"
+                    class="flex items-start gap-3 rounded-lg border-2 cursor-pointer px-3 py-2.5 transition-colors"
+                    :class="disputes.resolveForm.remedy === opt.key
+                      ? 'border-signal bg-signal/5'
+                      : 'border-slate-200 bg-white hover:border-slate-300'"
+                  >
+                    <input
+                      type="radio"
+                      name="remedy"
+                      :value="opt.key"
+                      class="mt-0.5 accent-signal"
+                      :checked="disputes.resolveForm.remedy === opt.key"
+                      @change="disputes.resolveForm.remedy = opt.key"
+                    />
+                    <div class="min-w-0">
+                      <p class="text-sm font-medium text-ink">{{ opt.label }}</p>
+                      <p class="text-xs text-graphite">{{ opt.description }}</p>
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Partial refund amount -->
+                <div v-if="disputes.resolveForm.remedy === 'partial_refund'" class="mt-3">
+                  <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1">Refund amount ($)</label>
+                  <input
+                    v-model="disputes.resolveForm.refundAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    class="w-40 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal/30"
+                  />
+                </div>
+              </div>
+
+              <!-- Resolution note -->
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1">Resolution note *</label>
+                <textarea
+                  v-model="disputes.resolveForm.resolution"
+                  rows="3"
+                  placeholder="Describe the outcome and reasoning for the decision…"
+                  class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal/30"
+                />
+              </div>
+
+              <!-- Confirm row -->
               <div class="flex gap-2">
                 <button
                   class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                   type="button"
-                  :disabled="!disputes.resolveForm.resolution || disputes.isSaving"
+                  :disabled="!canConfirmResolve() || disputes.isSaving"
                   @click="disputes.resolveDispute(dispute.id)"
                 >
-                  {{ disputes.isSaving ? "Resolving…" : "Mark resolved" }}
+                  {{ disputes.isSaving ? "Resolving…" : "Confirm resolution" }}
                 </button>
                 <button
                   class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-graphite hover:text-ink transition-colors"
@@ -213,7 +328,7 @@ const statusOptions = [
               </div>
             </div>
 
-            <!-- Close with note -->
+            <!-- Action buttons (resolve panel closed) -->
             <div v-else class="flex items-center gap-2 flex-wrap">
               <button
                 class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors"
@@ -234,7 +349,7 @@ const statusOptions = [
                 :disabled="disputes.isSaving"
                 @click="disputes.closeDispute(dispute.id, closeNote[dispute.id])"
               >
-                Close
+                Close without verdict
               </button>
             </div>
           </div>

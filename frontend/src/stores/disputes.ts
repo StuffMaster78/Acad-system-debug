@@ -2,7 +2,7 @@ import { computed, reactive, ref } from "vue";
 import { defineStore } from "pinia";
 import { disputesApi } from "@/api/disputes";
 import { useAuthStore } from "@/stores/auth";
-import type { Dispute, DisputeStatus } from "@/types/disputes";
+import type { Dispute, DisputeRemedy, DisputeStatus, DisputeVerdict, ResolveDisputePayload } from "@/types/disputes";
 
 function normalizeList<T>(data: T[] | { results: T[]; count?: number }): T[] {
   return Array.isArray(data) ? data : data.results;
@@ -84,7 +84,13 @@ export const useDisputesStore = defineStore("disputes", () => {
   const query = ref("");
 
   const raiseForm = reactive({ orderId: "" as number | string, reason: "" });
-  const resolveForm = reactive({ disputeId: null as number | null, resolution: "" });
+  const resolveForm = reactive({
+    disputeId: null as number | null,
+    verdict: null as DisputeVerdict | null,
+    remedy: null as DisputeRemedy | null,
+    refundAmount: "",
+    resolution: "",
+  });
   const showRaiseModal = ref(false);
 
   const filteredAdmin = computed(() => {
@@ -183,10 +189,28 @@ export const useDisputesStore = defineStore("disputes", () => {
 
   async function resolveDispute(disputeId: number) {
     const auth = useAuthStore();
+    if (!resolveForm.verdict) {
+      error.value = "Select a verdict before resolving.";
+      return;
+    }
     if (!resolveForm.resolution.trim()) {
       error.value = "Resolution note is required.";
       return;
     }
+    if (resolveForm.verdict === "client_wins" && !resolveForm.remedy) {
+      error.value = "Select a remedy when the client wins.";
+      return;
+    }
+
+    const payload: ResolveDisputePayload = {
+      verdict: resolveForm.verdict,
+      resolution: resolveForm.resolution,
+      ...(resolveForm.remedy && { remedy: resolveForm.remedy }),
+      ...(resolveForm.remedy === "partial_refund" && resolveForm.refundAmount && {
+        refund_amount: resolveForm.refundAmount,
+      }),
+    };
+
     isSaving.value = true;
     error.value = "";
     notice.value = "";
@@ -194,18 +218,32 @@ export const useDisputesStore = defineStore("disputes", () => {
       if (auth.isPreviewSession) {
         const patch = (d: Dispute) =>
           d.id === disputeId
-            ? { ...d, status: "resolved" as DisputeStatus, resolution: resolveForm.resolution, resolved_at: new Date().toISOString() }
+            ? {
+                ...d,
+                status: "resolved" as DisputeStatus,
+                verdict: resolveForm.verdict,
+                remedy: resolveForm.remedy,
+                refund_amount: resolveForm.remedy === "partial_refund" ? resolveForm.refundAmount : null,
+                resolution: resolveForm.resolution,
+                resolved_at: new Date().toISOString(),
+              }
             : d;
         adminList.value = adminList.value.map(patch);
         myList.value = myList.value.map(patch);
         resolveForm.disputeId = null;
+        resolveForm.verdict = null;
+        resolveForm.remedy = null;
+        resolveForm.refundAmount = "";
         resolveForm.resolution = "";
         notice.value = "Preview dispute resolved.";
         return;
       }
-      await disputesApi.resolve(disputeId, resolveForm.resolution);
+      await disputesApi.resolve(disputeId, payload);
       await loadAll();
       resolveForm.disputeId = null;
+      resolveForm.verdict = null;
+      resolveForm.remedy = null;
+      resolveForm.refundAmount = "";
       resolveForm.resolution = "";
       notice.value = "Dispute resolved.";
     } catch {
@@ -272,6 +310,9 @@ export const useDisputesStore = defineStore("disputes", () => {
 
   function openResolveForm(disputeId: number) {
     resolveForm.disputeId = disputeId;
+    resolveForm.verdict = null;
+    resolveForm.remedy = null;
+    resolveForm.refundAmount = "";
     resolveForm.resolution = "";
     error.value = "";
   }
