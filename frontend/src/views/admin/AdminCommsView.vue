@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import {
+  BarChart3,
   BellRing,
   CheckCircle2,
+  FileText,
   Loader2,
   Mail,
   Megaphone,
   MessageSquare,
   Pin,
   PinOff,
+  Plus,
   RefreshCw,
   Search,
   Trash2,
@@ -18,6 +21,12 @@ import RichTextEditor from "@/components/forms/RichTextEditor.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminCommsStore } from "@/stores/adminComms";
 import { announcementsApi, type AnnouncementRecord, type CreateAnnouncementPayload } from "@/api/announcements";
+import {
+  adminCommsApi,
+  type CampaignAnalyticsRow,
+  type EmailTemplate,
+  type CreateEmailTemplatePayload,
+} from "@/api/adminComms";
 
 const comms = useAdminCommsStore();
 
@@ -145,9 +154,105 @@ function statusTone(status?: string | null) {
   return "neutral";
 }
 
+// ─── Email Templates ─────────────────────────────────────────────────────────
+const templates = ref<EmailTemplate[]>([]);
+const tplLoading = ref(false);
+const tplMutating = ref(false);
+const tplError = ref("");
+const tplSuccess = ref("");
+const showTplForm = ref(false);
+const tplForm = ref<CreateEmailTemplatePayload>({ name: "", subject: "", body: "", is_global: true });
+
+async function fetchTemplates() {
+  tplLoading.value = true;
+  tplError.value = "";
+  try {
+    const { data } = await adminCommsApi.templates();
+    templates.value = Array.isArray(data) ? data : (data as { results: EmailTemplate[] }).results ?? [];
+  } catch {
+    tplError.value = "Could not load templates.";
+  } finally {
+    tplLoading.value = false;
+  }
+}
+
+async function createTemplate() {
+  if (!tplForm.value.name || !tplForm.value.subject || !tplForm.value.body) return;
+  tplMutating.value = true;
+  tplError.value = "";
+  tplSuccess.value = "";
+  try {
+    const { data } = await adminCommsApi.createTemplate(tplForm.value);
+    templates.value.unshift(data);
+    tplSuccess.value = `Template "${data.name}" saved.`;
+    showTplForm.value = false;
+    tplForm.value = { name: "", subject: "", body: "", is_global: true };
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    tplError.value = detail ?? "Failed to save template.";
+  } finally {
+    tplMutating.value = false;
+  }
+}
+
+async function deleteTemplate(tpl: EmailTemplate) {
+  if (!confirm(`Delete template "${tpl.name}"?`)) return;
+  tplMutating.value = true;
+  try {
+    await adminCommsApi.deleteTemplate(tpl.id);
+    templates.value = templates.value.filter((t) => t.id !== tpl.id);
+  } catch {
+    tplError.value = "Delete failed.";
+  } finally {
+    tplMutating.value = false;
+  }
+}
+
+function applyTemplate(tpl: EmailTemplate) {
+  comms.campaignComposer.subject = tpl.subject;
+  comms.campaignComposer.body = tpl.body;
+  tplSuccess.value = `Template "${tpl.name}" applied to composer.`;
+}
+
+// ─── Campaign Analytics ───────────────────────────────────────────────────────
+const analyticsRows = ref<CampaignAnalyticsRow[]>([]);
+const analyticsLoading = ref(false);
+const analyticsError = ref("");
+const analyticsStart = ref("");
+const analyticsEnd = ref("");
+
+async function fetchAnalytics() {
+  analyticsLoading.value = true;
+  analyticsError.value = "";
+  try {
+    const params: { start?: string; end?: string } = {};
+    if (analyticsStart.value) params.start = analyticsStart.value;
+    if (analyticsEnd.value) params.end = analyticsEnd.value;
+    const { data } = await adminCommsApi.campaignAnalytics(params);
+    analyticsRows.value = Array.isArray(data) ? data : [];
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    analyticsError.value = detail ?? "Could not load analytics.";
+  } finally {
+    analyticsLoading.value = false;
+  }
+}
+
+function fmtRate(val: number): string {
+  return `${(val ?? 0).toFixed(1)}%`;
+}
+
+function fmtDate(val: string | null | undefined): string {
+  if (!val) return "—";
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(val));
+}
+// ─── End Analytics ───────────────────────────────────────────────────────────
+
 onMounted(() => {
   comms.hydrate().catch(() => undefined);
   fetchAnnouncements();
+  fetchTemplates();
+  fetchAnalytics();
 });
 </script>
 
@@ -566,6 +671,189 @@ onMounted(() => {
               <Trash2 class="h-4 w-4" />
             </button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Email Templates ───────────────────────────────────────────────── -->
+    <section class="space-y-4">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-2">
+          <FileText class="h-5 w-5 text-signal" />
+          <h2 class="text-lg font-semibold text-ink">Email Templates</h2>
+          <span v-if="templates.length" class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-graphite">{{ templates.length }}</span>
+        </div>
+        <button
+          class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold"
+          type="button"
+          @click="showTplForm = !showTplForm"
+        >
+          <Plus class="h-4 w-4" />
+          {{ showTplForm ? "Cancel" : "New Template" }}
+        </button>
+      </div>
+
+      <p v-if="tplError" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ tplError }}</p>
+      <p v-if="tplSuccess" class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{{ tplSuccess }}</p>
+
+      <!-- Create form -->
+      <div v-if="showTplForm" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel space-y-3">
+        <h3 class="text-sm font-semibold text-ink">New email template</h3>
+        <label class="block">
+          <span class="text-xs font-semibold uppercase text-graphite">Template name</span>
+          <input v-model="tplForm.name" type="text" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="e.g. Welcome email" />
+        </label>
+        <label class="block">
+          <span class="text-xs font-semibold uppercase text-graphite">Subject line</span>
+          <input v-model="tplForm.subject" type="text" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="Email subject" />
+        </label>
+        <label class="block">
+          <span class="text-xs font-semibold uppercase text-graphite">Body</span>
+          <RichTextEditor v-model="tplForm.body" />
+        </label>
+        <label class="inline-flex cursor-pointer items-center gap-2 text-sm">
+          <input v-model="tplForm.is_global" type="checkbox" class="h-4 w-4 rounded border-slate-300" />
+          Global (available to all admins)
+        </label>
+        <button
+          class="focus-ring inline-flex items-center gap-2 rounded-md bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          type="button"
+          :disabled="tplMutating || !tplForm.name || !tplForm.subject || !tplForm.body"
+          @click="createTemplate"
+        >
+          <Loader2 v-if="tplMutating" class="h-4 w-4 animate-spin" />
+          Save Template
+        </button>
+      </div>
+
+      <!-- Templates list -->
+      <div v-if="tplLoading && !templates.length" class="space-y-2">
+        <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="h-3 w-1/4 rounded bg-slate-200" />
+          <div class="mt-2 h-3 w-1/2 rounded bg-slate-100" />
+        </div>
+      </div>
+
+      <div v-else-if="!templates.length" class="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-panel">
+        <EmptyState :icon="FileText" title="No templates yet" message="Create a reusable template to speed up campaign drafting." />
+      </div>
+
+      <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          v-for="tpl in templates"
+          :key="tpl.id"
+          class="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-panel"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="font-semibold text-ink">{{ tpl.name }}</p>
+              <p class="mt-0.5 truncate text-xs text-graphite">{{ tpl.subject }}</p>
+            </div>
+            <span v-if="tpl.is_global" class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-graphite">Global</span>
+          </div>
+          <div class="flex-1 rounded-md bg-slate-50 p-2 text-xs leading-5 text-graphite line-clamp-3" v-html="tpl.body" />
+          <div class="flex gap-2">
+            <button
+              class="focus-ring flex-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
+              type="button"
+              @click="applyTemplate(tpl)"
+            >
+              Use in campaign
+            </button>
+            <button
+              class="focus-ring rounded-md p-2 text-graphite hover:bg-rose-50 hover:text-berry"
+              type="button"
+              :disabled="tplMutating"
+              @click="deleteTemplate(tpl)"
+            >
+              <Trash2 class="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Campaign Analytics ────────────────────────────────────────────── -->
+    <section class="space-y-4">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-2">
+          <BarChart3 class="h-5 w-5 text-signal" />
+          <h2 class="text-lg font-semibold text-ink">Campaign Analytics</h2>
+        </div>
+        <div class="flex flex-wrap items-end gap-3">
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">From</span>
+            <input v-model="analyticsStart" type="date" class="focus-ring mt-0.5 h-9 rounded-md border border-slate-200 bg-white px-3 text-sm" />
+          </label>
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">To</span>
+            <input v-model="analyticsEnd" type="date" class="focus-ring mt-0.5 h-9 rounded-md border border-slate-200 bg-white px-3 text-sm" />
+          </label>
+          <button
+            class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold disabled:opacity-60"
+            type="button"
+            :disabled="analyticsLoading"
+            @click="fetchAnalytics"
+          >
+            <Loader2 v-if="analyticsLoading" class="h-4 w-4 animate-spin" />
+            <RefreshCw v-else class="h-4 w-4" />
+            Run
+          </button>
+        </div>
+      </div>
+
+      <p v-if="analyticsError" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ analyticsError }}</p>
+
+      <div v-if="analyticsLoading" class="animate-pulse rounded-lg border border-slate-200 bg-white p-6 shadow-panel">
+        <div class="h-4 w-1/3 rounded bg-slate-200" />
+        <div class="mt-4 space-y-3">
+          <div v-for="n in 4" :key="n" class="h-3 rounded bg-slate-100" />
+        </div>
+      </div>
+
+      <div v-else-if="!analyticsRows.length" class="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-panel">
+        <EmptyState :icon="BarChart3" title="No data" message="Select a date range and click Run, or send some campaigns first." />
+      </div>
+
+      <div v-else class="rounded-lg border border-slate-200 bg-white shadow-panel overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
+            <tr>
+              <th class="px-5 py-3">Campaign</th>
+              <th class="px-5 py-3 text-right">Sent</th>
+              <th class="px-5 py-3 text-right">Opens</th>
+              <th class="px-5 py-3 text-right">Open rate</th>
+              <th class="px-5 py-3 text-right">Clicks</th>
+              <th class="px-5 py-3 text-right">Click rate</th>
+              <th class="px-5 py-3 text-right">Unsub rate</th>
+              <th class="px-5 py-3 text-right">Date</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="row in analyticsRows" :key="row.campaign_id" class="hover:bg-slate-50">
+              <td class="px-5 py-3 font-medium text-ink">{{ row.title }}</td>
+              <td class="px-5 py-3 text-right text-graphite">{{ row.recipients.toLocaleString() }}</td>
+              <td class="px-5 py-3 text-right text-graphite">{{ row.opens.toLocaleString() }}</td>
+              <td class="px-5 py-3 text-right font-semibold" :class="row.open_rate >= 20 ? 'text-signal' : 'text-ink'">
+                {{ fmtRate(row.open_rate) }}
+              </td>
+              <td class="px-5 py-3 text-right text-graphite">{{ row.clicks.toLocaleString() }}</td>
+              <td class="px-5 py-3 text-right font-semibold" :class="row.click_rate >= 5 ? 'text-signal' : 'text-ink'">
+                {{ fmtRate(row.click_rate) }}
+              </td>
+              <td class="px-5 py-3 text-right" :class="row.unsubscribe_rate >= 2 ? 'text-berry' : 'text-graphite'">
+                {{ fmtRate(row.unsubscribe_rate) }}
+              </td>
+              <td class="px-5 py-3 text-right text-graphite">{{ fmtDate(row.sent_time) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Summary row -->
+        <div class="border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-graphite">
+          {{ analyticsRows.length }} campaigns ·
+          avg open rate {{ fmtRate(analyticsRows.reduce((s, r) => s + r.open_rate, 0) / analyticsRows.length) }} ·
+          avg click rate {{ fmtRate(analyticsRows.reduce((s, r) => s + r.click_rate, 0) / analyticsRows.length) }}
         </div>
       </div>
     </section>

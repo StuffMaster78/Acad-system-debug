@@ -73,6 +73,36 @@ export interface CreateEmailCampaignPayload {
   scheduled_time?: string | null;
 }
 
+export interface EmailTemplate {
+  id: number;
+  name: string;
+  subject: string;
+  body: string;
+  is_global: boolean;
+  created_by: number | null;
+  created_at: string;
+}
+
+export interface CreateEmailTemplatePayload {
+  name: string;
+  subject: string;
+  body: string;
+  is_global?: boolean;
+}
+
+export interface CampaignAnalyticsRow {
+  campaign_id: number;
+  title: string;
+  sent_time: string | null;
+  recipients: number;
+  opens: number;
+  clicks: number;
+  unsubscribes: number;
+  open_rate: number;
+  click_rate: number;
+  unsubscribe_rate: number;
+}
+
 export interface SendBroadcastPayload {
   event_key: string;
   title: string;
@@ -123,4 +153,16 @@ export const adminCommsApi = {
     api.post(apiPath(`/mass-emails/campaigns/${campaignId}/send_now/`), {}),
   sendCampaignTest: (campaignId: number) =>
     api.post(apiPath(`/mass-emails/campaigns/${campaignId}/send_test/`), {}),
+
+  // Email templates
+  templates: () =>
+    api.get<ListResponse<EmailTemplate>>(apiPath("/mass-emails/templates/")),
+  createTemplate: (payload: CreateEmailTemplatePayload) =>
+    api.post<EmailTemplate>(apiPath("/mass-emails/templates/"), payload),
+  deleteTemplate: (id: number) =>
+    api.delete(apiPath(`/mass-emails/templates/${id}/`)),
+
+  // Campaign analytics
+  campaignAnalytics: (params?: { start?: string; end?: string }) =>
+    api.get<CampaignAnalyticsRow[]>(apiPath("/mass-emails/analytics/campaigns/"), { params }),
 };
