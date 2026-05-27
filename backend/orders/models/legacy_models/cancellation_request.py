@@ -121,7 +121,7 @@ class CancellationRequest(models.Model):
         Returns:
             Tuple[Decimal, Decimal, Decimal]: (forfeiture_percentage, forfeiture_amount, refund_amount)
         """
-        from order_payments_management.services.payment_reminder_service import PaymentReminderService
+        from orders.services.Unpaid_order_payment_reminder_service import PaymentReminderService
         
         # Calculate deadline percentage
         deadline_pct = PaymentReminderService.get_deadline_percentage(self.order)

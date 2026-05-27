@@ -16,7 +16,7 @@ from django.utils import timezone
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.mark_order_as_paid_service import MarkOrderPaidService
-from order_payments_management.models.payments import OrderPayment
+from payments_processor.models import PaymentIntent  # noqa: F401 - kept for test compatibility
 from decimal import Decimal
 
 

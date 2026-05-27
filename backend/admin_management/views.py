@@ -175,10 +175,10 @@ class AdminDashboardView(viewsets.ViewSet):
         
         # Get payment reminder statistics
         try:
-            from order_payments_management.models.payment_reminders import (
+            from orders.models.legacy_models.unpaid_order_payment_reminders import (
                 PaymentReminderConfig,
                 PaymentReminderSent,
-                PaymentReminderDeletionMessage
+                PaymentReminderDeletionMessage,
             )
             
             reminder_configs_qs = PaymentReminderConfig.objects.all()
@@ -368,10 +368,10 @@ class AdminDashboardView(viewsets.ViewSet):
         
         # Payment Statistics
         try:
-            from order_payments_management.models.payments import OrderPayment
-            payment_stats = OrderPayment.objects.aggregate(
+            from payments_processor.models import PaymentIntent
+            payment_stats = PaymentIntent.objects.aggregate(
                 total_payments=Count("id"),
-                completed_payments=Count("id", filter=Q(status="completed")),
+                completed_payments=Count("id", filter=Q(status="succeeded")),
                 pending_payments=Count("id", filter=Q(status="pending")),
                 failed_payments=Count("id", filter=Q(status="failed")),
                 total_amount=Sum("amount", default=0),

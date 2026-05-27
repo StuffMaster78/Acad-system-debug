@@ -362,7 +362,7 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
         try:
             from refunds.serializers import RefundSerializer
         except ImportError:
-            from order_payments_management.serializers import RefundSerializer
+            pass
         serializer = RefundSerializer(pending_refunds, many=True)
         
         return Response({
@@ -1453,7 +1453,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
     def dashboard(self, request):
         """Get comprehensive advanced analytics dashboard."""
         from django.db.models.functions import TruncWeek, TruncMonth, TruncDay
-        from order_payments_management.models.payments import OrderPayment
+        from payments_processor.models import PaymentIntent
         from tickets.models import Ticket
         from writer_management.models import WriterProfile
         

@@ -18,7 +18,7 @@ from .managers import SuperadminManager
 from .pagination import SuperadminPagination , SuperadminLogCursorPagination
 from orders.models.orders import Order
 from orders.models.legacy_models.order_disputes import Dispute
-from order_payments_management.models.payments import OrderPayment
+from payments_processor.models import PaymentIntent
 from notifications_system.models.notifications import Notification
 from django_filters import rest_framework as filters
 from django.core.cache import cache
@@ -194,20 +194,20 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         ).values("user_id").distinct().count()
         
         # Financial Statistics
-        financial_stats = OrderPayment.objects.aggregate(
+        financial_stats = PaymentIntent.objects.aggregate(
             total_revenue=Sum("amount", default=0),
             pending_payouts=Sum("amount", filter=Q(status="pending"), default=0),
-            completed_payments=Sum("amount", filter=Q(status="completed"), default=0),
+            completed_payments=Sum("amount", filter=Q(status="succeeded"), default=0),
             failed_payments=Count("id", filter=Q(status="failed")),
         )
         
-        total_refunds = OrderPayment.objects.filter(status="refunded").aggregate(Sum("amount"))["amount__sum"] or 0
+        total_refunds = PaymentIntent.objects.filter(status="refunded").aggregate(Sum("amount"))["amount__sum"] or 0
         
         # Order Statistics
         order_stats = Order.objects.aggregate(
             total_orders=Count("id"),
             in_progress=Count("id", filter=Q(status="in_progress")),
-            completed=Count("id", filter=Q(status="completed")),
+            completed=Count("id", filter=Q(status="succeeded")),
             disputed=Count("id", filter=Q(status="disputed")),
             canceled=Count("id", filter=Q(status="canceled")),
             pending=Count("id", filter=Q(status="pending")),
@@ -237,10 +237,10 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         # Top Performing Writers (by completed orders)
         top_writers = User.objects.filter(
             role="writer",
-            orders_as_writer__status="completed"
+            orders_as_writer__status="succeeded"
         ).annotate(
-            completed_orders_count=Count("orders_as_writer", filter=Q(orders_as_writer__status="completed")),
-            total_earnings=Sum("orders_as_writer__writer_compensation", filter=Q(orders_as_writer__status="completed"), default=0),
+            completed_orders_count=Count("orders_as_writer", filter=Q(orders_as_writer__status="succeeded")),
+            total_earnings=Sum("orders_as_writer__writer_compensation", filter=Q(orders_as_writer__status="succeeded"), default=0),
         ).order_by("-completed_orders_count")[:10]
         
         top_writers_data = [
@@ -334,7 +334,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         tip_stats = Tip.objects.aggregate(
             total_tips=Count("id"),
             total_tip_amount=Sum("tip_amount", default=0),
-            completed_tips=Count("id", filter=Q(payment_status="completed")),
+            completed_tips=Count("id", filter=Q(payment_status="succeeded")),
         )
         
         # System Health Metrics
@@ -394,18 +394,18 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             status=AccountStatus.SUSPENDED,
         ).values("user_id").distinct().count()
 
-        financial_stats = OrderPayment.objects.aggregate(
+        financial_stats = PaymentIntent.objects.aggregate(
             total_revenue=Sum("amount", default=0),
             pending_payouts=Sum("amount", filter=Q(status="pending"), default=0)
         )
         
-        total_refunds = OrderPayment.objects.filter(status="refunded").aggregate(Sum("amount"))["amount__sum"] or 0
+        total_refunds = PaymentIntent.objects.filter(status="refunded").aggregate(Sum("amount"))["amount__sum"] or 0
 
 
         order_stats = Order.objects.aggregate(
             total_orders=Count("id"),
             in_progress=Count("id", filter=Q(status="in_progress")),
-            completed=Count("id", filter=Q(status="completed")),
+            completed=Count("id", filter=Q(status="succeeded")),
             disputed=Count("id", filter=Q(status="disputed")),
             canceled=Count("id", filter=Q(status="canceled"))
         )

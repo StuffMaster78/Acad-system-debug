@@ -14,7 +14,8 @@ from orders.models.orders import Order
 from special_orders.constants import PaymentApplicationStatus
 from special_orders.models import SpecialOrderPaymentApplication
 from class_management.models import ClassBundle, ClassInstallment
-from order_payments_management.models.payments import OrderPayment
+from payments_processor.models import PaymentIntent
+from payments_processor.enums import PaymentIntentPurpose
 from writer_compensation.enums.compensation_enums import PayoutRecordStatus
 from writer_compensation.models import PayoutRecord
 from writer_management.models.tipping import Tip
@@ -61,35 +62,19 @@ class FinancialOverviewViewSet(ViewSet):
             writer_payments_qs = writer_payments_qs.filter(website_id=website_id)
         
         if date_from:
-            # Filter orders by OrderPayment created_at (when payment was made)
-            orders_qs = orders_qs.filter(
-                payments__status='completed',
-                payments__created_at__gte=date_from
-            ).distinct()
-            special_payment_qs = special_payment_qs.filter(
-                applied_at__gte=date_from,
-            )
+            orders_qs = orders_qs.filter(updated_at__gte=date_from)
+            special_payment_qs = special_payment_qs.filter(applied_at__gte=date_from)
             writer_payments_qs = writer_payments_qs.filter(paid_at__gte=date_from)
-        
+
         if date_to:
-            # Filter orders by OrderPayment created_at (when payment was made)
-            orders_qs = orders_qs.filter(
-                payments__status='completed',
-                payments__created_at__lte=date_to
-            ).distinct()
-            special_payment_qs = special_payment_qs.filter(
-                applied_at__lte=date_to,
-            )
+            orders_qs = orders_qs.filter(updated_at__lte=date_to)
+            special_payment_qs = special_payment_qs.filter(applied_at__lte=date_to)
             writer_payments_qs = writer_payments_qs.filter(paid_at__lte=date_to)
-        
+
         # Calculate earnings
-        # Standard Orders
-        order_payments = OrderPayment.objects.filter(
-            order__in=orders_qs,
-            status='completed'
-        )
-        total_order_revenue = order_payments.aggregate(
-            total=Sum('total_amount')
+        # Standard Orders — sum total_price of paid orders
+        total_order_revenue = orders_qs.aggregate(
+            total=Sum('total_price')
         )['total'] or Decimal('0.00')
         
         # Special Orders
@@ -143,14 +128,14 @@ class FinancialOverviewViewSet(ViewSet):
             month_start = (now - timedelta(days=30 * i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
             
-            month_orders = OrderPayment.objects.filter(
-                order__is_paid=True,
-                status='completed',
-                created_at__gte=month_start,
-                created_at__lte=month_end
+            month_orders = PaymentIntent.objects.filter(
+                status='succeeded',
+                purpose=PaymentIntentPurpose.ORDER,
+                paid_at__gte=month_start,
+                paid_at__lte=month_end,
             )
             if website_id:
-                month_orders = month_orders.filter(order__website_id=website_id)
+                month_orders = month_orders.filter(website_id=website_id)
             month_order_revenue = month_orders.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
             
             month_special_revenue = (

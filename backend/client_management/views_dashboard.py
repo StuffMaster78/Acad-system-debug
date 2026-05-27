@@ -10,7 +10,7 @@ from decimal import Decimal
 from core.utils.cache_helpers import cache_view_result
 
 from client_management.models import ClientProfile
-from order_payments_management.models.payments import OrderPayment
+from payments_processor.models import PaymentIntent
 from orders.models.orders import Order
 from orders.models.legacy_models.writer_progress import WriterProgress
 from payments_processor.models import PaymentIntent
@@ -255,15 +255,16 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         ).order_by('date')
         
         # Spending trends (daily)
-        spending_trend = OrderPayment.objects.filter(
-            order__client=request.user,
-            order__created_at__gte=date_from,
-            status='completed'
+        spending_trend = PaymentIntent.objects.filter(
+            client=request.user,
+            status='succeeded',
+            purpose='order',
+            paid_at__gte=date_from,
         ).annotate(
-            date=TruncDate('order__created_at')
+            date=TruncDate('paid_at')
         ).values('date').annotate(
             total=Sum('amount'),
-            count=Count('order', distinct=True)
+            count=Count('id'),
         ).order_by('date')
         
         # Service type breakdown (using type_of_work)
@@ -538,7 +539,13 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 })
             
             # Payment events
-            payments = OrderPayment.objects.filter(order=order).order_by('created_at')
+            from django.contrib.contenttypes.models import ContentType
+            from orders.models.orders import Order as OrderModel
+            order_ct = ContentType.objects.get_for_model(OrderModel)
+            payments = PaymentIntent.objects.filter(
+                payable_content_type=order_ct,
+                payable_object_id=order.pk,
+            ).order_by('created_at')
             for payment in payments:
                 timeline.append({
                     'order_id': order.id,
@@ -859,7 +866,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             )
         
         try:
-            from order_payments_management.models.payment_reminders import (
+            from orders.models.legacy_models.unpaid_order_payment_reminders import (
                 PaymentReminderSent, PaymentReminderConfig
             )
         except ImportError:
@@ -991,7 +998,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             )
         
         try:
-            from order_payments_management.models.payment_reminders import (
+            from orders.models.legacy_models.unpaid_order_payment_reminders import (
                 PaymentReminderConfig, PaymentReminderSent
             )
         except ImportError:
@@ -1067,7 +1074,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             )
         
         try:
-            from order_payments_management.models.payment_reminders import (
+            from orders.models.legacy_models.unpaid_order_payment_reminders import (
                 PaymentReminderSent
             )
         except ImportError:
@@ -1089,7 +1096,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         # Update preferences if provided
         if 'reminder_config_id' in request.data:
             try:
-                from order_payments_management.models.payment_reminders import PaymentReminderConfig
+                from orders.models.legacy_models.unpaid_order_payment_reminders import PaymentReminderConfig
                 new_config = PaymentReminderConfig.objects.get(
                     id=request.data['reminder_config_id'],
                     website=request.user.website,

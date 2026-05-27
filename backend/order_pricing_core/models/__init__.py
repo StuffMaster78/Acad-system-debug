@@ -25,6 +25,7 @@ from order_pricing_core.models.service_catalog import ServiceAddonApplicability
 from order_pricing_core.models.service_catalog import ServiceCatalogItem
 from .composite_quotes import CompositePricingQuote
 from .composite_quotes import CompositePricingQuoteItem
+from .calculator_session import PricingCalculatorSession
 __all__ = [
     "AcademicLevelRate",
     "AnalysisLevelRate",

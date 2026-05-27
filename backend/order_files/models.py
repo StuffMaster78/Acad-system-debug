@@ -167,13 +167,7 @@ class OrderFile(models.Model):
 
         # Clients can't download Final Drafts until payment is complete
         if self.category and self.category.is_final_draft:
-            # Check payment status via OrderPayment or is_paid field
-            from order_payments_management.models.payments import OrderPayment
-            has_completed_payment = OrderPayment.objects.filter(
-                order=self.order,
-                status__in=['completed', 'succeeded']
-            ).exists()
-            if not has_completed_payment and not self.order.is_paid:
+            if not self.order.is_paid:
                 return False  # Lock Final Drafts for unpaid orders
 
         return self.is_downloadable  # Admin-controlled per file

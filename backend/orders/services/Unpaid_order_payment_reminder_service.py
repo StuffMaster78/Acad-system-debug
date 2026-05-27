@@ -9,12 +9,11 @@ from django.utils import timezone
 from django.db.models import QuerySet
 
 from orders.models.orders.order import Order
-from order_payments_management.models.payment_reminders import (
+from orders.models.legacy_models.unpaid_order_payment_reminders import (
     PaymentReminderConfig,
     PaymentReminderDeletionMessage,
     PaymentReminderSent,
 )
-from order_payments_management.models.payments import OrderPayment
 from notifications_system.services.notification_service import (
     NotificationService,
 )
@@ -96,15 +95,7 @@ class PaymentReminderService:
         orders_needing_reminders = []
 
         for order in unpaid_orders:
-            unpaid_payments = OrderPayment.objects.filter(
-                order=order,
-                status__in=["pending", "unpaid"],
-            ).exists()
-
-            if not unpaid_payments and order.status not in [
-                "pending",
-                "unpaid",
-            ]:
+            if order.is_paid:
                 continue
 
             current_percentage = (
@@ -223,15 +214,10 @@ class PaymentReminderService:
                         exc,
                     )
 
-            payment = OrderPayment.objects.filter(
-                order=order,
-                status__in=["pending", "unpaid"],
-            ).first()
-
             PaymentReminderSent.objects.create(
                 reminder_config=config,
                 order=order,
-                payment=payment,
+                payment=None,
                 client=client,
                 sent_as_notification=config.send_as_notification,
                 sent_as_email=config.send_as_email,

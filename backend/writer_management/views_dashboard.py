@@ -17,7 +17,7 @@ from writer_management.models.payout import WriterPayment, WriterEarningsHistory
 from writer_management.models.badges import WriterBadge, Badge
 from orders.models.orders import Order
 # WriterRequest imported inside functions to avoid circular import
-from order_payments_management.models.payments import OrderPayment
+from payments_processor.models import PaymentIntent
 from reviews_system.models.writer_review import WriterReview
 from communications.models import CommunicationThread, CommunicationMessage
 
@@ -209,7 +209,6 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         ).order_by('date')
         
         # Earnings by order type - optimized with prefetch_related
-        # Note: OrderPayment uses 'payments' as related_name, and status field is 'payment_status' or 'status'
         orders_with_payments = Order.objects.filter(
             assigned_writer=request.user,
             payments__status='completed'

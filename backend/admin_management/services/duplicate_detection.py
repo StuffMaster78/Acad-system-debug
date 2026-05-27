@@ -196,8 +196,6 @@ class DuplicateAccountDetectionService:
     @staticmethod
     def detect_by_payment_methods():
         """Detect accounts sharing payment methods (cards, PayPal, etc.)."""
-        from order_payments_management.models.payments import OrderPayment
-        
         duplicates = []
         
         # Check payment cards (if stored)

@@ -67,8 +67,6 @@ class GDPRService:
         """
         from users.serializers_legacy import UserSerializer
         from orders.serializers_legacy import OrderSerializer
-        from order_payments_management.serializers import OrderPaymentSerializer
-        
         export_data = {
             "export_metadata": {
                 "exported_at": timezone.now().isoformat(),
@@ -96,11 +94,15 @@ class GDPRService:
             ).data
         
         # Get payments
-        if hasattr(self.user, 'payments'):
-            export_data["payments"] = OrderPaymentSerializer(
-                self.user.payments.all(), 
-                many=True
-            ).data
+        try:
+            from payments_processor.models import PaymentIntent
+            export_data["payments"] = list(
+                PaymentIntent.objects.filter(client=self.user).values(
+                    "id", "reference", "amount", "status", "purpose", "provider", "created_at", "paid_at"
+                )
+            )
+        except Exception:
+            export_data["payments"] = []
         
         # Get messages/communications
         if hasattr(self.user, 'sent_messages'):

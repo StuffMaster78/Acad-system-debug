@@ -15,9 +15,9 @@ from orders.order_enums import (
     OrderStatus, OrderPaymentStatus,
     DisputeStatusEnum, SpacingOptions
 )
-from order_payments_management.models.payments import (
-    STATUS_CHOICES, PAYMENT_TYPE_CHOICES
-)
+from payments_processor.enums import PaymentIntentStatus, PaymentIntentPurpose
+STATUS_CHOICES = PaymentIntentStatus.choices
+PAYMENT_TYPE_CHOICES = PaymentIntentPurpose.choices
 from fines.models import FineType, FineStatus
 try:
     from class_management.models import ClassDurationOption

@@ -153,7 +153,6 @@ LOCAL_APPS = [
     "orders",
     "order_configs",
     "order_pricing_core",
-    "pricing",
     "special_orders",
     "class_management",
     "billing",

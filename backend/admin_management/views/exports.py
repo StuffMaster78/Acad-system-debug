@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from admin_management.services.export_service import ExportService
 from orders.models.orders import Order
-from order_payments_management.models.payments import OrderPayment
+from payments_processor.models import PaymentIntent
 from users.models import User
 from authentication.permissions import IsAdmin, IsSuperadminOrAdmin
 
@@ -112,8 +112,8 @@ class ExportViewSet(viewsets.ViewSet):
             )
         
         # Build queryset
-        queryset = OrderPayment.objects.all()
-        
+        queryset = PaymentIntent.objects.all()
+
         # Role-based filtering
         user_role = getattr(request.user, 'role', None)
         if user_role == 'client':

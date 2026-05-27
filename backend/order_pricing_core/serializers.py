@@ -9,7 +9,7 @@ from .models import (
     DeadlineMultiplier,
     PreferredWriterConfig,
 )
-from pricing.models.calculator_session import PricingCalculatorSession
+from order_pricing_core.models.calculator_session import PricingCalculatorSession
 
 
 class PricingConfigurationSerializer(serializers.ModelSerializer):

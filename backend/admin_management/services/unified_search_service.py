@@ -9,7 +9,8 @@ from typing import Dict, List, Any, Optional
 from decimal import Decimal
 
 from orders.models.orders import Order
-from order_payments_management.models.payments import OrderPayment
+from payments_processor.models import PaymentIntent
+from payments_processor.enums import PaymentIntentPurpose
 from communications.models import CommunicationMessage, CommunicationThread
 from wallets.constants import WalletEntryDirection
 from wallets.models import WalletEntry
@@ -188,31 +189,31 @@ class UnifiedSearchService:
         
         results = []
         
-        # Search OrderPayments
-        order_payments = OrderPayment.objects.all()
+        # Search PaymentIntents scoped to order payments
+        order_payments = PaymentIntent.objects.filter(purpose=PaymentIntentPurpose.ORDER)
         if user_role == 'client':
             order_payments = order_payments.filter(client=user)
         elif user_role not in ['admin', 'superadmin', 'support']:
             order_payments = order_payments.none()
-        
+
         search_q = (
-            Q(reference_id__icontains=query) |
-            Q(transaction_id__icontains=query)
+            Q(reference__icontains=query) |
+            Q(provider_transaction_id__icontains=query)
         )
-        
+
         try:
             payment_id = int(query)
             search_q |= Q(id=payment_id)
         except ValueError:
             pass
-        
-        payments = order_payments.filter(search_q).select_related('client', 'order', 'website')[:limit]
-        
+
+        payments = order_payments.filter(search_q).select_related('client', 'website')[:limit]
+
         for payment in payments:
             results.append({
                 'id': f'order_payment_{payment.id}',
                 'type': 'payment',
-                'title': f"Payment #{payment.reference_id or payment.id}",
+                'title': f"Payment #{payment.reference}",
                 'subtitle': f"Amount: ${payment.amount} | Status: {payment.status}",
                 'url': f'/payments/{payment.id}',
                 'amount': float(payment.amount),

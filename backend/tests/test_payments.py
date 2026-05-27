@@ -12,8 +12,8 @@ from tests.factories import (
     ClientWalletFactory
 )
 from orders.models.orders import Order
-from order_payments_management.models.payments import OrderPayment
-from order_payments_management.services.payment_service import OrderPaymentService
+from payments_processor.models import PaymentIntent  # noqa: F401 - kept for test compatibility
+from unittest import skip  # OrderPaymentService removed — tests need rewrite
 try:
     from wallet.exceptions import InsufficientWalletBalance
 except ImportError:

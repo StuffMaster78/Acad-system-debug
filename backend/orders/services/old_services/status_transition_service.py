@@ -239,16 +239,7 @@ class StatusTransitionService:
         Raises:
             ValidationError: If payment is required but not completed.
         """
-        # Check if order has a completed payment
-        from django.apps import apps
-        OrderPayment = apps.get_model('order_payments_management', 'OrderPayment')
-        
-        has_completed_payment = OrderPayment.objects.filter(
-            order=order,
-            status__in=['completed', 'succeeded']
-        ).exists()
-        
-        if not has_completed_payment and not order.is_paid:
+        if not order.is_paid:
             raise ValidationError(
                 f"Cannot transition order to '{target_status}': "
                 "Order must have a completed payment before moving to this status. "

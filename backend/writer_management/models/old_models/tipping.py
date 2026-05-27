@@ -94,12 +94,12 @@ class Tip(models.Model):
     
     # Payment tracking
     payment = models.ForeignKey(
-        'order_payments_management.OrderPayment',
+        'payments_processor.PaymentIntent',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="tips",
-        help_text="Payment record for this tip"
+        help_text="Payment record for this tip",
     )
     payment_status = models.CharField(
         max_length=20,

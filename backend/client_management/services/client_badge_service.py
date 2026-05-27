@@ -5,7 +5,7 @@ from django.utils.timezone import now
 from loyalty_management.models import ClientBadge
 from client_management.models import ClientProfile
 from orders.models.orders import Order
-from order_payments_management.models.payments import OrderPayment
+from payments_processor.models import PaymentIntent
 from django.db.models import Count, Sum, Q
 from decimal import Decimal
 import logging
@@ -124,7 +124,11 @@ class ClientBadgeService:
         three_months_ago = timezone.now() - timedelta(days=90)
         
         orders = Order.objects.filter(client=client.user)
-        payments = OrderPayment.objects.filter(order__client=client.user, status='completed')
+        payments = PaymentIntent.objects.filter(
+            client=client.user,
+            status='succeeded',
+            purpose='order',
+        )
         
         total_spent = payments.aggregate(total=Sum('amount'))['total'] or Decimal('0')
         total_orders = orders.count()

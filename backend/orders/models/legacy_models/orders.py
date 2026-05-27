@@ -470,23 +470,10 @@ class Order(models.Model):
 
     def update_status_based_on_payment(self):
         """
-        Updates the order status when payment status
-        changes in orders_payments_management.
+        Updates the order status based on is_paid flag.
         """
-        Payment = apps.get_model(
-            'order_payments_management', 'OrderPayment'
-        )
-        payment = Payment.objects.filter(
-            order=self
-        ).order_by('-created_at').first()  # Ensure latest payment
-
-        if payment:
-            # Fix: OrderPayment uses 'completed' not 'paid', and also check 'succeeded'
-            if payment.status in ['completed', 'succeeded'] and self.status == 'unpaid':
-                self.status = 'pending'
-                self.is_paid = True
-            elif payment.status in ['failed', 'refunded']:
-                self.status = 'cancelled'
+        if self.is_paid and self.status == 'unpaid':
+            self.status = 'pending'
                 self.is_paid = False
 
             self.save()

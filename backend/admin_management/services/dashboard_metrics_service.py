@@ -160,57 +160,42 @@ class DashboardMetricsService:
         # Disputed orders
         disputed_orders = order_qs.filter(status=OrderStatus.DISPUTED.value).count()
         
-        # Amount paid today - use OrderPayment model
+        # Amount paid today - use PaymentIntent model
         try:
-            from order_payments_management.models.payments import OrderPayment
-            # Get payments confirmed today (use confirmed_at if available, otherwise created_at)
-            payments_today = OrderPayment.objects.filter(
-                status__in=['completed', 'succeeded'],
-            ).filter(
-                Q(confirmed_at__gte=today_start, confirmed_at__lt=today_end) |
-                Q(confirmed_at__isnull=True, created_at__gte=today_start, created_at__lt=today_end)
+            from payments_processor.models import PaymentIntent
+            payments_today = PaymentIntent.objects.filter(
+                status='succeeded',
+                paid_at__gte=today_start,
+                paid_at__lt=today_end,
             )
             amount_paid_today = payments_today.aggregate(
                 total=Sum('amount', output_field=DecimalField())
             )['total'] or Decimal('0.00')
-            
-            # Income for last 2 weeks
+
             two_weeks_ago = timezone.now() - timedelta(days=14)
-            payments_2weeks = OrderPayment.objects.filter(
-                status__in=['completed', 'succeeded'],
-            ).filter(
-                Q(confirmed_at__gte=two_weeks_ago) |
-                Q(confirmed_at__isnull=True, created_at__gte=two_weeks_ago)
-            )
-            income_2weeks = payments_2weeks.aggregate(
+            income_2weeks = PaymentIntent.objects.filter(
+                status='succeeded',
+                paid_at__gte=two_weeks_ago,
+            ).aggregate(
                 total=Sum('amount', output_field=DecimalField())
             )['total'] or Decimal('0.00')
-            
-            # Income for this week (last 7 days)
+
             week_start = timezone.now() - timedelta(days=7)
-            payments_this_week = OrderPayment.objects.filter(
-                status__in=['completed', 'succeeded'],
-            ).filter(
-                Q(confirmed_at__gte=week_start) |
-                Q(confirmed_at__isnull=True, created_at__gte=week_start)
-            )
-            income_this_week = payments_this_week.aggregate(
+            income_this_week = PaymentIntent.objects.filter(
+                status='succeeded',
+                paid_at__gte=week_start,
+            ).aggregate(
                 total=Sum('amount', output_field=DecimalField())
             )['total'] or Decimal('0.00')
-            
-            # Income for current month
+
             month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            payments_monthly = OrderPayment.objects.filter(
-                status__in=['completed', 'succeeded'],
-            ).filter(
-                Q(confirmed_at__gte=month_start) |
-                Q(confirmed_at__isnull=True, created_at__gte=month_start)
-            )
-            income_monthly = payments_monthly.aggregate(
+            income_monthly = PaymentIntent.objects.filter(
+                status='succeeded',
+                paid_at__gte=month_start,
+            ).aggregate(
                 total=Sum('amount', output_field=DecimalField())
             )['total'] or Decimal('0.00')
-        except ImportError:
-            # Fallback to order-based calculation if OrderPayment is not available
+        except Exception:
             amount_paid_today = Decimal('0.00')
             two_weeks_ago = timezone.now() - timedelta(days=14)
             income_2weeks = order_qs.filter(

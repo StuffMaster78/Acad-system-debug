@@ -19,7 +19,7 @@ from orders.models.orders import Order
 from orders.models.legacy_models.order_disputes import Dispute
 from orders.order_enums import OrderStatus
 from users.models import User
-from order_payments_management.models.payments import OrderPayment
+from payments_processor.models import PaymentIntent
 
 
 class SuperadminTenantManagementViewSet(viewsets.ViewSet):
@@ -98,9 +98,7 @@ class SuperadminTenantManagementViewSet(viewsets.ViewSet):
         # Get tenant statistics
         user_count = User.objects.filter(website=website).count()
         order_count = Order.objects.filter(website=website).count()
-        total_revenue = OrderPayment.objects.filter(
-            order__website=website,
-            status='completed'
+        total_revenue = PaymentIntent.objects.filter(website=website, status='succeeded'
         ).aggregate(total=Sum('amount'))['total'] or 0
         
         # Get recent activity (last 30 days)
@@ -306,9 +304,7 @@ class SuperadminTenantManagementViewSet(viewsets.ViewSet):
         for website in websites:
             user_count = User.objects.filter(website=website).count()
             order_count = Order.objects.filter(website=website).count()
-            total_revenue = OrderPayment.objects.filter(
-                order__website=website,
-                status='completed'
+            total_revenue = PaymentIntent.objects.filter(website=website, status='succeeded'
             ).aggregate(total=Sum('amount'))['total'] or 0
             
             # Recent activity (last 30 days)
@@ -367,10 +363,10 @@ class SuperadminTenantManagementViewSet(viewsets.ViewSet):
             completed_orders = orders.filter(status=OrderStatus.COMPLETED.value).count()
             
             # Revenue metrics
-            revenue = OrderPayment.objects.filter(
-                order__website=website,
-                order__created_at__gte=date_from,
-                status='completed'
+            revenue = PaymentIntent.objects.filter(
+                website=website,
+                paid_at__gte=date_from,
+                status='succeeded',
             ).aggregate(total=Sum('amount'))['total'] or 0
             
             # Average order value

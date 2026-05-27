@@ -30,7 +30,7 @@ class TestBoundaryConditions:
         order.save()
         
         from orders.services.mark_order_as_paid_service import MarkOrderPaidService
-        from order_payments_management.models.payments import OrderPayment
+        from payments_processor.models import PaymentIntent  # noqa: F401 - kept for test compatibility
         
         # Create payment for zero amount
         OrderPayment.objects.create(

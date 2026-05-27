@@ -19,10 +19,7 @@ from orders.models.orders import Order
 from orders.order_enums import OrderFlags, OrderStatus
 from orders.permissions import IsOrderOwnerOrSupport
 from orders.serializers.orders import OrderSerializer
-from order_payments_management.models.payments import OrderPayment
-from order_payments_management.services.unified_payment_service import (
-    UnifiedPaymentService,
-)
+from payments_processor.models import PaymentIntent
 from orders.exceptions import InvalidTransitionError
 from orders.services.old_services.order_deletion_service import (
     ALLOWED_STAFF_ROLES,
@@ -899,16 +896,21 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         """
         Provide payment and installment summary for the order owner or staff.
         """
+        from django.contrib.contenttypes.models import ContentType
         order = self.get_object()
-        payments_qs = OrderPayment.objects.filter(order=order).order_by("-created_at")
+        order_ct = ContentType.objects.get_for_model(Order)
+        payments_qs = PaymentIntent.objects.filter(
+            payable_content_type=order_ct,
+            payable_object_id=order.pk,
+        ).order_by("-created_at")
 
         def _sum_amount(queryset):
             total = queryset.aggregate(total=models.Sum("amount")).get("total")
             return total or Decimal("0.00")
 
-        completed_statuses = ["completed", "succeeded"]
-        pending_statuses = ["pending", "processing", "under_review", "unpaid"]
-        refunded_statuses = ["refunded", "partially_refunded", "fully_refunded"]
+        completed_statuses = ["succeeded"]
+        pending_statuses = ["pending", "processing", "requires_action", "created"]
+        refunded_statuses = ["refunded", "partially_refunded"]
 
         amount_paid = _sum_amount(payments_qs.filter(status__in=completed_statuses))
         pending_amount = _sum_amount(payments_qs.filter(status__in=pending_statuses))
@@ -927,12 +929,12 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 "id": payment.id,
                 "amount": _format_decimal(payment.amount),
                 "status": payment.status,
-                "payment_method": payment.payment_method or "manual",
-                "payment_type": payment.payment_type,
-                "reference_id": payment.reference_id,
-                "transaction_id": payment.transaction_id,
+                "payment_method": payment.provider,
+                "payment_type": payment.purpose,
+                "reference_id": payment.reference,
+                "transaction_id": payment.provider_transaction_id,
                 "created_at": payment.created_at,
-                "confirmed_at": payment.confirmed_at,
+                "confirmed_at": payment.paid_at,
             }
             for payment in payments_qs
         ]
@@ -946,7 +948,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             "refunded_amount": _format_decimal(refunded_amount),
             "balance_due": _format_decimal(balance_due),
             "is_fully_paid": balance_due == Decimal("0.00"),
-            "last_payment_at": payments_qs.filter(status__in=completed_statuses).values_list("confirmed_at", flat=True).first(),
+            "last_payment_at": payments_qs.filter(status__in=completed_statuses).values_list("paid_at", flat=True).first(),
             "payments": payments_payload,
             "installments": [],
             "upcoming_installment": None,
@@ -1174,119 +1176,84 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         Requires client to own the order or staff privileges.
         """
         from django.db import transaction
-        from order_payments_management.services.payment_service import OrderPaymentService
         from orders.services.pricing_calculator import PricingCalculatorService
-        from wallets.models import Wallet
         from wallets.services.client_wallet_service import ClientWalletService
-        
+
         order = get_object_or_404(Order, pk=pk)
         user = request.user
-        
-        # Authorization check
+
         if not (user.is_superuser or user.role in ["admin", "support"] or order.client_id == user.id):
             return Response({"detail": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
 
-        # Check if order is already paid
         if order.is_paid:
-            return Response(
-                {"detail": "Order already paid."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Check if order has a client
+            return Response({"detail": "Order already paid."}, status=status.HTTP_400_BAD_REQUEST)
+
         if not order.client:
-            return Response(
-                {"detail": "Order does not have an associated client."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Get the client making the payment (use order.client or request.user if staff)
+            return Response({"detail": "Order does not have an associated client."}, status=status.HTTP_400_BAD_REQUEST)
+
         client = order.client
-        if user.role in ["admin", "support", "superadmin"]:
-            # Staff can pay on behalf of client, but use order's client for wallet
-            client = order.client
-        
+
         try:
             with transaction.atomic():
-                # Calculate order total using pricing calculator
                 calculator = PricingCalculatorService(order)
                 order_total = calculator.calculate_total_price()
-                
-                # Ensure order.total_price is up to date
+
                 if order.total_price != order_total:
                     order.total_price = order_total
                     order.save(update_fields=["total_price"])
-                
-                # Ensure wallet exists (website-specific) and lock it for atomic operation
-                wallet = ClientWalletService.get_wallet(
-                    website=order.website,
-                    client=client,
-                )
-                wallet = Wallet.objects.select_for_update().get(id=wallet.id)
-                
-                # Create payment record first to get the actual discounted amount
-                payment = OrderPaymentService.create_payment(
-                    order=order,
-                    client=client,
-                    payment_method='wallet',
-                    amount=order_total,
-                    discount_code=order.discount.code if order.discount else None,
-                    original_amount=order_total
-                )
-                
-                # Check wallet balance against the actual discounted amount
-                payment_amount = payment.discounted_amount or payment.amount
-                if wallet.available_balance < payment_amount:
+
+                wallet = ClientWalletService.get_wallet(website=order.website, client=client)
+
+                if wallet.available_balance < order_total:
                     return Response(
                         {
                             "detail": "Insufficient wallet balance.",
-                            "required": float(payment_amount),
+                            "required": float(order_total),
                             "available": float(wallet.available_balance),
-                            "shortfall": float(payment_amount - wallet.available_balance)
+                            "shortfall": float(order_total - wallet.available_balance),
                         },
-                        status=status.HTTP_400_BAD_REQUEST
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
-                
-                # Process wallet payment (deducts from wallet and marks payment as completed)
-                payment = OrderPaymentService.process_wallet_payment(payment)
+
+                ClientWalletService.debit_for_order(
+                    website=order.website,
+                    client=client,
+                    amount=order_total,
+                    created_by=user,
+                    reference=f"order-{order.id}",
+                    reference_id=str(order.id),
+                    description=f"Wallet payment for order #{order.id}",
+                )
                 wallet.refresh_from_db()
-                
-                # Mark order as paid
+
                 order.is_paid = True
                 order.save(update_fields=["is_paid", "updated_at"])
-                
-                # Send payment notification
+
                 try:
                     from notifications_system.services.notification_service import NotificationService
                     NotificationService.notify(
                         event_key="order_paid",
                         recipient=order.client,
                         website=order.website,
-                        context={
-                            "order": order,
-                            "amount": payment.discounted_amount or payment.amount,
-                            "payment_method": 'wallet'
-                        },
+                        context={"order": order, "amount": order_total, "payment_method": "wallet"},
                         channels=["email", "in_app"],
                         is_critical=True,
-                        priority="high"
+                        priority="high",
                     )
                 except Exception as e:
-                    # Log error but don't fail the payment
                     import logging
                     logger = logging.getLogger(__name__)
                     logger.error(f"Failed to send payment notification for order {order.id}: {e}")
-                
+
                 return Response({
                     "detail": "Order paid successfully using wallet.",
                     "order": OrderSerializer(order, context={"request": request}).data,
                     "payment": {
-                        "id": payment.id,
-                        "amount": float(payment.discounted_amount or payment.amount),
-                        "status": payment.status,
-                        "method": payment.payment_method
+                        "amount": float(order_total),
+                        "status": "succeeded",
+                        "method": "wallet",
                     },
-                    "wallet_balance": float(wallet.available_balance)
+                    "wallet_balance": float(wallet.available_balance),
                 }, status=status.HTTP_200_OK)
                 
         except ValueError as e:
@@ -1415,29 +1382,23 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                             status=status.HTTP_400_BAD_REQUEST
                         )
                     
-                    # Create payment for additional pages/slides
-                    payment = UnifiedPaymentService.create_payment(
-                        payment_type='standard',
-                        client=order.client,
+                    ClientWalletService.debit_for_order(
                         website=order.website,
+                        client=order.client,
                         amount=additional_cost,
-                        payment_method='wallet',
-                        order=order,
-                        original_amount=additional_cost
+                        created_by=request.user,
+                        reference=f"order-{order.id}-pages",
+                        reference_id=str(order.id),
+                        description=f"Wallet payment for extra pages/slides on order #{order.id}",
                     )
-                    
-                    # Process wallet payment
-                    from order_payments_management.services.payment_service import OrderPaymentService
-                    payment = OrderPaymentService.process_wallet_payment(payment)
-                    
+
                     return Response({
                         "detail": "Pages/slides added and paid successfully.",
                         "order": OrderSerializer(order, context={"request": request}).data,
                         "payment": {
-                            "id": payment.id,
                             "amount": float(additional_cost),
-                            "status": payment.status,
-                            "method": "wallet"
+                            "status": "succeeded",
+                            "method": "wallet",
                         },
                         "additional_pages": additional_pages,
                         "additional_slides": additional_slides,
@@ -1576,29 +1537,23 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                             status=status.HTTP_400_BAD_REQUEST
                         )
                     
-                    # Create payment for additional services
-                    payment = UnifiedPaymentService.create_payment(
-                        payment_type='standard',
-                        client=order.client,
+                    ClientWalletService.debit_for_order(
                         website=order.website,
+                        client=order.client,
                         amount=additional_cost,
-                        payment_method='wallet',
-                        order=order,
-                        original_amount=additional_cost
+                        created_by=request.user,
+                        reference=f"order-{order.id}-services",
+                        reference_id=str(order.id),
+                        description=f"Wallet payment for extra services on order #{order.id}",
                     )
-                    
-                    # Process wallet payment
-                    from order_payments_management.services.payment_service import OrderPaymentService
-                    payment = OrderPaymentService.process_wallet_payment(payment)
-                    
+
                     return Response({
                         "detail": "Services added and paid successfully.",
                         "order": OrderSerializer(order, context={"request": request}).data,
                         "payment": {
-                            "id": payment.id,
                             "amount": float(additional_cost),
-                            "status": payment.status,
-                            "method": "wallet"
+                            "status": "succeeded",
+                            "method": "wallet",
                         },
                         "services_added": [{"id": s.id, "name": s.service_name, "cost": float(s.cost)} for s in services],
                         "total_cost": float(additional_cost)

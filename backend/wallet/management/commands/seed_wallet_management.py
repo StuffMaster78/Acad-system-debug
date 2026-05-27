@@ -15,7 +15,6 @@ from writer_wallet.models import (
     PaymentOrderRecord, WriterPayment, AdminPaymentAdjustment
 )
 from orders.models.orders import Order
-from order_payments_management.models import WalletTransaction as OrderPaymentWalletTransaction
 
 User = get_user_model()
 
@@ -62,7 +61,6 @@ class Command(BaseCommand):
             WalletTransaction.objects.all().delete()
             ClientWalletTransaction.objects.all().delete()
             WriterWalletTransaction.objects.all().delete()
-            OrderPaymentWalletTransaction.objects.all().delete()
             ScheduledWriterPayment.objects.all().delete()
             PaymentSchedule.objects.all().delete()
             WriterPaymentBatch.objects.all().delete()

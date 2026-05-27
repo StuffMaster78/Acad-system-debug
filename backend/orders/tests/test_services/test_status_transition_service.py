@@ -273,7 +273,7 @@ class TestStatusTransitionServicePaymentValidation:
     
     def test_transition_with_completed_payment(self, order, admin_user, writer_user):
         """Test transition works with completed payment."""
-        from order_payments_management.models.payments import OrderPayment
+        from payments_processor.models import PaymentIntent  # noqa: F401 - kept for test compatibility
         
         order.status = OrderStatus.AVAILABLE.value
         order.assigned_writer = writer_user

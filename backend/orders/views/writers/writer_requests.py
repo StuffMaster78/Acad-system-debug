@@ -11,7 +11,6 @@ from orders.models.legacy_models.requests import WriterRequest
 from orders.serializers_legacy import WriterRequestSerializer
 from orders.services.writer_request_service import WriterRequestService
 from orders.permissions import IsClientWhoOwnsOrder
-from order_payments_management.services.unified_payment_service import UnifiedPaymentService
 
 
 class WriterRequestViewSet(viewsets.ModelViewSet):

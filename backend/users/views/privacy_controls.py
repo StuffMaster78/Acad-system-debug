@@ -191,8 +191,6 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
         # Collect all user data
         from users.serializers import UserSerializer
         from orders.serializers import OrderSerializer
-        from order_payments_management.serializers import OrderPaymentSerializer
-        
         export_data = {
             "exported_at": timezone.now().isoformat(),
             "user": UserSerializer(user).data,
@@ -202,10 +200,17 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
             "sessions": [],
             "privacy_settings": {},
         }
-        
-        # Get payments if available
-        if hasattr(user, 'payments'):
-            export_data["payments"] = OrderPaymentSerializer(user.payments.all(), many=True).data
+
+        # Get payments
+        try:
+            from payments_processor.models import PaymentIntent
+            export_data["payments"] = list(
+                PaymentIntent.objects.filter(client=user).values(
+                    "id", "reference", "amount", "status", "purpose", "provider", "created_at", "paid_at"
+                )
+            )
+        except Exception:
+            pass
         
         # Get privacy settings
         try:

@@ -190,11 +190,11 @@ class PaymentReminderSent(models.Model):
         blank=True
     )
     payment = models.ForeignKey(
-        'order_payments_management.OrderPayment',
-        on_delete=models.CASCADE,
+        'payments_processor.PaymentIntent',
+        on_delete=models.SET_NULL,
         related_name='reminders_sent',
         null=True,
-        blank=True
+        blank=True,
     )
     sent_at = models.DateTimeField(auto_now_add=True)
     sent_as_notification = models.BooleanField(default=False)
