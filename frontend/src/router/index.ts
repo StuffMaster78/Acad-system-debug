@@ -169,6 +169,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminWalletsView.vue"),
       },
       {
+        path: "ledger",
+        name: "admin-ledger",
+        component: () => import("@/views/admin/AdminLedgerView.vue"),
+      },
+      {
         path: "access",
         name: "admin-access",
         component: () => import("@/views/admin/AdminAccessView.vue"),
@@ -459,6 +464,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "wallets",
         name: "superadmin-wallets",
         component: () => import("@/views/admin/AdminWalletsView.vue"),
+      },
+      {
+        path: "ledger",
+        name: "superadmin-ledger",
+        component: () => import("@/views/admin/AdminLedgerView.vue"),
       },
       {
         path: "access",
