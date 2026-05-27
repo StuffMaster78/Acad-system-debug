@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { ExternalLink, FileText, Image, Inbox, Lock, Loader2, Paperclip, Pencil, RefreshCw, Send, X } from "@lucide/vue";
 import type { CommunicationMessage, CommunicationThread, CommunicationThreadKind } from "@/api/communications";
@@ -352,6 +352,41 @@ async function sendMessage() {
   composer.value = "";
   clearAttachments();
 }
+
+// ── Polling (10s interval, paused when tab hidden) ────────────────────────────
+const POLL_INTERVAL = 10_000;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+async function pollRefresh() {
+  if (document.hidden || comms.isSending) return;
+  try {
+    const prevActive = comms.activeThread?.id;
+    await comms.loadInboxThreads();
+    if (prevActive && comms.activeThread?.id === prevActive) {
+      await comms.loadMessages(prevActive);
+    }
+  } catch {
+    // non-fatal — network may be unavailable
+  }
+}
+
+function onVisibilityChange() {
+  if (document.hidden) {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  } else {
+    if (!pollTimer) pollTimer = setInterval(pollRefresh, POLL_INTERVAL);
+  }
+}
+
+onMounted(() => {
+  pollTimer = setInterval(pollRefresh, POLL_INTERVAL);
+  document.addEventListener("visibilitychange", onVisibilityChange);
+});
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer);
+  document.removeEventListener("visibilitychange", onVisibilityChange);
+});
 
 // ── Stub avatar user shape for UserAvatar ─────────────────────────────────────
 function senderUser(group: MessageGroup) {
