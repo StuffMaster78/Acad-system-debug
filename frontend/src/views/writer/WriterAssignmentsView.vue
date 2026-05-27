@@ -16,12 +16,12 @@ import { RouterLink } from "vue-router";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import Pagination from "@/components/ui/Pagination.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
-import { bidsApi } from "@/api/bids";
-import type { Bid } from "@/types/bids";
+import { useBidsStore } from "@/stores/bids";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 import type { OrderSummary } from "@/types/orders";
 
 const workspace = useWriterWorkspaceStore();
+const bids = useBidsStore();
 
 type StatusTab = "active" | "submitted" | "completed";
 
@@ -75,35 +75,6 @@ function compensation(order: OrderSummary): string {
   }).format(n);
 }
 
-const myBids = ref<Bid[]>([]);
-const bidsLoading = ref(false);
-const withdrawingId = ref<number | null>(null);
-
-async function fetchMyBids() {
-  bidsLoading.value = true;
-  try {
-    const { data } = await bidsApi.listMine({ page_size: 20 });
-    myBids.value = Array.isArray(data) ? data : (data as { results: Bid[] }).results ?? [];
-  } catch {
-    // non-critical
-  } finally {
-    bidsLoading.value = false;
-  }
-}
-
-async function withdrawBid(bidId: number) {
-  withdrawingId.value = bidId;
-  try {
-    await bidsApi.withdraw(bidId);
-    const idx = myBids.value.findIndex((b) => b.id === bidId);
-    if (idx !== -1) myBids.value[idx] = { ...myBids.value[idx], status: "withdrawn" };
-  } catch {
-    // non-critical
-  } finally {
-    withdrawingId.value = null;
-  }
-}
-
 function bidStatusTone(status: string): "success" | "warning" | "danger" | "neutral" {
   if (status === "accepted") return "success";
   if (status === "pending") return "warning";
@@ -111,9 +82,9 @@ function bidStatusTone(status: string): "success" | "warning" | "danger" | "neut
   return "neutral";
 }
 
-function bidMoney(bid: Bid): string {
-  const n = Number(bid.price);
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: bid.currency ?? "USD" }).format(n);
+function bidMoney(price: string, currency: string): string {
+  const n = Number(price);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "USD" }).format(n);
 }
 
 async function switchTab(tab: StatusTab) {
@@ -127,7 +98,7 @@ function goToPage(page: number) {
 
 onMounted(() => {
   void workspace.fetchAssignments(1, statusParam.value);
-  void fetchMyBids();
+  void bids.loadMyBids();
 });
 </script>
 
@@ -291,20 +262,20 @@ onMounted(() => {
         <button
           class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink"
           type="button"
-          :disabled="bidsLoading"
-          @click="fetchMyBids"
+          :disabled="bids.isLoading"
+          @click="bids.loadMyBids()"
         >
-          <Loader2 v-if="bidsLoading" class="h-3 w-3 animate-spin" />
+          <Loader2 v-if="bids.isLoading" class="h-3 w-3 animate-spin" />
           <RefreshCw v-else class="h-3 w-3" />
           Refresh
         </button>
       </div>
 
-      <div v-if="bidsLoading && !myBids.length" class="px-5 py-8 text-center text-sm text-graphite">
+      <div v-if="bids.isLoading && !bids.myBids.length" class="px-5 py-8 text-center text-sm text-graphite">
         Loading bids…
       </div>
 
-      <div v-else-if="!myBids.length" class="px-5 py-8">
+      <div v-else-if="!bids.myBids.length" class="px-5 py-8">
         <EmptyState
           :icon="Send"
           title="No bids yet"
@@ -314,7 +285,7 @@ onMounted(() => {
 
       <div v-else class="divide-y divide-slate-100">
         <div
-          v-for="bid in myBids"
+          v-for="bid in bids.myBids"
           :key="bid.id"
           class="flex items-center gap-4 px-5 py-4"
         >
@@ -323,7 +294,7 @@ onMounted(() => {
               #{{ bid.order_id }} {{ bid.order_topic }}
             </p>
             <p class="mt-0.5 text-xs text-graphite">
-              {{ bidMoney(bid) }} · {{ bid.delivery_hours }}h delivery
+              {{ bidMoney(bid.price, bid.currency) }} · {{ bid.delivery_hours }}h delivery
               <template v-if="bid.pitch">· "{{ bid.pitch.slice(0, 60) }}{{ bid.pitch.length > 60 ? '…' : '' }}"</template>
             </p>
             <p v-if="bid.rejection_reason && bid.status === 'rejected'" class="mt-0.5 text-xs text-berry">
@@ -335,10 +306,10 @@ onMounted(() => {
             v-if="bid.status === 'pending'"
             class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:border-rose-300 hover:text-berry disabled:opacity-50"
             type="button"
-            :disabled="withdrawingId === bid.id"
-            @click="withdrawBid(bid.id)"
+            :disabled="bids.isSaving"
+            @click="bids.withdrawBid(bid.id)"
           >
-            <Loader2 v-if="withdrawingId === bid.id" class="h-3 w-3 animate-spin" />
+            <Loader2 v-if="bids.isSaving" class="h-3 w-3 animate-spin" />
             <X v-else class="h-3 w-3" />
             Withdraw
           </button>
