@@ -217,6 +217,16 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "admin-disputes",
         component: () => import("@/views/admin/AdminDisputesView.vue"),
       },
+      {
+        path: "reviews",
+        name: "admin-reviews",
+        component: () => import("@/views/admin/AdminReviewsView.vue"),
+      },
+      {
+        path: "writers/:id",
+        name: "admin-writer-profile",
+        component: () => import("@/views/admin/AdminWriterProfileView.vue"),
+      },
     );
   }
 

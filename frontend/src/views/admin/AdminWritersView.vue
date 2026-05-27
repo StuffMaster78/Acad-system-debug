@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { AlertTriangle, BadgeMinus, Ban, BriefcaseBusiness, FileText, RefreshCw, ShieldOff, UserCheck, Users } from "@lucide/vue";
+import { useRouter } from "vue-router";
+import { AlertTriangle, BadgeMinus, Ban, BriefcaseBusiness, ExternalLink, FileText, RefreshCw, ShieldOff, UserCheck, Users } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import BulkActionBar from "@/components/ui/BulkActionBar.vue";
 import { useAdminWritersStore } from "@/stores/adminWriters";
+
+const router = useRouter();
 
 const writers = useAdminWritersStore();
 const actionForm = reactive({
@@ -252,7 +255,18 @@ onMounted(() => {
             <h2 class="text-lg font-semibold text-ink">{{ selected?.pen_name || "Writer detail" }}</h2>
             <p class="mt-1 text-sm text-graphite">{{ selected?.email || "Select a writer from the roster" }}</p>
           </div>
-          <UserCheck class="h-5 w-5 text-signal" />
+          <div class="flex items-center gap-2">
+            <button
+              v-if="selected"
+              class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 transition-colors"
+              type="button"
+              @click="router.push(`/admin/writers/${selected.registration_id}`)"
+            >
+              <ExternalLink class="h-3.5 w-3.5" />
+              Full profile
+            </button>
+            <UserCheck class="h-5 w-5 text-signal" />
+          </div>
         </div>
 
         <template v-if="selected">
