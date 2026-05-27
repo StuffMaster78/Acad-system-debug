@@ -22,6 +22,12 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       props: { role },
     },
     {
+      path: "announcements",
+      name: `${role}-announcements`,
+      component: () => import("@/views/shared/AnnouncementsView.vue"),
+      props: { role },
+    },
+    {
       path: "notifications",
       name: `${role}-notifications`,
       component: () => import("@/views/shared/NotificationsView.vue"),
@@ -74,6 +80,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "wallet",
         name: "client-wallet",
         component: () => import("@/views/client/ClientWalletView.vue"),
+      },
+      {
+        path: "billing",
+        name: "client-billing",
+        component: () => import("@/views/client/ClientBillingView.vue"),
       },
       {
         path: "loyalty",
