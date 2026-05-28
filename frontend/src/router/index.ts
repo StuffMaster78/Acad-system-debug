@@ -139,6 +139,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminOrdersView.vue"),
       },
       {
+        path: "orders/:id",
+        name: "admin-order-detail",
+        component: () => import("@/views/admin/AdminOrderDetailView.vue"),
+      },
+      {
         path: "ops",
         name: "admin-ops",
         component: () => import("@/views/admin/AdminOpsView.vue"),

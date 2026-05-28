@@ -1,5 +1,5 @@
 <template>
-  <OrderDetailPage role="client" />
+  <OrderDetailPage role="admin" />
 </template>
 
 <script setup lang="ts">

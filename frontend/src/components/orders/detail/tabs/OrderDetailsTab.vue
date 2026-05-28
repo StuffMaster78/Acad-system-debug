@@ -1,0 +1,399 @@
+<template>
+  <div class="space-y-6">
+    <!-- Order specifications -->
+    <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <h2 class="text-base font-semibold text-ink">Order specifications</h2>
+      <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-if="order.topic">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Topic</dt>
+          <dd class="mt-1 text-sm text-ink">{{ order.topic }}</dd>
+        </div>
+        <div v-if="order.academic_level">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Academic level</dt>
+          <dd class="mt-1 text-sm text-ink">{{ order.academic_level }}</dd>
+        </div>
+        <div v-if="order.paper_type">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Paper type</dt>
+          <dd class="mt-1 text-sm text-ink">{{ order.paper_type }}</dd>
+        </div>
+        <div v-if="order.type_of_work">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Type of work</dt>
+          <dd class="mt-1 text-sm text-ink">{{ order.type_of_work }}</dd>
+        </div>
+        <div v-if="order.subject">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Subject</dt>
+          <dd class="mt-1 text-sm text-ink">{{ order.subject }}</dd>
+        </div>
+        <div v-if="order.formatting_style">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Citation style</dt>
+          <dd class="mt-1 text-sm text-ink">{{ order.formatting_style }}</dd>
+        </div>
+        <div v-if="order.number_of_pages">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Pages</dt>
+          <dd class="mt-1 text-sm text-ink">
+            {{ order.number_of_pages }}
+            <span v-if="order.spacing" class="text-graphite">({{ order.spacing }})</span>
+          </dd>
+        </div>
+        <div v-if="order.number_of_slides">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Slides</dt>
+          <dd class="mt-1 text-sm text-ink">{{ order.number_of_slides }}</dd>
+        </div>
+        <div v-if="order.number_of_refereces">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Sources</dt>
+          <dd class="mt-1 text-sm text-ink">{{ order.number_of_refereces }}</dd>
+        </div>
+        <div v-if="order.english_type">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">English type</dt>
+          <dd class="mt-1 text-sm text-ink">{{ order.english_type }}</dd>
+        </div>
+        <div v-if="order.client_deadline">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Client deadline</dt>
+          <dd class="mt-1 text-sm text-ink">{{ dateLabel(order.client_deadline) }}</dd>
+        </div>
+        <!-- Staff: show writer deadline and website separately -->
+        <div v-if="isStaffRole && order.writer_deadline">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Writer deadline</dt>
+          <dd class="mt-1 text-sm text-ink">{{ dateLabel(order.writer_deadline) }}</dd>
+        </div>
+        <div v-if="isStaffRole && order.website">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Website ID</dt>
+          <dd class="mt-1 font-mono text-sm text-ink">#{{ order.website }}</dd>
+        </div>
+        <div v-if="isStaffRole && order.discount_code_used">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Discount code</dt>
+          <dd class="mt-1 font-mono text-sm text-ink">{{ order.discount_code_used }}</dd>
+        </div>
+      </dl>
+
+      <div v-if="order.order_instructions || order.instructions" class="mt-5 border-t border-slate-100 pt-4">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Instructions</dt>
+        <dd class="mt-2 whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm leading-6 text-ink">
+          {{ order.order_instructions ?? order.instructions }}
+        </dd>
+      </div>
+    </div>
+
+    <!-- Lifecycle snapshot (hidden from writer — no client signals exposed) -->
+    <div v-if="role !== 'writer'" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <h2 class="text-base font-semibold text-ink">Lifecycle</h2>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        <div class="rounded-md border border-slate-100 p-3">
+          <p class="text-xs font-semibold text-graphite">Assignment</p>
+          <p class="mt-1 text-sm text-ink">
+            {{ lifecycle?.has_current_assignment ? maskedWriter(lifecycle.current_writer_id) : "Awaiting assignment" }}
+          </p>
+        </div>
+        <div class="rounded-md border border-slate-100 p-3">
+          <p class="text-xs font-semibold text-graphite">Hold</p>
+          <p class="mt-1 text-sm text-ink">
+            {{ lifecycle?.has_active_hold ? `Hold #${lifecycle.active_hold_id}` : "No active hold" }}
+          </p>
+        </div>
+        <div class="rounded-md border border-slate-100 p-3">
+          <p class="text-xs font-semibold text-graphite">Dispute</p>
+          <p class="mt-1 text-sm text-ink">
+            {{ lifecycle?.has_active_dispute ? `Dispute #${lifecycle.active_dispute_id} active` : "No active dispute" }}
+          </p>
+        </div>
+        <div class="rounded-md border border-slate-100 p-3">
+          <p class="text-xs font-semibold text-graphite">Latest revision</p>
+          <p class="mt-1 text-sm text-ink">{{ lifecycle?.latest_revision_status ?? "None" }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Client-only action panel -->
+    <template v-if="role === 'client'">
+      <!-- Dispute -->
+      <div
+        v-if="lifecycle && !lifecycle.has_active_dispute && !isTerminal"
+        class="rounded-lg border border-amber-200 bg-amber-50 p-5 shadow-panel"
+      >
+        <div class="flex items-center gap-2">
+          <AlertTriangle class="h-5 w-5 text-amber-700" />
+          <h2 class="text-base font-semibold text-amber-950">Raise a dispute</h2>
+        </div>
+        <p class="mt-1 text-sm text-amber-900">Use only if the issue cannot be resolved through a revision request.</p>
+        <form class="mt-3 flex flex-col gap-2 sm:flex-row" @submit.prevent="submitDispute">
+          <input
+            v-model.trim="disputeReason"
+            class="focus-ring flex-1 rounded-md border border-amber-200 bg-white px-3 py-2 text-sm"
+            placeholder="Describe the issue clearly"
+          />
+          <button
+            class="focus-ring inline-flex items-center justify-center rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            type="submit"
+            :disabled="isMutating || !disputeReason"
+          >Raise dispute</button>
+        </form>
+      </div>
+      <div v-else-if="lifecycle?.has_active_dispute" class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        Dispute #{{ lifecycle.active_dispute_id }} is active. Our team is reviewing it.
+      </div>
+
+      <!-- Support ticket -->
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <LifeBuoy class="h-5 w-5 text-signal" />
+          <h2 class="text-base font-semibold text-ink">Open a support ticket</h2>
+        </div>
+        <div v-if="ticketError" class="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">{{ ticketError }}</div>
+        <div v-if="ticketNotice" class="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-signal">{{ ticketNotice }}</div>
+        <form class="mt-4 grid gap-3" @submit.prevent="submitTicket">
+          <input v-model.trim="ticketTitle" class="focus-ring w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Brief summary" />
+          <textarea v-model.trim="ticketBody" class="focus-ring min-h-20 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Describe the issue" />
+          <button
+            class="focus-ring inline-flex items-center justify-center gap-2 self-start rounded-md bg-signal px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            type="submit"
+            :disabled="isTicketing || !ticketTitle || !ticketBody"
+          >
+            <Loader2 v-if="isTicketing" class="h-4 w-4 animate-spin" />
+            Submit ticket
+          </button>
+        </form>
+      </div>
+
+      <!-- Tip writer (post-completion) -->
+      <div v-if="canTip" class="rounded-lg border border-amber-200 bg-amber-50 p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <Gift class="h-5 w-5 text-amber-700" />
+          <h2 class="text-base font-semibold text-amber-950">Tip your writer</h2>
+        </div>
+        <div v-if="tipSuccess" class="mt-3 text-sm text-emerald-800">Tip sent — thank you!</div>
+        <template v-else>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button
+              v-for="c in TIP_PRESETS"
+              :key="c"
+              type="button"
+              :class="['focus-ring rounded-md border px-4 py-2 text-sm font-semibold', tipPreset === c ? 'border-amber-600 bg-amber-600 text-white' : 'border-amber-300 bg-white text-amber-900 hover:border-amber-500']"
+              @click="selectPreset(c)"
+            >{{ (c / 100).toFixed(0) === String(c / 100) ? `$${c / 100}` : `$${(c / 100).toFixed(2)}` }}</button>
+            <input v-model="tipCustom" type="number" min="1" step="0.01" placeholder="Custom $" @input="tipPreset = null"
+              class="focus-ring h-10 w-28 rounded-md border border-amber-300 bg-white px-3 text-sm placeholder-amber-400" />
+          </div>
+          <input v-model="tipMessage" class="focus-ring mt-3 w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm placeholder-amber-400" placeholder="Message (optional)" maxlength="200" />
+          <p v-if="tipError" class="mt-2 text-sm text-rose-700">{{ tipError }}</p>
+          <button
+            class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            type="button"
+            :disabled="isTipping || !tipAmount"
+            @click="submitTip"
+          >
+            <Loader2 v-if="isTipping" class="h-4 w-4 animate-spin" />
+            <Gift v-else class="h-4 w-4" />
+            {{ tipAmount ? `Send $${(tipAmount / 100).toFixed(2)}` : "Select amount" }}
+          </button>
+        </template>
+      </div>
+
+      <!-- Rate writer (post-completion) -->
+      <div v-if="canReview || existingReview" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="flex items-center gap-2">
+          <Star class="h-5 w-5 text-saffron" />
+          <h2 class="text-base font-semibold text-ink">Rate your writer</h2>
+        </div>
+        <template v-if="existingReview">
+          <p class="mt-2 text-sm text-graphite">Your review: {{ existingReview.rating }}/5 — {{ existingReview.title }}</p>
+        </template>
+        <template v-else>
+          <div class="mt-3 flex items-center gap-1">
+            <button v-for="n in 5" :key="n" type="button" class="focus-ring rounded p-0.5" @click="reviewRating = n" @mouseenter="reviewHover = n" @mouseleave="reviewHover = 0">
+              <Star class="h-7 w-7 transition-colors" :class="n <= (reviewHover || reviewRating) ? 'fill-saffron text-saffron' : 'text-slate-300'" />
+            </button>
+          </div>
+          <div class="mt-3 grid gap-2">
+            <input v-model.trim="reviewTitle" class="focus-ring w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Title (optional)" maxlength="120" />
+            <textarea v-model.trim="reviewBody" class="focus-ring min-h-16 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Share your experience (optional)" maxlength="1000" />
+          </div>
+          <p v-if="reviewError" class="mt-2 text-sm text-berry">{{ reviewError }}</p>
+          <button
+            class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            type="button"
+            :disabled="reviewSubmitting || !reviewRating"
+            @click="submitReview"
+          >
+            <Loader2 v-if="reviewSubmitting" class="h-4 w-4 animate-spin" />
+            <Star v-else class="h-4 w-4" />
+            Submit review
+          </button>
+        </template>
+      </div>
+
+      <!-- Cancel order -->
+      <form v-if="!isTerminal" class="rounded-lg border border-rose-200 bg-rose-50 p-5 shadow-panel" @submit.prevent="submitCancel">
+        <div class="flex items-center gap-2">
+          <XCircle class="h-5 w-5 text-rose-700" />
+          <h2 class="text-base font-semibold text-rose-950">Cancel order</h2>
+        </div>
+        <div class="mt-4 grid gap-3 lg:grid-cols-[1fr_200px_auto]">
+          <input v-model.trim="cancelReason" class="focus-ring rounded-md border border-rose-200 px-3 py-2 text-sm" placeholder="Cancellation reason" />
+          <select v-model="cancelDest" class="focus-ring rounded-md border border-rose-200 px-3 py-2 text-sm">
+            <option value="wallet">Wallet refund</option>
+            <option value="external">External refund</option>
+          </select>
+          <button class="focus-ring inline-flex items-center justify-center rounded-md bg-rose-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" type="submit" :disabled="isMutating || !cancelReason">Cancel</button>
+        </div>
+      </form>
+    </template>
+
+    <!-- Staff/admin operational notes -->
+    <div v-if="isStaffRole" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <h2 class="text-base font-semibold text-ink">Operational notes</h2>
+      <p class="mt-2 text-sm text-graphite">
+        Flags: {{ order.flags?.join(", ") || "None" }}
+      </p>
+      <p class="mt-1 text-sm text-graphite">
+        Special: {{ [order.is_urgent && "Urgent"].filter(Boolean).join(", ") || "None" }}
+      </p>
+      <!-- TODO: enforce server-side — operational notes API endpoint not yet wired -->
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { AlertTriangle, Gift, LifeBuoy, Loader2, Star, XCircle } from "@lucide/vue";
+import type { UserRole } from "@/types/roles";
+import type { OrderSummary, OrderLifecycle } from "@/types/orders";
+import type { Review } from "@/types/reviews";
+import { reviewsApi } from "@/api/reviews";
+import { supportApi } from "@/api/support";
+import { tipsApi, type TipRecord } from "@/api/tips";
+import { useOrderStore } from "@/stores/orders";
+import { dateLabel, maskedWriter, isStaff } from "../types";
+
+const props = defineProps<{
+  orderId: string;
+  order: OrderSummary;
+  lifecycle: OrderLifecycle | null;
+  role: UserRole;
+}>();
+
+const orders = useOrderStore();
+const isMutating = computed(() => orders.isMutating);
+const isStaffRole = computed(() => isStaff(props.role));
+
+const TERMINAL = ["completed", "reviewed", "rated", "approved", "archived", "cancelled"];
+const isTerminal = computed(() => TERMINAL.includes(props.order.status ?? ""));
+
+// ── Dispute ─────────────────────────────────────────────────────────────────
+const disputeReason = ref("");
+async function submitDispute() {
+  if (!disputeReason.value) return;
+  await orders.raiseDispute(props.orderId, disputeReason.value);
+  disputeReason.value = "";
+}
+
+// ── Support ticket ───────────────────────────────────────────────────────────
+const ticketTitle = ref("");
+const ticketBody = ref("");
+const isTicketing = ref(false);
+const ticketError = ref("");
+const ticketNotice = ref("");
+async function submitTicket() {
+  if (!ticketTitle.value || !ticketBody.value) return;
+  isTicketing.value = true;
+  ticketError.value = "";
+  ticketNotice.value = "";
+  try {
+    await supportApi.createTicket({ title: ticketTitle.value, description: ticketBody.value, category: "order", object_id: props.orderId });
+    ticketNotice.value = "Ticket created. Our team will follow up.";
+    ticketTitle.value = "";
+    ticketBody.value = "";
+  } catch {
+    ticketError.value = "Unable to create ticket.";
+  } finally {
+    isTicketing.value = false;
+  }
+}
+
+// ── Tip ──────────────────────────────────────────────────────────────────────
+const TIP_PRESETS = [500, 1000, 2000, 5000];
+const tipPreset = ref<number | null>(null);
+const tipCustom = ref("");
+const tipMessage = ref("");
+const isTipping = ref(false);
+const tipError = ref("");
+const tipSuccess = ref<TipRecord | null>(null);
+
+const canTip = computed(() =>
+  TERMINAL.includes(props.order.status ?? "") &&
+  props.lifecycle?.current_writer_id != null
+);
+
+const tipAmount = computed(() => {
+  if (tipPreset.value !== null) return tipPreset.value;
+  const n = Math.round(Number(tipCustom.value) * 100);
+  return Number.isFinite(n) && n > 0 ? n : null;
+});
+
+function selectPreset(c: number) { tipPreset.value = tipPreset.value === c ? null : c; tipCustom.value = ""; }
+
+async function submitTip() {
+  const writerId = props.lifecycle?.current_writer_id;
+  const amount = tipAmount.value;
+  if (!writerId || !amount) return;
+  isTipping.value = true;
+  tipError.value = "";
+  try {
+    const { data } = await tipsApi.create({ receiver_id: writerId, gross_amount_cents: amount, currency: "USD", context_type: "order", message: tipMessage.value.trim() || undefined, idempotency_key: crypto.randomUUID() });
+    tipSuccess.value = data;
+    tipPreset.value = null;
+    tipCustom.value = "";
+    tipMessage.value = "";
+  } catch {
+    tipError.value = "Unable to send tip.";
+  } finally {
+    isTipping.value = false;
+  }
+}
+
+// ── Review ───────────────────────────────────────────────────────────────────
+const existingReview = ref<Review | null>(null);
+const reviewRating = ref(0);
+const reviewHover = ref(0);
+const reviewTitle = ref("");
+const reviewBody = ref("");
+const reviewSubmitting = ref(false);
+const reviewError = ref("");
+
+const canReview = computed(() =>
+  TERMINAL.includes(props.order.status ?? "") &&
+  props.lifecycle?.current_writer_id != null &&
+  existingReview.value === null
+);
+
+async function submitReview() {
+  reviewError.value = "";
+  if (!reviewRating.value) { reviewError.value = "Select a star rating."; return; }
+  reviewSubmitting.value = true;
+  try {
+    const { data } = await reviewsApi.submit(props.orderId, { rating: reviewRating.value, title: reviewTitle.value.trim() || undefined, body: reviewBody.value.trim() || undefined, is_public: true });
+    existingReview.value = data;
+  } catch {
+    reviewError.value = "Review submission failed.";
+  } finally {
+    reviewSubmitting.value = false;
+  }
+}
+
+// ── Cancel ───────────────────────────────────────────────────────────────────
+const cancelReason = ref("");
+const cancelDest = ref<"wallet" | "external">("wallet");
+async function submitCancel() {
+  if (!cancelReason.value) return;
+  await orders.cancelOrder(props.orderId, { reason: cancelReason.value, refund_destination: cancelDest.value });
+  cancelReason.value = "";
+}
+
+// Load existing review on mount
+import { onMounted } from "vue";
+onMounted(async () => {
+  if (props.role === "client") {
+    try { const { data } = await reviewsApi.forOrder(props.orderId); existingReview.value = data; }
+    catch { existingReview.value = null; }
+  }
+});
+</script>
