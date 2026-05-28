@@ -5,6 +5,7 @@ export interface MetricDefinition {
   value: string;
   detail: string;
   tone: "neutral" | "good" | "warn" | "risk";
+  icon?: string;
 }
 
 export interface WorkItem {

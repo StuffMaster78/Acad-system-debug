@@ -127,11 +127,28 @@ export function useDashboardData(role: UserRole) {
     }
 
     if (role === "writer") {
-      return writerWs.events.slice(0, 3).map((ev) => ({
-        title: ev.description ?? ev.event_type ?? "Compensation event",
-        meta: ev.event_type ?? "event",
-        status: ev.status ?? "recorded",
-      }));
+      const items = writerWs.assignments.length ? writerWs.assignments : [];
+      return items.slice(0, 3).map((order) => {
+        const deadline = order.client_deadline
+          ? new Date(order.client_deadline)
+          : null;
+        const hoursLeft = deadline
+          ? Math.round((deadline.getTime() - Date.now()) / 3600000)
+          : null;
+        const dueMeta =
+          hoursLeft == null
+            ? "No deadline"
+            : hoursLeft < 0
+              ? `${Math.abs(hoursLeft)}h overdue`
+              : hoursLeft < 24
+                ? `Due in ${hoursLeft}h`
+                : `Due ${deadline!.toLocaleDateString()}`;
+        return {
+          title: order.topic ?? `Order #${order.id}`,
+          meta: dueMeta,
+          status: hoursLeft !== null && hoursLeft < 0 ? "Overdue" : order.status ?? "In progress",
+        };
+      });
     }
 
     if (role === "editor") {
@@ -189,7 +206,7 @@ export function useDashboardData(role: UserRole) {
         comms.loadInboxThreads(),
       ]);
     } else if (role === "writer") {
-      await writerWs.hydrate();
+      await Promise.allSettled([writerWs.hydrate(), writerWs.fetchAssignments()]);
     } else if (role === "editor") {
       await editorWs.hydrate();
     } else if (role === "support") {
