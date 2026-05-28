@@ -239,6 +239,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminEmailDeliveryView.vue"),
       },
       {
+        path: "rewards",
+        name: "admin-rewards",
+        component: () => import("@/views/admin/AdminRewardsView.vue"),
+      },
+      {
         path: "config",
         name: "admin-config",
         component: () => import("@/views/admin/AdminConfigHubView.vue"),
@@ -584,6 +589,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "email",
         name: "superadmin-email",
         component: () => import("@/views/admin/AdminEmailDeliveryView.vue"),
+      },
+      {
+        path: "rewards",
+        name: "superadmin-rewards",
+        component: () => import("@/views/admin/AdminRewardsView.vue"),
       },
       {
         path: "config",
