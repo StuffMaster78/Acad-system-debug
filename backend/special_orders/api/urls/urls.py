@@ -18,6 +18,7 @@ from special_orders.api.views.refund_views import ApplyRefundView
 from special_orders.api.views.special_order_views import (
     CreateFixedSpecialOrderView,
     CreateQuotedSpecialOrderView,
+    ListPredefinedSpecialOrderConfigsView,
     SpecialOrderDetailView,
     SpecialOrderListView,
 )
@@ -307,5 +308,10 @@ urlpatterns = [
         "fixed/preview-price/",
         FixedSpecialOrderPricingPreviewView.as_view(),
         name="special-order-fixed-preview-price",
+    ),
+    path(
+        "predefined-configs/",
+        ListPredefinedSpecialOrderConfigsView.as_view(),
+        name="special-order-predefined-configs",
     ),
 ]

@@ -17,6 +17,9 @@ from special_orders.api.serializers import (
     SpecialOrderDetailSerializer,
     SpecialOrderListSerializer,
 )
+from special_orders.api.serializers.config_serializers import (
+    PredefinedSpecialOrderConfigSerializer,
+)
 from special_orders.selectors import (
     SpecialOrderConfigSelector,
     SpecialOrderSelector,
@@ -24,6 +27,23 @@ from special_orders.selectors import (
 from special_orders.services.new_services.special_order_creation_service import (
     SpecialOrderCreationService,
 )
+
+
+class ListPredefinedSpecialOrderConfigsView(APIView):
+    """
+    List active predefined special order configs for the current website.
+    Used by clients to browse fixed-price express order options.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        configs = SpecialOrderConfigSelector.list_predefined_configs(
+            website=request.user.website,
+            active_only=True,
+        )
+        serializer = PredefinedSpecialOrderConfigSerializer(configs, many=True)
+        return Response(serializer.data)
 
 
 class SpecialOrderListView(APIView):

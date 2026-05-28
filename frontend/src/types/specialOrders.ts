@@ -93,6 +93,59 @@ export interface CreateSpecialOrderPayload {
   deadline?: string;
 }
 
+// ── Quoted (estimated) order ──────────────────────────────────────────────────
+
+export interface CreateQuotedSpecialOrderPayload {
+  title: string;
+  inquiry_details: string;
+  budget?: string;
+  duration_days?: number;
+  currency?: string;
+}
+
+// ── Fixed (express) order ─────────────────────────────────────────────────────
+
+export interface CreateFixedSpecialOrderPayload {
+  predefined_config_id: number;
+  predefined_duration_id: number;
+  title?: string;
+  inquiry_details?: string;
+  currency?: string;
+  platform?: string;
+  writer_level?: string;
+  coupon_code?: string;
+}
+
+export interface PredefinedConfigDuration {
+  id: number;
+  duration_days: number;
+  price: string;
+  is_active: boolean;
+}
+
+export interface PredefinedConfig {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  is_active: boolean;
+  requires_full_payment: boolean;
+  allow_wallet_payment: boolean;
+  allow_external_payment: boolean;
+  allow_discounts: boolean;
+  durations: PredefinedConfigDuration[];
+}
+
+export interface FixedPricePreview {
+  currency: string;
+  base_price: string;
+  gross_amount: string;
+  discount_amount: string;
+  final_amount: string;
+  line_items: { label: string; amount: string }[];
+  discount: { reference: string | null; metadata: Record<string, unknown> };
+}
+
 export interface SubmitQuotePayload {
   price: string;
   valid_until?: string;

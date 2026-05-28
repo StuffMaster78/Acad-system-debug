@@ -22,10 +22,9 @@ async function submit() {
       router.push("/client/special-orders");
       return;
     }
-    const res = await specialOrdersApi.create({
+    const res = await specialOrdersApi.createQuoted({
       title: title.value,
-      description: description.value,
-      deadline: deadline.value || undefined,
+      inquiry_details: description.value,
     });
     router.push(`/client/special-orders/${res.data.id}`);
   } catch {

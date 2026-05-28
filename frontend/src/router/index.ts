@@ -117,6 +117,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/client/NewSpecialOrderView.vue"),
       },
       {
+        path: "special-orders/express",
+        name: "client-special-order-express",
+        component: () => import("@/views/client/NewExpressSpecialOrderView.vue"),
+      },
+      {
         path: "special-orders/:id",
         name: "client-special-order-detail",
         component: () => import("@/views/client/ClientSpecialOrderDetailView.vue"),

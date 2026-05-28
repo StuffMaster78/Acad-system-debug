@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import { Sparkles, Plus } from "@lucide/vue";
+import { Plus, Sparkles, Zap } from "@lucide/vue";
 import { useSpecialOrdersStore } from "@/stores/specialOrders";
 import type { SpecialOrderStatus } from "@/types/specialOrders";
 
@@ -50,18 +50,27 @@ function progress(total: number, done: number) {
     <div class="mx-auto max-w-4xl space-y-6">
 
       <!-- Header -->
-      <div class="flex items-center justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="text-xl font-bold text-ink">Special Orders</h1>
           <p class="text-sm text-graphite">Custom quote-based and milestone projects</p>
         </div>
-        <button
-          class="flex items-center gap-1.5 rounded-lg bg-berry px-4 py-2 text-sm font-medium text-white hover:bg-berry/90"
-          @click="router.push('/client/special-orders/new')"
-        >
-          <Plus class="size-4" />
-          New Request
-        </button>
+        <div class="flex gap-2">
+          <button
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-slate-50 transition-colors"
+            @click="router.push('/client/special-orders/express')"
+          >
+            <Zap class="size-4 text-amber-500" />
+            Express Order
+          </button>
+          <button
+            class="flex items-center gap-1.5 rounded-lg bg-berry px-4 py-2 text-sm font-medium text-white hover:bg-berry/90"
+            @click="router.push('/client/special-orders/new')"
+          >
+            <Plus class="size-4" />
+            Custom Quote
+          </button>
+        </div>
       </div>
 
       <div v-if="store.isLoading" class="py-16 text-center text-graphite animate-pulse">Loading…</div>

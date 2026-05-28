@@ -32,7 +32,12 @@
           <label class="block text-sm font-medium text-ink mb-1">
             Subject Area <span class="text-rose-500">*</span>
           </label>
+          <select v-if="subjects.length" v-model="form.subject" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus-ring bg-white">
+            <option value="">Select subject…</option>
+            <option v-for="s in subjects" :key="s.id" :value="s.name">{{ s.name }}</option>
+          </select>
           <input
+            v-else
             v-model="form.subject"
             placeholder="e.g. Mathematics, Business Ethics, Nursing"
             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus-ring"
@@ -46,10 +51,15 @@
           </label>
           <select v-model="form.academic_level" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus-ring bg-white">
             <option value="">Select level…</option>
-            <option value="High School">High School</option>
-            <option value="Undergraduate">Undergraduate</option>
-            <option value="Graduate">Graduate (Master's)</option>
-            <option value="PhD">PhD / Doctoral</option>
+            <template v-if="academicLevels.length">
+              <option v-for="lvl in academicLevels" :key="lvl.id" :value="lvl.name">{{ lvl.name }}</option>
+            </template>
+            <template v-else>
+              <option value="High School">High School</option>
+              <option value="Undergraduate">Undergraduate</option>
+              <option value="Graduate">Graduate (Master's)</option>
+              <option value="PhD">PhD / Doctoral</option>
+            </template>
           </select>
         </div>
 
@@ -137,14 +147,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ArrowLeft } from "@lucide/vue";
 import { classesApi } from "@/api/classes";
+import { orderConfigApi } from "@/api/orderConfig";
 import { useAuthStore } from "@/stores/auth";
+import type { OrderConfigOption } from "@/types/config";
 
 const router = useRouter();
 const auth = useAuthStore();
+
+const subjects = ref<OrderConfigOption[]>([]);
+const academicLevels = ref<OrderConfigOption[]>([]);
 
 const form = ref({
   title: "",
@@ -166,6 +181,17 @@ const isValid = computed(() =>
   form.value.start_date &&
   form.value.end_date,
 );
+
+onMounted(async () => {
+  try {
+    [subjects.value, academicLevels.value] = await Promise.all([
+      orderConfigApi.subjects({ is_active: true }),
+      orderConfigApi.academicLevels({ is_active: true }),
+    ]);
+  } catch {
+    // Fallback to static options if API unavailable
+  }
+});
 
 async function submit() {
   if (!isValid.value) return;
