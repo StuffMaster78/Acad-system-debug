@@ -36,9 +36,9 @@ export const authApi = {
   changePassword: (payload: ChangePasswordPayload) =>
     api.post(apiPath("/users/me/change-password/"), payload),
   forgotPassword: (email: string) =>
-    api.post(apiPath("/auth/password-reset/"), { email }),
-  resetPassword: (token: string, uid: string, newPassword: string) =>
-    api.post(apiPath("/auth/password-reset/confirm/"), { token, uid, new_password: newPassword }),
+    api.post(apiPath("/auth/password/reset/request/"), { email }),
+  resetPassword: (token: string, otpCode: string, newPassword: string) =>
+    api.post(apiPath("/auth/password/reset/confirm/"), { token, otp_code: otpCode, new_password: newPassword }),
   uploadAvatar: (file: File) => {
     const form = new FormData();
     form.append("avatar", file);
