@@ -140,6 +140,16 @@ export interface PaperQuotePayload {
   instructions?: string;
 }
 
+export interface OrderNote {
+  id: number;
+  author_id: number | null;
+  author_username: string | null;
+  body: string;
+  is_pinned: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 export interface OrderInterestRecord {
   id: number;
   writer_id: number;

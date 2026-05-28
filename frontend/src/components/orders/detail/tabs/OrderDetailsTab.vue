@@ -239,28 +239,95 @@
     </template>
 
     <!-- Staff/admin operational notes -->
-    <div v-if="isStaffRole" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
-      <h2 class="text-base font-semibold text-ink">Operational notes</h2>
-      <p class="mt-2 text-sm text-graphite">
-        Flags: {{ order.flags?.join(", ") || "None" }}
-      </p>
-      <p class="mt-1 text-sm text-graphite">
-        Special: {{ [order.is_urgent && "Urgent"].filter(Boolean).join(", ") || "None" }}
-      </p>
-      <!-- TODO: enforce server-side — operational notes API endpoint not yet wired -->
+    <div v-if="isStaffRole" class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div>
+          <h2 class="text-sm font-semibold text-ink">Operational Notes</h2>
+          <p class="mt-0.5 text-xs text-graphite">Internal staff notes — not visible to clients or writers.</p>
+        </div>
+        <button
+          class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:text-ink disabled:opacity-50"
+          :disabled="notesLoading"
+          @click="loadNotes"
+        >
+          <RefreshCw class="size-3.5" :class="notesLoading ? 'animate-spin' : ''" />
+          Refresh
+        </button>
+      </div>
+
+      <!-- Notes list -->
+      <div v-if="notesLoading" class="space-y-px">
+        <div v-for="n in 2" :key="n" class="animate-pulse px-5 py-3.5">
+          <div class="h-3 w-3/4 rounded bg-slate-200" />
+          <div class="mt-2 h-3 w-1/3 rounded bg-slate-100" />
+        </div>
+      </div>
+
+      <div v-else-if="!notes.length" class="px-5 py-8 text-center">
+        <p class="text-sm text-graphite">No notes yet.</p>
+      </div>
+
+      <div v-else class="divide-y divide-slate-100">
+        <div v-for="note in notes" :key="note.id" class="flex items-start gap-3 px-5 py-3.5">
+          <Pin v-if="note.is_pinned" class="mt-0.5 size-3.5 shrink-0 text-amber-500" />
+          <div class="min-w-0 flex-1">
+            <p class="text-sm text-ink whitespace-pre-wrap">{{ note.body }}</p>
+            <p class="mt-1 text-xs text-graphite">
+              {{ note.author_username ? `@${note.author_username}` : "Staff" }}
+              · {{ note.created_at ? fmtDate(note.created_at) : "" }}
+            </p>
+          </div>
+          <div class="flex shrink-0 gap-1">
+            <button
+              class="rounded p-1 text-slate-400 hover:text-amber-500 transition-colors"
+              :title="note.is_pinned ? 'Unpin' : 'Pin'"
+              @click="togglePin(note)"
+            >
+              <Pin class="size-3.5" :class="note.is_pinned ? 'text-amber-500' : ''" />
+            </button>
+            <button
+              class="rounded p-1 text-slate-400 hover:text-rose-500 transition-colors"
+              title="Delete"
+              @click="removeNote(note.id)"
+            >
+              <X class="size-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add note form -->
+      <form class="border-t border-slate-100 px-5 py-4 space-y-2" @submit.prevent="addNote">
+        <textarea
+          v-model.trim="noteBody"
+          class="focus-ring min-h-16 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+          placeholder="Add an internal note…"
+        />
+        <div v-if="noteError" class="text-xs text-berry">{{ noteError }}</div>
+        <button
+          class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-slate-700 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+          type="submit"
+          :disabled="noteSaving || !noteBody"
+        >
+          <Loader2 v-if="noteSaving" class="size-3.5 animate-spin" />
+          <Plus v-else class="size-3.5" />
+          Add note
+        </button>
+      </form>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { AlertTriangle, Gift, LifeBuoy, Loader2, Star, XCircle } from "@lucide/vue";
+import { AlertTriangle, Gift, LifeBuoy, Loader2, Pin, Plus, RefreshCw, Star, X, XCircle } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
-import type { OrderSummary, OrderLifecycle } from "@/types/orders";
+import type { OrderNote, OrderSummary, OrderLifecycle } from "@/types/orders";
 import type { Review } from "@/types/reviews";
 import { reviewsApi } from "@/api/reviews";
 import { supportApi } from "@/api/support";
 import { tipsApi, type TipRecord } from "@/api/tips";
+import { ordersApi } from "@/api/orders";
 import { useOrderStore } from "@/stores/orders";
 import { dateLabel, maskedWriter, isStaff } from "../types";
 
@@ -388,12 +455,69 @@ async function submitCancel() {
   cancelReason.value = "";
 }
 
+// ── Operational notes ────────────────────────────────────────────────────────
+const notes = ref<OrderNote[]>([]);
+const notesLoading = ref(false);
+const noteBody = ref("");
+const noteSaving = ref(false);
+const noteError = ref("");
+
+function fmtDate(v: string): string {
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(v));
+}
+
+async function loadNotes() {
+  notesLoading.value = true;
+  try {
+    const { data } = await ordersApi.notes(props.orderId);
+    notes.value = data;
+  } catch {
+    notes.value = [];
+  } finally {
+    notesLoading.value = false;
+  }
+}
+
+async function addNote() {
+  if (!noteBody.value) return;
+  noteSaving.value = true;
+  noteError.value = "";
+  try {
+    const { data } = await ordersApi.createNote(props.orderId, noteBody.value);
+    notes.value = [data, ...notes.value];
+    noteBody.value = "";
+  } catch {
+    noteError.value = "Failed to save note.";
+  } finally {
+    noteSaving.value = false;
+  }
+}
+
+async function togglePin(note: OrderNote) {
+  try {
+    const { data } = await ordersApi.patchNote(props.orderId, note.id, { is_pinned: !note.is_pinned });
+    const idx = notes.value.findIndex((n) => n.id === note.id);
+    if (idx !== -1) notes.value[idx] = data;
+    notes.value = [...notes.value].sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
+  } catch { /* keep current state */ }
+}
+
+async function removeNote(noteId: number) {
+  try {
+    await ordersApi.deleteNote(props.orderId, noteId);
+    notes.value = notes.value.filter((n) => n.id !== noteId);
+  } catch { /* keep current state */ }
+}
+
 // Load existing review on mount
 import { onMounted } from "vue";
 onMounted(async () => {
   if (props.role === "client") {
     try { const { data } = await reviewsApi.forOrder(props.orderId); existingReview.value = data; }
     catch { existingReview.value = null; }
+  }
+  if (isStaff(props.role)) {
+    loadNotes();
   }
 });
 </script>

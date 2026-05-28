@@ -11,6 +11,7 @@ from orders.models.orders.order_interest import OrderInterest
 from orders.models.orders.order_assignment import OrderAssignment
 from orders.models.orders.order_hold import OrderHold
 from orders.models.orders.order_flag import OrderFlag
+from orders.models.orders.order_operational_note import OrderOperationalNote
 
 # Revisions
 from orders.models.revisions.order_revision_request import (

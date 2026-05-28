@@ -6,6 +6,7 @@ import type {
   OrderActionResponse,
   OrderInterestRecord,
   OrderLifecycle,
+  OrderNote,
   OrderSummary,
   RevisionRequest,
   RevisionRequestPayload,
@@ -47,4 +48,13 @@ export const ordersApi = {
     api.get<OrderInterestRecord[]>(ordersApiPath(`/orders/${id}/staffing/interests/`)),
   assignFromInterest: (interestId: number | string) =>
     api.post<OrderActionResponse>(ordersApiPath(`/staffing/interests/${interestId}/assign/`), {}),
+  // Operational notes (staff-only)
+  notes: (id: number | string) =>
+    api.get<OrderNote[]>(ordersApiPath(`/orders/${id}/notes/`)),
+  createNote: (id: number | string, body: string) =>
+    api.post<OrderNote>(ordersApiPath(`/orders/${id}/notes/`), { body }),
+  patchNote: (orderId: number | string, noteId: number, patch: { is_pinned?: boolean }) =>
+    api.patch<OrderNote>(ordersApiPath(`/orders/${orderId}/notes/${noteId}/`), patch),
+  deleteNote: (orderId: number | string, noteId: number) =>
+    api.delete(ordersApiPath(`/orders/${orderId}/notes/${noteId}/`)),
 };
