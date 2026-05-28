@@ -281,7 +281,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       :class="ui.sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-[220px]'"
     >
       <!-- Header -->
-      <header class="sticky top-0 z-10 flex h-13 items-center border-b border-slate-200 bg-white/95 px-4 backdrop-blur-sm lg:px-6">
+      <header class="sticky top-0 z-10 flex items-center border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-sm lg:px-6">
         <!-- Mobile burger -->
         <button
           class="focus-ring mr-3 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-slate-200 text-graphite hover:bg-slate-50 lg:hidden"

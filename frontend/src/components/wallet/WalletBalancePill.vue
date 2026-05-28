@@ -25,10 +25,10 @@ onMounted(() => {
 <template>
   <div
     v-if="shouldShow"
-    class="hidden min-h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-ink md:inline-flex"
+    class="hidden min-h-8 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-800 md:inline-flex"
     title="Wallet balance"
   >
-    <Wallet class="h-4 w-4 text-signal" />
+    <Wallet class="h-3.5 w-3.5 text-emerald-600" />
     <span>{{ formattedBalance }}</span>
   </div>
 </template>
