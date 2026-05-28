@@ -101,3 +101,6 @@ SILENCED_SYSTEM_CHECKS = [
     *SILENCED_SYSTEM_CHECKS,  # noqa: F405
     "notifications_system.W001",
 ]
+
+# Use DB sessions locally — no Redis required
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
