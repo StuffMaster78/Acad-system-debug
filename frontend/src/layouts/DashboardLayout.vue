@@ -260,6 +260,18 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
           </div>
           <Settings v-if="!ui.sidebarCollapsed" class="h-[13px] w-[13px] shrink-0 text-zinc-700" aria-hidden="true" />
         </RouterLink>
+
+        <!-- Sign out -->
+        <button
+          class="focus-ring flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-zinc-600 transition-colors hover:bg-white/[0.04] hover:text-zinc-300"
+          :class="ui.sidebarCollapsed ? 'justify-center' : ''"
+          :title="ui.sidebarCollapsed ? 'Sign out' : undefined"
+          type="button"
+          @click="auth.logout()"
+        >
+          <LogOut class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span v-if="!ui.sidebarCollapsed">Sign out</span>
+        </button>
       </div>
     </aside>
 

@@ -211,10 +211,7 @@ onMounted(loadConfig);
       <div class="space-y-4">
         <!-- Order brief -->
         <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <div class="flex items-center gap-3">
-            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">1</span>
-            <h2 class="text-base font-semibold text-ink">Order brief</h2>
-          </div>
+          <h2 class="text-base font-semibold text-ink">Order brief</h2>
 
           <label class="block">
             <span class="text-sm font-medium text-ink">Topic <span class="text-rose-500" aria-hidden="true">*</span></span>
@@ -241,96 +238,60 @@ onMounted(loadConfig);
         </section>
 
         <!-- Paper specifics -->
-        <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <div class="flex items-center gap-3">
-            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">2</span>
-            <h2 class="text-base font-semibold text-ink">Paper specifics</h2>
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="text-base font-semibold text-ink">Paper specifics</h2>
+
+          <!-- Loading skeleton -->
+          <div v-if="config.isLoading" class="mt-4 grid gap-4 sm:grid-cols-2" aria-hidden="true">
+            <div v-for="n in 6" :key="n" class="animate-pulse space-y-1.5">
+              <div class="h-3.5 w-24 rounded bg-slate-200" />
+              <div class="h-11 rounded-md border border-slate-200 bg-slate-100" />
+            </div>
           </div>
 
-          <div class="grid gap-4 sm:grid-cols-2">
-            <!-- Paper type -->
-            <div>
-              <ConfigSelect
-                v-if="config.collections.paperTypes.length"
-                v-model="form.paper_type_id"
-                label="Paper type"
-                :options="config.collections.paperTypes"
-              />
-              <label v-else class="block">
-                <span class="text-sm font-medium text-graphite">Paper type</span>
-                <input v-model="form.paper_type_code" class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="essay" />
-              </label>
-            </div>
-
-            <!-- Type of work -->
-            <div>
-              <ConfigSelect
-                v-if="config.collections.typesOfWork.length"
-                v-model="form.type_of_work_id"
-                label="Type of work"
-                :options="config.collections.typesOfWork"
-              />
-              <label v-else class="block">
-                <span class="text-sm font-medium text-graphite">Type of work</span>
-                <input v-model="form.work_type_code" class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="writing" />
-              </label>
-            </div>
-
-            <!-- Subject -->
-            <div>
-              <ConfigSelect
-                v-if="config.collections.subjects.length"
-                v-model="form.subject_id"
-                label="Subject"
-                :options="config.collections.subjects"
-              />
-              <label v-else class="block">
-                <span class="text-sm font-medium text-graphite">Subject</span>
-                <input v-model="form.subject_code" class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="general" />
-              </label>
-            </div>
-
-            <!-- Academic level -->
-            <div>
-              <ConfigSelect
-                v-if="config.collections.academicLevels.length"
-                v-model="form.academic_level_id"
-                label="Academic level"
-                :options="config.collections.academicLevels"
-              />
-              <label v-else class="block">
-                <span class="text-sm font-medium text-graphite">Academic level</span>
-                <input v-model="form.academic_level_code" class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="undergraduate" />
-              </label>
-            </div>
-
-            <!-- Formatting style -->
-            <div v-if="config.collections.formattingStyles.length">
-              <ConfigSelect
-                v-model="form.formatting_style_id"
-                label="Formatting / citation style"
-                :options="config.collections.formattingStyles"
-              />
-            </div>
-
-            <!-- English type -->
-            <div v-if="config.collections.englishTypes.length">
-              <ConfigSelect
-                v-model="form.english_type_id"
-                label="English type"
-                placeholder="Any"
-                :options="config.collections.englishTypes"
-              />
-            </div>
+          <div v-else class="mt-4 grid gap-4 sm:grid-cols-2">
+            <ConfigSelect
+              v-model="form.paper_type_id"
+              label="Paper type"
+              placeholder="Select paper type"
+              :options="config.collections.paperTypes"
+            />
+            <ConfigSelect
+              v-model="form.type_of_work_id"
+              label="Type of work"
+              placeholder="Select type of work"
+              :options="config.collections.typesOfWork"
+            />
+            <ConfigSelect
+              v-model="form.subject_id"
+              label="Subject"
+              placeholder="Select subject"
+              :options="config.collections.subjects"
+            />
+            <ConfigSelect
+              v-model="form.academic_level_id"
+              label="Academic level"
+              placeholder="Select academic level"
+              :options="config.collections.academicLevels"
+            />
+            <ConfigSelect
+              v-model="form.formatting_style_id"
+              label="Formatting / citation style"
+              placeholder="None"
+              :options="config.collections.formattingStyles"
+            />
+            <ConfigSelect
+              v-model="form.english_type_id"
+              label="English type"
+              placeholder="Any"
+              :options="config.collections.englishTypes"
+            />
           </div>
         </section>
 
         <!-- Scope and deadline -->
         <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <div class="flex items-center gap-3">
-            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">3</span>
-            <h2 class="text-base font-semibold text-ink">Scope &amp; deadline</h2>
-          </div>
+          <h2 class="text-base font-semibold text-ink">Scope &amp; deadline</h2>
 
           <div class="grid gap-4 sm:grid-cols-3">
             <label class="block">
@@ -375,12 +336,9 @@ onMounted(loadConfig);
         <!-- Reference files -->
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-              <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">4</span>
-              <div>
+            <div>
               <h2 class="text-base font-semibold text-ink">Reference materials</h2>
               <p class="mt-0.5 text-xs text-graphite">Attach your assignment brief, rubric, examples, or any files the writer needs.</p>
-              </div>
             </div>
             <button
               class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-ink"

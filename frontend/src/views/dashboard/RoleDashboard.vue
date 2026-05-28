@@ -60,6 +60,12 @@ const greeting = computed(() => {
   return firstName.value ? `${base}, ${firstName.value}` : base;
 });
 
+const greetingSubtitle = computed(() =>
+  isFirstVisit.value
+    ? "Welcome to your workspace. Everything you need is in the sidebar."
+    : "Here's what's happening with your account. Everything you need is in the sidebar.",
+);
+
 const quickNavItems = computed(() => {
   const groups = groupedNavigationByRole[props.role];
   return groups.flatMap((g) => g.items).slice(1, 9);
@@ -105,9 +111,7 @@ function metricIcon(label: string): Component | undefined {
     <div class="flex items-start justify-between gap-4">
       <div>
         <h1 class="text-xl font-semibold tracking-tight text-ink">{{ greeting }}</h1>
-        <p class="mt-0.5 max-w-xl text-sm text-graphite">
-          {{ isFirstVisit ? "Here's your workspace — everything you need is in the sidebar." : dashboard.subtitle }}
-        </p>
+        <p class="mt-0.5 max-w-xl text-sm text-graphite">{{ greetingSubtitle }}</p>
       </div>
       <button
         class="focus-ring flex shrink-0 items-center gap-2 rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
