@@ -27,14 +27,14 @@ const auth = useAuthStore();
 
 const PRESETS = [10, 25, 50, 100, 200];
 
+const isDev = import.meta.env.DEV;
+
 const topup = reactive({
   preset: null as number | null,
   custom: "",
-  provider: "stripe" as "stripe" | "mpesa",
-  phone: "",
+  provider: "stripe" as "stripe" | "mock",
 });
 const topupError = ref("");
-const mpesaPending = ref(false);
 const previewSuccess = ref(false);
 
 const topupAmount = () => {
@@ -55,35 +55,20 @@ function onCustomInput() {
 async function checkout() {
   topupError.value = "";
   previewSuccess.value = false;
-  mpesaPending.value = false;
 
   const amount = topupAmount();
   if (!amount) {
     topupError.value = "Select or enter an amount to continue.";
     return;
   }
-  if (topup.provider === "mpesa" && !topup.phone.trim()) {
-    topupError.value = "Enter your M-Pesa phone number.";
-    return;
-  }
 
   try {
-    const result = await wallets.initiateTopup({
-      amount,
-      payment_provider: topup.provider,
-      payment_method_code: topup.provider === "mpesa" ? "mpesa" : "card",
-      phone: topup.provider === "mpesa" ? topup.phone.trim() : undefined,
-    });
+    await wallets.initiateTopup({ amount, provider: topup.provider });
 
     if (auth.isPreviewSession) {
       previewSuccess.value = true;
       topup.preset = null;
       topup.custom = "";
-      return;
-    }
-
-    if (topup.provider === "mpesa" && !result.checkout_url) {
-      mpesaPending.value = true;
     }
   } catch {
     topupError.value = "Checkout failed. Please try again.";
@@ -447,29 +432,8 @@ onMounted(() => {
             <h2 class="text-base font-semibold text-ink">Top up wallet</h2>
           </div>
 
-          <!-- M-Pesa STK pending state -->
-          <div v-if="mpesaPending" class="space-y-4 px-5 py-6">
-            <div class="flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4">
-              <Smartphone class="mt-0.5 h-5 w-5 shrink-0 text-signal" />
-              <div>
-                <p class="text-sm font-semibold text-ink">Check your phone</p>
-                <p class="mt-1 text-sm text-graphite">
-                  An M-Pesa payment prompt has been sent to <strong>{{ topup.phone }}</strong>.
-                  Enter your PIN to complete the top-up.
-                </p>
-              </div>
-            </div>
-            <button
-              class="focus-ring w-full rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-graphite hover:bg-slate-50"
-              type="button"
-              @click="mpesaPending = false"
-            >
-              ← Use a different method
-            </button>
-          </div>
-
           <!-- Preview success -->
-          <div v-else-if="previewSuccess" class="space-y-4 px-5 py-6">
+          <div v-if="previewSuccess" class="space-y-4 px-5 py-6">
             <div class="flex items-center gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4">
               <CheckCircle2 class="h-5 w-5 shrink-0 text-signal" />
               <p class="text-sm font-semibold text-ink">Wallet topped up (preview mode)</p>
@@ -484,7 +448,7 @@ onMounted(() => {
           </div>
 
           <!-- Checkout form -->
-          <div v-else class="space-y-5 px-5 py-5">
+          <div v-else-if="!previewSuccess" class="space-y-5 px-5 py-5">
             <!-- Amount presets -->
             <div>
               <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Amount</p>
@@ -537,32 +501,19 @@ onMounted(() => {
                 </label>
 
                 <label
+                  v-if="isDev"
                   class="flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors"
-                  :class="topup.provider === 'mpesa' ? 'border-ink bg-slate-50 ring-1 ring-ink' : 'border-slate-200 hover:border-slate-400'"
+                  :class="topup.provider === 'mock' ? 'border-ink bg-slate-50 ring-1 ring-ink' : 'border-slate-200 hover:border-slate-400'"
                 >
-                  <input v-model="topup.provider" class="sr-only" type="radio" value="mpesa" />
+                  <input v-model="topup.provider" class="sr-only" type="radio" value="mock" />
                   <Smartphone class="h-4 w-4 shrink-0 text-graphite" />
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-ink">M-Pesa</p>
-                    <p class="text-xs text-graphite">STK push to your registered number</p>
+                    <p class="text-sm font-semibold text-ink">Mock <span class="text-xs font-normal text-graphite">(dev only)</span></p>
+                    <p class="text-xs text-graphite">Simulates checkout without a real payment</p>
                   </div>
-                  <CheckCircle2 v-if="topup.provider === 'mpesa'" class="h-4 w-4 shrink-0 text-ink" />
+                  <CheckCircle2 v-if="topup.provider === 'mock'" class="h-4 w-4 shrink-0 text-ink" />
                 </label>
               </div>
-            </div>
-
-            <!-- M-Pesa phone -->
-            <div v-if="topup.provider === 'mpesa'">
-              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5" for="topup-phone">
-                M-Pesa phone number
-              </label>
-              <input
-                id="topup-phone"
-                v-model="topup.phone"
-                class="focus-ring h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
-                type="tel"
-                placeholder="e.g. 0712 345 678"
-              />
             </div>
 
             <p v-if="topupError" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">
@@ -577,7 +528,7 @@ onMounted(() => {
             >
               <Loader2 v-if="wallets.isMutating" class="h-4 w-4 animate-spin" />
               <template v-else>
-                {{ topup.provider === "mpesa" ? "Send M-Pesa prompt" : "Proceed to checkout" }}
+                {{ topup.provider === "mock" ? "Simulate top-up" : "Proceed to checkout" }}
                 <span v-if="topupAmount()">— {{ wallets.currency }} {{ topupAmount() }}</span>
               </template>
             </button>

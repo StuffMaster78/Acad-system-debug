@@ -22,5 +22,14 @@ export const walletsApi = {
   requestPayout: (payload: PayoutRequestPayload) =>
     api.post<PayoutRequest>(apiPath("/wallets/me/payout-requests/"), payload),
   initiateTopup: (payload: TopupPayload) =>
-    api.post<TopupResponse>(apiPath("/wallets/me/topup/"), payload),
+    api.post<{ payment_intent: TopupResponse["payment_intent"]; provider_data: Record<string, unknown> }>(
+      apiPath("/payments/checkout/"),
+      {
+        provider: payload.provider,
+        purpose: "wallet_top_up",
+        amount: payload.amount,
+        currency: payload.currency ?? "USD",
+        metadata: payload.metadata ?? {},
+      },
+    ),
 };

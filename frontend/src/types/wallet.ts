@@ -51,15 +51,25 @@ export interface PayoutRequestPayload {
 
 export interface TopupPayload {
   amount: string | number;
-  payment_provider: "stripe" | "mpesa";
-  payment_method_code?: string;
-  phone?: string;
+  provider: "stripe" | "mock";
+  currency?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface TopupPaymentIntent {
+  id: number;
+  reference: string;
+  purpose: string;
+  provider: string;
+  status: string;
+  currency: string;
+  amount: string;
+  created_at: string;
 }
 
 export interface TopupResponse {
-  status: string;
-  message?: string;
   checkout_url?: string;
-  reference?: string;
-  checkout_started?: boolean;
+  status?: string;
+  payment_intent?: TopupPaymentIntent;
+  provider_data?: Record<string, unknown>;
 }

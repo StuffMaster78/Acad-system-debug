@@ -127,18 +127,24 @@ export const useWalletStore = defineStore("wallets", () => {
             direction: "credit",
             status: "posted",
             amount: payload.amount,
-            description: `Preview top-up via ${payload.payment_provider}`,
+            description: `Preview top-up via ${payload.provider}`,
             created_at: new Date().toISOString(),
           },
           ...entries.value,
         ];
-        return { status: "success", checkout_started: false };
+        return { status: "success" };
       }
       const { data } = await walletsApi.initiateTopup(payload);
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
+      const checkoutUrl = data.provider_data?.checkout_url as string | undefined;
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
       }
-      return data;
+      return {
+        payment_intent: data.payment_intent,
+        provider_data: data.provider_data,
+        checkout_url: checkoutUrl,
+        status: data.payment_intent?.status,
+      };
     } finally {
       isMutating.value = false;
     }

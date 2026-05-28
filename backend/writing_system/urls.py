@@ -71,6 +71,7 @@ path("api/v1/special-orders/", include("special_orders.urls")),
     path("api/v1/billing/", include("billing.urls")),
 
     # ── Payments, wallets & ledger ─────────────────────────────────────────────
+    path("api/v1/payments/", include("payments_processor.urls", namespace="payments")),
     path("api/v1/wallets/", include("wallets.urls", namespace="wallets")),
     path("api/v1/ledger/", include("ledger.urls", namespace="ledger")),
     path("api/v1/refunds/", include("refunds.urls")),
