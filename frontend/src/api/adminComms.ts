@@ -90,6 +90,43 @@ export interface CreateEmailTemplatePayload {
   is_global?: boolean;
 }
 
+export interface EmailProvider {
+  id: number;
+  website: number;
+  provider_name: "smtp" | "sendgrid" | "mailgun";
+  api_key: string;
+  sender_email: string;
+  sender_name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CreateEmailProviderPayload {
+  website: number;
+  provider_name: "smtp" | "sendgrid" | "mailgun";
+  api_key: string;
+  sender_email: string;
+  sender_name: string;
+  is_active?: boolean;
+}
+
+export interface CampaignRecipient {
+  id: number;
+  email: string;
+  status: string;
+  campaign: {
+    id: number;
+    title: string;
+    subject: string;
+    status: string;
+    email_type: string;
+    sent_time: string | null;
+  } | null;
+  sent_at: string | null;
+  opened_at: string | null;
+  error_message: string | null;
+}
+
 export interface CampaignAnalyticsRow {
   campaign_id: number;
   title: string;
@@ -165,4 +202,26 @@ export const adminCommsApi = {
   // Campaign analytics
   campaignAnalytics: (params?: { start?: string; end?: string }) =>
     api.get<CampaignAnalyticsRow[]>(apiPath("/mass-emails/analytics/campaigns/"), { params }),
+  campaignTrending: () =>
+    api.get<Record<string, unknown>>(apiPath("/mass-emails/analytics/trending/")),
+
+  // Email providers
+  providers: () =>
+    api.get<ListResponse<EmailProvider>>(apiPath("/mass-emails/providers/")),
+  createProvider: (payload: CreateEmailProviderPayload) =>
+    api.post<EmailProvider>(apiPath("/mass-emails/providers/"), payload),
+  updateProvider: (id: number, payload: Partial<CreateEmailProviderPayload>) =>
+    api.patch<EmailProvider>(apiPath(`/mass-emails/providers/${id}/`), payload),
+  deleteProvider: (id: number) =>
+    api.delete(apiPath(`/mass-emails/providers/${id}/`)),
+
+  // Campaign recipients
+  recipients: (params?: Record<string, unknown>) =>
+    api.get<ListResponse<CampaignRecipient>>(apiPath("/mass-emails/recipients/"), { params }),
+
+  // Admin email history (lookup by user_id)
+  adminEmailHistory: (userId: number, params?: { status?: string; email_type?: string }) =>
+    api.get<ListResponse<CampaignRecipient>>(apiPath("/mass-emails/admin/email-history/"), {
+      params: { user_id: userId, ...params },
+    }),
 };
