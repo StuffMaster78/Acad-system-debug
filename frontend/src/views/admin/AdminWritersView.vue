@@ -179,6 +179,8 @@ onMounted(() => {
         </div>
 
         <div class="mt-5 overflow-hidden rounded-md border border-slate-200">
+          <div class="overflow-x-auto">
+          <div class="min-w-[640px]">
           <div class="grid grid-cols-[32px_1fr_120px_140px_120px_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <label class="flex items-center">
               <input
@@ -231,6 +233,8 @@ onMounted(() => {
               type="button"
               @click="writers.selectWriter(writer.registration_id)"
             >Inspect</button>
+          </div>
+          </div>
           </div>
         </div>
 

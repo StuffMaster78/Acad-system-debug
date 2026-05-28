@@ -202,6 +202,8 @@ onMounted(async () => {
             to pick up work.
           </div>
           <div v-else class="overflow-hidden rounded-md border border-slate-200">
+            <div class="overflow-x-auto">
+            <div class="min-w-[360px]">
             <div class="grid grid-cols-[1fr_auto_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <span>Order</span>
               <span>Status</span>
@@ -227,6 +229,8 @@ onMounted(async () => {
                 />
               </span>
             </RouterLink>
+            </div>
+            </div>
           </div>
 
           <RouterLink
@@ -404,6 +408,8 @@ onMounted(async () => {
       </div>
 
       <div class="mt-5 overflow-hidden rounded-md border border-slate-200">
+        <div class="overflow-x-auto">
+        <div class="min-w-[360px]">
         <div class="grid grid-cols-[1fr_auto_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
           <span>Event</span>
           <span>Status</span>
@@ -420,6 +426,8 @@ onMounted(async () => {
           <span class="font-medium text-ink">{{ event.description ?? event.event_type ?? "Compensation event" }}</span>
           <StatusPill :label="event.status ?? 'recorded'" tone="neutral" />
           <span class="text-right font-semibold text-ink">{{ money(event.net_amount ?? event.amount) }}</span>
+        </div>
+        </div>
         </div>
       </div>
 
