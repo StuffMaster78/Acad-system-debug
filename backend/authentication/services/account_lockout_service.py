@@ -25,7 +25,7 @@ class AccountLockoutService:
             defaults={
                 "reason": reason,
                 "locked_at": now(),
-                "active": True
+                "is_active": True
             }
         )
 
@@ -36,8 +36,8 @@ class AccountLockoutService:
         return AccountLockout.objects.filter(
             user=self.user,
             website=self.website,
-            active=True
-        ).update(active=False)
+            is_active=True
+        ).update(is_active=False)
 
     def is_account_locked(self):
         """
@@ -64,5 +64,5 @@ class AccountLockoutService:
         return AccountLockout.objects.filter(
             user=self.user,
             website=self.website,
-            active=True
+            is_active=True
         ).first()

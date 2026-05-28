@@ -536,7 +536,7 @@ class LoginSecurityService:
         active_lockout = AccountLockout.objects.filter(
             user=user,
             website=website,
-            active=True,
+            is_active=True,
         ).first()
 
         if active_lockout is not None:

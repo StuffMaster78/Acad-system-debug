@@ -32,7 +32,7 @@ class AccountLockoutService:
             user=self.user,
             website=self.website,
             reason=reason,
-            active=True
+            is_active=True
         )
 
     def unlock_account(self):
@@ -45,8 +45,8 @@ class AccountLockoutService:
         return AccountLockout.objects.filter(
             user=self.user,
             website=self.website,
-            active=True
-        ).update(active=False)
+            is_active=True
+        ).update(is_active=False)
 
     def is_locked(self):
         """
@@ -58,7 +58,7 @@ class AccountLockoutService:
         return AccountLockout.objects.filter(
             user=self.user,
             website=self.website,
-            active=True
+            is_active=True
         ).exists()
 
     def get_lockout_reasons(self):
@@ -71,5 +71,5 @@ class AccountLockoutService:
         return AccountLockout.objects.filter(
             user=self.user,
             website=self.website,
-            active=True
+            is_active=True
         )
