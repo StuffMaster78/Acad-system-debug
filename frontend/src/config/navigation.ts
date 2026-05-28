@@ -51,6 +51,11 @@ export interface NavItem {
   separator?: boolean;
 }
 
+export interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
 export const roleHome: Record<UserRole, string> = {
   superadmin: "/superadmin",
   admin: "/admin",
@@ -133,6 +138,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Available", to: "/writer/available", icon: Inbox },
     { label: "Assignments", to: "/writer/assignments", icon: ClipboardList },
     { label: "Classes", to: "/writer/classes", icon: BookOpen },
+    { label: "Special Orders", to: "/writer/special-orders", icon: Sparkles },
     { label: "Earnings", to: "/writer/earnings", icon: Wallet },
     { label: "Calendar", to: "/writer/calendar", icon: CalendarDays },
     { label: "Bids", to: "/writer/bids", icon: Send },
@@ -184,5 +190,188 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Announcements", to: "/support/announcements", icon: Megaphone },
     { label: "Notifications", to: "/support/notifications", icon: Bell },
     { label: "Settings", to: "/support/config", icon: Wrench, separator: true },
+  ],
+};
+
+export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
+  superadmin: [
+    { label: "Command", items: [
+      { label: "Command", to: "/superadmin", icon: ShieldCheck },
+      { label: "Tenants", to: "/superadmin/tenants", icon: BriefcaseBusiness },
+      { label: "Ops Intel", to: "/superadmin/ops", icon: BarChart3 },
+      { label: "Activity", to: "/superadmin/activity", icon: Activity },
+      { label: "Audit Log", to: "/superadmin/audit", icon: ShieldAlert },
+    ]},
+    { label: "Work", items: [
+      { label: "Orders", to: "/superadmin/orders", icon: ClipboardList },
+      { label: "Writers", to: "/superadmin/writers", icon: Users },
+      { label: "Clients", to: "/superadmin/clients", icon: Users },
+    ]},
+    { label: "Finance", items: [
+      { label: "Finance", to: "/superadmin/finance", icon: CreditCard },
+      { label: "Payments", to: "/superadmin/payments", icon: CreditCard },
+      { label: "Refunds", to: "/superadmin/refunds", icon: RotateCcw },
+      { label: "Compensation", to: "/superadmin/compensation", icon: TrendingUp },
+      { label: "Wallets", to: "/superadmin/wallets", icon: Wallet },
+      { label: "Ledger", to: "/superadmin/ledger", icon: Scale },
+      { label: "Financials", to: "/superadmin/financials", icon: Activity },
+    ]},
+    { label: "Growth", items: [
+      { label: "Growth", to: "/superadmin/growth", icon: Percent },
+      { label: "Loyalty", to: "/superadmin/loyalty", icon: Gift },
+      { label: "Rewards", to: "/superadmin/rewards", icon: Medal },
+      { label: "Discounts", to: "/superadmin/discounts", icon: Percent },
+    ]},
+    { label: "Platform", items: [
+      { label: "Access", to: "/superadmin/access", icon: KeyRound },
+      { label: "Comms", to: "/superadmin/communications", icon: Megaphone },
+      { label: "Email", to: "/superadmin/email", icon: Mail },
+      { label: "Holidays", to: "/superadmin/holidays", icon: CalendarDays },
+      { label: "Publishing", to: "/superadmin/publishing", icon: Newspaper },
+      { label: "Files", to: "/superadmin/files", icon: FolderOpen },
+      { label: "Analytics", to: "/superadmin/analytics", icon: BarChart3 },
+      { label: "Website", to: "/superadmin/website", icon: Globe },
+    ]},
+    { label: "Config", items: [
+      { label: "Settings", to: "/superadmin/settings", icon: Settings },
+      { label: "Support", to: "/superadmin/support", icon: LifeBuoy },
+      { label: "Config Hub", to: "/superadmin/config", icon: Wrench },
+    ]},
+  ],
+  admin: [
+    { label: "Operations", items: [
+      { label: "Operations", to: "/admin", icon: Gauge },
+      { label: "Ops Intel", to: "/admin/ops", icon: BarChart3 },
+      { label: "Activity", to: "/admin/activity", icon: Activity },
+    ]},
+    { label: "Work", items: [
+      { label: "Orders", to: "/admin/orders", icon: ClipboardList },
+      { label: "Bids", to: "/admin/bids", icon: DollarSign },
+      { label: "Classes", to: "/admin/classes", icon: BookOpen },
+      { label: "Special Orders", to: "/admin/special-orders", icon: Sparkles },
+      { label: "Disputes", to: "/admin/disputes", icon: ShieldAlert },
+      { label: "Reviews", to: "/admin/reviews", icon: Star },
+    ]},
+    { label: "People", items: [
+      { label: "Writers", to: "/admin/writers", icon: Users },
+      { label: "Clients", to: "/admin/clients", icon: Users },
+    ]},
+    { label: "Finance", items: [
+      { label: "Payments", to: "/admin/payments", icon: CreditCard },
+      { label: "Refunds", to: "/admin/refunds", icon: RotateCcw },
+      { label: "Compensation", to: "/admin/compensation", icon: TrendingUp },
+      { label: "Wallets", to: "/admin/wallets", icon: Wallet },
+      { label: "Ledger", to: "/admin/ledger", icon: Scale },
+      { label: "Financials", to: "/admin/financials", icon: Activity },
+    ]},
+    { label: "Communications", items: [
+      { label: "Access", to: "/admin/access", icon: KeyRound },
+      { label: "Comms", to: "/admin/communications", icon: Megaphone },
+      { label: "Email", to: "/admin/email", icon: Mail },
+    ]},
+    { label: "Growth", items: [
+      { label: "Growth", to: "/admin/growth", icon: Percent },
+      { label: "Loyalty", to: "/admin/loyalty", icon: Gift },
+      { label: "Rewards", to: "/admin/rewards", icon: Medal },
+      { label: "Discounts", to: "/admin/discounts", icon: Percent },
+    ]},
+    { label: "Platform", items: [
+      { label: "Holidays", to: "/admin/holidays", icon: CalendarDays },
+      { label: "Publishing", to: "/admin/publishing", icon: Newspaper },
+      { label: "Files", to: "/admin/files", icon: FolderOpen },
+      { label: "Analytics", to: "/admin/analytics", icon: BarChart3 },
+      { label: "Website", to: "/admin/website", icon: Globe },
+    ]},
+    { label: "Config", items: [
+      { label: "Settings", to: "/admin/settings", icon: Settings },
+      { label: "Support", to: "/admin/support", icon: LifeBuoy },
+      { label: "Config Hub", to: "/admin/config", icon: Wrench },
+    ]},
+  ],
+  writer: [
+    { label: "Work", items: [
+      { label: "Workspace", to: "/writer", icon: Home },
+      { label: "Available", to: "/writer/available", icon: Inbox },
+      { label: "Assignments", to: "/writer/assignments", icon: ClipboardList },
+      { label: "Special Orders", to: "/writer/special-orders", icon: Sparkles },
+    ]},
+    { label: "Learning", items: [
+      { label: "Classes", to: "/writer/classes", icon: BookOpen },
+    ]},
+    { label: "Finance", items: [
+      { label: "Earnings", to: "/writer/earnings", icon: Wallet },
+      { label: "Bids", to: "/writer/bids", icon: Send },
+      { label: "Fines", to: "/writer/fines", icon: AlertTriangle },
+    ]},
+    { label: "Schedule", items: [
+      { label: "Calendar", to: "/writer/calendar", icon: CalendarDays },
+      { label: "Activity", to: "/writer/activity", icon: Activity },
+    ]},
+    { label: "Communication", items: [
+      { label: "Messages", to: "/writer/messages", icon: MessageSquare },
+      { label: "Announcements", to: "/writer/announcements", icon: Megaphone },
+      { label: "Notifications", to: "/writer/notifications", icon: Bell },
+    ]},
+  ],
+  client: [
+    { label: "Home", items: [
+      { label: "Home", to: "/client", icon: Home },
+      { label: "Activity", to: "/client/activity", icon: Activity },
+    ]},
+    { label: "Orders", items: [
+      { label: "My Orders", to: "/client/orders", icon: ClipboardList },
+      { label: "New Order", to: "/client/new-order", icon: FileText },
+      { label: "Classes", to: "/client/classes", icon: BookOpen },
+      { label: "Special Orders", to: "/client/special-orders", icon: Sparkles },
+    ]},
+    { label: "Finance", items: [
+      { label: "Wallet", to: "/client/wallet", icon: Wallet },
+      { label: "Billing", to: "/client/billing", icon: Receipt },
+      { label: "Loyalty", to: "/client/loyalty", icon: Star },
+      { label: "Referrals", to: "/client/referrals", icon: Users2 },
+    ]},
+    { label: "Support", items: [
+      { label: "Disputes", to: "/client/disputes", icon: ShieldAlert },
+      { label: "Messages", to: "/client/messages", icon: MessageSquare },
+      { label: "Announcements", to: "/client/announcements", icon: Megaphone },
+      { label: "Support", to: "/client/support", icon: LifeBuoy },
+      { label: "Notifications", to: "/client/notifications", icon: Bell },
+    ]},
+  ],
+  editor: [
+    { label: "Work", items: [
+      { label: "Desk", to: "/editor", icon: Home },
+      { label: "Activity", to: "/editor/activity", icon: Activity },
+      { label: "QA Queue", to: "/editor/qa", icon: ClipboardList },
+      { label: "Publishing", to: "/editor/publishing", icon: Newspaper },
+      { label: "Workload", to: "/editor/workload", icon: Gauge },
+      { label: "Analytics", to: "/editor/analytics", icon: BarChart3 },
+    ]},
+    { label: "Communication", items: [
+      { label: "Messages", to: "/editor/messages", icon: MessageSquare },
+      { label: "Announcements", to: "/editor/announcements", icon: Megaphone },
+      { label: "Notifications", to: "/editor/notifications", icon: Bell },
+    ]},
+    { label: "Config", items: [
+      { label: "Settings", to: "/editor/config", icon: Wrench },
+    ]},
+  ],
+  support: [
+    { label: "Work", items: [
+      { label: "Queue", to: "/support", icon: Headphones },
+      { label: "Activity", to: "/support/activity", icon: Activity },
+      { label: "Tickets", to: "/support/tickets", icon: LifeBuoy },
+      { label: "Orders", to: "/support/orders", icon: ClipboardList },
+      { label: "Escalations", to: "/support/escalations", icon: ShieldCheck },
+      { label: "Saved Replies", to: "/support/replies", icon: MessageSquare },
+    ]},
+    { label: "Communication", items: [
+      { label: "Messages", to: "/support/messages", icon: MessageSquare },
+      { label: "Announcements", to: "/support/announcements", icon: Megaphone },
+      { label: "Notifications", to: "/support/notifications", icon: Bell },
+    ]},
+    { label: "Config", items: [
+      { label: "Settings", to: "/support/config", icon: Wrench },
+    ]},
   ],
 };

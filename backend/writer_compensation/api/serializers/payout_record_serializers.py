@@ -75,6 +75,8 @@ class PayoutRecordHoldSerializer(serializers.Serializer):
  
 class PayoutRecordMarkPaidSerializer(serializers.Serializer):
     notes = serializers.CharField(max_length=1000, required=False, default="")
+    method = serializers.CharField(max_length=64, required=False, default="")
+    external_reference = serializers.CharField(max_length=255, required=False, default="")
  
  
 # ---------------------------------------------------------------------------

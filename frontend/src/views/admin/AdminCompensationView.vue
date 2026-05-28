@@ -138,7 +138,7 @@
                           >Confirm</button>
                           <button
                             v-if="rec.status === 'confirmed'"
-                            @click="doPayoutAction(rec, 'mark-paid')"
+                            @click="openMarkPaidDialog(rec)"
                             :disabled="actioning"
                             class="text-xs px-2 py-1 rounded border border-green-200 text-green-600 hover:bg-green-50 disabled:opacity-50"
                           >Mark Paid</button>
@@ -425,6 +425,42 @@
       </div>
     </div>
 
+    <!-- Mark payout paid -->
+    <div v-if="markPaidDialog.open" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+        <h3 class="font-semibold text-gray-800">Mark Paid — {{ markPaidDialog.writerName }}</h3>
+        <p class="text-xs text-gray-500">${{ markPaidDialog.amount }} payout</p>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Payment Method</label>
+            <select v-model="markPaidDialog.method" class="input">
+              <option value="">— Select method —</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="PayPal">PayPal</option>
+              <option value="Wise">Wise</option>
+              <option value="M-Pesa">M-Pesa</option>
+              <option value="Crypto">Crypto</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">External Reference / Transaction ID</label>
+            <input v-model="markPaidDialog.external_reference" class="input" placeholder="e.g. WIRE-20240510-001" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
+            <textarea v-model="markPaidDialog.notes" class="input h-16 resize-none" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button @click="markPaidDialog.open = false" class="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+          <button @click="doMarkPaid" :disabled="actioning || !markPaidDialog.method" class="btn-primary text-sm">
+            {{ actioning ? 'Saving…' : 'Mark Paid' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Reject cycle change -->
     <div v-if="rejectCycleDialog.open" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
@@ -513,6 +549,7 @@ const runSettlementWindowId = ref<number | null>(null);
 const newWindow = reactive({ cycle_type: "weekly", start_date: "", end_date: "" });
 
 const holdDialog = reactive({ open: false, recordId: 0, writerName: "", reason: "" });
+const markPaidDialog = reactive({ open: false, recordId: 0, writerName: "", amount: "", method: "", external_reference: "", notes: "" });
 const approveAdvanceDialog = reactive({ open: false, advanceId: 0, writerName: "", amount: "", notes: "" });
 const recoverAdvanceDialog = reactive({ open: false, advanceId: 0, writerName: "", amount: "", notes: "" });
 const rejectCycleDialog = reactive({ open: false, requestId: 0, writerName: "", reason: "" });
@@ -738,12 +775,43 @@ function openHoldDialog(rec: PayoutRecord) {
   holdDialog.reason = "";
 }
 
-async function doPayoutAction(rec: PayoutRecord, action: "confirm" | "mark-paid" | "release") {
+function openMarkPaidDialog(rec: PayoutRecord) {
+  markPaidDialog.open = true;
+  markPaidDialog.recordId = rec.id;
+  markPaidDialog.writerName = rec.writer_name;
+  markPaidDialog.amount = rec.total_amount;
+  markPaidDialog.method = "";
+  markPaidDialog.external_reference = "";
+  markPaidDialog.notes = "";
+}
+
+async function doMarkPaid() {
+  if (!markPaidDialog.method) return;
+  actioning.value = true;
+  try {
+    const updated = (await adminCompensationApi.markPaid(markPaidDialog.recordId, {
+      method: markPaidDialog.method,
+      external_reference: markPaidDialog.external_reference,
+      notes: markPaidDialog.notes,
+    })).data;
+    if (activeBatch.value) {
+      const idx = activeBatch.value.records.findIndex((r) => r.id === markPaidDialog.recordId);
+      if (idx !== -1) activeBatch.value.records[idx] = updated;
+    }
+    markPaidDialog.open = false;
+    showToast("Payout marked paid");
+  } catch {
+    showToast("Mark paid failed", "error");
+  } finally {
+    actioning.value = false;
+  }
+}
+
+async function doPayoutAction(rec: PayoutRecord, action: "confirm" | "release") {
   actioning.value = true;
   try {
     let updated: PayoutRecord;
     if (action === "confirm") updated = (await adminCompensationApi.confirmPayout(rec.id)).data;
-    else if (action === "mark-paid") updated = (await adminCompensationApi.markPaid(rec.id)).data;
     else updated = (await adminCompensationApi.releasePayout(rec.id)).data;
     if (activeBatch.value) {
       const idx = activeBatch.value.records.findIndex((r) => r.id === rec.id);

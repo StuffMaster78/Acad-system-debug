@@ -469,6 +469,8 @@ class AdminPayoutItemMarkPaidView(APIView):
                 record,
                 paid_by=request.user,
                 notes=validated_data["notes"],
+                method=validated_data.get("method", ""),
+                external_reference=validated_data.get("external_reference", ""),
             )
         except (InvalidPayoutItemTransitionError, CompensationError) as e:
             return _error(str(e), 409)

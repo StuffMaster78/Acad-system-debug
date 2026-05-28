@@ -76,10 +76,12 @@ class PayoutEngineService:
         record: PayoutRecord,
         paid_by,
         notes: str = "",
+        method: str = "",
+        external_reference: str = "",
     ) -> PayoutRecord:
         """
         CONFIRMED → PAID.
- 
+
         Admin has paid this writer externally.
         Stamps all linked MATURED CompensationEvents as PAID.
         """
@@ -88,14 +90,18 @@ class PayoutEngineService:
                 f"Record {record.pk} is {record.status}. "
                 "Confirm before marking paid."
             )
- 
+
         now = timezone.now()
         record.status = PayoutRecordStatus.PAID
         record.paid_at = now
         record.paid_by = paid_by
         if notes:
             record.notes = notes
-        record.save(update_fields=["status", "paid_at", "paid_by", "notes"])
+        if method:
+            record.method = method
+        if external_reference:
+            record.external_reference = external_reference
+        record.save(update_fields=["status", "paid_at", "paid_by", "notes", "method", "external_reference"])
 
         CompensationWalletSyncService.settle_payout_record(
             record=record,

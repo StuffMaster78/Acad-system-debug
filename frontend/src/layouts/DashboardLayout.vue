@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
-import { LogOut, Menu, Settings, UserCircle } from "@lucide/vue";
+import { ChevronRight, LogOut, Menu, Settings, UserCircle } from "@lucide/vue";
 import ActivityShortcut from "@/components/layout/ActivityShortcut.vue";
 import GlobalSearch from "@/components/layout/GlobalSearch.vue";
 import NotificationBell from "@/components/layout/NotificationBell.vue";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
 import WalletBalancePill from "@/components/wallet/WalletBalancePill.vue";
-import { navigationByRole } from "@/config/navigation";
+import { groupedNavigationByRole } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth";
 import { useUiStore } from "@/stores/ui";
 import { useNotifications } from "@/composables/useNotifications";
@@ -21,9 +21,26 @@ const route = useRoute();
 const auth = useAuthStore();
 const ui = useUiStore();
 const { isConnected } = useNotifications();
-const navItems = computed(() => navigationByRole[props.role]);
+const navGroups = computed(() => groupedNavigationByRole[props.role]);
 const userMenuOpen = ref(false);
 const userMenuRoot = ref<HTMLElement | null>(null);
+
+// Track which groups are open — auto-open the group containing the active route
+const openGroups = ref<Set<string>>(new Set());
+
+function syncOpenGroups() {
+  navGroups.value.forEach((group) => {
+    const hasActive = group.items.some((item) => isActive(item.to));
+    if (hasActive) openGroups.value.add(group.label);
+  });
+}
+
+watch(() => route.path, syncOpenGroups, { immediate: true });
+
+function toggleGroup(label: string) {
+  if (openGroups.value.has(label)) openGroups.value.delete(label);
+  else openGroups.value.add(label);
+}
 
 function isActive(path: string) {
   if (path === `/${props.role}`) return route.path === path;
@@ -60,18 +77,35 @@ onUnmounted(() => document.removeEventListener("mousedown", onUserMenuOutsideCli
       </div>
 
       <!-- Scrollable nav -->
-      <nav class="flex-1 overflow-y-auto px-3 py-4">
-        <template v-for="item in navItems" :key="item.to">
-          <div v-if="item.separator" class="my-3 border-t border-slate-100" />
-          <RouterLink
-            :to="item.to"
-            class="focus-ring flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-graphite"
-            :class="isActive(item.to) ? 'bg-mist text-ink' : 'hover:bg-slate-100'"
+      <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+        <div v-for="group in navGroups" :key="group.label">
+          <!-- Group header -->
+          <button
+            type="button"
+            class="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors"
+            @click="toggleGroup(group.label)"
           >
-            <component :is="item.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>{{ item.label }}</span>
-          </RouterLink>
-        </template>
+            <span>{{ group.label }}</span>
+            <ChevronRight
+              class="h-3.5 w-3.5 transition-transform duration-200"
+              :class="openGroups.has(group.label) ? 'rotate-90' : ''"
+            />
+          </button>
+
+          <!-- Group items -->
+          <div v-show="openGroups.has(group.label)" class="mt-0.5 space-y-0.5 mb-2">
+            <RouterLink
+              v-for="item in group.items"
+              :key="item.to"
+              :to="item.to"
+              class="focus-ring flex min-h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-graphite"
+              :class="isActive(item.to) ? 'bg-mist text-ink' : 'hover:bg-slate-100'"
+            >
+              <component :is="item.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{{ item.label }}</span>
+            </RouterLink>
+          </div>
+        </div>
       </nav>
 
       <!-- Pinned bottom strip -->

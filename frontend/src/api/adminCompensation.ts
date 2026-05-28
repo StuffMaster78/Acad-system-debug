@@ -230,8 +230,12 @@ export const adminCompensationApi = {
   // ── Payout items ───────────────────────────────────────────────────────────
   confirmPayout: (itemId: number) =>
     api.post<PayoutRecord>(base(`/admin/payout-items/${itemId}/confirm/`), {}),
-  markPaid: (itemId: number, notes?: string) =>
-    api.post<PayoutRecord>(base(`/admin/payout-items/${itemId}/mark-paid/`), { notes: notes ?? "" }),
+  markPaid: (itemId: number, payload: { notes?: string; method?: string; external_reference?: string } = {}) =>
+    api.post<PayoutRecord>(base(`/admin/payout-items/${itemId}/mark-paid/`), {
+      notes: payload.notes ?? "",
+      method: payload.method ?? "",
+      external_reference: payload.external_reference ?? "",
+    }),
   holdPayout: (itemId: number, reason: string) =>
     api.post<PayoutRecord>(base(`/admin/payout-items/${itemId}/hold/`), { reason }),
   releasePayout: (itemId: number) =>

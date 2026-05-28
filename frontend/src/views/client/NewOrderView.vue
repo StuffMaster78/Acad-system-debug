@@ -167,7 +167,7 @@ function pickFiles() {
 function onFilesSelected(event: Event) {
   const input = event.target as HTMLInputElement;
   if (!input.files?.length) return;
-  files.addToQueue(input.files, { purpose: "order_reference", visibility: "order_participants" });
+  files.addToQueue(input.files, "order_reference");
   input.value = "";
 }
 

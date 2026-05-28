@@ -376,6 +376,16 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "writer-class-detail",
         component: () => import("@/views/writer/WriterClassDetailView.vue"),
       },
+      {
+        path: "special-orders",
+        name: "writer-special-orders",
+        component: () => import("@/views/writer/WriterSpecialOrdersView.vue"),
+      },
+      {
+        path: "special-orders/:id",
+        name: "writer-special-order-detail",
+        component: () => import("@/views/client/ClientSpecialOrderDetailView.vue"),
+      },
     );
   }
 

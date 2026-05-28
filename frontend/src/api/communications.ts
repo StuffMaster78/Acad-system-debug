@@ -4,7 +4,8 @@ export type CommunicationThreadKind =
   | "client_support"
   | "client_writer"
   | "revision"
-  | "dispute";
+  | "dispute"
+  | "internal";
 
 export interface ThreadParticipant {
   id: number;
