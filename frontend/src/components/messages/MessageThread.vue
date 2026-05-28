@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
-import { ExternalLink, FileText, Image, Inbox, Lock, Loader2, Paperclip, Pencil, RefreshCw, Send, X } from "@lucide/vue";
+import { ArrowLeft, CheckCircle2, ExternalLink, FileText, Image, Inbox, Lock, Loader2, Paperclip, Pencil, RefreshCw, Search, Send, X } from "@lucide/vue";
 import type { CommunicationMessage, CommunicationThread, CommunicationThreadKind } from "@/api/communications";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
 import { useCommunicationsStore } from "@/stores/communications";
@@ -82,6 +82,55 @@ function clearAttachments() {
   attachments.value = [];
 }
 
+// ── Mobile panel control ───────────────────────────────────────────────────────
+const showMobilePane = ref(false); // false = list, true = message/compose pane
+
+// ── Thread list search + filter ───────────────────────────────────────────────
+const searchQuery = ref("");
+const filterKind = ref("all");
+const filterUnread = ref(false);
+
+const availableKinds = computed(() => {
+  const kinds = new Set(comms.inboxThreads.map((t) => t.kind));
+  return Array.from(kinds);
+});
+
+const filteredThreads = computed(() => {
+  let list = comms.inboxThreads;
+  if (filterUnread.value) list = list.filter((t) => unreadCount(t) > 0);
+  if (filterKind.value !== "all") list = list.filter((t) => t.kind === filterKind.value);
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase();
+    list = list.filter(
+      (t) =>
+        (t.subject ?? "").toLowerCase().includes(q) ||
+        String(t.target_id).includes(q),
+    );
+  }
+  return list;
+});
+
+const totalUnread = computed(() =>
+  comms.inboxThreads.reduce((sum, t) => sum + unreadCount(t), 0),
+);
+
+// ── Thread resolve ─────────────────────────────────────────────────────────────
+const isResolving = ref(false);
+async function resolveThread() {
+  if (!comms.activeThread) return;
+  isResolving.value = true;
+  try {
+    await comms.loadInboxThreads();
+  } finally {
+    isResolving.value = false;
+  }
+}
+
+function pickThread(thread: CommunicationThread) {
+  comms.selectThread(thread);
+  showMobilePane.value = true;
+}
+
 // ── New message compose ────────────────────────────────────────────────────────
 const showCompose = ref(false);
 const composeError = ref("");
@@ -100,6 +149,7 @@ function openCompose() {
   composeForm.body = "";
   composeError.value = "";
   showCompose.value = true;
+  showMobilePane.value = true;
 }
 
 function closeCompose() {
@@ -402,32 +452,85 @@ function senderUser(group: MessageGroup) {
 <template>
   <section class="grid min-h-[640px] gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
     <!-- ── Thread list (inbox sidebar) ──────────────────────────────────────── -->
-    <aside class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div class="flex min-h-14 items-center justify-between gap-2 border-b border-slate-200 px-4">
-        <h2 class="text-base font-semibold text-ink">Inbox</h2>
-        <div class="flex items-center gap-1.5">
+    <aside
+      class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white"
+      :class="showMobilePane ? 'hidden xl:flex' : 'flex'"
+    >
+      <!-- Sidebar header -->
+      <div class="border-b border-slate-200 px-4 py-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <h2 class="text-sm font-semibold text-ink">Inbox</h2>
+            <span
+              v-if="totalUnread"
+              class="rounded-full bg-signal px-2 py-0.5 text-xs font-bold text-white"
+            >{{ totalUnread }}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button
+              class="focus-ring rounded-md p-1.5 text-slate-400 hover:text-ink disabled:opacity-40"
+              type="button"
+              :title="comms.isLoading ? 'Loading…' : 'Refresh'"
+              :disabled="comms.isLoading"
+              @click="comms.loadInboxThreads()"
+            >
+              <RefreshCw class="h-3.5 w-3.5" :class="comms.isLoading ? 'animate-spin' : ''" />
+            </button>
+            <button
+              class="focus-ring inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors"
+              :class="showCompose
+                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                : 'bg-signal text-white hover:bg-signal/90'"
+              type="button"
+              @click="showCompose ? closeCompose() : openCompose()"
+            >
+              <X v-if="showCompose" class="h-3 w-3" />
+              <Pencil v-else class="h-3 w-3" />
+              {{ showCompose ? "Cancel" : "New" }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Search -->
+        <div class="relative mt-2.5">
+          <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <input
+            v-model="searchQuery"
+            class="focus-ring h-8 w-full rounded-md border border-slate-200 bg-slate-50 pl-8 pr-3 text-xs placeholder:text-slate-400"
+            type="search"
+            placeholder="Search by subject or order ID…"
+          />
+        </div>
+
+        <!-- Filter pills -->
+        <div class="mt-2 flex flex-wrap items-center gap-1.5">
           <button
-            class="focus-ring rounded-md p-1.5 text-slate-400 hover:text-ink disabled:opacity-40"
+            class="rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors"
+            :class="filterUnread ? 'bg-signal/10 text-signal' : 'text-graphite hover:text-ink'"
             type="button"
-            :title="comms.isLoading ? 'Loading…' : 'Refresh inbox'"
-            :disabled="comms.isLoading"
-            @click="comms.loadInboxThreads()"
+            @click="filterUnread = !filterUnread"
           >
-            <RefreshCw class="h-4 w-4" :class="comms.isLoading ? 'animate-spin' : ''" />
+            {{ filterUnread ? "Unread only" : "All" }}
           </button>
+          <span class="h-3 w-px bg-slate-200" />
           <button
-            class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-signal px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-signal/90 disabled:opacity-40"
+            class="rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors"
+            :class="filterKind === 'all' ? 'bg-slate-100 text-ink font-semibold' : 'text-graphite hover:text-ink'"
             type="button"
-            :class="showCompose ? 'bg-slate-600 hover:bg-slate-700' : ''"
-            @click="showCompose ? closeCompose() : openCompose()"
-          >
-            <X v-if="showCompose" class="h-3.5 w-3.5" />
-            <Pencil v-else class="h-3.5 w-3.5" />
-            {{ showCompose ? "Cancel" : "New message" }}
-          </button>
+            @click="filterKind = 'all'"
+          >All</button>
+          <button
+            v-for="kind in availableKinds"
+            :key="kind"
+            class="rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors"
+            :class="filterKind === kind ? 'bg-slate-100 text-ink font-semibold' : 'text-graphite hover:text-ink'"
+            type="button"
+            @click="filterKind = kind"
+          >{{ kindLabel(kind) }}</button>
         </div>
       </div>
 
+      <!-- Thread list body -->
       <div v-if="comms.isLoading && !comms.inboxThreads.length" class="space-y-px p-2">
         <div v-for="n in 4" :key="n" class="animate-pulse rounded-md p-4" aria-hidden="true">
           <div class="h-3.5 w-2/3 rounded bg-slate-200" />
@@ -442,18 +545,29 @@ function senderUser(group: MessageGroup) {
       <div v-else-if="!comms.inboxThreads.length" class="flex flex-1 items-center justify-center p-6 text-center">
         <div>
           <Inbox class="mx-auto h-8 w-8 text-slate-300" />
-          <p class="mt-2 text-sm text-graphite">No message threads yet.</p>
+          <p class="mt-2 text-sm font-medium text-ink">No conversations yet</p>
+          <p class="mt-1 text-xs text-graphite">Start a new message to begin.</p>
+        </div>
+      </div>
+
+      <div v-else-if="filteredThreads.length === 0" class="flex flex-1 items-center justify-center p-6 text-center">
+        <div>
+          <Search class="mx-auto h-7 w-7 text-slate-300" />
+          <p class="mt-2 text-sm text-graphite">No threads match your filter.</p>
+          <button class="mt-2 text-xs text-signal hover:underline" type="button" @click="searchQuery = ''; filterKind = 'all'; filterUnread = false">
+            Clear filters
+          </button>
         </div>
       </div>
 
       <div v-else class="flex-1 divide-y divide-slate-100 overflow-y-auto">
         <button
-          v-for="thread in comms.inboxThreads"
+          v-for="thread in filteredThreads"
           :key="thread.id"
-          class="focus-ring w-full px-4 py-4 text-left transition-colors hover:bg-slate-50"
+          class="focus-ring w-full px-4 py-3.5 text-left transition-colors hover:bg-slate-50"
           :class="thread.id === comms.activeThread?.id ? 'bg-slate-50' : 'bg-white'"
           type="button"
-          @click="comms.selectThread(thread)"
+          @click="pickThread(thread)"
         >
           <div class="flex items-start justify-between gap-2">
             <p class="line-clamp-2 text-sm font-semibold leading-5 text-ink">
@@ -461,24 +575,18 @@ function senderUser(group: MessageGroup) {
             </p>
             <span
               v-if="unreadCount(thread)"
-              class="shrink-0 rounded-full bg-signal px-2 py-0.5 text-xs font-semibold text-white"
-            >
-              {{ unreadCount(thread) }}
-            </span>
+              class="shrink-0 rounded-full bg-signal px-2 py-0.5 text-xs font-bold text-white"
+            >{{ unreadCount(thread) }}</span>
           </div>
-
-          <div class="mt-2 flex flex-wrap gap-1.5">
+          <div class="mt-1.5 flex flex-wrap gap-1">
             <span
               v-for="p in threadParticipants(thread)"
               :key="p"
               class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
               :class="roleStyle(p).badge"
-            >
-              {{ roleStyle(p).label }}
-            </span>
+            >{{ roleStyle(p).label }}</span>
           </div>
-
-          <p class="mt-2 text-xs text-slate-400">
+          <p class="mt-1.5 text-xs text-slate-400">
             #{{ thread.target_id }} · {{ dateLabel(thread.last_message_at) || "No messages" }}
           </p>
         </button>
@@ -486,11 +594,24 @@ function senderUser(group: MessageGroup) {
     </aside>
 
     <!-- ── Compose pane (replaces message pane when composing) ───────────────── -->
-    <main v-if="showCompose" class="flex min-h-[640px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <main
+      v-if="showCompose"
+      class="flex min-h-[640px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white"
+      :class="showMobilePane ? 'flex' : 'hidden xl:flex'"
+    >
       <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-        <div>
-          <h2 class="text-base font-semibold text-ink">New message</h2>
-          <p class="mt-0.5 text-xs text-graphite">Start a new conversation about an order.</p>
+        <div class="flex items-center gap-3">
+          <button
+            class="focus-ring xl:hidden rounded-md p-1 text-slate-400 hover:text-ink"
+            type="button"
+            @click="showMobilePane = false; closeCompose()"
+          >
+            <ArrowLeft class="h-4 w-4" />
+          </button>
+          <div>
+            <h2 class="text-base font-semibold text-ink">New message</h2>
+            <p class="mt-0.5 text-xs text-graphite">Start a new conversation about an order.</p>
+          </div>
         </div>
         <button class="focus-ring rounded-md p-1.5 text-slate-400 hover:text-ink" type="button" @click="closeCompose">
           <X class="h-4 w-4" />
@@ -584,40 +705,65 @@ function senderUser(group: MessageGroup) {
     </main>
 
     <!-- ── Message pane ──────────────────────────────────────────────────────── -->
-    <main v-else class="flex min-h-[640px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <main
+      v-else
+      class="flex min-h-[640px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white"
+      :class="showMobilePane ? 'flex' : 'hidden xl:flex'"
+    >
       <!-- Thread header -->
-      <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="min-w-0">
-          <h2 class="truncate text-base font-semibold text-ink">
-            {{ comms.activeThread?.subject || "Select a conversation" }}
-          </h2>
-          <div v-if="comms.activeThread" class="mt-2 flex flex-wrap items-center gap-2">
-            <span
-              v-for="p in threadParticipants(comms.activeThread)"
-              :key="p"
-              class="rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
-              :class="roleStyle(p).badge"
-            >
-              {{ roleStyle(p).label }}
-            </span>
-            <span class="text-xs text-slate-400">·</span>
-            <span class="text-xs text-graphite capitalize">{{ kindLabel(comms.activeThread.kind) }}</span>
-            <span
-              class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-              :class="comms.activeThread.status === 'open' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'"
-            >
-              {{ comms.activeThread.status }}
-            </span>
+      <div class="flex flex-col gap-3 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex min-w-0 items-center gap-2">
+          <!-- Mobile back button -->
+          <button
+            class="focus-ring xl:hidden shrink-0 rounded-md p-1 text-slate-400 hover:text-ink"
+            type="button"
+            title="Back to inbox"
+            @click="showMobilePane = false"
+          >
+            <ArrowLeft class="h-4 w-4" />
+          </button>
+          <div class="min-w-0">
+            <h2 class="truncate text-sm font-semibold text-ink">
+              {{ comms.activeThread?.subject || "Select a conversation" }}
+            </h2>
+            <div v-if="comms.activeThread" class="mt-1 flex flex-wrap items-center gap-1.5">
+              <span
+                v-for="p in threadParticipants(comms.activeThread)"
+                :key="p"
+                class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                :class="roleStyle(p).badge"
+              >{{ roleStyle(p).label }}</span>
+              <span class="text-xs text-slate-300">·</span>
+              <span class="text-xs text-graphite capitalize">{{ kindLabel(comms.activeThread.kind) }}</span>
+              <span
+                class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                :class="comms.activeThread.status === 'open' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+              >{{ comms.activeThread.status }}</span>
+            </div>
           </div>
         </div>
-        <RouterLink
-          v-if="orderUrl"
-          class="focus-ring inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-ink hover:bg-slate-50"
-          :to="orderUrl"
-        >
-          <ExternalLink class="h-3.5 w-3.5" />
-          Open order
-        </RouterLink>
+        <div class="flex shrink-0 items-center gap-2">
+          <button
+            v-if="comms.activeThread?.status === 'open'"
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite transition-colors hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-50"
+            type="button"
+            :disabled="isResolving"
+            title="Mark as resolved"
+            @click="resolveThread"
+          >
+            <Loader2 v-if="isResolving" class="h-3.5 w-3.5 animate-spin" />
+            <CheckCircle2 v-else class="h-3.5 w-3.5" />
+            Resolve
+          </button>
+          <RouterLink
+            v-if="orderUrl"
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
+            :to="orderUrl"
+          >
+            <ExternalLink class="h-3.5 w-3.5" />
+            Open order
+          </RouterLink>
+        </div>
       </div>
 
       <!-- Messages scroll area -->
