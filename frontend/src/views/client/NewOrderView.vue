@@ -423,39 +423,42 @@ onMounted(loadConfig);
             <span class="text-xs font-normal">{{ showAdvanced ? "Hide" : "Show" }}</span>
           </button>
 
-          <div v-if="showAdvanced" class="grid gap-4 border-t border-slate-100 px-5 pb-5 pt-4 sm:grid-cols-2">
-            <label class="block">
-              <span class="text-sm font-medium text-graphite">Service code</span>
-              <input v-model="form.service_code" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
-            </label>
-            <label class="block">
-              <span class="text-sm font-medium text-graphite">Paper type code</span>
-              <input v-model="form.paper_type_code" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
-            </label>
-            <label class="block">
-              <span class="text-sm font-medium text-graphite">Work type code</span>
-              <input v-model="form.work_type_code" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
-            </label>
-            <label class="block">
-              <span class="text-sm font-medium text-graphite">Subject code</span>
-              <input v-model="form.subject_code" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
-            </label>
-            <label class="block">
-              <span class="text-sm font-medium text-graphite">Academic level code</span>
-              <input v-model="form.academic_level_code" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
-            </label>
-            <label class="block">
-              <span class="text-sm font-medium text-graphite">Paper type ID</span>
-              <input v-model.number="form.paper_type_id" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" min="1" type="number" />
-            </label>
-            <label class="block">
-              <span class="text-sm font-medium text-graphite">Subject ID</span>
-              <input v-model.number="form.subject_id" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" min="1" type="number" />
-            </label>
-            <label class="block">
-              <span class="text-sm font-medium text-graphite">Academic level ID</span>
-              <input v-model.number="form.academic_level_id" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" min="1" type="number" />
-            </label>
+          <div v-if="showAdvanced" class="border-t border-slate-100 px-5 pb-5 pt-4 space-y-4">
+            <p class="text-xs text-graphite">These codes are sent to the pricing engine. They update automatically when you change the dropdowns above.</p>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <span class="text-xs font-medium uppercase tracking-wide text-graphite">Paper type</span>
+                <p class="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-ink">
+                  {{ config.collections.paperTypes.find(o => o.id === form.paper_type_id)?.name || form.paper_type_code || "—" }}
+                </p>
+                <p class="mt-0.5 text-xs text-graphite">code: <code class="font-mono">{{ form.paper_type_code }}</code></p>
+              </div>
+              <div>
+                <span class="text-xs font-medium uppercase tracking-wide text-graphite">Type of work</span>
+                <p class="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-ink">
+                  {{ config.collections.typesOfWork.find(o => o.id === form.type_of_work_id)?.name || form.work_type_code || "—" }}
+                </p>
+                <p class="mt-0.5 text-xs text-graphite">code: <code class="font-mono">{{ form.work_type_code }}</code></p>
+              </div>
+              <div>
+                <span class="text-xs font-medium uppercase tracking-wide text-graphite">Subject</span>
+                <p class="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-ink">
+                  {{ config.collections.subjects.find(o => o.id === form.subject_id)?.name || form.subject_code || "—" }}
+                </p>
+                <p class="mt-0.5 text-xs text-graphite">code: <code class="font-mono">{{ form.subject_code }}</code></p>
+              </div>
+              <div>
+                <span class="text-xs font-medium uppercase tracking-wide text-graphite">Academic level</span>
+                <p class="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-ink">
+                  {{ config.collections.academicLevels.find(o => o.id === form.academic_level_id)?.name || form.academic_level_code || "—" }}
+                </p>
+                <p class="mt-0.5 text-xs text-graphite">code: <code class="font-mono">{{ form.academic_level_code }}</code></p>
+              </div>
+              <div>
+                <span class="text-xs font-medium uppercase tracking-wide text-graphite">Service code</span>
+                <input v-model="form.service_code" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+              </div>
+            </div>
           </div>
         </section>
       </div>
