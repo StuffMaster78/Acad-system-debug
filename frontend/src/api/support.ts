@@ -62,6 +62,13 @@ export const supportApi = {
       apiPath("/communications/saved-replies/"),
       payload,
     ),
+  patchSavedReply: (id: number, payload: Partial<CreateSavedReplyPayload & { is_active: boolean }>) =>
+    api.patch<SavedReplyRecord>(
+      apiPath(`/communications/saved-replies/${id}/`),
+      payload,
+    ),
+  deleteSavedReply: (id: number) =>
+    api.delete(apiPath(`/communications/saved-replies/${id}/`)),
   createTicket: (payload: { title: string; description: string; category?: string; object_id?: number | string }) =>
     api.post<SupportTicketRecord>(apiPath("/tickets/tickets/"), payload),
   getTicket: (id: number | string) =>

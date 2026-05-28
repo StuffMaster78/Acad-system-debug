@@ -454,6 +454,52 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
     }
   }
 
+  async function toggleReplyActive(id: number) {
+    const auth = useAuthStore();
+    const ui = useUiStore();
+    const reply = savedReplies.value.find((r) => r.id === id);
+    if (!reply) return;
+    const newActive = !reply.is_active;
+    savedReplies.value = savedReplies.value.map((r) =>
+      r.id === id ? { ...r, is_active: newActive } : r,
+    );
+    if (auth.isPreviewSession) {
+      ui.toast(newActive ? "Reply activated." : "Reply deactivated.", "success");
+      return;
+    }
+    try {
+      const { data } = await supportApi.patchSavedReply(id, { is_active: newActive });
+      savedReplies.value = savedReplies.value.map((r) => (r.id === id ? data : r));
+      ui.toast(newActive ? "Reply activated." : "Reply deactivated.", "success");
+    } catch {
+      savedReplies.value = savedReplies.value.map((r) =>
+        r.id === id ? { ...r, is_active: !newActive } : r,
+      );
+      ui.toast("Unable to update reply.", "error");
+    }
+  }
+
+  async function deleteReply(id: number) {
+    const auth = useAuthStore();
+    const ui = useUiStore();
+    savedReplies.value = savedReplies.value.filter((r) => r.id !== id);
+    if (auth.isPreviewSession) {
+      ui.toast("Saved reply deleted.", "success");
+      return;
+    }
+    try {
+      await supportApi.deleteSavedReply(id);
+      ui.toast("Saved reply deleted.", "success");
+    } catch {
+      ui.toast("Unable to delete reply.", "error");
+      if (!savedReplies.value.find((r) => r.id === id)) {
+        await supportApi.savedReplies().then(({ data }) => {
+          savedReplies.value = Array.isArray(data) ? data : (data as { results: typeof savedReplies.value }).results ?? [];
+        }).catch(() => undefined);
+      }
+    }
+  }
+
   return {
     tickets,
     queue,
@@ -479,5 +525,7 @@ export const useSupportWorkspaceStore = defineStore("support-workspace", () => {
     escalateTicket,
     resolveEscalation,
     createSavedReply,
+    toggleReplyActive,
+    deleteReply,
   };
 });

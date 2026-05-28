@@ -1,16 +1,32 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { MessageSquareText, Plus, RefreshCw } from "@lucide/vue";
+import { onMounted, ref } from "vue";
+import { MessageSquareText, Plus, RefreshCw, Trash2, ToggleLeft, ToggleRight } from "@lucide/vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import RichTextEditor from "@/components/forms/RichTextEditor.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useSupportWorkspaceStore } from "@/stores/supportWorkspace";
 
 const support = useSupportWorkspaceStore();
+const confirmDeleteId = ref<number | null>(null);
 
 function formatDate(value?: string | null) {
   if (!value) return "";
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value));
+}
+
+function requestDelete(id: number) {
+  confirmDeleteId.value = id;
+}
+
+function cancelDelete() {
+  confirmDeleteId.value = null;
+}
+
+async function confirmDelete() {
+  if (confirmDeleteId.value === null) return;
+  const id = confirmDeleteId.value;
+  confirmDeleteId.value = null;
+  await support.deleteReply(id).catch(() => undefined);
 }
 
 onMounted(() => {
@@ -103,7 +119,8 @@ onMounted(() => {
           <article
             v-for="reply in support.savedReplies"
             :key="reply.id"
-            class="rounded-lg border border-slate-200 bg-white p-5"
+            class="rounded-lg border bg-white p-5 transition-colors"
+            :class="reply.is_active === false ? 'border-slate-200 opacity-60' : 'border-slate-200'"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
@@ -113,12 +130,44 @@ onMounted(() => {
                   <span v-if="reply.created_at"> · {{ formatDate(reply.created_at) }}</span>
                 </p>
               </div>
-              <StatusPill
-                :label="reply.is_active === false ? 'inactive' : 'active'"
-                :tone="reply.is_active === false ? 'neutral' : 'success'"
-              />
+              <div class="flex shrink-0 items-center gap-1.5">
+                <StatusPill
+                  :label="reply.is_active === false ? 'inactive' : 'active'"
+                  :tone="reply.is_active === false ? 'neutral' : 'success'"
+                />
+                <button
+                  class="focus-ring rounded p-1 text-slate-400 transition-colors hover:text-ink"
+                  :title="reply.is_active === false ? 'Activate' : 'Deactivate'"
+                  @click="support.toggleReplyActive(reply.id)"
+                >
+                  <ToggleRight v-if="reply.is_active !== false" class="h-4 w-4 text-signal" />
+                  <ToggleLeft v-else class="h-4 w-4" />
+                </button>
+                <button
+                  class="focus-ring rounded p-1 text-slate-400 transition-colors hover:text-rose-500"
+                  title="Delete reply"
+                  @click="requestDelete(reply.id)"
+                >
+                  <Trash2 class="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
             <div class="mt-3 rounded-md bg-slate-50 px-3 py-3 text-sm leading-6 text-graphite" v-html="reply.body" />
+
+            <!-- Inline delete confirm -->
+            <div v-if="confirmDeleteId === reply.id" class="mt-3 flex items-center justify-between gap-3 rounded-md border border-rose-200 bg-rose-50 px-4 py-2.5">
+              <p class="text-sm text-rose-900">Delete this saved reply?</p>
+              <div class="flex gap-2">
+                <button
+                  class="focus-ring rounded-md border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100"
+                  @click="confirmDelete"
+                >Delete</button>
+                <button
+                  class="focus-ring rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50"
+                  @click="cancelDelete"
+                >Cancel</button>
+              </div>
+            </div>
           </article>
         </div>
       </section>
