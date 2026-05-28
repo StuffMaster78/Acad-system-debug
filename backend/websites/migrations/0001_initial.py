@@ -10,8 +10,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('orders', '0001_initial'),
-        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
@@ -175,12 +173,10 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('created_ip', models.GenericIPAddressField(blank=True, help_text='IP address that initiated this token.', null=True)),
                 ('user_agent', models.TextField(blank=True, help_text='User-agent string for additional auditing / anomaly detection.', null=True)),
-                ('order', models.ForeignKey(blank=True, help_text='Optional: limit this token to a single order.', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='guest_tokens', to='orders.order')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='guest_tokens', to=settings.AUTH_USER_MODEL)),
                 ('website', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='guest_tokens', to='websites.website')),
             ],
             options={
-                'indexes': [models.Index(fields=['website', 'user'], name='websites_gu_website_029b81_idx'), models.Index(fields=['website', 'order'], name='websites_gu_website_e29b95_idx'), models.Index(fields=['expires_at'], name='websites_gu_expires_7156e5_idx')],
+                'indexes': [models.Index(fields=['expires_at'], name='websites_gu_expires_7156e5_idx')],
             },
         ),
         migrations.CreateModel(
@@ -197,7 +193,6 @@ class Migration(migrations.Migration):
                 ('description', models.TextField(blank=True, help_text='Description or notes about this integration')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
-                ('created_by', models.ForeignKey(blank=True, help_text='User who created this integration', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_integrations', to=settings.AUTH_USER_MODEL)),
                 ('website', models.ForeignKey(help_text='Website this integration belongs to', on_delete=django.db.models.deletion.CASCADE, related_name='integration_configs', to='websites.website')),
             ],
             options={
@@ -216,12 +211,10 @@ class Migration(migrations.Migration):
                 ('ip_address', models.GenericIPAddressField(blank=True, help_text='IP address from which terms were accepted.', null=True)),
                 ('user_agent', models.TextField(blank=True, help_text='User agent string at the time of acceptance.', null=True)),
                 ('static_page', models.ForeignKey(help_text="The static page (usually slug='terms') that was accepted.", on_delete=django.db.models.deletion.CASCADE, related_name='terms_acceptances', to='websites.websitestaticpage')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='terms_acceptances', to=settings.AUTH_USER_MODEL)),
                 ('website', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='terms_acceptances', to='websites.website')),
             ],
             options={
                 'indexes': [models.Index(fields=['website', 'user'], name='websites_we_website_e63d85_idx'), models.Index(fields=['website', 'static_page', 'terms_version'], name='websites_we_website_de2180_idx')],
-                'unique_together': {('website', 'user', 'static_page', 'terms_version')},
             },
         ),
     ]
