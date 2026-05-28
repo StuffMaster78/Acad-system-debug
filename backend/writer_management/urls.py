@@ -1,5 +1,7 @@
-from django.urls import path
+from django.urls import include, path
 
 app_name = "writer_management"
 
-urlpatterns = []
+urlpatterns = [
+    path("", include("writer_management.api.urls")),
+]

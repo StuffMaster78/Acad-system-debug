@@ -219,7 +219,7 @@ export const useOrderStore = defineStore("orders", () => {
         };
       }
       const { data } = await ordersApi.requestRevision(id, payload);
-      notice.value = data.message ?? "Revision request submitted.";
+      notice.value = ("message" in data ? data.message : null) ?? "Revision request submitted.";
       await fetchOrder(id);
       return data;
     } catch (caught) {

@@ -78,12 +78,14 @@ class OrderSerializer(serializers.ModelSerializer):
             'created_by_admin', 'is_special_order', 'is_follow_up',
             'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent',
             'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',
-            'allow_unpaid_access', 'writer_deadline_percentage', 'revision_eligibility', 'style_reference_files'
+            'allow_unpaid_access', 'writer_deadline_percentage', 'revision_eligibility', 'style_reference_files',
+            'qa_review_note', 'qa_approved_at', 'qa_returned_at',
         ]
         read_only_fields = [
-            'id', 'client_username', 'writer_username', 'total_price', 
-            'writer_compensation', 'is_paid', 'created_at', 'updated_at', 
-            'flags', 'writer_deadline', 'editing_skip_reason'
+            'id', 'client_username', 'writer_username', 'total_price',
+            'writer_compensation', 'is_paid', 'created_at', 'updated_at',
+            'flags', 'writer_deadline', 'editing_skip_reason',
+            'qa_review_note', 'qa_approved_at', 'qa_returned_at',
         ]
 
     def validate_academic_level(self, value):

@@ -262,13 +262,13 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
         # Urgent and overdue counts
         urgent_tasks = all_tasks.filter(
             review_status__in=['pending', 'in_review'],
-            order__deadline__lte=now() + timedelta(days=7),
-            order__deadline__gte=now()
+            order__client_deadline__lte=now() + timedelta(days=7),
+            order__client_deadline__gte=now()
         ).count()
         
         overdue_tasks = all_tasks.filter(
             review_status__in=['pending', 'in_review'],
-            order__deadline__lt=now()
+            order__client_deadline__lt=now()
         ).count()
         
         return Response({
@@ -394,20 +394,20 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
         
         # Get tasks by deadline
         urgent_tasks = active_tasks.filter(
-            order__deadline__lte=now() + timedelta(days=1),
-            order__deadline__gte=now()
+            order__client_deadline__lte=now() + timedelta(days=1),
+            order__client_deadline__gte=now()
         ).count()
         
         overdue_tasks = active_tasks.filter(
-            order__deadline__lt=now()
+            order__client_deadline__lt=now()
         ).count()
         
         # Calculate estimated completion times
-        tasks_with_deadlines = active_tasks.filter(order__deadline__isnull=False)
+        tasks_with_deadlines = active_tasks.filter(order__client_deadline__isnull=False)
         estimated_hours = 0
         for task in tasks_with_deadlines:
-            if task.order.deadline:
-                hours_until_deadline = (task.order.deadline - now()).total_seconds() / 3600
+            if task.order.client_deadline:
+                hours_until_deadline = (task.order.client_deadline - now()).total_seconds() / 3600
                 estimated_hours += max(0, hours_until_deadline)
         
         # Get recommended order limits
@@ -502,18 +502,18 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
         if deadline_filter == 'urgent':
             # Due within 24 hours
             available = available.filter(
-                order__deadline__lte=now() + timedelta(days=1),
-                order__deadline__gte=now()
+                order__client_deadline__lte=now() + timedelta(days=1),
+                order__client_deadline__gte=now()
             )
         elif deadline_filter == 'upcoming':
             # Due within 7 days
             available = available.filter(
-                order__deadline__lte=now() + timedelta(days=7),
-                order__deadline__gte=now()
+                order__client_deadline__lte=now() + timedelta(days=7),
+                order__client_deadline__gte=now()
             )
         elif deadline_filter == 'overdue':
             # Past deadline
-            available = available.filter(order__deadline__lt=now())
+            available = available.filter(order__client_deadline__lt=now())
         
         # Filter by pages
         if pages_min:
@@ -531,13 +531,13 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
         
         # Sort
         if sort_by == 'deadline':
-            available = available.order_by('order__deadline')
+            available = available.order_by('order__client_deadline')
         elif sort_by == 'pages':
             available = available.order_by('order__pages')
         elif sort_by == 'assigned_at':
             available = available.order_by('-assigned_at')
         else:
-            available = available.order_by('order__deadline')
+            available = available.order_by('order__client_deadline')
         
         # Limit results
         available = available[:limit]

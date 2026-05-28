@@ -15,11 +15,6 @@ import type {
   SubmitEditorReviewPayload,
 } from "@/types/editor";
 
-function listFromResponse<T>(payload: T[] | { results?: T[] } | undefined): T[] {
-  if (Array.isArray(payload)) return payload;
-  return payload?.results ?? [];
-}
-
 function numberValue(value: unknown): number {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -249,7 +244,7 @@ export const useEditorWorkspaceStore = defineStore("editorWorkspace", () => {
 
       if (profileRes.status === "fulfilled") profile.value = profileRes.value.data;
       if (statsRes.status === "fulfilled") stats.value = statsRes.value.data;
-      if (tasksRes.status === "fulfilled") tasks.value = listFromResponse(tasksRes.value.data);
+      if (tasksRes.status === "fulfilled") tasks.value = tasksRes.value.data.tasks ?? [];
       if (availableRes.status === "fulfilled") availableTasks.value = availableRes.value.data.tasks ?? [];
       if (performanceRes.status === "fulfilled") performance.value = performanceRes.value.data;
       if (analyticsRes.status === "fulfilled") analytics.value = analyticsRes.value.data;
@@ -269,7 +264,7 @@ export const useEditorWorkspaceStore = defineStore("editorWorkspace", () => {
       editorApi.tasks({ limit: 20 }),
       editorApi.availableTasks({ limit: 12 }),
     ]);
-    if (tasksRes.status === "fulfilled") tasks.value = listFromResponse(tasksRes.value.data);
+    if (tasksRes.status === "fulfilled") tasks.value = tasksRes.value.data.tasks ?? [];
     if (availableRes.status === "fulfilled") availableTasks.value = availableRes.value.data.tasks ?? [];
   }
 

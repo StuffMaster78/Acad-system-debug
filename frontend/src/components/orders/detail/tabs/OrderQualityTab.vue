@@ -13,6 +13,31 @@
       </div>
     </div>
 
+    <!-- Return-to-writer feedback note (visible to writer when work was sent back) -->
+    <div
+      v-if="order.qa_returned_at && order.qa_review_note && role === 'writer'"
+      class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+    >
+      <RotateCcw class="mt-0.5 size-4 shrink-0 text-amber-600" />
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-amber-900">Work returned by QA</p>
+        <p class="mt-1 text-sm text-amber-800">{{ order.qa_review_note }}</p>
+        <p class="mt-1 text-xs text-amber-700">Returned {{ new Date(order.qa_returned_at).toLocaleDateString() }}</p>
+      </div>
+    </div>
+
+    <!-- QA approved note (visible to all when approved) -->
+    <div
+      v-if="order.qa_approved_at && order.qa_review_note"
+      class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3"
+    >
+      <CheckCircle2 class="mt-0.5 size-4 shrink-0 text-emerald-600" />
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-emerald-900">QA approved</p>
+        <p v-if="order.qa_review_note" class="mt-1 text-sm text-emerald-800">{{ order.qa_review_note }}</p>
+      </div>
+    </div>
+
     <!-- QA steps timeline -->
     <div class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
       <div class="border-b border-slate-200 px-5 py-4">
@@ -159,10 +184,11 @@ const returnNotes = ref("");
 
 const STATUS = computed(() => props.order.status ?? "");
 
-const canAct = computed(() => props.role === "admin" || props.role === "superadmin" || props.role === "editor");
-const canSubmitForQA = computed(() => ["in_progress", "submitted", "revision_requested"].includes(STATUS.value));
-const canApprove = computed(() => STATUS.value === "qa_review");
-const canReturn = computed(() => STATUS.value === "qa_review");
+const isReviewer = computed(() => props.role === "admin" || props.role === "superadmin" || props.role === "editor");
+const canAct = computed(() => isReviewer.value || props.role === "writer");
+const canSubmitForQA = computed(() => STATUS.value === "in_progress" && (props.role === "writer" || isReviewer.value));
+const canApprove = computed(() => STATUS.value === "qa_review" && isReviewer.value);
+const canReturn = computed(() => STATUS.value === "qa_review" && isReviewer.value);
 
 // ── Banner ────────────────────────────────────────────────────────────────────
 const STATUS_BANNER: Record<string, { title: string; body: string; class: string; icon: unknown }> = {

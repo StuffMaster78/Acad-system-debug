@@ -43,7 +43,7 @@ export const authApi = {
   updateMe: (payload: UpdateMePayload) =>
     api.patch<AuthUser>(apiPath("/users/me/"), payload),
   changePassword: (payload: ChangePasswordPayload) =>
-    api.post(apiPath("/users/me/change-password/"), payload),
+    api.post(apiPath("/auth/password/change/"), payload),
   forgotPassword: (email: string) =>
     api.post(apiPath("/auth/password/reset/request/"), { email }),
   resetPassword: (token: string, otpCode: string, newPassword: string) =>

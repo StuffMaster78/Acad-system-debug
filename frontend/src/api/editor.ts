@@ -11,8 +11,6 @@ import type {
   SubmitEditorReviewPayload,
 } from "@/types/editor";
 
-type ListResponse<T> = T[] | { results: T[] };
-
 export const editorApi = {
   profile: () =>
     api.get<EditorProfile>(apiPath("/editor-management/profiles/my_profile/")),
@@ -22,7 +20,7 @@ export const editorApi = {
       { params: { days } },
     ),
   tasks: (params?: Record<string, unknown>) =>
-    api.get<ListResponse<EditorTask>>(
+    api.get<{ tasks: EditorTask[]; count: number; total_active: number }>(
       apiPath("/editor-management/profiles/dashboard/tasks/"),
       { params },
     ),

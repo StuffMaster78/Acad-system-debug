@@ -39,6 +39,9 @@ export interface OrderSummary {
   pricing_snapshot_id?: number | null;
   order_instructions?: string;
   instructions?: string;
+  qa_review_note?: string;
+  qa_approved_at?: string | null;
+  qa_returned_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -163,11 +166,24 @@ export interface OrderInterestRecord {
 
 export interface RevisionRequest {
   id: number;
+  status: string;
   reason: string;
   scope_summary: string;
-  is_within_original_scope: boolean;
-  status: string;
+  writer_notes: string;
+  is_within_free_window: boolean;
+  approved_at: string | null;
+  submitted_at: string | null;
+  accepted_at: string | null;
+  rejected_at: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+export interface RevisionRouteResponse {
+  routing: "free_revision" | "paid_adjustment";
+  message: string;
+  adjustment_request_id?: number;
+  status?: string;
 }
 
 export interface PaperQuoteStartResponse {

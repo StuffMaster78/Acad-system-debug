@@ -22,7 +22,7 @@ class EditorProfileSerializer(serializers.ModelSerializer):
 class EditorTaskAssignmentSerializer(serializers.ModelSerializer):
     order_id = serializers.IntegerField(source='order.id', read_only=True)
     order_topic = serializers.CharField(source='order.topic', read_only=True)
-    order_deadline = serializers.DateTimeField(source='order.deadline', read_only=True)
+    order_deadline = serializers.DateTimeField(source='order.client_deadline', read_only=True)
     assigned_editor_name = serializers.CharField(source='assigned_editor.name', read_only=True)
     assigned_by_username = serializers.CharField(source='assigned_by.username', read_only=True)
     order_status = serializers.CharField(source='order.status', read_only=True)

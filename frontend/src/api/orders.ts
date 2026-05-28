@@ -11,6 +11,7 @@ import type {
   OrderSummary,
   RevisionRequest,
   RevisionRequestPayload,
+  RevisionRouteResponse,
 } from "@/types/orders";
 
 export const ordersApi = {
@@ -28,7 +29,7 @@ export const ordersApi = {
   approve: (id: number | string, payload: Record<string, unknown>) =>
     api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/approve/`), payload),
   requestRevision: (id: number | string, payload: RevisionRequestPayload) =>
-    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/revisions/`), payload),
+    api.post<RevisionRouteResponse | RevisionRequest>(ordersApiPath(`/orders/${id}/revisions/`), payload),
   cancel: (id: number | string, payload: CancelOrderPayload) =>
     api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/cancel/`), payload),
   archive: (id: number | string, payload: Record<string, unknown>) =>
@@ -36,14 +37,22 @@ export const ordersApi = {
   raiseDispute: (id: number | string, reason: string) =>
     api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/dispute/`), { reason }),
   revisions: (id: number | string) =>
-    api.get<RevisionRequest[] | { count: number; results: RevisionRequest[] }>(ordersApiPath(`/orders/${id}/revisions/`)),
+    api.get<RevisionRequest[]>(ordersApiPath(`/orders/${id}/revisions/`)),
+  approveRevision: (orderId: number | string, revId: number) =>
+    api.post<RevisionRequest>(ordersApiPath(`/orders/${orderId}/revisions/${revId}/approve/`), {}),
+  rejectRevision: (orderId: number | string, revId: number) =>
+    api.post<RevisionRequest>(ordersApiPath(`/orders/${orderId}/revisions/${revId}/reject/`), {}),
+  completeRevision: (orderId: number | string, revId: number, writerNotes?: string) =>
+    api.post<RevisionRequest>(ordersApiPath(`/orders/${orderId}/revisions/${revId}/complete/`), { writer_notes: writerNotes ?? "" }),
+  acceptRevision: (orderId: number | string, revId: number) =>
+    api.post<RevisionRequest>(ordersApiPath(`/orders/${orderId}/revisions/${revId}/accept/`), {}),
   // QA actions
   qaSubmit: (id: number | string) =>
     api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/qa/submit/`), {}),
   qaApprove: (id: number | string) =>
     api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/qa/approve/`), {}),
-  qaReturn: (id: number | string, notes?: string) =>
-    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/qa/return/`), { notes }),
+  qaReturn: (id: number | string, reason: string) =>
+    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/qa/return/`), { reason }),
   // Staffing
   interests: (id: number | string) =>
     api.get<OrderInterestRecord[]>(ordersApiPath(`/orders/${id}/staffing/interests/`)),

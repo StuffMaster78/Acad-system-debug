@@ -50,20 +50,27 @@ class OrderRevisionRequest(models.Model):
         default=OrderRevisionStatus.PENDING,
         help_text="Lifecycle state of the free revision request.",
     )
-    instructions = models.TextField(
-        help_text="Client revision instructions.",
+    reason = models.CharField(
+        max_length=2000,
+        default="",
+        help_text="Brief reason for the revision request.",
     )
-    client_notes = models.TextField(
-        blank=True,
-        help_text="Optional client notes for the revision.",
+    scope_summary = models.TextField(
+        default="",
+        help_text="Detailed description of what needs to change.",
     )
     writer_notes = models.TextField(
         blank=True,
-        help_text="Optional writer notes for the revision.",
+        help_text="Optional writer notes when submitting completed revision.",
     )
     is_within_free_window = models.BooleanField(
         default=True,
         help_text="Snapshot of free window eligibility at creation.",
+    )
+    approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the revision request was approved.",
     )
     submitted_at = models.DateTimeField(
         null=True,

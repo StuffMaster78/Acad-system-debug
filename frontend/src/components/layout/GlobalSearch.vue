@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { Search } from "@lucide/vue";
 import { adminOpsApi } from "@/api/adminOps";
@@ -22,6 +22,8 @@ const results = ref<Record<string, Array<Record<string, unknown>>>>({
   messages: [],
 });
 
+const containerRef = ref<HTMLElement | null>(null);
+
 const groups = computed(() =>
   ["users", "orders", "payments", "messages"]
     .map((key) => ({ key, rows: results.value[key] ?? [] }))
@@ -30,20 +32,26 @@ const groups = computed(() =>
 
 const hasResults = computed(() => groups.value.length > 0);
 
+function typesForRole(): string {
+  if (props.role === "admin" || props.role === "superadmin") return "users,orders,payments,messages";
+  if (props.role === "writer") return "orders,messages";
+  if (props.role === "editor") return "orders";
+  return "orders,payments,messages";
+}
+
 function previewResults() {
+  const isAdmin = props.role === "admin" || props.role === "superadmin";
   results.value = {
-    users: [
-      { id: 101, title: "Nadia Morgan", email: "nadia@example.com", role: "client" },
-    ],
-    orders: [
-      { id: 1042, title: "Healthcare policy brief", status: "assigned" },
-    ],
-    payments: [
-      { id: 77, title: "Wallet payment", amount: "240.00", status: "completed" },
-    ],
-    messages: [
-      { id: 18, title: "Support thread", snippet: "Nadia asked about order timing." },
-    ],
+    ...(isAdmin
+      ? { users: [{ id: 101, title: "Nadia Morgan", subtitle: "nadia@example.com · client", role: "client" }] }
+      : {}),
+    orders: [{ id: 1042, title: "Healthcare policy brief", subtitle: "assigned", status: "assigned" }],
+    ...(isAdmin
+      ? {
+          payments: [{ id: 77, title: "Wallet payment", subtitle: "$240.00 · completed", status: "completed" }],
+          messages: [{ id: 18, title: "Support thread", subtitle: "Nadia asked about order timing." }],
+        }
+      : {}),
   };
 }
 
@@ -52,19 +60,30 @@ function resultTitle(item: Record<string, unknown>) {
 }
 
 function resultSubtitle(item: Record<string, unknown>) {
-  return String(item.email || item.status || item.snippet || item.amount || item.role || item.reference || "Open result");
+  return String(item.subtitle || item.email || item.status || item.snippet || item.amount || item.role || item.reference || "Open result");
 }
 
-function targetFor(group: string, item: Record<string, unknown>) {
-  if (group === "orders") {
-    if (props.role === "client") return `/client/orders/${item.id}`;
-    return `/${props.role}/orders`;
-  }
+function targetFor(group: string, item: Record<string, unknown>): string {
+  if (typeof item.url === "string" && item.url.startsWith("/")) return item.url;
+  if (group === "orders") return `/${props.role}/orders/${item.id}`;
   if (group === "users") return props.role === "admin" || props.role === "superadmin" ? `/${props.role}/access` : `/${props.role}/activity`;
   if (group === "payments") return props.role === "admin" || props.role === "superadmin" ? `/${props.role}/payments` : `/${props.role}`;
   if (group === "messages") return `/${props.role}/messages`;
   return `/${props.role}`;
 }
+
+function closeDropdown() {
+  open.value = false;
+}
+
+function onClickOutside(e: MouseEvent) {
+  if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
+    closeDropdown();
+  }
+}
+
+onMounted(() => document.addEventListener("mousedown", onClickOutside));
+onBeforeUnmount(() => document.removeEventListener("mousedown", onClickOutside));
 
 async function runSearch() {
   const trimmed = query.value.trim();
@@ -85,7 +104,7 @@ async function runSearch() {
 
     const { data } = await adminOpsApi.search({
       q: trimmed,
-      types: "users,orders,payments,messages",
+      types: typesForRole(),
       limit: 5,
     });
     results.value = {
@@ -104,7 +123,7 @@ async function runSearch() {
 </script>
 
 <template>
-  <div class="relative max-w-xl flex-1">
+  <div ref="containerRef" class="relative max-w-xl flex-1">
     <form @submit.prevent="runSearch">
       <Search
         class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
@@ -116,6 +135,7 @@ async function runSearch() {
         type="search"
         @focus="open = hasResults"
         @keydown.enter.prevent="runSearch"
+        @keydown.escape="closeDropdown"
       >
     </form>
 
@@ -142,7 +162,7 @@ async function runSearch() {
             :key="`${group.key}-${item.id ?? resultTitle(item)}`"
             class="block px-4 py-3 hover:bg-slate-50"
             :to="targetFor(group.key, item)"
-            @click="open = false"
+            @click="closeDropdown"
           >
             <p class="truncate text-sm font-semibold text-ink">{{ resultTitle(item) }}</p>
             <p class="mt-1 truncate text-xs text-graphite">{{ resultSubtitle(item) }}</p>
