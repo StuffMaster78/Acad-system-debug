@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import { LogIn, ShieldCheck } from "@lucide/vue";
+import { Loader2, ShieldCheck } from "@lucide/vue";
 import { roleHome } from "@/config/navigation";
 import { useAuthStore, MfaRequiredError } from "@/stores/auth";
 import type { UserRole } from "@/types/roles";
@@ -18,7 +18,7 @@ const form = reactive({
 const isDev = import.meta.env.DEV;
 const previewRoles: UserRole[] = ["client", "writer", "editor", "support", "admin", "superadmin"];
 
-const canSubmit = computed(() => form.email.length > 3 && form.password.length > 0);
+const canSubmit = computed(() => form.email.length > 3 && form.password.length > 0 && !auth.isLoading);
 
 async function submit() {
   error.value = "";
@@ -44,71 +44,103 @@ async function preview(role: UserRole) {
 
 <template>
   <div class="grid min-h-[calc(100vh-4rem)] place-items-center px-4 py-10">
-    <section class="w-full max-w-md rounded-md border border-slate-200 bg-white p-6 shadow-panel">
-      <div>
-        <p class="text-sm font-semibold uppercase text-signal">Secure access</p>
-        <h1 class="mt-2 text-2xl font-semibold">Sign in</h1>
-        <p class="mt-2 text-sm leading-6 text-graphite">
-          Use your platform account to open the correct workspace.
-        </p>
-      </div>
-
-      <form class="mt-6 space-y-4" @submit.prevent="submit">
-        <label class="block">
-          <span class="text-sm font-medium text-graphite">Email</span>
-          <input
-            v-model="form.email"
-            class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3"
-            autocomplete="email"
-            type="email"
-          />
-        </label>
-        <label class="block">
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-graphite">Password</span>
-            <RouterLink class="text-xs text-signal hover:underline" to="/auth/forgot-password">
-              Forgot password?
-            </RouterLink>
-          </div>
-          <input
-            v-model="form.password"
-            class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3"
-            autocomplete="current-password"
-            type="password"
-          />
-        </label>
-        <p v-if="error" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">
-          {{ error }}
-        </p>
-
-        <div
-          v-if="mfaRequired"
-          class="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900"
-        >
-          <ShieldCheck class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-          <div>
-            <p class="font-semibold">Two-factor authentication is enabled on this account.</p>
-            <p class="mt-0.5 text-xs">Please contact your administrator or use a trusted device to complete sign-in.</p>
-          </div>
+    <section class="w-full max-w-md">
+      <!-- Card -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/60">
+        <!-- Header -->
+        <div class="mb-7">
+          <span class="inline-block rounded-full bg-signal/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-signal">
+            Secure access
+          </span>
+          <h1 class="mt-3 text-2xl font-bold tracking-tight text-ink">Sign in</h1>
+          <p class="mt-1.5 text-sm leading-relaxed text-graphite">
+            Use your platform account to open the correct workspace.
+          </p>
         </div>
 
-        <button
-          class="focus-ring inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
-          :disabled="!canSubmit || auth.isLoading"
-          type="submit"
-        >
-          <LogIn class="h-4 w-4" />
-          {{ auth.isLoading ? "Signing in" : "Sign in" }}
-        </button>
-      </form>
+        <form class="space-y-5" @submit.prevent="submit">
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-ink" for="email">Email</label>
+            <input
+              id="email"
+              v-model="form.email"
+              class="focus-ring h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
+              autocomplete="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+            />
+          </div>
 
-      <div v-if="isDev" class="mt-6 border-t border-slate-200 pt-5">
-        <p class="text-sm font-semibold text-graphite">Preview workspace</p>
-        <div class="mt-3 grid grid-cols-2 gap-2">
+          <div>
+            <div class="mb-1.5 flex items-center justify-between">
+              <label class="text-sm font-medium text-ink" for="password">Password</label>
+              <RouterLink class="text-xs font-medium text-signal hover:underline" to="/auth/forgot-password">
+                Forgot password?
+              </RouterLink>
+            </div>
+            <input
+              id="password"
+              v-model="form.password"
+              class="focus-ring h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
+              autocomplete="current-password"
+              type="password"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+
+          <!-- Error banner -->
+          <Transition
+            enter-active-class="transition-all duration-200"
+            enter-from-class="opacity-0 -translate-y-1"
+            leave-active-class="transition-all duration-150"
+            leave-to-class="opacity-0"
+          >
+            <div
+              v-if="error"
+              class="flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800"
+              role="alert"
+            >
+              <span class="mt-0.5 h-4 w-4 shrink-0 text-rose-500" aria-hidden="true">✕</span>
+              {{ error }}
+            </div>
+          </Transition>
+
+          <!-- MFA banner -->
+          <div
+            v-if="mfaRequired"
+            class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3.5 text-sm"
+            role="alert"
+          >
+            <ShieldCheck class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+            <div>
+              <p class="font-semibold text-amber-900">Two-factor authentication required</p>
+              <p class="mt-0.5 text-xs leading-relaxed text-amber-800">
+                Please contact your administrator or sign in from a trusted device.
+              </p>
+            </div>
+          </div>
+
+          <button
+            class="focus-ring relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="!canSubmit"
+            type="submit"
+          >
+            <Loader2 v-if="auth.isLoading" class="h-4 w-4 animate-spin" aria-hidden="true" />
+            {{ auth.isLoading ? "Signing in…" : "Sign in" }}
+          </button>
+        </form>
+      </div>
+
+      <!-- Dev preview panel -->
+      <div v-if="isDev" class="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wider text-graphite">Preview workspace</p>
+        <div class="mt-3 grid grid-cols-3 gap-2">
           <button
             v-for="roleName in previewRoles"
             :key="roleName"
-            class="focus-ring h-10 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-medium capitalize hover:bg-white"
+            class="focus-ring h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs font-semibold capitalize text-ink transition-colors hover:border-slate-300 hover:bg-white"
             type="button"
             @click="preview(roleName)"
           >

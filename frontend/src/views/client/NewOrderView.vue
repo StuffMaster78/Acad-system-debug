@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { Calculator, Paperclip, Send, X } from "@lucide/vue";
+import { Calculator, Loader2, Paperclip, Send, X } from "@lucide/vue";
 import ConfigSelect from "@/components/forms/ConfigSelect.vue";
 import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector.vue";
 import type { PaymentMethod } from "@/components/payment/PaymentMethodSelector.vue";
@@ -207,37 +207,45 @@ onMounted(loadConfig);
       </p>
     </section>
 
-    <form class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]" @submit.prevent="submit">
+    <form class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]" @submit.prevent="submit" novalidate>
       <div class="space-y-4">
         <!-- Order brief -->
-        <section class="space-y-4 rounded-md border border-slate-200 bg-white p-5 shadow-panel">
-          <h2 class="text-base font-semibold text-ink">Order brief</h2>
+        <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">1</span>
+            <h2 class="text-base font-semibold text-ink">Order brief</h2>
+          </div>
 
           <label class="block">
-            <span class="text-sm font-medium text-graphite">Topic <span class="text-berry">*</span></span>
+            <span class="text-sm font-medium text-ink">Topic <span class="text-rose-500" aria-hidden="true">*</span></span>
             <input
               v-model="form.topic"
               required
-              class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm"
+              aria-required="true"
+              class="focus-ring mt-1.5 h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
               placeholder="e.g. Climate change and food security in Sub-Saharan Africa"
               type="text"
             />
           </label>
 
           <label class="block">
-            <span class="text-sm font-medium text-graphite">Instructions <span class="text-berry">*</span></span>
+            <span class="text-sm font-medium text-ink">Instructions <span class="text-rose-500" aria-hidden="true">*</span></span>
             <textarea
               v-model="form.order_instructions"
               required
-              class="focus-ring mt-1 min-h-36 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+              aria-required="true"
+              class="focus-ring mt-1.5 min-h-36 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
               placeholder="Include your assignment prompt, citation style, sources required, and any specific requirements from your instructor…"
             />
           </label>
         </section>
 
         <!-- Paper specifics -->
-        <section class="space-y-4 rounded-md border border-slate-200 bg-white p-5 shadow-panel">
-          <h2 class="text-base font-semibold text-ink">Paper specifics</h2>
+        <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">2</span>
+            <h2 class="text-base font-semibold text-ink">Paper specifics</h2>
+          </div>
 
           <div class="grid gap-4 sm:grid-cols-2">
             <!-- Paper type -->
@@ -318,8 +326,11 @@ onMounted(loadConfig);
         </section>
 
         <!-- Scope and deadline -->
-        <section class="space-y-4 rounded-md border border-slate-200 bg-white p-5 shadow-panel">
-          <h2 class="text-base font-semibold text-ink">Scope &amp; deadline</h2>
+        <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">3</span>
+            <h2 class="text-base font-semibold text-ink">Scope &amp; deadline</h2>
+          </div>
 
           <div class="grid gap-4 sm:grid-cols-3">
             <label class="block">
@@ -362,11 +373,14 @@ onMounted(loadConfig);
         </section>
 
         <!-- Reference files -->
-        <section class="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+        <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div class="flex items-center justify-between gap-3">
-            <div>
+            <div class="flex items-center gap-3">
+              <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">4</span>
+              <div>
               <h2 class="text-base font-semibold text-ink">Reference materials</h2>
-              <p class="mt-1 text-sm text-graphite">Attach your assignment brief, rubric, examples, or any files the writer needs.</p>
+              <p class="mt-0.5 text-xs text-graphite">Attach your assignment brief, rubric, examples, or any files the writer needs.</p>
+              </div>
             </div>
             <button
               class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-ink"
@@ -413,7 +427,7 @@ onMounted(loadConfig);
         </section>
 
         <!-- Advanced options -->
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+        <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
           <button
             class="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-graphite"
             type="button"
@@ -469,7 +483,7 @@ onMounted(loadConfig);
           Config unavailable — using manual fields.
         </div>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Price estimate</h2>
 
           <div v-if="orders.latestQuote" class="mt-3 rounded-md bg-slate-50 p-3">
@@ -486,17 +500,18 @@ onMounted(loadConfig);
           <p v-else class="mt-3 text-sm text-graphite">Fill in the order details and calculate a price.</p>
 
           <button
-            class="focus-ring mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+            class="focus-ring mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="!canQuote || orders.isLoading"
             type="button"
             @click="calculate"
           >
-            <Calculator class="h-4 w-4" />
+            <Loader2 v-if="orders.isLoading" class="h-4 w-4 animate-spin" />
+            <Calculator v-else class="h-4 w-4" />
             {{ orders.isLoading ? "Calculating…" : "Calculate price" }}
           </button>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Payment</h2>
           <div class="mt-3">
             <PaymentMethodSelector v-model="paymentMethod" :price="quotedPrice" />
@@ -505,11 +520,12 @@ onMounted(loadConfig);
 
         <div class="space-y-2">
           <button
-            class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-3 text-sm font-semibold text-white disabled:bg-slate-400"
+            class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="!canQuote || orders.isCreating"
             type="submit"
           >
-            <Send class="h-4 w-4" />
+            <Loader2 v-if="orders.isCreating" class="h-4 w-4 animate-spin" />
+            <Send v-else class="h-4 w-4" />
             {{ orders.isCreating ? "Placing order…" : "Place order" }}
           </button>
 
@@ -518,8 +534,14 @@ onMounted(loadConfig);
           </p>
         </div>
 
-        <p v-if="error" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">{{ error }}</p>
-        <p v-if="success" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-signal">{{ success }}</p>
+        <div v-if="error" class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800" role="alert">
+          <span class="shrink-0 font-bold">!</span>
+          {{ error }}
+        </div>
+        <div v-if="success" class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-800" role="status">
+          <span class="shrink-0 font-bold">✓</span>
+          {{ success }}
+        </div>
       </aside>
     </form>
   </div>

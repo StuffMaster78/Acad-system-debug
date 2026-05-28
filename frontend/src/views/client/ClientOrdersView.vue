@@ -188,7 +188,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-else-if="!filteredOrders.length" class="p-10">
+      <div v-else-if="!filteredOrders.length" class="p-6">
         <EmptyState
           :icon="ClipboardList"
           :title="searchQuery ? 'No matching orders' : `No ${activeTab === 'all' ? '' : activeTab + ' '}orders`"
@@ -197,7 +197,17 @@ onMounted(() => {
             : activeTab === 'all'
               ? 'Place your first order to get started.'
               : `No orders in this status group.`"
-        />
+        >
+          <template v-if="!searchQuery && activeTab === 'all'" #action>
+            <RouterLink
+              class="focus-ring inline-flex h-9 items-center gap-2 rounded-lg bg-signal px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-signal/90"
+              to="/client/new-order"
+            >
+              <Plus class="h-4 w-4" />
+              Place your first order
+            </RouterLink>
+          </template>
+        </EmptyState>
       </div>
 
       <table v-else class="min-w-full divide-y divide-slate-200 text-sm">
