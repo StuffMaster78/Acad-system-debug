@@ -71,6 +71,13 @@ const quotedPrice = computed(() => {
   return raw == null ? null : Number(raw);
 });
 
+const wordRange = computed(() => {
+  if (form.spacing === "single") {
+    return { min: form.pages * 550, max: form.pages * 600 };
+  }
+  return { min: form.pages * 275, max: form.pages * 300 };
+});
+
 const canQuote = computed(
   () => form.topic.trim().length > 2 && form.order_instructions.trim().length > 10,
 );
@@ -289,12 +296,22 @@ onMounted(loadConfig);
               </label>
             </div>
 
-            <!-- Formatting style (optional) -->
+            <!-- Formatting style -->
             <div v-if="config.collections.formattingStyles.length">
               <ConfigSelect
                 v-model="form.formatting_style_id"
-                label="Formatting style"
+                label="Formatting / citation style"
                 :options="config.collections.formattingStyles"
+              />
+            </div>
+
+            <!-- English type -->
+            <div v-if="config.collections.englishTypes.length">
+              <ConfigSelect
+                v-model="form.english_type_id"
+                label="English type"
+                placeholder="Any"
+                :options="config.collections.englishTypes"
               />
             </div>
           </div>
@@ -314,15 +331,20 @@ onMounted(loadConfig);
                 max="500"
                 type="number"
               />
-              <span class="mt-1 block text-xs text-graphite">~{{ form.pages * 275 }} words</span>
+              <span class="mt-1 block text-xs text-graphite">
+                ~{{ wordRange.min }}–{{ wordRange.max }} words
+              </span>
             </label>
 
             <label class="block">
               <span class="text-sm font-medium text-graphite">Spacing</span>
               <select v-model="form.spacing" class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm">
-                <option value="double">Double</option>
-                <option value="single">Single</option>
+                <option value="double">Double spacing</option>
+                <option value="single">Single spacing</option>
               </select>
+              <span class="mt-1 block text-xs text-graphite">
+                {{ form.spacing === "single" ? "550–600" : "275–300" }} words / page
+              </span>
             </label>
 
             <label class="block">
@@ -452,7 +474,11 @@ onMounted(loadConfig);
             <p class="mt-1 text-2xl font-semibold text-ink">
               {{ orders.latestQuote.currency }} {{ orders.latestQuote.calculated_price }}
             </p>
-            <p class="mt-1 text-xs text-graphite">{{ form.pages }} page{{ form.pages !== 1 ? "s" : "" }} · {{ deadlineLabel }}</p>
+            <p class="mt-1 text-xs text-graphite">
+              {{ form.pages }} page{{ form.pages !== 1 ? "s" : "" }} ·
+              {{ wordRange.min }}–{{ wordRange.max }} words ·
+              {{ deadlineLabel }}
+            </p>
           </div>
           <p v-else class="mt-3 text-sm text-graphite">Fill in the order details and calculate a price.</p>
 
