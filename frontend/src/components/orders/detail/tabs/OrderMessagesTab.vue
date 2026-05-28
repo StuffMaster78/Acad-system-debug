@@ -55,39 +55,47 @@
       </div>
 
       <!-- Compose -->
-      <form class="border-t border-slate-200 p-4" @submit.prevent="send">
+      <form class="border-t border-slate-200 p-4 space-y-2" @submit.prevent="send">
+        <!-- Internal toggle for staff -->
+        <div v-if="isStaffRole" class="flex items-center gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors focus-ring"
+            :class="isInternal ? 'bg-slate-700 text-white' : 'bg-slate-100 text-graphite hover:bg-slate-200'"
+            @click="isInternal = !isInternal"
+          >
+            <Lock class="h-3 w-3" />
+            {{ isInternal ? "Internal note" : "Staff note (off)" }}
+          </button>
+          <span v-if="isInternal" class="text-xs text-slate-500">Only staff will see this message.</span>
+        </div>
+
         <textarea
           v-model.trim="body"
           class="focus-ring min-h-20 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-          :placeholder="placeholder"
+          :class="isInternal ? 'bg-slate-50 border-slate-300' : ''"
+          :placeholder="isInternal ? 'Write an internal staff note…' : placeholder"
         />
-        <div v-if="comms.error" class="mt-2 text-xs text-berry">{{ comms.error }}</div>
+        <div v-if="comms.error" class="text-xs text-berry">{{ comms.error }}</div>
         <button
-          class="focus-ring mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          :class="isInternal ? 'bg-slate-700 hover:bg-slate-800' : 'bg-ink hover:bg-ink/90'"
           type="submit"
           :disabled="comms.isSending || !comms.activeThread || !body"
         >
           <Loader2 v-if="comms.isSending" class="h-4 w-4 animate-spin" />
+          <Lock v-else-if="isInternal" class="h-4 w-4" />
           <Send v-else class="h-4 w-4" />
-          Send
+          {{ isInternal ? "Send internal note" : "Send" }}
         </button>
       </form>
-    </div>
-
-    <!-- Staff: internal notes thread indicator -->
-    <div v-if="isStaffRole" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
-      <p class="text-xs font-semibold text-graphite">Internal staff notes</p>
-      <p class="mt-1 text-sm text-graphite">
-        <!-- TODO: wire internal notes thread separately — currently uses shared thread -->
-        Internal staff notes thread not yet separated. Full thread isolation requires server-side thread-type enforcement.
-      </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { Loader2, MessageSquare, RefreshCw, Send } from "@lucide/vue";
+import { Lock, Loader2, MessageSquare, RefreshCw, Send } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderSummary } from "@/types/orders";
 import { useCommunicationsStore } from "@/stores/communications";
@@ -102,6 +110,7 @@ const props = defineProps<{
 const comms = useCommunicationsStore();
 const isStaffRole = computed(() => isStaff(props.role));
 const body = ref("");
+const isInternal = ref(false);
 
 const threadLabel = computed(() => {
   if (props.role === "writer") return "Order thread (writer)";
@@ -125,7 +134,7 @@ async function startThread() {
 
 async function send() {
   if (!body.value.trim()) return;
-  await comms.sendMessage(body.value.trim());
+  await comms.sendMessage(body.value.trim(), { isInternal: isInternal.value });
   body.value = "";
 }
 </script>

@@ -105,10 +105,40 @@ class RouteOrderToStaffingView(GenericAPIView):
 class ExpressInterestView(GenericAPIView):
     """
     Allow a writer to express interest in a staffing ready pool order.
+    GET lists all interests for the order (staff only); POST submits a bid.
     """
 
     serializer_class = ExpressInterestSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get(
+        self,
+        request: Request,
+        order_id: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Response:
+        user = cast(Any, request.user)
+        order = get_object_or_404(Order, pk=order_id, website=user.website)
+        interests = (
+            OrderInterest.objects.filter(order=order)
+            .select_related("writer")
+            .order_by("-created_at")
+        )
+        data = [
+            {
+                "id": i.pk,
+                "writer_id": i.writer_id,
+                "writer_username": getattr(i.writer, "username", None),
+                "interest_type": i.interest_type,
+                "status": i.status,
+                "message": i.message,
+                "created_at": i.created_at.isoformat() if i.created_at else None,
+                "reviewed_at": i.reviewed_at.isoformat() if i.reviewed_at else None,
+            }
+            for i in interests
+        ]
+        return Response(data)
 
     def post(
         self,

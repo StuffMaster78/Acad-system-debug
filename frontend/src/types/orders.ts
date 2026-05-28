@@ -140,6 +140,17 @@ export interface PaperQuotePayload {
   instructions?: string;
 }
 
+export interface OrderInterestRecord {
+  id: number;
+  writer_id: number;
+  writer_username: string | null;
+  interest_type: string;
+  status: string;
+  message: string;
+  created_at: string | null;
+  reviewed_at: string | null;
+}
+
 export interface RevisionRequest {
   id: number;
   reason: string;

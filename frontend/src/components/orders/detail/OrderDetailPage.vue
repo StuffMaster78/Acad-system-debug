@@ -59,6 +59,8 @@
           :order-id="orderId"
           :order="order"
           :lifecycle="lifecycle"
+          :role="role"
+          @refresh="orders.fetchOrder(orderId)"
         />
         <OrderRevisionsTab
           v-else-if="activeTab === 'revisions'"
@@ -71,6 +73,7 @@
           :order-id="orderId"
           :order="order"
           :role="role"
+          @refresh="orders.fetchOrder(orderId)"
         />
         <OrderTimelineTab
           v-else-if="activeTab === 'timeline'"

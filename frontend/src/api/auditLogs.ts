@@ -37,6 +37,7 @@ export interface AuditEventFilters {
   action?: string;
   actor_id?: string;
   object_type?: string;
+  object_id?: string;
   service_name?: string;
   occurred_after?: string;
   occurred_before?: string;

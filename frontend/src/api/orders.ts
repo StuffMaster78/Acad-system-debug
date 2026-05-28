@@ -4,6 +4,7 @@ import type {
   CreateOrderPayload,
   CreateOrderResponse,
   OrderActionResponse,
+  OrderInterestRecord,
   OrderLifecycle,
   OrderSummary,
   RevisionRequest,
@@ -34,4 +35,16 @@ export const ordersApi = {
     api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/dispute/`), { reason }),
   revisions: (id: number | string) =>
     api.get<RevisionRequest[] | { count: number; results: RevisionRequest[] }>(ordersApiPath(`/orders/${id}/revisions/`)),
+  // QA actions
+  qaSubmit: (id: number | string) =>
+    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/qa/submit/`), {}),
+  qaApprove: (id: number | string) =>
+    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/qa/approve/`), {}),
+  qaReturn: (id: number | string, notes?: string) =>
+    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/qa/return/`), { notes }),
+  // Staffing
+  interests: (id: number | string) =>
+    api.get<OrderInterestRecord[]>(ordersApiPath(`/orders/${id}/staffing/interests/`)),
+  assignFromInterest: (interestId: number | string) =>
+    api.post<OrderActionResponse>(ordersApiPath(`/staffing/interests/${interestId}/assign/`), {}),
 };
