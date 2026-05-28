@@ -48,8 +48,7 @@ export const useOrderConfigStore = defineStore("order-config", () => {
         englishTypes,
       };
     } catch (caught) {
-      error.value =
-        "Live order configuration is unavailable for this account. Advanced fields are still available.";
+      error.value = "Order options couldn't be loaded from the server. Check your connection and try again.";
       throw caught;
     } finally {
       isLoading.value = false;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { Calculator, Loader2, Paperclip, Send, X } from "@lucide/vue";
+import { Calculator, Loader2, Paperclip, RefreshCw, Send, X } from "@lucide/vue";
 import ConfigSelect from "@/components/forms/ConfigSelect.vue";
 import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector.vue";
 import type { PaymentMethod } from "@/components/payment/PaymentMethodSelector.vue";
@@ -107,7 +107,7 @@ async function loadConfig() {
   try {
     await config.fetchAll();
   } catch {
-    showAdvanced.value = true;
+    // error surfaced via config.error
   }
   wallets.fetchWallet().catch(() => undefined);
 }
@@ -247,6 +247,10 @@ onMounted(loadConfig);
               <div class="h-3.5 w-24 rounded bg-slate-200" />
               <div class="h-11 rounded-md border border-slate-200 bg-slate-100" />
             </div>
+          </div>
+
+          <div v-else-if="config.error && !config.hasLiveOptions" class="mt-4 rounded-md border border-dashed border-slate-200 py-8 text-center text-sm text-graphite">
+            Options unavailable — use the retry button above to reload.
           </div>
 
           <div v-else class="mt-4 grid gap-4 sm:grid-cols-2">
@@ -437,8 +441,17 @@ onMounted(loadConfig);
 
       <!-- Sidebar -->
       <aside class="space-y-4">
-        <div v-if="config.error" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Config unavailable — using manual fields.
+        <div v-if="config.error" class="flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span>{{ config.error }}</span>
+          <button
+            class="inline-flex shrink-0 items-center gap-1.5 rounded border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:opacity-50"
+            type="button"
+            :disabled="config.isLoading"
+            @click="config.fetchAll()"
+          >
+            <RefreshCw class="h-3 w-3" :class="config.isLoading ? 'animate-spin' : ''" />
+            Retry
+          </button>
         </div>
 
         <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
