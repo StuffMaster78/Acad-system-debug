@@ -201,3 +201,28 @@ export interface PricingSnapshotResponse {
   final_price: string | number;
   currency: string;
 }
+
+export interface PaymentRecord {
+  id: number | string;
+  amount: string;
+  status: string;
+  payment_method: string | null;
+  payment_type: string | null;
+  reference_id: string | null;
+  transaction_id: string | null;
+  created_at: string | null;
+  confirmed_at: string | null;
+}
+
+export interface OrderPaymentSummary {
+  order_id: number | string;
+  currency: string;
+  order_total: string;
+  amount_paid: string;
+  pending_amount: string;
+  refunded_amount: string;
+  balance_due: string;
+  is_fully_paid: boolean;
+  last_payment_at: string | null;
+  payments: PaymentRecord[];
+}

@@ -51,9 +51,9 @@
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Client deadline</dt>
           <dd class="mt-1 text-sm text-ink">{{ dateLabel(order.client_deadline) }}</dd>
         </div>
-        <!-- Staff: show writer deadline and website separately -->
-        <div v-if="isStaffRole && order.writer_deadline">
-          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Writer deadline</dt>
+        <!-- Writer sees their own deadline; staff also see it separately -->
+        <div v-if="(role === 'writer' || isStaffRole) && order.writer_deadline">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">{{ role === 'writer' ? 'Your deadline' : 'Writer deadline' }}</dt>
           <dd class="mt-1 text-sm text-ink">{{ dateLabel(order.writer_deadline) }}</dd>
         </div>
         <div v-if="isStaffRole && order.website">

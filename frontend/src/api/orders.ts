@@ -7,6 +7,7 @@ import type {
   OrderInterestRecord,
   OrderLifecycle,
   OrderNote,
+  OrderPaymentSummary,
   OrderSummary,
   RevisionRequest,
   RevisionRequestPayload,
@@ -57,4 +58,6 @@ export const ordersApi = {
     api.patch<OrderNote>(ordersApiPath(`/orders/${orderId}/notes/${noteId}/`), patch),
   deleteNote: (orderId: number | string, noteId: number) =>
     api.delete(ordersApiPath(`/orders/${orderId}/notes/${noteId}/`)),
+  paymentSummary: (id: number | string) =>
+    api.get<OrderPaymentSummary>(ordersApiPath(`/orders/${id}/payment-summary/`)),
 };
