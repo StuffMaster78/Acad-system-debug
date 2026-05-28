@@ -249,6 +249,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminFinancialEventsView.vue"),
       },
       {
+        path: "discounts",
+        name: "admin-discounts",
+        component: () => import("@/views/admin/AdminDiscountsView.vue"),
+      },
+      {
         path: "config",
         name: "admin-config",
         component: () => import("@/views/admin/AdminConfigHubView.vue"),
@@ -604,6 +609,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "financials",
         name: "superadmin-financials",
         component: () => import("@/views/admin/AdminFinancialEventsView.vue"),
+      },
+      {
+        path: "discounts",
+        name: "superadmin-discounts",
+        component: () => import("@/views/admin/AdminDiscountsView.vue"),
       },
       {
         path: "config",
