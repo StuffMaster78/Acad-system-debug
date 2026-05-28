@@ -234,15 +234,15 @@ class RateCardSnapshot(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(base_pay_per_page__gte=Decimal("0.00")),
+                condition=models.Q(base_pay_per_page__gte=Decimal("0.00")),
                 name="rate_snapshot_base_page_gte_0",
             ),
             models.CheckConstraint(
-                check=models.Q(urgent_multiplier__gte=Decimal("1.00")),
+                condition=models.Q(urgent_multiplier__gte=Decimal("1.00")),
                 name="rate_snapshot_urgency_multiplier_gte_1",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(tip_percentage__gte=Decimal("0.00")) &
                     models.Q(tip_percentage__lte=Decimal("100.00"))
                 ),

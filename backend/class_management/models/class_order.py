@@ -169,7 +169,7 @@ class ClassOrder(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=~models.Q(currency=""),
+                condition=~models.Q(currency=""),
                 name="class_order_currency_not_empty",
             ),
         ]

@@ -27,7 +27,7 @@ from billing.services.invoice_orchestration_service import (
     InvoiceOrchestrationService,
 )
 from billing.services.invoice_service import InvoiceService
-from class_management.models import ClassPurchase
+from class_management.models import ClassOrder as ClassPurchase
 from orders.models.orders import Order
 from special_orders.models import SpecialOrder
 from core.utils.request_context import get_request_website

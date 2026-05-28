@@ -237,7 +237,7 @@ class CompensationEvent(models.Model):
             ),
             # Amount must never be zero.
             models.CheckConstraint(
-                check=~models.Q(amount=Decimal("0.00")),
+                condition=~models.Q(amount=Decimal("0.00")),
                 name="compensation_event_amount_non_zero",
             ),
         ]

@@ -510,19 +510,19 @@ class Order(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(total_price__gte=0),
+                condition=models.Q(total_price__gte=0),
                 name="orders_order_total_price_gte_zero",
             ),
             models.CheckConstraint(
-                check=models.Q(amount_paid__gte=0),
+                condition=models.Q(amount_paid__gte=0),
                 name="orders_order_amount_paid_gte_zero",
             ),
             models.CheckConstraint(
-                check=models.Q(writer_compensation__gte=0),
+                condition=models.Q(writer_compensation__gte=0),
                 name="orders_order_writer_comp_gte_zero",
             ),
             models.CheckConstraint(
-                check=models.Q(preferred_writer_fee_amount__gte=0),
+                condition=models.Q(preferred_writer_fee_amount__gte=0),
                 name="orders_order_pref_fee_gte_zero",
             ),
             

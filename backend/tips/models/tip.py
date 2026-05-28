@@ -237,11 +237,11 @@ class Tip(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(gross_amount__gt=0),
+                condition=models.Q(gross_amount__gt=0),
                 name="tip_gross_amount_positive",
             ),
             models.CheckConstraint(
-                check=~models.Q(sender=models.F("receiver")),
+                condition=~models.Q(sender=models.F("receiver")),
                 name="tip_sender_receiver_different",
             ),
         ]

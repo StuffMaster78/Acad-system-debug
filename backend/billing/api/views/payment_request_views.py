@@ -28,7 +28,7 @@ from billing.services.payment_request_orchestration_service import (
     PaymentRequestOrchestrationService,
 )
 from billing.services.payment_request_service import PaymentRequestService
-from class_management.models import ClassPurchase
+from class_management.models import ClassOrder as ClassPurchase
 from core.utils.request_context import get_request_website
 from orders.models.orders import Order
 from special_orders.models import SpecialOrder

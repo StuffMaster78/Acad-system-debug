@@ -40,7 +40,6 @@ QUALITY_TIER_CHOICES = [
 ]
 
 
-@register_snippet
 class ReferenceTag(models.Model):
     """Tags for organizing references (e.g., 'evidence-based-practice',
     'patient-safety', 'pediatric')."""
@@ -54,7 +53,6 @@ class ReferenceTag(models.Model):
         return self.name
 
 
-@register_snippet
 class Reference(index.Indexed, models.Model):
     """An external source cited in content.
 

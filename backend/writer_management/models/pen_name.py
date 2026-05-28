@@ -81,7 +81,7 @@ class WriterPenNameChangeRequest(models.Model):
             ),
             # Review fields must be set together
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(reviewed_by__isnull=True) |
                     models.Q(reviewed_at__isnull=False)
                 ),

@@ -139,7 +139,7 @@ class WriterAvailabilityWindow(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(end_at__isnull=True) |
                     models.Q(end_at__gt=models.F("start_at"))
                 ),
@@ -271,21 +271,21 @@ class WriterAvailabilityPreference(models.Model):
                 name="unique_avail_pref_per_writer",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(preferred_start_hour__isnull=True) |
                     models.Q(preferred_start_hour__lte=23)
                 ),
                 name="avail_pref_start_hour_valid",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(preferred_end_hour__isnull=True) |
                     models.Q(preferred_end_hour__lte=23)
                 ),
                 name="avail_pref_end_hour_valid",
             ),
             models.CheckConstraint(
-                check=models.Q(auto_offline_after_minutes__gte=1),
+                condition=models.Q(auto_offline_after_minutes__gte=1),
                 name="avail_pref_offline_minutes_gte_1",
             ),
         ]

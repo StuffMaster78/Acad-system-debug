@@ -137,7 +137,7 @@ class WriterTrustScore(models.Model):
 
         constraints = [
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(score__gte=Decimal("0.00"))
                     & models.Q(score__lte=Decimal("100.00"))
                 ),

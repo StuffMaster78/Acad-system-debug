@@ -213,14 +213,14 @@ class WriterReward(models.Model):
 
         constraints = [
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     reward_amount__gte=Decimal("0.00")
                 ),
                 name="writer_reward_amount_gte_0",
             ),
 
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(
                         average_rating__isnull=True
                     )
@@ -237,7 +237,7 @@ class WriterReward(models.Model):
             ),
 
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(
                         percentile_rank__isnull=True
                     )
@@ -254,7 +254,7 @@ class WriterReward(models.Model):
             ),
 
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(
                         composite_score__isnull=True
                     )
@@ -266,7 +266,7 @@ class WriterReward(models.Model):
             ),
 
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(period_start__isnull=True)
                     | models.Q(period_end__isnull=True)
                     | models.Q(

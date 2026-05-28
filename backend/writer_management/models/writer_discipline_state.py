@@ -191,7 +191,7 @@ class WriterDisciplineState(models.Model):
         constraints = [
             # Blacklist supersedes suspension — cannot be both
             models.CheckConstraint(
-                check=~(
+                condition=~(
                     models.Q(is_suspended=True) &
                     models.Q(is_blacklisted=True)
                 ),
@@ -199,36 +199,36 @@ class WriterDisciplineState(models.Model):
             ),
             # Counter sanity checks
             models.CheckConstraint(
-                check=models.Q(active_strike_count__gte=0),
+                condition=models.Q(active_strike_count__gte=0),
                 name="discipline_active_strikes_gte_0",
             ),
             models.CheckConstraint(
-                check=models.Q(lifetime_strike_count__gte=0),
+                condition=models.Q(lifetime_strike_count__gte=0),
                 name="discipline_lifetime_strikes_gte_0",
             ),
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     active_strike_count__lte=models.F("lifetime_strike_count")
                 ),
                 name="discipline_active_le_lifetime_strikes",
             ),
             models.CheckConstraint(
-                check=models.Q(active_warning_count__gte=0),
+                condition=models.Q(active_warning_count__gte=0),
                 name="discipline_active_warnings_gte_0",
             ),
             models.CheckConstraint(
-                check=models.Q(lifetime_warning_count__gte=0),
+                condition=models.Q(lifetime_warning_count__gte=0),
                 name="discipline_lifetime_warnings_gte_0",
             ),
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     active_warning_count__lte=models.F("lifetime_warning_count")
                 ),
                 name="discipline_active_le_lifetime_warnings",
             ),
             # Suspension timing: if not suspended, ends_at must be null
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(is_suspended=True) |
                     models.Q(suspension_ends_at__isnull=True)
                 ),

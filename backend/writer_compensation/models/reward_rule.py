@@ -188,14 +188,14 @@ class RewardRule(models.Model):
                 name="unique_reward_rule_slug_per_website",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(reward_amount__gte=Decimal("0.00"))
                 ),
                 name="reward_rule_reward_amount_gte_0",
             ),
 
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(minimum_avg_rating__isnull=True)
                     | (
                         models.Q(minimum_avg_rating__gte=Decimal("0.00"))
@@ -206,7 +206,7 @@ class RewardRule(models.Model):
             ),
 
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(minimum_percentile_rank__isnull=True)
                     | (
                         models.Q(minimum_percentile_rank__gte=Decimal("0.00"))

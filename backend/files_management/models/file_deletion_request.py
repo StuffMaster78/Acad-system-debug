@@ -111,7 +111,7 @@ class FileDeletionRequest(models.Model):
         constraints = [
             models.CheckConstraint(
                 name="file_deletion_request_has_source",
-                check=(
+                condition=(
                     models.Q(managed_file__isnull=False)
                     | models.Q(external_link__isnull=False)
                 ),

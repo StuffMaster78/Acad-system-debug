@@ -149,7 +149,7 @@ class BlogPostPage(Page):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="blog_sources",
+        related_name="blog_post_sources",
         help_text="The service page this blog post primarily routes readers toward",
     )
     pillar = models.ForeignKey(

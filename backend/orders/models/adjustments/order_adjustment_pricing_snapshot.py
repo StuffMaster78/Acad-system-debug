@@ -84,11 +84,11 @@ class OrderAdjustmentPricingSnapshot(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(base_amount__gte=0),
+                condition=models.Q(base_amount__gte=0),
                 name="orders_adj_price_snap_base_gte_zero",
             ),
             models.CheckConstraint(
-                check=models.Q(computed_amount__gte=0),
+                condition=models.Q(computed_amount__gte=0),
                 name="orders_adj_price_snap_computed_gte_zero",
             ),
         ]

@@ -95,11 +95,11 @@ class ClassWriterCompensation(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                check=models.Q(final_amount__gte=0),
+                condition=models.Q(final_amount__gte=0),
                 name="class_writer_comp_final_amount_non_negative",
             ),
             models.CheckConstraint(
-                check=models.Q(paid_amount__gte=0),
+                condition=models.Q(paid_amount__gte=0),
                 name="class_writer_comp_paid_amount_non_negative",
             ),
         ]

@@ -214,24 +214,24 @@ class WriterPerformance(models.Model):
         verbose_name_plural = "Writer Performance"
         constraints = [
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(average_rating__gte=Decimal("0.00")) &
                     models.Q(average_rating__lte=Decimal("5.00"))
                 ),
                 name="perf_avg_rating_range",
             ),
             models.CheckConstraint(
-                check=models.Q(total_earnings__gte=Decimal("0.00")),
+                condition=models.Q(total_earnings__gte=Decimal("0.00")),
                 name="perf_total_earnings_gte_0",
             ),
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     completed_orders__lte=models.F("total_orders")
                 ),
                 name="perf_completed_le_total",
             ),
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     on_time_deliveries__lte=models.F("completed_orders")
                 ),
                 name="perf_on_time_le_completed",
@@ -461,11 +461,11 @@ class WriterPerformanceSnapshot(models.Model):
                 name="unique_snapshot_per_writer_period",
             ),
             models.CheckConstraint(
-                check=models.Q(period_end__gte=models.F("period_start")),
+                condition=models.Q(period_end__gte=models.F("period_start")),
                 name="snapshot_period_end_gte_start",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(average_rating__isnull=True) |
                     (
                         models.Q(average_rating__gte=Decimal("0.00")) &
@@ -475,35 +475,35 @@ class WriterPerformanceSnapshot(models.Model):
                 name="snapshot_avg_rating_range",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(completion_rate__gte=Decimal("0.0000")) &
                     models.Q(completion_rate__lte=Decimal("1.0000"))
                 ),
                 name="snapshot_completion_rate_range",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(lateness_rate__gte=Decimal("0.0000")) &
                     models.Q(lateness_rate__lte=Decimal("1.0000"))
                 ),
                 name="snapshot_lateness_rate_range",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(revision_rate__gte=Decimal("0.0000")) &
                     models.Q(revision_rate__lte=Decimal("1.0000"))
                 ),
                 name="snapshot_revision_rate_range",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(dispute_rate__gte=Decimal("0.0000")) &
                     models.Q(dispute_rate__lte=Decimal("1.0000"))
                 ),
                 name="snapshot_dispute_rate_range",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(cancellation_rate__gte=Decimal("0.0000")) &
                     models.Q(cancellation_rate__lte=Decimal("1.0000"))
                 ),
@@ -511,7 +511,7 @@ class WriterPerformanceSnapshot(models.Model):
             ),
             # Composite score only when processed
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(is_processed=False) |
                     models.Q(composite_score__isnull=False)
                 ),
@@ -697,25 +697,25 @@ class WriterPerformanceMetrics(models.Model):
                 name="unique_metrics_per_writer_week",
             ),
             models.CheckConstraint(
-                check=models.Q(week_end__gte=models.F("week_start")),
+                condition=models.Q(week_end__gte=models.F("week_start")),
                 name="metrics_week_end_gte_start",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(avg_rating__gte=Decimal("0.00")) &
                     models.Q(avg_rating__lte=Decimal("5.00"))
                 ),
                 name="metrics_avg_rating_range",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(percentile_rank__gte=Decimal("0.00")) &
                     models.Q(percentile_rank__lte=Decimal("100.00"))
                 ),
                 name="metrics_percentile_rank_range",
             ),
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     total_earnings__gte=Decimal("0.00")
                 ),
                 name="metrics_earnings_gte_0",

@@ -158,7 +158,7 @@ class WriterSuspension(models.Model):
             ),
             # end_date must be after start_date when set
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(end_date__isnull=True) |
                     models.Q(end_date__gt=models.F("start_date"))
                 ),
@@ -166,7 +166,7 @@ class WriterSuspension(models.Model):
             ),
             # lifted_at requires is_active=False
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(lifted_at__isnull=True) |
                     models.Q(is_active=False)
                 ),
@@ -277,7 +277,7 @@ class WriterBlacklist(models.Model):
                 name="unique_active_blacklist_per_writer",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(lifted_at__isnull=True) |
                     models.Q(is_active=False)
                 ),
@@ -383,7 +383,7 @@ class WriterProbation(models.Model):
                 name="unique_active_probation_per_writer",
             ),
             models.CheckConstraint(
-                check=models.Q(end_date__gt=models.F("start_date")),
+                condition=models.Q(end_date__gt=models.F("start_date")),
                 name="probation_end_after_start",
             ),
         ]
@@ -463,7 +463,7 @@ class WriterPenalty(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(amount_deducted__gte=Decimal("0.00")),
+                condition=models.Q(amount_deducted__gte=Decimal("0.00")),
                 name="penalty_amount_gte_0",
             ),
         ]

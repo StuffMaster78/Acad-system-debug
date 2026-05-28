@@ -195,7 +195,7 @@ class TipPolicy(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(writer_percentage__gte=0)
                     & models.Q(platform_percentage__gte=0)
                 ),

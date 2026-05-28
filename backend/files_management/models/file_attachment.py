@@ -120,7 +120,7 @@ class FileAttachment(models.Model):
         constraints = [
             models.CheckConstraint(
                 name="file_attachment_exactly_one_source",
-                check=(
+                condition=(
                     (
                         models.Q(managed_file__isnull=False)
                         & models.Q(external_link__isnull=True)

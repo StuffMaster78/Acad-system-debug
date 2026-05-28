@@ -80,7 +80,6 @@ SCHEMA_TYPE_CHOICES = [
 ]
 
 
-@register_snippet
 class AttachmentCategory(models.Model):
     """Groupings like 'Templates', 'Sample Papers', 'Study Guides'."""
     site = models.ForeignKey(
@@ -110,7 +109,6 @@ class AttachmentCategory(models.Model):
         return self.name
 
 
-@register_snippet
 class Attachment(index.Indexed, models.Model):
     """A downloadable file resource.
 

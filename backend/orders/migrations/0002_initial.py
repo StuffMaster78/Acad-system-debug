@@ -709,19 +709,19 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='order',
-            constraint=models.CheckConstraint(check=models.Q(('total_price__gte', 0)), name='orders_order_total_price_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('total_price__gte', 0)), name='orders_order_total_price_gte_zero'),
         ),
         migrations.AddConstraint(
             model_name='order',
-            constraint=models.CheckConstraint(check=models.Q(('amount_paid__gte', 0)), name='orders_order_amount_paid_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('amount_paid__gte', 0)), name='orders_order_amount_paid_gte_zero'),
         ),
         migrations.AddConstraint(
             model_name='order',
-            constraint=models.CheckConstraint(check=models.Q(('writer_compensation__gte', 0)), name='orders_order_writer_comp_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('writer_compensation__gte', 0)), name='orders_order_writer_comp_gte_zero'),
         ),
         migrations.AddConstraint(
             model_name='order',
-            constraint=models.CheckConstraint(check=models.Q(('preferred_writer_fee_amount__gte', 0)), name='orders_order_pref_fee_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('preferred_writer_fee_amount__gte', 0)), name='orders_order_pref_fee_gte_zero'),
         ),
         migrations.AddIndex(
             model_name='draftrequest',
@@ -765,7 +765,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='orderadjustmentproposal',
-            constraint=models.CheckConstraint(check=models.Q(('amount__gt', 0)), name='orders_adj_proposal_amount_gt_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('amount__gt', 0)), name='orders_adj_proposal_amount_gt_zero'),
         ),
         migrations.AddIndex(
             model_name='orderadjustmentpricingsnapshot',
@@ -777,11 +777,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='orderadjustmentpricingsnapshot',
-            constraint=models.CheckConstraint(check=models.Q(('base_amount__gte', 0)), name='orders_adj_price_snap_base_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('base_amount__gte', 0)), name='orders_adj_price_snap_base_gte_zero'),
         ),
         migrations.AddConstraint(
             model_name='orderadjustmentpricingsnapshot',
-            constraint=models.CheckConstraint(check=models.Q(('computed_amount__gte', 0)), name='orders_adj_price_snap_computed_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('computed_amount__gte', 0)), name='orders_adj_price_snap_computed_gte_zero'),
         ),
         migrations.AddIndex(
             model_name='orderadjustmentfunding',
@@ -837,7 +837,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='ordercompensationadjustment',
-            constraint=models.CheckConstraint(check=models.Q(('amount_delta__gte', 0)), name='orders_comp_adj_amount_delta_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('amount_delta__gte', 0)), name='orders_comp_adj_amount_delta_gte_zero'),
         ),
         migrations.AddIndex(
             model_name='orderdispute',
@@ -885,7 +885,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='orderdisputeresolution',
-            constraint=models.CheckConstraint(check=models.Q(('refund_amount__isnull', True), ('refund_amount__gte', 0), _connector='OR'), name='orders_dispute_resolution_refund_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('refund_amount__isnull', True), ('refund_amount__gte', 0), _connector='OR'), name='orders_dispute_resolution_refund_gte_zero'),
         ),
         migrations.AddIndex(
             model_name='orderflag',
@@ -981,19 +981,19 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='orderpricingsnapshot',
-            constraint=models.CheckConstraint(check=models.Q(('subtotal_amount__gte', 0)), name='orders_price_snap_subtotal_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('subtotal_amount__gte', 0)), name='orders_price_snap_subtotal_gte_zero'),
         ),
         migrations.AddConstraint(
             model_name='orderpricingsnapshot',
-            constraint=models.CheckConstraint(check=models.Q(('discount_amount__gte', 0)), name='orders_price_snap_discount_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('discount_amount__gte', 0)), name='orders_price_snap_discount_gte_zero'),
         ),
         migrations.AddConstraint(
             model_name='orderpricingsnapshot',
-            constraint=models.CheckConstraint(check=models.Q(('total_amount__gte', 0)), name='orders_price_snap_total_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('total_amount__gte', 0)), name='orders_price_snap_total_gte_zero'),
         ),
         migrations.AddConstraint(
             model_name='orderpricingsnapshot',
-            constraint=models.CheckConstraint(check=models.Q(('writer_compensation_amount__gte', 0)), name='orders_price_snap_writer_comp_gte_zero'),
+            constraint=models.CheckConstraint(condition=models.Q(('writer_compensation_amount__gte', 0)), name='orders_price_snap_writer_comp_gte_zero'),
         ),
         migrations.AddIndex(
             model_name='orderreassignmentrequest',

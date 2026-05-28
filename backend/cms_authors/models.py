@@ -18,7 +18,6 @@ from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 
 
-@register_snippet
 class Author(index.Indexed, models.Model):
     """A real, credentialed content author.
 

@@ -182,7 +182,6 @@ class BlogTag(models.Model):
         return self.name
 
 
-@register_snippet
 class ServiceCategory(models.Model):
     """Service page category (e.g., Nursing, Business, General). Tenant-scoped."""
     site = models.ForeignKey(
