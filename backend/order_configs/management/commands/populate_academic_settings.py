@@ -3,13 +3,14 @@ Django management command to populate academic settings.
 Usage: python manage.py populate_academic_settings [website_domain]
 """
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 from websites.models.websites import Website
 from order_configs.models import (
     PaperType, FormattingandCitationStyle, Subject, AcademicLevel,
     TypeOfWork, EnglishType
 )
 from order_pricing_core.models import PricingConfiguration, AcademicLevelPricing
+from order_configs.services.comprehensive_paper_types import COMPREHENSIVE_PAPER_TYPES
+from order_configs.services.comprehensive_subjects import COMPREHENSIVE_SUBJECTS
 from decimal import Decimal
 
 
@@ -49,22 +50,13 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(self.style.SUCCESS(f'Using existing website: {website.name}'))
         
-        # Paper Types
-        paper_types = [
-            'Essay', 'Research Paper', 'Term Paper', 'Dissertation', 'Thesis',
-            'Case Study', 'Article Review', 'Book Report', 'Literature Review',
-            'Annotated Bibliography', 'Coursework', 'Lab Report', 'Presentation',
-            'PowerPoint Presentation', 'Speech', 'Article', 'Report',
-            'Reflection Paper', 'Position Paper', 'Argumentative Essay',
-            'Narrative Essay', 'Descriptive Essay', 'Expository Essay',
-            'Compare and Contrast Essay', 'Cause and Effect Essay',
-            'Admission Essay', 'Scholarship Essay', 'Creative Writing', 'Poem',
-            'Proposal', 'Research Proposal', 'Capstone Project', 'Discussion Post',
-            'Response Paper', 'Summary', 'Outline', 'Q&A', 'Worksheet',
-            'Math Problem', 'Statistics Problem', 'Programming Assignment',
-            'Code Review', 'Technical Writing', 'Business Plan', 'Marketing Plan',
-            'Financial Analysis',
-        ]
+        # Paper Types — full list from comprehensive_paper_types service (deduplicated)
+        seen_types = set()
+        paper_types = []
+        for pt in COMPREHENSIVE_PAPER_TYPES:
+            if pt not in seen_types:
+                seen_types.add(pt)
+                paper_types.append(pt)
         
         self.stdout.write('\n' + '='*70)
         self.stdout.write('POPULATING PAPER TYPES')
@@ -120,86 +112,14 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(self.style.SUCCESS(f'✅ Created academic level: {level_name}'))
         
-        # Subjects (with technical flag)
-        subjects_data = [
-            # Humanities
-            ('English', False), ('Literature', False), ('History', False),
-            ('Philosophy', False), ('Religion', False), ('Art', False),
-            ('Music', False), ('Theater', False), ('Film Studies', False),
-            ('Linguistics', False), ('Languages', False), ('Spanish', False),
-            ('French', False), ('German', False), ('Chinese', False), ('Japanese', False),
-            
-            # Social Sciences
-            ('Psychology', False), ('Sociology', False), ('Anthropology', False),
-            ('Political Science', False), ('Economics', False), ('Geography', False),
-            ('Criminal Justice', False), ('Law', False), ('Criminology', False),
-            ('Social Work', False), ('Public Administration', False),
-            ('International Relations', False), ('Urban Studies', False),
-            ('Gender Studies', False), ('Ethnic Studies', False),
-            
-            # Sciences (Technical)
-            ('Biology', True), ('Chemistry', True), ('Physics', True),
-            ('Mathematics', True), ('Statistics', True), ('Computer Science', True),
-            ('Information Technology', True), ('Engineering', True),
-            ('Mechanical Engineering', True), ('Electrical Engineering', True),
-            ('Civil Engineering', True), ('Chemical Engineering', True),
-            ('Biomedical Engineering', True), ('Environmental Science', True),
-            ('Geology', True), ('Astronomy', True), ('Meteorology', True),
-            ('Botany', True), ('Zoology', True), ('Microbiology', True),
-            ('Genetics', True), ('Neuroscience', True), ('Astrophysics', True),
-            ('Biochemistry', True), ('Organic Chemistry', True),
-            ('Inorganic Chemistry', True), ('Physical Chemistry', True),
-            ('Quantum Physics', True),
-            
-            # Health Sciences
-            ('Nursing', False), ('Medicine', True), ('Public Health', False),
-            ('Healthcare', False), ('Health Administration', False),
-            ('Pharmacy', True), ('Physical Therapy', False),
-            ('Occupational Therapy', False), ('Nutrition', False),
-            ('Dietetics', False), ('Kinesiology', False),
-            ('Exercise Science', False), ('Sports Medicine', False),
-            ('Veterinary Medicine', True), ('Dentistry', True),
-            ('Optometry', True), ('Radiology', True),
-            ('Medical Laboratory Science', True), ('Respiratory Therapy', False),
-            
-            # Business
-            ('Business', False), ('Management', False), ('Marketing', False),
-            ('Finance', False), ('Accounting', False), ('Economics', False),
-            ('Entrepreneurship', False), ('Human Resources', False),
-            ('Operations Management', False), ('Supply Chain Management', False),
-            ('Project Management', False), ('Business Administration', False),
-            ('International Business', False), ('Real Estate', False),
-            ('Hospitality Management', False), ('Tourism', False),
-            
-            # Education
-            ('Education', False), ('Teaching', False),
-            ('Curriculum Development', False), ('Educational Technology', False),
-            ('Special Education', False), ('Early Childhood Education', False),
-            ('Elementary Education', False), ('Secondary Education', False),
-            ('Higher Education', False), ('Educational Leadership', False),
-            ('Educational Psychology', False),
-            
-            # Technology (Technical)
-            ('Information Systems', True), ('Cybersecurity', True),
-            ('Data Science', True), ('Artificial Intelligence', True),
-            ('Machine Learning', True), ('Software Engineering', True),
-            ('Web Development', True), ('Database Management', True),
-            ('Network Administration', True), ('Cloud Computing', True),
-            ('Mobile Development', True), ('Game Development', True),
-            
-            # Communications
-            ('Communications', False), ('Journalism', False),
-            ('Public Relations', False), ('Media Studies', False),
-            ('Advertising', False), ('Marketing Communications', False),
-            ('Digital Media', False), ('Broadcasting', False),
-            
-            # Other
-            ('Environmental Studies', False), ('Sustainability', False),
-            ('Agriculture', False), ('Architecture', False),
-            ('Urban Planning', False), ('Aviation', False),
-            ('Maritime Studies', False), ('Military Science', False),
-            ('Security Studies', False),
-        ]
+        # Subjects — full list from comprehensive_subjects service
+        # Deduplicate by name while preserving order
+        seen_subjects = set()
+        subjects_data = []
+        for name, is_technical in COMPREHENSIVE_SUBJECTS:
+            if name not in seen_subjects:
+                seen_subjects.add(name)
+                subjects_data.append((name, is_technical))
         
         self.stdout.write('\n' + '='*70)
         self.stdout.write('POPULATING SUBJECTS')
