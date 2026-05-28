@@ -147,6 +147,7 @@ async function submitOp() {
 
 const tiers = ref<LoyaltyTier[]>([]);
 const tiersLoading = ref(false);
+const pendingDeleteTierId = ref<number | null>(null);
 const showTierForm = ref(false);
 const tierFormLoading = ref(false);
 const tierForm = ref({ name: "", min_points: "", max_points: "", multiplier: "1.0", benefits: "", is_active: true });
@@ -189,7 +190,8 @@ async function submitTier() {
 }
 
 async function deleteTier(id: number) {
-  if (!confirm("Delete this tier?")) return;
+  if (pendingDeleteTierId.value !== id) { pendingDeleteTierId.value = id; return; }
+  pendingDeleteTierId.value = null;
   await adminLoyaltyApi.deleteTier(id);
   await loadTiers();
 }
@@ -243,6 +245,7 @@ async function submitMilestone() {
 const categories = ref<RedemptionCategory[]>([]);
 const catalogItems = ref<RedemptionItem[]>([]);
 const catalogLoading = ref(false);
+const pendingDeleteItemId = ref<number | null>(null);
 const showItemForm = ref(false);
 const itemFormLoading = ref(false);
 const itemForm = ref({
@@ -304,7 +307,8 @@ async function submitItem() {
 }
 
 async function deleteItem(id: number) {
-  if (!confirm("Delete this redemption item?")) return;
+  if (pendingDeleteItemId.value !== id) { pendingDeleteItemId.value = id; return; }
+  pendingDeleteItemId.value = null;
   await adminLoyaltyApi.deleteItem(id);
   await loadCatalog();
 }
@@ -640,7 +644,11 @@ onMounted(async () => {
                   <td class="px-4 py-2 text-neutral-600 text-xs">{{ t.min_points }}{{ t.max_points ? `–${t.max_points}` : '+' }}</td>
                   <td class="px-4 py-2 text-neutral-600">{{ t.multiplier }}x</td>
                   <td class="px-4 py-2 text-right">
-                    <button class="p-1 rounded hover:bg-red-50 text-neutral-400 hover:text-berry-600" @click="deleteTier(t.id)"><Trash2 class="size-4" /></button>
+                    <template v-if="pendingDeleteTierId === t.id">
+                      <button class="focus-ring rounded bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white" type="button" @click="deleteTier(t.id)">Confirm</button>
+                      <button class="focus-ring rounded border border-slate-200 px-2 py-0.5 text-xs text-graphite" type="button" @click="pendingDeleteTierId = null">Cancel</button>
+                    </template>
+                    <button v-else class="p-1 rounded hover:bg-red-50 text-neutral-400 hover:text-berry-600" @click="deleteTier(t.id)"><Trash2 class="size-4" /></button>
                   </td>
                 </tr>
               </tbody>
@@ -768,7 +776,11 @@ onMounted(async () => {
               </div>
               <div class="flex items-center gap-1 shrink-0">
                 <StatusPill :label="item.is_active ? 'active' : 'inactive'" :tone="item.is_active ? 'success' : 'neutral'" />
-                <button class="p-1 rounded hover:bg-red-50 text-neutral-400 hover:text-berry-600" @click="deleteItem(item.id)"><Trash2 class="size-3.5" /></button>
+                <template v-if="pendingDeleteItemId === item.id">
+                  <button class="focus-ring rounded bg-rose-600 px-1.5 py-0.5 text-xs font-semibold text-white" type="button" @click="deleteItem(item.id)">Confirm</button>
+                  <button class="focus-ring rounded border border-slate-200 px-1.5 py-0.5 text-xs text-graphite" type="button" @click="pendingDeleteItemId = null">Cancel</button>
+                </template>
+                <button v-else class="p-1 rounded hover:bg-red-50 text-neutral-400 hover:text-berry-600" @click="deleteItem(item.id)"><Trash2 class="size-3.5" /></button>
               </div>
             </div>
             <div class="flex items-center gap-3 text-xs text-neutral-500">

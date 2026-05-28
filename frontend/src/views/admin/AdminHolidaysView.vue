@@ -30,6 +30,7 @@ const activeTab = ref<Tab>("special-days");
 
 const specialDays = ref<SpecialDay[]>([]);
 const specialDaysLoading = ref(false);
+const pendingDeleteDayId = ref<number | null>(null);
 const upcomingSpecialDays = ref<SpecialDay[]>([]);
 
 const filterEventType = ref("");
@@ -108,7 +109,8 @@ async function submitCreateSpecialDay() {
 }
 
 async function deleteSpecialDay(id: number) {
-  if (!confirm("Delete this special day?")) return;
+  if (pendingDeleteDayId.value !== id) { pendingDeleteDayId.value = id; return; }
+  pendingDeleteDayId.value = null;
   await holidaysApi.deleteSpecialDay(id);
   await loadSpecialDays();
 }
@@ -473,7 +475,12 @@ onMounted(async () => {
                     <Percent v-else class="size-3" />
                     Discount
                   </button>
+                  <template v-if="pendingDeleteDayId === day.id">
+                    <button class="focus-ring rounded bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white" type="button" @click="deleteSpecialDay(day.id)">Confirm</button>
+                    <button class="focus-ring rounded border border-slate-200 px-2 py-0.5 text-xs text-graphite" type="button" @click="pendingDeleteDayId = null">Cancel</button>
+                  </template>
                   <button
+                    v-else
                     class="p-1 rounded hover:bg-red-50 text-neutral-400 hover:text-berry-600 transition-colors"
                     @click="deleteSpecialDay(day.id)"
                   >

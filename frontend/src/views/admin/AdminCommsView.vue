@@ -37,6 +37,7 @@ const annError = ref("");
 const annSuccess = ref("");
 const showAnnForm = ref(false);
 const annMutating = ref(false);
+const pendingDeleteAnnId = ref<number | null>(null);
 
 const annForm = ref<CreateAnnouncementPayload>({
   title: "",
@@ -101,7 +102,8 @@ async function togglePin(item: AnnouncementRecord) {
 }
 
 async function deleteAnnouncement(item: AnnouncementRecord) {
-  if (!confirm(`Delete "${item.title}"?`)) return;
+  if (pendingDeleteAnnId.value !== item.id) { pendingDeleteAnnId.value = item.id; return; }
+  pendingDeleteAnnId.value = null;
   annMutating.value = true;
   try {
     await announcementsApi.delete(item.id);
@@ -159,6 +161,7 @@ const templates = ref<EmailTemplate[]>([]);
 const tplLoading = ref(false);
 const tplMutating = ref(false);
 const tplError = ref("");
+const pendingDeleteTplId = ref<number | null>(null);
 const tplSuccess = ref("");
 const showTplForm = ref(false);
 const tplForm = ref<CreateEmailTemplatePayload>({ name: "", subject: "", body: "", is_global: true });
@@ -196,7 +199,8 @@ async function createTemplate() {
 }
 
 async function deleteTemplate(tpl: EmailTemplate) {
-  if (!confirm(`Delete template "${tpl.name}"?`)) return;
+  if (pendingDeleteTplId.value !== tpl.id) { pendingDeleteTplId.value = tpl.id; return; }
+  pendingDeleteTplId.value = null;
   tplMutating.value = true;
   try {
     await adminCommsApi.deleteTemplate(tpl.id);
@@ -661,7 +665,12 @@ onMounted(() => {
               <PinOff v-if="ann.is_pinned" class="h-4 w-4" />
               <Pin v-else class="h-4 w-4" />
             </button>
+            <template v-if="pendingDeleteAnnId === ann.id">
+              <button class="focus-ring rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700" type="button" @click="deleteAnnouncement(ann)">Confirm</button>
+              <button class="focus-ring rounded-md border border-slate-200 px-2 py-1 text-xs text-graphite hover:bg-slate-50" type="button" @click="pendingDeleteAnnId = null">Cancel</button>
+            </template>
             <button
+              v-else
               class="focus-ring rounded-md p-2 text-graphite hover:bg-rose-50 hover:text-berry"
               type="button"
               title="Delete"
@@ -760,7 +769,12 @@ onMounted(() => {
             >
               Use in campaign
             </button>
+            <template v-if="pendingDeleteTplId === tpl.id">
+              <button class="focus-ring rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700" type="button" @click="deleteTemplate(tpl)">Confirm</button>
+              <button class="focus-ring rounded-md border border-slate-200 px-2 py-1 text-xs text-graphite hover:bg-slate-50" type="button" @click="pendingDeleteTplId = null">Cancel</button>
+            </template>
             <button
+              v-else
               class="focus-ring rounded-md p-2 text-graphite hover:bg-rose-50 hover:text-berry"
               type="button"
               :disabled="tplMutating"

@@ -72,15 +72,30 @@
                 <UserPlus class="size-3.5" />
                 Assign Writer
               </button>
-              <button
-                v-if="['pending', 'active'].includes(store.detail.status)"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
-                :disabled="store.isSaving"
-                @click="cancelClass"
-              >
-                <XCircle class="size-3.5" />
-                Cancel Class
-              </button>
+              <template v-if="['pending', 'active'].includes(store.detail.status)">
+                <template v-if="pendingCancelClass">
+                  <button
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                    :disabled="store.isSaving"
+                    type="button"
+                    @click="cancelClass"
+                  >Confirm cancel</button>
+                  <button
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50"
+                    type="button"
+                    @click="pendingCancelClass = false"
+                  >Keep class</button>
+                </template>
+                <button
+                  v-else
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
+                  :disabled="store.isSaving"
+                  @click="cancelClass"
+                >
+                  <XCircle class="size-3.5" />
+                  Cancel Class
+                </button>
+              </template>
             </div>
 
             <!-- Assign writer inline form -->
@@ -366,6 +381,7 @@ async function confirmGrade(taskId: number) {
 // Assign writer
 const showAssign = ref(false);
 const writerIdInput = ref<number | "">("");
+const pendingCancelClass = ref(false);
 
 async function confirmAssign() {
   if (!store.detail || !writerIdInput.value) return;
@@ -375,7 +391,9 @@ async function confirmAssign() {
 }
 
 async function cancelClass() {
-  if (!store.detail || !confirm("Cancel this class? This action cannot be undone.")) return;
+  if (!store.detail) return;
+  if (!pendingCancelClass.value) { pendingCancelClass.value = true; return; }
+  pendingCancelClass.value = false;
   await store.assignWriter(store.detail.id, 0); // placeholder — classesApi.cancel would be wired here
 }
 
