@@ -68,7 +68,8 @@ load();
     <div v-if="hub.isLoadingCollection" class="py-10 text-center text-sm text-graphite animate-pulse">Loading…</div>
 
     <!-- Table -->
-    <table v-else class="w-full text-sm">
+    <div v-else class="overflow-x-auto">
+    <table class="min-w-full text-sm">
       <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
         <tr>
           <th class="px-5 py-2.5 text-left">Name</th>
@@ -123,5 +124,6 @@ load();
         </tr>
       </tbody>
     </table>
+    </div>
   </div>
 </template>

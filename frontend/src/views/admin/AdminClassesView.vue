@@ -94,7 +94,8 @@ function progress(total: number, done: number) {
 
       <!-- Table -->
       <div v-else class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
             <tr>
               <th class="px-5 py-3 text-left">Reference</th>
@@ -137,6 +138,7 @@ function progress(total: number, done: number) {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
     </div>

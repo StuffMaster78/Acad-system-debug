@@ -174,7 +174,8 @@
           </div>
           <div v-if="loadingLogs" class="p-6 text-center text-gray-400 text-sm">Loading…</div>
           <div v-else-if="!actionLogs.length" class="p-6 text-center text-gray-400 text-sm">No events recorded.</div>
-          <table v-else class="w-full text-sm">
+          <div v-else class="overflow-x-auto">
+          <table class="min-w-full text-sm">
             <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
                 <th class="px-4 py-3 text-left">User</th>
@@ -194,6 +195,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </section>
       </template>
     </div>

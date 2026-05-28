@@ -179,6 +179,7 @@ onMounted(() => {
     </div>
 
     <div v-else class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+      <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
           <tr>
@@ -244,6 +245,7 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
 
       <Pagination
         :page="workspace.assignmentsPagination.page"

@@ -100,7 +100,8 @@
         <!-- Top performing -->
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <h3 class="text-sm font-semibold text-gray-700 mb-3">Top Performing</h3>
-          <table class="w-full text-xs">
+          <div class="overflow-x-auto">
+        <table class="min-w-full text-xs">
             <thead>
               <tr class="text-gray-500 border-b border-gray-100">
                 <th class="pb-1 text-left">Code</th>
@@ -116,6 +117,7 @@
               </tr>
             </tbody>
           </table>
+        </div>
           <p v-if="!topDiscounts.length" class="text-xs text-gray-400">No data.</p>
         </div>
 
@@ -154,7 +156,8 @@
       </div>
 
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Code</th>
@@ -196,6 +199,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
         <p v-if="!discounts.length" class="text-center text-sm text-gray-400 py-8">No discounts found.</p>
       </div>
     </div>
@@ -210,7 +214,8 @@
       </div>
 
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Name</th>
@@ -250,6 +255,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
         <p v-if="!campaigns.length" class="text-center text-sm text-gray-400 py-8">No campaigns found.</p>
       </div>
     </div>
@@ -264,7 +270,8 @@
       </div>
 
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Tier Name</th>
@@ -293,6 +300,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
         <p v-if="!spendTiers.length" class="text-center text-sm text-gray-400 py-8">No spend tiers configured.</p>
       </div>
     </div>

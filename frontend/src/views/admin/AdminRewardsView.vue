@@ -40,7 +40,8 @@
       <div v-if="loadingLeaderboard" class="text-center py-10 text-gray-400">Loading…</div>
       <div v-else-if="!leaderboard.length" class="text-center py-10 text-gray-400 text-sm">No leaderboard data.</div>
       <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
               <th class="px-4 py-3 text-center w-12">#</th>
@@ -91,6 +92,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -147,7 +149,8 @@
             <h2 class="font-semibold text-gray-800">Top Rewarded Writers</h2>
           </div>
           <div v-if="!analytics.top_writers.length" class="p-5 text-sm text-gray-400">No data.</div>
-          <table v-else class="w-full text-sm">
+          <div v-else class="overflow-x-auto">
+        <table class="min-w-full text-sm">
             <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
                 <th class="px-4 py-3 text-left">Writer</th>
@@ -163,6 +166,7 @@
               </tr>
             </tbody>
           </table>
+        </div>
         </section>
       </template>
 
@@ -174,7 +178,8 @@
         </div>
         <div v-if="loadingRules" class="p-5 text-center text-gray-400 text-sm">Loading…</div>
         <div v-else-if="!rules.length" class="p-5 text-sm text-gray-400">No active rules. Rules are scoped per website.</div>
-        <table v-else class="w-full text-sm">
+        <div v-else class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
               <th class="px-4 py-3 text-left">Name</th>
@@ -202,6 +207,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
     </div>
 
@@ -215,7 +221,8 @@
       <div v-if="loadingReports" class="text-center py-10 text-gray-400">Loading…</div>
       <div v-else-if="!reports.length" class="text-center py-10 text-gray-400 text-sm">No reconciliation reports yet.</div>
       <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
               <th class="px-4 py-3 text-left">Batch</th>
@@ -243,6 +250,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <!-- Run reconciliation dialog -->

@@ -621,7 +621,8 @@ onMounted(async () => {
           <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
             <div v-if="tiersLoading" class="p-6 flex justify-center"><Loader2 class="size-6 text-neutral-300 animate-spin" /></div>
             <div v-else-if="tiers.length === 0" class="p-6 text-center text-sm text-neutral-400">No tiers defined.</div>
-            <table v-else class="w-full text-sm">
+            <div v-else class="overflow-x-auto">
+            <table class="min-w-full text-sm">
               <thead class="bg-neutral-50 border-b border-neutral-100">
                 <tr>
                   <th class="text-left px-4 py-2 text-xs font-medium text-neutral-500 uppercase tracking-wide">Name</th>
@@ -644,6 +645,7 @@ onMounted(async () => {
                 </tr>
               </tbody>
             </table>
+            </div>
           </div>
         </div>
 

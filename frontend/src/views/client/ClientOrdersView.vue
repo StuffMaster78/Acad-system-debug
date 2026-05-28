@@ -210,7 +210,8 @@ onMounted(() => {
         </EmptyState>
       </div>
 
-      <table v-else class="min-w-full divide-y divide-slate-200 text-sm">
+      <div v-else class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
           <tr>
             <th class="px-5 py-3">Order</th>
@@ -276,6 +277,7 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
 
       <Pagination
         v-if="!searchQuery && orders.pagination.count > orders.pagination.pageSize"

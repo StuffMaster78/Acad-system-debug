@@ -94,7 +94,8 @@
 
           <!-- Milestone preview -->
           <div v-if="store.latestQuote.milestones_preview.length" class="mt-4 overflow-hidden rounded-lg border border-blue-200 bg-white/60">
-            <table class="w-full text-sm">
+            <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
               <thead class="border-b border-blue-100 text-xs font-semibold text-blue-700">
                 <tr>
                   <th class="px-4 py-2 text-left">Milestone</th>
@@ -110,6 +111,7 @@
                 </tr>
               </tbody>
             </table>
+        </div>
           </div>
 
           <!-- Decline form -->

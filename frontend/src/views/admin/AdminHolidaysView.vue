@@ -412,7 +412,8 @@ onMounted(async () => {
         <div v-else-if="specialDays.length === 0" class="p-8 text-center text-neutral-400 text-sm">
           No special days found.
         </div>
-        <table v-else class="w-full text-sm">
+        <div v-else class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-neutral-50 border-b border-neutral-100">
             <tr>
               <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Name</th>
@@ -483,6 +484,7 @@ onMounted(async () => {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </template>
 
@@ -532,7 +534,8 @@ onMounted(async () => {
         <div v-else-if="reminders.length === 0" class="p-8 text-center text-neutral-400 text-sm">
           No reminders found. Use "Check &amp; auto-create" to scan for upcoming holidays.
         </div>
-        <table v-else class="w-full text-sm">
+        <div v-else class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-neutral-50 border-b border-neutral-100">
             <tr>
               <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Special Day</th>
@@ -595,6 +598,7 @@ onMounted(async () => {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </template>
 

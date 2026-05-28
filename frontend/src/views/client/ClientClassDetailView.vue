@@ -137,7 +137,8 @@
           <div v-if="!store.detail.installments.length" class="py-14 text-center text-sm text-graphite">
             No payment schedule set yet.
           </div>
-          <table v-else class="w-full text-sm">
+          <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
               <tr>
                 <th class="px-5 py-3 text-left">Payment</th>
@@ -159,6 +160,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
           <div class="flex items-center gap-2 border-t border-slate-100 px-5 py-3 text-xs text-graphite">
             <CreditCard class="size-3.5 shrink-0" />
             Contact support to make a payment or dispute an installment charge.

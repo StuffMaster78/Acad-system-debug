@@ -95,7 +95,8 @@
       <div v-if="loadingRecipients" class="text-center py-10 text-gray-400">Loading…</div>
       <div v-else-if="!recipients.length" class="text-center py-10 text-gray-400 text-sm">No recipients found.</div>
       <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
               <th class="px-4 py-3 text-left">Email</th>
@@ -122,6 +123,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -172,7 +174,8 @@
             <span>Failed: {{ historyRecords.filter(r => r.status === 'failed').length }}</span>
           </div>
         </div>
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
               <th class="px-4 py-3 text-left">Campaign</th>
@@ -198,6 +201,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </div>
 
