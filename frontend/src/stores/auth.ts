@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import { useRouter } from "vue-router";
 import { authApi, type LoginPayload } from "@/api/auth";
 import type { AuthUser, UserRole } from "@/types/roles";
 
@@ -24,6 +25,7 @@ function readUser(): AuthUser | null {
 }
 
 export const useAuthStore = defineStore("auth", () => {
+  const router = useRouter();
   const accessToken = ref(window.localStorage.getItem(ACCESS_KEY) || "");
   const refresh = ref(window.localStorage.getItem(REFRESH_KEY) || "");
   const user = ref<AuthUser | null>(readUser());
@@ -94,6 +96,7 @@ export const useAuthStore = defineStore("auth", () => {
   async function logout() {
     if (isPreviewSession.value) {
       clearSession();
+      router.push("/auth/login");
       return;
     }
 
@@ -101,6 +104,7 @@ export const useAuthStore = defineStore("auth", () => {
       await authApi.logout();
     } finally {
       clearSession();
+      router.push("/auth/login");
     }
   }
 

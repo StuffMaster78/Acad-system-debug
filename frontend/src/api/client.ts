@@ -68,6 +68,9 @@ api.interceptors.response.use(
       original._retry = true;
       const refreshed = await auth.refreshToken();
       if (refreshed) return api(original);
+      // Refresh failed — session is dead, send to login
+      window.location.href = "/auth/login";
+      return new Promise(() => {}); // halt the rejection chain
     }
 
     return Promise.reject(error);
