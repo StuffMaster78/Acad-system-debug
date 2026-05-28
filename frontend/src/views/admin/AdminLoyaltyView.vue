@@ -365,7 +365,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -454,7 +454,7 @@ onMounted(async () => {
       </div>
 
       <!-- Table -->
-      <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+      <div class="bg-white rounded-lg border border-neutral-200 overflow-hidden">
         <div v-if="requestsLoading" class="p-8 flex justify-center"><Loader2 class="size-7 text-neutral-300 animate-spin" /></div>
         <div v-else-if="requests.length === 0" class="p-8 text-center text-sm text-neutral-400">No redemption requests found.</div>
         <div v-else class="divide-y divide-neutral-100">
@@ -531,7 +531,7 @@ onMounted(async () => {
       </div>
 
       <!-- Form -->
-      <div class="bg-white rounded-xl border border-neutral-200 p-6 max-w-lg space-y-4">
+      <div class="bg-white rounded-lg border border-neutral-200 p-6 max-w-lg space-y-4">
         <h3 class="text-sm font-semibold text-neutral-900 capitalize">{{ opMode }} Points</h3>
 
         <label class="block space-y-1">
@@ -587,7 +587,7 @@ onMounted(async () => {
             </button>
           </div>
           <!-- Tier form -->
-          <div v-if="showTierForm" class="bg-white rounded-xl border border-neutral-200 p-4 space-y-3">
+          <div v-if="showTierForm" class="bg-white rounded-lg border border-neutral-200 p-4 space-y-3">
             <div class="grid grid-cols-2 gap-3">
               <label class="col-span-2 space-y-1">
                 <span class="text-xs font-medium text-neutral-500 uppercase tracking-wide">Name *</span>
@@ -618,7 +618,7 @@ onMounted(async () => {
             </div>
           </div>
           <!-- Tier table -->
-          <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+          <div class="bg-white rounded-lg border border-neutral-200 overflow-hidden">
             <div v-if="tiersLoading" class="p-6 flex justify-center"><Loader2 class="size-6 text-neutral-300 animate-spin" /></div>
             <div v-else-if="tiers.length === 0" class="p-6 text-center text-sm text-neutral-400">No tiers defined.</div>
             <div v-else class="overflow-x-auto">
@@ -657,7 +657,7 @@ onMounted(async () => {
               <Plus class="size-3.5" />Add
             </button>
           </div>
-          <div v-if="showMilestoneForm" class="bg-white rounded-xl border border-neutral-200 p-4 space-y-3">
+          <div v-if="showMilestoneForm" class="bg-white rounded-lg border border-neutral-200 p-4 space-y-3">
             <div class="grid grid-cols-2 gap-3">
               <label class="col-span-2 space-y-1">
                 <span class="text-xs font-medium text-neutral-500 uppercase tracking-wide">Name *</span>
@@ -680,7 +680,7 @@ onMounted(async () => {
               <button class="text-sm px-3 py-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50" @click="showMilestoneForm = false">Cancel</button>
             </div>
           </div>
-          <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+          <div class="bg-white rounded-lg border border-neutral-200 overflow-hidden">
             <div v-if="milestonesLoading" class="p-6 flex justify-center"><Loader2 class="size-6 text-neutral-300 animate-spin" /></div>
             <div v-else-if="milestones.length === 0" class="p-6 text-center text-sm text-neutral-400">No milestones defined.</div>
             <div v-else class="divide-y divide-neutral-100">
@@ -705,7 +705,7 @@ onMounted(async () => {
           </button>
         </div>
 
-        <div v-if="showItemForm" class="bg-white rounded-xl border border-neutral-200 p-4 space-y-3">
+        <div v-if="showItemForm" class="bg-white rounded-lg border border-neutral-200 p-4 space-y-3">
           <div class="grid grid-cols-2 gap-3">
             <label class="space-y-1">
               <span class="text-xs font-medium text-neutral-500 uppercase tracking-wide">Category *</span>
@@ -758,9 +758,9 @@ onMounted(async () => {
         </div>
 
         <div v-if="catalogLoading" class="p-6 flex justify-center"><Loader2 class="size-7 text-neutral-300 animate-spin" /></div>
-        <div v-else-if="catalogItems.length === 0" class="bg-white rounded-xl border border-neutral-200 p-6 text-center text-sm text-neutral-400">No redemption items. Add one above.</div>
+        <div v-else-if="catalogItems.length === 0" class="bg-white rounded-lg border border-neutral-200 p-6 text-center text-sm text-neutral-400">No redemption items. Add one above.</div>
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div v-for="item in catalogItems" :key="item.id" class="bg-white rounded-xl border border-neutral-200 p-4 space-y-2">
+          <div v-for="item in catalogItems" :key="item.id" class="bg-white rounded-lg border border-neutral-200 p-4 space-y-2">
             <div class="flex items-start justify-between gap-2">
               <div>
                 <p class="text-sm font-semibold text-neutral-900">{{ item.name }}</p>
@@ -788,14 +788,14 @@ onMounted(async () => {
     <!-- ── CONFIG ─────────────────────────────────────────────────────────────── -->
     <template v-if="activeTab === 'config'">
       <div v-if="configLoading" class="p-8 flex justify-center"><Loader2 class="size-7 text-neutral-300 animate-spin" /></div>
-      <div v-else-if="configs.length === 0" class="bg-white rounded-xl border border-neutral-200 p-8 text-center text-sm text-neutral-400">
+      <div v-else-if="configs.length === 0" class="bg-white rounded-lg border border-neutral-200 p-8 text-center text-sm text-neutral-400">
         No conversion configs found.
       </div>
       <div v-else class="space-y-4">
         <div
           v-for="cfg in configs"
           :key="cfg.id"
-          class="bg-white rounded-xl border border-neutral-200 p-6 space-y-4"
+          class="bg-white rounded-lg border border-neutral-200 p-6 space-y-4"
         >
           <div class="flex items-center justify-between">
             <h3 class="text-sm font-semibold text-neutral-900">Conversion Config #{{ cfg.id }}</h3>

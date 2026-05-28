@@ -69,7 +69,7 @@ async function confirmReject(orderId: number, bidId: number) {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Admin</p>
@@ -107,16 +107,16 @@ async function confirmReject(orderId: number, bidId: number) {
 
     <div v-if="store.isLoading" class="py-16 text-center text-graphite animate-pulse">Loading bids…</div>
 
-    <div v-else-if="!grouped.length" class="py-16 text-center rounded-lg border border-slate-200 bg-white shadow-panel">
+    <div v-else-if="!grouped.length" class="py-16 text-center rounded-lg border border-slate-200 bg-white">
       <DollarSign class="mx-auto mb-3 h-10 w-10 text-slate-300" />
       <p class="text-graphite">No bids found.</p>
     </div>
 
-    <div v-else class="space-y-6">
+    <div v-else class="space-y-4">
       <section
         v-for="group in grouped"
         :key="group.orderId"
-        class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel"
+        class="overflow-hidden rounded-lg border border-slate-200 bg-white"
       >
         <!-- Order header -->
         <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-3">

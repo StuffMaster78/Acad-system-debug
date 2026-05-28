@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-6 space-y-4">
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Website & Tenant</h1>
@@ -30,11 +30,11 @@
     </div>
 
     <!-- ── Site Settings ─────────────────────────────────────────────────── -->
-    <div v-if="activeTab === 'settings'" class="space-y-6">
+    <div v-if="activeTab === 'settings'" class="space-y-4">
       <div v-if="loadingWebsite" class="text-center py-10 text-gray-400">Loading…</div>
       <template v-else-if="website">
         <!-- Basic info -->
-        <section class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <h2 class="font-semibold text-gray-800">Basic Information</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -65,7 +65,7 @@
         </section>
 
         <!-- Registration & guest -->
-        <section class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <h2 class="font-semibold text-gray-800">Registration & Guest Access</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label class="flex items-center gap-3 cursor-pointer">
@@ -96,7 +96,7 @@
         </section>
 
         <!-- SEO -->
-        <section class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <h2 class="font-semibold text-gray-800">SEO & Analytics</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
@@ -128,7 +128,7 @@
         </section>
 
         <!-- Live chat -->
-        <section class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <h2 class="font-semibold text-gray-800">Live Chat</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label class="flex items-center gap-3 cursor-pointer md:col-span-2">
@@ -167,7 +167,7 @@
         </div>
 
         <!-- Action logs -->
-        <section class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <section class="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 class="font-semibold text-gray-800">Action Log</h2>
             <span class="text-xs text-gray-400">Recent site-level events</span>
@@ -178,20 +178,20 @@
           <table class="min-w-full text-sm">
             <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
-                <th class="px-4 py-3 text-left">User</th>
-                <th class="px-4 py-3 text-left">Action</th>
-                <th class="px-4 py-3 text-left">Details</th>
-                <th class="px-4 py-3 text-left">When</th>
+                <th class="px-3 py-2 text-left">User</th>
+                <th class="px-3 py-2 text-left">Action</th>
+                <th class="px-3 py-2 text-left">Details</th>
+                <th class="px-3 py-2 text-left">When</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr v-for="log in actionLogs" :key="log.id" class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-gray-700">{{ log.user }}</td>
-                <td class="px-4 py-3">
+                <td class="px-3 py-2 text-gray-700">{{ log.user }}</td>
+                <td class="px-3 py-2">
                   <span class="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">{{ log.action }}</span>
                 </td>
-                <td class="px-4 py-3 text-gray-500 max-w-xs truncate">{{ log.details ?? '—' }}</td>
-                <td class="px-4 py-3 text-gray-400 whitespace-nowrap">{{ fmtTime(log.timestamp) }}</td>
+                <td class="px-3 py-2 text-gray-500 max-w-xs truncate">{{ log.details ?? '—' }}</td>
+                <td class="px-3 py-2 text-gray-400 whitespace-nowrap">{{ fmtTime(log.timestamp) }}</td>
               </tr>
             </tbody>
           </table>
@@ -201,10 +201,10 @@
     </div>
 
     <!-- ── Branding ──────────────────────────────────────────────────────── -->
-    <div v-if="activeTab === 'branding'" class="space-y-6">
+    <div v-if="activeTab === 'branding'" class="space-y-4">
       <div v-if="loadingBranding" class="text-center py-10 text-gray-400">Loading…</div>
       <template v-else-if="branding">
-        <section class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <h2 class="font-semibold text-gray-800">Email Sender Identity</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -230,7 +230,7 @@
           </div>
         </section>
 
-        <section class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <h2 class="font-semibold text-gray-800">Email Template</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -257,10 +257,10 @@
     </div>
 
     <!-- ── Features ──────────────────────────────────────────────────────── -->
-    <div v-if="activeTab === 'features'" class="space-y-6">
+    <div v-if="activeTab === 'features'" class="space-y-4">
       <div v-if="loadingFeatures" class="text-center py-10 text-gray-400">Loading…</div>
       <template v-else-if="featureToggle">
-        <section class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <h2 class="font-semibold text-gray-800">Authentication</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <label v-for="flag in authFlags" :key="flag.key" class="flex items-center gap-3 cursor-pointer p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
@@ -275,7 +275,7 @@
           </div>
         </section>
 
-        <section class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <h2 class="font-semibold text-gray-800">Order & Workflow</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <label v-for="flag in orderFlags" :key="flag.key" class="flex items-center gap-3 cursor-pointer p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
@@ -300,7 +300,7 @@
           </div>
         </section>
 
-        <section class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <h2 class="font-semibold text-gray-800">Platform Features</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <label v-for="flag in platformFlags" :key="flag.key" class="flex items-center gap-3 cursor-pointer p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
@@ -324,7 +324,7 @@
     </div>
 
     <!-- ── Integrations ──────────────────────────────────────────────────── -->
-    <div v-if="activeTab === 'integrations'" class="space-y-6">
+    <div v-if="activeTab === 'integrations'" class="space-y-4">
       <div class="flex items-center justify-between">
         <p class="text-sm text-gray-500">Third-party service connections. API keys are masked after save.</p>
         <button @click="showAddIntegration = true" class="btn-primary text-sm">+ Add Integration</button>
@@ -336,7 +336,7 @@
         <div
           v-for="intg in integrations"
           :key="intg.id"
-          class="bg-white rounded-xl border border-gray-200 p-5 space-y-3"
+          class="bg-white rounded-lg border border-gray-200 p-5 space-y-3"
         >
           <div class="flex items-start justify-between">
             <div>

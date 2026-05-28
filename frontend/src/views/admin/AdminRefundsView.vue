@@ -188,7 +188,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -319,7 +319,7 @@ onMounted(() => {
       </div>
 
       <!-- Table -->
-      <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+      <div class="bg-white rounded-lg border border-neutral-200 overflow-hidden">
         <div v-if="queueLoading" class="p-8 flex justify-center">
           <Loader2 class="size-7 text-neutral-300 animate-spin" />
         </div>
@@ -445,7 +445,7 @@ onMounted(() => {
 
     <!-- ── AUDIT LOG ──────────────────────────────────────────────────────────── -->
     <template v-if="activeTab === 'logs'">
-      <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+      <div class="bg-white rounded-lg border border-neutral-200 overflow-hidden">
         <div v-if="logsLoading" class="p-8 flex justify-center">
           <Loader2 class="size-7 text-neutral-300 animate-spin" />
         </div>
@@ -500,7 +500,7 @@ onMounted(() => {
         <div
           v-for="r in receipts"
           :key="r.id"
-          class="bg-white rounded-xl border border-neutral-200 p-4 space-y-3"
+          class="bg-white rounded-lg border border-neutral-200 p-4 space-y-3"
         >
           <div class="flex items-start justify-between gap-2">
             <div>

@@ -46,19 +46,16 @@ async function preview(role: UserRole) {
   <div class="grid min-h-[calc(100vh-4rem)] place-items-center px-4 py-10">
     <section class="w-full max-w-md">
       <!-- Card -->
-      <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/60">
+      <div class="rounded-lg border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/60">
         <!-- Header -->
         <div class="mb-7">
-          <span class="inline-block rounded-full bg-signal/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-signal">
-            Secure access
-          </span>
-          <h1 class="mt-3 text-2xl font-bold tracking-tight text-ink">Sign in</h1>
-          <p class="mt-1.5 text-sm leading-relaxed text-graphite">
+          <h1 class="text-2xl font-semibold tracking-tight text-ink">Sign in</h1>
+          <p class="mt-1.5 text-sm text-graphite">
             Use your platform account to open the correct workspace.
           </p>
         </div>
 
-        <form class="space-y-5" @submit.prevent="submit">
+        <form class="space-y-4" @submit.prevent="submit">
           <div>
             <label class="mb-1.5 block text-sm font-medium text-ink" for="email">Email</label>
             <input
@@ -110,7 +107,7 @@ async function preview(role: UserRole) {
           <!-- MFA banner -->
           <div
             v-if="mfaRequired"
-            class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3.5 text-sm"
+            class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm"
             role="alert"
           >
             <ShieldCheck class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
@@ -134,7 +131,7 @@ async function preview(role: UserRole) {
       </div>
 
       <!-- Dev preview panel -->
-      <div v-if="isDev" class="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div v-if="isDev" class="mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <p class="text-xs font-semibold uppercase tracking-wider text-graphite">Preview workspace</p>
         <div class="mt-3 grid grid-cols-3 gap-2">
           <button

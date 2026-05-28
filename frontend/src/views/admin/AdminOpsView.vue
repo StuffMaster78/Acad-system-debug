@@ -109,7 +109,7 @@ onMounted(() => {
       <div
         v-for="metric in ops.metrics"
         :key="metric.label"
-        class="min-h-32 rounded-md border p-4 shadow-panel"
+        class="min-h-32 rounded-md border p-4"
         :class="metricToneClasses[metric.tone]"
       >
         <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
@@ -119,8 +119,8 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.85fr)]">
-      <div class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <div class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white">
           <div class="border-b border-slate-200 px-4 py-4">
             <div class="flex items-center gap-2">
               <Search class="h-5 w-5 text-signal" />
@@ -176,7 +176,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white">
           <div class="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 px-4">
             <div class="flex items-center gap-2">
               <ShieldAlert class="h-5 w-5 text-signal" />
@@ -225,8 +225,8 @@ onMounted(() => {
         </section>
       </div>
 
-      <aside class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white">
           <div class="border-b border-slate-200 px-4 py-4">
             <div class="flex items-center gap-2">
               <SlidersHorizontal class="h-5 w-5 text-signal" />
@@ -271,7 +271,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white">
           <div class="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 px-4">
             <div class="flex items-center gap-2">
               <Gauge class="h-5 w-5 text-signal" />

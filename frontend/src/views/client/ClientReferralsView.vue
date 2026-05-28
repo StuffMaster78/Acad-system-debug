@@ -62,7 +62,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Client</p>
@@ -88,12 +88,12 @@ onMounted(() => {
     </p>
 
     <!-- Referral code card -->
-    <div v-if="codeLoading && !code" class="animate-pulse rounded-lg border border-slate-200 bg-white p-6 shadow-panel">
+    <div v-if="codeLoading && !code" class="animate-pulse rounded-lg border border-slate-200 bg-white p-6">
       <div class="h-5 w-32 rounded bg-slate-200" />
       <div class="mt-4 h-10 w-full rounded bg-slate-100" />
     </div>
 
-    <section v-else-if="code" class="rounded-lg border border-slate-200 bg-white shadow-panel">
+    <section v-else-if="code" class="rounded-lg border border-slate-200 bg-white">
       <div class="px-6 py-5">
         <h2 class="text-base font-semibold text-ink">Your referral code</h2>
         <div class="mt-4 flex items-center gap-3">
@@ -135,7 +135,7 @@ onMounted(() => {
     </section>
 
     <!-- How it works -->
-    <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-panel">
+    <section class="rounded-lg border border-slate-200 bg-white p-6">
       <h2 class="text-base font-semibold text-ink">How it works</h2>
       <ol class="mt-4 space-y-3">
         <li class="flex items-start gap-3 text-sm text-graphite">
@@ -154,7 +154,7 @@ onMounted(() => {
     </section>
 
     <!-- Referrals table -->
-    <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+    <section class="rounded-lg border border-slate-200 bg-white">
       <div class="flex items-center gap-2 border-b border-slate-200 px-6 py-4">
         <Users class="h-5 w-5 text-signal" />
         <h2 class="text-base font-semibold text-ink">People you've referred</h2>

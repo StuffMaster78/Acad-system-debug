@@ -45,7 +45,7 @@ function canWithdraw(d: Dispute) {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between border-b border-slate-200 pb-6">
       <div>
@@ -74,7 +74,7 @@ function canWithdraw(d: Dispute) {
     <!-- Empty -->
     <div
       v-else-if="!disputes.myList.length"
-      class="flex flex-col items-center gap-3 rounded-xl border border-slate-200 py-16 text-center"
+      class="flex flex-col items-center gap-3 rounded-lg border border-slate-200 py-16 text-center"
     >
       <ShieldAlert class="h-8 w-8 text-graphite" />
       <p class="text-sm font-medium text-ink">No disputes</p>
@@ -94,7 +94,7 @@ function canWithdraw(d: Dispute) {
       <div
         v-for="dispute in disputes.myList"
         :key="dispute.id"
-        class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden"
+        class="rounded-lg border border-slate-200 bg-white overflow-hidden"
       >
         <!-- Row header -->
         <button

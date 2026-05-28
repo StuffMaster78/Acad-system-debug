@@ -2,7 +2,7 @@
   <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <!-- Client: total, balance, deadline, revision window -->
     <template v-if="role === 'client'">
-      <div v-for="card in clientCards" :key="card.label" class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+      <div v-for="card in clientCards" :key="card.label" class="rounded-md border border-slate-200 bg-white p-4">
         <p class="text-sm font-medium text-graphite">{{ card.label }}</p>
         <p class="mt-2 truncate font-semibold text-ink" :class="card.small ? 'text-base' : 'text-2xl'">{{ card.value }}</p>
         <p v-if="card.sub" class="mt-1 text-xs text-graphite">{{ card.sub }}</p>
@@ -11,7 +11,7 @@
 
     <!-- Writer: compensation, deadline, pages, status -->
     <template v-else-if="role === 'writer'">
-      <div v-for="card in writerCards" :key="card.label" class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+      <div v-for="card in writerCards" :key="card.label" class="rounded-md border border-slate-200 bg-white p-4">
         <p class="text-sm font-medium text-graphite">{{ card.label }}</p>
         <p class="mt-2 truncate font-semibold text-ink" :class="card.small ? 'text-base' : 'text-2xl'">{{ card.value }}</p>
         <p v-if="card.sub" class="mt-1 text-xs text-graphite">{{ card.sub }}</p>
@@ -20,7 +20,7 @@
 
     <!-- Staff/admin: total, client deadline, writer deadline, writer payout -->
     <template v-else>
-      <div v-for="card in adminCards" :key="card.label" class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+      <div v-for="card in adminCards" :key="card.label" class="rounded-md border border-slate-200 bg-white p-4">
         <p class="text-sm font-medium text-graphite">{{ card.label }}</p>
         <p class="mt-2 truncate font-semibold text-ink" :class="card.small ? 'text-base' : 'text-2xl'">{{ card.value }}</p>
         <p v-if="card.sub" class="mt-1 text-xs text-graphite">{{ card.sub }}</p>

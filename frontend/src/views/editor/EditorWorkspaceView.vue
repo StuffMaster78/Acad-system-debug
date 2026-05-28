@@ -26,7 +26,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Editor workspace</p>
@@ -71,7 +71,7 @@ onMounted(async () => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-3">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel xl:col-span-2">
+      <div class="rounded-lg border border-slate-200 bg-white p-5 xl:col-span-2">
         <div class="flex items-center gap-2">
           <Clock3 class="h-5 w-5 text-signal" />
           <h2 class="text-lg font-semibold text-ink">Workload snapshot</h2>
@@ -135,7 +135,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="text-lg font-semibold text-ink">Recent activity</h2>
         <div class="mt-4 space-y-3">
           <div

@@ -83,7 +83,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">{{ role }}</p>
@@ -109,7 +109,7 @@ onMounted(async () => {
     </p>
 
     <div v-if="loading && !items.length" class="space-y-4">
-      <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-6 shadow-panel">
+      <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-6">
         <div class="h-5 w-1/2 rounded bg-slate-200" />
         <div class="mt-3 h-3 w-full rounded bg-slate-100" />
         <div class="mt-2 h-3 w-3/4 rounded bg-slate-100" />
@@ -127,7 +127,7 @@ onMounted(async () => {
       <article
         v-for="item in items"
         :key="item.id"
-        class="rounded-lg border bg-white shadow-panel transition-opacity"
+        class="rounded-lg border bg-white transition-opacity"
         :class="[
           item.is_pinned ? 'border-signal/30' : 'border-slate-200',
           !item.is_read ? 'ring-1 ring-signal/20' : '',

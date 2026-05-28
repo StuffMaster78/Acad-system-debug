@@ -128,7 +128,7 @@ onMounted(() => {
       <div
         v-for="metric in access.metrics"
         :key="metric.label"
-        class="min-h-32 rounded-md border p-4 shadow-panel"
+        class="min-h-32 rounded-md border p-4"
         :class="metricToneClasses[metric.tone]"
       >
         <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
@@ -138,7 +138,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.85fr)]">
-      <div class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <div class="rounded-md border border-slate-200 bg-white">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
           <div class="flex items-center gap-2">
             <UsersRound class="h-5 w-5 text-signal" />
@@ -216,8 +216,8 @@ onMounted(() => {
         </BaseDataTable>
       </div>
 
-      <aside class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white">
           <div class="border-b border-slate-200 px-4 py-4">
             <div class="flex items-center gap-2">
               <UserCog class="h-5 w-5 text-signal" />
@@ -339,7 +339,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white">
           <div class="border-b border-slate-200 px-4 py-4">
             <div class="flex items-center gap-2">
               <KeyRound class="h-5 w-5 text-signal" />
@@ -381,8 +381,8 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(360px,0.8fr)_minmax(0,1.2fr)]">
-      <aside class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <UserPlus class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold">Create user</h2>
@@ -473,7 +473,7 @@ onMounted(() => {
           </button>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <Ban class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold">Email blacklist</h2>
@@ -510,12 +510,12 @@ onMounted(() => {
         </section>
       </aside>
 
-      <div class="space-y-6">
+      <div class="space-y-4">
         <section class="grid gap-4 sm:grid-cols-3">
           <div
             v-for="metric in access.lifecycleMetrics"
             :key="metric.label"
-            class="min-h-28 rounded-md border p-4 shadow-panel"
+            class="min-h-28 rounded-md border p-4"
             :class="metricToneClasses[metric.tone]"
           >
             <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
@@ -524,7 +524,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div class="flex items-center gap-2">
               <Fingerprint class="h-5 w-5 text-signal" />
@@ -599,7 +599,7 @@ onMounted(() => {
         </section>
 
         <section class="grid gap-6 xl:grid-cols-2">
-          <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+          <section class="rounded-md border border-slate-200 bg-white p-4">
             <h2 class="text-base font-semibold">Profile update requests</h2>
             <div class="mt-4 space-y-3">
               <article
@@ -624,7 +624,7 @@ onMounted(() => {
             </div>
           </section>
 
-          <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+          <section class="rounded-md border border-slate-200 bg-white p-4">
             <h2 class="text-base font-semibold">Blacklisted emails</h2>
             <div class="mt-4 space-y-3">
               <article

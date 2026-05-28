@@ -51,13 +51,13 @@ async function confirmSubmit(taskId: number) {
 
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto max-w-3xl space-y-4">
 
       <div v-if="store.isLoadingDetail" class="py-20 text-center text-graphite animate-pulse">Loading class…</div>
 
       <template v-else-if="store.detail">
         <!-- Header -->
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
+        <div class="rounded-lg border border-slate-200 bg-white p-6">
           <p class="text-xs font-mono text-graphite">{{ store.detail.reference }}</p>
           <h1 class="mt-1 text-xl font-bold text-ink">{{ store.detail.title }}</h1>
           <p class="text-sm text-graphite">{{ store.detail.subject }} · {{ store.detail.academic_level }}</p>
@@ -69,7 +69,7 @@ async function confirmSubmit(taskId: number) {
         <!-- Tasks -->
         <h2 class="text-xs font-semibold uppercase tracking-wide text-graphite">Your Tasks</h2>
 
-        <div v-if="!store.detail.tasks.length" class="py-12 text-center text-graphite rounded-xl border border-slate-200 bg-white shadow-panel">
+        <div v-if="!store.detail.tasks.length" class="py-12 text-center text-graphite rounded-lg border border-slate-200 bg-white">
           No tasks assigned yet.
         </div>
 
@@ -77,7 +77,7 @@ async function confirmSubmit(taskId: number) {
           <div
             v-for="task in store.detail.tasks"
             :key="task.id"
-            class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel"
+            class="rounded-lg border border-slate-200 bg-white p-5"
           >
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">

@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-6 space-y-4">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-bold text-gray-900">Discounts</h1>
     </div>
@@ -22,7 +22,7 @@
     </div>
 
     <!-- Dashboard -->
-    <div v-if="activeTab === 'dashboard'" class="space-y-6">
+    <div v-if="activeTab === 'dashboard'" class="space-y-4">
       <div v-if="summary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <p class="text-xs text-gray-500">Total Discounts</p>
@@ -160,36 +160,36 @@
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Code</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Name</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Type</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Value</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Uses</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Given</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Status</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Expires</th>
-              <th class="px-4 py-3"></th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Code</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Name</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Type</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Value</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Uses</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Given</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Expires</th>
+              <th class="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="d in discounts" :key="d.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 font-mono text-xs font-semibold">{{ d.discount_code }}</td>
-              <td class="px-4 py-3 text-gray-700">{{ d.name }}</td>
-              <td class="px-4 py-3 text-gray-500 capitalize">{{ d.discount_type }}</td>
-              <td class="px-4 py-3 text-right">
+              <td class="px-3 py-2 font-mono text-xs font-semibold">{{ d.discount_code }}</td>
+              <td class="px-3 py-2 text-gray-700">{{ d.name }}</td>
+              <td class="px-3 py-2 text-gray-500 capitalize">{{ d.discount_type }}</td>
+              <td class="px-3 py-2 text-right">
                 {{ d.discount_type === 'percentage' ? `${d.discount_value}%` : `$${d.discount_value}` }}
               </td>
-              <td class="px-4 py-3 text-right">{{ d.usage_count }}</td>
-              <td class="px-4 py-3 text-right">${{ d.total_discount_given }}</td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2 text-right">{{ d.usage_count }}</td>
+              <td class="px-3 py-2 text-right">${{ d.total_discount_given }}</td>
+              <td class="px-3 py-2">
                 <span :class="discountStatusClass(d)">
                   {{ discountStatusLabel(d) }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-xs text-gray-500">
+              <td class="px-3 py-2 text-xs text-gray-500">
                 {{ d.ends_at ? new Date(d.ends_at).toLocaleDateString() : '—' }}
               </td>
-              <td class="px-4 py-3 text-right">
+              <td class="px-3 py-2 text-right">
                 <div class="flex items-center justify-end gap-1">
                   <button @click="openEditDiscount(d)" class="text-xs text-blue-600 hover:underline">Edit</button>
                   <button v-if="!d.is_archived" @click="archiveDiscount(d)" class="text-xs text-orange-500 hover:underline">Archive</button>
@@ -218,30 +218,30 @@
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Name</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Discounts</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Uses</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Given</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Dates</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Status</th>
-              <th class="px-4 py-3"></th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Name</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Discounts</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Uses</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Given</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Dates</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+              <th class="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="c in campaigns" :key="c.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 font-medium text-gray-900">{{ c.name }}</td>
-              <td class="px-4 py-3 text-right">{{ c.discount_count }}</td>
-              <td class="px-4 py-3 text-right">{{ c.usage_count }}</td>
-              <td class="px-4 py-3 text-right">${{ c.total_discount_given }}</td>
-              <td class="px-4 py-3 text-xs text-gray-500">
+              <td class="px-3 py-2 font-medium text-gray-900">{{ c.name }}</td>
+              <td class="px-3 py-2 text-right">{{ c.discount_count }}</td>
+              <td class="px-3 py-2 text-right">{{ c.usage_count }}</td>
+              <td class="px-3 py-2 text-right">${{ c.total_discount_given }}</td>
+              <td class="px-3 py-2 text-xs text-gray-500">
                 {{ c.starts_at ? new Date(c.starts_at).toLocaleDateString() : '—' }}
                 –
                 {{ c.ends_at ? new Date(c.ends_at).toLocaleDateString() : '∞' }}
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <span :class="campaignStatusClass(c)">{{ campaignStatusLabel(c) }}</span>
               </td>
-              <td class="px-4 py-3 text-right">
+              <td class="px-3 py-2 text-right">
                 <div class="flex items-center justify-end gap-1 flex-wrap">
                   <button @click="openEditCampaign(c)" class="text-xs text-blue-600 hover:underline">Edit</button>
                   <template v-if="!c.is_archived">
@@ -274,27 +274,27 @@
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Tier Name</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Min. Lifetime Spend</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Discount Code</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Discount</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Active</th>
-              <th class="px-4 py-3"></th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Tier Name</th>
+              <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Min. Lifetime Spend</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Discount Code</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Discount</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Active</th>
+              <th class="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="t in spendTiers" :key="t.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 font-medium text-gray-900">{{ t.name }}</td>
-              <td class="px-4 py-3 text-right font-semibold">${{ t.minimum_lifetime_spend }}</td>
-              <td class="px-4 py-3 font-mono text-xs">{{ t.discount.discount_code }}</td>
-              <td class="px-4 py-3 text-gray-600">
+              <td class="px-3 py-2 font-medium text-gray-900">{{ t.name }}</td>
+              <td class="px-3 py-2 text-right font-semibold">${{ t.minimum_lifetime_spend }}</td>
+              <td class="px-3 py-2 font-mono text-xs">{{ t.discount.discount_code }}</td>
+              <td class="px-3 py-2 text-gray-600">
                 {{ t.discount.discount_type === 'percentage' ? `${t.discount.discount_value}%` : `$${t.discount.discount_value}` }}
                 off
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <span :class="t.is_active ? 'text-green-600' : 'text-gray-400'">{{ t.is_active ? 'Yes' : 'No' }}</span>
               </td>
-              <td class="px-4 py-3 text-right">
+              <td class="px-3 py-2 text-right">
                 <button @click="openEditTier(t)" class="text-xs text-blue-600 hover:underline">Edit</button>
               </td>
             </tr>
@@ -306,7 +306,7 @@
     </div>
 
     <!-- Settings -->
-    <div v-if="activeTab === 'settings'" class="space-y-6">
+    <div v-if="activeTab === 'settings'" class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Discount Settings -->
         <div class="bg-white rounded-lg border border-gray-200 p-5 space-y-4">

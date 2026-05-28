@@ -62,7 +62,7 @@ function isSectionVisible(domain: ConfigDomainMeta, sectionKey: string) {
 </script>
 
 <template>
-  <aside class="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white shadow-panel overflow-y-auto">
+  <aside class="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white overflow-y-auto">
 
     <div class="p-2 space-y-0.5">
       <template v-for="domain in config.visibleDomains" :key="domain.key">

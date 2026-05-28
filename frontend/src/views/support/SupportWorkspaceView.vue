@@ -28,7 +28,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Support</p>
@@ -60,7 +60,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[1fr_380px]">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <h2 class="text-base font-semibold text-ink">Rescue summary</h2>
@@ -108,7 +108,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-2">
           <Clock3 class="h-5 w-5 text-signal" />
           <h2 class="text-base font-semibold text-ink">SLA board</h2>

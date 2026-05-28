@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-6 space-y-4">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Financial Audit</h1>
       <p class="text-sm text-gray-500 mt-0.5">Raw compensation event log, writer exposure snapshots, and wallet balances</p>
@@ -58,16 +58,16 @@
 
       <div v-if="loadingEvents" class="text-center py-10 text-gray-400">Loading…</div>
       <div v-else-if="!events.length" class="text-center py-10 text-gray-400 text-sm">No events found.</div>
-      <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="px-4 py-3 text-left">Event</th>
-              <th class="px-4 py-3 text-left">Writer</th>
-              <th class="px-4 py-3 text-right">Amount</th>
-              <th class="px-4 py-3 text-left">Status</th>
-              <th class="px-4 py-3 text-left">Flags</th>
-              <th class="px-4 py-3 text-left">Date</th>
+              <th class="px-3 py-2 text-left">Event</th>
+              <th class="px-3 py-2 text-left">Writer</th>
+              <th class="px-3 py-2 text-right">Amount</th>
+              <th class="px-3 py-2 text-left">Status</th>
+              <th class="px-3 py-2 text-left">Flags</th>
+              <th class="px-3 py-2 text-left">Date</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
@@ -77,25 +77,25 @@
               class="hover:bg-gray-50 cursor-pointer"
               @click="selectedEvent = ev"
             >
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <p class="font-medium text-gray-800 text-xs font-mono">{{ ev.event_type }}</p>
                 <p v-if="ev.title" class="text-xs text-gray-500 mt-0.5 max-w-xs truncate">{{ ev.title }}</p>
               </td>
-              <td class="px-4 py-3 text-gray-600 text-xs">#{{ ev.writer }}</td>
-              <td class="px-4 py-3 text-right font-mono font-semibold text-sm" :class="ev.is_positive ? 'text-green-700' : 'text-red-600'">
+              <td class="px-3 py-2 text-gray-600 text-xs">#{{ ev.writer }}</td>
+              <td class="px-3 py-2 text-right font-mono font-semibold text-sm" :class="ev.is_positive ? 'text-green-700' : 'text-red-600'">
                 {{ ev.is_positive ? '+' : '-' }}${{ ev.amount }}
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <span :class="eventStatusClass(ev.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ ev.status }}</span>
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <div class="flex gap-1">
                   <span v-if="ev.is_risky" class="text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded">risky</span>
                   <span v-if="ev.is_locked" class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">locked</span>
                   <span v-if="ev.reversed_at" class="text-xs bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded">reversed</span>
                 </div>
               </td>
-              <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{{ fmtDate(ev.created_at) }}</td>
+              <td class="px-3 py-2 text-xs text-gray-400 whitespace-nowrap">{{ fmtDate(ev.created_at) }}</td>
             </tr>
           </tbody>
         </table>
@@ -139,36 +139,36 @@
 
       <div v-if="loadingExposure" class="text-center py-10 text-gray-400">Loading…</div>
       <div v-else-if="!exposure.length" class="text-center py-10 text-gray-400 text-sm">No exposure records.</div>
-      <div v-else class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      <div v-else class="bg-white rounded-lg border border-gray-200 overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="px-4 py-3 text-left">Writer</th>
-              <th class="px-4 py-3 text-right">Earned</th>
-              <th class="px-4 py-3 text-right">Settled</th>
-              <th class="px-4 py-3 text-right">Paid</th>
-              <th class="px-4 py-3 text-right">Advance</th>
-              <th class="px-4 py-3 text-right">Recoverable</th>
-              <th class="px-4 py-3 text-right">Risk Cap</th>
-              <th class="px-4 py-3 text-left">Updated</th>
-              <th class="px-4 py-3 text-left"></th>
+              <th class="px-3 py-2 text-left">Writer</th>
+              <th class="px-3 py-2 text-right">Earned</th>
+              <th class="px-3 py-2 text-right">Settled</th>
+              <th class="px-3 py-2 text-right">Paid</th>
+              <th class="px-3 py-2 text-right">Advance</th>
+              <th class="px-3 py-2 text-right">Recoverable</th>
+              <th class="px-3 py-2 text-right">Risk Cap</th>
+              <th class="px-3 py-2 text-left">Updated</th>
+              <th class="px-3 py-2 text-left"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="ex in exposure" :key="ex.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-gray-700 font-medium">#{{ ex.writer }}</td>
-              <td class="px-4 py-3 text-right font-mono text-xs text-gray-700">${{ ex.total_earned }}</td>
-              <td class="px-4 py-3 text-right font-mono text-xs text-gray-700">${{ ex.total_settled }}</td>
-              <td class="px-4 py-3 text-right font-mono text-xs text-green-700 font-semibold">${{ ex.total_paid }}</td>
-              <td class="px-4 py-3 text-right font-mono text-xs" :class="parseFloat(ex.total_advance_taken) > 0 ? 'text-amber-600' : 'text-gray-400'">
+              <td class="px-3 py-2 text-gray-700 font-medium">#{{ ex.writer }}</td>
+              <td class="px-3 py-2 text-right font-mono text-xs text-gray-700">${{ ex.total_earned }}</td>
+              <td class="px-3 py-2 text-right font-mono text-xs text-gray-700">${{ ex.total_settled }}</td>
+              <td class="px-3 py-2 text-right font-mono text-xs text-green-700 font-semibold">${{ ex.total_paid }}</td>
+              <td class="px-3 py-2 text-right font-mono text-xs" :class="parseFloat(ex.total_advance_taken) > 0 ? 'text-amber-600' : 'text-gray-400'">
                 ${{ ex.total_advance_taken }}
               </td>
-              <td class="px-4 py-3 text-right font-mono text-xs font-semibold" :class="parseFloat(ex.recoverable_balance) > 0 ? 'text-indigo-700' : 'text-gray-400'">
+              <td class="px-3 py-2 text-right font-mono text-xs font-semibold" :class="parseFloat(ex.recoverable_balance) > 0 ? 'text-indigo-700' : 'text-gray-400'">
                 ${{ ex.recoverable_balance }}
               </td>
-              <td class="px-4 py-3 text-right font-mono text-xs text-gray-500">{{ ex.risk_cap_percentage }}%</td>
-              <td class="px-4 py-3 text-xs text-gray-400">{{ fmtDate(ex.last_updated) }}</td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2 text-right font-mono text-xs text-gray-500">{{ ex.risk_cap_percentage }}%</td>
+              <td class="px-3 py-2 text-xs text-gray-400">{{ fmtDate(ex.last_updated) }}</td>
+              <td class="px-3 py-2">
                 <button
                   @click="doRecompute(ex.id)"
                   :disabled="actioning"
@@ -191,7 +191,7 @@
         <div
           v-for="w in wallets"
           :key="w.id"
-          class="bg-white rounded-xl border border-gray-200 p-5 space-y-3"
+          class="bg-white rounded-lg border border-gray-200 p-5 space-y-3"
         >
           <div class="flex items-start justify-between">
             <div>

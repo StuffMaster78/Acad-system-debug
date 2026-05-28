@@ -295,7 +295,7 @@ const dueThisWeekCount = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -334,7 +334,7 @@ const dueThisWeekCount = computed(() => {
 
     <div class="flex gap-6 items-start">
       <!-- Calendar panel -->
-      <div class="flex-1 min-w-0 bg-white rounded-xl border border-neutral-200 overflow-hidden">
+      <div class="flex-1 min-w-0 bg-white rounded-lg border border-neutral-200 overflow-hidden">
         <!-- Toolbar -->
         <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-100">
           <div class="flex items-center gap-2">
@@ -488,7 +488,7 @@ const dueThisWeekCount = computed(() => {
       <!-- Detail panel -->
       <div
         v-if="selectedDate"
-        class="w-72 shrink-0 bg-white rounded-xl border border-neutral-200 overflow-hidden"
+        class="w-72 shrink-0 bg-white rounded-lg border border-neutral-200 overflow-hidden"
       >
         <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-100">
           <div>

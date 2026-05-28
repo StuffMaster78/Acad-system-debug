@@ -37,14 +37,14 @@ async function submit() {
 
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-2xl space-y-6">
+    <div class="mx-auto max-w-2xl space-y-4">
 
       <div>
         <h1 class="text-xl font-bold text-ink">Request a Special Order</h1>
         <p class="text-sm text-graphite">Describe your project and we'll send you a custom quote.</p>
       </div>
 
-      <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel space-y-5">
+      <div class="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
 
         <div>
           <label class="block text-sm font-medium text-ink mb-1">Project Title <span class="text-rose-500">*</span></label>
@@ -96,7 +96,7 @@ async function submit() {
 
       </div>
 
-      <div class="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-graphite space-y-1">
+      <div class="rounded-lg border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-graphite space-y-1">
         <p class="font-medium text-ink">What happens next?</p>
         <p>1. We review your request and assign an expert.</p>
         <p>2. You receive a detailed quote within 24 hours.</p>

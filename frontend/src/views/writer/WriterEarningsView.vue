@@ -314,7 +314,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Writer</p>
@@ -378,7 +378,7 @@ onMounted(async () => {
     </section>
 
     <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
-      <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <section class="rounded-lg border border-slate-200 bg-white">
         <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div class="flex items-center gap-2">
             <TrendingUp class="h-5 w-5 text-signal" />
@@ -436,8 +436,8 @@ onMounted(async () => {
         />
       </section>
 
-      <aside class="space-y-6">
-        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
             <div class="flex items-center gap-2">
               <Banknote class="h-5 w-5 text-signal" />
@@ -517,7 +517,7 @@ onMounted(async () => {
         </section>
 
         <!-- Payout cycle -->
-        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+        <section class="rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
             <div class="flex items-center gap-2">
               <CalendarClock class="h-5 w-5 text-signal" />
@@ -620,7 +620,7 @@ onMounted(async () => {
         </section>
 
         <!-- Advance payments -->
-        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+        <section class="rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
             <div class="flex items-center gap-2">
               <CreditCard class="h-5 w-5 text-signal" />
@@ -714,7 +714,7 @@ onMounted(async () => {
         </section>
 
         <!-- Fines & disputes -->
-        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+        <section class="rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center gap-2 border-b border-slate-200 px-5 py-4">
             <AlertTriangle class="h-5 w-5 text-berry" />
             <h2 class="text-base font-semibold text-ink">Fines</h2>
@@ -798,7 +798,7 @@ onMounted(async () => {
         </section>
 
         <!-- Received tips -->
-        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+        <section class="rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center gap-2 border-b border-slate-200 px-5 py-4">
             <Gift class="h-5 w-5 text-amber-500" />
             <h2 class="text-base font-semibold text-ink">Tips received</h2>

@@ -54,7 +54,7 @@ watch(
             </h2>
           </div>
 
-          <div v-if="!config.searchResults.length" class="rounded-xl border border-slate-200 bg-white p-12 text-center text-graphite">
+          <div v-if="!config.searchResults.length" class="rounded-lg border border-slate-200 bg-white p-12 text-center text-graphite">
             No settings match "{{ config.searchQuery }}"
           </div>
 
@@ -62,7 +62,7 @@ watch(
             <div
               v-for="result in config.searchResults"
               :key="result.key"
-              class="rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-panel"
+              class="rounded-lg border border-slate-200 bg-white px-5 py-3"
             >
               <div class="flex items-start justify-between gap-4">
                 <div>
@@ -84,7 +84,7 @@ watch(
         </div>
 
         <!-- Normal domain view -->
-        <div v-else class="p-6 space-y-5">
+        <div v-else class="p-6 space-y-4">
 
           <!-- Domain header -->
           <div class="flex items-center justify-between">
@@ -112,7 +112,7 @@ watch(
               <!-- Discount codes CRUD (special handling) -->
               <div
                 v-else-if="section.isCrud && section.key === 'discount-codes'"
-                class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel"
+                class="overflow-hidden rounded-lg border border-slate-200 bg-white"
               >
                 <div class="border-b border-slate-100 px-5 py-3">
                   <h3 class="text-sm font-semibold text-ink">Discount Codes</h3>
@@ -158,7 +158,7 @@ watch(
               <!-- Blog categories CRUD -->
               <div
                 v-else-if="section.isCrud && section.key === 'blog-categories'"
-                class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel"
+                class="overflow-hidden rounded-lg border border-slate-200 bg-white"
               >
                 <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
                   <h3 class="text-sm font-semibold text-ink">Blog & Page Categories</h3>
@@ -210,7 +210,7 @@ watch(
               <!-- API keys CRUD -->
               <div
                 v-else-if="section.isCrud && section.key === 'api-keys'"
-                class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel"
+                class="overflow-hidden rounded-lg border border-slate-200 bg-white"
               >
                 <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
                   <h3 class="text-sm font-semibold text-ink">API Keys</h3>

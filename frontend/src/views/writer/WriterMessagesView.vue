@@ -11,7 +11,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="border-b border-slate-200 pb-6">
       <p class="text-sm font-semibold uppercase tracking-wide text-signal">Writer</p>
       <h1 class="mt-2 text-3xl font-semibold text-ink">Messages</h1>

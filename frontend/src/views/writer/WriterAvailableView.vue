@@ -117,7 +117,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Writer marketplace</p>
@@ -171,7 +171,7 @@ onMounted(() => {
       <div
         v-for="n in 4"
         :key="n"
-        class="animate-pulse rounded-lg border border-slate-200 bg-white p-5 shadow-panel"
+        class="animate-pulse rounded-lg border border-slate-200 bg-white p-5"
         aria-hidden="true"
       >
         <div class="flex items-start justify-between gap-4">
@@ -189,7 +189,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-else-if="!filteredOrders.length" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-panel">
+    <div v-else-if="!filteredOrders.length" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
       <BookOpen class="mx-auto h-8 w-8 text-slate-300" />
       <p class="mt-3 text-sm font-medium text-ink">No available orders</p>
       <p class="mt-1 text-sm text-graphite">
@@ -201,7 +201,7 @@ onMounted(() => {
       <article
         v-for="order in filteredOrders"
         :key="order.id"
-        class="rounded-lg border border-slate-200 bg-white shadow-panel transition-shadow hover:shadow-md"
+        class="rounded-lg border border-slate-200 bg-white transition-shadow hover:shadow-md"
       >
         <div class="p-5">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

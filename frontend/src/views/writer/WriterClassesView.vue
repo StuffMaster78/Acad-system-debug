@@ -37,7 +37,7 @@ function progress(total: number, done: number) {
 
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto max-w-3xl space-y-4">
 
       <div>
         <h1 class="text-xl font-bold text-ink">My Classes</h1>
@@ -46,7 +46,7 @@ function progress(total: number, done: number) {
 
       <div v-if="store.isLoading" class="py-16 text-center text-graphite animate-pulse">Loading…</div>
 
-      <div v-else-if="!store.orders.length" class="py-16 text-center rounded-xl border border-slate-200 bg-white shadow-panel">
+      <div v-else-if="!store.orders.length" class="py-16 text-center rounded-lg border border-slate-200 bg-white">
         <BookOpen class="mx-auto mb-3 size-10 text-slate-300" />
         <p class="text-graphite">No class assignments yet.</p>
       </div>
@@ -58,7 +58,7 @@ function progress(total: number, done: number) {
             <div
               v-for="cls in active"
               :key="cls.id"
-              class="cursor-pointer rounded-xl border border-slate-200 bg-white p-5 shadow-panel hover:shadow-md transition-shadow"
+              class="cursor-pointer rounded-lg border border-slate-200 bg-white p-5 hover:shadow-md transition-shadow"
               @click="router.push(`/writer/classes/${cls.id}`)"
             >
               <div class="flex items-start justify-between gap-4">
@@ -96,7 +96,7 @@ function progress(total: number, done: number) {
             <div
               v-for="cls in past"
               :key="cls.id"
-              class="flex cursor-pointer items-center gap-4 rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-panel hover:shadow-md transition-shadow"
+              class="flex cursor-pointer items-center gap-4 rounded-lg border border-slate-200 bg-white px-5 py-3 hover:shadow-md transition-shadow"
               @click="router.push(`/writer/classes/${cls.id}`)"
             >
               <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass[cls.status]">

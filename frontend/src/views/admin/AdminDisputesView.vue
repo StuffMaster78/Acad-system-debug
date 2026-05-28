@@ -78,7 +78,7 @@ const statusOptions = [
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between border-b border-slate-200 pb-6">
       <div>
@@ -134,7 +134,7 @@ const statusOptions = [
     <!-- Empty -->
     <div
       v-else-if="!disputes.filteredAdmin.length"
-      class="flex flex-col items-center gap-3 rounded-xl border border-slate-200 py-16 text-center"
+      class="flex flex-col items-center gap-3 rounded-lg border border-slate-200 py-16 text-center"
     >
       <ShieldAlert class="h-8 w-8 text-graphite" />
       <p class="text-sm font-medium text-ink">No disputes found</p>
@@ -146,7 +146,7 @@ const statusOptions = [
       <div
         v-for="dispute in disputes.filteredAdmin"
         :key="dispute.id"
-        class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden"
+        class="rounded-lg border border-slate-200 bg-white overflow-hidden"
       >
         <!-- Row header -->
         <button

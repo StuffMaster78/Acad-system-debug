@@ -50,7 +50,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Support</p>
@@ -102,7 +102,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div v-if="support.isLoading" class="space-y-px">
         <div
           v-for="n in 5"

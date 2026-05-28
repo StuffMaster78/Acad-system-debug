@@ -41,7 +41,7 @@ function open(id: number) {
 
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-4xl space-y-6">
+    <div class="mx-auto max-w-4xl space-y-4">
 
       <!-- Header -->
       <div class="flex items-center justify-between">
@@ -66,7 +66,7 @@ function open(id: number) {
       <!-- Empty -->
       <div
         v-else-if="!store.orders.length"
-        class="rounded-xl border border-slate-200 bg-white p-16 text-center shadow-panel"
+        class="rounded-lg border border-slate-200 bg-white p-16 text-center"
       >
         <BookOpen class="mx-auto mb-3 size-10 text-slate-300" />
         <p class="font-medium text-ink">No classes yet</p>
@@ -81,7 +81,7 @@ function open(id: number) {
             <div
               v-for="cls in activeClasses"
               :key="cls.id"
-              class="cursor-pointer rounded-xl border border-slate-200 bg-white p-5 shadow-panel transition-shadow hover:shadow-md"
+              class="cursor-pointer rounded-lg border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md"
               @click="open(cls.id)"
             >
               <div class="flex items-start justify-between gap-4">
@@ -141,7 +141,7 @@ function open(id: number) {
             <div
               v-for="cls in otherClasses"
               :key="cls.id"
-              class="flex cursor-pointer items-center gap-4 rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-panel hover:shadow-md transition-shadow"
+              class="flex cursor-pointer items-center gap-4 rounded-lg border border-slate-200 bg-white px-5 py-3 hover:shadow-md transition-shadow"
               @click="open(cls.id)"
             >
               <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass[cls.status]">

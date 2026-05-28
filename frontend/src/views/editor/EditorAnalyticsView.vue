@@ -30,7 +30,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Editor workspace</p>
@@ -55,17 +55,17 @@ onMounted(async () => {
     </div>
 
     <section class="grid gap-4 sm:grid-cols-3">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <p class="text-sm font-medium text-graphite">Total tasks tracked</p>
         <p class="mt-2 text-3xl font-semibold text-ink">{{ workspace.analytics.total_tasks ?? 0 }}</p>
       </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <p class="text-sm font-medium text-graphite">Overdue tasks</p>
         <p class="mt-2 text-3xl font-semibold" :class="(workspace.analytics.overdue_tasks_count ?? 0) > 0 ? 'text-rose-600' : 'text-ink'">
           {{ workspace.analytics.overdue_tasks_count ?? 0 }}
         </p>
       </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <p class="text-sm font-medium text-graphite">Urgent tasks</p>
         <p class="mt-2 text-3xl font-semibold" :class="(workspace.analytics.urgent_tasks_count ?? 0) > 0 ? 'text-amber-600' : 'text-ink'">
           {{ workspace.analytics.urgent_tasks_count ?? 0 }}
@@ -74,7 +74,7 @@ onMounted(async () => {
     </section>
 
     <section class="grid gap-6 lg:grid-cols-2">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="text-base font-semibold text-ink">Status breakdown</h2>
         <div class="mt-4 space-y-2">
           <div
@@ -97,7 +97,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="text-base font-semibold text-ink">Assignment mix</h2>
         <div class="mt-4 space-y-2">
           <div
@@ -122,7 +122,7 @@ onMounted(async () => {
     </section>
 
     <section class="grid gap-6 lg:grid-cols-[1fr_380px]">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-2">
           <BarChart3 class="h-5 w-5 text-signal" />
           <h2 class="text-base font-semibold text-ink">Weekly output</h2>
@@ -147,7 +147,7 @@ onMounted(async () => {
         <p v-else class="mt-5 text-sm text-graphite">No weekly data available.</p>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="text-base font-semibold text-ink">Recent reviews</h2>
         <div class="mt-4 divide-y divide-slate-100">
           <div

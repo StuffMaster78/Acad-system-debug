@@ -58,7 +58,7 @@ function progress(total: number, done: number) {
 
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-5xl space-y-6">
+    <div class="mx-auto max-w-5xl space-y-4">
 
       <div>
         <h1 class="text-xl font-bold text-ink">Special Orders</h1>
@@ -86,23 +86,23 @@ function progress(total: number, done: number) {
 
       <div v-if="store.isLoading" class="py-16 text-center text-graphite animate-pulse">Loading…</div>
 
-      <div v-else-if="!filtered.length" class="py-16 text-center rounded-xl border border-slate-200 bg-white shadow-panel">
+      <div v-else-if="!filtered.length" class="py-16 text-center rounded-lg border border-slate-200 bg-white">
         <Sparkles class="mx-auto mb-3 size-10 text-slate-300" />
         <p class="text-graphite">No special orders found.</p>
       </div>
 
-      <div v-else class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
+      <div v-else class="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
           <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
             <tr>
-              <th class="px-5 py-3 text-left">Reference</th>
-              <th class="px-5 py-3 text-left">Title</th>
-              <th class="px-5 py-3 text-left">Client</th>
-              <th class="px-5 py-3 text-left">Writer</th>
-              <th class="px-5 py-3 text-center">Milestones</th>
-              <th class="px-5 py-3 text-right">Quote</th>
-              <th class="px-5 py-3 text-center">Status</th>
+              <th class="px-3 py-2 text-left">Reference</th>
+              <th class="px-3 py-2 text-left">Title</th>
+              <th class="px-3 py-2 text-left">Client</th>
+              <th class="px-3 py-2 text-left">Writer</th>
+              <th class="px-3 py-2 text-center">Milestones</th>
+              <th class="px-3 py-2 text-right">Quote</th>
+              <th class="px-3 py-2 text-center">Status</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
@@ -112,11 +112,11 @@ function progress(total: number, done: number) {
               class="cursor-pointer hover:bg-slate-50 transition-colors"
               @click="router.push(`/admin/special-orders/${order.id}`)"
             >
-              <td class="px-5 py-3 font-mono text-xs text-graphite">{{ order.reference }}</td>
-              <td class="px-5 py-3 font-medium text-ink max-w-xs truncate">{{ order.title }}</td>
-              <td class="px-5 py-3 text-graphite">{{ order.client_username }}</td>
-              <td class="px-5 py-3 text-graphite">{{ order.writer_username ?? '—' }}</td>
-              <td class="px-5 py-3">
+              <td class="px-3 py-2 font-mono text-xs text-graphite">{{ order.reference }}</td>
+              <td class="px-3 py-2 font-medium text-ink max-w-xs truncate">{{ order.title }}</td>
+              <td class="px-3 py-2 text-graphite">{{ order.client_username }}</td>
+              <td class="px-3 py-2 text-graphite">{{ order.writer_username ?? '—' }}</td>
+              <td class="px-3 py-2">
                 <div v-if="order.total_milestones" class="flex items-center gap-2">
                   <div class="flex-1 h-1.5 rounded-full bg-slate-100">
                     <div class="h-full rounded-full bg-berry" :style="{ width: `${progress(order.total_milestones, order.completed_milestones)}%` }" />
@@ -125,10 +125,10 @@ function progress(total: number, done: number) {
                 </div>
                 <span v-else class="text-xs text-graphite">—</span>
               </td>
-              <td class="px-5 py-3 text-right font-semibold text-ink">
+              <td class="px-3 py-2 text-right font-semibold text-ink">
                 {{ order.quoted_price ? `$${order.quoted_price}` : '—' }}
               </td>
-              <td class="px-5 py-3 text-center">
+              <td class="px-3 py-2 text-center">
                 <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass[order.status]">
                   {{ statusLabel[order.status] }}
                 </span>

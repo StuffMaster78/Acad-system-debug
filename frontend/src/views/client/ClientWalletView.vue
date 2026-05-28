@@ -251,7 +251,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Client</p>
@@ -276,7 +276,7 @@ onMounted(() => {
     </div>
 
     <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-2">
           <Banknote class="h-4 w-4 text-signal" />
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Available</p>
@@ -286,7 +286,7 @@ onMounted(() => {
         </p>
         <p class="mt-1 text-xs text-graphite">Ready to use for orders</p>
       </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-2">
           <Clock3 class="h-4 w-4 text-saffron" />
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Pending</p>
@@ -296,7 +296,7 @@ onMounted(() => {
         </p>
         <p class="mt-1 text-xs text-graphite">Processing — not yet available</p>
       </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-2">
           <ArrowDownLeft class="h-4 w-4 text-emerald-500" />
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Total credited</p>
@@ -306,7 +306,7 @@ onMounted(() => {
         </p>
         <p class="mt-1 text-xs text-graphite">All-time funds added</p>
       </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-2">
           <ArrowUpRight class="h-4 w-4 text-rose-400" />
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Total spent</p>
@@ -319,7 +319,7 @@ onMounted(() => {
     </section>
 
     <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
-      <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <section class="rounded-lg border border-slate-200 bg-white">
         <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
           <TrendingUp class="h-5 w-5 text-signal" />
           <div>
@@ -390,8 +390,8 @@ onMounted(() => {
         </div>
       </section>
 
-      <aside class="space-y-6">
-        <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
             <Lock class="h-4 w-4 text-signal" />
             <h2 class="text-base font-semibold text-ink">Active holds</h2>
@@ -426,7 +426,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+        <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
             <CreditCard class="h-4 w-4 text-signal" />
             <h2 class="text-base font-semibold text-ink">Top up wallet</h2>
@@ -448,7 +448,7 @@ onMounted(() => {
           </div>
 
           <!-- Checkout form -->
-          <div v-else-if="!previewSuccess" class="space-y-5 px-5 py-5">
+          <div v-else-if="!previewSuccess" class="space-y-4 px-5 py-5">
             <!-- Amount presets -->
             <div>
               <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Amount</p>
@@ -536,7 +536,7 @@ onMounted(() => {
         </section>
 
         <!-- Loyalty points -->
-        <section v-if="loyalty || loyaltyLoading" class="rounded-lg border border-slate-200 bg-white shadow-panel">
+        <section v-if="loyalty || loyaltyLoading" class="rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
             <Star class="h-4 w-4 text-saffron" />
             <h2 class="text-base font-semibold text-ink">Loyalty points</h2>
@@ -653,7 +653,7 @@ onMounted(() => {
         </section>
 
         <!-- Refer a friend -->
-        <section v-if="referralCode || referralCodeLoading" class="rounded-lg border border-slate-200 bg-white shadow-panel">
+        <section v-if="referralCode || referralCodeLoading" class="rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
             <Gift class="h-4 w-4 text-amber-500" />
             <h2 class="text-base font-semibold text-ink">Refer a friend</h2>

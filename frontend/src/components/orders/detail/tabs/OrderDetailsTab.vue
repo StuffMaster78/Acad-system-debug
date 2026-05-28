@@ -1,7 +1,7 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Order specifications -->
-    <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
       <h2 class="text-base font-semibold text-ink">Order specifications</h2>
       <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div v-if="order.topic">
@@ -75,7 +75,7 @@
     </div>
 
     <!-- Lifecycle snapshot (hidden from writer — no client signals exposed) -->
-    <div v-if="role !== 'writer'" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+    <div v-if="role !== 'writer'" class="rounded-lg border border-slate-200 bg-white p-5">
       <h2 class="text-base font-semibold text-ink">Lifecycle</h2>
       <div class="mt-4 grid gap-3 sm:grid-cols-2">
         <div class="rounded-md border border-slate-100 p-3">
@@ -108,7 +108,7 @@
       <!-- Dispute -->
       <div
         v-if="lifecycle && !lifecycle.has_active_dispute && !isTerminal"
-        class="rounded-lg border border-amber-200 bg-amber-50 p-5 shadow-panel"
+        class="rounded-lg border border-amber-200 bg-amber-50 p-5"
       >
         <div class="flex items-center gap-2">
           <AlertTriangle class="h-5 w-5 text-amber-700" />
@@ -133,7 +133,7 @@
       </div>
 
       <!-- Support ticket -->
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-2">
           <LifeBuoy class="h-5 w-5 text-signal" />
           <h2 class="text-base font-semibold text-ink">Open a support ticket</h2>
@@ -155,7 +155,7 @@
       </div>
 
       <!-- Tip writer (post-completion) -->
-      <div v-if="canTip" class="rounded-lg border border-amber-200 bg-amber-50 p-5 shadow-panel">
+      <div v-if="canTip" class="rounded-lg border border-amber-200 bg-amber-50 p-5">
         <div class="flex items-center gap-2">
           <Gift class="h-5 w-5 text-amber-700" />
           <h2 class="text-base font-semibold text-amber-950">Tip your writer</h2>
@@ -189,7 +189,7 @@
       </div>
 
       <!-- Rate writer (post-completion) -->
-      <div v-if="canReview || existingReview" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div v-if="canReview || existingReview" class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-2">
           <Star class="h-5 w-5 text-saffron" />
           <h2 class="text-base font-semibold text-ink">Rate your writer</h2>
@@ -222,7 +222,7 @@
       </div>
 
       <!-- Cancel order -->
-      <form v-if="!isTerminal" class="rounded-lg border border-rose-200 bg-rose-50 p-5 shadow-panel" @submit.prevent="submitCancel">
+      <form v-if="!isTerminal" class="rounded-lg border border-rose-200 bg-rose-50 p-5" @submit.prevent="submitCancel">
         <div class="flex items-center gap-2">
           <XCircle class="h-5 w-5 text-rose-700" />
           <h2 class="text-base font-semibold text-rose-950">Cancel order</h2>
@@ -239,7 +239,7 @@
     </template>
 
     <!-- Staff/admin operational notes -->
-    <div v-if="isStaffRole" class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
+    <div v-if="isStaffRole" class="rounded-lg border border-slate-200 bg-white overflow-hidden">
       <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
         <div>
           <h2 class="text-sm font-semibold text-ink">Operational Notes</h2>
@@ -257,7 +257,7 @@
 
       <!-- Notes list -->
       <div v-if="notesLoading" class="space-y-px">
-        <div v-for="n in 2" :key="n" class="animate-pulse px-5 py-3.5">
+        <div v-for="n in 2" :key="n" class="animate-pulse px-5 py-3">
           <div class="h-3 w-3/4 rounded bg-slate-200" />
           <div class="mt-2 h-3 w-1/3 rounded bg-slate-100" />
         </div>
@@ -268,7 +268,7 @@
       </div>
 
       <div v-else class="divide-y divide-slate-100">
-        <div v-for="note in notes" :key="note.id" class="flex items-start gap-3 px-5 py-3.5">
+        <div v-for="note in notes" :key="note.id" class="flex items-start gap-3 px-5 py-3">
           <Pin v-if="note.is_pinned" class="mt-0.5 size-3.5 shrink-0 text-amber-500" />
           <div class="min-w-0 flex-1">
             <p class="text-sm text-ink whitespace-pre-wrap">{{ note.body }}</p>

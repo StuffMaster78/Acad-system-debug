@@ -186,11 +186,11 @@ const filtered = computed(() =>
         </button>
       </div>
 
-      <div class="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <article
           v-for="service in filtered"
           :key="service.title"
-          class="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-panel"
+          class="flex flex-col rounded-lg border border-slate-200 bg-white p-6"
         >
           <div class="flex items-start justify-between gap-3">
             <div>

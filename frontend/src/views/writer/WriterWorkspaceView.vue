@@ -100,7 +100,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold text-ink">
@@ -181,7 +181,7 @@ onMounted(async () => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold text-ink">Active orders</h2>
@@ -244,7 +244,7 @@ onMounted(async () => {
       </div>
 
       <div class="space-y-4">
-        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
           <div class="flex items-center justify-between gap-3">
             <h2 class="text-base font-semibold text-ink">Availability</h2>
             <div class="flex items-center gap-2">
@@ -369,7 +369,7 @@ onMounted(async () => {
         </div>
 
         <RouterLink
-          class="focus-ring flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-panel hover:bg-slate-50"
+          class="focus-ring flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 hover:bg-slate-50"
           to="/writer/available"
         >
           <div class="flex items-center gap-3">
@@ -383,7 +383,7 @@ onMounted(async () => {
         </RouterLink>
 
         <RouterLink
-          class="focus-ring flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-panel hover:bg-slate-50"
+          class="focus-ring flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 hover:bg-slate-50"
           to="/writer/earnings"
         >
           <div class="flex items-center gap-3">
@@ -398,7 +398,7 @@ onMounted(async () => {
       </div>
     </section>
 
-    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+    <section class="rounded-lg border border-slate-200 bg-white p-5">
       <div class="flex items-center justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-ink">Recent earnings events</h2>

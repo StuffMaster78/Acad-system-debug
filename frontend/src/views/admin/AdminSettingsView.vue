@@ -130,7 +130,7 @@ onMounted(() => {
       <div
         v-for="metric in settings.metrics"
         :key="metric.label"
-        class="min-h-32 rounded-md border p-4 shadow-panel"
+        class="min-h-32 rounded-md border p-4"
         :class="metricToneClasses[metric.tone]"
       >
         <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
@@ -140,8 +140,8 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.8fr)]">
-      <div class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+      <div class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div class="flex items-center gap-2">
@@ -200,7 +200,7 @@ onMounted(() => {
         </section>
 
         <section class="grid gap-6 xl:grid-cols-2">
-          <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+          <section class="rounded-md border border-slate-200 bg-white p-4">
             <div class="flex items-center gap-2">
               <ShieldAlert class="h-5 w-5 text-signal" />
               <h2 class="text-base font-semibold">Screened words</h2>
@@ -230,7 +230,7 @@ onMounted(() => {
             </div>
           </section>
 
-          <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+          <section class="rounded-md border border-slate-200 bg-white p-4">
             <div class="flex items-center gap-2">
               <CalendarDays class="h-5 w-5 text-signal" />
               <h2 class="text-base font-semibold">Holiday rules</h2>
@@ -299,8 +299,8 @@ onMounted(() => {
         </section>
       </div>
 
-      <aside class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-2">
               <DatabaseZap class="h-5 w-5 text-signal" />
@@ -325,7 +325,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <SlidersHorizontal class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold">Order configuration</h2>
@@ -386,7 +386,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <ShieldAlert class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold">Screening health</h2>
@@ -403,7 +403,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <h2 class="text-base font-semibold">Default sets</h2>
           <div class="mt-3 flex flex-wrap gap-2">
             <StatusPill
@@ -414,7 +414,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <History class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold">Recent admin activity</h2>

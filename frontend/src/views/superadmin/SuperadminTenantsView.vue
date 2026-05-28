@@ -48,7 +48,7 @@ function domainAutoSlug(form: TenantCreatePayload) {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -104,7 +104,7 @@ function domainAutoSlug(form: TenantCreatePayload) {
     <!-- Empty -->
     <div
       v-else-if="!tenants.filtered.length"
-      class="flex flex-col items-center gap-2 rounded-xl border border-slate-200 py-16 text-center"
+      class="flex flex-col items-center gap-2 rounded-lg border border-slate-200 py-16 text-center"
     >
       <Building2 class="h-8 w-8 text-graphite" />
       <p class="text-sm font-medium text-ink">No tenants found</p>
@@ -116,7 +116,7 @@ function domainAutoSlug(form: TenantCreatePayload) {
       <div
         v-for="tenant in tenants.filtered"
         :key="tenant.id"
-        class="group relative rounded-xl border border-slate-200 bg-white p-5 shadow-panel hover:border-slate-300 transition-colors cursor-pointer"
+        class="group relative rounded-lg border border-slate-200 bg-white p-5 hover:border-slate-300 transition-colors cursor-pointer"
         @click="goToDetail(tenant.id)"
       >
         <div class="flex items-start justify-between gap-4">

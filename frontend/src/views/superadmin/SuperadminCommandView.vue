@@ -54,7 +54,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Superadmin</p>
@@ -87,7 +87,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
-      <div class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div class="flex items-center gap-2">
@@ -129,8 +129,8 @@ onMounted(() => {
         </div>
       </div>
 
-      <aside class="space-y-6">
-        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-lg border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <Gauge class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold text-ink">System health</h2>
@@ -155,7 +155,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-lg border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <CreditCard class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold text-ink">Finance posture</h2>
@@ -183,7 +183,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[1fr_1fr]">
-      <div class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div class="flex items-center gap-2">
@@ -264,8 +264,8 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="space-y-6">
-        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+      <div class="space-y-4">
+        <section class="rounded-lg border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <ShieldAlert class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold text-ink">Appeals</h2>
@@ -308,7 +308,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-lg border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <ShieldCheck class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold text-ink">Governance log</h2>

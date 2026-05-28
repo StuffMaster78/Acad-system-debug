@@ -47,7 +47,7 @@ function progress(total: number, done: number) {
 
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-4xl space-y-6">
+    <div class="mx-auto max-w-4xl space-y-4">
 
       <!-- Header -->
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -77,7 +77,7 @@ function progress(total: number, done: number) {
 
       <div
         v-else-if="!store.orders.length"
-        class="rounded-xl border border-slate-200 bg-white p-16 text-center shadow-panel"
+        class="rounded-lg border border-slate-200 bg-white p-16 text-center"
       >
         <Sparkles class="mx-auto mb-3 size-10 text-slate-300" />
         <p class="font-medium text-ink">No special orders yet</p>
@@ -98,7 +98,7 @@ function progress(total: number, done: number) {
             <div
               v-for="order in active"
               :key="order.id"
-              class="cursor-pointer rounded-xl border border-slate-200 bg-white p-5 shadow-panel hover:shadow-md transition-shadow"
+              class="cursor-pointer rounded-lg border border-slate-200 bg-white p-5 hover:shadow-md transition-shadow"
               @click="router.push(`/client/special-orders/${order.id}`)"
             >
               <div class="flex items-start justify-between gap-4">
@@ -147,7 +147,7 @@ function progress(total: number, done: number) {
             <div
               v-for="order in rest"
               :key="order.id"
-              class="flex cursor-pointer items-center gap-4 rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-panel hover:shadow-md transition-shadow"
+              class="flex cursor-pointer items-center gap-4 rounded-lg border border-slate-200 bg-white px-5 py-3 hover:shadow-md transition-shadow"
               @click="router.push(`/client/special-orders/${order.id}`)"
             >
               <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass[order.status]">

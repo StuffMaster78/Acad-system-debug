@@ -65,7 +65,7 @@ const levelColor = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Back -->
     <button
       class="inline-flex items-center gap-1.5 text-sm text-graphite hover:text-ink transition-colors"
@@ -84,7 +84,7 @@ const levelColor = computed(() => {
 
     <template v-else-if="writer">
       <!-- Header card -->
-      <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-6">
         <div class="flex items-start gap-4">
           <div class="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 shrink-0">
             <UserCircle class="h-8 w-8 text-graphite" />
@@ -156,7 +156,7 @@ const levelColor = computed(() => {
       </div>
 
       <!-- Tabs -->
-      <div class="flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+      <div class="flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
         <button
           v-for="tab in tabs"
           :key="tab.key"
@@ -179,7 +179,7 @@ const levelColor = computed(() => {
       <div v-if="activeTab === 'overview'" class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
           <!-- Writer info -->
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">Profile</p>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
@@ -208,7 +208,7 @@ const levelColor = computed(() => {
           </div>
 
           <!-- Capacity -->
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">Capacity</p>
             <div class="space-y-2 text-sm">
               <div class="flex items-center justify-between">
@@ -248,7 +248,7 @@ const levelColor = computed(() => {
         </div>
 
         <!-- Bio -->
-        <div v-if="writer.bio" class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+        <div v-if="writer.bio" class="rounded-lg border border-slate-200 bg-white p-5">
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-2">Bio</p>
           <p class="text-sm text-ink leading-relaxed">{{ writer.bio }}</p>
         </div>
@@ -257,7 +257,7 @@ const levelColor = computed(() => {
       <!-- Reviews tab -->
       <div v-else-if="activeTab === 'reviews'" class="space-y-4">
         <!-- Summary card -->
-        <div v-if="reviewStore.writerSummary" class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+        <div v-if="reviewStore.writerSummary" class="rounded-lg border border-slate-200 bg-white p-5">
           <div class="flex items-center gap-6">
             <div class="text-center">
               <p class="text-4xl font-bold text-ink">{{ reviewStore.writerSummary.average_rating.toFixed(1) }}</p>
@@ -290,7 +290,7 @@ const levelColor = computed(() => {
 
         <div
           v-else-if="!reviewStore.writerReviews.length"
-          class="flex flex-col items-center gap-3 rounded-xl border border-slate-200 py-12 text-center"
+          class="flex flex-col items-center gap-3 rounded-lg border border-slate-200 py-12 text-center"
         >
           <Star class="h-7 w-7 text-graphite" />
           <p class="text-sm text-graphite">No reviews yet.</p>
@@ -300,7 +300,7 @@ const levelColor = computed(() => {
           <div
             v-for="review in reviewStore.writerReviews"
             :key="review.id"
-            class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel"
+            class="rounded-lg border border-slate-200 bg-white p-5"
             :class="review.is_hidden ? 'opacity-60' : ''"
           >
             <div class="flex items-start justify-between gap-3">
@@ -330,13 +330,13 @@ const levelColor = computed(() => {
 
       <!-- Discipline tab -->
       <div v-else-if="activeTab === 'discipline'" class="space-y-4">
-        <div v-if="!discipline" class="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-graphite">
+        <div v-if="!discipline" class="rounded-lg border border-slate-200 bg-white p-6 text-center text-sm text-graphite">
           No discipline record loaded.
         </div>
         <template v-else>
           <!-- Status flags -->
           <div class="grid grid-cols-2 gap-4">
-            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
               <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">Status flags</p>
               <div class="space-y-2">
                 <div class="flex items-center justify-between text-sm">
@@ -366,7 +366,7 @@ const levelColor = computed(() => {
               </div>
             </div>
 
-            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
               <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">Strike & warning record</p>
               <div class="space-y-2">
                 <div class="flex justify-between text-sm">
@@ -394,7 +394,7 @@ const levelColor = computed(() => {
           </div>
 
           <!-- Timelines -->
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">Timeline</p>
             <div class="space-y-2 text-sm">
               <div v-if="discipline.suspension_ends_at" class="flex justify-between">

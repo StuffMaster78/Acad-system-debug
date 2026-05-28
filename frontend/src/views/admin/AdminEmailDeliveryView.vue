@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-6 space-y-4">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Email Delivery</h1>
       <p class="text-sm text-gray-500 mt-0.5">Provider configuration, campaign delivery tracking, and per-user history</p>
@@ -23,7 +23,7 @@
     </div>
 
     <!-- ── Providers ──────────────────────────────────────────────────────── -->
-    <div v-if="activeTab === 'providers'" class="space-y-6">
+    <div v-if="activeTab === 'providers'" class="space-y-4">
       <div class="flex items-center justify-between">
         <p class="text-sm text-gray-500">
           One email service integration per website. Used by the mass-email campaign engine.
@@ -37,7 +37,7 @@
         <div
           v-for="prov in providers"
           :key="prov.id"
-          class="bg-white rounded-xl border border-gray-200 p-5 space-y-3"
+          class="bg-white rounded-lg border border-gray-200 p-5 space-y-3"
         >
           <div class="flex items-start justify-between">
             <div>
@@ -94,32 +94,32 @@
 
       <div v-if="loadingRecipients" class="text-center py-10 text-gray-400">Loading…</div>
       <div v-else-if="!recipients.length" class="text-center py-10 text-gray-400 text-sm">No recipients found.</div>
-      <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="px-4 py-3 text-left">Email</th>
-              <th class="px-4 py-3 text-left">Campaign</th>
-              <th class="px-4 py-3 text-left">Status</th>
-              <th class="px-4 py-3 text-left">Sent</th>
-              <th class="px-4 py-3 text-left">Opened</th>
+              <th class="px-3 py-2 text-left">Email</th>
+              <th class="px-3 py-2 text-left">Campaign</th>
+              <th class="px-3 py-2 text-left">Status</th>
+              <th class="px-3 py-2 text-left">Sent</th>
+              <th class="px-3 py-2 text-left">Opened</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="rec in recipients" :key="rec.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-gray-700 font-mono text-xs">{{ rec.email }}</td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2 text-gray-700 font-mono text-xs">{{ rec.email }}</td>
+              <td class="px-3 py-2">
                 <p v-if="rec.campaign" class="text-gray-800 font-medium text-xs">{{ rec.campaign.title }}</p>
                 <p v-if="rec.campaign" class="text-gray-400 text-xs">{{ rec.campaign.email_type }}</p>
                 <span v-else class="text-gray-400 text-xs">—</span>
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <span :class="recipientStatusClass(rec.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ rec.status }}</span>
                 <p v-if="rec.error_message" class="text-xs text-red-500 mt-0.5 max-w-xs truncate">{{ rec.error_message }}</p>
               </td>
-              <td class="px-4 py-3 text-gray-400 text-xs">{{ rec.sent_at ? fmtTime(rec.sent_at) : '—' }}</td>
-              <td class="px-4 py-3 text-gray-400 text-xs">{{ rec.opened_at ? fmtTime(rec.opened_at) : '—' }}</td>
+              <td class="px-3 py-2 text-gray-400 text-xs">{{ rec.sent_at ? fmtTime(rec.sent_at) : '—' }}</td>
+              <td class="px-3 py-2 text-gray-400 text-xs">{{ rec.opened_at ? fmtTime(rec.opened_at) : '—' }}</td>
             </tr>
           </tbody>
         </table>
@@ -132,7 +132,7 @@
       <p class="text-sm text-gray-500">Look up the full email history for any platform user.</p>
 
       <!-- User lookup -->
-      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+      <div class="bg-white rounded-lg border border-gray-200 p-5 space-y-4">
         <h2 class="font-semibold text-gray-800 text-sm">User Email History</h2>
         <div class="flex flex-wrap gap-3 items-end">
           <div>
@@ -166,7 +166,7 @@
       <div v-if="historySearched && !historyRecords.length && !loadingHistory" class="text-center py-10 text-gray-400 text-sm">
         No email history found for user #{{ historyUserId }}.
       </div>
-      <div v-else-if="historyRecords.length" class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div v-else-if="historyRecords.length" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
           <p class="text-sm font-semibold text-gray-700">User #{{ historyUserId }} — {{ historyRecords.length }} emails</p>
           <div class="flex gap-4 text-xs text-gray-500">
@@ -178,26 +178,26 @@
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="px-4 py-3 text-left">Campaign</th>
-              <th class="px-4 py-3 text-left">Type</th>
-              <th class="px-4 py-3 text-left">Status</th>
-              <th class="px-4 py-3 text-left">Sent</th>
-              <th class="px-4 py-3 text-left">Opened</th>
+              <th class="px-3 py-2 text-left">Campaign</th>
+              <th class="px-3 py-2 text-left">Type</th>
+              <th class="px-3 py-2 text-left">Status</th>
+              <th class="px-3 py-2 text-left">Sent</th>
+              <th class="px-3 py-2 text-left">Opened</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="rec in historyRecords" :key="rec.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <p v-if="rec.campaign" class="font-medium text-gray-800">{{ rec.campaign.title }}</p>
                 <p v-if="rec.campaign" class="text-xs text-gray-400 mt-0.5">{{ rec.campaign.subject }}</p>
                 <span v-else class="text-gray-400">—</span>
               </td>
-              <td class="px-4 py-3 text-xs text-gray-500 font-mono">{{ rec.campaign?.email_type ?? '—' }}</td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2 text-xs text-gray-500 font-mono">{{ rec.campaign?.email_type ?? '—' }}</td>
+              <td class="px-3 py-2">
                 <span :class="recipientStatusClass(rec.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ rec.status }}</span>
               </td>
-              <td class="px-4 py-3 text-xs text-gray-400">{{ rec.sent_at ? fmtTime(rec.sent_at) : '—' }}</td>
-              <td class="px-4 py-3 text-xs text-gray-400">{{ rec.opened_at ? fmtTime(rec.opened_at) : '—' }}</td>
+              <td class="px-3 py-2 text-xs text-gray-400">{{ rec.sent_at ? fmtTime(rec.sent_at) : '—' }}</td>
+              <td class="px-3 py-2 text-xs text-gray-400">{{ rec.opened_at ? fmtTime(rec.opened_at) : '—' }}</td>
             </tr>
           </tbody>
         </table>

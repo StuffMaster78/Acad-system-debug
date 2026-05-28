@@ -266,13 +266,13 @@ const displayUser = computed(() => ({
 
     <div class="grid gap-6 lg:grid-cols-2">
       <!-- Personal information -->
-      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel lg:col-span-2">
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white lg:col-span-2">
         <div class="flex items-center gap-3 border-b border-slate-200 px-6 py-4">
           <User class="h-5 w-5 text-signal" />
           <h2 class="text-base font-semibold text-ink">Personal information</h2>
         </div>
 
-        <div class="grid gap-5 p-6 sm:grid-cols-2">
+        <div class="grid gap-4 p-6 sm:grid-cols-2">
           <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Email</p>
             <p class="mt-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-graphite">
@@ -363,7 +363,7 @@ const displayUser = computed(() => ({
       <!-- Writer professional profile -->
       <section
         v-if="isWriter"
-        class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel lg:col-span-2"
+        class="overflow-hidden rounded-lg border border-slate-200 bg-white lg:col-span-2"
       >
         <div class="flex items-center gap-3 border-b border-slate-200 px-6 py-4">
           <PenLine class="h-5 w-5 text-signal" />
@@ -373,7 +373,7 @@ const displayUser = computed(() => ({
           </div>
         </div>
 
-        <div class="grid gap-5 p-6 sm:grid-cols-2">
+        <div class="grid gap-4 p-6 sm:grid-cols-2">
           <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Writer level</p>
             <div class="mt-1.5">
@@ -425,7 +425,7 @@ const displayUser = computed(() => ({
       </section>
 
       <!-- Change password -->
-      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <div class="flex items-center gap-3 border-b border-slate-200 px-6 py-4">
           <KeyRound class="h-5 w-5 text-signal" />
           <h2 class="text-base font-semibold text-ink">Change password</h2>
@@ -484,7 +484,7 @@ const displayUser = computed(() => ({
       </section>
 
       <!-- Danger zone: account info -->
-      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <div class="border-b border-slate-200 px-6 py-4">
           <h2 class="text-base font-semibold text-ink">Account details</h2>
         </div>

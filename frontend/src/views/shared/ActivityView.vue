@@ -62,7 +62,7 @@ onMounted(() => {
       {{ activity.error }} Preview mode will still show the activity pattern.
     </p>
 
-    <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+    <section class="rounded-md border border-slate-200 bg-white">
       <div class="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex items-center gap-2">
           <Activity class="h-5 w-5 text-signal" />

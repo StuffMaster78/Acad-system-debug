@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-4">
-    <div class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
+    <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
       <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
         <div>
           <h2 class="text-sm font-semibold text-ink">Audit Log</h2>
@@ -17,7 +17,7 @@
       </div>
 
       <div v-if="loading" class="space-y-px">
-        <div v-for="n in 4" :key="n" class="animate-pulse px-5 py-3.5">
+        <div v-for="n in 4" :key="n" class="animate-pulse px-5 py-3">
           <div class="h-3 w-48 rounded bg-slate-200" />
           <div class="mt-2 h-3 w-32 rounded bg-slate-100" />
         </div>
@@ -29,7 +29,7 @@
       </div>
 
       <div v-else class="divide-y divide-slate-100">
-        <div v-for="entry in entries" :key="entry.id" class="flex items-start gap-4 px-5 py-3.5">
+        <div v-for="entry in entries" :key="entry.id" class="flex items-start gap-4 px-5 py-3">
           <!-- Severity dot -->
           <span
             class="mt-1 size-2 shrink-0 rounded-full"

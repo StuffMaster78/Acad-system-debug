@@ -76,7 +76,7 @@ onMounted(fetchFines);
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Writer</p>
@@ -98,7 +98,7 @@ onMounted(fetchFines);
     </section>
 
     <div v-if="finesLoading && !fines.length" class="space-y-3">
-      <div v-for="n in 4" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-5 shadow-panel" aria-hidden="true">
+      <div v-for="n in 4" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-5" aria-hidden="true">
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1 space-y-2">
             <div class="h-4 w-2/5 rounded bg-slate-200" />
@@ -109,7 +109,7 @@ onMounted(fetchFines);
       </div>
     </div>
 
-    <div v-else-if="!fines.length" class="rounded-lg border border-slate-200 bg-white px-6 py-14 text-center shadow-panel">
+    <div v-else-if="!fines.length" class="rounded-lg border border-slate-200 bg-white px-6 py-14 text-center">
       <AlertTriangle class="mx-auto h-8 w-8 text-slate-300" />
       <p class="mt-3 text-sm font-medium text-ink">No fines on record</p>
       <p class="mt-1 text-sm text-graphite">Any fines applied to your account will appear here.</p>
@@ -119,7 +119,7 @@ onMounted(fetchFines);
       <div
         v-for="fine in fines"
         :key="fine.id"
-        class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel"
+        class="rounded-lg border border-slate-200 bg-white p-5"
       >
         <div class="flex items-start gap-4">
           <div class="min-w-0 flex-1">

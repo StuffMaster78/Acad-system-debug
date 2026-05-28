@@ -114,7 +114,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Superadmin finance</p>
@@ -159,7 +159,7 @@ onMounted(() => {
         />
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <div class="flex items-center gap-2">
@@ -189,16 +189,16 @@ onMounted(() => {
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
               <tr>
-                <th class="px-4 py-3">Work item</th>
-                <th class="px-4 py-3">Source</th>
-                <th class="px-4 py-3">Amount</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Updated</th>
+                <th class="px-3 py-2">Work item</th>
+                <th class="px-3 py-2">Source</th>
+                <th class="px-3 py-2">Amount</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Updated</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="item in finance.financeOpsItems" :key="`${item.source}-${item.id}`">
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <div class="flex items-start gap-3">
                     <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-signal">
                       <AlertTriangle v-if="item.source === 'refund'" class="h-4 w-4" />
@@ -211,12 +211,12 @@ onMounted(() => {
                     </span>
                   </div>
                 </td>
-                <td class="px-4 py-4 capitalize text-graphite">{{ sourceLabel(item.source) }}</td>
-                <td class="px-4 py-4 font-semibold text-ink">{{ item.amount === undefined ? "Not set" : formatAmount(item.amount) }}</td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5 capitalize text-graphite">{{ sourceLabel(item.source) }}</td>
+                <td class="px-3 py-2.5 font-semibold text-ink">{{ item.amount === undefined ? "Not set" : formatAmount(item.amount) }}</td>
+                <td class="px-3 py-2.5">
                   <StatusPill :label="item.status" :tone="statusTone(item.status)" />
                 </td>
-                <td class="px-4 py-4 text-graphite">{{ formatDate(item.date) }}</td>
+                <td class="px-3 py-2.5 text-graphite">{{ formatDate(item.date) }}</td>
               </tr>
             </tbody>
           </table>
@@ -231,7 +231,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+      <section class="rounded-lg border border-slate-200 bg-white p-4">
         <div class="flex items-center gap-2">
           <CircleDollarSign class="h-5 w-5 text-signal" />
           <h2 class="text-base font-semibold text-ink">Financial controls</h2>
@@ -286,7 +286,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(380px,0.85fr)]">
-      <div class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div class="flex items-center gap-2">
@@ -325,25 +325,25 @@ onMounted(() => {
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
               <tr>
-                <th class="px-4 py-3">Record</th>
-                <th class="px-4 py-3">Type</th>
-                <th class="px-4 py-3">Amount</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Date</th>
+                <th class="px-3 py-2">Record</th>
+                <th class="px-3 py-2">Type</th>
+                <th class="px-3 py-2">Amount</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Date</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="item in finance.feed" :key="item.id">
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <p class="font-semibold text-ink">{{ item.title }}</p>
                   <p class="mt-1 text-xs text-graphite">{{ item.subtitle }}</p>
                 </td>
-                <td class="px-4 py-4 capitalize text-graphite">{{ item.source }}</td>
-                <td class="px-4 py-4 font-semibold text-ink">{{ formatAmount(item.amount) }}</td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5 capitalize text-graphite">{{ item.source }}</td>
+                <td class="px-3 py-2.5 font-semibold text-ink">{{ formatAmount(item.amount) }}</td>
+                <td class="px-3 py-2.5">
                   <StatusPill :label="item.status" :tone="statusTone(item.status)" />
                 </td>
-                <td class="px-4 py-4 text-graphite">{{ formatDate(item.date) }}</td>
+                <td class="px-3 py-2.5 text-graphite">{{ formatDate(item.date) }}</td>
               </tr>
             </tbody>
           </table>
@@ -358,8 +358,8 @@ onMounted(() => {
         </div>
       </div>
 
-      <aside class="space-y-6">
-        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-lg border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <TrendingUp class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold text-ink">Revenue breakdown</h2>
@@ -384,7 +384,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-lg border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <WalletCards class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold text-ink">Writer payout ops</h2>
@@ -448,7 +448,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[1fr_1fr]">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="text-lg font-semibold text-ink">Monthly finance trend</h2>
         <div class="mt-4 overflow-hidden rounded-md border border-slate-200">
           <div class="grid grid-cols-[1fr_auto_auto_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase text-graphite">
@@ -470,7 +470,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 class="text-lg font-semibold text-ink">Writer payment history</h2>
           <div class="inline-flex rounded-md border border-slate-200 bg-slate-50 p-1">

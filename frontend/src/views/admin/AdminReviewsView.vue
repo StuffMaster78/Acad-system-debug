@@ -16,7 +16,7 @@ const ratingOptions = [null, 5, 4, 3, 2, 1];
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between border-b border-slate-200 pb-6">
       <div>
@@ -66,7 +66,7 @@ const ratingOptions = [null, 5, 4, 3, 2, 1];
     <!-- Empty -->
     <div
       v-else-if="!reviews.filteredAll.length"
-      class="flex flex-col items-center gap-3 rounded-xl border border-slate-200 py-16 text-center"
+      class="flex flex-col items-center gap-3 rounded-lg border border-slate-200 py-16 text-center"
     >
       <MessageSquare class="h-8 w-8 text-graphite" />
       <p class="text-sm font-medium text-ink">No reviews found</p>
@@ -74,7 +74,7 @@ const ratingOptions = [null, 5, 4, 3, 2, 1];
     </div>
 
     <!-- Review list -->
-    <div v-else class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
+    <div v-else class="rounded-lg border border-slate-200 bg-white overflow-hidden">
       <div class="grid grid-cols-[1fr_120px_140px_100px_80px] gap-3 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-graphite border-b border-slate-100">
         <span>Order / Writer</span>
         <span>Rating</span>

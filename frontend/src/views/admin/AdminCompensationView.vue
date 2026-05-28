@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-6 space-y-4">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Writer Compensation</h1>
       <p class="text-sm text-gray-500 mt-0.5">Payout windows, settlements, advances &amp; cycle changes</p>
@@ -41,7 +41,7 @@
         <div
           v-for="win in windows"
           :key="win.id"
-          class="bg-white rounded-xl border border-gray-200 overflow-hidden"
+          class="bg-white rounded-lg border border-gray-200 overflow-hidden"
         >
           <div
             class="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50"
@@ -186,28 +186,28 @@
 
       <div v-if="loadingSettlements" class="text-center py-10 text-gray-400">Loading…</div>
       <div v-else-if="!filteredSettlements.length" class="text-center py-10 text-gray-400 text-sm">No settlements found.</div>
-      <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="px-4 py-3 text-left">Writer</th>
-              <th class="px-4 py-3 text-right">Gross</th>
-              <th class="px-4 py-3 text-right">Deductions</th>
-              <th class="px-4 py-3 text-right">Net</th>
-              <th class="px-4 py-3 text-left">Status</th>
-              <th class="px-4 py-3 text-left">Window</th>
+              <th class="px-3 py-2 text-left">Writer</th>
+              <th class="px-3 py-2 text-right">Gross</th>
+              <th class="px-3 py-2 text-right">Deductions</th>
+              <th class="px-3 py-2 text-right">Net</th>
+              <th class="px-3 py-2 text-left">Status</th>
+              <th class="px-3 py-2 text-left">Window</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="s in filteredSettlements" :key="s.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-gray-700">#{{ s.writer }}</td>
-              <td class="px-4 py-3 text-right font-mono text-gray-800">${{ s.gross_earnings }}</td>
-              <td class="px-4 py-3 text-right font-mono text-red-600">-${{ s.total_deductions }}</td>
-              <td class="px-4 py-3 text-right font-mono font-semibold text-green-700">${{ s.net_payable }}</td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2 text-gray-700">#{{ s.writer }}</td>
+              <td class="px-3 py-2 text-right font-mono text-gray-800">${{ s.gross_earnings }}</td>
+              <td class="px-3 py-2 text-right font-mono text-red-600">-${{ s.total_deductions }}</td>
+              <td class="px-3 py-2 text-right font-mono font-semibold text-green-700">${{ s.net_payable }}</td>
+              <td class="px-3 py-2">
                 <span :class="settlementStatusClass(s.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ s.status }}</span>
               </td>
-              <td class="px-4 py-3 text-gray-400 text-xs">Win #{{ s.payment_window }}</td>
+              <td class="px-3 py-2 text-gray-400 text-xs">Win #{{ s.payment_window }}</td>
             </tr>
           </tbody>
         </table>
@@ -239,7 +239,7 @@
         <div
           v-for="adv in filteredAdvances"
           :key="adv.id"
-          class="bg-white rounded-xl border border-gray-200 p-5 space-y-3"
+          class="bg-white rounded-lg border border-gray-200 p-5 space-y-3"
         >
           <div class="flex items-start justify-between">
             <div>
@@ -288,28 +288,28 @@
 
       <div v-if="loadingCycleChanges" class="text-center py-10 text-gray-400">Loading…</div>
       <div v-else-if="!cycleChanges.length" class="text-center py-10 text-gray-400 text-sm">No cycle change requests.</div>
-      <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="px-4 py-3 text-left">Writer</th>
-              <th class="px-4 py-3 text-left">From</th>
-              <th class="px-4 py-3 text-left">Requested</th>
-              <th class="px-4 py-3 text-left">Reason</th>
-              <th class="px-4 py-3 text-left">Status</th>
-              <th class="px-4 py-3 text-left">Actions</th>
+              <th class="px-3 py-2 text-left">Writer</th>
+              <th class="px-3 py-2 text-left">From</th>
+              <th class="px-3 py-2 text-left">Requested</th>
+              <th class="px-3 py-2 text-left">Reason</th>
+              <th class="px-3 py-2 text-left">Status</th>
+              <th class="px-3 py-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="cc in cycleChanges" :key="cc.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 font-medium text-gray-800">{{ cc.writer_name }}</td>
-              <td class="px-4 py-3 text-gray-500 font-mono text-xs">{{ cc.from_cycle }}</td>
-              <td class="px-4 py-3 text-indigo-700 font-mono text-xs font-semibold">{{ cc.requested_cycle }}</td>
-              <td class="px-4 py-3 text-gray-500 max-w-xs truncate text-xs">{{ cc.reason ?? '—' }}</td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2 font-medium text-gray-800">{{ cc.writer_name }}</td>
+              <td class="px-3 py-2 text-gray-500 font-mono text-xs">{{ cc.from_cycle }}</td>
+              <td class="px-3 py-2 text-indigo-700 font-mono text-xs font-semibold">{{ cc.requested_cycle }}</td>
+              <td class="px-3 py-2 text-gray-500 max-w-xs truncate text-xs">{{ cc.reason ?? '—' }}</td>
+              <td class="px-3 py-2">
                 <span :class="cycleChangeStatusClass(cc.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ cc.status }}</span>
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <div v-if="cc.status === 'pending'" class="flex gap-1.5">
                   <button
                     @click="doApproveCycleChange(cc.id)"

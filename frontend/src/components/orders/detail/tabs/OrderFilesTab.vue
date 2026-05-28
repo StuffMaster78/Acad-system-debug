@@ -1,7 +1,7 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Upload panel -->
-    <div class="rounded-lg border border-slate-200 bg-white shadow-panel">
+    <div class="rounded-lg border border-slate-200 bg-white">
       <div class="border-b border-slate-200 px-5 py-4">
         <h2 class="text-base font-semibold text-ink">Upload files</h2>
         <p class="mt-1 text-xs text-graphite">
@@ -152,7 +152,7 @@
     </div>
 
     <!-- Attached files list -->
-    <div class="rounded-lg border border-slate-200 bg-white shadow-panel">
+    <div class="rounded-lg border border-slate-200 bg-white">
       <div class="border-b border-slate-200 px-5 py-4">
         <h2 class="text-base font-semibold text-ink">Attached files</h2>
         <p class="mt-0.5 text-xs text-graphite">{{ files.attachments.length }} file{{ files.attachments.length !== 1 ? 's' : '' }} attached</p>
@@ -233,7 +233,7 @@
 
     <!-- Delete confirmation overlay -->
     <div v-if="deletingId !== null" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
+      <div class="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-xl">
         <h3 class="text-base font-semibold text-ink">Request file deletion</h3>
         <p class="mt-1 text-sm text-graphite">This submits a deletion request to staff. Provide a reason.</p>
         <textarea

@@ -19,7 +19,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Support</p>
@@ -47,7 +47,7 @@ onMounted(() => {
     </p>
 
     <div class="grid gap-6 xl:grid-cols-[380px_1fr]">
-      <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <section class="rounded-lg border border-slate-200 bg-white">
         <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div class="flex items-center gap-2">
             <Plus class="h-4 w-4 text-signal" />
@@ -91,7 +91,7 @@ onMounted(() => {
       </section>
 
       <section>
-        <div v-if="!support.savedReplies.length && !support.isLoading" class="rounded-lg border border-slate-200 bg-white px-6 py-12 shadow-panel">
+        <div v-if="!support.savedReplies.length && !support.isLoading" class="rounded-lg border border-slate-200 bg-white px-6 py-12">
           <EmptyState
             :icon="MessageSquareText"
             title="No saved replies yet"
@@ -103,7 +103,7 @@ onMounted(() => {
           <article
             v-for="reply in support.savedReplies"
             :key="reply.id"
-            class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel"
+            class="rounded-lg border border-slate-200 bg-white p-5"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">

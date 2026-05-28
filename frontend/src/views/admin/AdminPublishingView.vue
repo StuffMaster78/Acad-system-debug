@@ -132,7 +132,7 @@ onMounted(() => {
       <div
         v-for="metric in publishing.metrics"
         :key="metric.label"
-        class="min-h-32 rounded-md border p-4 shadow-panel"
+        class="min-h-32 rounded-md border p-4"
         :class="metricToneClasses[metric.tone]"
       >
         <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
@@ -141,7 +141,7 @@ onMounted(() => {
       </div>
     </section>
 
-    <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+    <section class="rounded-md border border-slate-200 bg-white p-4">
       <div class="flex items-center gap-2">
         <Sparkles class="h-5 w-5 text-signal" />
         <h2 class="text-base font-semibold">Structural flow</h2>
@@ -165,7 +165,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.85fr)]">
-      <div class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <div class="rounded-md border border-slate-200 bg-white">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div class="flex items-center gap-2">
             <Newspaper class="h-5 w-5 text-signal" />
@@ -204,34 +204,34 @@ onMounted(() => {
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
               <tr>
-                <th class="px-4 py-3">Title</th>
-                <th class="px-4 py-3">Type</th>
-                <th class="px-4 py-3">Source</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Published</th>
-                <th class="px-4 py-3">Action</th>
+                <th class="px-3 py-2">Title</th>
+                <th class="px-3 py-2">Type</th>
+                <th class="px-3 py-2">Source</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Published</th>
+                <th class="px-3 py-2">Action</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="item in publishing.filteredItems" :key="`${item.source}-${item.id}`">
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <p class="font-semibold text-ink">{{ item.title }}</p>
                   <p class="mt-1 text-xs text-graphite">/{{ item.slug }}/</p>
                   <p v-if="item.summary" class="mt-1 max-w-lg text-xs leading-5 text-graphite">{{ item.summary }}</p>
                 </td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <StatusPill :label="typeLabel(item.type)" />
                 </td>
-                <td class="px-4 py-4 text-graphite">
+                <td class="px-3 py-2.5 text-graphite">
                   {{ sourceLabel(item) }}
                 </td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <StatusPill :label="item.status" :tone="statusTone(item.status)" />
                 </td>
-                <td class="px-4 py-4 text-graphite">
+                <td class="px-3 py-2.5 text-graphite">
                   {{ formatDate(item.publishedAt) }}
                 </td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <button
                     v-if="item.source === 'seo_pages'"
                     class="focus-ring inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-60"
@@ -266,8 +266,8 @@ onMounted(() => {
         </div>
       </div>
 
-      <aside class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <FilePenLine class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold">Create publishing draft</h2>
@@ -394,7 +394,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <LibraryBig class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold">Taxonomy & profiles</h2>
@@ -424,7 +424,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <Globe2 class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold">Staff ownership</h2>

@@ -282,7 +282,7 @@ onMounted(() => {
       <div
         v-for="metric in work.metrics"
         :key="metric.label"
-        class="min-h-32 rounded-md border p-4 shadow-panel"
+        class="min-h-32 rounded-md border p-4"
         :class="toneClasses[metric.tone]"
       >
         <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
@@ -291,7 +291,7 @@ onMounted(() => {
       </div>
     </section>
 
-    <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+    <section class="rounded-md border border-slate-200 bg-white">
       <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <div class="flex items-center gap-2">
@@ -332,12 +332,12 @@ onMounted(() => {
         <table class="min-w-full divide-y divide-slate-200 text-sm">
           <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
             <tr>
-              <th class="px-4 py-3">Work</th>
-              <th class="px-4 py-3">Site / client</th>
-              <th class="px-4 py-3">Assigned writer</th>
-              <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3">Deadline</th>
-              <th class="px-4 py-3 text-right">Value</th>
+              <th class="px-3 py-2">Work</th>
+              <th class="px-3 py-2">Site / client</th>
+              <th class="px-3 py-2">Assigned writer</th>
+              <th class="px-3 py-2">Status</th>
+              <th class="px-3 py-2">Deadline</th>
+              <th class="px-3 py-2 text-right">Value</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -347,7 +347,7 @@ onMounted(() => {
               class="cursor-pointer hover:bg-slate-50"
               @click="openOrderDetail(item)"
             >
-              <td class="px-4 py-4">
+              <td class="px-3 py-2.5">
                 <div class="flex flex-wrap items-center gap-2">
                   <p class="font-semibold text-ink">{{ item.reference }}</p>
                   <StatusPill :label="workKindLabel(item.kind)" :tone="workTone(item)" />
@@ -357,26 +357,26 @@ onMounted(() => {
                   {{ item.subject }}
                 </p>
               </td>
-              <td class="px-4 py-4">
+              <td class="px-3 py-2.5">
                 <p class="font-medium text-ink">{{ item.website }}</p>
                 <p class="mt-1 text-xs text-graphite">{{ item.client }}</p>
               </td>
-              <td class="px-4 py-4 text-graphite">
+              <td class="px-3 py-2.5 text-graphite">
                 {{ item.assignedWriter }}
               </td>
-              <td class="px-4 py-4">
+              <td class="px-3 py-2.5">
                 <StatusPill :label="item.status" :tone="workTone(item)" />
                 <p v-if="item.paymentStatus" class="mt-2 text-xs text-graphite">
                   Payment: {{ item.paymentStatus }}
                 </p>
               </td>
-              <td class="px-4 py-4 text-graphite">
+              <td class="px-3 py-2.5 text-graphite">
                 {{ formatDate(item.deadline) }}
                 <p v-if="item.notes" class="mt-1 max-w-xs text-xs leading-5 text-graphite">
                   {{ item.notes }}
                 </p>
               </td>
-              <td class="px-4 py-4 text-right font-semibold text-ink">
+              <td class="px-3 py-2.5 text-right font-semibold text-ink">
                 {{ formatAmount(item.amount, item.currency) }}
               </td>
             </tr>
@@ -405,7 +405,7 @@ onMounted(() => {
         <button
           v-for="queue in queueDefinitions"
           :key="queue.key"
-          class="focus-ring min-h-32 rounded-md border p-4 text-left shadow-panel"
+          class="focus-ring min-h-32 rounded-md border p-4 text-left"
           :class="[
             toneClasses[queue.tone],
             ops.activeQueue === queue.key ? 'ring-2 ring-signal ring-offset-2' : '',
@@ -423,7 +423,7 @@ onMounted(() => {
         </button>
       </div>
 
-      <div class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <div class="rounded-md border border-slate-200 bg-white">
         <div class="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 px-4">
           <div>
             <h3 class="text-base font-semibold">{{ ops.activeDefinition.label }}</h3>
@@ -540,12 +540,12 @@ onMounted(() => {
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
               <tr>
-                <th class="px-4 py-3">Order</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Payment</th>
-                <th class="px-4 py-3">Writer deadline</th>
-                <th class="px-4 py-3">Client</th>
-                <th class="px-4 py-3 text-right">Actions</th>
+                <th class="px-3 py-2">Order</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Payment</th>
+                <th class="px-3 py-2">Writer deadline</th>
+                <th class="px-3 py-2">Client</th>
+                <th class="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -556,25 +556,25 @@ onMounted(() => {
                 :class="order.id === selectedQueueOrder?.id ? 'bg-slate-50' : ''"
                 @click="selectQueueOrder(order)"
               >
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <p class="font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
                   <p class="mt-1 text-xs text-graphite">
                     Preferred writer: {{ order.preferred_writer_id || "None" }}
                   </p>
                 </td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <StatusPill :label="order.status" />
                 </td>
-                <td class="px-4 py-4 text-graphite">
+                <td class="px-3 py-2.5 text-graphite">
                   {{ order.payment_status || "unknown" }}
                 </td>
-                <td class="px-4 py-4 text-graphite">
+                <td class="px-3 py-2.5 text-graphite">
                   {{ formatDate(order.writer_deadline) }}
                 </td>
-                <td class="px-4 py-4 text-graphite">
+                <td class="px-3 py-2.5 text-graphite">
                   {{ order.client_id || "External" }}
                 </td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <div class="flex justify-end gap-2">
                     <button
                       class="focus-ring inline-flex h-9 items-center justify-center rounded-md border border-slate-200 px-3 text-xs font-semibold text-signal"
@@ -625,7 +625,7 @@ onMounted(() => {
       size="full"
       @close="closeOrderDetail"
     >
-      <div class="space-y-5">
+      <div class="space-y-4">
         <div v-if="orderDetails.error" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {{ orderDetails.error }}
         </div>
@@ -859,7 +859,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="grid gap-5 xl:grid-cols-[1fr_360px]">
+        <section class="grid gap-4 xl:grid-cols-[1fr_360px]">
           <div class="rounded-md border border-slate-200 p-4">
             <h3 class="text-base font-semibold text-ink">Lifecycle and context</h3>
             <div class="mt-4 grid gap-3 md:grid-cols-2">

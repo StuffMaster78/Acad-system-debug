@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-2xl space-y-6">
+    <div class="mx-auto max-w-2xl space-y-4">
 
       <!-- Back + heading -->
       <div>
@@ -13,7 +13,7 @@
       </div>
 
       <!-- Form card -->
-      <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel space-y-5">
+      <div class="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
 
         <!-- Title -->
         <div>
@@ -124,7 +124,7 @@
       </div>
 
       <!-- What happens next -->
-      <div class="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-panel space-y-2">
+      <div class="rounded-lg border border-slate-200 bg-white px-5 py-4 space-y-2">
         <p class="text-sm font-semibold text-ink">What happens next?</p>
         <div class="space-y-1.5 text-sm text-graphite">
           <div class="flex items-start gap-2">

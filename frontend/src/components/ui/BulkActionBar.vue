@@ -35,7 +35,7 @@ const emit = defineEmits<{
       v-if="selectedCount > 0"
       class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2"
     >
-      <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg shadow-slate-900/10">
+      <div class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-lg shadow-slate-900/10">
         <!-- Selection count + clear -->
         <div class="flex items-center gap-2 pr-3 border-r border-slate-200">
           <span class="text-sm font-semibold text-ink">{{ selectedCount }} selected</span>

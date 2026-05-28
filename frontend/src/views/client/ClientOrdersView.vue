@@ -102,7 +102,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="space-y-4">
     <!-- Page header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -129,7 +129,7 @@ onMounted(() => {
 
     <!-- Filters row -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div class="inline-flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+      <div class="inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
         <button
           v-for="tab in tabDefs"
           :key="tab.key"
@@ -167,7 +167,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div v-if="orders.isLoading && !orders.orders.length" class="divide-y divide-slate-100">
         <div
           v-for="n in 5"
@@ -214,12 +214,12 @@ onMounted(() => {
       <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
           <tr>
-            <th class="px-5 py-3">Order</th>
-            <th class="px-5 py-3">Status</th>
-            <th class="px-5 py-3">Payment</th>
-            <th class="px-5 py-3">Deadline</th>
-            <th class="px-5 py-3 text-right">Total</th>
-            <th class="px-5 py-3"></th>
+            <th class="px-3 py-2">Order</th>
+            <th class="px-3 py-2">Status</th>
+            <th class="px-3 py-2">Payment</th>
+            <th class="px-3 py-2">Deadline</th>
+            <th class="px-3 py-2 text-right">Total</th>
+            <th class="px-3 py-2"></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
@@ -228,7 +228,7 @@ onMounted(() => {
             :key="order.id"
             class="transition-colors hover:bg-slate-50"
           >
-            <td class="px-5 py-4">
+            <td class="px-3 py-2.5">
               <div class="flex items-center gap-2">
                 <p class="font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
                 <span
@@ -244,16 +244,16 @@ onMounted(() => {
                 <span v-if="order.number_of_pages"> · {{ order.number_of_pages }} pages</span>
               </p>
             </td>
-            <td class="px-5 py-4">
+            <td class="px-3 py-2.5">
               <StatusPill :label="order.status" :tone="statusTone(order.status)" />
             </td>
-            <td class="px-5 py-4">
+            <td class="px-3 py-2.5">
               <StatusPill
                 :label="order.payment_status || 'pending'"
                 :tone="paymentTone(order.payment_status)"
               />
             </td>
-            <td class="px-5 py-4">
+            <td class="px-3 py-2.5">
               <div class="flex items-center gap-1.5">
                 <Clock3 class="h-3.5 w-3.5 shrink-0 text-slate-400" />
                 <StatusPill
@@ -262,10 +262,10 @@ onMounted(() => {
                 />
               </div>
             </td>
-            <td class="px-5 py-4 text-right font-semibold text-ink">
+            <td class="px-3 py-2.5 text-right font-semibold text-ink">
               {{ money(order.total_price, order.currency) }}
             </td>
-            <td class="px-5 py-4 text-right">
+            <td class="px-3 py-2.5 text-right">
               <RouterLink
                 class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
                 :to="`/client/orders/${order.id}`"

@@ -72,7 +72,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Support</p>
@@ -100,7 +100,7 @@ onMounted(() => {
       <section
         v-for="bucket in buckets()"
         :key="bucket.key"
-        class="rounded-lg border border-slate-200 bg-white shadow-panel"
+        class="rounded-lg border border-slate-200 bg-white"
       >
         <div class="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div class="flex items-center gap-3">

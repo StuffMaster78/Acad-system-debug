@@ -39,7 +39,7 @@
     </div>
 
     <!-- QA steps timeline -->
-    <div class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
+    <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
       <div class="border-b border-slate-200 px-5 py-4">
         <h2 class="text-sm font-semibold text-ink">QA Pipeline</h2>
       </div>
@@ -47,7 +47,7 @@
         <li
           v-for="step in steps"
           :key="step.key"
-          class="flex items-center gap-4 px-5 py-3.5"
+          class="flex items-center gap-4 px-5 py-3"
         >
           <span
             class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold"
@@ -80,7 +80,7 @@
     </div>
 
     <!-- Staff action panel (admin/editor only) -->
-    <div v-if="canAct" class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel space-y-4">
+    <div v-if="canAct" class="rounded-lg border border-slate-200 bg-white p-5 space-y-4">
       <h2 class="text-sm font-semibold text-ink">QA Actions</h2>
 
       <!-- Return to writer — needs a notes field -->

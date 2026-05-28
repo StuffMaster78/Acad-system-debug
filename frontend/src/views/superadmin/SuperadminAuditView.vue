@@ -114,7 +114,7 @@ onMounted(() => fetchEvents());
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Superadmin</p>
@@ -201,12 +201,12 @@ onMounted(() => fetchEvents());
     </p>
 
     <!-- Events table -->
-    <div class="rounded-lg border border-slate-200 bg-white shadow-panel">
+    <div class="rounded-lg border border-slate-200 bg-white">
       <div v-if="loading" class="space-y-px">
         <div
           v-for="n in 8"
           :key="n"
-          class="animate-pulse border-b border-slate-100 px-5 py-3.5"
+          class="animate-pulse border-b border-slate-100 px-5 py-3"
         >
           <div class="flex gap-4">
             <div class="h-3 w-32 rounded bg-slate-200" />
@@ -237,7 +237,7 @@ onMounted(() => fetchEvents());
           <template v-for="ev in events" :key="ev.id">
             <!-- Row -->
             <button
-              class="focus-ring col-span-full grid w-full grid-cols-[auto_1fr_auto_auto_auto] items-center gap-0 px-5 py-3.5 text-left transition-colors hover:bg-slate-50"
+              class="focus-ring col-span-full grid w-full grid-cols-[auto_1fr_auto_auto_auto] items-center gap-0 px-5 py-3 text-left transition-colors hover:bg-slate-50"
               type="button"
               @click="toggleExpand(ev.id)"
             >

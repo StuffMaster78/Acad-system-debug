@@ -141,7 +141,7 @@ async function runSearch() {
 
     <section
       v-if="open"
-      class="absolute left-0 right-0 top-12 z-30 overflow-hidden rounded-md border border-slate-200 bg-white shadow-panel"
+      class="absolute left-0 right-0 top-12 z-30 overflow-hidden rounded-md border border-slate-200 bg-white"
     >
       <div class="border-b border-slate-200 px-4 py-3">
         <p class="text-sm font-semibold text-ink">Search</p>

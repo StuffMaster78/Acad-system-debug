@@ -105,7 +105,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Admin</p>
@@ -133,22 +133,22 @@ onMounted(() => {
     </div>
 
     <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <div class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+      <div class="rounded-md border border-slate-200 bg-white p-4">
         <p class="text-sm font-medium text-graphite">Roster</p>
         <p class="mt-3 text-3xl font-semibold text-ink">{{ writers.writers.length }}</p>
         <p class="mt-2 text-sm text-graphite">{{ writers.activeWriters.length }} active profiles</p>
       </div>
-      <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4 shadow-panel">
+      <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4">
         <p class="text-sm font-medium text-emerald-900">Verified</p>
         <p class="mt-3 text-3xl font-semibold text-emerald-950">{{ writers.verifiedWriters.length }}</p>
         <p class="mt-2 text-sm text-emerald-900">Ready for assignment</p>
       </div>
-      <div class="rounded-md border border-amber-200 bg-amber-50 p-4 shadow-panel">
+      <div class="rounded-md border border-amber-200 bg-amber-50 p-4">
         <p class="text-sm font-medium text-amber-900">Risk watch</p>
         <p class="mt-3 text-3xl font-semibold text-amber-950">{{ writers.riskWriters.length }}</p>
         <p class="mt-2 text-sm text-amber-900">Discipline or capacity flags</p>
       </div>
-      <div class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+      <div class="rounded-md border border-slate-200 bg-white p-4">
         <p class="text-sm font-medium text-graphite">Selected</p>
         <p class="mt-3 text-xl font-semibold text-ink">{{ selected?.pen_name || "None" }}</p>
         <p class="mt-2 text-sm text-graphite">{{ selected?.registration_id || "Choose a writer" }}</p>
@@ -156,7 +156,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_420px]">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h2 class="text-lg font-semibold text-ink">Writer roster</h2>
@@ -253,7 +253,7 @@ onMounted(() => {
         />
       </div>
 
-      <aside class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <aside class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-start justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold text-ink">{{ selected?.pen_name || "Writer detail" }}</h2>
@@ -427,7 +427,7 @@ onMounted(() => {
       </aside>
     </section>
 
-    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+    <section class="rounded-lg border border-slate-200 bg-white p-5">
       <div class="flex items-center gap-2">
         <BriefcaseBusiness class="h-5 w-5 text-signal" />
         <h2 class="text-lg font-semibold text-ink">Writer workload controls</h2>
@@ -440,32 +440,32 @@ onMounted(() => {
         <table class="min-w-full divide-y divide-slate-200 text-sm">
           <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
             <tr>
-              <th class="px-4 py-3">Writer</th>
-              <th class="px-4 py-3">Level</th>
-              <th class="px-4 py-3">Active orders</th>
-              <th class="px-4 py-3">Availability</th>
-              <th class="px-4 py-3">Risk</th>
-              <th class="px-4 py-3 text-right">Action</th>
+              <th class="px-3 py-2">Writer</th>
+              <th class="px-3 py-2">Level</th>
+              <th class="px-3 py-2">Active orders</th>
+              <th class="px-3 py-2">Availability</th>
+              <th class="px-3 py-2">Risk</th>
+              <th class="px-3 py-2 text-right">Action</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr v-for="row in writers.workloadRows" :key="row.registration_id">
-              <td class="px-4 py-4">
+              <td class="px-3 py-2.5">
                 <p class="font-semibold text-ink">{{ row.name }}</p>
                 <p class="mt-1 text-xs text-graphite">{{ row.registration_id }}</p>
               </td>
-              <td class="px-4 py-4 text-graphite">{{ row.level }}</td>
-              <td class="px-4 py-4 font-semibold text-ink">{{ row.active_orders_count }}</td>
-              <td class="px-4 py-4">
+              <td class="px-3 py-2.5 text-graphite">{{ row.level }}</td>
+              <td class="px-3 py-2.5 font-semibold text-ink">{{ row.active_orders_count }}</td>
+              <td class="px-3 py-2.5">
                 <StatusPill :label="row.accepting ? row.capacity : 'not accepting'" :tone="row.accepting ? 'success' : 'warning'" />
               </td>
-              <td class="px-4 py-4">
+              <td class="px-3 py-2.5">
                 <StatusPill
                   :label="row.risk"
                   :tone="row.risk === 'restricted' ? 'danger' : row.risk === 'watch' ? 'warning' : 'success'"
                 />
               </td>
-              <td class="px-4 py-4 text-right">
+              <td class="px-3 py-2.5 text-right">
                 <button
                   class="focus-ring rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-signal"
                   type="button"

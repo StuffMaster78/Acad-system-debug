@@ -2,7 +2,7 @@
   <div class="space-y-4">
     <!-- Client: limited payment view -->
     <template v-if="role === 'client'">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="text-base font-semibold text-ink">Payment summary</h2>
         <dl class="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
@@ -28,7 +28,7 @@
 
     <!-- Support: limited view -->
     <template v-else-if="role === 'support'">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="text-base font-semibold text-ink">Payment overview</h2>
         <dl class="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
@@ -55,7 +55,7 @@
     <!-- Admin/superadmin: full payment trail from API -->
     <template v-else>
       <!-- Summary cards -->
-      <div class="rounded-lg border border-slate-200 bg-white shadow-panel overflow-hidden">
+      <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
         <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <div>
             <h2 class="text-base font-semibold text-ink">Payment trail</h2>
@@ -115,7 +115,7 @@
       </div>
 
       <!-- Payment records table -->
-      <div class="rounded-lg border border-slate-200 bg-white shadow-panel overflow-hidden">
+      <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
         <div class="border-b border-slate-200 px-5 py-4">
           <h2 class="text-sm font-semibold text-ink">Payment records</h2>
           <p class="mt-0.5 text-xs text-graphite">All gateway transactions for this order</p>

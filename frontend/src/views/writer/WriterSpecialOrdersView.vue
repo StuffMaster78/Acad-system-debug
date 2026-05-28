@@ -49,7 +49,7 @@ function progress(total: number, done: number) {
 
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto max-w-3xl space-y-4">
 
       <!-- Header -->
       <div>
@@ -71,7 +71,7 @@ function progress(total: number, done: number) {
           <div
             v-for="order in active"
             :key="order.id"
-            class="group flex cursor-pointer items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-purple-300 hover:shadow-md transition-all"
+            class="group flex cursor-pointer items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:border-purple-300 hover:shadow-md transition-all"
             @click="router.push(`/writer/special-orders/${order.id}`)"
           >
             <div class="flex-1 min-w-0">
@@ -126,7 +126,7 @@ function progress(total: number, done: number) {
           <div
             v-for="order in past"
             :key="order.id"
-            class="group flex cursor-pointer items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 opacity-75 hover:opacity-100 hover:border-slate-300 transition-all"
+            class="group flex cursor-pointer items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 opacity-75 hover:opacity-100 hover:border-slate-300 transition-all"
             @click="router.push(`/writer/special-orders/${order.id}`)"
           >
             <div class="flex-1 min-w-0">

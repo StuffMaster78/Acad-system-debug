@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Header with masked identities, status badges, approve banner -->
     <OrderHeader
       :order-id="orderId"

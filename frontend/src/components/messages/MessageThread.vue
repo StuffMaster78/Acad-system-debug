@@ -402,7 +402,7 @@ function senderUser(group: MessageGroup) {
 <template>
   <section class="grid min-h-[640px] gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
     <!-- ── Thread list (inbox sidebar) ──────────────────────────────────────── -->
-    <aside class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+    <aside class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div class="flex min-h-14 items-center justify-between gap-2 border-b border-slate-200 px-4">
         <h2 class="text-base font-semibold text-ink">Inbox</h2>
         <div class="flex items-center gap-1.5">
@@ -486,7 +486,7 @@ function senderUser(group: MessageGroup) {
     </aside>
 
     <!-- ── Compose pane (replaces message pane when composing) ───────────────── -->
-    <main v-if="showCompose" class="flex min-h-[640px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+    <main v-if="showCompose" class="flex min-h-[640px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
         <div>
           <h2 class="text-base font-semibold text-ink">New message</h2>
@@ -497,7 +497,7 @@ function senderUser(group: MessageGroup) {
         </button>
       </div>
 
-      <form class="flex flex-1 flex-col gap-5 overflow-y-auto p-5" @submit.prevent="submitCompose">
+      <form class="flex flex-1 flex-col gap-4 overflow-y-auto p-5" @submit.prevent="submitCompose">
         <!-- Order ID -->
         <label class="block">
           <span class="text-sm font-medium text-ink">Order ID <span class="text-berry">*</span></span>
@@ -584,7 +584,7 @@ function senderUser(group: MessageGroup) {
     </main>
 
     <!-- ── Message pane ──────────────────────────────────────────────────────── -->
-    <main v-else class="flex min-h-[640px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+    <main v-else class="flex min-h-[640px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
       <!-- Thread header -->
       <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
@@ -801,7 +801,7 @@ function senderUser(group: MessageGroup) {
             <div class="relative flex-1">
               <textarea
                 v-model.trim="composer"
-                class="focus-ring min-h-[80px] w-full resize-none rounded-xl border border-slate-200 px-4 py-3 pr-10 text-sm leading-6 placeholder:text-slate-400"
+                class="focus-ring min-h-[80px] w-full resize-none rounded-lg border border-slate-200 px-4 py-3 pr-10 text-sm leading-6 placeholder:text-slate-400"
                 :class="selectedRecipient === 'internal' ? 'bg-slate-50' : ''"
                 placeholder="Write a message…"
                 @keydown.enter.exact.prevent="sendMessage"

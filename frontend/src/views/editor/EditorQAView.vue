@@ -103,7 +103,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Editor workspace</p>
@@ -131,7 +131,7 @@ onMounted(async () => {
     </div>
 
     <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 class="text-lg font-semibold text-ink">Assigned reviews</h2>
@@ -186,7 +186,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold text-ink">Review decision</h2>
@@ -315,7 +315,7 @@ onMounted(async () => {
       </div>
     </section>
 
-    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+    <section class="rounded-lg border border-slate-200 bg-white p-5">
       <div class="flex items-center justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-ink">Available QA work</h2>

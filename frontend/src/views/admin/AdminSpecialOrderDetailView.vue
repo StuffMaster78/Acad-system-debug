@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-5xl space-y-5">
+    <div class="mx-auto max-w-5xl space-y-4">
 
       <div v-if="store.isLoadingDetail" class="py-24 text-center text-graphite animate-pulse">Loading…</div>
 
@@ -10,7 +10,7 @@
           <button class="mb-3 inline-flex items-center gap-1.5 text-sm text-graphite hover:text-ink" @click="router.back()">
             <ArrowLeft class="size-3.5" /> Special Orders
           </button>
-          <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
@@ -120,26 +120,26 @@
 
         <!-- Summary cards -->
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
             <p class="text-xs text-graphite">Quoted price</p>
             <p class="mt-1 text-lg font-bold text-ink">{{ store.detail.quoted_price ? `$${store.detail.quoted_price}` : '—' }}</p>
           </div>
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
             <p class="text-xs text-graphite">Milestones</p>
             <p class="mt-1 text-lg font-bold text-ink">{{ store.detail.completed_milestones }}<span class="text-sm font-normal text-graphite">/{{ store.detail.total_milestones }}</span></p>
           </div>
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
             <p class="text-xs text-graphite">Payment</p>
             <p class="mt-1 text-sm font-semibold capitalize text-graphite">{{ store.detail.payment_status || '—' }}</p>
           </div>
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
             <p class="text-xs text-graphite">Quotes submitted</p>
             <p class="mt-1 text-lg font-bold text-ink">{{ store.detail.quotes.length }}</p>
           </div>
         </div>
 
         <!-- Quote creation form -->
-        <div v-if="store.showQuoteForm" class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel space-y-4">
+        <div v-if="store.showQuoteForm" class="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
           <h3 class="font-semibold text-ink">New Quote</h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -187,7 +187,7 @@
         </div>
 
         <!-- Tabs -->
-        <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-panel">
+        <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
           <button
             v-for="tab in tabs"
             :key="tab.key"
@@ -199,13 +199,13 @@
 
         <!-- Milestones tab -->
         <div v-if="activeTab === 'milestones'" class="space-y-3">
-          <div v-if="!store.detail.milestones.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center text-sm text-graphite shadow-panel">
+          <div v-if="!store.detail.milestones.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center text-sm text-graphite">
             Milestones will appear after a quote is accepted by the client.
           </div>
           <div
             v-for="m in store.detail.milestones"
             :key="m.id"
-            class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel"
+            class="rounded-lg border border-slate-200 bg-white p-5"
           >
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">
@@ -254,13 +254,13 @@
 
         <!-- Quotes tab -->
         <div v-else-if="activeTab === 'quotes'" class="space-y-3">
-          <div v-if="!store.detail.quotes.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center text-sm text-graphite shadow-panel">
+          <div v-if="!store.detail.quotes.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center text-sm text-graphite">
             No quotes submitted yet.
           </div>
           <div
             v-for="q in store.detail.quotes"
             :key="q.id"
-            class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel"
+            class="rounded-lg border border-slate-200 bg-white p-5"
           >
             <div class="flex items-start justify-between gap-4">
               <div>
@@ -292,7 +292,7 @@
         </div>
 
         <!-- Access notes tab -->
-        <div v-else-if="activeTab === 'access'" class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
+        <div v-else-if="activeTab === 'access'" class="rounded-lg border border-slate-200 bg-white p-6">
           <div class="flex items-center gap-2 mb-4">
             <Lock class="size-4 text-graphite" />
             <h3 class="font-semibold text-ink">Sensitive Access Information</h3>

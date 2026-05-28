@@ -4,6 +4,9 @@ import type { ModalConfig, Toast, ToastType } from "@/types/ui";
 
 export const useUiStore = defineStore("ui", () => {
   const sidebarOpen = ref(false);
+  const sidebarCollapsed = ref(
+    typeof window !== "undefined" && localStorage.getItem("sidebar-collapsed") === "true",
+  );
   const toasts = ref<Toast[]>([]);
   const activeModal = ref<ModalConfig | null>(null);
   const globalLoading = ref(false);
@@ -34,8 +37,14 @@ export const useUiStore = defineStore("ui", () => {
     sidebarOpen.value = false;
   }
 
+  function toggleSidebarCollapse() {
+    sidebarCollapsed.value = !sidebarCollapsed.value;
+    localStorage.setItem("sidebar-collapsed", String(sidebarCollapsed.value));
+  }
+
   return {
     sidebarOpen,
+    sidebarCollapsed,
     toasts,
     activeModal,
     globalLoading,
@@ -45,5 +54,6 @@ export const useUiStore = defineStore("ui", () => {
     closeModal,
     toggleSidebar,
     closeSidebar,
+    toggleSidebarCollapse,
   };
 });

@@ -113,7 +113,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Client</p>
@@ -134,11 +134,11 @@ onMounted(() => {
       </button>
     </section>
 
-    <div v-if="loyaltyLoading && !loyalty" class="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-graphite shadow-panel">
+    <div v-if="loyaltyLoading && !loyalty" class="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-graphite">
       Loading loyalty data…
     </div>
 
-    <div v-else-if="!loyalty" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-panel">
+    <div v-else-if="!loyalty" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
       <Star class="mx-auto h-8 w-8 text-slate-300" />
       <p class="mt-3 text-sm font-medium text-ink">Loyalty programme not active</p>
       <p class="mt-1 text-sm text-graphite">Place more orders to unlock loyalty rewards.</p>
@@ -147,7 +147,7 @@ onMounted(() => {
     <template v-else>
       <!-- Summary tiles -->
       <section class="grid gap-4 sm:grid-cols-3">
-        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
           <div class="flex items-center gap-2">
             <Star class="h-4 w-4 text-saffron" />
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Points balance</p>
@@ -155,7 +155,7 @@ onMounted(() => {
           <p class="mt-3 text-3xl font-semibold text-ink">{{ loyalty.loyalty_points.toLocaleString() }}</p>
           <p class="mt-1 text-xs text-graphite">available to use</p>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
           <div class="flex items-center gap-2">
             <Star class="h-4 w-4 text-saffron" />
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Tier</p>
@@ -163,7 +163,7 @@ onMounted(() => {
           <p class="mt-3 text-2xl font-semibold text-ink">{{ loyalty.tier }}</p>
           <p class="mt-1 text-xs text-graphite">current loyalty tier</p>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
           <div class="flex items-center gap-2">
             <Star class="h-4 w-4 text-saffron" />
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Conversion rate</p>
@@ -174,7 +174,7 @@ onMounted(() => {
       </section>
 
       <!-- Tab panel -->
-      <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <section class="rounded-lg border border-slate-200 bg-white">
         <div class="flex items-center gap-1 border-b border-slate-200 px-5 py-3">
           <button
             class="rounded-md px-4 py-2 text-sm font-semibold transition-colors"

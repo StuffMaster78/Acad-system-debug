@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-6 space-y-4">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Writer Rewards</h1>
       <p class="text-sm text-gray-500 mt-0.5">Leaderboard, reward analytics, rules, and payout reconciliation</p>
@@ -39,18 +39,18 @@
 
       <div v-if="loadingLeaderboard" class="text-center py-10 text-gray-400">Loading…</div>
       <div v-else-if="!leaderboard.length" class="text-center py-10 text-gray-400 text-sm">No leaderboard data.</div>
-      <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="px-4 py-3 text-center w-12">#</th>
-              <th class="px-4 py-3 text-left">Writer</th>
-              <th class="px-4 py-3 text-center">Rating</th>
-              <th class="px-4 py-3 text-center">Trust</th>
-              <th class="px-4 py-3 text-center">Percentile</th>
-              <th class="px-4 py-3 text-center">Orders</th>
-              <th class="px-4 py-3 text-left">Badges</th>
+              <th class="px-3 py-2 text-center w-12">#</th>
+              <th class="px-3 py-2 text-left">Writer</th>
+              <th class="px-3 py-2 text-center">Rating</th>
+              <th class="px-3 py-2 text-center">Trust</th>
+              <th class="px-3 py-2 text-center">Percentile</th>
+              <th class="px-3 py-2 text-center">Orders</th>
+              <th class="px-3 py-2 text-left">Badges</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
@@ -59,27 +59,27 @@
               :key="entry.writer_id"
               :class="entry.leaderboard_position <= 3 ? 'bg-amber-50/40' : 'hover:bg-gray-50'"
             >
-              <td class="px-4 py-3 text-center">
+              <td class="px-3 py-2 text-center">
                 <span v-if="entry.leaderboard_position === 1" class="text-lg">🥇</span>
                 <span v-else-if="entry.leaderboard_position === 2" class="text-lg">🥈</span>
                 <span v-else-if="entry.leaderboard_position === 3" class="text-lg">🥉</span>
                 <span v-else class="text-gray-500 font-mono text-xs">{{ entry.leaderboard_position }}</span>
               </td>
-              <td class="px-4 py-3 font-medium text-gray-800">{{ entry.writer_name }}</td>
-              <td class="px-4 py-3 text-center">
+              <td class="px-3 py-2 font-medium text-gray-800">{{ entry.writer_name }}</td>
+              <td class="px-3 py-2 text-center">
                 <span class="font-semibold text-indigo-700">{{ parseFloat(entry.rating).toFixed(1) }}</span>
                 <span class="text-xs text-gray-400 ml-1">({{ entry.review_count }})</span>
               </td>
-              <td class="px-4 py-3 text-center">
+              <td class="px-3 py-2 text-center">
                 <span :class="trustScoreClass(entry.trust_score)" class="text-xs font-semibold px-2 py-0.5 rounded-full">
                   {{ parseFloat(entry.trust_score).toFixed(0) }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-center text-gray-600 text-xs">
+              <td class="px-3 py-2 text-center text-gray-600 text-xs">
                 {{ parseFloat(entry.percentile_rank).toFixed(1) }}%
               </td>
-              <td class="px-4 py-3 text-center text-gray-700">{{ entry.completed_orders }}</td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2 text-center text-gray-700">{{ entry.completed_orders }}</td>
+              <td class="px-3 py-2">
                 <div class="flex flex-wrap gap-1">
                   <span
                     v-for="badge in entry.badges.slice(0, 3)"
@@ -97,24 +97,24 @@
     </div>
 
     <!-- ── Analytics ──────────────────────────────────────────────────────── -->
-    <div v-if="activeTab === 'analytics'" class="space-y-6">
+    <div v-if="activeTab === 'analytics'" class="space-y-4">
       <div v-if="loadingAnalytics" class="text-center py-10 text-gray-400">Loading…</div>
       <template v-else-if="analytics">
         <!-- Summary cards -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-1">
+          <div class="bg-white rounded-lg border border-gray-200 p-4 space-y-1">
             <p class="text-xs text-gray-500 uppercase tracking-wide">Total Rewards</p>
             <p class="text-2xl font-bold text-gray-900">{{ analytics.total_rewards.toLocaleString() }}</p>
           </div>
-          <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-1">
+          <div class="bg-white rounded-lg border border-gray-200 p-4 space-y-1">
             <p class="text-xs text-gray-500 uppercase tracking-wide">Issued</p>
             <p class="text-2xl font-bold text-green-700">{{ analytics.issued_rewards.toLocaleString() }}</p>
           </div>
-          <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-1">
+          <div class="bg-white rounded-lg border border-gray-200 p-4 space-y-1">
             <p class="text-xs text-gray-500 uppercase tracking-wide">Revoked</p>
             <p class="text-2xl font-bold text-red-600">{{ analytics.revoked_rewards.toLocaleString() }}</p>
           </div>
-          <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-1">
+          <div class="bg-white rounded-lg border border-gray-200 p-4 space-y-1">
             <p class="text-xs text-gray-500 uppercase tracking-wide">Total Amount</p>
             <p class="text-2xl font-bold text-indigo-700">${{ parseFloat(analytics.total_reward_amount).toLocaleString() }}</p>
             <p class="text-xs text-gray-400">avg ${{ parseFloat(analytics.average_reward_amount).toFixed(2) }}</p>
@@ -122,7 +122,7 @@
         </div>
 
         <!-- Top reward rules -->
-        <section class="bg-white rounded-xl border border-gray-200 p-5">
+        <section class="bg-white rounded-lg border border-gray-200 p-5">
           <h2 class="font-semibold text-gray-800 mb-4">Top Reward Rules</h2>
           <div v-if="!analytics.top_reward_rules.length" class="text-sm text-gray-400">No data.</div>
           <div v-else class="space-y-2">
@@ -144,7 +144,7 @@
         </section>
 
         <!-- Top writers -->
-        <section class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <section class="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div class="px-5 py-4 border-b border-gray-100">
             <h2 class="font-semibold text-gray-800">Top Rewarded Writers</h2>
           </div>
@@ -153,16 +153,16 @@
         <table class="min-w-full text-sm">
             <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
-                <th class="px-4 py-3 text-left">Writer</th>
-                <th class="px-4 py-3 text-right">Rewards</th>
-                <th class="px-4 py-3 text-right">Total Amount</th>
+                <th class="px-3 py-2 text-left">Writer</th>
+                <th class="px-3 py-2 text-right">Rewards</th>
+                <th class="px-3 py-2 text-right">Total Amount</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr v-for="w in analytics.top_writers" :key="w.writer__id" class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-gray-800">{{ w.writer__display_name || `#${w.writer__id}` }}</td>
-                <td class="px-4 py-3 text-right text-gray-600">{{ w.total_rewards }}</td>
-                <td class="px-4 py-3 text-right font-semibold text-green-700">${{ parseFloat(w.total_amount).toLocaleString() }}</td>
+                <td class="px-3 py-2 text-gray-800">{{ w.writer__display_name || `#${w.writer__id}` }}</td>
+                <td class="px-3 py-2 text-right text-gray-600">{{ w.total_rewards }}</td>
+                <td class="px-3 py-2 text-right font-semibold text-green-700">${{ parseFloat(w.total_amount).toLocaleString() }}</td>
               </tr>
             </tbody>
           </table>
@@ -171,7 +171,7 @@
       </template>
 
       <!-- Rules list -->
-      <section class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <section class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 class="font-semibold text-gray-800">Active Reward Rules</h2>
           <span class="text-xs text-gray-400">{{ rules.length }} rule{{ rules.length !== 1 ? 's' : '' }}</span>
@@ -182,26 +182,26 @@
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="px-4 py-3 text-left">Name</th>
-              <th class="px-4 py-3 text-left">Type</th>
-              <th class="px-4 py-3 text-right">Reward</th>
-              <th class="px-4 py-3 text-left">Badge</th>
-              <th class="px-4 py-3 text-center">Repeatable</th>
+              <th class="px-3 py-2 text-left">Name</th>
+              <th class="px-3 py-2 text-left">Type</th>
+              <th class="px-3 py-2 text-right">Reward</th>
+              <th class="px-3 py-2 text-left">Badge</th>
+              <th class="px-3 py-2 text-center">Repeatable</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="rule in rules" :key="rule.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <p class="font-medium text-gray-800">{{ rule.name }}</p>
                 <p v-if="rule.description" class="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{{ rule.description }}</p>
               </td>
-              <td class="px-4 py-3 text-xs font-mono text-gray-600">{{ rule.rule_type }}</td>
-              <td class="px-4 py-3 text-right font-semibold text-green-700">${{ parseFloat(rule.reward_amount).toFixed(2) }}</td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2 text-xs font-mono text-gray-600">{{ rule.rule_type }}</td>
+              <td class="px-3 py-2 text-right font-semibold text-green-700">${{ parseFloat(rule.reward_amount).toFixed(2) }}</td>
+              <td class="px-3 py-2">
                 <span v-if="rule.badge_name" class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded">{{ rule.badge_name }}</span>
                 <span v-else class="text-gray-300 text-xs">—</span>
               </td>
-              <td class="px-4 py-3 text-center">
+              <td class="px-3 py-2 text-center">
                 <span :class="rule.is_repeatable ? 'text-green-600' : 'text-gray-400'" class="text-xs">{{ rule.is_repeatable ? '✓' : '✗' }}</span>
               </td>
             </tr>
@@ -212,7 +212,7 @@
     </div>
 
     <!-- ── Reconciliation ─────────────────────────────────────────────────── -->
-    <div v-if="activeTab === 'reconciliation'" class="space-y-5">
+    <div v-if="activeTab === 'reconciliation'" class="space-y-4">
       <div class="flex items-center justify-between">
         <p class="text-sm text-gray-500">Reconcile payout batch totals against ledger and cleared amounts.</p>
         <button @click="showRunForm = true" class="btn-primary text-sm">Run Reconciliation</button>
@@ -220,33 +220,33 @@
 
       <div v-if="loadingReports" class="text-center py-10 text-gray-400">Loading…</div>
       <div v-else-if="!reports.length" class="text-center py-10 text-gray-400 text-sm">No reconciliation reports yet.</div>
-      <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="px-4 py-3 text-left">Batch</th>
-              <th class="px-4 py-3 text-right">Ledger</th>
-              <th class="px-4 py-3 text-right">Payout</th>
-              <th class="px-4 py-3 text-right">Cleared</th>
-              <th class="px-4 py-3 text-right">Mismatch</th>
-              <th class="px-4 py-3 text-left">Status</th>
-              <th class="px-4 py-3 text-left">Date</th>
+              <th class="px-3 py-2 text-left">Batch</th>
+              <th class="px-3 py-2 text-right">Ledger</th>
+              <th class="px-3 py-2 text-right">Payout</th>
+              <th class="px-3 py-2 text-right">Cleared</th>
+              <th class="px-3 py-2 text-right">Mismatch</th>
+              <th class="px-3 py-2 text-left">Status</th>
+              <th class="px-3 py-2 text-left">Date</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="r in reports" :key="r.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-gray-700 font-mono text-xs">Batch #{{ r.payout_batch }}</td>
-              <td class="px-4 py-3 text-right font-mono text-xs text-gray-700">${{ r.total_ledger_amount }}</td>
-              <td class="px-4 py-3 text-right font-mono text-xs text-gray-700">${{ r.total_payout_amount }}</td>
-              <td class="px-4 py-3 text-right font-mono text-xs text-gray-700">${{ r.total_cleared_amount }}</td>
-              <td class="px-4 py-3 text-right font-mono text-xs font-semibold" :class="parseFloat(r.mismatch_amount) === 0 ? 'text-green-600' : 'text-red-600'">
+              <td class="px-3 py-2 text-gray-700 font-mono text-xs">Batch #{{ r.payout_batch }}</td>
+              <td class="px-3 py-2 text-right font-mono text-xs text-gray-700">${{ r.total_ledger_amount }}</td>
+              <td class="px-3 py-2 text-right font-mono text-xs text-gray-700">${{ r.total_payout_amount }}</td>
+              <td class="px-3 py-2 text-right font-mono text-xs text-gray-700">${{ r.total_cleared_amount }}</td>
+              <td class="px-3 py-2 text-right font-mono text-xs font-semibold" :class="parseFloat(r.mismatch_amount) === 0 ? 'text-green-600' : 'text-red-600'">
                 {{ parseFloat(r.mismatch_amount) === 0 ? '—' : '$' + r.mismatch_amount }}
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <span :class="reconcStatusClass(r.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ r.status }}</span>
               </td>
-              <td class="px-4 py-3 text-xs text-gray-400">{{ fmtDate(r.created_at) }}</td>
+              <td class="px-3 py-2 text-xs text-gray-400">{{ fmtDate(r.created_at) }}</td>
             </tr>
           </tbody>
         </table>

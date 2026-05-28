@@ -89,7 +89,7 @@ const highlights = [
         </div>
       </div>
 
-      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Platform capabilities</p>
         <div class="mt-4 space-y-3">
           <div class="rounded-lg bg-slate-50 p-4">
@@ -125,7 +125,7 @@ const highlights = [
           <div
             v-for="step in steps"
             :key="step.number"
-            class="relative rounded-xl border border-slate-200 bg-white p-6 shadow-panel"
+            class="relative rounded-lg border border-slate-200 bg-white p-6"
           >
             <span class="text-4xl font-semibold text-slate-100">{{ step.number }}</span>
             <component :is="step.icon" class="mt-3 h-6 w-6 text-signal" />
@@ -147,7 +147,7 @@ const highlights = [
           <div
             v-for="item in highlights"
             :key="item.title"
-            class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel"
+            class="rounded-lg border border-slate-200 bg-white p-6"
           >
             <component :is="item.icon" class="h-6 w-6" :class="item.color" />
             <h3 class="mt-4 text-base font-semibold text-ink">{{ item.title }}</h3>

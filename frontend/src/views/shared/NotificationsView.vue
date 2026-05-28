@@ -25,7 +25,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">{{ role }}</p>
@@ -109,7 +109,7 @@ onMounted(() => {
       </div>
 
       <!-- Do Not Disturb card -->
-      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <div class="border-b border-slate-200 px-5 py-4">
           <div class="flex items-center gap-2">
             <MoonStar class="h-4 w-4 text-graphite" />
@@ -175,7 +175,7 @@ onMounted(() => {
       </section>
 
       <!-- Channel preferences -->
-      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <div class="border-b border-slate-200 px-5 py-4">
           <h2 class="text-base font-semibold text-ink">Delivery channels</h2>
           <p class="mt-1 text-sm text-graphite">
@@ -261,7 +261,7 @@ onMounted(() => {
     </template>
 
     <!-- Notification list -->
-    <div v-else class="rounded-lg border border-slate-200 bg-white shadow-panel">
+    <div v-else class="rounded-lg border border-slate-200 bg-white">
       <div v-if="notifications.isLoading && !notifications.items.length" class="space-y-px">
         <div
           v-for="n in 6"

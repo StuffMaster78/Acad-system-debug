@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-5xl space-y-5">
+    <div class="mx-auto max-w-5xl space-y-4">
 
       <div v-if="store.isLoadingDetail" class="py-24 text-center text-graphite animate-pulse">Loading…</div>
 
@@ -10,7 +10,7 @@
           <button class="mb-3 inline-flex items-center gap-1.5 text-sm text-graphite hover:text-ink" @click="router.back()">
             <ArrowLeft class="size-3.5" /> Classes
           </button>
-          <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
@@ -105,19 +105,19 @@
 
         <!-- Summary cards -->
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
             <p class="text-xs text-graphite">Total</p>
             <p class="mt-1 text-lg font-bold text-ink">${{ store.detail.total_price }}</p>
           </div>
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
             <p class="text-xs text-graphite">Tasks</p>
             <p class="mt-1 text-lg font-bold text-ink">{{ store.detail.completed_tasks }}<span class="text-sm font-normal text-graphite">/{{ store.detail.total_tasks }}</span></p>
           </div>
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
             <p class="text-xs text-graphite">Payment</p>
             <p class="mt-1 text-sm font-semibold capitalize text-graphite">{{ store.detail.payment_status }}</p>
           </div>
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
             <p class="text-xs text-graphite">Portal access</p>
             <p class="mt-1 text-sm font-semibold" :class="store.detail.portal_access_enabled ? 'text-emerald-700' : 'text-graphite'">
               {{ store.detail.portal_access_enabled ? 'Enabled' : 'Not set' }}
@@ -126,7 +126,7 @@
         </div>
 
         <!-- Tabs -->
-        <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-panel">
+        <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
           <button
             v-for="tab in tabs"
             :key="tab.key"
@@ -138,13 +138,13 @@
 
         <!-- Tasks tab -->
         <div v-if="activeTab === 'tasks'" class="space-y-3">
-          <div v-if="!store.detail.tasks.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center text-sm text-graphite shadow-panel">
+          <div v-if="!store.detail.tasks.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center text-sm text-graphite">
             No tasks yet.
           </div>
           <div
             v-for="task in store.detail.tasks"
             :key="task.id"
-            class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel"
+            class="rounded-lg border border-slate-200 bg-white p-5"
           >
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">
@@ -200,7 +200,7 @@
         </div>
 
         <!-- Installments tab -->
-        <div v-else-if="activeTab === 'installments'" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
+        <div v-else-if="activeTab === 'installments'" class="overflow-hidden rounded-lg border border-slate-200 bg-white">
           <div v-if="!store.detail.installments.length" class="py-14 text-center text-sm text-graphite">
             No installment schedule set.
           </div>
@@ -208,24 +208,24 @@
           <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
               <tr>
-                <th class="px-5 py-3 text-left">Payment</th>
-                <th class="px-5 py-3 text-left">Due</th>
-                <th class="px-5 py-3 text-right">Amount</th>
-                <th class="px-5 py-3 text-center">Status</th>
-                <th class="px-5 py-3 text-left">Reference</th>
+                <th class="px-3 py-2 text-left">Payment</th>
+                <th class="px-3 py-2 text-left">Due</th>
+                <th class="px-3 py-2 text-right">Amount</th>
+                <th class="px-3 py-2 text-center">Status</th>
+                <th class="px-3 py-2 text-left">Reference</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
               <tr v-for="inst in store.detail.installments" :key="inst.id">
-                <td class="px-5 py-3.5 font-medium text-ink">{{ inst.label }}</td>
-                <td class="px-5 py-3.5 text-graphite">{{ fmtDate(inst.due_date) }}</td>
-                <td class="px-5 py-3.5 text-right font-bold text-ink">${{ inst.amount }}</td>
-                <td class="px-5 py-3.5 text-center">
+                <td class="px-3 py-2.5 font-medium text-ink">{{ inst.label }}</td>
+                <td class="px-3 py-2.5 text-graphite">{{ fmtDate(inst.due_date) }}</td>
+                <td class="px-3 py-2.5 text-right font-bold text-ink">${{ inst.amount }}</td>
+                <td class="px-3 py-2.5 text-center">
                   <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="installmentStatusClass[inst.status]">
                     {{ inst.status }}
                   </span>
                 </td>
-                <td class="px-5 py-3.5 font-mono text-xs text-graphite">{{ inst.payment_reference ?? '—' }}</td>
+                <td class="px-3 py-2.5 font-mono text-xs text-graphite">{{ inst.payment_reference ?? '—' }}</td>
               </tr>
             </tbody>
           </table>
@@ -233,7 +233,7 @@
         </div>
 
         <!-- Portal Access tab -->
-        <div v-else-if="activeTab === 'portal'" class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
+        <div v-else-if="activeTab === 'portal'" class="rounded-lg border border-slate-200 bg-white p-6">
           <div class="flex items-center gap-2 mb-4">
             <Globe class="size-4 text-blue-600" />
             <h3 class="font-semibold text-ink">Portal / LMS Access</h3>

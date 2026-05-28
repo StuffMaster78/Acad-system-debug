@@ -2,7 +2,7 @@
   <div class="space-y-4">
 
     <!-- Assignment summary -->
-    <div class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
+    <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
       <div class="border-b border-slate-200 px-5 py-4">
         <h2 class="text-sm font-semibold text-ink">Assignment</h2>
       </div>
@@ -35,7 +35,7 @@
     </div>
 
     <!-- Bids / expressions of interest -->
-    <div class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
+    <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
       <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
         <div>
           <h2 class="text-sm font-semibold text-ink">Writer Bids</h2>
@@ -65,7 +65,7 @@
         <div
           v-for="bid in interests"
           :key="bid.id"
-          class="flex items-start gap-4 px-5 py-3.5"
+          class="flex items-start gap-4 px-5 py-3"
         >
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-2">

@@ -24,7 +24,7 @@ const toastIcons = {
     <article
       v-for="toast in ui.toasts"
       :key="toast.id"
-      class="rounded-md border p-3 shadow-panel"
+      class="rounded-md border p-3"
       :class="toastClasses[toast.type]"
       role="status"
     >

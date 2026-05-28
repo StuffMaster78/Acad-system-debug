@@ -138,7 +138,7 @@ onMounted(refresh);
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Finance</p>
@@ -201,31 +201,31 @@ onMounted(refresh);
 
       <EmptyState v-else-if="!accounts.length" :icon="BookOpen" title="No accounts" message="Ledger accounts will appear here once the system has been initialised." />
 
-      <div v-else class="rounded-lg border border-slate-200 bg-white shadow-panel overflow-x-auto">
+      <div v-else class="rounded-lg border border-slate-200 bg-white overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
           <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
             <tr>
-              <th class="px-5 py-3">Code</th>
-              <th class="px-5 py-3">Name</th>
-              <th class="px-5 py-3">Type</th>
-              <th class="px-5 py-3">Currency</th>
-              <th class="px-5 py-3">Status</th>
-              <th class="px-5 py-3">System</th>
+              <th class="px-3 py-2">Code</th>
+              <th class="px-3 py-2">Name</th>
+              <th class="px-3 py-2">Type</th>
+              <th class="px-3 py-2">Currency</th>
+              <th class="px-3 py-2">Status</th>
+              <th class="px-3 py-2">System</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr v-for="acc in accounts" :key="acc.id" class="hover:bg-slate-50">
-              <td class="px-5 py-3 font-mono text-xs font-semibold text-ink">{{ acc.code }}</td>
-              <td class="px-5 py-3">
+              <td class="px-3 py-2 font-mono text-xs font-semibold text-ink">{{ acc.code }}</td>
+              <td class="px-3 py-2">
                 <p class="font-medium text-ink">{{ acc.name }}</p>
                 <p v-if="acc.description" class="mt-0.5 text-xs text-graphite">{{ acc.description }}</p>
               </td>
-              <td class="px-5 py-3 text-graphite">{{ acc.account_type.replace(/_/g, " ") }}</td>
-              <td class="px-5 py-3 font-mono text-xs text-graphite">{{ acc.currency }}</td>
-              <td class="px-5 py-3">
+              <td class="px-3 py-2 text-graphite">{{ acc.account_type.replace(/_/g, " ") }}</td>
+              <td class="px-3 py-2 font-mono text-xs text-graphite">{{ acc.currency }}</td>
+              <td class="px-3 py-2">
                 <StatusPill :label="acc.status" :tone="statusTone(acc.status)" />
               </td>
-              <td class="px-5 py-3 text-center text-xs text-graphite">{{ acc.is_system_account ? "✓" : "—" }}</td>
+              <td class="px-3 py-2 text-center text-xs text-graphite">{{ acc.is_system_account ? "✓" : "—" }}</td>
             </tr>
           </tbody>
         </table>
@@ -249,7 +249,7 @@ onMounted(refresh);
         <div
           v-for="entry in entries"
           :key="entry.id"
-          class="rounded-lg border border-slate-200 bg-white shadow-panel"
+          class="rounded-lg border border-slate-200 bg-white"
         >
           <button
             class="focus-ring w-full text-left"
@@ -367,35 +367,35 @@ onMounted(refresh);
 
       <EmptyState v-else-if="!reconciliations.length" :icon="Scale" title="No reconciliation records" message="Reconciliations appear here once payment processing runs." />
 
-      <div v-else class="rounded-lg border border-slate-200 bg-white shadow-panel overflow-x-auto">
+      <div v-else class="rounded-lg border border-slate-200 bg-white overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
           <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
             <tr>
-              <th class="px-5 py-3">Journal entry</th>
-              <th class="px-5 py-3">Status</th>
-              <th class="px-5 py-3 text-right">Expected</th>
-              <th class="px-5 py-3 text-right">Actual</th>
-              <th class="px-5 py-3 text-right">Variance</th>
-              <th class="px-5 py-3">Reference</th>
-              <th class="px-5 py-3">Date</th>
+              <th class="px-3 py-2">Journal entry</th>
+              <th class="px-3 py-2">Status</th>
+              <th class="px-3 py-2 text-right">Expected</th>
+              <th class="px-3 py-2 text-right">Actual</th>
+              <th class="px-3 py-2 text-right">Variance</th>
+              <th class="px-3 py-2">Reference</th>
+              <th class="px-3 py-2">Date</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr v-for="rec in reconciliations" :key="rec.id" class="hover:bg-slate-50">
-              <td class="px-5 py-3 font-mono text-xs font-semibold text-graphite">{{ rec.journal_entry_number }}</td>
-              <td class="px-5 py-3">
+              <td class="px-3 py-2 font-mono text-xs font-semibold text-graphite">{{ rec.journal_entry_number }}</td>
+              <td class="px-3 py-2">
                 <StatusPill :label="rec.status.replace(/_/g, ' ')" :tone="statusTone(rec.status)" />
               </td>
-              <td class="px-5 py-3 text-right font-mono text-ink">{{ money(rec.expected_amount, rec.currency) }}</td>
-              <td class="px-5 py-3 text-right font-mono text-ink">{{ money(rec.actual_amount, rec.currency) }}</td>
+              <td class="px-3 py-2 text-right font-mono text-ink">{{ money(rec.expected_amount, rec.currency) }}</td>
+              <td class="px-3 py-2 text-right font-mono text-ink">{{ money(rec.actual_amount, rec.currency) }}</td>
               <td
                 class="px-5 py-3 text-right font-mono font-semibold"
                 :class="Number(rec.variance_amount) !== 0 ? 'text-berry' : 'text-signal'"
               >
                 {{ money(rec.variance_amount, rec.currency) }}
               </td>
-              <td class="px-5 py-3 font-mono text-xs text-graphite">{{ rec.reference ?? rec.external_reference ?? "—" }}</td>
-              <td class="px-5 py-3 text-graphite">{{ shortDate(rec.resolved_at ?? rec.created_at) }}</td>
+              <td class="px-3 py-2 font-mono text-xs text-graphite">{{ rec.reference ?? rec.external_reference ?? "—" }}</td>
+              <td class="px-3 py-2 text-graphite">{{ shortDate(rec.resolved_at ?? rec.created_at) }}</td>
             </tr>
           </tbody>
         </table>

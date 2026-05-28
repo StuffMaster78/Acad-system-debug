@@ -251,7 +251,7 @@ onMounted(() => {
       <div
         v-for="metric in payments.metrics"
         :key="metric.label"
-        class="min-h-32 rounded-md border p-4 shadow-panel"
+        class="min-h-32 rounded-md border p-4"
         :class="metricToneClasses[metric.tone]"
       >
         <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
@@ -261,7 +261,7 @@ onMounted(() => {
     </section>
 
     <!-- Writer payment cycle breakdown -->
-    <section v-if="payments.cycleBreakdown.length" class="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+    <section v-if="payments.cycleBreakdown.length" class="rounded-md border border-slate-200 bg-white p-5">
       <div class="flex items-center gap-2">
         <CalendarClock class="h-5 w-5 text-signal" />
         <h2 class="text-base font-semibold text-ink">Writer payment cycles</h2>
@@ -288,7 +288,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.8fr)]">
-      <div class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <div class="rounded-md border border-slate-200 bg-white">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div class="flex items-center gap-2">
@@ -329,25 +329,25 @@ onMounted(() => {
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
               <tr>
-                <th class="px-4 py-3">Record</th>
-                <th class="px-4 py-3">Type</th>
-                <th class="px-4 py-3">Amount</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Date</th>
+                <th class="px-3 py-2">Record</th>
+                <th class="px-3 py-2">Type</th>
+                <th class="px-3 py-2">Amount</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Date</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="item in payments.feed" :key="item.id">
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <p class="font-semibold text-ink">{{ item.title }}</p>
                   <p class="mt-1 text-xs text-graphite">{{ item.subtitle }}</p>
                 </td>
-                <td class="px-4 py-4 capitalize text-graphite">{{ item.source }}</td>
-                <td class="px-4 py-4 font-semibold text-ink">{{ formatAmount(item.amount) }}</td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5 capitalize text-graphite">{{ item.source }}</td>
+                <td class="px-3 py-2.5 font-semibold text-ink">{{ formatAmount(item.amount) }}</td>
+                <td class="px-3 py-2.5">
                   <StatusPill :label="item.status" :tone="statusTone(item.status)" />
                 </td>
-                <td class="px-4 py-4 text-graphite">{{ formatDate(item.date) }}</td>
+                <td class="px-3 py-2.5 text-graphite">{{ formatDate(item.date) }}</td>
               </tr>
             </tbody>
           </table>
@@ -362,8 +362,8 @@ onMounted(() => {
         </div>
       </div>
 
-      <aside class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white">
           <div class="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 px-4">
             <div class="flex items-center gap-2">
               <WalletCards class="h-5 w-5 text-signal" />
@@ -432,7 +432,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white">
           <div class="border-b border-slate-200 px-4 py-4">
             <div class="flex items-center gap-2">
               <WalletCards class="h-5 w-5 text-signal" />
@@ -514,7 +514,7 @@ onMounted(() => {
         </div>
 
         <!-- Create invoice form -->
-        <div v-if="showInvForm" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div v-if="showInvForm" class="rounded-lg border border-slate-200 bg-white p-5">
           <h3 class="mb-4 text-sm font-semibold text-ink">Create draft invoice</h3>
           <div class="grid gap-3 sm:grid-cols-2">
             <label class="block sm:col-span-2">
@@ -567,38 +567,38 @@ onMounted(() => {
         <div v-if="invoicesError" class="text-sm text-berry">{{ invoicesError }}</div>
 
         <div v-if="invoicesLoading && !invoices.length" class="space-y-2">
-          <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-4">
             <div class="h-3 w-1/3 rounded bg-slate-200" />
             <div class="mt-2 h-3 w-1/2 rounded bg-slate-100" />
           </div>
         </div>
 
-        <div v-else-if="!invoices.length" class="rounded-lg border border-slate-200 bg-white p-8 shadow-panel">
+        <div v-else-if="!invoices.length" class="rounded-lg border border-slate-200 bg-white p-8">
           <EmptyState :icon="FileText" title="No invoices" message="Create the first invoice above." />
         </div>
 
-        <div v-else class="rounded-lg border border-slate-200 bg-white shadow-panel overflow-x-auto">
+        <div v-else class="rounded-lg border border-slate-200 bg-white overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
               <tr>
-                <th class="px-5 py-3">Reference</th>
-                <th class="px-5 py-3">Title</th>
-                <th class="px-5 py-3">Recipient</th>
-                <th class="px-5 py-3">Amount</th>
-                <th class="px-5 py-3">Status</th>
-                <th class="px-5 py-3">Due</th>
-                <th class="px-5 py-3" />
+                <th class="px-3 py-2">Reference</th>
+                <th class="px-3 py-2">Title</th>
+                <th class="px-3 py-2">Recipient</th>
+                <th class="px-3 py-2">Amount</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Due</th>
+                <th class="px-3 py-2" />
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="inv in invoices" :key="inv.id" class="hover:bg-slate-50">
-                <td class="px-5 py-3 font-mono text-xs text-graphite">{{ inv.reference }}</td>
-                <td class="px-5 py-3 font-medium text-ink">{{ inv.title }}</td>
-                <td class="px-5 py-3 text-graphite">{{ inv.recipient_email ?? "—" }}</td>
-                <td class="px-5 py-3 font-semibold text-ink">{{ formatAmount(inv.amount, inv.currency) }}</td>
-                <td class="px-5 py-3"><StatusPill :label="inv.status" :tone="statusTone(inv.status)" /></td>
-                <td class="px-5 py-3 text-graphite">{{ inv.due_at ? formatDate(inv.due_at) : "—" }}</td>
-                <td class="px-5 py-3">
+                <td class="px-3 py-2 font-mono text-xs text-graphite">{{ inv.reference }}</td>
+                <td class="px-3 py-2 font-medium text-ink">{{ inv.title }}</td>
+                <td class="px-3 py-2 text-graphite">{{ inv.recipient_email ?? "—" }}</td>
+                <td class="px-3 py-2 font-semibold text-ink">{{ formatAmount(inv.amount, inv.currency) }}</td>
+                <td class="px-3 py-2"><StatusPill :label="inv.status" :tone="statusTone(inv.status)" /></td>
+                <td class="px-3 py-2 text-graphite">{{ inv.due_at ? formatDate(inv.due_at) : "—" }}</td>
+                <td class="px-3 py-2">
                   <button
                     v-if="inv.status === 'draft'"
                     class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
@@ -629,7 +629,7 @@ onMounted(() => {
           </button>
         </div>
 
-        <div v-if="showPrForm" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div v-if="showPrForm" class="rounded-lg border border-slate-200 bg-white p-5">
           <h3 class="mb-4 text-sm font-semibold text-ink">Create payment request</h3>
           <div class="grid gap-3 sm:grid-cols-2">
             <label class="block sm:col-span-2">
@@ -676,37 +676,37 @@ onMounted(() => {
         </div>
 
         <div v-if="prLoading && !prList.length" class="space-y-2">
-          <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+          <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-4">
             <div class="h-3 w-1/3 rounded bg-slate-200" />
           </div>
         </div>
 
-        <div v-else-if="!prList.length" class="rounded-lg border border-slate-200 bg-white p-8 shadow-panel">
+        <div v-else-if="!prList.length" class="rounded-lg border border-slate-200 bg-white p-8">
           <EmptyState :icon="Receipt" title="No payment requests" message="Create the first payment request above." />
         </div>
 
-        <div v-else class="rounded-lg border border-slate-200 bg-white shadow-panel overflow-x-auto">
+        <div v-else class="rounded-lg border border-slate-200 bg-white overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
               <tr>
-                <th class="px-5 py-3">Reference</th>
-                <th class="px-5 py-3">Title</th>
-                <th class="px-5 py-3">Recipient</th>
-                <th class="px-5 py-3">Amount</th>
-                <th class="px-5 py-3">Status</th>
-                <th class="px-5 py-3">Due</th>
-                <th class="px-5 py-3" />
+                <th class="px-3 py-2">Reference</th>
+                <th class="px-3 py-2">Title</th>
+                <th class="px-3 py-2">Recipient</th>
+                <th class="px-3 py-2">Amount</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Due</th>
+                <th class="px-3 py-2" />
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="pr in prList" :key="pr.id" class="hover:bg-slate-50">
-                <td class="px-5 py-3 font-mono text-xs text-graphite">{{ pr.reference }}</td>
-                <td class="px-5 py-3 font-medium text-ink">{{ pr.title }}</td>
-                <td class="px-5 py-3 text-graphite">{{ pr.recipient_email ?? "—" }}</td>
-                <td class="px-5 py-3 font-semibold text-ink">{{ formatAmount(pr.amount, pr.currency) }}</td>
-                <td class="px-5 py-3"><StatusPill :label="pr.status" :tone="statusTone(pr.status)" /></td>
-                <td class="px-5 py-3 text-graphite">{{ pr.due_at ? formatDate(pr.due_at) : "—" }}</td>
-                <td class="px-5 py-3">
+                <td class="px-3 py-2 font-mono text-xs text-graphite">{{ pr.reference }}</td>
+                <td class="px-3 py-2 font-medium text-ink">{{ pr.title }}</td>
+                <td class="px-3 py-2 text-graphite">{{ pr.recipient_email ?? "—" }}</td>
+                <td class="px-3 py-2 font-semibold text-ink">{{ formatAmount(pr.amount, pr.currency) }}</td>
+                <td class="px-3 py-2"><StatusPill :label="pr.status" :tone="statusTone(pr.status)" /></td>
+                <td class="px-3 py-2 text-graphite">{{ pr.due_at ? formatDate(pr.due_at) : "—" }}</td>
+                <td class="px-3 py-2">
                   <button
                     v-if="pr.status === 'draft'"
                     class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"

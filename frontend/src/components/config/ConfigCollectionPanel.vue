@@ -27,7 +27,7 @@ load();
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
     <!-- Header -->
     <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
       <h3 class="text-sm font-semibold text-ink">{{ section.label }}</h3>

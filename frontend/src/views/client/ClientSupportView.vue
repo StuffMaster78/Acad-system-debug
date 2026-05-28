@@ -74,7 +74,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Support</p>
@@ -100,7 +100,7 @@ onMounted(() => {
       {{ createNotice }}
     </div>
 
-    <section v-if="showForm" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+    <section v-if="showForm" class="rounded-lg border border-slate-200 bg-white p-5">
       <div class="flex items-center gap-2">
         <LifeBuoy class="h-5 w-5 text-signal" />
         <h2 class="text-base font-semibold text-ink">New support ticket</h2>
@@ -156,7 +156,7 @@ onMounted(() => {
       {{ loadError }}
     </div>
 
-    <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+    <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div v-if="isLoading" class="space-y-px">
         <div
           v-for="n in 3"

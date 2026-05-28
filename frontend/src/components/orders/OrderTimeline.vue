@@ -73,7 +73,7 @@ onMounted(load);
 </script>
 
 <template>
-  <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+  <section class="rounded-lg border border-slate-200 bg-white">
     <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
       <div>
         <h2 class="text-base font-semibold text-ink">Order history</h2>

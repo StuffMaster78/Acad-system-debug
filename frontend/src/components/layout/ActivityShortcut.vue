@@ -61,7 +61,7 @@ onMounted(() => {
 
     <section
       v-if="open"
-      class="absolute right-0 top-12 z-30 w-80 rounded-md border border-slate-200 bg-white shadow-panel"
+      class="absolute right-0 top-12 z-30 w-80 rounded-md border border-slate-200 bg-white"
     >
       <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
         <p class="text-sm font-semibold text-ink">Activity</p>

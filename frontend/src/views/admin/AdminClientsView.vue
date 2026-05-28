@@ -95,7 +95,7 @@ onMounted(() => {
       <div
         v-for="metric in clients.metrics"
         :key="metric.label"
-        class="min-h-32 rounded-md border p-4 shadow-panel"
+        class="min-h-32 rounded-md border p-4"
         :class="metricToneClasses[metric.tone]"
       >
         <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
@@ -105,7 +105,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(360px,0.8fr)]">
-      <div class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <div class="rounded-md border border-slate-200 bg-white">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div class="flex items-center gap-2">
@@ -146,12 +146,12 @@ onMounted(() => {
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
               <tr>
-                <th class="px-4 py-3">Client</th>
-                <th class="px-4 py-3">Website</th>
-                <th class="px-4 py-3">Wallet</th>
-                <th class="px-4 py-3">Loyalty</th>
-                <th class="px-4 py-3">Last login</th>
-                <th class="px-4 py-3">Status</th>
+                <th class="px-3 py-2">Client</th>
+                <th class="px-3 py-2">Website</th>
+                <th class="px-3 py-2">Wallet</th>
+                <th class="px-3 py-2">Loyalty</th>
+                <th class="px-3 py-2">Last login</th>
+                <th class="px-3 py-2">Status</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -162,27 +162,27 @@ onMounted(() => {
                 :class="clients.selectedClient?.id === client.id ? 'bg-slate-50' : ''"
                 @click="clients.selectedClient = client"
               >
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <p class="font-semibold text-ink">{{ client.fullName }}</p>
                   <p class="mt-1 text-xs text-graphite">{{ client.email }}</p>
                   <p class="mt-1 text-xs text-graphite">@{{ client.username }}</p>
                 </td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <p class="font-medium text-ink">{{ client.website }}</p>
                   <p class="mt-1 text-xs text-graphite">{{ client.country }} · {{ client.timezone }}</p>
                 </td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <p class="font-semibold text-ink">{{ client.walletBalance }}</p>
                   <p class="mt-1 text-xs text-graphite">Spent {{ client.totalSpent }}</p>
                 </td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <p class="font-medium text-ink">{{ client.loyaltyTier }}</p>
                   <p class="mt-1 text-xs text-graphite">{{ client.loyaltyPoints }} points</p>
                 </td>
-                <td class="px-4 py-4 text-graphite">
+                <td class="px-3 py-2.5 text-graphite">
                   {{ formatDate(client.lastLogin) }}
                 </td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5">
                   <StatusPill :label="statusLabel(client)" :tone="statusTone(client)" />
                 </td>
               </tr>
@@ -200,7 +200,7 @@ onMounted(() => {
       </div>
 
       <aside class="space-y-4">
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <template v-if="clients.selectedClient">
             <div class="flex items-start justify-between gap-3">
               <div>
@@ -290,7 +290,7 @@ onMounted(() => {
           />
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <CheckCircle2 class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold">Admin review queues</h2>

@@ -23,7 +23,7 @@ function relativeTime(iso: string) {
 
 <template>
   <aside
-    class="flex w-80 shrink-0 flex-col border-l border-slate-200 bg-white shadow-panel overflow-hidden"
+    class="flex w-80 shrink-0 flex-col border-l border-slate-200 bg-white overflow-hidden"
   >
     <!-- Header -->
     <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">

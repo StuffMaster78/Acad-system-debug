@@ -295,7 +295,7 @@ onMounted(() => {
       <div
         v-for="metric in comms.metrics"
         :key="metric.label"
-        class="min-h-32 rounded-md border p-4 shadow-panel"
+        class="min-h-32 rounded-md border p-4"
         :class="metricToneClasses[metric.tone]"
       >
         <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
@@ -305,8 +305,8 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(380px,0.8fr)]">
-      <div class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <div class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white">
           <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 md:flex-row md:items-center md:justify-between">
             <div class="flex items-center gap-2">
               <MessageSquare class="h-5 w-5 text-signal" />
@@ -358,8 +358,8 @@ onMounted(() => {
         </section>
       </div>
 
-      <aside class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-2">
               <Megaphone class="h-5 w-5 text-signal" />
@@ -438,7 +438,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center gap-2">
             <Mail class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold">Mass email composer</h2>
@@ -546,7 +546,7 @@ onMounted(() => {
       <p v-if="annSuccess" class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{{ annSuccess }}</p>
 
       <!-- Create form -->
-      <div v-if="showAnnForm" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel space-y-4">
+      <div v-if="showAnnForm" class="rounded-lg border border-slate-200 bg-white p-5 space-y-4">
         <h3 class="text-sm font-semibold text-ink">Create announcement</h3>
         <label class="block">
           <span class="text-xs font-semibold uppercase text-graphite">Title</span>
@@ -620,13 +620,13 @@ onMounted(() => {
 
       <!-- Announcements list -->
       <div v-if="annLoading && !announcements.length" class="space-y-3">
-        <div v-for="n in 2" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div v-for="n in 2" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-5">
           <div class="h-4 w-1/3 rounded bg-slate-200" />
           <div class="mt-3 h-3 w-2/3 rounded bg-slate-100" />
         </div>
       </div>
 
-      <div v-else-if="!annLoading && !announcements.length" class="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-panel">
+      <div v-else-if="!annLoading && !announcements.length" class="rounded-lg border border-slate-200 bg-white p-8 text-center">
         <EmptyState :icon="Megaphone" title="No announcements" message="Create your first platform announcement above." />
       </div>
 
@@ -634,7 +634,7 @@ onMounted(() => {
         <div
           v-for="ann in announcements"
           :key="ann.id"
-          class="flex items-start gap-4 rounded-lg border bg-white px-5 py-4 shadow-panel"
+          class="flex items-start gap-4 rounded-lg border bg-white px-5 py-4"
           :class="ann.is_pinned ? 'border-signal/30 bg-signal/[0.02]' : 'border-slate-200'"
         >
           <div class="min-w-0 flex-1">
@@ -697,7 +697,7 @@ onMounted(() => {
       <p v-if="tplSuccess" class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{{ tplSuccess }}</p>
 
       <!-- Create form -->
-      <div v-if="showTplForm" class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel space-y-3">
+      <div v-if="showTplForm" class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
         <h3 class="text-sm font-semibold text-ink">New email template</h3>
         <label class="block">
           <span class="text-xs font-semibold uppercase text-graphite">Template name</span>
@@ -728,13 +728,13 @@ onMounted(() => {
 
       <!-- Templates list -->
       <div v-if="tplLoading && !templates.length" class="space-y-2">
-        <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+        <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-4">
           <div class="h-3 w-1/4 rounded bg-slate-200" />
           <div class="mt-2 h-3 w-1/2 rounded bg-slate-100" />
         </div>
       </div>
 
-      <div v-else-if="!templates.length" class="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-panel">
+      <div v-else-if="!templates.length" class="rounded-lg border border-slate-200 bg-white p-8 text-center">
         <EmptyState :icon="FileText" title="No templates yet" message="Create a reusable template to speed up campaign drafting." />
       </div>
 
@@ -742,7 +742,7 @@ onMounted(() => {
         <div
           v-for="tpl in templates"
           :key="tpl.id"
-          class="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-panel"
+          class="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4"
         >
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
@@ -804,47 +804,47 @@ onMounted(() => {
 
       <p v-if="analyticsError" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ analyticsError }}</p>
 
-      <div v-if="analyticsLoading" class="animate-pulse rounded-lg border border-slate-200 bg-white p-6 shadow-panel">
+      <div v-if="analyticsLoading" class="animate-pulse rounded-lg border border-slate-200 bg-white p-6">
         <div class="h-4 w-1/3 rounded bg-slate-200" />
         <div class="mt-4 space-y-3">
           <div v-for="n in 4" :key="n" class="h-3 rounded bg-slate-100" />
         </div>
       </div>
 
-      <div v-else-if="!analyticsRows.length" class="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-panel">
+      <div v-else-if="!analyticsRows.length" class="rounded-lg border border-slate-200 bg-white p-8 text-center">
         <EmptyState :icon="BarChart3" title="No data" message="Select a date range and click Run, or send some campaigns first." />
       </div>
 
-      <div v-else class="rounded-lg border border-slate-200 bg-white shadow-panel overflow-x-auto">
+      <div v-else class="rounded-lg border border-slate-200 bg-white overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
           <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
             <tr>
-              <th class="px-5 py-3">Campaign</th>
-              <th class="px-5 py-3 text-right">Sent</th>
-              <th class="px-5 py-3 text-right">Opens</th>
-              <th class="px-5 py-3 text-right">Open rate</th>
-              <th class="px-5 py-3 text-right">Clicks</th>
-              <th class="px-5 py-3 text-right">Click rate</th>
-              <th class="px-5 py-3 text-right">Unsub rate</th>
-              <th class="px-5 py-3 text-right">Date</th>
+              <th class="px-3 py-2">Campaign</th>
+              <th class="px-3 py-2 text-right">Sent</th>
+              <th class="px-3 py-2 text-right">Opens</th>
+              <th class="px-3 py-2 text-right">Open rate</th>
+              <th class="px-3 py-2 text-right">Clicks</th>
+              <th class="px-3 py-2 text-right">Click rate</th>
+              <th class="px-3 py-2 text-right">Unsub rate</th>
+              <th class="px-3 py-2 text-right">Date</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr v-for="row in analyticsRows" :key="row.campaign_id" class="hover:bg-slate-50">
-              <td class="px-5 py-3 font-medium text-ink">{{ row.title }}</td>
-              <td class="px-5 py-3 text-right text-graphite">{{ row.recipients.toLocaleString() }}</td>
-              <td class="px-5 py-3 text-right text-graphite">{{ row.opens.toLocaleString() }}</td>
-              <td class="px-5 py-3 text-right font-semibold" :class="row.open_rate >= 20 ? 'text-signal' : 'text-ink'">
+              <td class="px-3 py-2 font-medium text-ink">{{ row.title }}</td>
+              <td class="px-3 py-2 text-right text-graphite">{{ row.recipients.toLocaleString() }}</td>
+              <td class="px-3 py-2 text-right text-graphite">{{ row.opens.toLocaleString() }}</td>
+              <td class="px-3 py-2 text-right font-semibold" :class="row.open_rate >= 20 ? 'text-signal' : 'text-ink'">
                 {{ fmtRate(row.open_rate) }}
               </td>
-              <td class="px-5 py-3 text-right text-graphite">{{ row.clicks.toLocaleString() }}</td>
-              <td class="px-5 py-3 text-right font-semibold" :class="row.click_rate >= 5 ? 'text-signal' : 'text-ink'">
+              <td class="px-3 py-2 text-right text-graphite">{{ row.clicks.toLocaleString() }}</td>
+              <td class="px-3 py-2 text-right font-semibold" :class="row.click_rate >= 5 ? 'text-signal' : 'text-ink'">
                 {{ fmtRate(row.click_rate) }}
               </td>
-              <td class="px-5 py-3 text-right" :class="row.unsubscribe_rate >= 2 ? 'text-berry' : 'text-graphite'">
+              <td class="px-3 py-2 text-right" :class="row.unsubscribe_rate >= 2 ? 'text-berry' : 'text-graphite'">
                 {{ fmtRate(row.unsubscribe_rate) }}
               </td>
-              <td class="px-5 py-3 text-right text-graphite">{{ fmtDate(row.sent_time) }}</td>
+              <td class="px-3 py-2 text-right text-graphite">{{ fmtDate(row.sent_time) }}</td>
             </tr>
           </tbody>
         </table>

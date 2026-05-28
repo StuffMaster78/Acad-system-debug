@@ -198,7 +198,7 @@ onMounted(loadConfig);
 </script>
 
 <template>
-  <div class="mx-auto max-w-5xl space-y-5">
+  <div class="mx-auto max-w-5xl space-y-4">
     <section>
       <p class="text-sm font-semibold uppercase text-signal">Client</p>
       <h1 class="mt-2 text-3xl font-semibold text-ink">New order</h1>
@@ -207,10 +207,10 @@ onMounted(loadConfig);
       </p>
     </section>
 
-    <form class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]" @submit.prevent="submit" novalidate>
+    <form class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]" @submit.prevent="submit" novalidate>
       <div class="space-y-4">
         <!-- Order brief -->
-        <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div class="flex items-center gap-3">
             <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">1</span>
             <h2 class="text-base font-semibold text-ink">Order brief</h2>
@@ -241,7 +241,7 @@ onMounted(loadConfig);
         </section>
 
         <!-- Paper specifics -->
-        <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div class="flex items-center gap-3">
             <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">2</span>
             <h2 class="text-base font-semibold text-ink">Paper specifics</h2>
@@ -326,7 +326,7 @@ onMounted(loadConfig);
         </section>
 
         <!-- Scope and deadline -->
-        <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div class="flex items-center gap-3">
             <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">3</span>
             <h2 class="text-base font-semibold text-ink">Scope &amp; deadline</h2>
@@ -373,7 +373,7 @@ onMounted(loadConfig);
         </section>
 
         <!-- Reference files -->
-        <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
               <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal text-xs font-bold text-white">4</span>
@@ -427,7 +427,7 @@ onMounted(loadConfig);
         </section>
 
         <!-- Advanced options -->
-        <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
           <button
             class="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-graphite"
             type="button"
@@ -483,7 +483,7 @@ onMounted(loadConfig);
           Config unavailable — using manual fields.
         </div>
 
-        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Price estimate</h2>
 
           <div v-if="orders.latestQuote" class="mt-3 rounded-md bg-slate-50 p-3">
@@ -511,7 +511,7 @@ onMounted(loadConfig);
           </button>
         </section>
 
-        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Payment</h2>
           <div class="mt-3">
             <PaymentMethodSelector v-model="paymentMethod" :price="quotedPrice" />

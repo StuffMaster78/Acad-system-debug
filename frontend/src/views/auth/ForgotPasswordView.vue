@@ -28,7 +28,7 @@ async function submit() {
 
 <template>
   <div class="grid min-h-[calc(100vh-4rem)] place-items-center px-4 py-10">
-    <section class="w-full max-w-md rounded-md border border-slate-200 bg-white p-6 shadow-panel">
+    <section class="w-full max-w-md rounded-md border border-slate-200 bg-white p-6">
       <RouterLink
         class="focus-ring mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-graphite hover:text-ink"
         to="/auth/login"

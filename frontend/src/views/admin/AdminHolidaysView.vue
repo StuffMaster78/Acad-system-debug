@@ -238,7 +238,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -333,7 +333,7 @@ onMounted(async () => {
       </div>
 
       <!-- Create form -->
-      <div v-if="showCreateForm" class="bg-white rounded-xl border border-neutral-200 p-5 space-y-4">
+      <div v-if="showCreateForm" class="bg-white rounded-lg border border-neutral-200 p-5 space-y-4">
         <div class="flex items-center justify-between">
           <h3 class="text-sm font-semibold text-neutral-900">New Special Day</h3>
           <button class="text-neutral-400 hover:text-neutral-600" @click="showCreateForm = false">
@@ -405,7 +405,7 @@ onMounted(async () => {
       </div>
 
       <!-- Table -->
-      <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+      <div class="bg-white rounded-lg border border-neutral-200 overflow-hidden">
         <div v-if="specialDaysLoading" class="p-8 flex justify-center">
           <Loader2 class="size-7 text-neutral-300 animate-spin" />
         </div>
@@ -416,32 +416,32 @@ onMounted(async () => {
         <table class="min-w-full text-sm">
           <thead class="bg-neutral-50 border-b border-neutral-100">
             <tr>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Name</th>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Date</th>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Type</th>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Countries</th>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Days Until</th>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Status</th>
-              <th class="px-4 py-3" />
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Name</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Date</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Type</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Countries</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Days Until</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Status</th>
+              <th class="px-3 py-2" />
             </tr>
           </thead>
           <tbody class="divide-y divide-neutral-50">
             <tr v-for="day in specialDays" :key="day.id" class="hover:bg-neutral-50 transition-colors">
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <div class="font-medium text-neutral-900">{{ day.name }}</div>
                 <div v-if="day.description" class="text-xs text-neutral-400 truncate max-w-[200px]">{{ day.description }}</div>
               </td>
-              <td class="px-4 py-3 text-neutral-600">
+              <td class="px-3 py-2 text-neutral-600">
                 <div>{{ new Date(day.event_date_this_year).toLocaleDateString("en-US", { month: "short", day: "numeric" }) }}</div>
                 <div v-if="day.is_annual" class="text-xs text-neutral-400">Annual</div>
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-700 text-xs capitalize">
                   <Tag class="size-3" />
                   {{ day.event_type }}
                 </span>
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <div v-if="day.is_international" class="flex items-center gap-1 text-xs text-signal-600">
                   <Globe class="size-3.5" />
                   International
@@ -453,15 +453,15 @@ onMounted(async () => {
                 </div>
                 <span v-else class="text-xs text-neutral-400">—</span>
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <span :class="daysUntilTone(day.days_until)">
                   {{ day.days_until < 0 ? "Passed" : day.days_until === 0 ? "Today" : `${day.days_until}d` }}
                 </span>
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <StatusPill :label="day.is_active ? 'active' : 'inactive'" :tone="day.is_active ? 'success' : 'neutral'" />
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <div class="flex items-center gap-2">
                   <button
                     class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors text-neutral-600 disabled:opacity-50"
@@ -527,7 +527,7 @@ onMounted(async () => {
         <button class="text-signal-500 hover:text-signal-700" @click="reminderFeedback = ''"><X class="size-4" /></button>
       </div>
 
-      <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+      <div class="bg-white rounded-lg border border-neutral-200 overflow-hidden">
         <div v-if="remindersLoading" class="p-8 flex justify-center">
           <Loader2 class="size-7 text-neutral-300 animate-spin" />
         </div>
@@ -538,40 +538,40 @@ onMounted(async () => {
         <table class="min-w-full text-sm">
           <thead class="bg-neutral-50 border-b border-neutral-100">
             <tr>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Special Day</th>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Reminder Date</th>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Sent To</th>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Status</th>
-              <th class="text-left px-4 py-3 font-medium text-neutral-500 text-xs uppercase tracking-wide">Discount</th>
-              <th class="px-4 py-3" />
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Special Day</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Reminder Date</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Sent To</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Status</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Discount</th>
+              <th class="px-3 py-2" />
             </tr>
           </thead>
           <tbody class="divide-y divide-neutral-50">
             <tr v-for="r in reminders" :key="r.id" class="hover:bg-neutral-50 transition-colors">
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <div class="font-medium text-neutral-900">{{ r.special_day_name }}</div>
                 <div v-if="r.special_day_date" class="text-xs text-neutral-400">
                   {{ new Date(r.special_day_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) }}
                 </div>
               </td>
-              <td class="px-4 py-3 text-neutral-600">
+              <td class="px-3 py-2 text-neutral-600">
                 <div class="flex items-center gap-1">
                   <Clock3 class="size-3.5 text-neutral-400" />
                   {{ new Date(r.reminder_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) }}
                 </div>
               </td>
-              <td class="px-4 py-3 text-neutral-500 text-xs">{{ r.sent_to_username ?? "—" }}</td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2 text-neutral-500 text-xs">{{ r.sent_to_username ?? "—" }}</td>
+              <td class="px-3 py-2">
                 <StatusPill :label="r.status" :tone="reminderStatusTone(r.status)" />
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <span v-if="r.discount_created" class="inline-flex items-center gap-1 text-xs text-signal-700 font-medium">
                   <CheckCircle2 class="size-3.5" />
                   {{ r.discount_code }}
                 </span>
                 <span v-else class="text-xs text-neutral-400">None yet</span>
               </td>
-              <td class="px-4 py-3">
+              <td class="px-3 py-2">
                 <div class="flex items-center gap-2">
                   <button
                     v-if="r.status === 'pending'"
@@ -625,7 +625,7 @@ onMounted(async () => {
         </select>
       </div>
 
-      <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+      <div class="bg-white rounded-lg border border-neutral-200 overflow-hidden">
         <div v-if="campaignsLoading" class="p-8 flex justify-center">
           <Loader2 class="size-7 text-neutral-300 animate-spin" />
         </div>

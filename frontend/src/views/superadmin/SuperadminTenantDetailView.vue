@@ -76,7 +76,7 @@ function flagLabel(key: string) {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Back + title -->
     <div class="flex items-center gap-3">
       <button
@@ -114,7 +114,7 @@ function flagLabel(key: string) {
       </div>
 
       <!-- Header card -->
-      <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-6">
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="flex items-center gap-2">
@@ -158,7 +158,7 @@ function flagLabel(key: string) {
       </div>
 
       <!-- Tabs -->
-      <div class="flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+      <div class="flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
         <button
           v-for="tab in tabs"
           :key="tab.key"
@@ -175,7 +175,7 @@ function flagLabel(key: string) {
       <div v-if="activeTab === 'overview'" class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
           <!-- Contact -->
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">Contact</p>
             <div class="space-y-2 text-sm">
               <div class="flex items-center gap-2">
@@ -192,7 +192,7 @@ function flagLabel(key: string) {
           </div>
 
           <!-- User breakdown -->
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">User breakdown</p>
             <div class="space-y-1.5">
               <div class="flex justify-between text-sm">
@@ -212,7 +212,7 @@ function flagLabel(key: string) {
         </div>
 
         <!-- Plan -->
-        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">Billing plan</p>
           <div class="flex items-center justify-between">
             <div>
@@ -234,7 +234,7 @@ function flagLabel(key: string) {
         </div>
 
         <!-- Metrics -->
-        <div v-if="tenants.detail.metrics" class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+        <div v-if="tenants.detail.metrics" class="rounded-lg border border-slate-200 bg-white p-5">
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">30-day metrics</p>
           <div class="grid grid-cols-3 gap-4">
             <div v-if="tenants.detail.metrics.orders">
@@ -271,7 +271,7 @@ function flagLabel(key: string) {
 
       <!-- Staff tab -->
       <div v-else-if="activeTab === 'staff'" class="space-y-4">
-        <div class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
+        <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
           <div class="border-b border-slate-100 px-5 py-3 flex items-center justify-between">
             <p class="text-sm font-semibold text-ink">Staff members ({{ tenants.detail.staff.length }})</p>
           </div>
@@ -309,7 +309,7 @@ function flagLabel(key: string) {
 
       <!-- Recent orders tab -->
       <div v-else-if="activeTab === 'orders'" class="space-y-3">
-        <div class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
+        <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
           <div class="border-b border-slate-100 px-5 py-3">
             <p class="text-sm font-semibold text-ink">Recent orders</p>
           </div>
@@ -343,28 +343,28 @@ function flagLabel(key: string) {
       <!-- Finance tab -->
       <div v-else-if="activeTab === 'finance'" class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-1">Total revenue</p>
             <p class="text-2xl font-bold text-ink">{{ tenants.money(tenants.detail.total_revenue) }}</p>
             <p class="text-xs text-graphite mt-1">All-time platform revenue from this tenant</p>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-1">Avg order value</p>
             <p class="text-2xl font-bold text-ink">{{ tenants.money(tenants.detail.avg_order_value) }}</p>
             <p class="text-xs text-graphite mt-1">Average per completed order</p>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-1">30-day orders</p>
             <p class="text-2xl font-bold text-ink">{{ tenants.detail.recent_orders_30d ?? 0 }}</p>
             <p class="text-xs text-graphite mt-1">Orders placed in the last 30 days</p>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-1">New users (30d)</p>
             <p class="text-2xl font-bold text-ink">{{ tenants.detail.new_users_30d ?? 0 }}</p>
             <p class="text-xs text-graphite mt-1">New signups in the last 30 days</p>
           </div>
         </div>
-        <div v-if="tenants.detail.metrics?.revenue" class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+        <div v-if="tenants.detail.metrics?.revenue" class="rounded-lg border border-slate-200 bg-white p-5">
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">Revenue breakdown</p>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -382,7 +382,7 @@ function flagLabel(key: string) {
       <!-- Settings tab -->
       <div v-else-if="activeTab === 'settings'" class="space-y-4">
         <!-- Feature flags -->
-        <div class="rounded-xl border border-slate-200 bg-white shadow-panel overflow-hidden">
+        <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
           <div class="border-b border-slate-100 px-5 py-3">
             <p class="text-sm font-semibold text-ink">Feature flags</p>
             <p class="text-xs text-graphite mt-0.5">Toggle which features are enabled for this tenant.</p>
@@ -391,7 +391,7 @@ function flagLabel(key: string) {
             <div
               v-for="(enabled, flagKey) in tenants.detail.feature_flags"
               :key="flagKey"
-              class="flex items-center justify-between px-5 py-3.5 border-b border-slate-50 last:border-0"
+              class="flex items-center justify-between px-5 py-3 border-b border-slate-50 last:border-0"
             >
               <div>
                 <p class="text-sm font-medium text-ink">{{ flagLabel(flagKey) }}</p>
@@ -413,7 +413,7 @@ function flagLabel(key: string) {
         </div>
 
         <!-- Allowed subjects -->
-        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-3">Allowed subjects</p>
           <div class="flex flex-wrap gap-2">
             <span
@@ -494,7 +494,7 @@ function flagLabel(key: string) {
         </div>
 
         <!-- Danger: edit config -->
-        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
           <p class="text-sm font-semibold text-ink mb-1">Edit configuration</p>
           <p class="text-xs text-graphite mb-3">Update billing email, support contact, or domain settings via the Settings tab.</p>
           <button

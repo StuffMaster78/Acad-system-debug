@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-4xl space-y-5">
+    <div class="mx-auto max-w-4xl space-y-4">
 
       <div v-if="store.isLoadingDetail" class="py-24 text-center text-graphite animate-pulse">Loading…</div>
 
@@ -10,7 +10,7 @@
           <button class="mb-3 inline-flex items-center gap-1.5 text-sm text-graphite hover:text-ink" @click="router.back()">
             <ArrowLeft class="size-3.5" /> Special Orders
           </button>
-          <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-6">
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
@@ -63,7 +63,7 @@
         <!-- Quote accept/reject banner -->
         <div
           v-if="store.canAcceptQuote && store.latestQuote"
-          class="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 shadow-panel"
+          class="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5"
         >
           <div class="flex items-start justify-between gap-4">
             <div>
@@ -133,7 +133,7 @@
         </div>
 
         <!-- Tabs -->
-        <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-panel">
+        <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
           <button
             v-for="tab in tabs"
             :key="tab.key"
@@ -145,14 +145,14 @@
 
         <!-- Milestones tab -->
         <div v-if="activeTab === 'milestones'" class="space-y-3">
-          <div v-if="!store.detail.milestones.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center shadow-panel">
+          <div v-if="!store.detail.milestones.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center">
             <Package class="mx-auto mb-3 size-8 text-slate-300" />
             <p class="text-sm text-graphite">Milestones will appear here once you accept a quote.</p>
           </div>
           <div
             v-for="m in store.detail.milestones"
             :key="m.id"
-            class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel"
+            class="rounded-lg border border-slate-200 bg-white p-5"
           >
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">
@@ -181,13 +181,13 @@
 
         <!-- Quote history tab -->
         <div v-else-if="activeTab === 'quotes'" class="space-y-3">
-          <div v-if="!store.detail.quotes.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center text-sm text-graphite shadow-panel">
+          <div v-if="!store.detail.quotes.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center text-sm text-graphite">
             No quotes yet. One will appear here once our team prepares your estimate.
           </div>
           <div
             v-for="q in store.detail.quotes"
             :key="q.id"
-            class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel"
+            class="rounded-lg border border-slate-200 bg-white p-5"
           >
             <div class="flex items-start justify-between gap-4">
               <div>

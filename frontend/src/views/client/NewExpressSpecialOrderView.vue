@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto max-w-3xl space-y-4">
 
       <!-- Back + heading -->
       <div>
@@ -27,7 +27,7 @@
       </div>
 
       <!-- No configs -->
-      <div v-else-if="!configs.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center shadow-panel">
+      <div v-else-if="!configs.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center">
         <Zap class="mx-auto mb-3 size-8 text-slate-300" />
         <p class="text-sm text-graphite">No express services are currently available.</p>
         <button class="mt-3 text-sm font-medium text-berry hover:underline" @click="router.push('/client/special-orders/new')">
@@ -46,7 +46,7 @@
             <button
               v-for="cfg in configs"
               :key="cfg.id"
-              class="rounded-xl border-2 bg-white p-4 text-left shadow-panel transition-all hover:border-berry hover:shadow-md"
+              class="rounded-xl border-2 bg-white p-4 text-left transition-all hover:border-berry hover:shadow-md"
               :class="selectedConfig?.id === cfg.id ? 'border-berry shadow-md' : 'border-slate-200'"
               @click="selectConfig(cfg)"
             >
@@ -77,7 +77,7 @@
             <button
               v-for="dur in activeDurations"
               :key="dur.id"
-              class="rounded-xl border-2 bg-white p-4 text-center shadow-panel transition-all hover:border-berry"
+              class="rounded-xl border-2 bg-white p-4 text-center transition-all hover:border-berry"
               :class="selectedDuration?.id === dur.id ? 'border-berry shadow-md' : 'border-slate-200'"
               @click="selectDuration(dur)"
             >
@@ -96,7 +96,7 @@
           </h2>
 
           <!-- Price preview card -->
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel">
+          <div class="rounded-lg border border-slate-200 bg-white p-5">
             <div class="flex items-start justify-between gap-4">
               <div>
                 <p class="text-sm font-medium text-ink">{{ selectedConfig?.name }}</p>
@@ -143,7 +143,7 @@
           </div>
 
           <!-- Form card -->
-          <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel space-y-4">
+          <div class="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
 
             <!-- Title (optional) -->
             <div>

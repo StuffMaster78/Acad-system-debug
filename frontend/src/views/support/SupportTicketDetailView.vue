@@ -118,7 +118,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <RouterLink
       class="focus-ring inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-semibold text-graphite hover:bg-slate-100"
       to="/support/tickets"
@@ -129,7 +129,7 @@ onMounted(() => {
 
     <section
       v-if="isLoading"
-      class="rounded-lg border border-slate-200 bg-white p-8 text-sm text-graphite shadow-panel"
+      class="rounded-lg border border-slate-200 bg-white p-8 text-sm text-graphite"
     >
       Loading ticket…
     </section>
@@ -166,8 +166,8 @@ onMounted(() => {
       </div>
 
       <div class="grid gap-6 xl:grid-cols-[360px_1fr]">
-        <aside class="space-y-5">
-          <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <aside class="space-y-4">
+          <section class="rounded-lg border border-slate-200 bg-white p-5">
             <h2 class="text-base font-semibold text-ink">Details</h2>
             <dl class="mt-4 space-y-3 text-sm">
               <div class="flex items-start justify-between gap-3">
@@ -204,7 +204,7 @@ onMounted(() => {
             </div>
           </section>
 
-          <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+          <section class="rounded-lg border border-slate-200 bg-white p-5">
             <h2 class="text-base font-semibold text-ink">Actions</h2>
             <div class="mt-4 flex flex-col gap-2">
               <button
@@ -242,7 +242,7 @@ onMounted(() => {
           </section>
         </aside>
 
-        <div class="rounded-lg border border-slate-200 bg-white shadow-panel">
+        <div class="rounded-lg border border-slate-200 bg-white">
           <div class="border-b border-slate-200 px-5 py-4">
             <h2 class="text-base font-semibold text-ink">Conversation</h2>
             <p class="mt-1 text-sm text-graphite">Internal notes and replies on this ticket.</p>

@@ -103,7 +103,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Writer</p>
@@ -150,7 +150,7 @@ onMounted(() => {
       <div
         v-for="n in 4"
         :key="n"
-        class="animate-pulse rounded-lg border border-slate-200 bg-white p-5 shadow-panel"
+        class="animate-pulse rounded-lg border border-slate-200 bg-white p-5"
         aria-hidden="true"
       >
         <div class="flex items-start justify-between gap-4">
@@ -168,7 +168,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-else-if="!workspace.assignments.length" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-panel">
+    <div v-else-if="!workspace.assignments.length" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
       <EmptyState
         :icon="BookOpen"
         :title="`No ${activeTab} assignments`"
@@ -178,17 +178,17 @@ onMounted(() => {
       />
     </div>
 
-    <div v-else class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+    <div v-else class="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
           <tr>
-            <th class="px-5 py-3">Order</th>
-            <th class="px-5 py-3">Status</th>
-            <th class="px-5 py-3">Pages</th>
-            <th class="px-5 py-3">Deadline</th>
-            <th class="px-5 py-3 text-right">Compensation</th>
-          <th class="px-5 py-3"></th>
+            <th class="px-3 py-2">Order</th>
+            <th class="px-3 py-2">Status</th>
+            <th class="px-3 py-2">Pages</th>
+            <th class="px-3 py-2">Deadline</th>
+            <th class="px-3 py-2 text-right">Compensation</th>
+          <th class="px-3 py-2"></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
@@ -197,7 +197,7 @@ onMounted(() => {
             :key="order.id"
             class="hover:bg-slate-50"
           >
-            <td class="px-5 py-4">
+            <td class="px-3 py-2.5">
               <div class="flex items-center gap-2">
                 <p class="font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
                 <span
@@ -212,16 +212,16 @@ onMounted(() => {
                 {{ order.academic_level }}
               </p>
             </td>
-            <td class="px-5 py-4">
+            <td class="px-3 py-2.5">
               <StatusPill :label="order.status" :tone="statusTone(order.status)" />
             </td>
-            <td class="px-5 py-4 text-graphite">
+            <td class="px-3 py-2.5 text-graphite">
               <div class="flex items-center gap-1.5">
                 <FileText class="h-3.5 w-3.5 shrink-0 text-slate-400" />
                 {{ pagesLabel(order) }}
               </div>
             </td>
-            <td class="px-5 py-4">
+            <td class="px-3 py-2.5">
               <div class="flex items-center gap-1.5">
                 <Clock3 class="h-3.5 w-3.5 shrink-0 text-slate-400" />
                 <StatusPill
@@ -230,10 +230,10 @@ onMounted(() => {
                 />
               </div>
             </td>
-            <td class="px-5 py-4 text-right font-semibold text-ink">
+            <td class="px-3 py-2.5 text-right font-semibold text-ink">
               {{ compensation(order) }}
             </td>
-            <td class="px-5 py-4 text-right">
+            <td class="px-3 py-2.5 text-right">
               <RouterLink
                 class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
                 :to="`/writer/orders/${order.id}`"
@@ -255,7 +255,7 @@ onMounted(() => {
       />
     </div>
     <!-- My bids -->
-    <section class="rounded-lg border border-slate-200 bg-white shadow-panel">
+    <section class="rounded-lg border border-slate-200 bg-white">
       <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
         <div class="flex items-center gap-2">
           <Send class="h-4 w-4 text-signal" />

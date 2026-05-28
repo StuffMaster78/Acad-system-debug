@@ -87,7 +87,7 @@ const lastChanged = computed(() => {
 
 <template>
   <div
-    class="overflow-hidden rounded-xl border shadow-panel transition-all"
+    class="overflow-hidden rounded-lg border transition-all"
     :class="isDirty ? 'border-amber-300' : 'border-slate-200 bg-white'"
   >
     <!-- Card header -->

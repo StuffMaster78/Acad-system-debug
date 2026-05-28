@@ -259,7 +259,7 @@ onUnmounted(() => {
 <template>
   <section class="grid min-h-[600px] gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
     <!-- ── Thread list sidebar ─────────────────────────────────────────────── -->
-    <aside class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+    <aside class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div class="flex min-h-14 items-center justify-between gap-2 border-b border-slate-200 px-4">
         <h2 class="text-sm font-semibold text-ink">Threads</h2>
         <div class="flex items-center gap-1.5">
@@ -319,7 +319,7 @@ onUnmounted(() => {
         <button
           v-for="thread in comms.orderThreads"
           :key="thread.id"
-          class="focus-ring w-full px-4 py-3.5 text-left transition-colors hover:bg-slate-50"
+          class="focus-ring w-full px-4 py-3 text-left transition-colors hover:bg-slate-50"
           :class="thread.id === comms.activeThread?.id ? 'bg-slate-50' : 'bg-white'"
           type="button"
           @click="comms.selectThread(thread)"
@@ -359,7 +359,7 @@ onUnmounted(() => {
     </aside>
 
     <!-- ── Message pane ────────────────────────────────────────────────────── -->
-    <main class="flex min-h-[600px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
+    <main class="flex min-h-[600px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
       <!-- Thread header -->
       <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
         <div class="min-w-0">
@@ -524,7 +524,7 @@ onUnmounted(() => {
           <div class="flex items-end gap-2">
             <textarea
               v-model.trim="composer"
-              class="focus-ring min-h-[72px] flex-1 resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 placeholder:text-slate-400"
+              class="focus-ring min-h-[72px] flex-1 resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm leading-6 placeholder:text-slate-400"
               :class="selectedRecipient === 'internal' ? 'bg-slate-50' : ''"
               placeholder="Write a message…"
               @keydown.enter.exact.prevent="sendMessage"
@@ -554,7 +554,7 @@ onUnmounted(() => {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       @click.self="showStartThread = false"
     >
-      <div class="w-full max-w-sm rounded-xl border border-slate-200 bg-white shadow-xl">
+      <div class="w-full max-w-sm rounded-lg border border-slate-200 bg-white shadow-xl">
         <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h3 class="text-sm font-semibold text-ink">Start a thread</h3>
           <button

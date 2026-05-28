@@ -87,7 +87,7 @@ onMounted(refresh);
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Client</p>
@@ -143,13 +143,13 @@ onMounted(refresh);
       </p>
 
       <div v-if="invoicesLoading && !invoices.length" class="space-y-3">
-        <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-5">
           <div class="h-4 w-1/3 rounded bg-slate-200" />
           <div class="mt-3 h-3 w-1/2 rounded bg-slate-100" />
         </div>
       </div>
 
-      <div v-else-if="!invoices.length" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-panel">
+      <div v-else-if="!invoices.length" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
         <FileText class="mx-auto h-8 w-8 text-slate-300" />
         <p class="mt-3 text-sm font-medium text-ink">No invoices yet</p>
         <p class="mt-1 text-sm text-graphite">Invoices will appear here once issued by the platform.</p>
@@ -159,7 +159,7 @@ onMounted(refresh);
         <div
           v-for="inv in invoices"
           :key="inv.id"
-          class="rounded-lg border border-slate-200 bg-white shadow-panel"
+          class="rounded-lg border border-slate-200 bg-white"
         >
           <!-- Invoice header row -->
           <button
@@ -292,44 +292,44 @@ onMounted(refresh);
       </p>
 
       <div v-if="prLoading && !paymentRequests.length" class="space-y-3">
-        <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+        <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-5">
           <div class="h-4 w-1/3 rounded bg-slate-200" />
           <div class="mt-3 h-3 w-1/2 rounded bg-slate-100" />
         </div>
       </div>
 
-      <div v-else-if="!paymentRequests.length" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-panel">
+      <div v-else-if="!paymentRequests.length" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
         <Receipt class="mx-auto h-8 w-8 text-slate-300" />
         <p class="mt-3 text-sm font-medium text-ink">No payment requests</p>
         <p class="mt-1 text-sm text-graphite">Payment requests sent to you will appear here.</p>
       </div>
 
-      <div v-else class="rounded-lg border border-slate-200 bg-white shadow-panel">
+      <div v-else class="rounded-lg border border-slate-200 bg-white">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
               <tr>
-                <th class="px-5 py-3">Reference</th>
-                <th class="px-5 py-3">Title</th>
-                <th class="px-5 py-3">Amount</th>
-                <th class="px-5 py-3">Status</th>
-                <th class="px-5 py-3">Due</th>
-                <th class="px-5 py-3">Balance</th>
+                <th class="px-3 py-2">Reference</th>
+                <th class="px-3 py-2">Title</th>
+                <th class="px-3 py-2">Amount</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Due</th>
+                <th class="px-3 py-2">Balance</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="pr in paymentRequests" :key="pr.id" class="hover:bg-slate-50">
-                <td class="px-5 py-4 font-mono text-xs text-graphite">{{ pr.reference }}</td>
-                <td class="px-5 py-4">
+                <td class="px-3 py-2.5 font-mono text-xs text-graphite">{{ pr.reference }}</td>
+                <td class="px-3 py-2.5">
                   <p class="font-medium text-ink">{{ pr.title }}</p>
                   <p v-if="pr.description" class="mt-0.5 text-xs text-graphite">{{ pr.description }}</p>
                 </td>
-                <td class="px-5 py-4 font-semibold text-ink">{{ money(pr.amount, pr.currency) }}</td>
-                <td class="px-5 py-4">
+                <td class="px-3 py-2.5 font-semibold text-ink">{{ money(pr.amount, pr.currency) }}</td>
+                <td class="px-3 py-2.5">
                   <StatusPill :label="pr.status" :tone="statusTone(pr.status)" />
                 </td>
-                <td class="px-5 py-4 text-graphite">{{ date(pr.due_at) }}</td>
-                <td class="px-5 py-4">
+                <td class="px-3 py-2.5 text-graphite">{{ date(pr.due_at) }}</td>
+                <td class="px-3 py-2.5">
                   <span v-if="pr.is_fully_paid" class="text-signal font-semibold">Paid</span>
                   <span v-else class="text-ink">{{ money(pr.remaining_balance, pr.currency) }}</span>
                 </td>

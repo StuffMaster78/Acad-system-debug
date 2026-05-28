@@ -12,7 +12,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Editor workspace</p>
@@ -37,7 +37,7 @@ onMounted(async () => {
     </div>
 
     <section class="grid gap-4 md:grid-cols-3">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <p class="text-sm font-medium text-graphite">Capacity used</p>
         <p class="mt-2 text-3xl font-semibold text-ink">{{ Math.round(workspace.capacity) }}%</p>
         <p class="mt-1 text-xs text-graphite">
@@ -53,7 +53,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <p class="text-sm font-medium text-graphite">Available slots</p>
         <p class="mt-2 text-3xl font-semibold text-ink">{{ workspace.workload.current_workload?.available_slots ?? 0 }}</p>
         <StatusPill
@@ -63,7 +63,7 @@ onMounted(async () => {
         />
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <p class="text-sm font-medium text-graphite">Avg hours / task</p>
         <p class="mt-2 text-3xl font-semibold text-ink">{{ workspace.workload.time_estimates?.average_hours_per_task ?? 0 }}</p>
         <p class="mt-1 text-xs text-graphite">
@@ -73,7 +73,7 @@ onMounted(async () => {
     </section>
 
     <section class="grid gap-6 lg:grid-cols-2">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <div class="flex items-center gap-2">
           <Timer class="h-5 w-5 text-signal" />
           <h2 class="text-lg font-semibold text-ink">Deadline analysis</h2>
@@ -106,7 +106,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="text-lg font-semibold text-ink">Recommendations</h2>
         <div class="mt-5 space-y-3">
           <div class="flex items-center justify-between rounded-md border border-slate-200 px-4 py-3">

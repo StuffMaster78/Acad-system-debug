@@ -98,7 +98,7 @@ onMounted(() => {
       <div
         v-for="metric in support.metrics"
         :key="metric.label"
-        class="min-h-32 rounded-md border p-4 shadow-panel"
+        class="min-h-32 rounded-md border p-4"
         :class="metricToneClasses[metric.tone]"
       >
         <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
@@ -108,7 +108,7 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(380px,0.8fr)]">
-      <div class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <div class="rounded-md border border-slate-200 bg-white">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div class="flex items-center gap-2">
@@ -206,8 +206,8 @@ onMounted(() => {
         />
       </div>
 
-      <aside class="space-y-6">
-        <section class="rounded-md border border-slate-200 bg-white shadow-panel">
+      <aside class="space-y-4">
+        <section class="rounded-md border border-slate-200 bg-white">
           <div class="border-b border-slate-200 px-4 py-4">
             <div class="flex items-center gap-2">
               <ShieldAlert class="h-5 w-5 text-signal" />
@@ -253,7 +253,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+        <section class="rounded-md border border-slate-200 bg-white p-4">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-2">
               <MessageSquareText class="h-5 w-5 text-signal" />

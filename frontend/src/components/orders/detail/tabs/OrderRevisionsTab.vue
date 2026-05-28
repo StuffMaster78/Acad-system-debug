@@ -96,7 +96,7 @@ onMounted(loadRevisions);
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
 
     <!-- Paid adjustment routing notice -->
     <div
@@ -111,7 +111,7 @@ onMounted(loadRevisions);
     </div>
 
     <!-- Revision history -->
-    <div class="rounded-lg border border-slate-200 bg-white shadow-panel">
+    <div class="rounded-lg border border-slate-200 bg-white">
       <div class="border-b border-slate-200 px-5 py-4">
         <h2 class="text-base font-semibold text-ink">Revision history</h2>
         <p class="mt-0.5 text-xs text-graphite">
@@ -228,7 +228,7 @@ onMounted(loadRevisions);
     <!-- Client: request revision form -->
     <form
       v-if="role === 'client' && lifecycle?.is_revision_window_open"
-      class="rounded-lg border border-slate-200 bg-white p-5 shadow-panel"
+      class="rounded-lg border border-slate-200 bg-white p-5"
       @submit.prevent="submitRevision"
     >
       <div class="flex items-center gap-2">
