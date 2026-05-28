@@ -39,9 +39,9 @@ export const authApi = {
     api.post<LoginResponse>(apiPath("/auth/login/"), payload),
   refresh: (refresh: string) =>
     api.post<{ access: string }>(apiPath("/auth/token/refresh/"), { refresh }),
-  me: () => api.get<AuthUser>(apiPath("/users/me/")),
+  me: () => api.get<AuthUser>(apiPath("/users/users/me/")),
   updateMe: (payload: UpdateMePayload) =>
-    api.patch<AuthUser>(apiPath("/users/me/"), payload),
+    api.patch<AuthUser>(apiPath("/users/users/me/"), payload),
   changePassword: (payload: ChangePasswordPayload) =>
     api.post(apiPath("/auth/password/change/"), payload),
   forgotPassword: (email: string) =>
@@ -51,7 +51,7 @@ export const authApi = {
   uploadAvatar: (file: File) => {
     const form = new FormData();
     form.append("avatar", file);
-    return api.post<AuthUser>(apiPath("/users/me/avatar/"), form, {
+    return api.post<AuthUser>(apiPath("/users/users/me/avatar/"), form, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
