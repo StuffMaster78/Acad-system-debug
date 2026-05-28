@@ -3,6 +3,12 @@ import { defineStore } from "pinia";
 import { authApi, type LoginPayload } from "@/api/auth";
 import type { AuthUser, UserRole } from "@/types/roles";
 
+export class MfaRequiredError extends Error {
+  constructor(public readonly userId: number) {
+    super("mfa_required");
+  }
+}
+
 const ACCESS_KEY = "writing_system.access";
 const REFRESH_KEY = "writing_system.refresh";
 const USER_KEY = "writing_system.user";
@@ -46,8 +52,12 @@ export const useAuthStore = defineStore("auth", () => {
     isLoading.value = true;
     try {
       const { data } = await authApi.login(payload);
-      persist(data, data.user);
-      if (!data.user) await loadMe();
+      if (data.mfa_required) {
+        throw new MfaRequiredError(data.user_id ?? 0);
+      }
+      if (!data.access_token) throw new Error("No access token in login response");
+      persist({ access: data.access_token, refresh: data.refresh_token });
+      await loadMe();
     } finally {
       isLoading.value = false;
     }

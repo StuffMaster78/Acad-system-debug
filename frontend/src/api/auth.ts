@@ -12,6 +12,15 @@ export interface TokenPair {
   user?: AuthUser;
 }
 
+export interface LoginResponse {
+  success: boolean;
+  mfa_required: boolean;
+  access_token?: string;
+  refresh_token?: string;
+  session_id?: number;
+  user_id?: number;
+}
+
 export interface UpdateMePayload {
   full_name?: string;
   bio?: string | null;
@@ -27,7 +36,7 @@ export interface ChangePasswordPayload {
 
 export const authApi = {
   login: (payload: LoginPayload) =>
-    api.post<TokenPair>(apiPath("/auth/token/"), payload),
+    api.post<LoginResponse>(apiPath("/auth/login/"), payload),
   refresh: (refresh: string) =>
     api.post<{ access: string }>(apiPath("/auth/token/refresh/"), { refresh }),
   me: () => api.get<AuthUser>(apiPath("/users/me/")),

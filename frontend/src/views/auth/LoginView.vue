@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import { LogIn } from "@lucide/vue";
+import { LogIn, ShieldCheck } from "@lucide/vue";
 import { roleHome } from "@/config/navigation";
-import { useAuthStore } from "@/stores/auth";
+import { useAuthStore, MfaRequiredError } from "@/stores/auth";
 import type { UserRole } from "@/types/roles";
 
 const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 const error = ref("");
+const mfaRequired = ref(false);
 const form = reactive({
   email: "",
   password: "",
@@ -21,12 +22,17 @@ const canSubmit = computed(() => form.email.length > 3 && form.password.length >
 
 async function submit() {
   error.value = "";
+  mfaRequired.value = false;
   try {
     await auth.login(form);
     const redirect = route.query.redirect?.toString();
     await router.push(redirect || (auth.role ? roleHome[auth.role] : "/client"));
-  } catch {
-    error.value = "We could not sign you in with those details.";
+  } catch (err) {
+    if (err instanceof MfaRequiredError) {
+      mfaRequired.value = true;
+    } else {
+      error.value = "We could not sign you in with those details.";
+    }
   }
 }
 
@@ -74,6 +80,18 @@ async function preview(role: UserRole) {
         <p v-if="error" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">
           {{ error }}
         </p>
+
+        <div
+          v-if="mfaRequired"
+          class="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900"
+        >
+          <ShieldCheck class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <div>
+            <p class="font-semibold">Two-factor authentication is enabled on this account.</p>
+            <p class="mt-0.5 text-xs">Please contact your administrator or use a trusted device to complete sign-in.</p>
+          </div>
+        </div>
+
         <button
           class="focus-ring inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
           :disabled="!canSubmit || auth.isLoading"

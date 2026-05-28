@@ -9,7 +9,9 @@ class LoginRequestSerializer(serializers.Serializer):
 
 
 class LoginResponseSerializer(serializers.Serializer):
-    success = serializers.BooleanField()
+    success = serializers.BooleanField(default=False)
     session_id = serializers.IntegerField(required=False)
     mfa_required = serializers.BooleanField()
     user_id = serializers.IntegerField(required=False)
+    access_token = serializers.CharField(required=False)
+    refresh_token = serializers.CharField(required=False)
