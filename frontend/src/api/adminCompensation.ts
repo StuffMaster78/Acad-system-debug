@@ -134,6 +134,68 @@ export interface WriterWindowDetail {
   breakdown: Record<string, unknown>[];
 }
 
+export interface FinancialEvent {
+  id: number;
+  website: number;
+  writer: number;
+  event_type: string;
+  source: string | null;
+  status: string;
+  amount: string;
+  currency: string;
+  title: string | null;
+  description: string | null;
+  reference: string | null;
+  external_reference: string | null;
+  source_type: string | null;
+  source_id: number | null;
+  related_event: number | null;
+  settlement_period: number | null;
+  is_visible_to_writer: boolean;
+  is_risky: boolean;
+  is_locked: boolean;
+  matured_at: string | null;
+  disputed_at: string | null;
+  reversed_at: string | null;
+  is_positive: boolean;
+  window_label: string | null;
+  related_window_label: string | null;
+  created_by_name: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExposureLedger {
+  id: number;
+  website: number;
+  writer: number;
+  total_earned: string;
+  total_bonuses: string;
+  total_deductions: string;
+  total_settled: string;
+  total_paid: string;
+  total_advance_taken: string;
+  recoverable_balance: string;
+  risk_cap_percentage: string;
+  metadata: Record<string, unknown> | null;
+  last_updated: string;
+}
+
+export interface CompensationWallet {
+  id: number;
+  website: number;
+  owner: number;
+  currency: string;
+  available_balance: string;
+  locked_balance: string;
+  total_inflow: string;
+  total_outflow: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── API ─────────────────────────────────────────────────────────────────────
 
 export const adminCompensationApi = {
@@ -214,4 +276,28 @@ export const adminCompensationApi = {
     api.post<AdvanceRequest>(base(`/advances/admin/${id}/reject/`), {}),
   recoverAdvance: (id: number, amount: string, notes?: string) =>
     api.post<AdvanceRequest>(base(`/advances/admin/${id}/recover/`), { amount, notes: notes ?? "" }),
+
+  // ── Financial events ───────────────────────────────────────────────────────
+  financialEvents: (params?: Record<string, unknown>) =>
+    api.get<PageResponse<FinancialEvent>>(base("/financial-events/"), { params }),
+  financialEventDetail: (id: number) =>
+    api.get<FinancialEvent>(base(`/financial-events/${id}/`)),
+
+  // ── Exposure ledger ────────────────────────────────────────────────────────
+  exposureLedger: (params?: Record<string, unknown>) =>
+    api.get<PageResponse<ExposureLedger>>(base("/exposure/"), { params }),
+  exposureDetail: (id: number) =>
+    api.get<ExposureLedger>(base(`/exposure/${id}/`)),
+  recomputeExposure: (id: number) =>
+    api.post<ExposureLedger>(base(`/exposure/${id}/recompute/`), {}),
+
+  // ── Compensation wallets ───────────────────────────────────────────────────
+  compWallets: (params?: Record<string, unknown>) =>
+    api.get<PageResponse<CompensationWallet>>(base("/wallets/"), { params }),
+  compWalletDetail: (id: number) =>
+    api.get<CompensationWallet>(base(`/wallets/${id}/`)),
+  creditWallet: (payload: { wallet_id: number; amount: string; entry_type?: string; description?: string }) =>
+    api.post<{ entry_id: number }>(base("/wallets/credit/"), payload),
+  debitWallet: (payload: { wallet_id: number; amount: string; entry_type?: string; description?: string; allow_negative?: boolean }) =>
+    api.post<{ entry_id: number }>(base("/wallets/debit/"), payload),
 };
