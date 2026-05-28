@@ -97,6 +97,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/client/ClientClassesView.vue"),
       },
       {
+        path: "classes/new",
+        name: "client-class-new",
+        component: () => import("@/views/client/NewClassView.vue"),
+      },
+      {
         path: "classes/:id",
         name: "client-class-detail",
         component: () => import("@/views/client/ClientClassDetailView.vue"),

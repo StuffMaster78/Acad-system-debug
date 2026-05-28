@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import { BookOpen, CheckCircle, Clock, AlertCircle } from "@lucide/vue";
+import { BookOpen, CheckCircle, Clock, AlertCircle, Plus } from "@lucide/vue";
 import { useClassesStore } from "@/stores/classes";
 import type { ClassStatus } from "@/types/classes";
 
@@ -49,6 +49,13 @@ function open(id: number) {
           <h1 class="text-xl font-bold text-ink">My Classes</h1>
           <p class="text-sm text-graphite">Semester-long and ongoing class help</p>
         </div>
+        <button
+          class="inline-flex items-center gap-1.5 rounded-lg bg-berry px-4 py-2 text-sm font-semibold text-white hover:bg-berry/90 transition-colors"
+          @click="router.push('/client/classes/new')"
+        >
+          <Plus class="size-4" />
+          New Class
+        </button>
       </div>
 
       <!-- Loading -->

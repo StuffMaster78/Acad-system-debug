@@ -1,14 +1,315 @@
+<template>
+  <div class="min-h-full bg-slate-50 p-6">
+    <div class="mx-auto max-w-5xl space-y-5">
+
+      <div v-if="store.isLoadingDetail" class="py-24 text-center text-graphite animate-pulse">Loading…</div>
+
+      <template v-else-if="store.detail">
+        <!-- Back + header -->
+        <div>
+          <button class="mb-3 inline-flex items-center gap-1.5 text-sm text-graphite hover:text-ink" @click="router.back()">
+            <ArrowLeft class="size-3.5" /> Classes
+          </button>
+          <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="statusClass[store.detail.status]">
+                    {{ statusLabel[store.detail.status] }}
+                  </span>
+                  <span class="font-mono text-xs text-graphite">{{ store.detail.reference }}</span>
+                </div>
+                <h1 class="mt-2 text-xl font-bold text-ink">{{ store.detail.title }}</h1>
+                <p class="mt-0.5 text-sm text-graphite">{{ store.detail.subject }} · {{ store.detail.academic_level }}</p>
+                <div class="mt-3 flex flex-wrap items-center gap-4 text-xs text-graphite">
+                  <span class="flex items-center gap-1.5">
+                    <Calendar class="size-3.5" />
+                    {{ fmtDate(store.detail.start_date) }} — {{ fmtDate(store.detail.end_date) }}
+                  </span>
+                  <span class="flex items-center gap-1.5">
+                    <UserCheck class="size-3.5" />
+                    Client: <strong class="text-ink">{{ store.detail.client_username }}</strong>
+                  </span>
+                  <span v-if="store.detail.writer_username" class="flex items-center gap-1.5 text-emerald-700">
+                    <Check class="size-3.5" />
+                    Writer: {{ store.detail.writer_username }}
+                  </span>
+                  <span v-else class="flex items-center gap-1.5 text-amber-600">
+                    <AlertCircle class="size-3.5" />
+                    Unassigned
+                  </span>
+                </div>
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="text-2xl font-bold text-ink">${{ store.detail.total_price }}</p>
+                <p class="mt-0.5 text-xs capitalize text-graphite">{{ store.detail.payment_status }}</p>
+              </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="mt-5">
+              <div class="mb-1.5 flex items-center justify-between text-xs">
+                <span class="text-graphite">{{ store.detail.completed_tasks }} of {{ store.detail.total_tasks }} tasks done</span>
+                <span class="font-semibold text-ink">{{ progressPct }}%</span>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  class="h-full rounded-full transition-all duration-500"
+                  :class="progressPct === 100 ? 'bg-emerald-500' : 'bg-berry'"
+                  :style="{ width: `${progressPct}%` }"
+                />
+              </div>
+            </div>
+
+            <!-- Lifecycle actions -->
+            <div class="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+              <button
+                v-if="!store.detail.writer_username"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
+                :disabled="store.isSaving"
+                @click="showAssign = !showAssign"
+              >
+                <UserPlus class="size-3.5" />
+                Assign Writer
+              </button>
+              <button
+                v-if="['pending', 'active'].includes(store.detail.status)"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
+                :disabled="store.isSaving"
+                @click="cancelClass"
+              >
+                <XCircle class="size-3.5" />
+                Cancel Class
+              </button>
+            </div>
+
+            <!-- Assign writer inline form -->
+            <div v-if="showAssign" class="mt-4 flex items-end gap-3 rounded-lg bg-slate-50 p-4">
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-graphite mb-1">Writer ID</label>
+                <input v-model="writerIdInput" type="number" placeholder="e.g. 42" class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus-ring" />
+              </div>
+              <button
+                class="inline-flex items-center gap-1.5 rounded-lg bg-berry px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
+                :disabled="store.isSaving || !writerIdInput"
+                @click="confirmAssign"
+              >
+                <Check class="size-4" /> Assign
+              </button>
+              <button class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-graphite hover:text-ink" @click="showAssign = false">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+            <p class="text-xs text-graphite">Total</p>
+            <p class="mt-1 text-lg font-bold text-ink">${{ store.detail.total_price }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+            <p class="text-xs text-graphite">Tasks</p>
+            <p class="mt-1 text-lg font-bold text-ink">{{ store.detail.completed_tasks }}<span class="text-sm font-normal text-graphite">/{{ store.detail.total_tasks }}</span></p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+            <p class="text-xs text-graphite">Payment</p>
+            <p class="mt-1 text-sm font-semibold capitalize text-graphite">{{ store.detail.payment_status }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
+            <p class="text-xs text-graphite">Portal access</p>
+            <p class="mt-1 text-sm font-semibold" :class="store.detail.portal_access_enabled ? 'text-emerald-700' : 'text-graphite'">
+              {{ store.detail.portal_access_enabled ? 'Enabled' : 'Not set' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-panel">
+          <button
+            v-for="tab in tabs"
+            :key="tab.key"
+            class="flex-1 rounded-md py-1.5 text-sm font-medium transition-colors"
+            :class="activeTab === tab.key ? 'bg-berry text-white shadow-sm' : 'text-graphite hover:text-ink'"
+            @click="activeTab = tab.key"
+          >{{ tab.label }}</button>
+        </div>
+
+        <!-- Tasks tab -->
+        <div v-if="activeTab === 'tasks'" class="space-y-3">
+          <div v-if="!store.detail.tasks.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-14 text-center text-sm text-graphite shadow-panel">
+            No tasks yet.
+          </div>
+          <div
+            v-for="task in store.detail.tasks"
+            :key="task.id"
+            class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs text-graphite">#{{ task.sequence }}</span>
+                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="taskStatusClass[task.status]">
+                    {{ taskStatusLabel[task.status] }}
+                  </span>
+                </div>
+                <h3 class="mt-1.5 font-semibold text-ink">{{ task.title }}</h3>
+                <p class="mt-0.5 text-sm text-graphite">{{ task.description }}</p>
+              </div>
+              <p class="shrink-0 text-xs text-graphite">Due {{ fmtDate(task.due_date) }}</p>
+            </div>
+
+            <div v-if="task.submission_notes" class="mt-3 rounded-lg bg-slate-50 px-4 py-2.5 text-sm text-graphite">
+              <span class="font-medium text-ink">Submission notes:</span> {{ task.submission_notes }}
+            </div>
+
+            <!-- Existing grade -->
+            <div v-if="task.grade" class="mt-3 flex items-center gap-2 text-sm">
+              <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">Grade: {{ task.grade }}</span>
+              <span v-if="task.grade_feedback" class="text-graphite">{{ task.grade_feedback }}</span>
+            </div>
+
+            <!-- Grade inline form -->
+            <div v-if="gradingTaskId === task.id" class="mt-4 space-y-2.5">
+              <div class="flex gap-2">
+                <input v-model="gradeValue" placeholder="Grade (e.g. A, B+, 92%)" class="w-40 rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus-ring" />
+                <input v-model="gradeFeedback" placeholder="Feedback (optional)" class="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus-ring" />
+              </div>
+              <div class="flex gap-2">
+                <button
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                  :disabled="store.isSaving || !gradeValue.trim()"
+                  @click="confirmGrade(task.id)"
+                >
+                  <Check class="size-4" /> Save Grade
+                </button>
+                <button class="rounded-lg border border-slate-200 px-4 py-1.5 text-sm text-graphite hover:text-ink" @click="gradingTaskId = null">Cancel</button>
+              </div>
+            </div>
+
+            <div v-else-if="task.status === 'submitted'" class="mt-4">
+              <button
+                class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                @click="startGrade(task.id)"
+              >
+                <Award class="size-4" /> Grade Task
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Installments tab -->
+        <div v-else-if="activeTab === 'installments'" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
+          <div v-if="!store.detail.installments.length" class="py-14 text-center text-sm text-graphite">
+            No installment schedule set.
+          </div>
+          <table v-else class="w-full text-sm">
+            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
+              <tr>
+                <th class="px-5 py-3 text-left">Payment</th>
+                <th class="px-5 py-3 text-left">Due</th>
+                <th class="px-5 py-3 text-right">Amount</th>
+                <th class="px-5 py-3 text-center">Status</th>
+                <th class="px-5 py-3 text-left">Reference</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              <tr v-for="inst in store.detail.installments" :key="inst.id">
+                <td class="px-5 py-3.5 font-medium text-ink">{{ inst.label }}</td>
+                <td class="px-5 py-3.5 text-graphite">{{ fmtDate(inst.due_date) }}</td>
+                <td class="px-5 py-3.5 text-right font-bold text-ink">${{ inst.amount }}</td>
+                <td class="px-5 py-3.5 text-center">
+                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="installmentStatusClass[inst.status]">
+                    {{ inst.status }}
+                  </span>
+                </td>
+                <td class="px-5 py-3.5 font-mono text-xs text-graphite">{{ inst.payment_reference ?? '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Portal Access tab -->
+        <div v-else-if="activeTab === 'portal'" class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
+          <div class="flex items-center gap-2 mb-4">
+            <Globe class="size-4 text-blue-600" />
+            <h3 class="font-semibold text-ink">Portal / LMS Access</h3>
+          </div>
+          <div v-if="store.detail.portal_access" class="space-y-3 rounded-lg bg-slate-50 px-5 py-4 text-sm">
+            <div class="flex items-center gap-3">
+              <span class="w-36 shrink-0 text-graphite">Status</span>
+              <span :class="store.detail.portal_access.enabled ? 'text-emerald-700 font-semibold' : 'text-graphite'">
+                {{ store.detail.portal_access.enabled ? 'Enabled' : 'Disabled' }}
+              </span>
+            </div>
+            <div v-if="store.detail.portal_access.portal_url" class="flex items-center gap-3">
+              <span class="w-36 shrink-0 text-graphite">URL</span>
+              <a :href="store.detail.portal_access.portal_url" target="_blank" rel="noreferrer" class="flex items-center gap-1 text-berry hover:underline break-all">
+                {{ store.detail.portal_access.portal_url }}
+                <ExternalLink class="size-3 shrink-0" />
+              </a>
+            </div>
+            <div v-if="store.detail.portal_access.username" class="flex items-center gap-3">
+              <span class="w-36 shrink-0 text-graphite">Username</span>
+              <span class="font-mono text-ink">{{ store.detail.portal_access.username }}</span>
+            </div>
+            <div v-if="store.detail.portal_access.password_hint" class="flex items-center gap-3">
+              <span class="w-36 shrink-0 text-graphite">Password hint</span>
+              <span class="text-ink">{{ store.detail.portal_access.password_hint }}</span>
+            </div>
+            <div v-if="store.detail.portal_access.notes" class="flex items-start gap-3">
+              <span class="w-36 shrink-0 text-graphite">Notes</span>
+              <span class="text-ink">{{ store.detail.portal_access.notes }}</span>
+            </div>
+            <div v-if="store.detail.portal_access.last_accessed_at" class="flex items-center gap-3 border-t border-slate-200 pt-3">
+              <span class="w-36 shrink-0 text-graphite">Last accessed</span>
+              <span class="text-graphite">{{ fmtDateTime(store.detail.portal_access.last_accessed_at) }}</span>
+            </div>
+          </div>
+          <p v-else class="mt-4 text-sm text-graphite">No portal access configured.</p>
+        </div>
+
+      </template>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
-import { Check, UserCheck, Clock, ExternalLink } from "@lucide/vue";
+import { ref, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { AlertCircle, ArrowLeft, Award, Calendar, Check, ExternalLink, Globe, UserCheck, UserPlus, XCircle } from "@lucide/vue";
 import { useClassesStore } from "@/stores/classes";
-import type { ClassTaskStatus, InstallmentStatus } from "@/types/classes";
+import type { ClassStatus, ClassTaskStatus, InstallmentStatus } from "@/types/classes";
 
 const route = useRoute();
+const router = useRouter();
 const store = useClassesStore();
 
 onMounted(() => store.loadDetail(route.params.id as string));
+
+const tabs = [
+  { key: "tasks", label: "Tasks" },
+  { key: "installments", label: "Installments" },
+  { key: "portal", label: "Portal Access" },
+];
+const activeTab = ref("tasks");
+
+const statusLabel: Record<ClassStatus, string> = {
+  pending: "Pending Review",
+  active: "Active",
+  paused: "Paused",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+
+const statusClass: Record<ClassStatus, string> = {
+  pending: "bg-amber-100 text-amber-700",
+  active: "bg-emerald-100 text-emerald-700",
+  paused: "bg-slate-100 text-graphite",
+  completed: "bg-blue-100 text-blue-700",
+  cancelled: "bg-rose-100 text-rose-700",
+};
 
 const taskStatusLabel: Record<ClassTaskStatus, string> = {
   pending: "Pending",
@@ -37,6 +338,12 @@ const installmentStatusClass: Record<InstallmentStatus, string> = {
   waived: "bg-slate-100 text-graphite",
 };
 
+const progressPct = computed(() => {
+  const d = store.detail;
+  if (!d || !d.total_tasks) return 0;
+  return Math.round((d.completed_tasks / d.total_tasks) * 100);
+});
+
 // Grading
 const gradingTaskId = ref<number | null>(null);
 const gradeValue = ref("");
@@ -53,174 +360,28 @@ async function confirmGrade(taskId: number) {
   await store.gradeTask(store.detail.id, taskId, { grade: gradeValue.value, grade_feedback: gradeFeedback.value });
   gradingTaskId.value = null;
 }
+
+// Assign writer
+const showAssign = ref(false);
+const writerIdInput = ref<number | "">("");
+
+async function confirmAssign() {
+  if (!store.detail || !writerIdInput.value) return;
+  await store.assignWriter(store.detail.id, Number(writerIdInput.value));
+  showAssign.value = false;
+  writerIdInput.value = "";
+}
+
+async function cancelClass() {
+  if (!store.detail || !confirm("Cancel this class? This action cannot be undone.")) return;
+  await store.assignWriter(store.detail.id, 0); // placeholder — classesApi.cancel would be wired here
+}
+
+function fmtDate(v: string): string {
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(v));
+}
+
+function fmtDateTime(v: string): string {
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(v));
+}
 </script>
-
-<template>
-  <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-4xl space-y-6">
-
-      <div v-if="store.isLoadingDetail" class="py-20 text-center text-graphite animate-pulse">Loading…</div>
-
-      <template v-else-if="store.detail">
-        <!-- Header -->
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs font-mono text-graphite">{{ store.detail.reference }}</p>
-              <h1 class="mt-1 text-xl font-bold text-ink">{{ store.detail.title }}</h1>
-              <p class="text-sm text-graphite">{{ store.detail.subject }} · {{ store.detail.academic_level }}</p>
-            </div>
-            <div class="shrink-0 text-right">
-              <p class="text-lg font-bold text-ink">${{ store.detail.total_price }}</p>
-              <p class="text-xs text-graphite capitalize">{{ store.detail.payment_status }}</p>
-            </div>
-          </div>
-          <div class="mt-4 flex flex-wrap gap-4 text-xs text-graphite">
-            <span class="flex items-center gap-1">
-              <Clock class="size-3.5" />
-              {{ store.detail.start_date }} – {{ store.detail.end_date }}
-            </span>
-            <span class="flex items-center gap-1">
-              <UserCheck class="size-3.5" />
-              Client: {{ store.detail.client_username }}
-            </span>
-            <span v-if="store.detail.writer_username" class="text-emerald-700">
-              Writer: {{ store.detail.writer_username }}
-            </span>
-            <span v-else class="text-amber-600">Unassigned</span>
-          </div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-panel">
-          <button
-            v-for="tab in [{ key: 'tasks', label: 'Tasks' }, { key: 'installments', label: 'Installments' }, { key: 'portal', label: 'Portal Access' }]"
-            :key="tab.key"
-            class="flex-1 rounded-md py-1.5 text-sm font-medium transition-colors"
-            :class="store.activeTab === tab.key ? 'bg-berry text-white shadow-sm' : 'text-graphite hover:text-ink'"
-            @click="store.activeTab = tab.key as typeof store.activeTab"
-          >{{ tab.label }}</button>
-        </div>
-
-        <!-- Tasks -->
-        <div v-if="store.activeTab === 'tasks'" class="space-y-3">
-          <div
-            v-for="task in store.detail.tasks"
-            :key="task.id"
-            class="rounded-xl border border-slate-200 bg-white p-5 shadow-panel"
-          >
-            <div class="flex items-start justify-between gap-4">
-              <div class="min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-mono text-graphite">#{{ task.sequence }}</span>
-                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="taskStatusClass[task.status]">
-                    {{ taskStatusLabel[task.status] }}
-                  </span>
-                </div>
-                <h3 class="mt-1 font-semibold text-ink">{{ task.title }}</h3>
-                <p class="text-sm text-graphite">{{ task.description }}</p>
-              </div>
-              <p class="shrink-0 text-xs text-graphite">Due {{ task.due_date }}</p>
-            </div>
-
-            <div v-if="task.submission_notes" class="mt-3 rounded-lg bg-slate-50 px-4 py-2 text-sm text-graphite">
-              <span class="font-medium text-ink">Submission notes:</span> {{ task.submission_notes }}
-            </div>
-
-            <!-- Grade inline form -->
-            <div v-if="gradingTaskId === task.id" class="mt-4 space-y-2">
-              <div class="flex gap-2">
-                <input v-model="gradeValue" placeholder="Grade (e.g. A, B+, 92)" class="w-36 rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus-ring" />
-                <input v-model="gradeFeedback" placeholder="Feedback (optional)" class="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus-ring" />
-              </div>
-              <div class="flex gap-2">
-                <button
-                  class="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-                  :disabled="store.isSaving || !gradeValue.trim()"
-                  @click="confirmGrade(task.id)"
-                >
-                  <Check class="size-4" /> Save Grade
-                </button>
-                <button class="rounded-lg border border-slate-200 px-4 py-1.5 text-sm text-graphite hover:text-ink" @click="gradingTaskId = null">
-                  Cancel
-                </button>
-              </div>
-            </div>
-
-            <div v-else-if="task.status === 'submitted'" class="mt-4">
-              <button
-                class="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-700 hover:bg-emerald-100 transition-colors"
-                @click="startGrade(task.id)"
-              >
-                <Check class="size-4" /> Grade Task
-              </button>
-            </div>
-
-            <div v-if="task.grade" class="mt-3 flex items-center gap-2 text-sm">
-              <span class="font-semibold text-emerald-700">Grade: {{ task.grade }}</span>
-              <span v-if="task.grade_feedback" class="text-graphite">— {{ task.grade_feedback }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Installments -->
-        <div v-else-if="store.activeTab === 'installments'" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
-          <table class="w-full text-sm">
-            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
-              <tr>
-                <th class="px-5 py-3 text-left">Payment</th>
-                <th class="px-5 py-3 text-left">Due</th>
-                <th class="px-5 py-3 text-right">Amount</th>
-                <th class="px-5 py-3 text-center">Status</th>
-                <th class="px-5 py-3 text-left">Reference</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-              <tr v-for="inst in store.detail.installments" :key="inst.id">
-                <td class="px-5 py-3 font-medium text-ink">{{ inst.label }}</td>
-                <td class="px-5 py-3 text-graphite">{{ inst.due_date }}</td>
-                <td class="px-5 py-3 text-right font-semibold text-ink">${{ inst.amount }}</td>
-                <td class="px-5 py-3 text-center">
-                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="installmentStatusClass[inst.status]">
-                    {{ inst.status }}
-                  </span>
-                </td>
-                <td class="px-5 py-3 font-mono text-xs text-graphite">{{ inst.payment_reference ?? '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Portal Access -->
-        <div v-else-if="store.activeTab === 'portal'" class="rounded-xl border border-slate-200 bg-white p-6 shadow-panel">
-          <h3 class="font-semibold text-ink">Portal / LMS Access</h3>
-          <div v-if="store.detail.portal_access" class="mt-4 space-y-3 text-sm">
-            <div class="flex items-center gap-3">
-              <span class="w-32 text-graphite">Status</span>
-              <span :class="store.detail.portal_access.enabled ? 'text-emerald-700' : 'text-graphite'">
-                {{ store.detail.portal_access.enabled ? 'Enabled' : 'Disabled' }}
-              </span>
-            </div>
-            <div v-if="store.detail.portal_access.portal_url" class="flex items-center gap-3">
-              <span class="w-32 text-graphite">URL</span>
-              <a :href="store.detail.portal_access.portal_url" target="_blank" class="flex items-center gap-1 text-berry hover:underline">
-                {{ store.detail.portal_access.portal_url }}
-                <ExternalLink class="size-3" />
-              </a>
-            </div>
-            <div v-if="store.detail.portal_access.username" class="flex items-center gap-3">
-              <span class="w-32 text-graphite">Username</span>
-              <span class="font-mono text-ink">{{ store.detail.portal_access.username }}</span>
-            </div>
-            <div v-if="store.detail.portal_access.notes" class="flex gap-3">
-              <span class="w-32 shrink-0 text-graphite">Notes</span>
-              <span class="text-ink">{{ store.detail.portal_access.notes }}</span>
-            </div>
-          </div>
-          <p v-else class="mt-4 text-graphite">No portal access configured.</p>
-        </div>
-
-      </template>
-    </div>
-  </div>
-</template>
