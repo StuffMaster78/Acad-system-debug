@@ -8,10 +8,8 @@ from order_configs.models import (
     PaperType, FormattingandCitationStyle, Subject, AcademicLevel,
     TypeOfWork, EnglishType
 )
-from order_pricing_core.models import PricingConfiguration, AcademicLevelPricing
 from order_configs.services.comprehensive_paper_types import COMPREHENSIVE_PAPER_TYPES
 from order_configs.services.comprehensive_subjects import COMPREHENSIVE_SUBJECTS
-from decimal import Decimal
 
 
 class Command(BaseCommand):
@@ -184,56 +182,6 @@ class Command(BaseCommand):
                 eng_type.code = code
                 eng_type.save()
                 self.stdout.write(self.style.WARNING(f'⚠️  Updated English type: {english_type_name} with code {code}'))
-        
-        # Pricing Configuration
-        self.stdout.write('\n' + '='*70)
-        self.stdout.write('CHECKING PRICING CONFIGURATION')
-        self.stdout.write('='*70)
-        pricing_config = PricingConfiguration.objects.filter(website=website).first()
-        if not pricing_config:
-            try:
-                pricing_config = PricingConfiguration.objects.create(
-                    website=website,
-                    base_price_per_page=Decimal('10.00'),
-                    base_price_per_slide=Decimal('5.00'),
-                    technical_multiplier=Decimal('1.5'),
-                    non_technical_order_multiplier=Decimal('1.0')
-                )
-                self.stdout.write(self.style.SUCCESS('✅ Created pricing configuration'))
-            except Exception as e:
-                self.stdout.write(self.style.WARNING(f'⚠️  Note: {e}'))
-        
-        # Academic Level Pricing
-        self.stdout.write('\n' + '='*70)
-        self.stdout.write('POPULATING ACADEMIC LEVEL PRICING')
-        self.stdout.write('='*70)
-        level_multipliers = {
-            'High School': Decimal('0.8'),
-            'College': Decimal('0.9'),
-            'Undergraduate': Decimal('1.0'),
-            'Bachelor\'s': Decimal('1.0'),
-            'Master\'s': Decimal('1.3'),
-            'Graduate': Decimal('1.3'),
-            'PhD': Decimal('1.5'),
-            'Doctorate': Decimal('1.5'),
-            'Post-Doctorate': Decimal('1.6'),
-            'Professional': Decimal('1.4'),
-        }
-        
-        for level_name, multiplier in level_multipliers.items():
-            level = AcademicLevel.objects.filter(name=level_name, website=website).first()
-            if level:
-                pricing, created = AcademicLevelPricing.objects.get_or_create(
-                    website=website,
-                    academic_level=level,
-                    defaults={
-                        'multiplier': multiplier,
-                        'level_name': level_name,
-                        'slug': level_name.lower().replace(' ', '-').replace('\'', ''),
-                    }
-                )
-                if created:
-                    self.stdout.write(self.style.SUCCESS(f'✅ Created pricing for {level_name}: {multiplier}x'))
         
         # Summary
         self.stdout.write('\n' + '='*70)

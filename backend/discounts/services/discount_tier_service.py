@@ -12,6 +12,24 @@ from discounts.services.discount_admin_service import DiscountAdminService
 from discounts.services.discount_code_generator import DiscountCodeGenerator
 
 
+class DiscountTierService:
+    """
+    Read service for spend-based discount tier eligibility.
+    """
+
+    @staticmethod
+    def get_eligible_discounts(*, website, lifetime_spend: Decimal) -> list:
+        """
+        Return Discount objects whose spend tier threshold the client has met.
+        """
+        tiers = DiscountSpendTier.objects.filter(
+            website=website,
+            is_active=True,
+            minimum_lifetime_spend__lte=lifetime_spend,
+        ).select_related("discount")
+        return [tier.discount for tier in tiers if tier.discount.is_active]
+
+
 class DiscountSpendTierAdminService:
     """
     Admin write service for spend-based discount tiers.
