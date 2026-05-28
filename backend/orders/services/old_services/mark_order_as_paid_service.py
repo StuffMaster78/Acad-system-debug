@@ -25,7 +25,7 @@ class MarkOrderPaidService:
 
         Args:
             order_id (int): ID of the order to mark as paid.
-            reference_id (str, optional): External payment reference (MPESA, PayPal, etc.)
+            reference_id (str, optional): External payment reference (PayPal, Stripe, etc.)
             payment_method (str, optional): Payment method used.
 
         Returns:

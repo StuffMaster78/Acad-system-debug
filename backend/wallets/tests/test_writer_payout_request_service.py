@@ -97,14 +97,14 @@ class WriterPayoutRequestServiceTests(TestCase):
         WriterPayoutRequestService.process_request(
             hold=hold,
             processed_by=self.admin,
-            external_reference="MPESA-123",
+            external_reference="WIRE-123",
         )
 
         hold.refresh_from_db()
         self.wallet.refresh_from_db()
         self.assertEqual(hold.status, WalletHoldStatus.CAPTURED)
         self.assertEqual(hold.metadata["workflow_status"], "processed")
-        self.assertEqual(hold.metadata["external_reference"], "MPESA-123")
+        self.assertEqual(hold.metadata["external_reference"], "WIRE-123")
         self.assertEqual(self.wallet.available_balance, Decimal("300.00"))
         self.assertEqual(self.wallet.pending_balance, Decimal("0.00"))
         self.assertTrue(

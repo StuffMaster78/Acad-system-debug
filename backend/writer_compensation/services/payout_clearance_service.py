@@ -22,7 +22,7 @@ class PayoutClearance(models.Model):
     Real-world payout execution record.
 
     Confirms money actually left the platform via
-    MPESA, bank transfer, PayPal, Wise, etc.
+    bank transfer, PayPal, Wise, etc.
 
     This is NOT the payment intent — PayoutRecord is the intent.
     This is the external proof that the payment happened.
@@ -51,7 +51,7 @@ class PayoutClearance(models.Model):
     method = models.CharField(
         max_length=64,
         blank=True,
-        help_text="MPESA, Bank, PayPal, Wise, etc.",
+        help_text="Bank transfer, PayPal, Wise, etc.",
     )
 
     # FIX: renamed from external_reference → external_transaction_id (matches service)

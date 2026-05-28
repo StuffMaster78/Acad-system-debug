@@ -15,7 +15,7 @@ class PayoutClearance(models.Model):
 
     This confirms:
         money actually left the platform
-        via MPESA, bank, PayPal, etc
+        via bank transfer, PayPal, Wise, etc
     """
 
     website = models.ForeignKey(
@@ -37,7 +37,7 @@ class PayoutClearance(models.Model):
 
     method = models.CharField(
         max_length=64,
-        help_text="MPESA, Bank, PayPal, Wise, etc",
+        help_text="Bank transfer, PayPal, Wise, etc",
     )
 
     external_reference = models.CharField(

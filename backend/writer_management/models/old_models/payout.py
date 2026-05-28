@@ -15,8 +15,8 @@ class WriterPayoutPreference(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ("Bank Transfer", "Bank Transfer"),
         ("PayPal", "PayPal"),
+        ("Wise", "Wise"),
         ("Crypto", "Crypto"),
-        ("Mpesa", "Mpesa"),
         ("Other", "Other"),
     ]
     website = models.ForeignKey(
@@ -31,7 +31,7 @@ class WriterPayoutPreference(models.Model):
     )
     preferred_method = models.CharField(
         max_length=20, choices=PAYMENT_METHOD_CHOICES, 
-        default="Mpesa"
+        default="Bank Transfer"
     )
     payout_threshold = models.DecimalField(
         max_digits=12, decimal_places=2, default=50.00,
