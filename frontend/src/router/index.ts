@@ -229,6 +229,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminWebsiteView.vue"),
       },
       {
+        path: "compensation",
+        name: "admin-compensation",
+        component: () => import("@/views/admin/AdminCompensationView.vue"),
+      },
+      {
         path: "config",
         name: "admin-config",
         component: () => import("@/views/admin/AdminConfigHubView.vue"),
@@ -564,6 +569,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "website",
         name: "superadmin-website",
         component: () => import("@/views/admin/AdminWebsiteView.vue"),
+      },
+      {
+        path: "compensation",
+        name: "superadmin-compensation",
+        component: () => import("@/views/admin/AdminCompensationView.vue"),
       },
       {
         path: "config",
