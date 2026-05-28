@@ -24,17 +24,16 @@ const userMenuOpen = ref(false);
 const userMenuRoot = ref<HTMLElement | null>(null);
 const openGroups = ref<Set<string>>(new Set());
 
-// Role accent colours — used for active nav indicator and role badge
-const roleStyle: Record<UserRole, { accent: string; muted: string; label: string }> = {
-  client:     { accent: "#7c3aed", muted: "#f5f3ff", label: "Client portal" },
-  writer:     { accent: "#047857", muted: "#ecfdf5", label: "Writer workspace" },
-  editor:     { accent: "#0369a1", muted: "#f0f9ff", label: "Editor workspace" },
-  support:    { accent: "#b45309", muted: "#fffbeb", label: "Support desk" },
-  admin:      { accent: "#334155", muted: "#f1f5f9", label: "Admin console" },
-  superadmin: { accent: "#be123c", muted: "#fff1f2", label: "Superadmin" },
+const roleLabel: Record<UserRole, string> = {
+  client:     "Client portal",
+  writer:     "Writer workspace",
+  editor:     "Editor workspace",
+  support:    "Support desk",
+  admin:      "Admin console",
+  superadmin: "Superadmin",
 };
 
-const theme = computed(() => roleStyle[props.role]);
+const theme = computed(() => ({ label: roleLabel[props.role] }));
 
 function syncOpenGroups() {
   navGroups.value.forEach((group) => {
@@ -69,122 +68,112 @@ onUnmounted(() => document.removeEventListener("mousedown", onUserMenuOutsideCli
     <!-- Mobile overlay -->
     <div
       v-if="ui.sidebarOpen"
-      class="fixed inset-0 z-20 bg-ink/40 backdrop-blur-sm lg:hidden"
+      class="fixed inset-0 z-20 bg-black/60 lg:hidden"
       role="presentation"
       @click="ui.closeSidebar()"
     />
 
-    <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
     <aside
-      class="fixed inset-y-0 left-0 z-30 flex w-72 flex-col bg-white shadow-[1px_0_0_0_#e2e8f0] transition-transform lg:z-20 lg:translate-x-0"
+      class="fixed inset-y-0 left-0 z-30 flex w-[220px] flex-col bg-zinc-950 transition-transform duration-200 lg:z-20 lg:translate-x-0"
       :class="ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
-      <!-- Role accent strip -->
-      <div class="h-0.5 w-full shrink-0" :style="{ background: theme.accent }" />
-
       <!-- Brand -->
-      <div class="flex h-15 shrink-0 items-center gap-3 border-b border-slate-100 px-4 py-3.5">
-        <div
-          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white text-xs font-bold tracking-tight select-none"
-          :style="{ background: theme.accent }"
-        >
+      <div class="flex h-11 shrink-0 items-center gap-2.5 border-b border-white/[0.06] px-3.5">
+        <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/[0.08] text-[10px] font-bold text-white">
           WS
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-bold text-ink tracking-tight leading-none">Writing System</p>
-          <p class="mt-0.5 text-[10px] font-medium leading-none" :style="{ color: theme.accent }">
-            {{ theme.label }}
-          </p>
+          <p class="truncate text-[13px] font-semibold leading-none tracking-tight text-zinc-100">WritingSystem</p>
+          <p class="mt-0.5 truncate text-[10px] text-zinc-500">{{ theme.label }}</p>
         </div>
         <button
-          class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-ink lg:hidden"
+          class="flex h-6 w-6 items-center justify-center rounded text-zinc-600 transition-colors hover:bg-white/[0.06] hover:text-zinc-300 lg:hidden"
           type="button"
           @click="ui.closeSidebar()"
         >
-          <X class="h-4 w-4" />
+          <X class="h-3.5 w-3.5" />
         </button>
       </div>
 
       <!-- Scrollable nav -->
-      <nav class="flex-1 overflow-y-auto px-3 py-3 space-y-0.5" aria-label="Main navigation">
-        <div v-for="group in navGroups" :key="group.label" class="mb-1">
+      <nav class="flex-1 overflow-y-auto px-2 py-2" aria-label="Main navigation">
+        <div v-for="group in navGroups" :key="group.label" class="mb-3">
           <button
             type="button"
-            class="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+            class="flex w-full items-center px-2.5 py-1"
             @click="toggleGroup(group.label)"
           >
-            <span>{{ group.label }}</span>
+            <span class="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+              {{ group.label }}
+            </span>
             <ChevronRight
-              class="h-3 w-3 transition-transform duration-200"
+              class="ml-auto h-2.5 w-2.5 text-zinc-700 transition-transform duration-150"
               :class="openGroups.has(group.label) ? 'rotate-90' : ''"
             />
           </button>
 
-          <div v-show="openGroups.has(group.label)" class="mt-0.5 space-y-0.5">
+          <div v-show="openGroups.has(group.label)" class="mt-0.5 space-y-px">
             <RouterLink
               v-for="item in group.items"
               :key="item.to"
               :to="item.to"
-              class="focus-ring group flex min-h-9 items-center gap-2.5 rounded-md pl-2 pr-3 text-sm font-medium transition-colors border-l-[3px]"
+              class="focus-ring group flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors"
               :class="isActive(item.to)
-                ? 'text-ink'
-                : 'border-transparent text-graphite hover:bg-slate-50 hover:text-ink'"
-              :style="isActive(item.to)
-                ? { borderLeftColor: theme.accent, backgroundColor: theme.muted, color: 'inherit' }
-                : {}"
+                ? 'bg-white/[0.08] text-white'
+                : 'text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100'"
             >
               <component
                 :is="item.icon"
-                class="h-4 w-4 shrink-0 transition-colors"
-                :class="isActive(item.to) ? '' : 'text-slate-400 group-hover:text-graphite'"
-                :style="isActive(item.to) ? { color: theme.accent } : {}"
+                class="h-[14px] w-[14px] shrink-0 transition-colors"
+                :class="isActive(item.to) ? 'text-white' : 'text-zinc-600 group-hover:text-zinc-400'"
                 aria-hidden="true"
               />
-              <span>{{ item.label }}</span>
+              {{ item.label }}
             </RouterLink>
           </div>
         </div>
       </nav>
 
       <!-- User footer -->
-      <div class="shrink-0 border-t border-slate-100 p-3">
+      <div class="shrink-0 space-y-px border-t border-white/[0.06] p-2">
         <RouterLink
           :to="`/${role}/account`"
-          class="focus-ring flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-slate-50"
+          class="focus-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors hover:bg-white/[0.04]"
           @click="ui.closeSidebar()"
         >
           <UserAvatar :user="auth.user" size="sm" />
           <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-semibold text-ink leading-tight">
+            <p class="truncate text-[13px] font-medium leading-tight text-zinc-200">
               {{ auth.user?.full_name || auth.user?.email }}
             </p>
-            <p class="mt-0.5 text-xs text-graphite capitalize">{{ role }}</p>
+            <p class="mt-px text-[10px] capitalize text-zinc-500">{{ role }}</p>
           </div>
-          <Settings class="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+          <Settings class="h-[13px] w-[13px] shrink-0 text-zinc-700" aria-hidden="true" />
         </RouterLink>
         <button
-          class="focus-ring mt-1 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-graphite transition-colors hover:bg-rose-50 hover:text-berry"
+          class="focus-ring flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-zinc-600 transition-colors hover:bg-white/[0.04] hover:text-zinc-300"
           type="button"
           @click="auth.logout()"
         >
-          <LogOut class="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>Sign out</span>
+          <LogOut class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          Sign out
         </button>
       </div>
     </aside>
 
-    <!-- ── Main area ─────────────────────────────────────────────────────────── -->
-    <div class="lg:pl-72">
+    <!-- ── Main area ───────────────────────────────────────────────────── -->
+    <div class="lg:pl-[220px]">
 
       <!-- Header -->
-      <header class="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur-sm lg:px-6">
+      <header class="sticky top-0 z-10 flex h-12 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur-sm lg:px-5">
         <button
-          class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-graphite hover:bg-slate-50 lg:hidden"
+          class="focus-ring inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 text-graphite hover:bg-slate-50 lg:hidden"
           type="button"
           title="Open navigation"
           @click="ui.toggleSidebar()"
         >
-          <Menu class="h-4 w-4" />
+          <Menu class="h-3.5 w-3.5" />
         </button>
 
         <GlobalSearch :role="role" class="flex-1" />
@@ -196,7 +185,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onUserMenuOutsideCli
 
           <!-- Live status -->
           <span
-            class="hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium md:inline-flex"
+            class="hidden items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium md:inline-flex"
             :class="isConnected
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
               : 'border-slate-200 bg-slate-50 text-slate-500'"
@@ -211,12 +200,12 @@ onUnmounted(() => document.removeEventListener("mousedown", onUserMenuOutsideCli
           <!-- User menu -->
           <div ref="userMenuRoot" class="relative">
             <button
-              class="focus-ring inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white pl-1.5 pr-3 text-sm font-medium transition-colors hover:bg-slate-50"
+              class="focus-ring inline-flex h-8 items-center gap-2 rounded border border-slate-200 bg-white pl-1.5 pr-2.5 text-[13px] font-medium transition-colors hover:bg-slate-50"
               type="button"
               @click="userMenuOpen = !userMenuOpen"
             >
               <UserAvatar :user="auth.user" size="sm" />
-              <span class="hidden max-w-32 truncate md:inline text-ink">
+              <span class="hidden max-w-28 truncate md:inline text-ink">
                 {{ auth.user?.full_name || auth.user?.email }}
               </span>
             </button>
@@ -231,26 +220,28 @@ onUnmounted(() => document.removeEventListener("mousedown", onUserMenuOutsideCli
             >
               <div
                 v-if="userMenuOpen"
-                class="absolute right-0 top-11 z-30 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+                class="absolute right-0 top-10 z-30 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
               >
-                <div class="px-4 py-3.5 border-b border-slate-100">
-                  <p class="truncate text-sm font-semibold text-ink">{{ auth.user?.full_name || auth.user?.email }}</p>
-                  <p class="mt-0.5 truncate text-xs text-graphite">{{ auth.user?.email }}</p>
+                <div class="border-b border-slate-100 px-3.5 py-2.5">
+                  <p class="truncate text-[13px] font-semibold text-ink">
+                    {{ auth.user?.full_name || auth.user?.email }}
+                  </p>
+                  <p class="mt-px truncate text-[11px] text-graphite">{{ auth.user?.email }}</p>
                 </div>
                 <RouterLink
-                  class="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-graphite transition-colors hover:bg-slate-50 hover:text-ink"
+                  class="flex items-center gap-2 px-3.5 py-2 text-[13px] font-medium text-graphite transition-colors hover:bg-slate-50 hover:text-ink"
                   :to="`/${role}/account`"
                   @click="userMenuOpen = false"
                 >
-                  <Settings class="h-4 w-4" />
+                  <Settings class="h-3.5 w-3.5" />
                   My account
                 </RouterLink>
                 <button
-                  class="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-2.5 text-sm font-medium text-graphite transition-colors hover:bg-rose-50 hover:text-berry"
+                  class="flex w-full items-center gap-2 border-t border-slate-100 px-3.5 py-2 text-[13px] font-medium text-graphite transition-colors hover:bg-rose-50 hover:text-berry"
                   type="button"
                   @click="auth.logout()"
                 >
-                  <LogOut class="h-4 w-4" />
+                  <LogOut class="h-3.5 w-3.5" />
                   Sign out
                 </button>
               </div>
@@ -260,7 +251,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onUserMenuOutsideCli
       </header>
 
       <!-- Page content -->
-      <main class="mx-auto w-full max-w-7xl px-4 py-6 lg:px-6">
+      <main class="mx-auto w-full max-w-7xl px-4 py-4 lg:px-5">
         <RouterView />
       </main>
     </div>
