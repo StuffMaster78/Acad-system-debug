@@ -108,31 +108,35 @@ function metricIcon(label: string): Component | undefined {
 
     <!-- ── Hero banner ─────────────────────────────────────────────────────── -->
     <div
-      class="relative overflow-hidden rounded-2xl bg-gradient-to-r p-6 text-white shadow-lg"
+      class="relative overflow-hidden rounded-2xl bg-gradient-to-br p-7 text-white shadow-lg"
       :class="theme.gradient"
     >
-      <!-- Subtle radial highlight -->
-      <div class="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10" />
-      <div class="pointer-events-none absolute -bottom-8 right-24 h-32 w-32 rounded-full bg-white/5" />
+      <!-- Decorative circles -->
+      <div class="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/[0.07]" />
+      <div class="pointer-events-none absolute -bottom-10 right-20 h-36 w-36 rounded-full bg-white/[0.04]" />
+      <div class="pointer-events-none absolute bottom-0 left-1/3 h-24 w-24 rounded-full bg-white/[0.03]" />
 
-      <div class="relative flex flex-wrap items-center justify-between gap-4">
+      <div class="relative flex flex-wrap items-center justify-between gap-5">
         <div>
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-sm font-medium text-white/70">{{ greeting }}</span>
-            <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="theme.badge">
+          <div class="flex items-center gap-2.5 mb-2">
+            <span class="text-sm font-medium text-white/60">{{ greeting }}</span>
+            <span
+              class="rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
+              :class="theme.badge"
+            >
               {{ role }}
             </span>
           </div>
-          <h1 class="text-2xl font-bold leading-tight">{{ dashboard.title }}</h1>
-          <p class="mt-1.5 max-w-xl text-sm leading-relaxed text-white/80">{{ dashboard.subtitle }}</p>
+          <h1 class="text-2xl font-bold leading-tight tracking-tight">{{ dashboard.title }}</h1>
+          <p class="mt-2 max-w-xl text-sm leading-relaxed text-white/75">{{ dashboard.subtitle }}</p>
         </div>
 
         <button
-          class="flex items-center gap-2 rounded-xl bg-white/15 px-5 py-2.5 text-sm font-semibold backdrop-blur transition hover:bg-white/25 active:scale-95"
+          class="group flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold backdrop-blur-sm transition hover:border-white/30 hover:bg-white/20 active:scale-95"
           type="button"
           @click="router.push(primaryActionTo)"
         >
-          <Zap class="h-4 w-4" />
+          <Zap class="h-4 w-4 transition group-hover:scale-110" />
           {{ dashboard.primaryAction }}
         </button>
       </div>

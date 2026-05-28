@@ -101,30 +101,31 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <section class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p class="text-sm font-semibold uppercase tracking-wide text-signal">Writer workspace</p>
-        <h1 class="mt-2 text-3xl font-semibold text-ink">
-          {{ workspace.profile?.display_name ?? "Assignment desk" }}
+        <h1 class="text-2xl font-bold text-ink">
+          {{ workspace.profile?.display_name ?? "My workspace" }}
         </h1>
-        <p class="mt-2 max-w-2xl text-sm text-graphite">
+        <p class="mt-1 text-sm text-graphite">
           {{ levelLabel }} · availability, active orders, and earnings at a glance.
         </p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex items-center gap-2">
         <button
-          class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+          class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-graphite transition-colors hover:bg-slate-50 disabled:opacity-50"
           type="button"
           :disabled="workspace.isLoading"
+          title="Refresh"
           @click="workspace.hydrate()"
         >
           <RefreshCw class="h-4 w-4" :class="workspace.isLoading ? 'animate-spin' : ''" />
-          Refresh
         </button>
         <button
-          class="focus-ring inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
-          :class="workspace.isAcceptingOrders ? 'bg-ink text-white' : 'border border-slate-200 bg-white text-ink'"
+          class="focus-ring inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-all disabled:opacity-60 shadow-sm"
+          :class="workspace.isAcceptingOrders
+            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+            : 'border border-slate-200 bg-white text-graphite hover:bg-slate-50'"
           type="button"
           :disabled="workspace.isMutating"
           @click="workspace.toggleAcceptingOrders()"

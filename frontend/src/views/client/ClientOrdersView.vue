@@ -103,37 +103,40 @@ onMounted(() => {
 
 <template>
   <div class="space-y-5">
-    <section class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <!-- Page header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p class="text-sm font-semibold uppercase text-signal">Client</p>
-        <h1 class="mt-2 text-3xl font-semibold text-ink">Orders</h1>
-        <p class="mt-2 max-w-2xl text-sm leading-6 text-graphite">
-          Track active work, payments, delivery status, revisions, and archived files.
+        <h1 class="text-2xl font-bold text-ink">My orders</h1>
+        <p class="mt-1 text-sm text-graphite">
+          Track active work, payments, delivery status, and revisions.
         </p>
       </div>
       <RouterLink
-        class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white"
+        class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-signal px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-signal/90"
         to="/client/new-order"
       >
         <Plus class="h-4 w-4" />
         New order
       </RouterLink>
-    </section>
+    </div>
 
     <p
       v-if="orders.error"
-      class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+      class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
     >
       {{ orders.error }}
     </p>
 
+    <!-- Filters row -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div class="inline-flex flex-wrap gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-1">
+      <div class="inline-flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
         <button
           v-for="tab in tabDefs"
           :key="tab.key"
-          class="focus-ring rounded-md px-3 py-2 text-xs font-semibold transition-colors"
-          :class="activeTab === tab.key ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+          class="focus-ring rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all"
+          :class="activeTab === tab.key
+            ? 'bg-white text-ink shadow-sm ring-1 ring-slate-200/80'
+            : 'text-graphite hover:text-ink'"
           type="button"
           @click="switchTab(tab.key)"
         >
@@ -143,18 +146,19 @@ onMounted(() => {
 
       <div class="flex items-center gap-2">
         <div class="relative">
-          <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
           <input
             v-model="searchQuery"
-            class="focus-ring h-10 w-56 rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm"
+            class="focus-ring h-9 w-52 rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm placeholder:text-slate-400"
             type="search"
             placeholder="Search orders…"
           />
         </div>
         <button
-          class="focus-ring inline-flex h-10 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold disabled:opacity-60"
+          class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-graphite transition-colors hover:bg-slate-50 disabled:opacity-50"
           type="button"
           :disabled="orders.isLoading"
+          title="Refresh"
           @click="orders.fetchOrders(orders.pagination.page, statusParam ? { status: statusParam } : {}).catch(() => undefined)"
         >
           <Loader2 v-if="orders.isLoading" class="h-4 w-4 animate-spin" />
