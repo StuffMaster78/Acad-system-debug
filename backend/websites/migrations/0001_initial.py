@@ -214,7 +214,7 @@ class Migration(migrations.Migration):
                 ('website', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='terms_acceptances', to='websites.website')),
             ],
             options={
-                'indexes': [models.Index(fields=['website', 'user'], name='websites_we_website_e63d85_idx'), models.Index(fields=['website', 'static_page', 'terms_version'], name='websites_we_website_de2180_idx')],
+                'indexes': [models.Index(fields=['website', 'static_page', 'terms_version'], name='websites_we_website_de2180_idx')],
             },
         ),
     ]

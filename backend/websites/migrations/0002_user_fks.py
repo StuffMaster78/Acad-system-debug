@@ -59,6 +59,10 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AddIndex(
+            model_name='websitetermsacceptance',
+            index=models.Index(fields=['website', 'user'], name='websites_we_website_e63d85_idx'),
+        ),
+        migrations.AddIndex(
             model_name='guestaccesstoken',
             index=models.Index(fields=['website', 'user'], name='websites_gu_website_029b81_idx'),
         ),

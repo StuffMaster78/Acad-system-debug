@@ -9,7 +9,7 @@ from writer_management.api.permissions import (
 )
 from writer_management.utils import get_writer_profile_for_website
 from writer_management.services.availability_service import AvailabilityService
-from writer_management.models.availability import WriterAvailabilityWindow
+from writer_management.models.writer_availability import WriterAvailabilityWindow
  
  
 class MyAvailabilityView(APIView):
