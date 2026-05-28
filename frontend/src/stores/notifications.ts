@@ -1,24 +1,15 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
-import { notificationsApi, type NotificationChannelPref, type NotificationPreferences, type DndConfig } from "@/api/notifications";
+import { notificationsApi, type MasterPreferences, type NotificationItem } from "@/api/notifications";
 
-export interface NotificationItem {
-  id?: number | string;
-  title?: string;
-  message?: string;
-  created_at?: string;
-  is_read?: boolean;
-  [key: string]: unknown;
+export type { NotificationItem };
+
+function hourToTime(h: number): string {
+  return `${String(h).padStart(2, "0")}:00`;
 }
 
-function defaultPrefs(): Record<string, NotificationChannelPref> {
-  return {
-    order_updates: { in_app: true, email: true },
-    messages: { in_app: true, email: false },
-    payments: { in_app: true, email: true },
-    support: { in_app: true, email: true },
-    system: { in_app: true, email: false },
-  };
+function timeToHour(t: string): number {
+  return parseInt(t.split(":")[0], 10);
 }
 
 export const useNotificationStore = defineStore("notifications", () => {
@@ -29,39 +20,36 @@ export const useNotificationStore = defineStore("notifications", () => {
   const pageSize = 20;
   const filter = ref<"all" | "unread" | "settings">("all");
 
-  const prefs = ref<Record<string, NotificationChannelPref>>(defaultPrefs());
+  // Master channel toggles (mapped from/to backend)
+  const emailEnabled = ref(true);
+  const inAppEnabled = ref(true);
+
+  // DND — stored as display strings (HH:MM) for the time inputs
+  const dndEnabled = ref(false);
+  const dndStart = ref("22:00");
+  const dndEnd = ref("07:00");
+
+  // Preference UI state
   const prefsLoading = ref(false);
   const prefsSaving = ref(false);
   const prefsError = ref("");
   const prefsSaved = ref(false);
 
-  const dnd = ref<DndConfig>({
-    enabled: false,
-    quiet_hours_enabled: false,
-    quiet_hours_start: "22:00",
-    quiet_hours_end: "07:00",
-  });
-
   const isDndActive = computed(() => {
-    if (!dnd.value.enabled) return false;
-    if (!dnd.value.quiet_hours_enabled) return true;
+    if (!dndEnabled.value) return false;
     const now = new Date();
     const cur = now.getHours() * 60 + now.getMinutes();
-    const [sh, sm] = dnd.value.quiet_hours_start.split(":").map(Number);
-    const [eh, em] = dnd.value.quiet_hours_end.split(":").map(Number);
-    const start = sh * 60 + sm;
-    const end = eh * 60 + em;
+    const [sh] = dndStart.value.split(":").map(Number);
+    const [eh] = dndEnd.value.split(":").map(Number);
+    const start = sh * 60;
+    const end = eh * 60;
     return start <= end ? cur >= start && cur < end : cur >= start || cur < end;
   });
 
-  const unreadCount = computed(
-    () => items.value.filter((item) => !item.is_read).length,
-  );
-
+  const unreadCount = computed(() => items.value.filter((n) => !n.is_read).length);
   const filteredItems = computed(() =>
-    filter.value === "unread" ? items.value.filter((item) => !item.is_read) : items.value,
+    filter.value === "unread" ? items.value.filter((n) => !n.is_read) : items.value,
   );
-
   const hasMore = computed(() => items.value.length < total.value);
 
   async function fetchNotifications() {
@@ -69,14 +57,8 @@ export const useNotificationStore = defineStore("notifications", () => {
     page.value = 1;
     try {
       const { data } = await notificationsApi.list({ page: 1, page_size: pageSize });
-      const raw = data as { results?: NotificationItem[]; count?: number } | NotificationItem[];
-      if (Array.isArray(raw)) {
-        items.value = raw;
-        total.value = raw.length;
-      } else {
-        items.value = raw.results ?? [];
-        total.value = raw.count ?? items.value.length;
-      }
+      items.value = data.results ?? [];
+      total.value = data.count ?? items.value.length;
     } finally {
       isLoading.value = false;
     }
@@ -88,11 +70,8 @@ export const useNotificationStore = defineStore("notifications", () => {
     const nextPage = page.value + 1;
     try {
       const { data } = await notificationsApi.list({ page: nextPage, page_size: pageSize });
-      const raw = data as { results?: NotificationItem[]; count?: number } | NotificationItem[];
-      const newItems = Array.isArray(raw) ? raw : (raw.results ?? []);
-      const newTotal = Array.isArray(raw) ? total.value : (raw.count ?? total.value);
-      items.value = [...items.value, ...newItems];
-      total.value = newTotal;
+      items.value = [...items.value, ...(data.results ?? [])];
+      total.value = data.count ?? total.value;
       page.value = nextPage;
     } finally {
       isLoading.value = false;
@@ -100,8 +79,8 @@ export const useNotificationStore = defineStore("notifications", () => {
   }
 
   async function markRead(id: number | string) {
-    items.value = items.value.map((item) =>
-      String(item.id) === String(id) ? { ...item, is_read: true } : item,
+    items.value = items.value.map((n) =>
+      String(n.id) === String(id) ? { ...n, is_read: true } : n,
     );
     try {
       await notificationsApi.markRead(id);
@@ -111,9 +90,12 @@ export const useNotificationStore = defineStore("notifications", () => {
   }
 
   async function markAllRead() {
-    const unread = items.value.filter((item) => !item.is_read && item.id);
-    items.value = items.value.map((item) => ({ ...item, is_read: true }));
-    await Promise.allSettled(unread.map((item) => notificationsApi.markRead(item.id!)));
+    items.value = items.value.map((n) => ({ ...n, is_read: true }));
+    try {
+      await notificationsApi.markAllRead();
+    } catch {
+      // optimistic — don't revert on failure
+    }
   }
 
   function push(notification: NotificationItem) {
@@ -122,28 +104,32 @@ export const useNotificationStore = defineStore("notifications", () => {
     total.value = Math.max(total.value, items.value.length);
   }
 
+  async function pollUnreadCount(): Promise<NotificationItem | null> {
+    try {
+      const { data } = await notificationsApi.poll();
+      // Sync unread count without refetching the whole list
+      if (typeof data.unread_count === "number") {
+        const currentUnread = items.value.filter((n) => !n.is_read).length;
+        if (data.unread_count > currentUnread && data.latest && !isDndActive.value) {
+          push(data.latest);
+        }
+      }
+      return data.latest ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async function fetchPreferences() {
     prefsLoading.value = true;
     prefsError.value = "";
     try {
       const { data } = await notificationsApi.getPreferences();
-      const defaults = defaultPrefs();
-      for (const key of Object.keys(defaults)) {
-        const fetched = (data as NotificationPreferences)[key] as NotificationChannelPref | undefined;
-        prefs.value[key] = {
-          in_app: fetched?.in_app ?? defaults[key].in_app,
-          email: fetched?.email ?? defaults[key].email,
-        };
-      }
-      const fetchedDnd = (data as NotificationPreferences)["dnd"] as DndConfig | undefined;
-      if (fetchedDnd) {
-        dnd.value = {
-          enabled: fetchedDnd.enabled ?? false,
-          quiet_hours_enabled: fetchedDnd.quiet_hours_enabled ?? false,
-          quiet_hours_start: fetchedDnd.quiet_hours_start ?? "22:00",
-          quiet_hours_end: fetchedDnd.quiet_hours_end ?? "07:00",
-        };
-      }
+      emailEnabled.value = data.email_enabled ?? true;
+      inAppEnabled.value = data.in_app_enabled ?? true;
+      dndEnabled.value = data.dnd_enabled ?? false;
+      dndStart.value = hourToTime(data.dnd_start_hour ?? 22);
+      dndEnd.value = hourToTime(data.dnd_end_hour ?? 7);
     } catch {
       prefsError.value = "Could not load preferences from server — using defaults.";
     } finally {
@@ -151,18 +137,19 @@ export const useNotificationStore = defineStore("notifications", () => {
     }
   }
 
-  function togglePref(category: string, channel: "in_app" | "email") {
-    if (!prefs.value[category]) prefs.value[category] = { in_app: true, email: false };
-    prefs.value[category][channel] = !prefs.value[category][channel];
-    prefsSaved.value = false;
-  }
-
   async function savePreferences() {
     prefsSaving.value = true;
     prefsError.value = "";
     prefsSaved.value = false;
+    const payload: Partial<MasterPreferences> = {
+      email_enabled: emailEnabled.value,
+      in_app_enabled: inAppEnabled.value,
+      dnd_enabled: dndEnabled.value,
+      dnd_start_hour: timeToHour(dndStart.value),
+      dnd_end_hour: timeToHour(dndEnd.value),
+    };
     try {
-      await notificationsApi.updatePreferences({ ...prefs.value, dnd: dnd.value });
+      await notificationsApi.updatePreferences(payload);
       prefsSaved.value = true;
     } catch {
       prefsError.value = "Could not save preferences. Please try again.";
@@ -177,12 +164,15 @@ export const useNotificationStore = defineStore("notifications", () => {
     page,
     total,
     filter,
-    prefs,
+    emailEnabled,
+    inAppEnabled,
+    dndEnabled,
+    dndStart,
+    dndEnd,
     prefsLoading,
     prefsSaving,
     prefsError,
     prefsSaved,
-    dnd,
     isDndActive,
     unreadCount,
     filteredItems,
@@ -192,8 +182,8 @@ export const useNotificationStore = defineStore("notifications", () => {
     markRead,
     markAllRead,
     push,
+    pollUnreadCount,
     fetchPreferences,
-    togglePref,
     savePreferences,
   };
 });

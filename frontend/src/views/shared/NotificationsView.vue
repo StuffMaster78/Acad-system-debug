@@ -9,13 +9,6 @@ defineProps<{ role: UserRole }>();
 
 const notifications = useNotificationStore();
 
-const categories: Array<{ key: string; label: string; description: string }> = [
-  { key: "order_updates", label: "Order updates", description: "Status changes, deliveries, and assignment events" },
-  { key: "messages", label: "Messages", description: "New messages on order threads and conversations" },
-  { key: "payments", label: "Payments", description: "Wallet top-ups, payment confirmations, and payouts" },
-  { key: "support", label: "Support", description: "Ticket replies, escalations, and resolutions" },
-  { key: "system", label: "System", description: "Platform announcements and administrative notices" },
-];
 
 function formatDate(value?: string) {
   if (!value) return "Just now";
@@ -140,61 +133,39 @@ onMounted(() => {
             </div>
             <button
               class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
-              :class="notifications.dnd.enabled ? 'bg-signal' : 'bg-slate-300'"
+              :class="notifications.dndEnabled ? 'bg-signal' : 'bg-slate-300'"
               type="button"
               role="switch"
-              :aria-checked="notifications.dnd.enabled"
+              :aria-checked="notifications.dndEnabled"
               aria-label="Enable Do Not Disturb"
-              @click="notifications.dnd.enabled = !notifications.dnd.enabled"
+              @click="notifications.dndEnabled = !notifications.dndEnabled"
             >
               <span
                 class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                :class="notifications.dnd.enabled ? 'translate-x-5' : 'translate-x-0'"
-              />
-            </button>
-          </div>
-
-          <!-- Quiet hours toggle -->
-          <div class="flex items-center justify-between px-5 py-4" :class="!notifications.dnd.enabled ? 'opacity-50 pointer-events-none' : ''">
-            <div>
-              <p class="text-sm font-medium text-ink">Quiet hours</p>
-              <p class="mt-0.5 text-xs text-graphite">DND activates automatically within this time window</p>
-            </div>
-            <button
-              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
-              :class="notifications.dnd.quiet_hours_enabled ? 'bg-signal' : 'bg-slate-300'"
-              type="button"
-              role="switch"
-              :aria-checked="notifications.dnd.quiet_hours_enabled"
-              aria-label="Enable quiet hours"
-              @click="notifications.dnd.quiet_hours_enabled = !notifications.dnd.quiet_hours_enabled"
-            >
-              <span
-                class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                :class="notifications.dnd.quiet_hours_enabled ? 'translate-x-5' : 'translate-x-0'"
+                :class="notifications.dndEnabled ? 'translate-x-5' : 'translate-x-0'"
               />
             </button>
           </div>
 
           <!-- Quiet hours time range -->
           <div
-            v-if="notifications.dnd.quiet_hours_enabled && notifications.dnd.enabled"
+            v-if="notifications.dndEnabled"
             class="grid grid-cols-2 gap-4 px-5 py-4"
           >
             <div>
-              <label class="block text-xs font-semibold text-graphite mb-1.5" for="qh-start">Start time</label>
+              <label class="block text-xs font-semibold text-graphite mb-1.5" for="qh-start">Quiet hours start</label>
               <input
                 id="qh-start"
-                v-model="notifications.dnd.quiet_hours_start"
+                v-model="notifications.dndStart"
                 type="time"
                 class="focus-ring h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
               />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-graphite mb-1.5" for="qh-end">End time</label>
+              <label class="block text-xs font-semibold text-graphite mb-1.5" for="qh-end">Quiet hours end</label>
               <input
                 id="qh-end"
-                v-model="notifications.dnd.quiet_hours_end"
+                v-model="notifications.dndEnd"
                 type="time"
                 class="focus-ring h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
               />
@@ -203,84 +174,71 @@ onMounted(() => {
         </div>
       </section>
 
-      <!-- Per-category preferences -->
+      <!-- Channel preferences -->
       <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-panel">
         <div class="border-b border-slate-200 px-5 py-4">
-          <h2 class="text-base font-semibold text-ink">Notification preferences</h2>
+          <h2 class="text-base font-semibold text-ink">Delivery channels</h2>
           <p class="mt-1 text-sm text-graphite">
-            Choose which events you want to hear about and through which channel.
+            Choose how you receive notifications across all event types.
           </p>
         </div>
 
         <div v-if="notifications.prefsLoading" class="space-y-px">
-          <div
-            v-for="n in 5"
-            :key="n"
-            class="animate-pulse border-b border-slate-100 px-5 py-4"
-            aria-hidden="true"
-          >
+          <div v-for="n in 2" :key="n" class="animate-pulse border-b border-slate-100 px-5 py-4">
             <div class="flex items-center justify-between gap-8">
               <div class="flex-1 space-y-2">
                 <div class="h-3.5 w-1/3 rounded bg-slate-200" />
                 <div class="h-3 w-1/2 rounded bg-slate-100" />
               </div>
               <div class="h-6 w-11 rounded-full bg-slate-200" />
-              <div class="h-6 w-11 rounded-full bg-slate-200" />
             </div>
           </div>
         </div>
 
         <template v-else>
-          <div class="grid grid-cols-[1fr_100px_100px] border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-graphite">
-            <span>Category</span>
-            <span class="text-center">In-app</span>
-            <span class="text-center">Email</span>
-          </div>
-
           <div class="divide-y divide-slate-100">
-            <div
-              v-for="cat in categories"
-              :key="cat.key"
-              class="grid grid-cols-[1fr_100px_100px] items-center px-5 py-4"
-            >
+            <!-- In-app toggle -->
+            <div class="flex items-center justify-between px-5 py-4">
               <div>
-                <p class="text-sm font-medium text-ink">{{ cat.label }}</p>
-                <p class="mt-0.5 text-xs leading-5 text-graphite">{{ cat.description }}</p>
+                <p class="text-sm font-medium text-ink">In-app notifications</p>
+                <p class="mt-0.5 text-xs text-graphite">Show alerts and the notification bell inside the platform</p>
               </div>
+              <button
+                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
+                :class="notifications.inAppEnabled ? 'bg-signal' : 'bg-slate-300'"
+                type="button"
+                role="switch"
+                :aria-checked="notifications.inAppEnabled"
+                aria-label="Enable in-app notifications"
+                @click="notifications.inAppEnabled = !notifications.inAppEnabled"
+              >
+                <span
+                  class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  :class="notifications.inAppEnabled ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </button>
+            </div>
 
-              <div class="flex justify-center">
-                <button
-                  class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
-                  :class="notifications.prefs[cat.key]?.in_app ? 'bg-signal' : 'bg-slate-300'"
-                  type="button"
-                  role="switch"
-                  :aria-checked="notifications.prefs[cat.key]?.in_app ?? true"
-                  :aria-label="`In-app notifications for ${cat.label}`"
-                  @click="notifications.togglePref(cat.key, 'in_app')"
-                >
-                  <span
-                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                    :class="notifications.prefs[cat.key]?.in_app ? 'translate-x-5' : 'translate-x-0'"
-                  />
-                </button>
+            <!-- Email toggle -->
+            <div class="flex items-center justify-between px-5 py-4">
+              <div>
+                <p class="text-sm font-medium text-ink">Email notifications</p>
+                <p class="mt-0.5 text-xs text-graphite">Receive notification emails for key events (order updates, payments)</p>
               </div>
-
-              <div class="flex justify-center">
-                <button
-                  class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
-                  :class="notifications.prefs[cat.key]?.email ? 'bg-signal' : 'bg-slate-300'"
-                  type="button"
-                  role="switch"
-                  :aria-checked="notifications.prefs[cat.key]?.email ?? false"
-                  :aria-label="`Email notifications for ${cat.label}`"
-                  @click="notifications.togglePref(cat.key, 'email')"
-                >
-                  <span
-                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                    :class="notifications.prefs[cat.key]?.email ? 'translate-x-5' : 'translate-x-0'"
-                  />
-                </button>
-              </div>
+              <button
+                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
+                :class="notifications.emailEnabled ? 'bg-signal' : 'bg-slate-300'"
+                type="button"
+                role="switch"
+                :aria-checked="notifications.emailEnabled"
+                aria-label="Enable email notifications"
+                @click="notifications.emailEnabled = !notifications.emailEnabled"
+              >
+                <span
+                  class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  :class="notifications.emailEnabled ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </button>
             </div>
           </div>
 
@@ -294,10 +252,7 @@ onMounted(() => {
               <Loader2 v-if="notifications.prefsSaving" class="h-4 w-4 animate-spin" />
               Save preferences
             </button>
-            <p
-              v-if="notifications.prefsSaved"
-              class="text-sm font-medium text-signal"
-            >
+            <p v-if="notifications.prefsSaved" class="text-sm font-medium text-signal">
               Preferences saved.
             </p>
           </div>
