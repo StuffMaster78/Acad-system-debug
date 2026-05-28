@@ -17,10 +17,6 @@ function previewManagedFiles(): ManagedFile[] {
   return [
     {
       id: 101,
-      name: "order-1-reference-brief.pdf",
-      size: 384_000,
-      type: "application/pdf",
-      status: "active",
       original_filename: "order-1-reference-brief.pdf",
       file_size_bytes: 384_000,
       mime_type: "application/pdf",
@@ -31,13 +27,9 @@ function previewManagedFiles(): ManagedFile[] {
     },
     {
       id: 102,
-      name: "writer-final-draft.docx",
-      size: 146_000,
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      status: "active",
       original_filename: "writer-final-draft.docx",
       file_size_bytes: 146_000,
-      mime_type: "application/docx",
+      mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       file_kind: "writer_deliverable",
       lifecycle_status: "active",
       scan_status: "clean",
@@ -45,10 +37,6 @@ function previewManagedFiles(): ManagedFile[] {
     },
     {
       id: 103,
-      name: "suspicious-upload.zip",
-      size: 4_200_000,
-      type: "application/zip",
-      status: "quarantined",
       original_filename: "suspicious-upload.zip",
       file_size_bytes: 4_200_000,
       mime_type: "application/zip",
@@ -72,10 +60,10 @@ export const useAdminFilesStore = defineStore("adminFiles", () => {
   const notice = ref("");
 
   const activeFiles = computed(() =>
-    files.value.filter((file) => (file.lifecycle_status ?? file.status) === "active"),
+    files.value.filter((file) => file.lifecycle_status === "active"),
   );
   const quarantinedFiles = computed(() =>
-    files.value.filter((file) => (file.lifecycle_status ?? file.status) === "quarantined"),
+    files.value.filter((file) => file.lifecycle_status === "quarantined"),
   );
   const pendingDeletionRequests = computed(() =>
     deletionRequests.value.filter((request) => request.status === "pending"),
@@ -105,7 +93,7 @@ export const useAdminFilesStore = defineStore("adminFiles", () => {
           {
             id: 601,
             url: "https://drive.example.com/reference-folder",
-            status: "pending_review",
+            review_status: "pending_review",
             provider: "google_drive",
             created_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
           },
@@ -121,7 +109,6 @@ export const useAdminFilesStore = defineStore("adminFiles", () => {
             allow_external_links: true,
             external_links_require_review: true,
             require_scan_before_download: true,
-            require_review_before_download: false,
             is_active: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -190,7 +177,7 @@ export const useAdminFilesStore = defineStore("adminFiles", () => {
       if (auth.isPreviewSession) {
         files.value = files.value.map((file) =>
           file.id === fileId
-            ? { ...file, status: "active", lifecycle_status: "active", scan_status: "clean" }
+            ? { ...file, lifecycle_status: "active", scan_status: "clean" }
             : file,
         );
         notice.value = "Preview file released from quarantine.";
@@ -218,7 +205,7 @@ export const useAdminFilesStore = defineStore("adminFiles", () => {
       const nextStatus = action === "approve" ? "approved" : "rejected";
       if (auth.isPreviewSession) {
         externalLinks.value = externalLinks.value.map((link) =>
-          link.id === linkId ? { ...link, status: nextStatus } : link,
+          link.id === linkId ? { ...link, review_status: nextStatus } : link,
         );
         notice.value = `Preview external link ${nextStatus}.`;
         return;

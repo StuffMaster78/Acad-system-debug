@@ -3,27 +3,23 @@ import { api, apiPath } from "./client";
 export type FilePurpose =
   | "order_instruction"
   | "order_reference"
-  | "order_deliverable"
-  | "style_reference"
+  | "order_draft"
+  | "order_final"
   | "order_revision"
+  | "style_reference"
+  | "extra_service_file"
   | "message_attachment";
 
 export type FileVisibility =
   | "order_participants"
   | "client_writer_staff"
   | "client_and_staff"
-  | "owner_only";
-
-export interface FileUploadResponse {
-  file_id: number;
-}
+  | "owner_only"
+  | "staff_only"
+  | "private";
 
 export interface ManagedFile {
   id?: number;
-  name?: string;
-  size?: number;
-  type?: string;
-  status?: string;
   uuid?: string;
   original_filename?: string;
   file_size_bytes?: number;
@@ -32,8 +28,17 @@ export interface ManagedFile {
   file_kind?: string;
   scan_status?: string;
   lifecycle_status?: string;
-  public_url?: string | null;
-  download_url?: string | null;
+  is_public?: boolean;
+  created_at?: string;
+}
+
+export interface ExternalFileLink {
+  id: number;
+  title?: string;
+  url: string;
+  provider?: string;
+  review_status?: string;
+  is_active?: boolean;
   created_at?: string;
 }
 
@@ -42,16 +47,16 @@ export interface FileAttachment {
   purpose: string;
   visibility: string;
   is_primary: boolean;
+  is_active?: boolean;
+  display_name?: string;
   managed_file?: ManagedFile | null;
+  external_link?: ExternalFileLink | null;
+  metadata?: Record<string, unknown>;
   attached_at: string;
 }
 
-export interface FileAttachPayload {
-  file_id: number;
-  object_id: number | string;
-  content_type: "order";
-  purpose: FilePurpose;
-  visibility: FileVisibility;
+export interface FileDownloadResponse {
+  url: string;
 }
 
 export interface FileDeletionRequest {
@@ -67,14 +72,6 @@ export interface FileDeletionRequest {
   updated_at?: string;
 }
 
-export interface ExternalFileLink {
-  id: number;
-  url: string;
-  status: string;
-  provider?: string;
-  created_at: string;
-}
-
 export interface FilePolicy {
   id: number;
   name: string;
@@ -83,9 +80,9 @@ export interface FilePolicy {
   allowed_extensions: string[];
   max_file_size_bytes: number;
   allow_external_links: boolean;
-  external_links_require_review: boolean;
+  external_links_require_review?: boolean;
   require_scan_before_download: boolean;
-  require_review_before_download: boolean;
+  require_review_before_download?: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -98,61 +95,96 @@ export interface AdminActionResponse {
   scan_status?: string;
 }
 
-type ListResponse<T> = T[] | { results: T[] };
+const PURPOSE_ENDPOINT: Record<string, string> = {
+  order_instruction: "instructions",
+  order_reference: "references",
+  style_reference: "style-references",
+  order_draft: "drafts",
+  order_final: "final",
+  order_revision: "revisions",
+  extra_service_file: "extra-services",
+};
+
+function orderFilePath(orderId: number | string, sub = "") {
+  return apiPath(`/orders/${orderId}/files/${sub}`);
+}
 
 export const filesApi = {
-  upload: (formData: FormData) =>
-    api.post<FileUploadResponse>(apiPath("/files/upload/"), formData, {
+  // Order-scoped file endpoints
+  orderFiles: (orderId: number | string) =>
+    api.get<FileAttachment[]>(orderFilePath(orderId)),
+
+  uploadToOrder: (
+    orderId: number | string,
+    purpose: FilePurpose,
+    file: File,
+    extra?: Record<string, string>,
+  ) => {
+    const sub = PURPOSE_ENDPOINT[purpose] ?? "references";
+    const formData = new FormData();
+    formData.append("file", file);
+    if (extra) {
+      for (const [k, v] of Object.entries(extra)) formData.append(k, v);
+    }
+    return api.post<FileAttachment>(orderFilePath(orderId, `${sub}/`), formData, {
       headers: { "Content-Type": "multipart/form-data" },
-    }),
-  attach: (payload: FileAttachPayload) =>
-    api.post<FileAttachment>(apiPath("/files/attach/"), payload),
-  orderAttachments: (orderId: number | string, params?: Record<string, unknown>) =>
-    api.get<FileAttachment[] | { results: FileAttachment[] }>(
-      apiPath("/files/attachments/"),
-      { params: { content_type: "order", object_id: orderId, ...params } },
-    ),
-  downloadUrl: (attachmentId: number | string) =>
-    apiPath(`/files/download/${attachmentId}/`),
+    });
+  },
+
+  orderFileDownload: (orderId: number | string, attachmentId: number | string) =>
+    api.get<FileDownloadResponse>(orderFilePath(orderId, `${attachmentId}/download/`)),
+
+  requestOrderFileDeletion: (
+    orderId: number | string,
+    attachmentId: number | string,
+    reason: string,
+    scope = "detach_only",
+  ) =>
+    api.post(orderFilePath(orderId, `${attachmentId}/request-deletion/`), { reason, scope }),
+
+  // Admin-only generic file management
   adminFiles: (params?: Record<string, unknown>) =>
     api.get<ManagedFile[]>(apiPath("/files/admin/files/"), { params }),
+
   adminDeletionRequests: (params?: Record<string, unknown>) =>
-    api.get<ListResponse<FileDeletionRequest>>(
+    api.get<{ results: FileDeletionRequest[] }>(
       apiPath("/files/admin/deletion-requests/"),
       { params },
     ),
+
   approveDeletionRequest: (requestId: number | string, admin_comment = "") =>
     api.post<AdminActionResponse>(
       apiPath(`/files/admin/deletion-requests/${requestId}/approve/`),
       { admin_comment },
     ),
+
   rejectDeletionRequest: (requestId: number | string, admin_comment: string) =>
     api.post<AdminActionResponse>(
       apiPath(`/files/admin/deletion-requests/${requestId}/reject/`),
       { admin_comment },
     ),
+
   completeDeletionRequest: (requestId: number | string, admin_comment = "") =>
     api.post<AdminActionResponse>(
       apiPath(`/files/admin/deletion-requests/${requestId}/complete/`),
       { admin_comment },
     ),
-  externalLinks: (params?: Record<string, unknown>) =>
-    api.get<ExternalFileLink[]>(apiPath("/files/admin/external-links/"), { params }),
-  approveExternalLink: (linkId: number | string, review_note = "") =>
-    api.post<AdminActionResponse>(
-      apiPath(`/files/admin/external-links/${linkId}/approve/`),
-      { review_note },
-    ),
-  rejectExternalLink: (linkId: number | string, review_note = "") =>
-    api.post<AdminActionResponse>(
-      apiPath(`/files/admin/external-links/${linkId}/reject/`),
-      { review_note },
-    ),
+
   policies: () =>
-    api.get<ListResponse<FilePolicy>>(apiPath("/files/admin/policies/")),
+    api.get<FilePolicy[]>(apiPath("/files/admin/policies/")),
+
   releaseQuarantine: (fileId: number | string, summary = "") =>
     api.post<AdminActionResponse>(
       apiPath(`/files/admin/files/${fileId}/release-quarantine/`),
       { summary },
     ),
+
+  externalLinks: (params?: Record<string, unknown>) =>
+    api.get<ExternalFileLink[]>(apiPath("/files/admin/external-links/"), { params }),
+
+  approveExternalLink: (linkId: number | string) =>
+    api.post<AdminActionResponse>(apiPath(`/files/admin/external-links/${linkId}/approve/`), {}),
+
+  rejectExternalLink: (linkId: number | string, reason = "") =>
+    api.post<AdminActionResponse>(apiPath(`/files/admin/external-links/${linkId}/reject/`), { reason }),
 };
