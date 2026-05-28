@@ -281,41 +281,48 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       :class="ui.sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-[220px]'"
     >
       <!-- Header -->
-      <header class="sticky top-0 z-10 flex h-12 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur-sm lg:px-5">
+      <header class="sticky top-0 z-10 flex h-13 items-center border-b border-slate-200 bg-white/95 px-4 backdrop-blur-sm lg:px-6">
+        <!-- Mobile burger -->
         <button
-          class="focus-ring inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 text-graphite hover:bg-slate-50 lg:hidden"
+          class="focus-ring mr-3 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-slate-200 text-graphite hover:bg-slate-50 lg:hidden"
           type="button"
           title="Open navigation"
           @click="ui.toggleSidebar()"
         >
-          <Menu class="h-3.5 w-3.5" />
+          <Menu class="h-4 w-4" />
         </button>
 
-        <GlobalSearch :role="role" class="flex-1" />
+        <!-- Search — takes all remaining space -->
+        <GlobalSearch :role="role" class="min-w-0 flex-1" />
 
-        <div class="flex items-center gap-1.5">
+        <!-- Right cluster: utilities -->
+        <div class="ml-4 flex items-center gap-3">
           <WalletBalancePill />
           <ActivityShortcut :role="role" />
           <NotificationBell />
 
-          <!-- Live status dot -->
+          <!-- Live status -->
           <span
-            class="hidden items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium md:inline-flex"
+            class="hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium md:inline-flex"
             :class="isConnected
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
               : 'border-slate-200 bg-slate-50 text-slate-500'"
           >
             <span
               class="h-1.5 w-1.5 rounded-full"
-              :class="isConnected ? 'bg-emerald-500' : 'bg-slate-400'"
+              :class="isConnected ? 'bg-emerald-400' : 'bg-slate-300'"
             />
             {{ isConnected ? "Live" : "Offline" }}
           </span>
+        </div>
 
-          <!-- Avatar-only user menu -->
-          <div ref="userMenuRoot" class="relative">
+        <!-- Divider -->
+        <div class="mx-4 h-5 w-px shrink-0 bg-slate-200" />
+
+        <!-- Avatar — pinned to far right -->
+        <div ref="userMenuRoot" class="relative shrink-0">
             <button
-              class="focus-ring flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white transition-colors hover:bg-slate-50"
+              class="focus-ring flex h-8 w-8 items-center justify-center rounded-full ring-2 ring-transparent transition-all hover:ring-slate-200"
               type="button"
               :title="auth.user?.full_name || auth.user?.email"
               @click="userMenuOpen = !userMenuOpen"
@@ -360,7 +367,6 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
               </div>
             </Transition>
           </div>
-        </div>
       </header>
 
       <!-- Page content -->
