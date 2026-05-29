@@ -5,7 +5,9 @@ export type CommunicationThreadKind =
   | "client_writer"
   | "revision"
   | "dispute"
-  | "internal";
+  | "internal"
+  | "moderation"
+  | "sensitive";
 
 export interface ThreadParticipant {
   id: number;
@@ -33,6 +35,7 @@ export interface MessageAttachment {
   type: string;
   url?: string;
   dataUrl?: string;
+  scan_status?: "clean" | "scanning" | "blocked" | string;
 }
 
 export interface CommunicationMessage {
@@ -50,6 +53,9 @@ export interface CommunicationMessage {
   is_system_generated: boolean;
   is_edited: boolean;
   attachments?: MessageAttachment[];
+  audience?: string;
+  flags?: string[];
+  moderation_status?: string;
   metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -101,4 +107,6 @@ export const communicationsApi = {
     api.get(apiPath("/communications/saved-replies/"), { params }),
   escalations: (params?: Record<string, unknown>) =>
     api.get(apiPath("/communications/escalations/"), { params }),
+  moderateMessage: (messageId: number, action: "approve" | "reject" | "warn") =>
+    api.post(apiPath(`/communications/messages/${messageId}/moderate/`), { action }),
 };

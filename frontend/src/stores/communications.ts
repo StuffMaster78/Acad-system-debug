@@ -66,17 +66,91 @@ export const useCommunicationsStore = defineStore("communications", () => {
         created_at: new Date(now - 1000 * 60 * 60 * 20).toISOString(),
         updated_at: new Date(now - 1000 * 60 * 60 * 5).toISOString(),
       },
+      {
+        id: 4,
+        target_type: "order",
+        target_id: 4,
+        kind: "moderation",
+        status: "open",
+        subject: "Flagged: potential contact exchange in order #4",
+        reference: "4",
+        last_message_at: new Date(now - 1000 * 60 * 8).toISOString(),
+        metadata: { source: "preview", unread_count: 3 },
+        created_at: new Date(now - 1000 * 60 * 30).toISOString(),
+        updated_at: new Date(now - 1000 * 60 * 8).toISOString(),
+      },
+      {
+        id: 5,
+        target_type: "order",
+        target_id: 5,
+        kind: "sensitive",
+        status: "open",
+        subject: "Account dispute — escalated",
+        reference: "5",
+        last_message_at: new Date(now - 1000 * 60 * 120).toISOString(),
+        metadata: { source: "preview", unread_count: 0 },
+        created_at: new Date(now - 1000 * 60 * 60 * 2).toISOString(),
+        updated_at: new Date(now - 1000 * 60 * 120).toISOString(),
+      },
     ];
   }
 
   function previewMessages(thread: CommunicationThread): CommunicationMessage[] {
     const now = Date.now();
+
+    if (thread.kind === "moderation") {
+      return [
+        {
+          id: 41,
+          thread: thread.id,
+          sender: 1001,
+          sender_display: "Client #C1001",
+          sender_role: "client",
+          sender_name: null,
+          message_type: "user",
+          status: "held",
+          body: "I was wondering if we could connect at john.doe@gmail.com for faster communication.",
+          parent: null,
+          is_internal: false,
+          is_system_generated: false,
+          is_edited: false,
+          flags: ["contact_leak"],
+          moderation_status: "held",
+          metadata: { source: "preview" },
+          created_at: new Date(now - 1000 * 60 * 20).toISOString(),
+          updated_at: new Date(now - 1000 * 60 * 20).toISOString(),
+        },
+        {
+          id: 42,
+          thread: thread.id,
+          sender: 1002,
+          sender_display: "Writer #W1002",
+          sender_role: "writer",
+          sender_name: null,
+          message_type: "user",
+          status: "held",
+          body: "Sure, you can reach me at writer_account@protonmail.com — we can sort it there.",
+          parent: null,
+          is_internal: false,
+          is_system_generated: false,
+          is_edited: false,
+          flags: ["contact_leak", "off_platform"],
+          moderation_status: "held",
+          metadata: { source: "preview" },
+          created_at: new Date(now - 1000 * 60 * 15).toISOString(),
+          updated_at: new Date(now - 1000 * 60 * 15).toISOString(),
+        },
+      ];
+    }
+
     return [
       {
         id: thread.id * 10 + 1,
         thread: thread.id,
         sender: 0,
         sender_display: "Client preview",
+        sender_role: "client",
+        sender_name: null,
         message_type: "user",
         status: "active",
         body: "Please keep the requirements easy to audit and flag anything that needs my input.",
@@ -94,6 +168,8 @@ export const useCommunicationsStore = defineStore("communications", () => {
         sender: 108,
         sender_display:
           thread.kind === "client_support" ? "Support desk" : "Assigned writer",
+        sender_role: thread.kind === "client_support" ? "support" : "writer",
+        sender_name: null,
         message_type: "user",
         status: "active",
         body:
@@ -356,6 +432,28 @@ export const useCommunicationsStore = defineStore("communications", () => {
     }
   }
 
+  async function moderateMessage(messageId: number, action: "approve" | "reject" | "warn") {
+    const auth = useAuthStore();
+    const newStatus = action === "approve" ? "approved" : action === "reject" ? "blocked" : "warned";
+
+    if (auth.isPreviewSession) {
+      messages.value = messages.value.map((m) =>
+        m.id === messageId ? { ...m, moderation_status: newStatus } : m,
+      );
+      notice.value = `Message ${newStatus}.`;
+      return;
+    }
+    try {
+      await communicationsApi.moderateMessage(messageId, action);
+      messages.value = messages.value.map((m) =>
+        m.id === messageId ? { ...m, moderation_status: newStatus } : m,
+      );
+      notice.value = `Message ${newStatus}.`;
+    } catch {
+      error.value = "Unable to moderate that message.";
+    }
+  }
+
   return {
     orderThreads,
     inboxThreads,
@@ -372,5 +470,6 @@ export const useCommunicationsStore = defineStore("communications", () => {
     createOrderThread,
     loadMessages,
     sendMessage,
+    moderateMessage,
   };
 });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
-import { ArrowLeft, CheckCircle2, ExternalLink, FileText, Image, Inbox, Lock, Loader2, Paperclip, Pencil, RefreshCw, Search, Send, X } from "@lucide/vue";
+import { AlertTriangle, ArrowLeft, CheckCircle2, ExternalLink, FileText, Image, Inbox, Lock, Loader2, Paperclip, Pencil, RefreshCw, Search, Send, ShieldCheck, ShieldOff, X } from "@lucide/vue";
 import type { CommunicationMessage, CommunicationThread, CommunicationThreadKind } from "@/api/communications";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
 import { useCommunicationsStore } from "@/stores/communications";
@@ -182,14 +182,83 @@ async function submitCompose() {
 
 // ── Role metadata ──────────────────────────────────────────────────────────────
 const ROLE_STYLE: Record<string, { border: string; badge: string; activeBadge: string; label: string }> = {
-  client:     { border: "border-l-blue-400",    badge: "bg-blue-100 text-blue-800",       activeBadge: "bg-blue-500 text-white",       label: "Client" },
-  writer:     { border: "border-l-emerald-400", badge: "bg-emerald-100 text-emerald-800", activeBadge: "bg-emerald-600 text-white",    label: "Writer" },
-  support:    { border: "border-l-amber-400",   badge: "bg-amber-100 text-amber-800",     activeBadge: "bg-amber-500 text-white",      label: "Support" },
-  admin:      { border: "border-l-violet-400",  badge: "bg-violet-100 text-violet-800",   activeBadge: "bg-violet-600 text-white",     label: "Admin" },
-  editor:     { border: "border-l-cyan-400",    badge: "bg-cyan-100 text-cyan-800",       activeBadge: "bg-cyan-600 text-white",       label: "Editor" },
-  superadmin: { border: "border-l-rose-400",    badge: "bg-rose-100 text-rose-800",       activeBadge: "bg-rose-600 text-white",       label: "Superadmin" },
-  system:     { border: "border-l-slate-300",   badge: "bg-slate-100 text-slate-500",     activeBadge: "bg-slate-400 text-white",      label: "System" },
-  internal:   { border: "border-l-slate-400",   badge: "bg-slate-100 text-slate-600",     activeBadge: "bg-slate-600 text-white",      label: "Staff note" },
+  client:        { border: "border-l-blue-400",    badge: "bg-blue-100 text-blue-800",       activeBadge: "bg-blue-500 text-white",       label: "Client" },
+  writer:        { border: "border-l-emerald-400", badge: "bg-emerald-100 text-emerald-800", activeBadge: "bg-emerald-600 text-white",    label: "Writer" },
+  support:       { border: "border-l-amber-400",   badge: "bg-amber-100 text-amber-800",     activeBadge: "bg-amber-500 text-white",      label: "Support" },
+  admin:         { border: "border-l-violet-400",  badge: "bg-violet-100 text-violet-800",   activeBadge: "bg-violet-600 text-white",     label: "Admin" },
+  editor:        { border: "border-l-cyan-400",    badge: "bg-cyan-100 text-cyan-800",       activeBadge: "bg-cyan-600 text-white",       label: "Editor" },
+  superadmin:    { border: "border-l-rose-400",    badge: "bg-rose-100 text-rose-800",       activeBadge: "bg-rose-600 text-white",       label: "Superadmin" },
+  system:        { border: "border-l-slate-300",   badge: "bg-slate-100 text-slate-500",     activeBadge: "bg-slate-400 text-white",      label: "System" },
+  internal:      { border: "border-l-slate-400",   badge: "bg-slate-100 text-slate-600",     activeBadge: "bg-slate-600 text-white",      label: "Staff note" },
+  client_writer: { border: "border-l-violet-300",  badge: "bg-violet-100 text-violet-700",   activeBadge: "bg-violet-600 text-white",     label: "Client + Writer" },
+};
+
+// ── Thread access control ──────────────────────────────────────────────────────
+const THREAD_ROLE_ACCESS: Record<string, string[]> = {
+  client_support: ["client", "support", "admin", "superadmin"],
+  client_writer:  ["client", "writer", "support", "admin", "superadmin"],
+  revision:       ["client", "writer", "editor", "support", "admin", "superadmin"],
+  dispute:        ["client", "support", "admin", "superadmin"],
+  internal:       ["support", "admin", "editor", "superadmin"],
+  moderation:     ["admin", "superadmin"],
+  sensitive:      ["admin", "superadmin"],
+};
+
+function canAccessThread(thread: CommunicationThread): boolean {
+  const allowed = THREAD_ROLE_ACCESS[thread.kind];
+  if (!allowed) return true;
+  return allowed.includes(props.role);
+}
+
+// ── Audience labels + chips ────────────────────────────────────────────────────
+const AUDIENCE_LABELS: Record<string, string> = {
+  internal:      "Staff only",
+  client:        "Client only",
+  writer:        "Writer only",
+  client_writer: "Client + Writer",
+};
+const AUDIENCE_CHIP_CLASS: Record<string, string> = {
+  internal:      "bg-slate-200 text-slate-600",
+  client:        "bg-blue-100 text-blue-700",
+  writer:        "bg-emerald-100 text-emerald-700",
+  client_writer: "bg-violet-100 text-violet-700",
+};
+
+function msgAudience(msg: CommunicationMessage): string | null {
+  if (msg.is_internal) return "internal";
+  const raw = msg.audience ?? (msg.metadata?.recipient_role as string | undefined);
+  return raw ?? null;
+}
+function audienceLabel(msg: CommunicationMessage): string | null {
+  const aud = msgAudience(msg);
+  return aud ? (AUDIENCE_LABELS[aud] ?? aud) : null;
+}
+function audienceChipClass(msg: CommunicationMessage): string {
+  const aud = msgAudience(msg);
+  return aud ? (AUDIENCE_CHIP_CLASS[aud] ?? "bg-slate-100 text-slate-600") : "";
+}
+
+// ── Message flags ──────────────────────────────────────────────────────────────
+const FLAG_META: Record<string, { label: string; cls: string }> = {
+  contact_leak:      { label: "Contact leak",     cls: "bg-amber-100 text-amber-800" },
+  off_platform:      { label: "Off-platform",     cls: "bg-amber-100 text-amber-800" },
+  risky_link:        { label: "Risky link",        cls: "bg-orange-100 text-orange-800" },
+  unsafe_attachment: { label: "Unsafe attachment", cls: "bg-red-100 text-red-800" },
+};
+
+// ── Moderation status display ──────────────────────────────────────────────────
+const MOD_STATUS_META: Record<string, { label: string; cls: string }> = {
+  held:     { label: "Held",     cls: "bg-amber-100 text-amber-800" },
+  blocked:  { label: "Blocked",  cls: "bg-red-100 text-red-800" },
+  approved: { label: "Approved", cls: "bg-emerald-100 text-emerald-700" },
+  warned:   { label: "Warned",   cls: "bg-orange-100 text-orange-800" },
+};
+
+// ── Attachment scan status ─────────────────────────────────────────────────────
+const SCAN_META: Record<string, { label: string; cls: string }> = {
+  clean:    { label: "Verified",  cls: "text-emerald-600" },
+  blocked:  { label: "Blocked",   cls: "text-red-600" },
+  scanning: { label: "Scanning…", cls: "text-slate-500" },
 };
 
 function roleStyle(role: string) {
@@ -198,6 +267,17 @@ function roleStyle(role: string) {
 
 const STAFF_ROLES = new Set(["admin", "support", "editor", "superadmin"]);
 const isStaff = computed(() => STAFF_ROLES.has(props.role));
+
+// ── Recipient display label (audience-qualified for staff) ────────────────────
+function recipientLabel(role: string): string {
+  if (isStaff.value) {
+    if (role === "client")        return "Client only";
+    if (role === "writer")        return "Writer only";
+    if (role === "internal")      return "Staff only";
+    if (role === "client_writer") return "Client + Writer";
+  }
+  return roleStyle(role).label;
+}
 
 // ── New message recipient options (no thread context) ─────────────────────────
 const newMessageRecipients = computed<RecipientOption[]>(() => {
@@ -222,10 +302,10 @@ const newMessageRecipients = computed<RecipientOption[]>(() => {
     case "admin":
     case "superadmin":
       return [
-        { value: "client",   label: "Client" },
-        { value: "writer",   label: "Writer" },
+        { value: "client",   label: "Client only" },
+        { value: "writer",   label: "Writer only" },
         { value: "editor",   label: "Editor" },
-        { value: "internal", label: "Staff note" },
+        { value: "internal", label: "Staff only" },
       ];
     default:
       return [];
@@ -247,6 +327,8 @@ const KIND_PARTICIPANTS: Record<string, string[]> = {
   revision:       ["client", "writer", "editor"],
   dispute:        ["client", "support", "admin"],
   internal:       ["admin", "support"],
+  moderation:     ["admin", "superadmin"],
+  sensitive:      ["admin", "superadmin"],
 };
 
 function participantsFromKind(kind: string): string[] {
@@ -276,11 +358,14 @@ const availableRecipients = computed<RecipientOption[]>(() => {
 
   const options: RecipientOption[] = others.map((r) => ({
     value: r,
-    label: roleStyle(r).label,
+    label: recipientLabel(r),
   }));
 
   if (isStaff.value) {
-    options.push({ value: "internal", label: "Staff note" });
+    if (others.includes("client") && others.includes("writer")) {
+      options.unshift({ value: "client_writer", label: "Client + Writer" });
+    }
+    options.push({ value: "internal", label: "Staff only" });
   }
 
   return options;
@@ -380,8 +465,31 @@ function kindLabel(kind: string): string {
     revision:       "Revision",
     dispute:        "Dispute",
     internal:       "Internal",
+    moderation:     "Moderation",
+    sensitive:      "Sensitive",
   };
   return map[kind] ?? kind.replace(/_/g, " ");
+}
+
+// ── Moderation thread guard ────────────────────────────────────────────────────
+const isModerationThread = computed(
+  () => comms.activeThread?.kind === "moderation",
+);
+
+// ── Identity masking for moderation/sensitive threads ─────────────────────────
+function maskedDisplay(group: { isOwn: boolean; senderRole: string; senderId: number | null | undefined; senderDisplay: string }): string {
+  if (group.isOwn) return "You";
+  const kind = comms.activeThread?.kind;
+  if (kind === "moderation" || kind === "sensitive") {
+    if (group.senderRole === "client") return `Client #C${group.senderId ?? "?"}`;
+    if (group.senderRole === "writer") return `Writer #W${group.senderId ?? "?"}`;
+  }
+  return group.senderDisplay;
+}
+
+// ── Moderation actions ─────────────────────────────────────────────────────────
+async function moderateMsg(msgId: number, action: "approve" | "reject" | "warn") {
+  await comms.moderateMessage(msgId, action);
 }
 
 // ── Scroll to bottom on new messages ─────────────────────────────────────────
@@ -440,10 +548,11 @@ onUnmounted(() => {
 
 // ── Stub avatar user shape for UserAvatar ─────────────────────────────────────
 function senderUser(group: MessageGroup) {
+  const display = maskedDisplay(group);
   return {
     id: group.senderId ?? 0,
-    email: group.senderDisplay,
-    full_name: group.isOwn ? (auth.user?.full_name ?? group.senderDisplay) : group.senderDisplay,
+    email: display,
+    full_name: group.isOwn ? (auth.user?.full_name ?? display) : display,
     avatar_url: group.isOwn ? auth.user?.avatar_url : null,
   };
 }
@@ -564,21 +673,27 @@ function senderUser(group: MessageGroup) {
         <button
           v-for="thread in filteredThreads"
           :key="thread.id"
-          class="focus-ring w-full px-4 py-3.5 text-left transition-colors hover:bg-slate-50"
-          :class="thread.id === comms.activeThread?.id ? 'bg-slate-50' : 'bg-white'"
+          class="focus-ring w-full px-4 py-3.5 text-left transition-colors"
+          :class="[
+            !canAccessThread(thread) ? 'cursor-not-allowed opacity-50 bg-white' :
+              thread.id === comms.activeThread?.id ? 'bg-slate-50' : 'bg-white hover:bg-slate-50',
+          ]"
           type="button"
-          @click="pickThread(thread)"
+          :disabled="!canAccessThread(thread)"
+          @click="canAccessThread(thread) && pickThread(thread)"
         >
           <div class="flex items-start justify-between gap-2">
-            <p class="line-clamp-2 text-sm font-semibold leading-5 text-ink">
-              {{ thread.subject || `Thread #${thread.id}` }}
+            <p class="line-clamp-2 text-sm font-semibold leading-5"
+               :class="canAccessThread(thread) ? 'text-ink' : 'text-graphite'">
+              <Lock v-if="!canAccessThread(thread)" class="mr-1 inline-block h-3 w-3 align-middle" />
+              {{ canAccessThread(thread) ? (thread.subject || `Thread #${thread.id}`) : 'Access restricted' }}
             </p>
             <span
-              v-if="unreadCount(thread)"
+              v-if="unreadCount(thread) && canAccessThread(thread)"
               class="shrink-0 rounded-full bg-signal px-2 py-0.5 text-xs font-bold text-white"
             >{{ unreadCount(thread) }}</span>
           </div>
-          <div class="mt-1.5 flex flex-wrap gap-1">
+          <div v-if="canAccessThread(thread)" class="mt-1.5 flex flex-wrap gap-1">
             <span
               v-for="p in threadParticipants(thread)"
               :key="p"
@@ -586,8 +701,11 @@ function senderUser(group: MessageGroup) {
               :class="roleStyle(p).badge"
             >{{ roleStyle(p).label }}</span>
           </div>
-          <p class="mt-1.5 text-xs text-slate-400">
+          <p v-if="canAccessThread(thread)" class="mt-1.5 text-xs text-slate-400">
             #{{ thread.target_id }} · {{ dateLabel(thread.last_message_at) || "No messages" }}
+          </p>
+          <p v-else class="mt-1 text-xs text-slate-400">
+            {{ kindLabel(thread.kind) }} · visible to {{ (THREAD_ROLE_ACCESS[thread.kind] ?? []).join(", ") || "admins" }} only
           </p>
         </button>
       </div>
@@ -802,7 +920,7 @@ function senderUser(group: MessageGroup) {
               <!-- Sender identity row -->
               <div class="flex items-center gap-2" :class="group.isOwn ? 'flex-row-reverse' : 'flex-row'">
                 <span class="text-xs font-semibold text-ink">
-                  {{ group.isOwn ? "You" : group.senderDisplay }}
+                  {{ maskedDisplay(group) }}
                 </span>
                 <span
                   class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
@@ -825,40 +943,112 @@ function senderUser(group: MessageGroup) {
                 v-for="msg in group.messages"
                 :key="msg.id"
                 class="w-full"
-                :class="group.isOwn ? 'flex justify-end' : ''"
+                :class="group.isOwn ? 'flex flex-col items-end' : ''"
               >
                 <div
                   class="relative max-w-full rounded-2xl px-4 py-2.5 text-sm leading-6"
                   :class="[
-                    msg.is_internal
-                      ? 'border border-dashed border-slate-300 bg-slate-100 text-slate-600 italic'
-                      : group.isOwn
-                        ? 'rounded-br-sm bg-ink text-white'
-                        : `rounded-bl-sm border border-slate-200 border-l-4 bg-white text-graphite ${roleStyle(group.senderRole).border}`,
+                    msg.moderation_status === 'held' || msg.moderation_status === 'blocked'
+                      ? 'border border-dashed border-amber-300 bg-amber-50 text-amber-900'
+                      : msg.is_internal
+                        ? 'border border-dashed border-slate-300 bg-slate-100 text-slate-600 italic'
+                        : group.isOwn
+                          ? 'rounded-br-sm bg-ink text-white'
+                          : `rounded-bl-sm border border-slate-200 border-l-4 bg-white text-graphite ${roleStyle(group.senderRole).border}`,
                   ]"
                 >
+                  <!-- Flag pills (shown inside bubble header when flagged) -->
+                  <div v-if="msg.flags?.length" class="mb-2 flex flex-wrap gap-1">
+                    <span
+                      v-for="flag in msg.flags"
+                      :key="flag"
+                      class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                      :class="FLAG_META[flag]?.cls ?? 'bg-slate-100 text-slate-600'"
+                    >
+                      <AlertTriangle class="h-3 w-3" />
+                      {{ FLAG_META[flag]?.label ?? flag }}
+                    </span>
+                  </div>
+
                   <p v-if="msg.body" class="whitespace-pre-wrap">{{ msg.body }}</p>
-                  <!-- Attachments in received messages -->
+
+                  <!-- Attachments -->
                   <div v-if="msg.attachments?.length" class="mt-2 flex flex-wrap gap-2">
                     <a
-                      v-for="(att, ai) in (msg.attachments as Array<{name: string; type: string; url?: string; dataUrl?: string}>)"
+                      v-for="(att, ai) in (msg.attachments as Array<{name: string; type: string; url?: string; dataUrl?: string; scan_status?: string}>)"
                       :key="ai"
-                      :href="att.url ?? att.dataUrl ?? '#'"
-                      target="_blank"
+                      :href="att.scan_status === 'blocked' ? '#' : (att.url ?? att.dataUrl ?? '#')"
+                      :target="att.scan_status === 'blocked' ? '_self' : '_blank'"
                       class="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-xs hover:bg-white/20"
+                      :class="att.scan_status === 'blocked' ? 'cursor-not-allowed opacity-60' : ''"
                     >
-                      <Image v-if="att.type?.startsWith('image/')" class="h-3.5 w-3.5 shrink-0" />
+                      <ShieldOff v-if="att.scan_status === 'blocked'" class="h-3.5 w-3.5 shrink-0 text-red-500" />
+                      <ShieldCheck v-else-if="att.scan_status === 'clean'" class="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                      <Image v-else-if="att.type?.startsWith('image/')" class="h-3.5 w-3.5 shrink-0" />
                       <FileText v-else class="h-3.5 w-3.5 shrink-0" />
                       <span class="max-w-[120px] truncate">{{ att.name }}</span>
+                      <span
+                        v-if="att.scan_status && SCAN_META[att.scan_status]"
+                        class="text-xs font-medium"
+                        :class="SCAN_META[att.scan_status]?.cls"
+                      >{{ SCAN_META[att.scan_status]?.label }}</span>
                     </a>
                   </div>
-                  <p
-                    class="mt-1 text-right text-xs"
-                    :class="group.isOwn && !msg.is_internal ? 'text-white/60' : 'text-slate-400'"
+
+                  <!-- Bubble footer: timestamp + audience chip + mod status -->
+                  <div class="mt-1 flex flex-wrap items-center justify-end gap-2">
+                    <!-- Audience chip (skip for internal — already badged above) -->
+                    <span
+                      v-if="audienceLabel(msg) && !msg.is_internal"
+                      class="rounded-full px-2 py-0.5 text-xs font-medium"
+                      :class="audienceChipClass(msg)"
+                    >{{ audienceLabel(msg) }}</span>
+                    <!-- Moderation status pill -->
+                    <span
+                      v-if="msg.moderation_status && MOD_STATUS_META[msg.moderation_status]"
+                      class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                      :class="MOD_STATUS_META[msg.moderation_status]?.cls"
+                    >{{ MOD_STATUS_META[msg.moderation_status]?.label }}</span>
+                    <p
+                      class="text-xs"
+                      :class="group.isOwn && !msg.is_internal && !msg.moderation_status ? 'text-white/60' : 'text-slate-400'"
+                    >
+                      {{ dateLabel(msg.created_at) }}
+                      <span v-if="msg.is_edited"> · edited</span>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Moderation actions (staff only, held/blocked messages) -->
+                <div
+                  v-if="isStaff && (msg.moderation_status === 'held' || msg.moderation_status === 'blocked')"
+                  class="mt-1.5 flex items-center gap-1.5"
+                  :class="group.isOwn ? 'justify-end' : ''"
+                >
+                  <button
+                    type="button"
+                    class="focus-ring inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                    @click="moderateMsg(msg.id, 'approve')"
                   >
-                    {{ dateLabel(msg.created_at) }}
-                    <span v-if="msg.is_edited"> · edited</span>
-                  </p>
+                    <ShieldCheck class="h-3 w-3" />
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    class="focus-ring inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                    @click="moderateMsg(msg.id, 'reject')"
+                  >
+                    <ShieldOff class="h-3 w-3" />
+                    Reject
+                  </button>
+                  <button
+                    type="button"
+                    class="focus-ring inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+                    @click="moderateMsg(msg.id, 'warn')"
+                  >
+                    <AlertTriangle class="h-3 w-3" />
+                    Warn
+                  </button>
                 </div>
               </div>
             </div>
@@ -873,6 +1063,15 @@ function senderUser(group: MessageGroup) {
           class="flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-400"
         >
           Select a thread to reply
+        </div>
+
+        <!-- Moderation threads are read-only — show notice instead of composer -->
+        <div
+          v-else-if="isModerationThread"
+          class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          <Lock class="h-4 w-4 shrink-0" />
+          Moderation threads are read-only. Use the Approve / Reject / Warn buttons on flagged messages above.
         </div>
 
         <form v-else class="flex flex-col gap-3" @submit.prevent="sendMessage">
