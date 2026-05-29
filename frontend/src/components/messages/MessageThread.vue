@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
-import { AlertTriangle, ArrowLeft, CheckCircle2, ExternalLink, FileText, Image, Inbox, Lock, Loader2, Paperclip, Pencil, RefreshCw, Search, Send, ShieldCheck, ShieldOff, X } from "@lucide/vue";
+import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardList, ExternalLink, FileText, Image, Info, Inbox, Lock, Loader2, Paperclip, Pencil, RefreshCw, Search, Send, ShieldCheck, ShieldOff, Users, X } from "@lucide/vue";
 import type { CommunicationMessage, CommunicationThread, CommunicationThreadKind } from "@/api/communications";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
 import { useCommunicationsStore } from "@/stores/communications";
@@ -490,6 +490,7 @@ function maskedDisplay(group: { isOwn: boolean; senderRole: string; senderId: nu
 // ── Moderation actions ─────────────────────────────────────────────────────────
 async function moderateMsg(msgId: number, action: "approve" | "reject" | "warn") {
   await comms.moderateMessage(msgId, action);
+  auditLog.value.unshift({ action, messageId: msgId, at: new Date().toISOString() });
 }
 
 // ── Scroll to bottom on new messages ─────────────────────────────────────────
@@ -546,6 +547,47 @@ onUnmounted(() => {
   document.removeEventListener("visibilitychange", onVisibilityChange);
 });
 
+// ── Right panel (staff) ────────────────────────────────────────────────────────
+const showRightPanel = ref(false);
+
+interface AuditEntry {
+  action: "approve" | "reject" | "warn";
+  messageId: number;
+  at: string;
+}
+const auditLog = ref<AuditEntry[]>([]);
+
+watch(
+  () => comms.activeThread?.id,
+  () => { auditLog.value = []; },
+);
+
+const flagsSummary = computed(() => {
+  const counts: Record<string, number> = {};
+  for (const msg of comms.messages) {
+    for (const flag of msg.flags ?? []) {
+      counts[flag] = (counts[flag] ?? 0) + 1;
+    }
+  }
+  return Object.entries(counts).map(([flag, count]) => ({
+    flag,
+    count,
+    label: FLAG_META[flag]?.label ?? flag,
+    cls: FLAG_META[flag]?.cls ?? "bg-slate-100 text-slate-600",
+  }));
+});
+
+const auditActionLabel: Record<string, string> = {
+  approve: "Approved",
+  reject: "Rejected",
+  warn: "Warned sender",
+};
+const auditActionClass: Record<string, string> = {
+  approve: "text-emerald-700",
+  reject: "text-red-700",
+  warn: "text-amber-700",
+};
+
 // ── Stub avatar user shape for UserAvatar ─────────────────────────────────────
 function senderUser(group: MessageGroup) {
   const display = maskedDisplay(group);
@@ -559,7 +601,12 @@ function senderUser(group: MessageGroup) {
 </script>
 
 <template>
-  <section class="grid min-h-[640px] gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+  <section
+    class="grid min-h-[640px] gap-4"
+    :class="showRightPanel && isStaff
+      ? 'xl:grid-cols-[280px_minmax(0,1fr)_256px]'
+      : 'xl:grid-cols-[320px_minmax(0,1fr)]'"
+  >
     <!-- ── Thread list (inbox sidebar) ──────────────────────────────────────── -->
     <aside
       class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white"
@@ -881,6 +928,19 @@ function senderUser(group: MessageGroup) {
             <ExternalLink class="h-3.5 w-3.5" />
             Open order
           </RouterLink>
+          <!-- Thread details panel toggle (staff only) -->
+          <button
+            v-if="isStaff && comms.activeThread"
+            class="focus-ring hidden rounded-md border p-1.5 xl:block"
+            :class="showRightPanel
+              ? 'border-signal bg-signal/5 text-signal'
+              : 'border-slate-200 text-slate-400 hover:text-ink'"
+            type="button"
+            :title="showRightPanel ? 'Hide thread details' : 'Show thread details'"
+            @click="showRightPanel = !showRightPanel"
+          >
+            <Info class="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
@@ -1187,5 +1247,113 @@ function senderUser(group: MessageGroup) {
         </form>
       </div>
     </main>
+
+    <!-- ── Staff right panel ───────────────────────────────────────────────── -->
+    <aside
+      v-if="isStaff && showRightPanel && comms.activeThread"
+      class="hidden flex-col gap-4 overflow-y-auto xl:flex"
+    >
+      <!-- Thread overview -->
+      <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div class="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+          <Info class="h-3.5 w-3.5 shrink-0 text-signal" />
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-graphite">Thread info</h3>
+        </div>
+        <dl class="divide-y divide-slate-100 text-xs">
+          <div class="flex items-start justify-between gap-2 px-4 py-2.5">
+            <dt class="text-graphite">Kind</dt>
+            <dd class="font-medium text-ink capitalize">{{ kindLabel(comms.activeThread.kind) }}</dd>
+          </div>
+          <div class="flex items-start justify-between gap-2 px-4 py-2.5">
+            <dt class="text-graphite">Status</dt>
+            <dd>
+              <span
+                class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                :class="comms.activeThread.status === 'open' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+              >{{ comms.activeThread.status }}</span>
+            </dd>
+          </div>
+          <div class="flex items-start justify-between gap-2 px-4 py-2.5">
+            <dt class="text-graphite">Order</dt>
+            <dd class="font-medium text-ink">#{{ comms.activeThread.target_id }}</dd>
+          </div>
+          <div class="flex items-start justify-between gap-2 px-4 py-2.5">
+            <dt class="text-graphite">Created</dt>
+            <dd class="text-ink">{{ dateLabel(comms.activeThread.created_at) }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Participants & visibility -->
+      <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div class="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+          <Users class="h-3.5 w-3.5 shrink-0 text-signal" />
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-graphite">Visibility</h3>
+        </div>
+        <div class="px-4 py-3 space-y-2">
+          <p class="text-xs text-graphite">Participants</p>
+          <div class="flex flex-wrap gap-1">
+            <span
+              v-for="p in threadParticipants(comms.activeThread)"
+              :key="p"
+              class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+              :class="roleStyle(p).badge"
+            >{{ roleStyle(p).label }}</span>
+          </div>
+          <p class="pt-1 text-xs text-graphite">Access restricted to</p>
+          <div class="flex flex-wrap gap-1">
+            <span
+              v-for="r in (THREAD_ROLE_ACCESS[comms.activeThread.kind] ?? ['all roles'])"
+              :key="r"
+              class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium capitalize text-slate-600"
+            >{{ r }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flags summary (only shown when messages have flags) -->
+      <div v-if="flagsSummary.length" class="overflow-hidden rounded-lg border border-amber-200 bg-white">
+        <div class="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-3">
+          <AlertTriangle class="h-3.5 w-3.5 shrink-0 text-amber-600" />
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-700">Flags detected</h3>
+        </div>
+        <ul class="divide-y divide-slate-100 text-xs">
+          <li
+            v-for="entry in flagsSummary"
+            :key="entry.flag"
+            class="flex items-center justify-between gap-2 px-4 py-2.5"
+          >
+            <span class="rounded-full px-2 py-0.5 font-semibold" :class="entry.cls">{{ entry.label }}</span>
+            <span class="font-medium text-ink">{{ entry.count }} msg{{ entry.count !== 1 ? 's' : '' }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Audit log (moderation actions taken this session) -->
+      <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div class="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+          <ClipboardList class="h-3.5 w-3.5 shrink-0 text-signal" />
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-graphite">Audit log</h3>
+        </div>
+        <div v-if="!auditLog.length" class="px-4 py-4 text-center text-xs text-slate-400">
+          No actions taken yet.
+        </div>
+        <ul v-else class="divide-y divide-slate-100 text-xs">
+          <li
+            v-for="(entry, i) in auditLog"
+            :key="i"
+            class="px-4 py-2.5"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold" :class="auditActionClass[entry.action]">
+                {{ auditActionLabel[entry.action] }}
+              </span>
+              <span class="text-slate-400">msg #{{ entry.messageId }}</span>
+            </div>
+            <p class="mt-0.5 text-slate-400">{{ dateLabel(entry.at) }}</p>
+          </li>
+        </ul>
+      </div>
+    </aside>
   </section>
 </template>
