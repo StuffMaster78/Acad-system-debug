@@ -328,60 +328,81 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="work.filteredItems.length" class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
-          <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
-            <tr>
-              <th class="px-3 py-2">Work</th>
-              <th class="px-3 py-2">Site / client</th>
-              <th class="px-3 py-2">Assigned writer</th>
-              <th class="px-3 py-2">Status</th>
-              <th class="px-3 py-2">Deadline</th>
-              <th class="px-3 py-2 text-right">Value</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr
-              v-for="item in work.filteredItems"
-              :key="`${item.kind}-${item.id}`"
-              class="cursor-pointer hover:bg-slate-50"
-              @click="openOrderDetail(item)"
-            >
-              <td class="px-3 py-2.5">
-                <div class="flex flex-wrap items-center gap-2">
-                  <p class="font-semibold text-ink">{{ item.reference }}</p>
+      <div v-if="work.filteredItems.length">
+        <!-- Mobile cards -->
+        <div class="divide-y divide-slate-100 sm:hidden">
+          <button
+            v-for="item in work.filteredItems"
+            :key="`${item.kind}-${item.id}`"
+            class="w-full px-4 py-3 text-left hover:bg-slate-50"
+            type="button"
+            @click="openOrderDetail(item)"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="font-semibold text-ink">{{ item.reference }}</span>
                   <StatusPill :label="workKindLabel(item.kind)" :tone="workTone(item)" />
                 </div>
-                <p class="mt-1 max-w-md font-medium text-ink">{{ item.title }}</p>
-                <p v-if="item.subject" class="mt-1 text-xs text-graphite">
-                  {{ item.subject }}
-                </p>
-              </td>
-              <td class="px-3 py-2.5">
-                <p class="font-medium text-ink">{{ item.website }}</p>
-                <p class="mt-1 text-xs text-graphite">{{ item.client }}</p>
-              </td>
-              <td class="px-3 py-2.5 text-graphite">
-                {{ item.assignedWriter }}
-              </td>
-              <td class="px-3 py-2.5">
-                <StatusPill :label="item.status" :tone="workTone(item)" />
-                <p v-if="item.paymentStatus" class="mt-2 text-xs text-graphite">
-                  Payment: {{ item.paymentStatus }}
-                </p>
-              </td>
-              <td class="px-3 py-2.5 text-graphite">
-                {{ formatDate(item.deadline) }}
-                <p v-if="item.notes" class="mt-1 max-w-xs text-xs leading-5 text-graphite">
-                  {{ item.notes }}
-                </p>
-              </td>
-              <td class="px-3 py-2.5 text-right font-semibold text-ink">
-                {{ formatAmount(item.amount, item.currency) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                <p class="mt-0.5 truncate text-sm font-medium text-ink">{{ item.title }}</p>
+              </div>
+              <StatusPill :label="item.status" :tone="workTone(item)" class="shrink-0" />
+            </div>
+            <div class="mt-2 flex flex-wrap gap-3 text-xs text-graphite">
+              <span>{{ item.website }} · {{ item.client }}</span>
+              <span v-if="item.assignedWriter">{{ item.assignedWriter }}</span>
+              <span>{{ formatDate(item.deadline) }}</span>
+              <span class="font-semibold text-ink">{{ formatAmount(item.amount, item.currency) }}</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Desktop table -->
+        <div class="hidden overflow-x-auto sm:block">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
+              <tr>
+                <th class="px-3 py-2">Work</th>
+                <th class="px-3 py-2">Site / client</th>
+                <th class="px-3 py-2">Assigned writer</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Deadline</th>
+                <th class="px-3 py-2 text-right">Value</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr
+                v-for="item in work.filteredItems"
+                :key="`${item.kind}-${item.id}`"
+                class="cursor-pointer hover:bg-slate-50"
+                @click="openOrderDetail(item)"
+              >
+                <td class="px-3 py-2.5">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <p class="font-semibold text-ink">{{ item.reference }}</p>
+                    <StatusPill :label="workKindLabel(item.kind)" :tone="workTone(item)" />
+                  </div>
+                  <p class="mt-1 max-w-md font-medium text-ink">{{ item.title }}</p>
+                  <p v-if="item.subject" class="mt-1 text-xs text-graphite">{{ item.subject }}</p>
+                </td>
+                <td class="px-3 py-2.5">
+                  <p class="font-medium text-ink">{{ item.website }}</p>
+                  <p class="mt-1 text-xs text-graphite">{{ item.client }}</p>
+                </td>
+                <td class="px-3 py-2.5 text-graphite">{{ item.assignedWriter }}</td>
+                <td class="px-3 py-2.5">
+                  <StatusPill :label="item.status" :tone="workTone(item)" />
+                  <p v-if="item.paymentStatus" class="mt-2 text-xs text-graphite">Payment: {{ item.paymentStatus }}</p>
+                </td>
+                <td class="px-3 py-2.5 text-graphite">
+                  {{ formatDate(item.deadline) }}
+                  <p v-if="item.notes" class="mt-1 max-w-xs text-xs leading-5 text-graphite">{{ item.notes }}</p>
+                </td>
+                <td class="px-3 py-2.5 text-right font-semibold text-ink">{{ formatAmount(item.amount, item.currency) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div v-else class="p-4">
@@ -536,76 +557,74 @@ onMounted(() => {
           </div>
         </div>
 
-        <div v-if="ops.rows.length" class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200 text-sm">
-            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
-              <tr>
-                <th class="px-3 py-2">Order</th>
-                <th class="px-3 py-2">Status</th>
-                <th class="px-3 py-2">Payment</th>
-                <th class="px-3 py-2">Writer deadline</th>
-                <th class="px-3 py-2">Client</th>
-                <th class="px-3 py-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr
-                v-for="order in ops.rows"
-                :key="order.id"
-                class="cursor-pointer"
-                :class="order.id === selectedQueueOrder?.id ? 'bg-slate-50' : ''"
-                @click="selectQueueOrder(order)"
-              >
-                <td class="px-3 py-2.5">
-                  <p class="font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
-                  <p class="mt-1 text-xs text-graphite">
-                    Preferred writer: {{ order.preferred_writer_id || "None" }}
-                  </p>
-                </td>
-                <td class="px-3 py-2.5">
-                  <StatusPill :label="order.status" />
-                </td>
-                <td class="px-3 py-2.5 text-graphite">
-                  {{ order.payment_status || "unknown" }}
-                </td>
-                <td class="px-3 py-2.5 text-graphite">
-                  {{ formatDate(order.writer_deadline) }}
-                </td>
-                <td class="px-3 py-2.5 text-graphite">
-                  {{ order.client_id || "External" }}
-                </td>
-                <td class="px-3 py-2.5">
-                  <div class="flex justify-end gap-2">
-                    <button
-                      class="focus-ring inline-flex h-9 items-center justify-center rounded-md border border-slate-200 px-3 text-xs font-semibold text-signal"
-                      type="button"
-                      @click.stop="openOrderDetail(order)"
-                    >
-                      Inspect
-                    </button>
-                    <button
-                      v-if="ops.activeQueue === 'pending_staffing'"
-                      class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200"
-                      type="button"
-                      title="Route to staffing"
-                      @click="ops.routeToStaffing(order.id).catch(() => undefined)"
-                    >
-                      <Route class="h-4 w-4" />
-                    </button>
-                    <button
-                      v-if="ops.activeQueue === 'eligible_for_archive'"
-                      class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200"
-                      type="button"
-                      title="Archive order"
-                      @click="ops.archive(order.id).catch(() => undefined)"
-                    >
-                      <Archive class="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-if="ops.rows.length">
+          <!-- Mobile cards -->
+          <div class="divide-y divide-slate-100 sm:hidden">
+            <div
+              v-for="order in ops.rows"
+              :key="order.id"
+              class="px-4 py-3"
+              :class="order.id === selectedQueueOrder?.id ? 'bg-slate-50' : ''"
+            >
+              <button class="w-full text-left" type="button" @click="selectQueueOrder(order)">
+                <div class="flex items-start justify-between gap-2">
+                  <p class="truncate font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
+                  <StatusPill :label="order.status" class="shrink-0" />
+                </div>
+                <div class="mt-1.5 flex flex-wrap gap-3 text-xs text-graphite">
+                  <span>{{ order.payment_status || "unknown" }}</span>
+                  <span>{{ formatDate(order.writer_deadline) }}</span>
+                  <span>Client: {{ order.client_id || "External" }}</span>
+                </div>
+              </button>
+              <div class="mt-2 flex gap-2">
+                <button class="focus-ring flex-1 rounded-md border border-slate-200 py-1.5 text-xs font-semibold text-signal" type="button" @click="openOrderDetail(order)">Inspect</button>
+                <button v-if="ops.activeQueue === 'pending_staffing'" class="focus-ring rounded-md border border-slate-200 px-3 py-1.5 text-xs" type="button" title="Route to staffing" @click="ops.routeToStaffing(order.id).catch(() => undefined)"><Route class="h-4 w-4" /></button>
+                <button v-if="ops.activeQueue === 'eligible_for_archive'" class="focus-ring rounded-md border border-slate-200 px-3 py-1.5 text-xs" type="button" title="Archive" @click="ops.archive(order.id).catch(() => undefined)"><Archive class="h-4 w-4" /></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop table -->
+          <div class="hidden overflow-x-auto sm:block">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+              <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
+                <tr>
+                  <th class="px-3 py-2">Order</th>
+                  <th class="px-3 py-2">Status</th>
+                  <th class="px-3 py-2">Payment</th>
+                  <th class="px-3 py-2">Writer deadline</th>
+                  <th class="px-3 py-2">Client</th>
+                  <th class="px-3 py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr
+                  v-for="order in ops.rows"
+                  :key="order.id"
+                  class="cursor-pointer"
+                  :class="order.id === selectedQueueOrder?.id ? 'bg-slate-50' : ''"
+                  @click="selectQueueOrder(order)"
+                >
+                  <td class="px-3 py-2.5">
+                    <p class="font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
+                    <p class="mt-1 text-xs text-graphite">Preferred writer: {{ order.preferred_writer_id || "None" }}</p>
+                  </td>
+                  <td class="px-3 py-2.5"><StatusPill :label="order.status" /></td>
+                  <td class="px-3 py-2.5 text-graphite">{{ order.payment_status || "unknown" }}</td>
+                  <td class="px-3 py-2.5 text-graphite">{{ formatDate(order.writer_deadline) }}</td>
+                  <td class="px-3 py-2.5 text-graphite">{{ order.client_id || "External" }}</td>
+                  <td class="px-3 py-2.5">
+                    <div class="flex justify-end gap-2">
+                      <button class="focus-ring inline-flex h-9 items-center justify-center rounded-md border border-slate-200 px-3 text-xs font-semibold text-signal" type="button" @click.stop="openOrderDetail(order)">Inspect</button>
+                      <button v-if="ops.activeQueue === 'pending_staffing'" class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200" type="button" title="Route to staffing" @click="ops.routeToStaffing(order.id).catch(() => undefined)"><Route class="h-4 w-4" /></button>
+                      <button v-if="ops.activeQueue === 'eligible_for_archive'" class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200" type="button" title="Archive order" @click="ops.archive(order.id).catch(() => undefined)"><Archive class="h-4 w-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div v-else class="p-4">

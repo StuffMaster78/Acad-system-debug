@@ -22,6 +22,24 @@ const success = ref("");
 const paymentMethod = ref<PaymentMethod>("wallet");
 const showAdvanced = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const attempted = ref(false);
+const touched = reactive(new Set<string>());
+
+const topicError = computed(() => {
+  const v = form.topic.trim();
+  if (!v) return "Topic is required.";
+  if (v.length < 3) return "Topic is too short — at least 3 characters.";
+  return "";
+});
+const instructionsError = computed(() => {
+  const v = form.order_instructions.trim();
+  if (!v) return "Instructions are required.";
+  if (v.length < 10) return "Please add more detail — at least 10 characters.";
+  return "";
+});
+function fieldErr(name: string, err: string) {
+  return err && (attempted.value || touched.has(name)) ? err : "";
+}
 
 const providerFor: Record<PaymentMethod, { payment_provider?: string; payment_method_code?: string }> = {
   wallet: {},
@@ -123,6 +141,8 @@ async function calculate() {
 }
 
 async function submit() {
+  attempted.value = true;
+  if (topicError.value || instructionsError.value) return;
   error.value = "";
   success.value = "";
   try {
@@ -213,28 +233,48 @@ onMounted(loadConfig);
         <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Order brief</h2>
 
-          <label class="block">
-            <span class="text-sm font-medium text-ink">Topic <span class="text-rose-500" aria-hidden="true">*</span></span>
+          <div>
+            <label class="block text-sm font-medium text-ink" for="order-topic">
+              Topic <span class="text-rose-500" aria-hidden="true">*</span>
+            </label>
             <input
+              id="order-topic"
               v-model="form.topic"
               required
               aria-required="true"
-              class="focus-ring mt-1.5 h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
+              :aria-invalid="fieldErr('topic', topicError) ? 'true' : undefined"
+              aria-describedby="topic-error"
+              class="focus-ring mt-1.5 h-11 w-full rounded-lg border px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
+              :class="fieldErr('topic', topicError) ? 'border-rose-300 bg-rose-50/40' : 'border-slate-200'"
               placeholder="e.g. Climate change and food security in Sub-Saharan Africa"
               type="text"
+              @blur="touched.add('topic')"
             />
-          </label>
+            <p v-if="fieldErr('topic', topicError)" id="topic-error" class="mt-1 text-xs text-berry" role="alert">
+              {{ topicError }}
+            </p>
+          </div>
 
-          <label class="block">
-            <span class="text-sm font-medium text-ink">Instructions <span class="text-rose-500" aria-hidden="true">*</span></span>
+          <div>
+            <label class="block text-sm font-medium text-ink" for="order-instructions">
+              Instructions <span class="text-rose-500" aria-hidden="true">*</span>
+            </label>
             <textarea
+              id="order-instructions"
               v-model="form.order_instructions"
               required
               aria-required="true"
-              class="focus-ring mt-1.5 min-h-36 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
+              :aria-invalid="fieldErr('instructions', instructionsError) ? 'true' : undefined"
+              aria-describedby="instructions-error"
+              class="focus-ring mt-1.5 min-h-36 w-full rounded-lg border px-3.5 py-2.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
+              :class="fieldErr('instructions', instructionsError) ? 'border-rose-300 bg-rose-50/40' : 'border-slate-200'"
               placeholder="Include your assignment prompt, citation style, sources required, and any specific requirements from your instructor…"
+              @blur="touched.add('instructions')"
             />
-          </label>
+            <p v-if="fieldErr('instructions', instructionsError)" id="instructions-error" class="mt-1 text-xs text-berry" role="alert">
+              {{ instructionsError }}
+            </p>
+          </div>
         </section>
 
         <!-- Paper specifics -->

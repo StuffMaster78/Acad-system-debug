@@ -179,72 +179,110 @@ onMounted(() => {
     </div>
 
     <div v-else class="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200 text-sm">
-        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
-          <tr>
-            <th class="px-3 py-2">Order</th>
-            <th class="px-3 py-2">Status</th>
-            <th class="px-3 py-2">Pages</th>
-            <th class="px-3 py-2">Deadline</th>
-            <th class="px-3 py-2 text-right">Compensation</th>
-          <th class="px-3 py-2"></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          <tr
-            v-for="order in workspace.assignments"
-            :key="order.id"
-            class="hover:bg-slate-50"
-          >
-            <td class="px-3 py-2.5">
-              <div class="flex items-center gap-2">
-                <p class="font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
-                <span
-                  v-if="order.is_urgent"
-                  class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700"
-                >
-                  <Zap class="h-3 w-3" />
-                  Urgent
-                </span>
-              </div>
-              <p v-if="order.academic_level" class="mt-0.5 text-xs text-graphite">
-                {{ order.academic_level }}
-              </p>
-            </td>
-            <td class="px-3 py-2.5">
+      <!-- Mobile card list -->
+      <div class="divide-y divide-slate-100 sm:hidden">
+        <div
+          v-for="order in workspace.assignments"
+          :key="order.id"
+          class="px-4 py-3"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
+              <p v-if="order.academic_level" class="mt-0.5 text-xs text-graphite">{{ order.academic_level }}</p>
+            </div>
+            <div class="flex shrink-0 flex-col items-end gap-1">
               <StatusPill :label="order.status" :tone="statusTone(order.status)" />
-            </td>
-            <td class="px-3 py-2.5 text-graphite">
-              <div class="flex items-center gap-1.5">
-                <FileText class="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                {{ pagesLabel(order) }}
-              </div>
-            </td>
-            <td class="px-3 py-2.5">
-              <div class="flex items-center gap-1.5">
-                <Clock3 class="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                <StatusPill
-                  :label="deadlineLabel(order.writer_deadline ?? order.client_deadline)"
-                  :tone="deadlineTone(order.writer_deadline ?? order.client_deadline)"
-                />
-              </div>
-            </td>
-            <td class="px-3 py-2.5 text-right font-semibold text-ink">
-              {{ compensation(order) }}
-            </td>
-            <td class="px-3 py-2.5 text-right">
-              <RouterLink
-                class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
-                :to="`/writer/orders/${order.id}`"
-              >
-                <ExternalLink class="h-3 w-3" />
-                Open
-              </RouterLink>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <span v-if="order.is_urgent" class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                <Zap class="h-3 w-3" />Urgent
+              </span>
+            </div>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-graphite">
+            <span class="flex items-center gap-1"><FileText class="h-3 w-3" />{{ pagesLabel(order) }}</span>
+            <span class="flex items-center gap-1">
+              <Clock3 class="h-3 w-3" />
+              <StatusPill :label="deadlineLabel(order.writer_deadline ?? order.client_deadline)" :tone="deadlineTone(order.writer_deadline ?? order.client_deadline)" />
+            </span>
+            <span class="font-semibold text-ink">{{ compensation(order) }}</span>
+          </div>
+          <RouterLink
+            class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
+            :to="`/writer/orders/${order.id}`"
+          >
+            <ExternalLink class="h-3 w-3" />
+            Open order
+          </RouterLink>
+        </div>
+      </div>
+
+      <!-- Desktop table -->
+      <div class="hidden overflow-x-auto sm:block">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
+            <tr>
+              <th class="px-3 py-2">Order</th>
+              <th class="px-3 py-2">Status</th>
+              <th class="px-3 py-2">Pages</th>
+              <th class="px-3 py-2">Deadline</th>
+              <th class="px-3 py-2 text-right">Compensation</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr
+              v-for="order in workspace.assignments"
+              :key="order.id"
+              class="hover:bg-slate-50"
+            >
+              <td class="px-3 py-2.5">
+                <div class="flex items-center gap-2">
+                  <p class="font-semibold text-ink">#{{ order.id }} {{ order.topic }}</p>
+                  <span
+                    v-if="order.is_urgent"
+                    class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700"
+                  >
+                    <Zap class="h-3 w-3" />
+                    Urgent
+                  </span>
+                </div>
+                <p v-if="order.academic_level" class="mt-0.5 text-xs text-graphite">
+                  {{ order.academic_level }}
+                </p>
+              </td>
+              <td class="px-3 py-2.5">
+                <StatusPill :label="order.status" :tone="statusTone(order.status)" />
+              </td>
+              <td class="px-3 py-2.5 text-graphite">
+                <div class="flex items-center gap-1.5">
+                  <FileText class="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                  {{ pagesLabel(order) }}
+                </div>
+              </td>
+              <td class="px-3 py-2.5">
+                <div class="flex items-center gap-1.5">
+                  <Clock3 class="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                  <StatusPill
+                    :label="deadlineLabel(order.writer_deadline ?? order.client_deadline)"
+                    :tone="deadlineTone(order.writer_deadline ?? order.client_deadline)"
+                  />
+                </div>
+              </td>
+              <td class="px-3 py-2.5 text-right font-semibold text-ink">
+                {{ compensation(order) }}
+              </td>
+              <td class="px-3 py-2.5 text-right">
+                <RouterLink
+                  class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
+                  :to="`/writer/orders/${order.id}`"
+                >
+                  <ExternalLink class="h-3 w-3" />
+                  Open
+                </RouterLink>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <Pagination

@@ -75,49 +75,78 @@ onMounted(() => bids.loadMyBids());
     </div>
 
     <div v-else class="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200 text-sm">
-        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
-          <tr>
-            <th class="px-3 py-2">Order</th>
-            <th class="px-3 py-2">Price</th>
-            <th class="px-3 py-2">Delivery</th>
-            <th class="px-3 py-2">Submitted</th>
-            <th class="px-3 py-2">Status</th>
-            <th class="px-3 py-2"></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          <tr v-for="bid in bids.myBids" :key="bid.id" class="hover:bg-slate-50">
-            <td class="px-3 py-2.5">
-              <p class="font-semibold text-ink">#{{ bid.order_id }} {{ bid.order_topic }}</p>
-              <p v-if="bid.pitch" class="mt-0.5 max-w-xs truncate text-xs text-graphite">{{ bid.pitch }}</p>
-              <p v-if="bid.rejection_reason && bid.status === 'rejected'" class="mt-0.5 text-xs text-berry">
-                {{ bid.rejection_reason }}
-              </p>
-            </td>
-            <td class="px-3 py-2.5 font-semibold text-ink">{{ money(bid) }}</td>
-            <td class="px-3 py-2.5 text-graphite">{{ bid.delivery_hours }}h</td>
-            <td class="px-3 py-2.5 text-graphite">{{ formatDate(bid.created_at) }}</td>
-            <td class="px-3 py-2.5">
-              <StatusPill :label="bid.status" :tone="bidStatusTone(bid.status)" />
-            </td>
-            <td class="px-3 py-2.5 text-right">
-              <button
-                v-if="bid.status === 'pending'"
-                class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:border-rose-300 hover:text-berry disabled:opacity-50"
-                type="button"
-                :disabled="bids.isSaving"
-                @click="bids.withdrawBid(bid.id)"
-              >
-                <Loader2 v-if="bids.isSaving" class="h-3 w-3 animate-spin" />
-                <X v-else class="h-3 w-3" />
-                Withdraw
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- Mobile cards -->
+      <div class="divide-y divide-slate-100 sm:hidden">
+        <div v-for="bid in bids.myBids" :key="bid.id" class="px-4 py-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-semibold text-ink">#{{ bid.order_id }} {{ bid.order_topic }}</p>
+              <p v-if="bid.pitch" class="mt-0.5 truncate text-xs text-graphite">{{ bid.pitch }}</p>
+              <p v-if="bid.rejection_reason && bid.status === 'rejected'" class="mt-0.5 text-xs text-berry">{{ bid.rejection_reason }}</p>
+            </div>
+            <StatusPill :label="bid.status" :tone="bidStatusTone(bid.status)" class="shrink-0" />
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-graphite">
+            <span class="font-semibold text-ink">{{ money(bid) }}</span>
+            <span>{{ bid.delivery_hours }}h delivery</span>
+            <span>{{ formatDate(bid.created_at) }}</span>
+          </div>
+          <button
+            v-if="bid.status === 'pending'"
+            class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 py-1.5 text-xs font-semibold text-graphite hover:border-rose-300 hover:text-berry disabled:opacity-50"
+            type="button"
+            :disabled="bids.isSaving"
+            @click="bids.withdrawBid(bid.id)"
+          >
+            <Loader2 v-if="bids.isSaving" class="h-3 w-3 animate-spin" />
+            <X v-else class="h-3 w-3" />
+            Withdraw bid
+          </button>
+        </div>
+      </div>
+
+      <!-- Desktop table -->
+      <div class="hidden overflow-x-auto sm:block">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
+            <tr>
+              <th class="px-3 py-2">Order</th>
+              <th class="px-3 py-2">Price</th>
+              <th class="px-3 py-2">Delivery</th>
+              <th class="px-3 py-2">Submitted</th>
+              <th class="px-3 py-2">Status</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="bid in bids.myBids" :key="bid.id" class="hover:bg-slate-50">
+              <td class="px-3 py-2.5">
+                <p class="font-semibold text-ink">#{{ bid.order_id }} {{ bid.order_topic }}</p>
+                <p v-if="bid.pitch" class="mt-0.5 max-w-xs truncate text-xs text-graphite">{{ bid.pitch }}</p>
+                <p v-if="bid.rejection_reason && bid.status === 'rejected'" class="mt-0.5 text-xs text-berry">{{ bid.rejection_reason }}</p>
+              </td>
+              <td class="px-3 py-2.5 font-semibold text-ink">{{ money(bid) }}</td>
+              <td class="px-3 py-2.5 text-graphite">{{ bid.delivery_hours }}h</td>
+              <td class="px-3 py-2.5 text-graphite">{{ formatDate(bid.created_at) }}</td>
+              <td class="px-3 py-2.5">
+                <StatusPill :label="bid.status" :tone="bidStatusTone(bid.status)" />
+              </td>
+              <td class="px-3 py-2.5 text-right">
+                <button
+                  v-if="bid.status === 'pending'"
+                  class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:border-rose-300 hover:text-berry disabled:opacity-50"
+                  type="button"
+                  :disabled="bids.isSaving"
+                  @click="bids.withdrawBid(bid.id)"
+                >
+                  <Loader2 v-if="bids.isSaving" class="h-3 w-3 animate-spin" />
+                  <X v-else class="h-3 w-3" />
+                  Withdraw
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
