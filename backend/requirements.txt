@@ -45,6 +45,9 @@ boto3==1.35.36
 django-storages==1.14.4
 Pillow==10.4.0
 
+# Payments
+stripe==11.4.1
+
 # Email, SMS, and outbound HTTP
 django-anymail==11.1
 premailer==3.10.0

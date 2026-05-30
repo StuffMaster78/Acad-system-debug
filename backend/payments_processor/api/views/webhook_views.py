@@ -57,6 +57,9 @@ class PaymentWebhookView(APIView):
         headers = {
             k: v for k, v in request.META.items() if k.startswith("HTTP_")
         }
+        # Attach raw body so providers that need byte-level signature
+        # verification (Stripe) can access it without re-reading the stream.
+        headers["_raw_body"] = request.body
 
         try:
             result = WebhookProcessingService.process_webhook(
