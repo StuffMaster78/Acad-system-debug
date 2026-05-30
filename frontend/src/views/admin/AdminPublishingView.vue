@@ -150,7 +150,7 @@ onMounted(() => {
         <div class="h-5 w-px bg-slate-200 hidden md:block" />
 
         <a
-          href="/cms/"
+          href="/cms-admin/"
           target="_blank"
           rel="noreferrer"
           class="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50"
@@ -286,7 +286,7 @@ onMounted(() => {
                     </a>
                     <a
                       v-if="item.source === 'wagtail'"
-                      href="/cms/"
+                      href="/cms-admin/"
                       target="_blank"
                       rel="noreferrer"
                       class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-graphite hover:bg-slate-50"

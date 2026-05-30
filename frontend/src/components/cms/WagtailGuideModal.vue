@@ -38,21 +38,21 @@
             <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-blue-700">Quick access</p>
             <div class="flex flex-wrap gap-2">
               <a
-                href="/cms/"
+                href="/cms-admin/"
                 target="_blank"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"
               >
                 <ExternalLink class="size-3.5" /> Open Wagtail Admin
               </a>
               <a
-                href="/cms/pages/"
+                href="/cms-admin/pages/"
                 target="_blank"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
               >
                 <FileText class="size-3.5" /> Page tree
               </a>
               <a
-                href="/cms/snippets/"
+                href="/cms-admin/snippets/"
                 target="_blank"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
               >
@@ -75,7 +75,7 @@
                     <code class="rounded bg-slate-100 px-1 text-xs">Snippets → Authors</code>
                     and create author profiles before writing posts. Fill in name, bio, credentials, ORCID, and profile photo — these appear on published posts and feed the Schema.org Person markup.
                   </p>
-                  <a href="/cms/snippets/cms_authors/author/" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline">
+                  <a href="/cms-admin/snippets/cms_authors/author/" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline">
                     Manage authors <ExternalLink class="size-3" />
                   </a>
                 </div>
