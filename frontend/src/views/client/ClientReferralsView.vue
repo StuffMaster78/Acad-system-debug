@@ -4,6 +4,29 @@ import { CheckCircle2, ClipboardCopy, Loader2, RefreshCw, Users } from "@lucide/
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { referralsApi, type ReferralCodeRecord, type ReferralRecord } from "@/api/referrals";
 
+// ── Invite by email ──────────────────────────────────────────────────────────
+const inviteEmail = ref("");
+const isSendingInvite = ref(false);
+const inviteError = ref("");
+const inviteSuccess = ref("");
+
+async function sendInvite() {
+  if (!inviteEmail.value) return;
+  isSendingInvite.value = true;
+  inviteError.value = "";
+  inviteSuccess.value = "";
+  try {
+    await referralsApi.sendInvitation(inviteEmail.value);
+    inviteSuccess.value = `Invitation sent to ${inviteEmail.value}.`;
+    inviteEmail.value = "";
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+    inviteError.value = detail ?? "Could not send invitation. Try again.";
+  } finally {
+    isSendingInvite.value = false;
+  }
+}
+
 const code = ref<ReferralCodeRecord | null>(null);
 const codeLoading = ref(false);
 const codeError = ref("");
@@ -132,6 +155,32 @@ onMounted(() => {
           <p class="mt-1 text-xs text-graphite">Conversion rate</p>
         </div>
       </div>
+    </section>
+
+    <!-- Invite by email -->
+    <section v-if="code" class="rounded-lg border border-slate-200 bg-white p-6">
+      <h2 class="text-base font-semibold text-ink">Invite a friend by email</h2>
+      <p class="mt-1 text-sm text-graphite">We'll send them your referral link with a personalised message.</p>
+      <div class="mt-4 flex gap-2">
+        <input
+          v-model.trim="inviteEmail"
+          class="focus-ring min-w-0 flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm"
+          type="email"
+          placeholder="friend@example.com"
+          :disabled="isSendingInvite"
+          @keydown.enter="sendInvite"
+        />
+        <button
+          class="focus-ring inline-flex shrink-0 items-center gap-1.5 rounded-md bg-signal px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          :disabled="isSendingInvite || !inviteEmail"
+          @click="sendInvite"
+        >
+          <Loader2 v-if="isSendingInvite" class="h-4 w-4 animate-spin" />
+          <span v-else>Send invite</span>
+        </button>
+      </div>
+      <p v-if="inviteError" class="mt-2 text-xs text-berry">{{ inviteError }}</p>
+      <p v-if="inviteSuccess" class="mt-2 text-xs text-signal">{{ inviteSuccess }}</p>
     </section>
 
     <!-- How it works -->

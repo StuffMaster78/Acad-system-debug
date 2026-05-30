@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ReferralViewSet, ReferralBonusConfigViewSet, ReferralCodeViewSet,
     ReferralStatsViewSet, ReferralBonusDecayViewSet, ReferralReportsAPI,
-    AwardReferralBonusAPI, ReferralAdminViewSet
+    AwardReferralBonusAPI, ReferralAdminViewSet, SendReferralInvitationView,
 )
 
 # Router for ViewSets
@@ -20,4 +20,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('referral-reports/', ReferralReportsAPI.as_view(), name='referral-reports'),
     path('award-referral-bonus/<int:referral_id>/', AwardReferralBonusAPI.as_view(), name='award-referral-bonus'),
+    path('send-invitation/', SendReferralInvitationView.as_view(), name='send-referral-invitation'),
 ]

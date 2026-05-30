@@ -22,6 +22,30 @@
             <dd class="mt-1 font-mono text-sm text-ink">{{ order.discount_code_used }}</dd>
           </div>
         </dl>
+        <!-- Pay remaining balance (wallet) -->
+        <div
+          v-if="parseFloat(String(order.remaining_balance ?? 0)) > 0"
+          class="mt-4 border-t border-slate-100 pt-4"
+        >
+          <p class="mb-3 text-sm font-semibold text-ink">Pay remaining balance</p>
+          <div v-if="payError" class="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-berry">{{ payError }}</div>
+          <div v-if="paySuccess" class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-signal">{{ paySuccess }}</div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              class="focus-ring inline-flex items-center gap-2 rounded-md bg-signal px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              :disabled="isPaying"
+              @click="payWithWallet"
+            >
+              <Loader2 v-if="isPaying" class="h-4 w-4 animate-spin" />
+              <Wallet v-else class="h-4 w-4" />
+              Pay from wallet
+            </button>
+            <span class="self-center text-xs text-graphite">
+              Balance: {{ walletBalance }}
+            </span>
+          </div>
+        </div>
+
         <p class="mt-4 text-xs text-graphite">Invoice and receipt available from your billing page.</p>
       </div>
     </template>
@@ -176,11 +200,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
-import { AlertCircle, CheckCircle2, Clock, CreditCard, RefreshCw, XCircle } from "@lucide/vue";
+import { computed, onMounted, ref, watch } from "vue";
+import { AlertCircle, CheckCircle2, Clock, CreditCard, Loader2, RefreshCw, Wallet, XCircle } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderPaymentSummary, OrderSummary } from "@/types/orders";
 import { ordersApi } from "@/api/orders";
+import { useWalletStore } from "@/stores/wallets";
 
 const props = defineProps<{
   orderId: string;
@@ -189,6 +214,31 @@ const props = defineProps<{
 }>();
 
 const summary = ref<OrderPaymentSummary | null>(null);
+
+// ── Wallet payment ───────────────────────────────────────────────────────────
+const wallets = useWalletStore();
+const isPaying = ref(false);
+const payError = ref("");
+const paySuccess = ref("");
+
+const walletBalance = computed(() =>
+  `${wallets.currency} ${wallets.availableBalance.toFixed(2)}`
+);
+
+async function payWithWallet() {
+  isPaying.value = true;
+  payError.value = "";
+  paySuccess.value = "";
+  try {
+    const { data } = await ordersApi.payFromWallet(props.orderId);
+    paySuccess.value = data.message ?? "Payment successful.";
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    payError.value = detail ?? "Payment failed. Check your wallet balance and try again.";
+  } finally {
+    isPaying.value = false;
+  }
+}
 const loading = ref(false);
 
 const isAdmin = () => props.role === "admin" || props.role === "superadmin";

@@ -800,3 +800,80 @@ class AwardReferralBonusAPI(APIView):
             {"detail": "Referral bonus awarded successfully."},
             status=status.HTTP_200_OK
         )
+
+
+class SendReferralInvitationView(APIView):
+    """
+    POST /referrals/send-invitation/
+    {
+        "email": "friend@example.com"
+    }
+
+    Send a referral invitation email to a non-user. Creates a
+    PendingReferralInvitation and fires the notification.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from referrals.services.referral_invitation_service import (
+            ReferralInvitationService,
+        )
+        from referrals.models import ReferralCode
+        from django.core.exceptions import ValidationError
+
+        referee_email = (request.data.get("email") or "").strip().lower()
+        if not referee_email:
+            return Response(
+                {"error": "email is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        website = getattr(request, "website", None)
+        if website is None:
+            return Response(
+                {"error": "Website context missing."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            referral_code_obj = ReferralCode.objects.filter(
+                user=request.user,
+                website=website,
+            ).first()
+        except Exception:
+            referral_code_obj = None
+
+        if not referral_code_obj:
+            return Response(
+                {"error": "You don't have a referral code yet. Generate one first."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        referral_code = referral_code_obj.code
+        referral_link = referral_code_obj.referral_link or referral_code
+
+        try:
+            invitation = ReferralInvitationService.send_invitation(
+                referrer=request.user,
+                referee_email=referee_email,
+                website=website,
+                referral_code=referral_code,
+                referral_link=referral_link,
+            )
+            return Response(
+                {
+                    "sent": True,
+                    "referee_email": invitation.referee_email,
+                    "invitation_sent": invitation.invitation_sent,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        except ValidationError as exc:
+            msgs = exc.messages if hasattr(exc, "messages") else [str(exc)]
+            return Response({"error": " ".join(msgs)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response(
+                {"error": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

@@ -24,10 +24,18 @@ export interface ReferralRecord {
   bonus_awarded: boolean;
 }
 
+export interface InvitationResult {
+  sent: boolean;
+  referee_email: string;
+  invitation_sent: boolean;
+}
+
 export const referralsApi = {
   myCode: () => api.get<ReferralCodeRecord>(apiPath("/referrals/referral-codes/my-code/")),
   myReferrals: () =>
     api.get<ReferralRecord[] | { results: ReferralRecord[]; count: number }>(
       apiPath("/referrals/referrals/"),
     ),
+  sendInvitation: (email: string) =>
+    api.post<InvitationResult>(apiPath("/referrals/send-invitation/"), { email }),
 };

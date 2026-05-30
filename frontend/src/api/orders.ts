@@ -69,4 +69,10 @@ export const ordersApi = {
     api.delete(ordersApiPath(`/orders/${orderId}/notes/${noteId}/`)),
   paymentSummary: (id: number | string) =>
     api.get<OrderPaymentSummary>(ordersApiPath(`/orders/${id}/payment-summary/`)),
+
+  payFromWallet: (id: number | string) =>
+    api.post<{ message: string; amount_charged: string; new_balance: string }>(
+      ordersApiPath(`/orders/${id}/pay/wallet/`),
+      {},
+    ),
 };
