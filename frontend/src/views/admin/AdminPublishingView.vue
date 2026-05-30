@@ -2,94 +2,59 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import {
+  BookOpen,
   CheckCircle2,
+  ChevronDown,
   ExternalLink,
   FilePenLine,
   Globe2,
-  LibraryBig,
   Link2,
+  Loader2,
   Newspaper,
+  Plus,
   RefreshCw,
   Search,
   Send,
-  Sparkles,
+  Users,
+  X,
 } from "@lucide/vue";
-import EmptyState from "@/components/ui/EmptyState.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import WagtailGuideModal from "@/components/cms/WagtailGuideModal.vue";
 import { useAdminPublishingStore } from "@/stores/adminPublishing";
 import type { PublishingContentType, PublishingItem } from "@/types/adminPublishing";
 
-const route = useRoute();
+const route      = useRoute();
 const publishing = useAdminPublishingStore();
 
-const metricToneClasses = {
-  neutral: "border-slate-200 bg-white",
-  good: "border-emerald-200 bg-emerald-50",
-  warn: "border-amber-200 bg-amber-50",
-  risk: "border-rose-200 bg-rose-50",
-};
-
+// ── Filters ───────────────────────────────────────────────────────────────
 const tabs: Array<{ key: PublishingContentType | "all"; label: string }> = [
-  { key: "all", label: "All" },
-  { key: "blog", label: "Blog articles" },
-  { key: "service", label: "Service pages" },
-  { key: "seo", label: "SEO pages" },
+  { key: "all",     label: "All" },
+  { key: "blog",    label: "Blog" },
+  { key: "service", label: "Service" },
+  { key: "seo",     label: "SEO pages" },
 ];
 
-const contentTypes: Array<{ key: PublishingContentType; label: string; hint: string }> = [
-  { key: "blog", label: "Blog article", hint: "Editorial content managed in Wagtail." },
-  { key: "service", label: "Service page", hint: "Rich service page managed in Wagtail." },
-  { key: "seo", label: "SEO landing page", hint: "Structured page managed through the SEO API." },
+// ── Content type options ──────────────────────────────────────────────────
+const contentTypes = [
+  { key: "blog"    as PublishingContentType, label: "Blog article",     hint: "Rich editorial page managed in Wagtail CMS." },
+  { key: "service" as PublishingContentType, label: "Service page",     hint: "Conversion landing page managed in Wagtail CMS." },
+  { key: "seo"     as PublishingContentType, label: "SEO landing page", hint: "Lightweight structured page managed via the API." },
 ];
 
-const roleLabel = computed(() => {
-  const segment = String(route.path.split("/")[1] || "staff");
-  if (segment === "superadmin") return "Superadmin";
-  return segment.charAt(0).toUpperCase() + segment.slice(1);
-});
+// ── Create panel ──────────────────────────────────────────────────────────
+const showCreate    = ref(false);
+const showAdvanced  = ref(false);
 
-const visibleResponsibilities = computed(() => {
-  const current = String(route.path.split("/")[1] || "");
-  return publishing.roleResponsibilities.filter((item) => item.role === current || current === "superadmin");
-});
-
-function formatDate(value: string | null) {
-  if (!value) return "Not published";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+function openCreate() {
+  showCreate.value   = true;
+  showAdvanced.value = false;
 }
 
-function isScheduled(item: PublishingItem): boolean {
-  return item.status === 'draft' && !!item.publishedAt && new Date(item.publishedAt) > new Date();
-}
-
-function statusTone(status: string) {
-  if (status === "published") return "success";
-  if (status.includes("ready")) return "neutral";
-  return "warning";
-}
-
-function typeLabel(type: PublishingContentType) {
-  if (type === "blog") return "Blog";
-  if (type === "service") return "Service";
-  return "SEO";
-}
-
-function sourceLabel(item: PublishingItem) {
-  return item.source === "wagtail" ? "Wagtail CMS" : "SEO pages API";
-}
-
-onMounted(() => {
-  publishing.hydrate().catch(() => undefined);
-});
-
-// ── Internal link suggestions ─────────────────────────────────────────────
-const linkSuggestions = ref<{ page_id: number; title: string; url: string; reason: string; score: number }[]>([]);
+// ── Link suggestions ──────────────────────────────────────────────────────
+const linkSuggestions     = ref<{ page_id: number; title: string; url: string; reason: string; score: number }[]>([]);
 const linkSuggestionPageId = ref<number | null>(null);
 const isFetchingSuggestions = ref(false);
+const showLinkTool         = ref(false);
 
 async function fetchLinkSuggestions() {
   if (!linkSuggestionPageId.value) return;
@@ -104,449 +69,519 @@ async function fetchLinkSuggestions() {
     isFetchingSuggestions.value = false;
   }
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+const roleLabel = computed(() => {
+  const seg = String(route.path.split("/")[1] || "staff");
+  if (seg === "superadmin") return "Superadmin";
+  return seg.charAt(0).toUpperCase() + seg.slice(1);
+});
+
+const visibleResponsibilities = computed(() => {
+  const current = String(route.path.split("/")[1] || "");
+  return publishing.roleResponsibilities.filter(
+    (item) => item.role === current || current === "superadmin"
+  );
+});
+
+function fmtDate(v: string | null) {
+  if (!v) return "—";
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(v));
+}
+
+function isScheduled(item: PublishingItem): boolean {
+  return item.status === "draft" && !!item.publishedAt && new Date(item.publishedAt) > new Date();
+}
+
+function statusTone(status: string) {
+  if (status === "published") return "success";
+  if (status.includes("ready")) return "neutral";
+  return "warning";
+}
+
+function typeBadge(type: PublishingContentType): string {
+  if (type === "blog")    return "bg-blue-100 text-blue-700";
+  if (type === "service") return "bg-purple-100 text-purple-700";
+  return "bg-amber-100 text-amber-700";
+}
+
+function typeLabel(type: PublishingContentType): string {
+  if (type === "blog")    return "Blog";
+  if (type === "service") return "Service";
+  return "SEO";
+}
+
+onMounted(() => {
+  publishing.hydrate().catch(() => undefined);
+});
 </script>
 
 <template>
-  <div class="space-y-8">
-    <section class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div>
-        <p class="text-sm font-semibold uppercase text-signal">{{ roleLabel }} publishing</p>
-        <h1 class="mt-2 text-3xl font-semibold">Publishing desk</h1>
-        <p class="mt-2 max-w-3xl text-sm leading-6 text-graphite">
-          A single staff flow for blog articles, service pages, and SEO landing pages.
-          Wagtail owns rich editorial pages; the SEO pages API owns fast structured landing pages.
-        </p>
+  <div class="flex h-full flex-col gap-0">
+
+    <!-- ── Top bar ────────────────────────────────────────────────────────── -->
+    <div class="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-4">
+      <div class="flex items-center gap-3">
+        <Newspaper class="size-5 text-berry shrink-0" />
+        <div>
+          <h1 class="font-bold text-ink">Publishing Desk</h1>
+          <p class="text-xs text-graphite">{{ roleLabel }} — blog, service &amp; SEO pages</p>
+        </div>
       </div>
-      <div class="flex flex-wrap gap-2">
+
+      <div class="flex items-center gap-2">
+        <!-- Stat chips -->
+        <div class="hidden items-center gap-1 md:flex">
+          <span
+            v-for="metric in publishing.metrics"
+            :key="metric.label"
+            class="rounded-full border px-2.5 py-1 text-xs font-semibold"
+            :class="{
+              'border-emerald-200 bg-emerald-50 text-emerald-700': metric.tone === 'good',
+              'border-amber-200  bg-amber-50  text-amber-700' : metric.tone === 'warn',
+              'border-rose-200   bg-rose-50   text-rose-700'  : metric.tone === 'risk',
+              'border-slate-200  bg-slate-50  text-graphite'  : metric.tone === 'neutral',
+            }"
+          >
+            {{ metric.value }} {{ metric.label }}
+          </span>
+        </div>
+
+        <div class="h-5 w-px bg-slate-200 hidden md:block" />
+
         <a
-          class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold"
-          href="/cms-admin/pages/"
+          href="/cms/"
           target="_blank"
           rel="noreferrer"
+          class="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50"
         >
-          <ExternalLink class="h-4 w-4" />
-          CMS pages
+          <ExternalLink class="size-3.5" /> Wagtail
         </a>
+
+        <WagtailGuideModal />
+
         <button
-          class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold disabled:opacity-60"
-          type="button"
+          class="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50 disabled:opacity-50"
           :disabled="publishing.isLoading"
           @click="publishing.hydrate().catch(() => undefined)"
         >
-          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': publishing.isLoading }" />
-          Refresh
+          <RefreshCw class="size-3.5" :class="{ 'animate-spin': publishing.isLoading }" />
+        </button>
+
+        <button
+          class="focus-ring inline-flex items-center gap-1.5 rounded-lg bg-berry px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+          @click="openCreate"
+        >
+          <Plus class="size-3.5" /> New page
         </button>
       </div>
-    </section>
+    </div>
 
-    <p
-      v-if="publishing.error"
-      class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-    >
-      {{ publishing.error }} Preview mode will still show the publishing structure.
-    </p>
+    <!-- ── Notices ────────────────────────────────────────────────────────── -->
+    <div v-if="publishing.error || publishing.notice" class="px-6 pt-3">
+      <p v-if="publishing.error"  class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
+        {{ publishing.error }}
+      </p>
+      <p v-if="publishing.notice" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-900">
+        {{ publishing.notice }}
+      </p>
+    </div>
 
-    <p
-      v-if="publishing.notice"
-      class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
-    >
-      {{ publishing.notice }}
-    </p>
+    <!-- ── Body: inventory + sidebar ────────────────────────────────────── -->
+    <div class="flex min-h-0 flex-1 gap-0 overflow-hidden">
 
-    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <div
-        v-for="metric in publishing.metrics"
-        :key="metric.label"
-        class="min-h-32 rounded-md border p-4"
-        :class="metricToneClasses[metric.tone]"
-      >
-        <p class="text-sm font-medium text-graphite">{{ metric.label }}</p>
-        <p class="mt-3 text-3xl font-semibold text-ink">{{ metric.value }}</p>
-        <p class="mt-2 text-sm leading-5 text-graphite">{{ metric.detail }}</p>
-      </div>
-    </section>
+      <!-- Content inventory -->
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
 
-    <section class="rounded-md border border-slate-200 bg-white p-4">
-      <div class="flex items-center gap-2">
-        <Sparkles class="h-5 w-5 text-signal" />
-        <h2 class="text-base font-semibold">Structural flow</h2>
-      </div>
-      <div class="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <div
-          v-for="(step, index) in publishing.flowSteps"
-          :key="step.label"
-          class="rounded-md border border-slate-200 bg-slate-50 p-3"
-        >
-          <div class="flex items-center justify-between gap-2">
-            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">
-              {{ index + 1 }}
-            </span>
-            <StatusPill :label="step.owner" tone="neutral" />
-          </div>
-          <h3 class="mt-3 text-sm font-semibold text-ink">{{ step.label }}</h3>
-          <p class="mt-2 text-xs leading-5 text-graphite">{{ step.detail }}</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.85fr)]">
-      <div class="rounded-md border border-slate-200 bg-white">
-        <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex items-center gap-2">
-            <Newspaper class="h-5 w-5 text-signal" />
-            <div>
-              <h2 class="text-base font-semibold">Content inventory</h2>
-              <p class="text-sm text-graphite">Wagtail pages and SEO landing pages staff can act on.</p>
-            </div>
+        <!-- Filters bar -->
+        <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-6 py-3">
+          <!-- Type tabs -->
+          <div class="flex gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="rounded-md px-3 py-1.5 text-xs font-semibold transition-colors"
+              :class="publishing.activeType === tab.key
+                ? 'bg-white text-ink shadow-sm'
+                : 'text-graphite hover:text-ink'"
+              @click="publishing.activeType = tab.key"
+            >{{ tab.label }}</button>
           </div>
 
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div class="inline-flex rounded-md border border-slate-200 bg-slate-50 p-1">
-              <button
-                v-for="tab in tabs"
-                :key="tab.key"
-                class="focus-ring min-h-9 rounded px-3 text-sm font-semibold"
-                :class="publishing.activeType === tab.key ? 'bg-white text-ink shadow-sm' : 'text-graphite'"
-                type="button"
-                @click="publishing.activeType = tab.key"
-              >
-                {{ tab.label }}
-              </button>
-            </div>
-            <label class="relative block min-w-64">
-              <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
-              <input
-                v-model="publishing.query"
-                class="focus-ring h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm"
-                type="search"
-                placeholder="Search content"
-              >
-            </label>
-          </div>
+          <!-- Search -->
+          <label class="relative min-w-48 flex-1">
+            <Search class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              v-model="publishing.query"
+              type="search"
+              placeholder="Search title or slug…"
+              class="focus-ring h-8 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs"
+            />
+          </label>
+
+          <span class="ml-auto text-xs text-graphite">
+            {{ publishing.filteredItems.length }} page{{ publishing.filteredItems.length !== 1 ? 's' : '' }}
+          </span>
         </div>
 
-        <div v-if="publishing.filteredItems.length" class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200 text-sm">
-            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
+        <!-- Table -->
+        <div class="flex-1 overflow-y-auto">
+          <table v-if="publishing.filteredItems.length" class="min-w-full text-sm">
+            <thead class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-left">
               <tr>
-                <th class="px-3 py-2">Title</th>
-                <th class="px-3 py-2">Type</th>
-                <th class="px-3 py-2">Source</th>
-                <th class="px-3 py-2">Status</th>
-                <th class="px-3 py-2">Published</th>
-                <th class="px-3 py-2">Action</th>
+                <th class="px-6 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Page</th>
+                <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Type</th>
+                <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Status</th>
+                <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Published</th>
+                <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="item in publishing.filteredItems" :key="`${item.source}-${item.id}`">
-                <td class="px-3 py-2.5">
-                  <p class="font-semibold text-ink">{{ item.title }}</p>
-                  <p class="mt-1 text-xs text-graphite">/{{ item.slug }}/</p>
-                  <p v-if="item.summary" class="mt-1 max-w-lg text-xs leading-5 text-graphite">{{ item.summary }}</p>
+            <tbody class="divide-y divide-slate-100 bg-white">
+              <tr
+                v-for="item in publishing.filteredItems"
+                :key="`${item.source}-${item.id}`"
+                class="group hover:bg-slate-50"
+              >
+                <td class="px-6 py-3">
+                  <p class="font-medium text-ink">{{ item.title }}</p>
+                  <p class="mt-0.5 font-mono text-xs text-slate-400">/{{ item.slug }}/</p>
                 </td>
-                <td class="px-3 py-2.5">
-                  <StatusPill :label="typeLabel(item.type)" />
+
+                <td class="px-3 py-3">
+                  <span
+                    class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                    :class="typeBadge(item.type)"
+                  >{{ typeLabel(item.type) }}</span>
                 </td>
-                <td class="px-3 py-2.5 text-graphite">
-                  {{ sourceLabel(item) }}
-                </td>
-                <td class="px-3 py-2.5">
+
+                <td class="px-3 py-3">
                   <StatusPill
                     :label="isScheduled(item) ? 'scheduled' : item.status"
                     :tone="isScheduled(item) ? 'warn' : statusTone(item.status)"
                   />
                 </td>
-                <td class="px-3 py-2.5 text-graphite">
-                  {{ formatDate(item.publishedAt) }}
-                </td>
-                <td class="px-3 py-2.5">
-                  <button
-                    v-if="item.source === 'seo_pages'"
-                    class="focus-ring inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-60"
-                    type="button"
-                    :disabled="publishing.isMutating"
-                    @click="publishing.setPublishState(item, item.status !== 'published').catch(() => undefined)"
-                  >
-                    {{ item.status === "published" ? "Unpublish" : "Publish" }}
-                  </button>
-                  <a
-                    v-else
-                    class="focus-ring inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold"
-                    :href="item.url || '/cms-admin/pages/'"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <ExternalLink class="h-3.5 w-3.5" />
-                    CMS
-                  </a>
+
+                <td class="px-3 py-3 text-xs text-graphite">{{ fmtDate(item.publishedAt) }}</td>
+
+                <td class="px-3 py-3">
+                  <div class="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <!-- SEO pages: publish toggle -->
+                    <button
+                      v-if="item.source === 'seo_pages'"
+                      class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-graphite hover:bg-slate-50 disabled:opacity-50"
+                      :disabled="publishing.isMutating"
+                      @click="publishing.setPublishState(item, item.status !== 'published').catch(() => undefined)"
+                    >
+                      {{ item.status === 'published' ? 'Unpublish' : 'Publish' }}
+                    </button>
+                    <!-- Wagtail pages: open in CMS -->
+                    <a
+                      v-if="item.url"
+                      :href="item.url"
+                      target="_blank"
+                      rel="noreferrer"
+                      class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-graphite hover:bg-slate-50"
+                    >
+                      <ExternalLink class="size-3" /> View
+                    </a>
+                    <a
+                      v-if="item.source === 'wagtail'"
+                      href="/cms/"
+                      target="_blank"
+                      rel="noreferrer"
+                      class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-graphite hover:bg-slate-50"
+                    >
+                      Edit in CMS
+                    </a>
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
-        </div>
 
-        <div v-else class="p-4">
-          <EmptyState
-            :icon="Newspaper"
-            title="No content found"
-            message="Refresh when the CMS backend is online or adjust the filters."
-          />
+          <!-- Empty -->
+          <div v-else class="flex flex-col items-center justify-center py-24 text-center">
+            <Newspaper class="mb-4 size-10 text-slate-300" />
+            <p class="font-semibold text-ink">No pages found</p>
+            <p class="mt-1 text-sm text-graphite">
+              {{ publishing.query ? 'Try a different search.' : 'Create your first page or refresh when the CMS is online.' }}
+            </p>
+          </div>
         </div>
       </div>
 
-      <aside class="space-y-4">
-        <section class="rounded-md border border-slate-200 bg-white p-4">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <FilePenLine class="h-5 w-5 text-signal" />
-              <h2 class="text-base font-semibold">Create publishing draft</h2>
-            </div>
-            <WagtailGuideModal />
-          </div>
-          <p class="mt-2 text-sm leading-6 text-graphite">
-            Pick the page type first. The desk will send SEO pages through the API and direct rich content to Wagtail.
-          </p>
+      <!-- ── Right sidebar ──────────────────────────────────────────────── -->
+      <aside class="flex w-72 shrink-0 flex-col gap-0 overflow-y-auto border-l border-slate-200 bg-white">
 
-          <div class="mt-4 space-y-3">
-            <label class="block">
-              <span class="text-xs font-semibold uppercase text-graphite">Content type</span>
-              <select
-                v-model="publishing.draft.type"
-                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
-              >
-                <option v-for="type in contentTypes" :key="type.key" :value="type.key">
-                  {{ type.label }}
-                </option>
-              </select>
-              <span class="mt-1 block text-xs text-graphite">
-                {{ contentTypes.find((type) => type.key === publishing.draft.type)?.hint }}
-              </span>
-            </label>
-
-            <label class="block">
-              <span class="text-xs font-semibold uppercase text-graphite">Title</span>
-              <input
-                v-model="publishing.draft.title"
-                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
-                type="text"
-              >
-            </label>
-
-            <div class="grid gap-3 sm:grid-cols-2">
-              <label class="block">
-                <span class="text-xs font-semibold uppercase text-graphite">Slug</span>
-                <input
-                  v-model="publishing.draft.slug"
-                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
-                  type="text"
-                >
-              </label>
-              <label class="block">
-                <span class="text-xs font-semibold uppercase text-graphite">Website ID</span>
-                <input
-                  v-model.number="publishing.draft.website"
-                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
-                  min="1"
-                  type="number"
-                >
-              </label>
-            </div>
-
-            <label class="block">
-              <span class="text-xs font-semibold uppercase text-graphite">Primary keyword</span>
-              <input
-                v-model="publishing.draft.primary_keyword"
-                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
-                type="text"
-              >
-            </label>
-
-            <label class="block">
-              <span class="text-xs font-semibold uppercase text-graphite">Audience</span>
-              <input
-                v-model="publishing.draft.audience"
-                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
-                type="text"
-              >
-            </label>
-
-            <label class="block">
-              <span class="text-xs font-semibold uppercase text-graphite">Summary / meta description</span>
-              <textarea
-                v-model="publishing.draft.meta_description"
-                class="focus-ring mt-1 min-h-28 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-              />
-            </label>
-
-            <div class="grid gap-3 sm:grid-cols-2">
-              <label class="block">
-                <span class="text-xs font-semibold uppercase text-graphite">CTA label</span>
-                <input
-                  v-model="publishing.draft.cta_label"
-                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
-                  type="text"
-                >
-              </label>
-              <label class="block">
-                <span class="text-xs font-semibold uppercase text-graphite">CTA href</span>
-                <input
-                  v-model="publishing.draft.cta_href"
-                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
-                  type="text"
-                >
-              </label>
-            </div>
-          </div>
-
-          <div class="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3">
-            <p class="text-sm font-semibold text-ink">{{ publishing.selectedWritePath.title }}</p>
-            <p class="mt-1 text-xs leading-5 text-graphite">{{ publishing.selectedWritePath.detail }}</p>
-          </div>
-
-          <!-- Schedule publish (SEO pages only) -->
-          <label
-            v-if="publishing.draft.type === 'seo'"
-            class="mt-4 block"
-          >
-            <span class="text-xs font-semibold uppercase text-graphite">Schedule publish (optional)</span>
-            <input
-              v-model="publishing.draft.publish_date"
-              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
-              type="datetime-local"
-              :min="new Date().toISOString().slice(0, 16)"
-            />
-            <p class="mt-1 text-xs text-graphite">Leave blank to publish immediately.</p>
-          </label>
-
-          <div class="mt-4 grid gap-2">
-            <button
-              class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold disabled:opacity-60"
-              type="button"
-              :disabled="publishing.isMutating"
-              @click="publishing.createContentDraft(false).catch(() => undefined)"
-            >
-              <FilePenLine class="h-4 w-4" />
-              Save draft
-            </button>
-            <button
-              class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-3 text-sm font-semibold text-white disabled:opacity-60"
-              type="button"
-              :disabled="publishing.isMutating"
-              @click="publishing.createContentDraft(true).catch(() => undefined)"
-            >
-              <Send class="h-4 w-4" />
-              {{ publishing.selectedWritePath.actionLabel }}
-            </button>
-          </div>
-        </section>
-
-        <section class="rounded-md border border-slate-200 bg-white p-4">
-          <div class="flex items-center gap-2">
-            <LibraryBig class="h-5 w-5 text-signal" />
-            <h2 class="text-base font-semibold">Taxonomy & profiles</h2>
-          </div>
-          <p class="mt-2 text-sm leading-6 text-graphite">
-            Authors, categories, and tags are CMS objects. Create them first, then attach them while drafting blog and service pages.
-          </p>
-
-          <div class="mt-4 space-y-3">
+        <!-- Quick links -->
+        <div class="border-b border-slate-200 px-4 py-3">
+          <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Wagtail quick links</p>
+          <div class="space-y-1">
             <a
               v-for="link in publishing.adminLinks"
               :key="link.label"
-              class="focus-ring block rounded-md border border-slate-200 bg-slate-50 p-3 transition hover:border-signal/50 hover:bg-white"
               :href="link.href"
               target="_blank"
               rel="noreferrer"
+              class="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium text-graphite hover:bg-slate-50 hover:text-ink transition-colors"
             >
-              <span class="flex items-center justify-between gap-3">
-                <span class="text-sm font-semibold text-ink">{{ link.label }}</span>
-                <ExternalLink class="h-4 w-4 shrink-0 text-graphite" />
-              </span>
-              <span class="mt-1 block text-xs leading-5 text-graphite">{{ link.detail }}</span>
-              <span class="mt-2 inline-flex rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-graphite">
-                {{ link.owner }}
-              </span>
+              <span>{{ link.label }}</span>
+              <ExternalLink class="size-3 shrink-0 text-slate-400" />
             </a>
           </div>
-        </section>
+        </div>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4">
-          <div class="flex items-center gap-2">
-            <Globe2 class="h-5 w-5 text-signal" />
-            <h2 class="text-base font-semibold">Staff ownership</h2>
+        <!-- Link suggestions tool -->
+        <div class="border-b border-slate-200">
+          <button
+            class="flex w-full items-center justify-between px-4 py-3 text-left"
+            @click="showLinkTool = !showLinkTool"
+          >
+            <div class="flex items-center gap-2">
+              <Link2 class="size-4 text-graphite" />
+              <span class="text-xs font-semibold text-ink">Link suggestions</span>
+            </div>
+            <ChevronDown
+              class="size-3.5 text-graphite transition-transform"
+              :class="showLinkTool ? 'rotate-180' : ''"
+            />
+          </button>
+
+          <div v-if="showLinkTool" class="px-4 pb-4 space-y-3">
+            <div class="flex gap-2">
+              <input
+                v-model.number="linkSuggestionPageId"
+                type="number"
+                class="focus-ring min-w-0 flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+                placeholder="Page ID"
+                @keydown.enter="fetchLinkSuggestions"
+              />
+              <button
+                class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-100 disabled:opacity-50"
+                :disabled="isFetchingSuggestions || !linkSuggestionPageId"
+                @click="fetchLinkSuggestions"
+              >
+                <Loader2 v-if="isFetchingSuggestions" class="size-3.5 animate-spin" />
+                <span v-else>Analyse</span>
+              </button>
+            </div>
+
+            <div v-if="linkSuggestions.length" class="space-y-1.5">
+              <a
+                v-for="s in linkSuggestions"
+                :key="s.page_id"
+                :href="s.url ?? '#'"
+                target="_blank"
+                rel="noreferrer"
+                class="block rounded-lg border border-slate-200 p-2.5 text-xs hover:border-berry/40 hover:bg-slate-50 transition-colors"
+              >
+                <div class="flex items-start justify-between gap-2">
+                  <p class="font-semibold text-ink leading-snug line-clamp-2">{{ s.title }}</p>
+                  <span class="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-700">
+                    {{ (s.score * 100).toFixed(0) }}%
+                  </span>
+                </div>
+                <p class="mt-0.5 text-slate-400">{{ s.reason }}</p>
+              </a>
+            </div>
+            <p v-else-if="!isFetchingSuggestions" class="text-xs text-graphite text-center py-2">
+              Enter a Wagtail page ID to get link suggestions.
+            </p>
           </div>
-          <div class="mt-4 space-y-3">
+        </div>
+
+        <!-- Staff responsibilities (collapsible) -->
+        <div v-if="visibleResponsibilities.length" class="border-b border-slate-200">
+          <button
+            class="flex w-full items-center justify-between px-4 py-3 text-left"
+            @click="publishing.activeType = publishing.activeType"
+          >
+            <div class="flex items-center gap-2">
+              <Users class="size-4 text-graphite" />
+              <span class="text-xs font-semibold text-ink">Role responsibilities</span>
+            </div>
+          </button>
+          <div class="space-y-2 px-4 pb-4">
             <div
               v-for="role in visibleResponsibilities"
               :key="role.role"
-              class="rounded-md border border-slate-200 bg-slate-50 p-3"
+              class="rounded-lg border border-slate-100 bg-slate-50 p-3"
             >
-              <p class="text-sm font-semibold text-ink">{{ role.label }}</p>
-              <p class="mt-1 text-xs leading-5 text-graphite">{{ role.scope }}</p>
-              <ul class="mt-3 space-y-2">
-                <li v-for="action in role.actions" :key="action" class="flex gap-2 text-xs text-graphite">
-                  <CheckCircle2 class="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                  <span>{{ action }}</span>
+              <p class="text-xs font-semibold text-ink">{{ role.label }}</p>
+              <ul class="mt-2 space-y-1">
+                <li v-for="action in role.actions" :key="action" class="flex gap-1.5 text-xs text-graphite">
+                  <CheckCircle2 class="mt-0.5 size-3 shrink-0 text-emerald-500" />
+                  {{ action }}
                 </li>
               </ul>
             </div>
           </div>
-        </section>
-        <!-- Internal link suggestions -->
-        <section class="rounded-md border border-slate-200 bg-white p-4">
-          <div class="flex items-center justify-between gap-2">
+        </div>
+
+      </aside>
+    </div>
+
+    <!-- ── Create page slide-over ─────────────────────────────────────── -->
+    <Teleport to="body">
+      <div
+        v-if="showCreate"
+        class="fixed inset-0 z-40 flex"
+        @click.self="showCreate = false"
+      >
+        <div class="absolute inset-0 bg-black/30" @click="showCreate = false" />
+
+        <div class="relative ml-auto flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <div class="flex items-center gap-2">
-              <Link2 class="h-5 w-5 text-signal" />
-              <h2 class="text-base font-semibold">Link suggestions</h2>
+              <FilePenLine class="size-5 text-berry" />
+              <div>
+                <h2 class="font-bold text-ink">New page</h2>
+                <p class="text-xs text-graphite">Draft or publish a new piece of content</p>
+              </div>
             </div>
-            <button
-              class="text-xs font-semibold text-berry hover:underline"
-              @click="fetchLinkSuggestions"
-              :disabled="isFetchingSuggestions"
-            >
-              {{ isFetchingSuggestions ? "Loading…" : "Refresh" }}
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="showCreate = false">
+              <X class="size-5" />
             </button>
           </div>
-          <p class="mt-1 text-xs text-graphite">Internal pages to link from the current draft.</p>
 
-          <div v-if="isFetchingSuggestions" class="mt-3 space-y-2 animate-pulse">
-            <div v-for="n in 3" :key="n" class="h-10 rounded bg-slate-100" />
-          </div>
-          <div v-else-if="!linkSuggestions.length" class="mt-3 rounded-md bg-slate-50 p-3 text-xs text-graphite text-center">
-            Enter a page ID above and click Refresh.
-          </div>
-          <div v-else class="mt-3 space-y-2">
-            <a
-              v-for="s in linkSuggestions"
-              :key="s.page_id"
-              :href="s.url ?? '#'"
-              target="_blank"
-              rel="noreferrer"
-              class="block rounded-md border border-slate-200 bg-slate-50 p-2.5 hover:border-signal/40 hover:bg-white transition text-xs"
-            >
-              <p class="font-semibold text-ink truncate">{{ s.title }}</p>
-              <p class="text-graphite mt-0.5">{{ s.reason }}</p>
-              <div class="flex items-center justify-between mt-1">
-                <span class="text-slate-400 truncate">{{ s.url }}</span>
-                <span class="shrink-0 font-bold text-signal ml-2">{{ (s.score * 100).toFixed(0) }}%</span>
+          <!-- Form -->
+          <div class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+
+            <!-- Type selector — visual cards -->
+            <div>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Content type</p>
+              <div class="grid gap-2">
+                <button
+                  v-for="ct in contentTypes"
+                  :key="ct.key"
+                  class="rounded-xl border-2 px-4 py-3 text-left transition-all"
+                  :class="publishing.draft.type === ct.key
+                    ? 'border-berry bg-berry/5'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'"
+                  @click="publishing.draft.type = ct.key"
+                >
+                  <p class="text-sm font-semibold text-ink">{{ ct.label }}</p>
+                  <p class="mt-0.5 text-xs text-graphite">{{ ct.hint }}</p>
+                </button>
               </div>
-            </a>
+            </div>
+
+            <!-- Route hint -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs">
+              <p class="font-semibold text-ink">{{ publishing.selectedWritePath.title }}</p>
+              <p class="mt-0.5 text-graphite leading-5">{{ publishing.selectedWritePath.detail }}</p>
+            </div>
+
+            <!-- Core fields -->
+            <label class="block">
+              <span class="text-xs font-semibold text-graphite">Title <span class="text-rose-500">*</span></span>
+              <input
+                v-model="publishing.draft.title"
+                class="focus-ring mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                type="text"
+                placeholder="How to write a research paper"
+              />
+            </label>
+
+            <label class="block">
+              <span class="text-xs font-semibold text-graphite">URL slug <span class="text-rose-500">*</span></span>
+              <div class="mt-1 flex items-center">
+                <span class="rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-graphite">/lp/</span>
+                <input
+                  v-model="publishing.draft.slug"
+                  class="focus-ring min-w-0 flex-1 rounded-r-lg border border-slate-200 px-3 py-2 text-sm"
+                  type="text"
+                  placeholder="how-to-write-research-paper"
+                />
+              </div>
+            </label>
+
+            <label class="block">
+              <span class="text-xs font-semibold text-graphite">Meta description</span>
+              <textarea
+                v-model="publishing.draft.meta_description"
+                class="focus-ring mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                rows="3"
+                placeholder="A concise description for search results (150–160 chars)…"
+                maxlength="160"
+              />
+            </label>
+
+            <!-- Schedule (SEO only) -->
+            <label v-if="publishing.draft.type === 'seo'" class="block">
+              <span class="text-xs font-semibold text-graphite">Schedule publish <span class="font-normal text-slate-400">(optional)</span></span>
+              <input
+                v-model="publishing.draft.publish_date"
+                type="datetime-local"
+                class="focus-ring mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                :min="new Date().toISOString().slice(0, 16)"
+              />
+            </label>
+
+            <!-- Advanced fields (collapsible) -->
+            <div>
+              <button
+                class="flex items-center gap-1.5 text-xs font-semibold text-graphite hover:text-ink"
+                @click="showAdvanced = !showAdvanced"
+              >
+                <ChevronDown class="size-3.5 transition-transform" :class="showAdvanced ? 'rotate-180' : ''" />
+                {{ showAdvanced ? 'Hide' : 'Show' }} advanced fields
+              </button>
+
+              <div v-if="showAdvanced" class="mt-3 space-y-3">
+                <label class="block">
+                  <span class="text-xs font-semibold text-graphite">Primary keyword</span>
+                  <input v-model="publishing.draft.primary_keyword" class="focus-ring mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" type="text" placeholder="e.g. research paper help" />
+                </label>
+                <label class="block">
+                  <span class="text-xs font-semibold text-graphite">Target audience</span>
+                  <input v-model="publishing.draft.audience" class="focus-ring mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" type="text" placeholder="e.g. undergraduate students" />
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                  <label class="block">
+                    <span class="text-xs font-semibold text-graphite">CTA label</span>
+                    <input v-model="publishing.draft.cta_label" class="focus-ring mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" type="text" />
+                  </label>
+                  <label class="block">
+                    <span class="text-xs font-semibold text-graphite">CTA href</span>
+                    <input v-model="publishing.draft.cta_href" class="focus-ring mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" type="text" />
+                  </label>
+                </div>
+                <label class="block">
+                  <span class="text-xs font-semibold text-graphite">Website ID</span>
+                  <input v-model.number="publishing.draft.website" class="focus-ring mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" type="number" min="1" />
+                </label>
+              </div>
+            </div>
+
           </div>
 
-          <div class="mt-3 flex gap-2">
-            <input
-              v-model.number="linkSuggestionPageId"
-              type="number"
-              class="focus-ring min-w-0 flex-1 rounded border border-slate-200 px-2 py-1.5 text-xs"
-              placeholder="Page ID to analyse"
-            />
-            <button
-              class="rounded border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50"
-              @click="fetchLinkSuggestions"
-            >Go</button>
+          <!-- Footer actions -->
+          <div class="border-t border-slate-200 px-5 py-4">
+            <div class="flex gap-2">
+              <button
+                class="focus-ring flex-1 rounded-lg border border-slate-200 bg-white py-2.5 text-sm font-semibold text-graphite hover:bg-slate-50 disabled:opacity-60"
+                :disabled="publishing.isMutating"
+                @click="publishing.createContentDraft(false).catch(() => undefined)"
+              >
+                <FilePenLine class="inline size-4 mr-1" />Save draft
+              </button>
+              <button
+                class="focus-ring flex-1 rounded-lg bg-berry py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                :disabled="publishing.isMutating"
+                @click="publishing.createContentDraft(true).catch(() => undefined)"
+              >
+                <Send class="inline size-4 mr-1" />{{ publishing.selectedWritePath.actionLabel }}
+              </button>
+            </div>
+            <p class="mt-2 text-center text-xs text-graphite">
+              Blog and service pages open in Wagtail after draft creation.
+            </p>
           </div>
-        </section>
-      </aside>
-    </section>
+        </div>
+      </div>
+    </Teleport>
+
   </div>
 </template>
