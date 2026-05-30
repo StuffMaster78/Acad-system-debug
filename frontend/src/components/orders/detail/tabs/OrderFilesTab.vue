@@ -189,13 +189,24 @@
             Download not available: {{ files.deliveryBlocked.blocked_reason.replace(/_/g, ' ') }}
           </template>
         </p>
-        <button
-          v-if="files.deliveryBlocked.blocked_reason === 'balance_due'"
-          class="focus-ring mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800"
-          @click="emit('go-to-payments')"
-        >
-          Pay remaining balance
-        </button>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <button
+            v-if="files.deliveryBlocked.blocked_reason === 'balance_due'"
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800"
+            @click="emit('go-to-payments')"
+          >
+            Pay remaining balance
+          </button>
+          <button
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-50"
+            :disabled="files.isLoadingAttachments"
+            @click="recheckAccess"
+          >
+            <Loader2 v-if="files.isLoadingAttachments" class="size-3 animate-spin" />
+            <RefreshCw v-else class="size-3" />
+            Check again
+          </button>
+        </div>
       </div>
 
       <div v-else class="divide-y divide-slate-100">
@@ -325,7 +336,7 @@
 import { computed, ref } from "vue";
 import {
   AlertCircle, CheckCircle2, Download, ExternalLink,
-  FileUp, Loader2, Lock, Paperclip, Plus, Send, Trash2, X,
+  FileUp, Loader2, Lock, Paperclip, Plus, RefreshCw, Send, Trash2, X,
 } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderSummary, OrderLifecycle } from "@/types/orders";
@@ -444,6 +455,13 @@ async function singleUpload() {
   if (!singleFile.value) return;
   await files.uploadSingleFile(props.orderId, singleFile.value, singlePurpose.value);
   singleFile.value = null;
+}
+
+// ── Payment re-check ─────────────────────────────────────────────────────────
+
+async function recheckAccess() {
+  files.clearMessages();
+  await files.fetchOrderAttachments(props.orderId);
 }
 
 // ── Delivery helpers ─────────────────────────────────────────────────────────
