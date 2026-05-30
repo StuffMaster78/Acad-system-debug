@@ -237,6 +237,8 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Email", to: "/superadmin/email", icon: Mail },
       { label: "Holidays", to: "/superadmin/holidays", icon: CalendarDays },
       { label: "Publishing", to: "/superadmin/publishing", icon: Newspaper },
+      { label: "Content", to: "/superadmin/content", icon: FileEdit },
+      { label: "Content Graph", to: "/superadmin/content-graph", icon: GitBranch },
       { label: "Files", to: "/superadmin/files", icon: FolderOpen },
       { label: "Analytics", to: "/superadmin/analytics", icon: BarChart3 },
       { label: "Website", to: "/superadmin/website", icon: Globe },
@@ -287,6 +289,8 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     { label: "Platform", items: [
       { label: "Holidays", to: "/admin/holidays", icon: CalendarDays },
       { label: "Publishing", to: "/admin/publishing", icon: Newspaper },
+      { label: "Content", to: "/admin/content", icon: FileEdit },
+      { label: "Content Graph", to: "/admin/content-graph", icon: GitBranch },
       { label: "Files", to: "/admin/files", icon: FolderOpen },
       { label: "Analytics", to: "/admin/analytics", icon: BarChart3 },
       { label: "Website", to: "/admin/website", icon: Globe },
