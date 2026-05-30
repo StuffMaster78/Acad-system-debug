@@ -90,6 +90,7 @@ class OrderApprovalService:
             },
         )
         cls._award_referral_reward(order=locked_order)
+        cls._notify_approved(order=locked_order, actor=triggered_by or approved_by)
         return locked_order
 
     @classmethod
@@ -146,6 +147,7 @@ class OrderApprovalService:
             },
         )
         cls._award_referral_reward(order=locked_order)
+        cls._notify_approved(order=locked_order, actor=triggered_by)
         return locked_order
 
     @classmethod
@@ -269,6 +271,24 @@ class OrderApprovalService:
             actor=actor,
             metadata=metadata,
         )
+
+    @staticmethod
+    def _notify_approved(*, order: Order, actor) -> None:
+        try:
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
+            )
+            OrderNotificationService.notify_order_approved(
+                order=order,
+                approved_by=actor,
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to send approval notification for order_id=%s",
+                getattr(order, "id", None),
+                exc_info=True,
+            )
 
     @staticmethod
     def _award_referral_reward(*, order: Order) -> None:

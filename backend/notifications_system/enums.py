@@ -47,6 +47,12 @@ class NotificationEvent(TextChoices):
     # writer receives
     ORDER_RATED = 'order.rated', _('Order Rated')
     ORDER_QA_REVIEW_READY = "order.qa_review_ready"
+    ORDER_SUBMITTED = "order.submitted", _("Order Submitted")
+
+    # Bid / writer-interest events
+    ORDER_BID_PLACED = "order.bid.placed", _("Bid Placed")
+    ORDER_BID_ACCEPTED = "order.bid.accepted", _("Bid Accepted")
+    ORDER_BID_REJECTED = "order.bid.rejected", _("Bid Rejected")
 
     # Payments / Wallet
     WALLET_CREDITED = 'wallet.credited', _('Wallet Credited')

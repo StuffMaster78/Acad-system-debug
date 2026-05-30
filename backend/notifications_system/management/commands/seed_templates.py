@@ -117,6 +117,98 @@ DEFAULT_TEMPLATES = {
             'available_variables': ['order_id', 'hours_remaining'],
         },
     },
+    'order.submitted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Order #{{order_id}} has been submitted',
+            'body_html': 'notifications/emails/order_submitted.html',
+            'body_text': 'Order #{{order_id}} has been submitted for your review.',
+            'available_variables': ['order_id', 'order_topic', 'order_reference', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Order #{{order_id}} submitted',
+            'message': 'Your order has been submitted and is ready for review.',
+            'available_variables': ['order_id', 'order_topic'],
+        },
+    },
+    'order.on_hold': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Order #{{order_id}} has been placed on hold',
+            'body_html': 'notifications/emails/order_on_hold.html',
+            'body_text': 'Order #{{order_id}} has been placed on hold. Reason: {{reason}}.',
+            'available_variables': ['order_id', 'order_topic', 'hold_id', 'reason', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Order #{{order_id}} on hold',
+            'message': 'Your order has been placed on hold.',
+            'available_variables': ['order_id', 'reason'],
+        },
+    },
+    'order.reopened': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Order #{{order_id}} has been reopened',
+            'body_html': 'notifications/emails/order_reopened.html',
+            'body_text': 'Order #{{order_id}} has been reopened and is back in progress.',
+            'available_variables': ['order_id', 'order_topic', 'reason', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Order #{{order_id}} reopened',
+            'message': 'Your order is back in progress.',
+            'available_variables': ['order_id', 'reason'],
+        },
+    },
+    'order.bid.placed': {
+        NotificationChannel.IN_APP: {
+            'title': 'Bid placed on order #{{order_id}}',
+            'message': 'Your bid on order #{{order_id}} has been placed.',
+            'available_variables': ['order_id', 'order_topic', 'interest_id'],
+        },
+    },
+    'order.bid.accepted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your bid on order #{{order_id}} was accepted',
+            'body_html': 'notifications/emails/bid_accepted.html',
+            'body_text': 'Your bid on order #{{order_id}} was accepted. Get started now.',
+            'available_variables': ['order_id', 'order_topic', 'interest_id', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Bid accepted — Order #{{order_id}}',
+            'message': 'Your bid was accepted. The order has been assigned to you.',
+            'available_variables': ['order_id', 'order_topic', 'interest_id'],
+        },
+    },
+    'order.bid.rejected': {
+        NotificationChannel.IN_APP: {
+            'title': 'Bid not selected — Order #{{order_id}}',
+            'message': 'Your bid on order #{{order_id}} was not selected.',
+            'available_variables': ['order_id', 'order_topic', 'interest_id'],
+        },
+    },
+    'file.uploaded': {
+        NotificationChannel.EMAIL: {
+            'subject': 'New file uploaded for Order #{{order_id}}',
+            'body_html': 'notifications/emails/file_uploaded.html',
+            'body_text': 'A new file has been uploaded for order #{{order_id}}.',
+            'available_variables': ['order_id', 'order_topic', 'attachment_id', 'purpose', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'New file on Order #{{order_id}}',
+            'message': 'A new file has been uploaded for your order.',
+            'available_variables': ['order_id', 'attachment_id', 'purpose'],
+        },
+    },
+    'order.qa_review_ready': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Order #{{order_id}} is ready for QA review',
+            'body_html': 'notifications/emails/order_qa_review_ready.html',
+            'body_text': 'Order #{{order_id}} ({{order_topic}}) requires QA review.',
+            'available_variables': ['order_id', 'order_topic', 'total_price', 'is_urgent', 'writer_id'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'QA review needed — Order #{{order_id}}',
+            'message': 'Order #{{order_id}} is in the QA queue.',
+            'available_variables': ['order_id', 'order_topic', 'is_urgent'],
+        },
+    },
     'order.disputed': {
         NotificationChannel.EMAIL: {
             'subject': 'Dispute opened for Order #{{order_id}}',

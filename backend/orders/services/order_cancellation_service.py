@@ -142,9 +142,12 @@ class OrderCancellationService:
         #
         # 2. Trigger payout reversal / deduction flow later if writer
         #    was already paid or included in current payout batch.
-        #
-        # 3. Optionally emit central notifications to client/staff/writer.
 
+        cls._notify_cancelled(
+            order=locked_order,
+            actor=triggered_by or cancelled_by,
+            reason=reason,
+        )
         return locked_order
 
     @classmethod
@@ -189,6 +192,25 @@ class OrderCancellationService:
         ):
             raise ValidationError(
                 "Actor website must match order website."
+            )
+
+    @staticmethod
+    def _notify_cancelled(*, order: Order, actor, reason: str) -> None:
+        try:
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
+            )
+            OrderNotificationService.notify_order_cancelled(
+                order=order,
+                cancelled_by=actor,
+                reason=reason,
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to send cancellation notification for order_id=%s",
+                getattr(order, "id", None),
+                exc_info=True,
             )
 
     @staticmethod

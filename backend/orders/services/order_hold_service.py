@@ -128,6 +128,11 @@ class OrderHoldService:
                 "remaining_seconds": remaining_seconds,
             },
         )
+        cls._notify_on_hold(
+            order=locked_order,
+            hold=locked_hold,
+            actor=triggered_by or activated_by,
+        )
         return locked_hold
 
     @classmethod
@@ -182,6 +187,10 @@ class OrderHoldService:
                 "remaining_seconds": locked_hold.remaining_seconds,
             },
         )
+        cls._notify_hold_released(
+            order=locked_order,
+            actor=triggered_by or released_by,
+        )
         return locked_order
 
     @classmethod
@@ -220,6 +229,44 @@ class OrderHoldService:
         )
 
         return locked_hold
+
+    @staticmethod
+    def _notify_on_hold(*, order: Order, hold: OrderHold, actor) -> None:
+        try:
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
+            )
+            OrderNotificationService.notify_order_on_hold(
+                order=order,
+                hold=hold,
+                triggered_by=actor,
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to send on-hold notification for order_id=%s",
+                getattr(order, "pk", None),
+                exc_info=True,
+            )
+
+    @staticmethod
+    def _notify_hold_released(*, order: Order, actor) -> None:
+        try:
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
+            )
+            OrderNotificationService.notify_order_reopened(
+                order=order,
+                reopened_by=actor,
+                reason="hold_released",
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to send hold release notification for order_id=%s",
+                getattr(order, "pk", None),
+                exc_info=True,
+            )
 
     @classmethod
     def _ensure_can_request_hold(cls, order: Order) -> None:

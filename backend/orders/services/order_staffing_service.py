@@ -208,6 +208,7 @@ class OrderStaffingService:
                 "writer_id": getattr(writer, "pk", None),
             },
         )
+        cls._notify_bid_placed(interest=interest)
         return interest
 
     @classmethod
@@ -365,6 +366,11 @@ class OrderStaffingService:
                 "source": ORDER_ASSIGNMENT_SOURCE_SELF_TAKE,
             },
         )
+        cls._notify_assigned(
+            order=locked_order,
+            writer_user=writer,
+            actor=triggered_by,
+        )
         return assignment
 
     @classmethod
@@ -441,6 +447,11 @@ class OrderStaffingService:
                 "source": ORDER_ASSIGNMENT_SOURCE_ACCEPTED_INTEREST,
             },
         )
+        cls._notify_assigned(
+            order=locked_order,
+            writer_user=locked_interest.writer,
+            actor=assigned_by,
+        )
         return assignment
 
     @classmethod
@@ -498,6 +509,11 @@ class OrderStaffingService:
                 "writer_id": getattr(writer, "pk", None),
                 "source": ORDER_ASSIGNMENT_SOURCE_STAFF_ASSIGNMENT,
             },
+        )
+        cls._notify_assigned(
+            order=locked_order,
+            writer_user=writer,
+            actor=assigned_by,
         )
         return assignment
 
@@ -598,6 +614,11 @@ class OrderStaffingService:
                     ORDER_ASSIGNMENT_SOURCE_PREFERRED_WRITER_ACCEPTANCE
                 ),
             },
+        )
+        cls._notify_assigned(
+            order=locked_order,
+            writer_user=writer,
+            actor=triggered_by or writer,
         )
         return assignment
 
@@ -1339,6 +1360,40 @@ class OrderStaffingService:
 
         return queryset.first()
     
+
+    @staticmethod
+    def _notify_assigned(*, order: Order, writer_user, actor) -> None:
+        try:
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
+            )
+            OrderNotificationService.notify_order_assigned(
+                order=order,
+                writer_user=writer_user,
+                triggered_by=actor,
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to send assignment notification for order_id=%s",
+                getattr(order, "pk", None),
+                exc_info=True,
+            )
+
+    @staticmethod
+    def _notify_bid_placed(*, interest) -> None:
+        try:
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
+            )
+            OrderNotificationService.notify_bid_placed(interest=interest)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to send bid placed notification for interest_id=%s",
+                getattr(interest, "pk", None),
+                exc_info=True,
+            )
 
     @classmethod
     def _ensure_pending_preferred_invitation_for_writer(

@@ -177,10 +177,12 @@ class OrderFileService:
             uploaded_file=uploaded_file,
         )
 
-        # TODO:
-        # OrderWorkflowService.mark_delivered(...)
-        # OrderTimelineService.record_final_uploaded(...)
-        # NotificationService.notify(...)
+        cls._notify_order_file_uploaded(
+            order=order,
+            actor=uploaded_by,
+            attachment=attachment,
+            recipient=getattr(order, "client", None),
+        )
 
         return attachment
 
@@ -200,11 +202,20 @@ class OrderFileService:
         cls._ensure_same_website(order=order, user=uploaded_by)
         cls._ensure_assigned_writer_or_staff(order=order, user=uploaded_by)
 
-        return OrderFileIntegrationService.upload_revision_file(
+        attachment = OrderFileIntegrationService.upload_revision_file(
             order=order,
             uploaded_by=uploaded_by,
             uploaded_file=uploaded_file,
         )
+
+        cls._notify_order_file_uploaded(
+            order=order,
+            actor=uploaded_by,
+            attachment=attachment,
+            recipient=getattr(order, "client", None),
+        )
+
+        return attachment
 
     @classmethod
     @transaction.atomic
@@ -238,6 +249,7 @@ class OrderFileService:
         )
 
 
+    @staticmethod
     def _record_file_event(
         *,
         order,
@@ -245,10 +257,6 @@ class OrderFileService:
         event_type: str,
         attachment,
     ) -> None:
-        """
-        Record order timeline event if the timeline model is available.
-        """
-
         try:
             from orders.models import OrderTimelineEvent
         except ImportError:
@@ -265,7 +273,7 @@ class OrderFileService:
             },
         )
 
-
+    @staticmethod
     def _notify_order_file_uploaded(
         *,
         order,
@@ -273,28 +281,23 @@ class OrderFileService:
         attachment,
         recipient,
     ) -> None:
-        """
-        Notify a user about an order file event.
-        """
-
         try:
-            from notifications_system.services.notification_service import (
-                NotificationService,
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
             )
-        except ImportError:
-            return
-
-        NotificationService.notify(
-            event_key="orders.file_uploaded",
-            recipient=recipient,
-            website=order.website,
-            context={
-                "order_id": order.id,
-                "attachment_id": attachment.id,
-                "purpose": attachment.purpose,
-            },
-            triggered_by=actor,
-        )
+            OrderNotificationService.notify_file_uploaded(
+                order=order,
+                uploaded_by=actor,
+                attachment=attachment,
+                recipient=recipient,
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to send file upload notification for order_id=%s",
+                getattr(order, "id", None),
+                exc_info=True,
+            )
     
     @staticmethod
     def _ensure_same_website(*, order, user) -> None:

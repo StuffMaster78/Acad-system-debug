@@ -262,6 +262,10 @@ class OrderSubmissionService:
                 "submitted_by_id": getattr(submitted_by, "pk", None),
             },
         )
+        cls._notify_submitted(
+            order=locked_order,
+            actor=triggered_by or submitted_by,
+        )
 
     # ----------------------------------------------------------------
     # ADMIN BYPASS METHODS
@@ -355,6 +359,10 @@ class OrderSubmissionService:
                 "completion_mode": "explicit",
             },
         )
+        cls._notify_completed(
+            order=locked_order,
+            actor=triggered_by or completed_by,
+        )
         return locked_order
 
     @classmethod
@@ -392,6 +400,10 @@ class OrderSubmissionService:
                 "completion_mode": "auto",
                 "is_automatic":    True,
             },
+        )
+        cls._notify_completed(
+            order=locked_order,
+            actor=triggered_by,
         )
         return locked_order
 
@@ -434,7 +446,61 @@ class OrderSubmissionService:
                 "reason":         reason,
             },
         )
+        cls._notify_reopened(
+            order=locked_order,
+            actor=triggered_by or reopened_by,
+            reason=reason,
+        )
         return locked_order
+
+    # ----------------------------------------------------------------
+    # NOTIFICATION HELPERS
+    # ----------------------------------------------------------------
+
+    @staticmethod
+    def _notify_submitted(*, order: Order, actor) -> None:
+        try:
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
+            )
+            OrderNotificationService.notify_order_submitted(
+                order=order, submitted_by=actor
+            )
+        except Exception:
+            logger.warning(
+                "Failed to send submission notification for order_id=%s",
+                getattr(order, "pk", None), exc_info=True,
+            )
+
+    @staticmethod
+    def _notify_completed(*, order: Order, actor) -> None:
+        try:
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
+            )
+            OrderNotificationService.notify_order_completed(
+                order=order, completed_by=actor
+            )
+        except Exception:
+            logger.warning(
+                "Failed to send completion notification for order_id=%s",
+                getattr(order, "pk", None), exc_info=True,
+            )
+
+    @staticmethod
+    def _notify_reopened(*, order: Order, actor, reason: str) -> None:
+        try:
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
+            )
+            OrderNotificationService.notify_order_reopened(
+                order=order, reopened_by=actor, reason=reason
+            )
+        except Exception:
+            logger.warning(
+                "Failed to send reopen notification for order_id=%s",
+                getattr(order, "pk", None), exc_info=True,
+            )
 
     # ----------------------------------------------------------------
     # EDITING POLICY

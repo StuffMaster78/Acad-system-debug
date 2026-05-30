@@ -173,6 +173,11 @@ class RevisionOrchestrationService:
                 "routing": "free_revision",
             },
         )
+        cls._notify_revision_requested(
+            order=order,
+            requested_by=triggered_by or requested_by,
+            reason=reason,
+        )
         return revision_request
 
     @classmethod
@@ -308,6 +313,27 @@ class RevisionOrchestrationService:
         ):
             raise ValidationError(
                 "Actor website must match order website."
+            )
+
+    @staticmethod
+    def _notify_revision_requested(
+        *, order, requested_by, reason: str
+    ) -> None:
+        try:
+            from orders.services.order_notification_service import (
+                OrderNotificationService,
+            )
+            OrderNotificationService.notify_order_revision_requested(
+                order=order,
+                requested_by=requested_by,
+                reason=reason,
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to send revision notification for order_id=%s",
+                getattr(order, "pk", None),
+                exc_info=True,
             )
 
     @classmethod
