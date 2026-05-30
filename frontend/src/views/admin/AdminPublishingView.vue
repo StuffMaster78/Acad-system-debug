@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import {
   CheckCircle2,
@@ -16,6 +16,7 @@ import {
 } from "@lucide/vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import WagtailGuideModal from "@/components/cms/WagtailGuideModal.vue";
 import { useAdminPublishingStore } from "@/stores/adminPublishing";
 import type { PublishingContentType, PublishingItem } from "@/types/adminPublishing";
 
@@ -84,6 +85,25 @@ function sourceLabel(item: PublishingItem) {
 onMounted(() => {
   publishing.hydrate().catch(() => undefined);
 });
+
+// ── Internal link suggestions ─────────────────────────────────────────────
+const linkSuggestions = ref<{ page_id: number; title: string; url: string; reason: string; score: number }[]>([]);
+const linkSuggestionPageId = ref<number | null>(null);
+const isFetchingSuggestions = ref(false);
+
+async function fetchLinkSuggestions() {
+  if (!linkSuggestionPageId.value) return;
+  isFetchingSuggestions.value = true;
+  try {
+    const { cmsIntelligenceApi } = await import("@/api/cms");
+    const { data } = await cmsIntelligenceApi.linkSuggestions(linkSuggestionPageId.value);
+    linkSuggestions.value = Array.isArray(data) ? data : [];
+  } catch {
+    linkSuggestions.value = [];
+  } finally {
+    isFetchingSuggestions.value = false;
+  }
+}
 </script>
 
 <template>
@@ -276,9 +296,12 @@ onMounted(() => {
 
       <aside class="space-y-4">
         <section class="rounded-md border border-slate-200 bg-white p-4">
-          <div class="flex items-center gap-2">
-            <FilePenLine class="h-5 w-5 text-signal" />
-            <h2 class="text-base font-semibold">Create publishing draft</h2>
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <FilePenLine class="h-5 w-5 text-signal" />
+              <h2 class="text-base font-semibold">Create publishing draft</h2>
+            </div>
+            <WagtailGuideModal />
           </div>
           <p class="mt-2 text-sm leading-6 text-graphite">
             Pick the page type first. The desk will send SEO pages through the API and direct rich content to Wagtail.
