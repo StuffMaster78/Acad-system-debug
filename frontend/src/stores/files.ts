@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
-import { filesApi, type FileAttachment, type FilePurpose } from "@/api/files";
+import { filesApi, type DeliveryGuardError, type FileAttachment, type FilePurpose } from "@/api/files";
 import { useAuthStore } from "@/stores/auth";
 
 export interface QueuedFile {
@@ -18,6 +18,7 @@ export const useFilesStore = defineStore("files", () => {
   const isLoadingAttachments = ref(false);
   const error = ref("");
   const notice = ref("");
+  const deliveryBlocked = ref<DeliveryGuardError | null>(null);
 
   async function fetchOrderAttachments(orderId: number | string) {
     isLoadingAttachments.value = true;
@@ -131,11 +132,31 @@ export const useFilesStore = defineStore("files", () => {
   }
 
   async function downloadFile(orderId: number | string, attachmentId: number | string) {
+    deliveryBlocked.value = null;
     try {
       const { data } = await filesApi.orderFileDownload(orderId, attachmentId);
       if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const responseData = (err as { response?: { data?: unknown } })?.response?.data as DeliveryGuardError | undefined;
+      if (status === 402 || status === 423) {
+        deliveryBlocked.value = responseData ?? { blocked_reason: "guard_error" };
+      } else {
+        error.value = "Could not generate download link.";
+      }
+    }
+  }
+
+  async function submitFinalFile(orderId: number | string, attachmentId: number | string) {
+    try {
+      const { data } = await filesApi.submitFinalFile(orderId, attachmentId);
+      const idx = attachments.value.findIndex((a) => a.id === attachmentId);
+      if (idx !== -1) attachments.value[idx] = { ...attachments.value[idx], ...data };
+      notice.value = "File submitted for delivery. The client will be notified.";
+      return true;
     } catch {
-      error.value = "Could not generate download link.";
+      error.value = "Could not submit file for delivery.";
+      return false;
     }
   }
 
@@ -156,6 +177,7 @@ export const useFilesStore = defineStore("files", () => {
   function clearMessages() {
     error.value = "";
     notice.value = "";
+    deliveryBlocked.value = null;
   }
 
   return {
@@ -165,6 +187,7 @@ export const useFilesStore = defineStore("files", () => {
     isLoadingAttachments,
     error,
     notice,
+    deliveryBlocked,
     fetchOrderAttachments,
     addToQueue,
     removeFromQueue,
@@ -172,6 +195,7 @@ export const useFilesStore = defineStore("files", () => {
     uploadFiles,
     uploadSingleFile,
     downloadFile,
+    submitFinalFile,
     requestFileDeletion,
     clearMessages,
   };

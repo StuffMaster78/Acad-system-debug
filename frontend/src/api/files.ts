@@ -42,12 +42,23 @@ export interface ExternalFileLink {
   created_at?: string;
 }
 
+export type DeliveryStatus =
+  | "pending"
+  | "submitted"
+  | "locked"
+  | "approved"
+  | "rejected";
+
 export interface FileAttachment {
   id: number;
   purpose: string;
   visibility: string;
   is_primary: boolean;
   is_active?: boolean;
+  is_submitted?: boolean;
+  delivery_status?: DeliveryStatus;
+  submitted_at?: string | null;
+  first_downloaded_at?: string | null;
   display_name?: string;
   managed_file?: ManagedFile | null;
   external_link?: ExternalFileLink | null;
@@ -57,6 +68,18 @@ export interface FileAttachment {
 
 export interface FileDownloadResponse {
   url: string;
+}
+
+export interface DeliveryGuardError {
+  blocked_reason:
+    | "balance_due"
+    | "scan_pending"
+    | "scan_failed"
+    | "not_submitted"
+    | "approval_pending"
+    | "rejected"
+    | "guard_error";
+  amount_due?: string | null;
 }
 
 export interface FileDeletionRequest {
@@ -133,6 +156,9 @@ export const filesApi = {
 
   orderFileDownload: (orderId: number | string, attachmentId: number | string) =>
     api.get<FileDownloadResponse>(orderFilePath(orderId, `${attachmentId}/download/`)),
+
+  submitFinalFile: (orderId: number | string, attachmentId: number | string, payload?: { on_behalf_of?: number; reason?: string }) =>
+    api.post<FileAttachment>(orderFilePath(orderId, `${attachmentId}/submit-final/`), payload ?? {}),
 
   requestOrderFileDeletion: (
     orderId: number | string,

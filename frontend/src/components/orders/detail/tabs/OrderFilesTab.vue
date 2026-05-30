@@ -167,6 +167,37 @@
         <Paperclip class="mx-auto mb-2 size-7 text-slate-300" />
         <p class="text-sm text-graphite">No files attached yet.</p>
       </div>
+      <!-- Delivery blocked banner -->
+      <div
+        v-if="files.deliveryBlocked"
+        class="mx-4 mb-2 mt-1 rounded-md border border-amber-200 bg-amber-50 px-4 py-3"
+      >
+        <p class="text-sm font-semibold text-amber-900">
+          <template v-if="files.deliveryBlocked.blocked_reason === 'balance_due'">
+            Download locked — outstanding balance
+            <span v-if="files.deliveryBlocked.amount_due" class="font-bold">
+              ({{ files.deliveryBlocked.amount_due }} remaining)
+            </span>
+          </template>
+          <template v-else-if="files.deliveryBlocked.blocked_reason === 'scan_pending'">
+            File is being scanned — download available once scan passes.
+          </template>
+          <template v-else-if="files.deliveryBlocked.blocked_reason === 'not_submitted'">
+            The writer has not yet submitted this file for delivery.
+          </template>
+          <template v-else>
+            Download not available: {{ files.deliveryBlocked.blocked_reason.replace(/_/g, ' ') }}
+          </template>
+        </p>
+        <button
+          v-if="files.deliveryBlocked.blocked_reason === 'balance_due'"
+          class="focus-ring mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800"
+          @click="emit('go-to-payments')"
+        >
+          Pay remaining balance
+        </button>
+      </div>
+
       <div v-else class="divide-y divide-slate-100">
         <div v-for="att in files.attachments" :key="att.id" class="flex items-start gap-4 px-5 py-4">
           <div class="min-w-0 flex-1">
@@ -184,6 +215,14 @@
               >
                 {{ att.managed_file.scan_status.replace(/_/g, ' ') }}
               </span>
+              <!-- Delivery status badge (final files) -->
+              <span
+                v-if="att.purpose === 'order_final' && att.delivery_status"
+                class="rounded-full px-1.5 py-0.5 text-xs font-semibold"
+                :class="deliveryBadge(att.delivery_status)"
+              >
+                {{ deliveryLabel(att.delivery_status) }}
+              </span>
               <!-- External link indicator -->
               <span v-if="att.external_link" class="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">
                 External link
@@ -192,6 +231,18 @@
           </div>
 
           <div class="flex shrink-0 items-center gap-2">
+            <!-- Writer: Submit Final action for unsubmitted final files -->
+            <button
+              v-if="role === 'writer' && att.purpose === 'order_final' && !att.is_submitted"
+              class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-signal px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+              :disabled="submittingFinal === att.id"
+              @click="submitFinal(att.id)"
+            >
+              <Loader2 v-if="submittingFinal === att.id" class="h-3.5 w-3.5 animate-spin" />
+              <Send v-else class="h-3.5 w-3.5" />
+              Submit for delivery
+            </button>
+
             <!-- Download -->
             <a
               v-if="att.external_link?.url"
@@ -203,6 +254,14 @@
               <ExternalLink class="h-3.5 w-3.5" />
               Open
             </a>
+            <!-- Locked final file (client sees it but cannot download until paid) -->
+            <span
+              v-else-if="att.purpose === 'order_final' && role === 'client' && att.delivery_status && att.delivery_status !== 'approved'"
+              class="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700"
+            >
+              <Lock class="h-3.5 w-3.5" />
+              {{ att.delivery_status === 'pending' || att.delivery_status === 'submitted' ? 'Payment required' : deliveryLabel(att.delivery_status) }}
+            </span>
             <button
               v-else-if="att.managed_file && att.managed_file.scan_status !== 'infected'"
               class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
@@ -266,11 +325,11 @@
 import { computed, ref } from "vue";
 import {
   AlertCircle, CheckCircle2, Download, ExternalLink,
-  FileUp, Loader2, Paperclip, Plus, Send, Trash2, X,
+  FileUp, Loader2, Lock, Paperclip, Plus, Send, Trash2, X,
 } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderSummary, OrderLifecycle } from "@/types/orders";
-import { type FilePurpose } from "@/api/files";
+import { type DeliveryStatus, type FilePurpose } from "@/api/files";
 import { writerApi } from "@/api/writer";
 import { useFilesStore, type QueuedFile } from "@/stores/files";
 import { isStaff } from "../types";
@@ -280,6 +339,10 @@ const props = defineProps<{
   order: OrderSummary;
   lifecycle: OrderLifecycle | null;
   role: UserRole;
+}>();
+
+const emit = defineEmits<{
+  (e: "go-to-payments"): void;
 }>();
 
 const files = useFilesStore();
@@ -381,6 +444,36 @@ async function singleUpload() {
   if (!singleFile.value) return;
   await files.uploadSingleFile(props.orderId, singleFile.value, singlePurpose.value);
   singleFile.value = null;
+}
+
+// ── Delivery helpers ─────────────────────────────────────────────────────────
+
+const DELIVERY_LABELS: Record<DeliveryStatus, string> = {
+  pending:   "Awaiting submission",
+  submitted: "Submitted",
+  locked:    "Payment required",
+  approved:  "Ready to download",
+  rejected:  "Rejected",
+};
+
+function deliveryLabel(s: DeliveryStatus): string {
+  return DELIVERY_LABELS[s] ?? s.replace(/_/g, " ");
+}
+
+function deliveryBadge(s: DeliveryStatus): string {
+  if (s === "approved")  return "bg-emerald-100 text-emerald-700";
+  if (s === "submitted") return "bg-blue-100 text-blue-700";
+  if (s === "rejected")  return "bg-rose-100 text-rose-700";
+  return "bg-amber-100 text-amber-700";
+}
+
+// ── Submit final (writer) ────────────────────────────────────────────────────
+const submittingFinal = ref<number | null>(null);
+
+async function submitFinal(attachmentId: number) {
+  submittingFinal.value = attachmentId;
+  await files.submitFinalFile(props.orderId, attachmentId);
+  submittingFinal.value = null;
 }
 
 // ── Download ─────────────────────────────────────────────────────────────────
