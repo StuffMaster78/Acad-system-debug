@@ -258,3 +258,220 @@ def _resolve_audience(request: Request) -> str:
     if role in ("support", "admin", "superadmin"):
         return "staff"
     return "client"
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Admin CRUD serializers
+# ────────────────────────────────────────────────────────────────────────────
+
+class LegalDocumentWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LegalDocument
+        fields = (
+            "id", "doc_type", "title", "content", "version",
+            "effective_date", "is_active", "requires_re_acceptance",
+        )
+        read_only_fields = ("id",)
+
+
+class HelpCategoryWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HelpCategory
+        fields = (
+            "id", "title", "slug", "description",
+            "icon", "audience", "order", "is_active",
+        )
+        read_only_fields = ("id",)
+
+
+class HelpArticleWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HelpArticle
+        fields = (
+            "id", "category", "title", "slug", "summary",
+            "content", "audience", "is_featured", "is_published", "order",
+        )
+        read_only_fields = ("id",)
+
+
+def _staff_required(request):
+    user = request.user
+    return (
+        getattr(user, "is_authenticated", False) and (
+            getattr(user, "is_staff", False)
+            or getattr(user, "is_superuser", False)
+            or getattr(user, "role", "") in ("admin", "superadmin")
+        )
+    )
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Admin: Legal documents
+# ────────────────────────────────────────────────────────────────────────────
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def admin_legal_documents(request: Request) -> Response:
+    if not _staff_required(request):
+        return Response({"detail": "Staff access required."}, status=403)
+
+    website = getattr(request, "website", None)
+    if website is None:
+        return Response({"detail": "Website context missing."}, status=400)
+
+    if request.method == "GET":
+        doc_type = request.query_params.get("doc_type")
+        qs = LegalDocument.objects.filter(website=website).order_by("-effective_date")
+        if doc_type:
+            qs = qs.filter(doc_type=doc_type)
+        return Response(LegalDocumentWriteSerializer(qs, many=True).data)
+
+    # POST — create
+    serializer = LegalDocumentWriteSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    doc = serializer.save(website=website, created_by=request.user)
+    if doc.is_active:
+        doc.activate()
+    return Response(LegalDocumentWriteSerializer(doc).data, status=201)
+
+
+@api_view(["GET", "PUT", "DELETE"])
+@permission_classes([IsAuthenticated])
+def admin_legal_document_detail(request: Request, pk: int) -> Response:
+    if not _staff_required(request):
+        return Response({"detail": "Staff access required."}, status=403)
+
+    website = getattr(request, "website", None)
+    try:
+        doc = LegalDocument.objects.get(pk=pk, website=website)
+    except LegalDocument.DoesNotExist:
+        return Response({"detail": "Not found."}, status=404)
+
+    if request.method == "GET":
+        return Response(LegalDocumentWriteSerializer(doc).data)
+
+    if request.method == "PUT":
+        serializer = LegalDocumentWriteSerializer(doc, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        doc = serializer.save()
+        if doc.is_active:
+            doc.activate()
+        return Response(LegalDocumentWriteSerializer(doc).data)
+
+    # DELETE
+    doc.delete()
+    return Response(status=204)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def admin_activate_document(request: Request, pk: int) -> Response:
+    if not _staff_required(request):
+        return Response({"detail": "Staff access required."}, status=403)
+
+    website = getattr(request, "website", None)
+    try:
+        doc = LegalDocument.objects.get(pk=pk, website=website)
+    except LegalDocument.DoesNotExist:
+        return Response({"detail": "Not found."}, status=404)
+
+    doc.activate()
+    return Response(LegalDocumentWriteSerializer(doc).data)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Admin: Help categories
+# ────────────────────────────────────────────────────────────────────────────
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def admin_help_categories(request: Request) -> Response:
+    if not _staff_required(request):
+        return Response({"detail": "Staff access required."}, status=403)
+
+    website = getattr(request, "website", None)
+    if website is None:
+        return Response({"detail": "Website context missing."}, status=400)
+
+    if request.method == "GET":
+        qs = HelpCategory.objects.filter(website=website).order_by("order", "title")
+        return Response(HelpCategoryWriteSerializer(qs, many=True).data)
+
+    serializer = HelpCategoryWriteSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    cat = serializer.save(website=website)
+    return Response(HelpCategoryWriteSerializer(cat).data, status=201)
+
+
+@api_view(["PUT", "DELETE"])
+@permission_classes([IsAuthenticated])
+def admin_help_category_detail(request: Request, pk: int) -> Response:
+    if not _staff_required(request):
+        return Response({"detail": "Staff access required."}, status=403)
+
+    website = getattr(request, "website", None)
+    try:
+        cat = HelpCategory.objects.get(pk=pk, website=website)
+    except HelpCategory.DoesNotExist:
+        return Response({"detail": "Not found."}, status=404)
+
+    if request.method == "PUT":
+        serializer = HelpCategoryWriteSerializer(cat, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        cat = serializer.save()
+        return Response(HelpCategoryWriteSerializer(cat).data)
+
+    cat.delete()
+    return Response(status=204)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Admin: Help articles
+# ────────────────────────────────────────────────────────────────────────────
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def admin_help_articles(request: Request) -> Response:
+    if not _staff_required(request):
+        return Response({"detail": "Staff access required."}, status=403)
+
+    website = getattr(request, "website", None)
+    if website is None:
+        return Response({"detail": "Website context missing."}, status=400)
+
+    if request.method == "GET":
+        category_id = request.query_params.get("category")
+        qs = HelpArticle.objects.filter(website=website).select_related("category").order_by("category__order", "order", "title")
+        if category_id:
+            qs = qs.filter(category_id=category_id)
+        return Response(HelpArticleWriteSerializer(qs, many=True).data)
+
+    serializer = HelpArticleWriteSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    article = serializer.save(website=website, created_by=request.user, updated_by=request.user)
+    return Response(HelpArticleWriteSerializer(article).data, status=201)
+
+
+@api_view(["GET", "PUT", "DELETE"])
+@permission_classes([IsAuthenticated])
+def admin_help_article_detail(request: Request, pk: int) -> Response:
+    if not _staff_required(request):
+        return Response({"detail": "Staff access required."}, status=403)
+
+    website = getattr(request, "website", None)
+    try:
+        article = HelpArticle.objects.get(pk=pk, website=website)
+    except HelpArticle.DoesNotExist:
+        return Response({"detail": "Not found."}, status=404)
+
+    if request.method == "GET":
+        return Response(HelpArticleWriteSerializer(article).data)
+
+    if request.method == "PUT":
+        serializer = HelpArticleWriteSerializer(article, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        article = serializer.save(updated_by=request.user)
+        return Response(HelpArticleWriteSerializer(article).data)
+
+    article.delete()
+    return Response(status=204)

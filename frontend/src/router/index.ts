@@ -224,6 +224,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminPublishingView.vue"),
       },
       {
+        path: "content",
+        name: "admin-content",
+        component: () => import("@/views/admin/AdminContentView.vue"),
+      },
+      {
         path: "settings",
         name: "admin-settings",
         component: () => import("@/views/admin/AdminSettingsView.vue"),
@@ -579,6 +584,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "publishing",
         name: "superadmin-publishing",
         component: () => import("@/views/admin/AdminPublishingView.vue"),
+      },
+      {
+        path: "content",
+        name: "superadmin-content",
+        component: () => import("@/views/admin/AdminContentView.vue"),
       },
       {
         path: "files",
