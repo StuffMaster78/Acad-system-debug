@@ -133,6 +133,7 @@ CMS_APPS = [
 
 LOCAL_APPS = [
     "core",
+    "config_system",
     "websites",
     "users",
     "accounts",
@@ -593,6 +594,22 @@ SECURE_HSTS_PRELOAD = False
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
+
+# ── Stripe ────────────────────────────────────────────────────────────────────
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", "")
+
+# ── Notification rate limiting ─────────────────────────────────────────────────
+# Applies per-recipient per WINDOW seconds. Configurable without deploy.
+NOTIFICATION_RATE_LIMIT_MAX = env_int("NOTIFICATION_RATE_LIMIT_MAX", 10)
+NOTIFICATION_RATE_LIMIT_WINDOW_SECONDS = env_int(
+    "NOTIFICATION_RATE_LIMIT_WINDOW_SECONDS", 300
+)
+
+# ── File delivery guard ────────────────────────────────────────────────────────
+# Signed download URL expiry for private order files (seconds).
+FILE_SIGNED_URL_EXPIRY_SECONDS = env_int("FILE_SIGNED_URL_EXPIRY_SECONDS", 900)
 
 SILENCED_SYSTEM_CHECKS = env_list("SILENCED_SYSTEM_CHECKS", "")
 

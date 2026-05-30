@@ -196,6 +196,85 @@ CONFIG_REGISTRY: dict[str, ConfigDefinition] = {
         description="Enable distributed tracing.",
         enable_rollout=False,
     ),
+
+    # =========================================================
+    # FILES
+    # =========================================================
+
+    "files.delivery_guard_enabled": ConfigDefinition(
+        key="files.delivery_guard_enabled",
+        config_type=ConfigType.BOOL,
+        default=True,
+        description="Gate final file downloads behind payment + scan + submission checks.",
+        is_runtime_editable=True,
+        enable_rollout=True,
+        cache_ttl_seconds=30,
+    ),
+
+    "files.signed_url_expiry_seconds": ConfigDefinition(
+        key="files.signed_url_expiry_seconds",
+        config_type=ConfigType.INT,
+        default=900,
+        description="Signed download URL lifetime in seconds (default 15 min).",
+        is_runtime_editable=True,
+        enable_rollout=False,
+        cache_ttl_seconds=60,
+    ),
+
+    "files.max_upload_size_mb": ConfigDefinition(
+        key="files.max_upload_size_mb",
+        config_type=ConfigType.INT,
+        default=25,
+        description="Global default maximum upload size in megabytes.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    # =========================================================
+    # REFERRALS
+    # =========================================================
+
+    "referrals.invitation_expiry_days": ConfigDefinition(
+        key="referrals.invitation_expiry_days",
+        config_type=ConfigType.INT,
+        default=30,
+        description="Days before a pending referral invitation expires.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    "referrals.invitations_enabled": ConfigDefinition(
+        key="referrals.invitations_enabled",
+        config_type=ConfigType.BOOL,
+        default=True,
+        description="Allow clients to send referral invitations by email.",
+        is_runtime_editable=True,
+        enable_rollout=True,
+    ),
+
+    # =========================================================
+    # NOTIFICATIONS (additional runtime tunables)
+    # =========================================================
+
+    "notifications.rate_limit_max": ConfigDefinition(
+        key="notifications.rate_limit_max",
+        config_type=ConfigType.INT,
+        default=10,
+        description="Maximum notifications sent to one recipient per rate-limit window.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+        cache_ttl_seconds=60,
+    ),
+
+    "notifications.rate_limit_window_seconds": ConfigDefinition(
+        key="notifications.rate_limit_window_seconds",
+        config_type=ConfigType.INT,
+        default=300,
+        description="Rate-limit window duration in seconds.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+        cache_ttl_seconds=60,
+    ),
 }
 
 

@@ -25,9 +25,13 @@ require_envs(
         "POSTGRES_DB_NAME",
         "POSTGRES_USER_NAME",
         "POSTGRES_PASSWORD",
+        "REDIS_URL",
+        "CELERY_BROKER_URL",
         "DEFAULT_EMAIL_PROVIDER",
         "FIELD_ENCRYPTION_KEY",
         "TOKEN_ENCRYPTION_KEY",
+        "CORS_ALLOWED_ORIGINS",
+        "CSRF_TRUSTED_ORIGINS",
     ]
 )
 
