@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path  # noqa: F401 — used in validate_extension
 
 from django.core.files.uploadedfile import UploadedFile
 
@@ -136,6 +136,7 @@ class FilePolicyService:
                 website=website,
                 purpose=purpose,
             ),
+            filename=uploaded_file.name,
         )
         cls.validate_mime_type(
             mime_type=mime_type,
@@ -167,17 +168,29 @@ class FilePolicyService:
         *,
         extension: str,
         allowed_extensions: list[str],
+        filename: str = "",
     ) -> None:
         """
         Validate uploaded file extension.
-        """
 
+        Also flags double extensions (e.g. report.pdf.exe) which are a
+        common trick used to disguise executables as documents.
+        """
         normalized = extension.lower()
 
         if normalized not in allowed_extensions:
             raise FileValidationError(
                 "Uploaded file extension is not allowed."
             )
+
+        # Double-extension check: stem must not itself carry an extension.
+        if filename:
+            stem = Path(filename).stem
+            if Path(stem).suffix:
+                raise FileValidationError(
+                    "Double file extensions are not allowed "
+                    f"(detected: '{Path(stem).suffix}{extension}')."
+                )
 
     @staticmethod
     def validate_mime_type(

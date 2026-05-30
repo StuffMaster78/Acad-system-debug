@@ -167,21 +167,34 @@ class OrderFileIntegrationService:
         order,
         uploaded_by,
         uploaded_file: UploadedFile,
+        revision_request=None,
     ) -> FileAttachment:
         """
         Upload and attach a revision file.
+
+        When revision_request is provided the attachment is linked to that
+        specific OrderRevisionRequest (via GFK) rather than the order, so
+        every revision has its own set of files that can be resolved without
+        scanning all order attachments.
         """
+        target = revision_request if revision_request is not None else order
+        metadata = {
+            "order_file_status": "revision",
+            "source_domain": "orders",
+            "order_id": getattr(order, "pk", None),
+        }
+        if revision_request is not None:
+            metadata["revision_request_id"] = getattr(
+                revision_request, "pk", None
+            )
 
         return cls._upload_and_attach(
-            order=order,
+            order=target,
             uploaded_by=uploaded_by,
             uploaded_file=uploaded_file,
             purpose=FilePurpose.ORDER_REVISION,
             visibility=FileVisibility.CLIENT_WRITER_STAFF,
-            metadata={
-                "order_file_status": "revision",
-                "source_domain": "orders",
-            },
+            metadata=metadata,
         )
 
     @classmethod

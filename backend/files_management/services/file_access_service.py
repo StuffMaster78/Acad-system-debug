@@ -94,7 +94,17 @@ class FileAccessService:
         if cls._is_superuser(user=user):
             return True
 
-        # Step 4: explicit grants override
+        # Step 4: sensitive file gate — non-staff must hold an explicit grant
+        if getattr(attachment, "is_sensitive", False):
+            if not cls._is_staff_like(user=user):
+                return cls._has_explicit_grant(
+                    user=user,
+                    website=website,
+                    attachment=attachment,
+                    action=action,
+                )
+
+        # Step 5: explicit grants override
         if cls._has_explicit_grant(
             user=user,
             website=website,
@@ -103,7 +113,7 @@ class FileAccessService:
         ):
             return True
 
-        # Step 5: domain policy
+        # Step 6: domain policy
         policy = FilePolicyRegistry.get_policy(
             attachment=attachment,
         )
@@ -256,3 +266,12 @@ class FileAccessService:
     @staticmethod
     def _is_superuser(*, user) -> bool:
         return bool(getattr(user, "is_superuser", False))
+
+    @staticmethod
+    def _is_staff_like(*, user) -> bool:
+        return bool(
+            getattr(user, "is_staff", False)
+            or getattr(user, "is_superuser", False)
+            or getattr(user, "is_admin", False)
+            or getattr(user, "is_super_admin", False)
+        )

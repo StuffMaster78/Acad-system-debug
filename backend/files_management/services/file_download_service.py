@@ -12,6 +12,7 @@ from files_management.services.file_delivery_guard_service import (
     FileDeliveryGuardService,
     GUARDED_PURPOSES,
 )
+from files_management.signals import file_first_downloaded
 from files_management.storage import SignedUrlBuilder
 
 
@@ -117,9 +118,14 @@ class FileDownloadService:
             user_agent=user_agent,
         )
 
-        # Stamp first download timestamp once.
+        # Stamp first download timestamp and fire signal once.
         if attachment.first_downloaded_at is None:
             attachment.first_downloaded_at = timezone.now()
             attachment.save(update_fields=["first_downloaded_at", "updated_at"])
+            file_first_downloaded.send(
+                sender=attachment.__class__,
+                attachment=attachment,
+                user=user,
+            )
 
         return download_url

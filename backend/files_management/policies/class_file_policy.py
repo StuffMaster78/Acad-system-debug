@@ -30,13 +30,21 @@ class ClassFilePolicy(BaseFilePolicy):
     def can_view(self, *, user, attachment: FileAttachment) -> bool:
         """
         Return whether the user can view class files.
-        """
 
+        Visibility flags are evaluated before the enrolled/owner fallback
+        so STAFF_ONLY and WRITER_AND_STAFF files are not visible to clients.
+        """
         if not self.is_same_website(user=user, attachment=attachment):
             return False
 
         if self.is_staff_like(user=user):
             return True
+
+        if attachment.visibility in {
+            FileVisibility.STAFF_ONLY,
+            FileVisibility.INTERNAL_ONLY,
+        }:
+            return False
 
         if attachment.visibility in {
             FileVisibility.PUBLIC,
@@ -45,11 +53,26 @@ class ClassFilePolicy(BaseFilePolicy):
             return True
 
         obj = attachment.content_object
-
         if obj is None:
             return False
 
-        return self._is_enrolled_or_owner(user=user, obj=obj)
+        is_client = self._is_enrolled_or_owner(user=user, obj=obj)
+        is_writer = self._is_class_writer(user=user, obj=obj)
+
+        if attachment.visibility == FileVisibility.WRITER_AND_STAFF:
+            return is_writer
+
+        if attachment.visibility == FileVisibility.CLIENT_AND_STAFF:
+            return is_client
+
+        # ORDER_PARTICIPANTS and CLIENT_WRITER_STAFF — both parties
+        if attachment.visibility in {
+            FileVisibility.ORDER_PARTICIPANTS,
+            FileVisibility.CLIENT_WRITER_STAFF,
+        }:
+            return is_client or is_writer
+
+        return is_client
 
     def can_request_deletion(
         self,
@@ -81,18 +104,19 @@ class ClassFilePolicy(BaseFilePolicy):
 
     @staticmethod
     def _is_enrolled_or_owner(*, user, obj) -> bool:
-        """
-        Return whether the user appears related to the class object.
-        """
-
         user_id = getattr(user, "id", None)
 
         for attr_name in ("client_id", "owner_id", "user_id"):
             if getattr(obj, attr_name, None) == user_id:
                 return True
 
-        enrollments = getattr(obj, "enrollments", None)
+        client = getattr(obj, "client", None)
+        if getattr(client, "user_id", None) == user_id:
+            return True
+        if getattr(client, "id", None) == user_id:
+            return True
 
+        enrollments = getattr(obj, "enrollments", None)
         if enrollments is None:
             return False
 
@@ -100,3 +124,18 @@ class ClassFilePolicy(BaseFilePolicy):
             return enrollments.filter(user_id=user_id).exists()
         except AttributeError:
             return False
+
+    @staticmethod
+    def _is_class_writer(*, user, obj) -> bool:
+        user_id = getattr(user, "id", None)
+
+        for attr_name in ("assigned_writer_id", "writer_id"):
+            if getattr(obj, attr_name, None) == user_id:
+                return True
+
+        writer = getattr(obj, "assigned_writer", None) or getattr(
+            obj, "writer", None
+        )
+        if getattr(writer, "user_id", None) == user_id:
+            return True
+        return getattr(writer, "id", None) == user_id

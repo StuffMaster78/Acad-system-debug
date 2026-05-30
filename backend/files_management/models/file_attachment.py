@@ -106,6 +106,20 @@ class FileAttachment(models.Model):
     )
 
     # ------------------------------------------------------------------
+    # Sensitive file flag
+    # ------------------------------------------------------------------
+
+    is_sensitive = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text=(
+            "Sensitive files (credentials, portal screenshots, private access "
+            "documents) require an explicit FileAccessGrant for non-staff "
+            "users. Every access is audited. Full vault mode enforced here."
+        ),
+    )
+
+    # ------------------------------------------------------------------
     # Delivery tracking — populated for ORDER_FINAL and milestone files
     # ------------------------------------------------------------------
 

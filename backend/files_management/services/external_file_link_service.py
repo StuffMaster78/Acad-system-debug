@@ -171,12 +171,23 @@ class ExternalFileLinkService:
 
         return external_link
 
-    @staticmethod
-    def validate_url(*, url: str) -> str:
+    # Known URL shortener domains that must not be submitted directly.
+    # Shorteners hide the final destination and bypass provider detection.
+    _SHORTENER_DOMAINS = frozenset({
+        "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "buff.ly",
+        "ift.tt", "short.io", "rebrand.ly", "tiny.cc", "is.gd", "v.gd",
+        "cutt.ly", "shorturl.at", "bl.ink", "snip.ly", "tr.im", "su.pr",
+        "adf.ly", "bc.vc", "sh.st", "clk.sh",
+    })
+
+    @classmethod
+    def validate_url(cls, *, url: str) -> str:
         """
         Validate and normalize a URL string.
-        """
 
+        Blocks known URL shorteners — their final destinations are opaque
+        and bypass provider detection and safety checks.
+        """
         normalized_url = url.strip()
 
         if not normalized_url:
@@ -191,6 +202,13 @@ class ExternalFileLinkService:
 
         if not parsed.netloc:
             raise ExternalFileLinkError("External link host is required.")
+
+        host = parsed.netloc.lower().lstrip("www.")
+        if host in cls._SHORTENER_DOMAINS:
+            raise ExternalFileLinkError(
+                "URL shorteners are not allowed. Please submit the full "
+                "destination URL so it can be reviewed safely."
+            )
 
         return normalized_url
 
