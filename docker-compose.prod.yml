@@ -214,6 +214,21 @@ services:
       timeout: 10s
       retries: 3
 
+  # Certbot — runs once to issue/renew certs; nginx reloads automatically
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./nginx/certs:/etc/letsencrypt
+      - ./nginx/certbot:/var/www/certbot
+    # Override command at runtime:
+    #   Initial issuance:
+    #     docker compose run --rm certbot certonly --webroot \
+    #       -w /var/www/certbot -d yourdomain.com -d www.yourdomain.com \
+    #       --email admin@yourdomain.com --agree-tos --non-interactive
+    #   Renewal (run via cron):
+    #     docker compose run --rm certbot renew
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do sleep 12h & wait; done"
+
 volumes:
   postgres_data:
   redis_data:
