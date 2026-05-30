@@ -126,6 +126,9 @@ path("api/v1/special-orders/", include("special_orders.urls")),
     # ── Content & media ────────────────────────────────────────────────────────
     path("api/v1/seo-pages/", include("seo_pages.urls")),
     path("cms-api/", include("cms_core.urls")),
+
+    # ── Legal documents & help center ──────────────────────────────────────────
+    path("api/v1/legal/", include("legal_pages.urls")),
 ]
 
 

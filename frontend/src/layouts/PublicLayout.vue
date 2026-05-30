@@ -26,6 +26,13 @@ import { RouterLink, RouterView } from "vue-router";
             Services
           </RouterLink>
           <RouterLink
+            class="rounded-lg px-3 py-2 text-sm font-medium text-graphite transition-colors hover:bg-slate-100 hover:text-ink"
+            active-class="bg-slate-100 text-ink"
+            to="/help"
+          >
+            Help
+          </RouterLink>
+          <RouterLink
             class="ml-1 inline-flex h-9 items-center rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
             to="/auth/login"
           >
@@ -40,12 +47,18 @@ import { RouterLink, RouterView } from "vue-router";
     </main>
 
     <footer class="border-t border-slate-200 bg-white">
-      <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 text-xs text-graphite lg:px-8">
-        <span>&copy; {{ new Date().getFullYear() }} WritingSystem. All rights reserved.</span>
-        <nav class="flex gap-4">
-          <RouterLink class="hover:text-ink transition-colors" to="/terms">Terms</RouterLink>
-          <RouterLink class="hover:text-ink transition-colors" to="/privacy">Privacy</RouterLink>
-        </nav>
+      <div class="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+        <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <span class="text-xs text-graphite">&copy; {{ new Date().getFullYear() }} WritingSystem. All rights reserved.</span>
+          <nav class="flex flex-wrap gap-x-5 gap-y-2 text-xs text-graphite">
+            <RouterLink class="hover:text-ink transition-colors" to="/help">Help Center</RouterLink>
+            <RouterLink class="hover:text-ink transition-colors" to="/legal/terms_of_service">Terms of Service</RouterLink>
+            <RouterLink class="hover:text-ink transition-colors" to="/legal/privacy_policy">Privacy Policy</RouterLink>
+            <RouterLink class="hover:text-ink transition-colors" to="/legal/refund_policy">Refund Policy</RouterLink>
+            <RouterLink class="hover:text-ink transition-colors" to="/legal/cookie_policy">Cookie Policy</RouterLink>
+            <RouterLink class="hover:text-ink transition-colors" to="/legal/acceptable_use_policy">Acceptable Use</RouterLink>
+          </nav>
+        </div>
       </div>
     </footer>
   </div>

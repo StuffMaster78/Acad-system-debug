@@ -670,6 +670,26 @@ export const router = createRouter({
           name: "services",
           component: () => import("@/views/public/ServicesView.vue"),
         },
+        {
+          path: "help",
+          name: "help-center",
+          component: () => import("@/views/public/HelpCenterView.vue"),
+        },
+        {
+          path: "help/articles/:slug",
+          name: "help-article",
+          component: () => import("@/views/public/HelpArticleView.vue"),
+        },
+        {
+          path: "help/category/:slug",
+          name: "help-category",
+          component: () => import("@/views/public/HelpCenterView.vue"),
+        },
+        {
+          path: "legal/:docType",
+          name: "legal-document",
+          component: () => import("@/views/public/LegalView.vue"),
+        },
       ],
     },
     {

@@ -179,6 +179,7 @@ LOCAL_APPS = [
     "reviews_system",
     "holiday_management",
     "writer_compensation.apps.WriterCompensationConfig",
+    "legal_pages",
 ]
 
 
