@@ -89,6 +89,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Growth", to: "/superadmin/growth", icon: Percent },
     { label: "Loyalty", to: "/superadmin/loyalty", icon: Gift },
     { label: "Rewards", to: "/superadmin/rewards", icon: Medal },
+    { label: "Reputation", to: "/superadmin/reputation", icon: ShieldCheck },
     { label: "Financials", to: "/superadmin/financials", icon: Activity },
     { label: "Discounts", to: "/superadmin/discounts", icon: Percent },
     { label: "Holidays", to: "/superadmin/holidays", icon: CalendarDays },
@@ -125,6 +126,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Growth", to: "/admin/growth", icon: Percent },
     { label: "Loyalty", to: "/admin/loyalty", icon: Gift },
     { label: "Rewards", to: "/admin/rewards", icon: Medal },
+    { label: "Reputation", to: "/admin/reputation", icon: ShieldCheck },
     { label: "Financials", to: "/admin/financials", icon: Activity },
     { label: "Discounts", to: "/admin/discounts", icon: Percent },
     { label: "Holidays", to: "/admin/holidays", icon: CalendarDays },
@@ -229,6 +231,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Growth", to: "/superadmin/growth", icon: Percent },
       { label: "Loyalty", to: "/superadmin/loyalty", icon: Gift },
       { label: "Rewards", to: "/superadmin/rewards", icon: Medal },
+      { label: "Reputation", to: "/superadmin/reputation", icon: ShieldCheck },
       { label: "Discounts", to: "/superadmin/discounts", icon: Percent },
     ]},
     { label: "Platform", items: [
@@ -284,6 +287,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Growth", to: "/admin/growth", icon: Percent },
       { label: "Loyalty", to: "/admin/loyalty", icon: Gift },
       { label: "Rewards", to: "/admin/rewards", icon: Medal },
+      { label: "Reputation", to: "/admin/reputation", icon: ShieldCheck },
       { label: "Discounts", to: "/admin/discounts", icon: Percent },
     ]},
     { label: "Platform", items: [
