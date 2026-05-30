@@ -102,13 +102,13 @@
                   >
                     Edit
                   </button>
-                  <button
-                    v-if="!doc.is_active"
-                    class="rounded p-1 text-slate-400 hover:text-rose-500"
-                    @click="deleteDoc(doc.id)"
-                  >
-                    <Trash2 class="size-3.5" />
-                  </button>
+                  <template v-if="!doc.is_active">
+                    <template v-if="deletingDocId === doc.id">
+                      <button class="rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100" @click="deleteDoc(doc.id)">Delete</button>
+                      <button class="rounded-md border border-slate-200 px-2 py-1 text-xs text-graphite hover:bg-slate-50" @click="deletingDocId = null">Cancel</button>
+                    </template>
+                    <button v-else class="rounded p-1 text-slate-400 hover:text-rose-500" @click="deletingDocId = doc.id"><Trash2 class="size-3.5" /></button>
+                  </template>
                 </div>
               </div>
             </div>
@@ -233,7 +233,11 @@
               </div>
               <div class="flex gap-1">
                 <button class="rounded p-1 text-slate-400 hover:text-ink" @click.stop="editCategory(cat)"><Pencil class="size-3.5" /></button>
-                <button class="rounded p-1 text-slate-400 hover:text-rose-500" @click.stop="deleteCategory(cat.id)"><Trash2 class="size-3.5" /></button>
+                <template v-if="deletingCategoryId === cat.id">
+                  <button class="rounded border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 hover:bg-rose-100" @click.stop="deleteCategory(cat.id)">Delete</button>
+                  <button class="rounded border border-slate-200 px-2 py-0.5 text-xs text-graphite hover:bg-slate-50" @click.stop="deletingCategoryId = null">Cancel</button>
+                </template>
+                <button v-else class="rounded p-1 text-slate-400 hover:text-rose-500" @click.stop="deletingCategoryId = cat.id"><Trash2 class="size-3.5" /></button>
               </div>
             </div>
             <div v-if="!categories.length" class="px-4 py-8 text-center text-sm text-graphite">
@@ -328,7 +332,11 @@
               </div>
               <div class="ml-4 flex shrink-0 gap-1">
                 <button class="rounded p-1.5 text-slate-400 hover:text-ink" @click="editArticle(art)"><Pencil class="size-3.5" /></button>
-                <button class="rounded p-1.5 text-slate-400 hover:text-rose-500" @click="deleteArticle(art.id)"><Trash2 class="size-3.5" /></button>
+                <template v-if="deletingArticleId === art.id">
+                  <button class="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100" @click="deleteArticle(art.id)">Delete</button>
+                  <button class="rounded border border-slate-200 px-2 py-1 text-xs text-graphite hover:bg-slate-50" @click="deletingArticleId = null">Cancel</button>
+                </template>
+                <button v-else class="rounded p-1.5 text-slate-400 hover:text-rose-500" @click="deletingArticleId = art.id"><Trash2 class="size-3.5" /></button>
               </div>
             </div>
             <div v-if="!articles.length" class="py-12 text-center text-sm text-graphite">
@@ -405,10 +413,11 @@
                   class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50"
                   @click="editPage(page)"
                 >Edit</button>
-                <button
-                  class="rounded p-1.5 text-slate-400 hover:text-rose-500"
-                  @click="deletePage(page)"
-                ><Trash2 class="size-3.5" /></button>
+                <template v-if="deletingPageId === page.id">
+                  <button class="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100" @click="deletePage(page)">Delete</button>
+                  <button class="rounded border border-slate-200 px-2 py-1 text-xs text-graphite hover:bg-slate-50" @click="deletingPageId = null">Cancel</button>
+                </template>
+                <button v-else class="rounded p-1.5 text-slate-400 hover:text-rose-500" @click="deletingPageId = page.id"><Trash2 class="size-3.5" /></button>
               </div>
             </div>
           </div>
@@ -629,9 +638,11 @@ async function activateDoc(id: number) {
   }
 }
 
+const deletingDocId = ref<number | null>(null);
+
 async function deleteDoc(id: number) {
-  if (!confirm("Delete this version?")) return;
   await legalApi.admin.deleteDocument(id);
+  deletingDocId.value = null;
   await loadDocVersions();
 }
 
@@ -682,9 +693,11 @@ async function saveCategory() {
   } catch { /* show inline error if needed */ }
 }
 
+const deletingCategoryId = ref<number | null>(null);
+
 async function deleteCategory(id: number) {
-  if (!confirm("Delete this category? Articles will be uncategorized.")) return;
   await legalApi.admin.deleteCategory(id);
+  deletingCategoryId.value = null;
   if (selectedCategory.value?.id === id) selectedCategory.value = null;
   await loadCategories();
   await loadArticles();
@@ -722,9 +735,11 @@ async function saveArticle() {
   }
 }
 
+const deletingArticleId = ref<number | null>(null);
+
 async function deleteArticle(id: number) {
-  if (!confirm("Delete this article?")) return;
   await legalApi.admin.deleteArticle(id);
+  deletingArticleId.value = null;
   await loadArticles();
   await loadCategories();
 }
@@ -813,10 +828,11 @@ async function togglePublish(page: SeoPageRecord) {
   await loadPages();
 }
 
+const deletingPageId = ref<number | null>(null);
+
 async function deletePage(page: SeoPageRecord) {
-  if (!confirm('Delete "' + page.title + '"? This cannot be undone.')) return;
   await adminPublishingApi.updateSeoPage(page.id, { is_published: false });
-  // Soft-archive by unpublishing (hard delete not exposed via API)
+  deletingPageId.value = null;
   await loadPages();
 }
 

@@ -1,11 +1,11 @@
 <template>
   <div class="p-6 space-y-4">
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-gray-900">Discounts</h1>
+      <h1 class="text-xl font-bold text-ink">Discounts &amp; Campaigns</h1>
     </div>
 
     <!-- Tabs -->
-    <div class="flex gap-1 border-b border-gray-200">
+    <div class="flex gap-1 border-b border-slate-200">
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -13,8 +13,8 @@
         :class="[
           'px-4 py-2 text-sm font-medium rounded-t-md transition-colors',
           activeTab === tab.key
-            ? 'bg-white border border-b-white border-gray-200 text-blue-600 -mb-px'
-            : 'text-gray-500 hover:text-gray-700',
+            ? 'bg-white border border-b-white border-slate-200 text-berry -mb-px'
+            : 'text-graphite hover:text-ink',
         ]"
       >
         {{ tab.label }}
@@ -373,23 +373,23 @@
             </label>
             <div class="text-sm space-y-3">
               <div>
-                <label class="block text-xs text-gray-500 mb-1">Discount Type</label>
-                <select v-model="firstOrderConfig.discount_type" class="w-full border border-gray-200 rounded px-2 py-1 text-sm">
+                <label class="block text-xs font-medium text-graphite mb-1">Discount Type</label>
+                <select v-model="firstOrderConfig.discount_type" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
                   <option value="percentage">Percentage</option>
                   <option value="fixed">Fixed</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs text-gray-500 mb-1">Discount Value</label>
-                <input type="number" v-model="firstOrderConfig.discount_value" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+                <label class="block text-xs font-medium text-graphite mb-1">Discount Value</label>
+                <input type="number" v-model="firstOrderConfig.discount_value" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
               </div>
               <div>
-                <label class="block text-xs text-gray-500 mb-1">Max Discount Amount</label>
-                <input type="number" v-model="firstOrderConfig.max_discount_amount" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+                <label class="block text-xs font-medium text-graphite mb-1">Max Discount Amount</label>
+                <input type="number" v-model="firstOrderConfig.max_discount_amount" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
               </div>
               <div>
-                <label class="block text-xs text-gray-500 mb-1">Min Payable Amount</label>
-                <input type="number" v-model="firstOrderConfig.min_payable_amount" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+                <label class="block text-xs font-medium text-graphite mb-1">Min Payable Amount</label>
+                <input type="number" v-model="firstOrderConfig.min_payable_amount" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
               </div>
               <label class="flex items-center gap-3 text-sm">
                 <input type="checkbox" v-model="firstOrderConfig.applies_to_orders" class="rounded" />
@@ -418,19 +418,28 @@
       v-if="toast"
       :class="[
         'fixed bottom-4 right-4 px-4 py-2 rounded-lg text-sm text-white shadow-lg transition-all',
-        toast.type === 'error' ? 'bg-red-600' : 'bg-green-600',
+        toast.type === 'error' ? 'bg-rose-600' : 'bg-emerald-600',
       ]"
     >{{ toast.message }}</div>
 
-    <!-- Discount Create/Edit Modal -->
-    <div v-if="showDiscountModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4">
-        <h2 class="text-lg font-semibold">{{ editingDiscount ? 'Edit Discount' : 'New Discount' }}</h2>
+    <!-- Discount slide-over -->
+    <Teleport to="body">
+      <div v-if="showDiscountModal" class="fixed inset-0 z-50 flex" @click.self="showDiscountModal = false">
+        <div class="absolute inset-0 bg-black/30" @click="showDiscountModal = false" />
+        <div class="relative ml-auto flex h-full w-full max-w-lg flex-col bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h2 class="font-bold text-ink">{{ editingDiscount ? 'Edit discount' : 'New discount' }}</h2>
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="showDiscountModal = false">
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <h2 class="sr-only">{{ editingDiscount ? 'Edit Discount' : 'New Discount' }}</h2>
 
         <div class="grid grid-cols-2 gap-3">
           <div class="col-span-2">
-            <label class="block text-xs text-gray-500 mb-1">Name *</label>
-            <input v-model="discountForm.name" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+            <label class="block text-xs font-medium text-graphite mb-1">Name *</label>
+            <input v-model="discountForm.name" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
           </div>
           <div v-if="!editingDiscount" class="col-span-2 space-y-2">
             <label class="flex items-center gap-2 text-sm">
@@ -438,52 +447,52 @@
               Auto-generate code
             </label>
             <div v-if="discountForm.generate_code">
-              <label class="block text-xs text-gray-500 mb-1">Code Prefix (optional)</label>
-              <input v-model="discountForm.code_prefix" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" placeholder="e.g. SAVE" />
+              <label class="block text-xs font-medium text-graphite mb-1">Code Prefix (optional)</label>
+              <input v-model="discountForm.code_prefix" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" placeholder="e.g. SAVE" />
             </div>
             <div v-else>
-              <label class="block text-xs text-gray-500 mb-1">Discount Code *</label>
-              <input v-model="discountForm.discount_code" class="w-full border border-gray-200 rounded px-2 py-1 text-sm font-mono uppercase" />
+              <label class="block text-xs font-medium text-graphite mb-1">Discount Code *</label>
+              <input v-model="discountForm.discount_code" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-mono uppercase" />
             </div>
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Type *</label>
-            <select v-model="discountForm.discount_type" class="w-full border border-gray-200 rounded px-2 py-1 text-sm">
+            <label class="block text-xs font-medium text-graphite mb-1">Type *</label>
+            <select v-model="discountForm.discount_type" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
               <option value="percentage">Percentage</option>
               <option value="fixed">Fixed</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Value *</label>
-            <input type="number" v-model="discountForm.discount_value" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+            <label class="block text-xs font-medium text-graphite mb-1">Value *</label>
+            <input type="number" v-model="discountForm.discount_value" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Max Discount ($)</label>
-            <input type="number" v-model="discountForm.max_discount_amount" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+            <label class="block text-xs font-medium text-graphite mb-1">Max Discount ($)</label>
+            <input type="number" v-model="discountForm.max_discount_amount" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Min Payable ($)</label>
-            <input type="number" v-model="discountForm.min_payable_amount" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+            <label class="block text-xs font-medium text-graphite mb-1">Min Payable ($)</label>
+            <input type="number" v-model="discountForm.min_payable_amount" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Starts At</label>
-            <input type="datetime-local" v-model="discountForm.starts_at" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+            <label class="block text-xs font-medium text-graphite mb-1">Starts At</label>
+            <input type="datetime-local" v-model="discountForm.starts_at" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Ends At</label>
-            <input type="datetime-local" v-model="discountForm.ends_at" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+            <label class="block text-xs font-medium text-graphite mb-1">Ends At</label>
+            <input type="datetime-local" v-model="discountForm.ends_at" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Usage Limit</label>
-            <input type="number" v-model="discountForm.usage_limit" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" placeholder="Unlimited" />
+            <label class="block text-xs font-medium text-graphite mb-1">Usage Limit</label>
+            <input type="number" v-model="discountForm.usage_limit" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" placeholder="Unlimited" />
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Per-Client Limit</label>
-            <input type="number" v-model="discountForm.per_client_usage_limit" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" placeholder="Unlimited" />
+            <label class="block text-xs font-medium text-graphite mb-1">Per-Client Limit</label>
+            <input type="number" v-model="discountForm.per_client_usage_limit" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" placeholder="Unlimited" />
           </div>
           <div class="col-span-2">
-            <label class="block text-xs text-gray-500 mb-1">Description</label>
-            <textarea v-model="(discountForm.description as string)" rows="2" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+            <label class="block text-xs font-medium text-graphite mb-1">Description</label>
+            <textarea v-model="(discountForm.description as string)" rows="2" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
           </div>
           <div class="col-span-2 flex flex-wrap gap-4">
             <label class="flex items-center gap-2 text-sm">
@@ -497,95 +506,113 @@
           </div>
         </div>
 
-        <div class="flex justify-end gap-2 pt-2">
-          <button @click="showDiscountModal = false" class="px-4 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50">Cancel</button>
-          <button @click="saveDiscount" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
+          </div>
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+            <button @click="showDiscountModal = false" class="focus-ring rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50">Cancel</button>
+            <button @click="saveDiscount" class="focus-ring rounded-lg bg-berry px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">Save discount</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
-    <!-- Campaign Create/Edit Modal -->
-    <div v-if="showCampaignModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-        <h2 class="text-lg font-semibold">{{ editingCampaign ? 'Edit Campaign' : 'New Campaign' }}</h2>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Name *</label>
-            <input v-model="campaignForm.name" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+    <!-- Campaign slide-over -->
+    <Teleport to="body">
+      <div v-if="showCampaignModal" class="fixed inset-0 z-50 flex" @click.self="showCampaignModal = false">
+        <div class="absolute inset-0 bg-black/30" @click="showCampaignModal = false" />
+        <div class="relative ml-auto flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h2 class="font-bold text-ink">{{ editingCampaign ? 'Edit campaign' : 'New campaign' }}</h2>
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="showCampaignModal = false">
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
           </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Slug</label>
-            <input v-model="campaignForm.slug" class="w-full border border-gray-200 rounded px-2 py-1 text-sm font-mono" />
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Description</label>
-            <textarea v-model="(campaignForm.description as string)" rows="2" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Starts At</label>
-              <input type="datetime-local" v-model="campaignForm.starts_at" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+              <label class="block text-xs font-medium text-graphite mb-1">Name *</label>
+              <input v-model="campaignForm.name" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             </div>
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Ends At</label>
-              <input type="datetime-local" v-model="campaignForm.ends_at" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+              <label class="block text-xs font-medium text-graphite mb-1">Slug</label>
+              <input v-model="campaignForm.slug" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono" />
             </div>
-          </div>
-          <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" v-model="campaignForm.is_active" class="rounded" />
-            Active on creation
-          </label>
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button @click="showCampaignModal = false" class="px-4 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50">Cancel</button>
-          <button @click="saveCampaign" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Spend Tier Modal -->
-    <div v-if="showTierModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-        <h2 class="text-lg font-semibold">{{ editingTier ? 'Edit Spend Tier' : 'New Spend Tier' }}</h2>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Tier Name *</label>
-            <input v-model="tierForm.name" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Minimum Lifetime Spend ($) *</label>
-            <input type="number" v-model="tierForm.minimum_lifetime_spend" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
-          </div>
-          <template v-if="!editingTier">
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Discount Code *</label>
-              <input v-model="tierForm.discount_code" class="w-full border border-gray-200 rounded px-2 py-1 text-sm font-mono uppercase" />
+              <label class="block text-xs font-medium text-graphite mb-1">Description</label>
+              <textarea v-model="(campaignForm.description as string)" rows="3" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs text-gray-500 mb-1">Discount Type</label>
-                <select v-model="tierForm.discount_type" class="w-full border border-gray-200 rounded px-2 py-1 text-sm">
-                  <option value="percentage">Percentage</option>
-                  <option value="fixed">Fixed</option>
-                </select>
+                <label class="block text-xs font-medium text-graphite mb-1">Starts At</label>
+                <input type="datetime-local" v-model="campaignForm.starts_at" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
               </div>
               <div>
-                <label class="block text-xs text-gray-500 mb-1">Discount Value</label>
-                <input type="number" v-model="tierForm.discount_value" class="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
+                <label class="block text-xs font-medium text-graphite mb-1">Ends At</label>
+                <input type="datetime-local" v-model="campaignForm.ends_at" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
               </div>
             </div>
-          </template>
-          <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" v-model="tierForm.is_active" class="rounded" />
-            Active
-          </label>
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button @click="showTierModal = false" class="px-4 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50">Cancel</button>
-          <button @click="saveTier" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
+            <label class="flex items-center gap-2 text-sm text-graphite">
+              <input type="checkbox" v-model="campaignForm.is_active" class="rounded border-slate-300" />
+              Active on creation
+            </label>
+          </div>
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+            <button @click="showCampaignModal = false" class="focus-ring rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50">Cancel</button>
+            <button @click="saveCampaign" class="focus-ring rounded-lg bg-berry px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">Save campaign</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
+
+    <!-- Spend Tier slide-over -->
+    <Teleport to="body">
+      <div v-if="showTierModal" class="fixed inset-0 z-50 flex" @click.self="showTierModal = false">
+        <div class="absolute inset-0 bg-black/30" @click="showTierModal = false" />
+        <div class="relative ml-auto flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h2 class="font-bold text-ink">{{ editingTier ? 'Edit spend tier' : 'New spend tier' }}</h2>
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="showTierModal = false">
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-graphite mb-1">Tier Name *</label>
+              <input v-model="tierForm.name" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-graphite mb-1">Minimum Lifetime Spend ($) *</label>
+              <input type="number" v-model="tierForm.minimum_lifetime_spend" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            </div>
+            <template v-if="!editingTier">
+              <div>
+                <label class="block text-xs font-medium text-graphite mb-1">Discount Code *</label>
+                <input v-model="tierForm.discount_code" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono uppercase" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-graphite mb-1">Discount Type</label>
+                  <select v-model="tierForm.discount_type" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                    <option value="percentage">Percentage</option>
+                    <option value="fixed">Fixed</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-graphite mb-1">Discount Value</label>
+                  <input type="number" v-model="tierForm.discount_value" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                </div>
+              </div>
+            </template>
+            <label class="flex items-center gap-2 text-sm text-graphite">
+              <input type="checkbox" v-model="tierForm.is_active" class="rounded border-slate-300" />
+              Active
+            </label>
+          </div>
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+            <button @click="showTierModal = false" class="focus-ring rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50">Cancel</button>
+            <button @click="saveTier" class="focus-ring rounded-lg bg-berry px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">Save tier</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
