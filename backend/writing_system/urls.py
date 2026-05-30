@@ -129,6 +129,9 @@ path("api/v1/special-orders/", include("special_orders.urls")),
 
     # ── Legal documents & help center ──────────────────────────────────────────
     path("api/v1/legal/", include("legal_pages.urls")),
+
+    # ── Privacy & data rights (GDPR / data subject requests) ──────────────────
+    path("api/v1/privacy/", include("privacy.urls", namespace="privacy")),
 ]
 
 

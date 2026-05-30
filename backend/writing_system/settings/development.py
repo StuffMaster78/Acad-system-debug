@@ -5,6 +5,7 @@ Development overrides. Never deploy these settings to production.
 """
 
 from .base import *  # noqa: F401,F403
+from .base import module_available  # explicit import so it's always in scope
 from .env import env, env_bool, env_int, env_list
 
 
