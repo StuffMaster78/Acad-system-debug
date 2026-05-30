@@ -90,3 +90,4 @@ The Writing System is a comprehensive platform for managing academic writing ser
 
 **Last Updated**: December 2025
 
+- [CONTENT_PUBLISHING_GUIDE.md](CONTENT_PUBLISHING_GUIDE.md) — Complete workflow for publishing blog posts, service pages, SEO landing pages, static pages, help articles, and legal documents. Covers Wagtail CMS setup, Content Management, Publishing Desk, Content Graph attribution, and FAQs.
