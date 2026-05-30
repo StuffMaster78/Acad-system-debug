@@ -60,35 +60,32 @@ class SpecialOrderBonusService:
         if not reason.strip():
             raise ValueError("Bonus reason is required.")
 
-        # Recommended future call:
-        #
-        # adjustment = WriterWalletService.credit_bonus(
-        #     website=special_order.website,
-        #     writer=writer,
-        #     amount=amount,
-        #     category=category,
-        #     reason=reason,
-        #     source_app="special_orders",
-        #     source_model="SpecialOrder",
-        #     source_object_id=str(special_order.id),
-        #     triggered_by=requested_by,
-        #     metadata={
-        #         "special_order_id": special_order.id,
-        #         "category": category,
-        #         **(metadata or {}),
-        #     },
-        # )
-        #
-        # return adjustment
+        from wallets.services.writer_wallet_service import WriterWalletService
+
+        wallet = WriterWalletService.apply_bonus(
+            website=special_order.website,
+            writer=writer,
+            amount=amount,
+            created_by=requested_by,
+            description=f"Special order bonus — {category}: {reason.strip()[:200]}",
+            reference=f"special_order_{special_order.id}_bonus",
+            reference_type="special_order_bonus",
+            reference_id=str(special_order.id),
+            metadata={
+                "special_order_id": special_order.id,
+                "category": category,
+                **(metadata or {}),
+            },
+        )
 
         return {
             "website_id": special_order.website_id,
             "special_order_id": special_order.id,
-            "writer_id": writer.id,
-            "amount": amount,
+            "writer_id": getattr(writer, "id", None),
+            "wallet_id": getattr(wallet, "pk", None),
+            "amount": str(amount),
             "category": category,
             "reason": reason.strip(),
-            "metadata": metadata or {},
         }
 
     @classmethod
