@@ -1,6 +1,7 @@
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import type { MetricDefinition, WorkItem } from "@/config/dashboard";
 import type { UserRole } from "@/types/roles";
+import { api, apiPath } from "@/api/client";
 import { useCommunicationsStore } from "@/stores/communications";
 import { useAdminWorkStore } from "@/stores/adminWork";
 import { useEditorWorkspaceStore } from "@/stores/editorWorkspace";
@@ -24,6 +25,10 @@ export function useDashboardData(role: UserRole) {
   const editorWs = useEditorWorkspaceStore();
   const supportWs = useSupportWorkspaceStore();
   const adminWork = useAdminWorkStore();
+
+  // Client loyalty summary — loaded once on dashboard mount.
+  const loyaltyTier = ref<string | null>(null);
+  const loyaltyPoints = ref<number>(0);
 
   const isLoading = computed(() => {
     if (role === "client") return orders.isLoading || wallets.isLoading;
@@ -65,10 +70,10 @@ export function useDashboardData(role: UserRole) {
           tone: "neutral",
         },
         {
-          label: "Messages",
-          value: String(comms.inboxThreads.length),
-          detail: "Active threads",
-          tone: comms.inboxThreads.length ? "warn" : "neutral",
+          label: loyaltyTier.value ? `${loyaltyTier.value} tier` : "Loyalty",
+          value: String(loyaltyPoints.value),
+          detail: loyaltyTier.value ? "Loyalty points" : "Earn points on every order",
+          tone: loyaltyTier.value ? "good" : "neutral",
         },
       ];
     }
@@ -204,6 +209,15 @@ export function useDashboardData(role: UserRole) {
         orders.fetchOrders(),
         wallets.fetchWallet(),
         comms.loadInboxThreads(),
+        api
+          .get<{ loyalty_points?: number; tier?: string }>(
+            apiPath("/loyalty-management/client/summary/"),
+          )
+          .then(({ data }) => {
+            loyaltyPoints.value = data.loyalty_points ?? 0;
+            loyaltyTier.value = data.tier ?? null;
+          })
+          .catch(() => undefined),
       ]);
     } else if (role === "writer") {
       await Promise.allSettled([writerWs.hydrate(), writerWs.fetchAssignments()]);

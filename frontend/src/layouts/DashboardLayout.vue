@@ -10,6 +10,7 @@ import WalletBalancePill from "@/components/wallet/WalletBalancePill.vue";
 import { groupedNavigationByRole } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth";
 import { useUiStore } from "@/stores/ui";
+import { useNotificationActions } from "@/composables/useNotificationActions";
 import { useNotifications } from "@/composables/useNotifications";
 import type { UserRole } from "@/types/roles";
 
@@ -19,6 +20,7 @@ const route = useRoute();
 const auth = useAuthStore();
 const ui = useUiStore();
 const { isConnected } = useNotifications();
+useNotificationActions();
 const navGroups = computed(() => groupedNavigationByRole[props.role]);
 
 const userMenuOpen = ref(false);
