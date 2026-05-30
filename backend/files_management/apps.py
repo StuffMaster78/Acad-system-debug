@@ -18,10 +18,11 @@ class FilesManagementConfig(AppConfig):
     verbose_name = "Files Management"
 
     def ready(self) -> None:
-        """
-        Register built-in file access policies.
-        """
-
         from files_management.policies import register_default_file_policies
+        from files_management.signals import file_first_downloaded
+        from files_management.integrations.activity_integration import (
+            handle_file_first_downloaded,
+        )
 
         register_default_file_policies()
+        file_first_downloaded.connect(handle_file_first_downloaded)

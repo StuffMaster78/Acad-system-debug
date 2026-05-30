@@ -60,6 +60,7 @@ class ActivityVerb(models.TextChoices):
 
     FILE_UPLOADED = "file.uploaded", _("File uploaded")
     FILE_APPROVED = "file.approved", _("File approved")
+    FILE_DOWNLOADED = "file.downloaded", _("File downloaded")
 
     MESSAGE_SENT = "message.sent", _("Message sent")
     THREAD_CREATED = "thread.created", _("Thread created")

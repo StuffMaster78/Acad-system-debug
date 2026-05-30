@@ -6,7 +6,7 @@ import logging
 from celery import shared_task
 from django.utils import timezone
 
-from .models import EmailCampaign, EmailRecipient
+from .models import EmailCampaign, EmailRecipient, UnsubscribeLog
 from .services import get_provider_client
 from .services.campaign_service import MassEmailCampaignService
 
@@ -49,6 +49,27 @@ def send_single_email(self, recipient_id):
         ).get(id=recipient_id)
         campaign = recipient.campaign
 
+        # Unsubscribe gate — never send to addresses that have opted out.
+        if UnsubscribeLog.objects.filter(email=recipient.email).exists():
+            recipient.status = 'unsubscribed'
+            recipient.save(update_fields=['status'])
+            logger.info(
+                "Skipped unsubscribed recipient %s for campaign %s",
+                recipient.email,
+                campaign.id,
+            )
+            return
+
+        # Also skip if the notifications_system suppression list has the address.
+        try:
+            from notifications_system.models import EmailSuppression
+            if EmailSuppression.objects.filter(email=recipient.email).exists():
+                recipient.status = 'unsubscribed'
+                recipient.save(update_fields=['status'])
+                return
+        except Exception:
+            pass
+
         provider = get_provider_client(campaign)
 
         subject = campaign.subject
@@ -62,8 +83,6 @@ def send_single_email(self, recipient_id):
             user=recipient.user,
             email=recipient.email,
         )
-
-        # Optional: Add unsubscribe footer or tracking pixel here
 
         provider.send_email(
             subject=subject,

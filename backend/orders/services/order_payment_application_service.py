@@ -48,25 +48,50 @@ class OrderPaymentApplicationService:
         triggered_by: Optional[Any] = None,
         payment_method_code: str = "",
         metadata: Optional[dict[str, Any]] = None,
+        entered_code: Optional[str] = None,
+        lifetime_spend: Optional[Decimal] = None,
+        has_prior_paid_purchase: bool = False,
     ) -> Any:
         """
         Create an external payment intent for the current outstanding
         order balance.
+
+        When entered_code or lifetime_spend are provided, the discount
+        engine resolves and applies the best discount before the payment
+        intent amount is calculated.
         """
         cls._validate_order_for_checkout(order=order)
+
+        # Apply discount if a code was entered or spend data is available.
+        discount_metadata: dict = {}
+        if entered_code or lifetime_spend is not None:
+            try:
+                discount_result = OrderDiscountIntegrationService.apply_order_discount(
+                    order=order,
+                    entered_code=entered_code,
+                    lifetime_spend=lifetime_spend,
+                    has_prior_paid_purchase=has_prior_paid_purchase,
+                )
+                if discount_result is not None:
+                    discount_metadata = {
+                        "discount_code": getattr(discount_result, "discount_code", ""),
+                        "discount_amount": str(
+                            getattr(discount_result, "discount_amount", "0.00")
+                        ),
+                    }
+            except Exception:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "Discount application failed for order=%s; proceeding without discount.",
+                    order.pk,
+                    exc_info=True,
+                )
 
         amount_to_charge = cls.get_outstanding_amount(order=order)
         if amount_to_charge <= Decimal("0.00"):
             raise ValidationError(
                 {"order": "Order does not require external payment."}
             )
-        
-        # discount_result = OrderDiscountIntegrationService.apply_order_discount(
-        #     order=order,
-        #     entered_code=entered_code,
-        #     lifetime_spend=client_lifetime_spend,
-        #     has_prior_paid_purchase=has_prior_paid_purchase,
-        # )
 
         payment_intent = PaymentIntentService.create_intent(
             client=order.client,
@@ -79,6 +104,7 @@ class OrderPaymentApplicationService:
                 "order_id": order.pk,
                 "service_family": order.service_family,
                 "service_code": order.service_code,
+                **discount_metadata,
                 **(metadata or {}),
             },
             reference_prefix=f"order_{order.pk}",
@@ -100,6 +126,7 @@ class OrderPaymentApplicationService:
                 ),
                 "amount": str(amount_to_charge),
                 "provider": provider,
+                **discount_metadata,
             },
         )
 
