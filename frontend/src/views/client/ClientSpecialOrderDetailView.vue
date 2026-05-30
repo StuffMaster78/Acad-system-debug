@@ -173,8 +173,24 @@
             <div v-if="m.delivery_notes" class="mt-3 rounded-lg bg-slate-50 px-4 py-2.5 text-sm text-graphite">
               <span class="font-medium text-ink">Delivery notes:</span> {{ m.delivery_notes }}
             </div>
-            <div v-if="m.status === 'submitted'" class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-700">
-              Your expert has submitted this milestone. Review and contact support if you have concerns.
+
+            <!-- Milestone delivery -->
+            <div v-if="m.delivery_file_url && m.status === 'approved'" class="mt-4 flex items-center gap-3">
+              <a
+                :href="m.delivery_file_url"
+                target="_blank"
+                rel="noreferrer"
+                class="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              >
+                <Download class="size-3.5" /> Download delivery
+              </a>
+              <span v-if="m.delivered_at" class="text-xs text-graphite">
+                Delivered {{ fmtDate(m.delivered_at) }}
+              </span>
+            </div>
+            <div v-else-if="m.status === 'submitted'" class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-800">
+              <p class="font-semibold">Work submitted — awaiting your approval</p>
+              <p class="mt-0.5 opacity-80">Review the delivery notes above. Contact support if you have concerns or need a revision.</p>
             </div>
           </div>
         </div>
@@ -234,7 +250,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { AlertCircle, ArrowLeft, CheckCircle, Clock, Package, XCircle } from "@lucide/vue";
+import { AlertCircle, ArrowLeft, CheckCircle, Clock, Download, Package, XCircle } from "@lucide/vue";
 import { useSpecialOrdersStore } from "@/stores/specialOrders";
 import type { MilestoneStatus, SpecialOrderStatus } from "@/types/specialOrders";
 
