@@ -337,3 +337,127 @@ export const cmsApi = {
   pillarSpokes: (slug: string) =>
     api.get<BlogPostSummary[]>(apiPath(`/cms-api/content-graph/pillars/${slug}/spokes/`)),
 };
+
+// ── Intelligence types ────────────────────────────────────────────────────
+
+export interface FunnelReport {
+  pillar: { name: string; slug: string }
+  service_page: { title: string; slug: string; url?: string }
+  hub_post: { title: string; slug: string; url?: string } | null
+  top_of_funnel: { spoke_count: number; total_traffic_30d: number; hub_traffic_30d: number }
+  middle: {
+    total_blog_to_service_clicks: number
+    click_through_rate: number
+    routes_count: number
+    best_route?: { blog_title: string; clicks: number; ctr: number; placement: string }
+    worst_route?: { blog_title: string; clicks: number; ctr: number; placement: string }
+  }
+  bottom: { service_page_sessions: number; orders: number; conversion_rate: number; revenue: string }
+  efficiency: { revenue_per_blog_visitor: number }
+}
+
+export interface IntelligenceDashboard {
+  diagnostics: {
+    total_pages: number
+    healthy: number
+    needs_attention: number
+    critical: number
+    pattern_breakdown: Record<string, number>
+  }
+  funnels: {
+    total_pillars: number
+    total_revenue_30d: string
+    total_conversions_30d: number
+    total_blog_traffic_30d: number
+    avg_funnel_conversion_rate: number
+    strongest_pillar: string | null
+    weakest_pillar: string | null
+  }
+  freshness: {
+    total_unresolved: number
+    critical: number
+    recent: FreshnessAlert[]
+  }
+  top_performers: {
+    most_traffic: { title: string; clicks: number } | null
+    most_revenue: { title: string; revenue: string } | null
+  }
+}
+
+export interface FreshnessAlert {
+  id: number
+  page_title?: string
+  alert_type: string
+  severity: number
+  detail: string
+  raised_at: string
+  acknowledged_at: string | null
+  resolved_at: string | null
+}
+
+export interface PerformanceSnapshot {
+  id: number
+  page_title: string
+  page_url: string
+  gsc_clicks_30d: number
+  gsc_impressions_30d: number
+  gsc_avg_ctr_30d: number
+  gsc_avg_position_30d: number
+  ga4_page_views_30d: number
+  ga4_sessions_30d: number
+  internal_conversions_30d: number
+  attributed_revenue_30d: string
+  diagnosis: string
+  position_delta: number
+}
+
+export interface LinkSuggestion {
+  page_id: number
+  title: string
+  url: string
+  reason: string
+  score: number
+}
+
+// ── Intelligence API ──────────────────────────────────────────────────────
+
+export const cmsIntelligenceApi = {
+  dashboard: () =>
+    api.get<IntelligenceDashboard>(apiPath("/cms-api/intelligence/dashboard/")),
+
+  pillars: () =>
+    api.get<ContentPillar[]>(apiPath("/cms-api/content-graph/pillars/")),
+
+  pillarFunnel: (slug: string) =>
+    api.get<FunnelReport>(apiPath(`/cms-api/content-graph/pillars/${slug}/funnel/`)),
+
+  allFunnels: () =>
+    api.get<FunnelReport[]>(apiPath("/cms-api/intelligence/dashboard/")),
+
+  freshnessAlerts: (status?: "unresolved" | "resolved") =>
+    api.get<{ results: FreshnessAlert[] }>(apiPath("/cms-api/intelligence/freshness/"), {
+      params: status ? { status } : undefined,
+    }),
+
+  acknowledgeAlert: (id: number) =>
+    api.post(apiPath(`/cms-api/intelligence/freshness/${id}/acknowledge/`), {}),
+
+  resolveAlert: (id: number, resolution: string) =>
+    api.post(apiPath(`/cms-api/intelligence/freshness/${id}/resolve/`), { resolution }),
+
+  performanceSnapshots: (params?: { diagnosis?: string }) =>
+    api.get<{ results: PerformanceSnapshot[] }>(apiPath("/cms-api/intelligence/performance/"), { params }),
+
+  topPerformers: (metric: "clicks" | "views" | "conversions" | "revenue" = "clicks") =>
+    api.get<PerformanceSnapshot[]>(apiPath("/cms-api/intelligence/performance/top_performers/"), {
+      params: { metric },
+    }),
+
+  worstPerformers: () =>
+    api.get<PerformanceSnapshot[]>(apiPath("/cms-api/intelligence/performance/worst_performers/")),
+
+  linkSuggestions: (pageId: number) =>
+    api.get<LinkSuggestion[]>(apiPath("/cms-api/content-graph/suggest/"), {
+      params: { page_id: pageId },
+    }),
+};

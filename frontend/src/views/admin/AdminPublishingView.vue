@@ -468,6 +468,60 @@ onMounted(() => {
             </div>
           </div>
         </section>
+        <!-- Internal link suggestions -->
+        <section class="rounded-md border border-slate-200 bg-white p-4">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <Link2 class="h-5 w-5 text-signal" />
+              <h2 class="text-base font-semibold">Link suggestions</h2>
+            </div>
+            <button
+              class="text-xs font-semibold text-berry hover:underline"
+              @click="fetchLinkSuggestions"
+              :disabled="isFetchingSuggestions"
+            >
+              {{ isFetchingSuggestions ? "Loading…" : "Refresh" }}
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-graphite">Internal pages to link from the current draft.</p>
+
+          <div v-if="isFetchingSuggestions" class="mt-3 space-y-2 animate-pulse">
+            <div v-for="n in 3" :key="n" class="h-10 rounded bg-slate-100" />
+          </div>
+          <div v-else-if="!linkSuggestions.length" class="mt-3 rounded-md bg-slate-50 p-3 text-xs text-graphite text-center">
+            Enter a page ID above and click Refresh.
+          </div>
+          <div v-else class="mt-3 space-y-2">
+            <a
+              v-for="s in linkSuggestions"
+              :key="s.page_id"
+              :href="s.url ?? '#'"
+              target="_blank"
+              rel="noreferrer"
+              class="block rounded-md border border-slate-200 bg-slate-50 p-2.5 hover:border-signal/40 hover:bg-white transition text-xs"
+            >
+              <p class="font-semibold text-ink truncate">{{ s.title }}</p>
+              <p class="text-graphite mt-0.5">{{ s.reason }}</p>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-slate-400 truncate">{{ s.url }}</span>
+                <span class="shrink-0 font-bold text-signal ml-2">{{ (s.score * 100).toFixed(0) }}%</span>
+              </div>
+            </a>
+          </div>
+
+          <div class="mt-3 flex gap-2">
+            <input
+              v-model.number="linkSuggestionPageId"
+              type="number"
+              class="focus-ring min-w-0 flex-1 rounded border border-slate-200 px-2 py-1.5 text-xs"
+              placeholder="Page ID to analyse"
+            />
+            <button
+              class="rounded border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50"
+              @click="fetchLinkSuggestions"
+            >Go</button>
+          </div>
+        </section>
       </aside>
     </section>
   </div>
