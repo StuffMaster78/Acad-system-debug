@@ -384,7 +384,7 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "special-orders/:id",
         name: "writer-special-order-detail",
-        component: () => import("@/views/client/ClientSpecialOrderDetailView.vue"),
+        component: () => import("@/views/writer/WriterSpecialOrderDetailView.vue"),
       },
     );
   }
