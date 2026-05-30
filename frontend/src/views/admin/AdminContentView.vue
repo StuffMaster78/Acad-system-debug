@@ -338,15 +338,196 @@
         </div>
       </div>
     </template>
+
+    <!-- ── Static pages ──────────────────────────────────────────────────────── -->
+    <template v-else-if="tab === 'pages'">
+      <div class="space-y-4">
+
+        <!-- List -->
+        <div v-if="!editingPage" class="space-y-3">
+          <div class="flex items-center justify-between">
+            <p class="text-sm text-graphite">
+              Pages are published at <code class="rounded bg-slate-100 px-1 text-xs">/lp/&lt;slug&gt;</code> on the public site.
+            </p>
+            <button
+              class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-berry px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700"
+              @click="newPage"
+            >
+              + New page
+            </button>
+          </div>
+
+          <div v-if="isLoadingPages" class="space-y-2 animate-pulse">
+            <div v-for="n in 4" :key="n" class="h-14 rounded-xl bg-slate-100" />
+          </div>
+
+          <div v-else-if="!pages.length" class="rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center">
+            <FileText class="mx-auto mb-3 size-8 text-slate-300" />
+            <p class="text-sm font-medium text-graphite">No static pages yet.</p>
+            <p class="mt-1 text-xs text-slate-400">Create your first page — About Us, Contact, FAQ, or any custom content.</p>
+            <button class="mt-4 text-xs font-semibold text-berry hover:underline" @click="newPage">Create first page</button>
+          </div>
+
+          <div v-else class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+            <div v-for="page in pages" :key="page.id" class="flex items-center gap-4 px-5 py-4">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="font-semibold text-ink truncate">{{ page.title }}</p>
+                  <span
+                    class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                    :class="page.is_published ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
+                  >{{ page.is_published ? 'Live' : 'Draft' }}</span>
+                </div>
+                <div class="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-graphite">
+                  <span class="font-mono">/lp/{{ page.slug }}</span>
+                  <a
+                    v-if="page.is_published"
+                    :href="`/lp/${page.slug}`"
+                    target="_blank"
+                    rel="noreferrer"
+                    class="flex items-center gap-1 text-blue-600 hover:underline"
+                  >
+                    <ExternalLink class="size-3" /> View live
+                  </a>
+                </div>
+                <p v-if="page.meta_description" class="mt-1 text-xs text-slate-400 line-clamp-1">{{ page.meta_description }}</p>
+              </div>
+
+              <div class="flex shrink-0 items-center gap-2">
+                <button
+                  class="rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors"
+                  :class="page.is_published
+                    ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
+                    : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'"
+                  @click="togglePublish(page)"
+                >{{ page.is_published ? 'Unpublish' : 'Publish' }}</button>
+                <button
+                  class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50"
+                  @click="editPage(page)"
+                >Edit</button>
+                <button
+                  class="rounded p-1.5 text-slate-400 hover:text-rose-500"
+                  @click="deletePage(page)"
+                ><Trash2 class="size-3.5" /></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editor -->
+        <div v-else class="rounded-xl border border-slate-200 bg-white">
+          <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <p class="font-semibold text-ink">{{ editingPage.id ? 'Edit page' : 'New page' }}</p>
+            <button class="text-graphite hover:text-ink" @click="editingPage = null">
+              <X class="size-4" />
+            </button>
+          </div>
+
+          <div class="space-y-5 p-5">
+            <!-- Identity -->
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label class="block sm:col-span-2">
+                <span class="text-xs font-semibold text-graphite">Page title</span>
+                <input
+                  v-model="editingPage.title"
+                  class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  placeholder="About Us"
+                />
+              </label>
+              <label class="block">
+                <span class="text-xs font-semibold text-graphite">URL slug</span>
+                <div class="mt-1 flex items-center">
+                  <span class="rounded-l-md border border-r-0 border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-graphite">/lp/</span>
+                  <input
+                    v-model="editingPage.slug"
+                    class="focus-ring min-w-0 flex-1 rounded-r-md border border-slate-200 px-3 py-2 text-sm"
+                    placeholder="about-us"
+                  />
+                </div>
+              </label>
+              <label class="block">
+                <span class="text-xs font-semibold text-graphite">SEO title <span class="font-normal text-slate-400">(optional — defaults to page title)</span></span>
+                <input
+                  v-model="editingPage.meta_title"
+                  class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  placeholder="About WritingSystem | Expert Academic Writers"
+                />
+              </label>
+              <label class="block sm:col-span-2">
+                <span class="text-xs font-semibold text-graphite">Meta description <span class="font-normal text-slate-400">(155 chars max)</span></span>
+                <textarea
+                  v-model="editingPage.meta_description"
+                  class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  rows="2"
+                  maxlength="160"
+                  placeholder="A brief description shown in search results…"
+                />
+              </label>
+            </div>
+
+            <!-- Scheduling -->
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label class="block">
+                <span class="text-xs font-semibold text-graphite">Schedule publish <span class="font-normal text-slate-400">(optional)</span></span>
+                <input
+                  v-model="editingPage.publish_date"
+                  type="datetime-local"
+                  class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  :min="new Date().toISOString().slice(0, 16)"
+                />
+              </label>
+            </div>
+
+            <!-- Body -->
+            <div>
+              <p class="mb-2 text-xs font-semibold text-graphite">Page content</p>
+              <RichTextEditor
+                v-model="editingPage.body_html"
+                placeholder="Write your page content here. Use headings, paragraphs, lists, and links."
+                min-height="400px"
+              />
+            </div>
+
+            <p v-if="pageSaveError" class="text-xs text-berry">{{ pageSaveError }}</p>
+
+            <div class="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+              <button
+                class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-graphite hover:bg-slate-50 disabled:opacity-60"
+                :disabled="isSavingPage"
+                @click="savePage(false)"
+              >
+                <Loader2 v-if="isSavingPage" class="size-4 animate-spin" />
+                Save as draft
+              </button>
+              <button
+                class="focus-ring inline-flex items-center gap-2 rounded-md bg-signal px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                :disabled="isSavingPage"
+                @click="savePage(true)"
+              >
+                Publish now
+              </button>
+              <button
+                class="focus-ring rounded-md border border-slate-200 px-4 py-2 text-sm text-graphite hover:bg-slate-50"
+                @click="editingPage = null"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
-import { FileText, Loader2, Pencil, Trash2, X } from "@lucide/vue";
+import { ExternalLink, FileText, Loader2, Pencil, Trash2, X } from "@lucide/vue";
 import RichTextEditor from "@/components/ui/RichTextEditor.vue";
 import WebsiteSelectorBar from "@/components/ui/WebsiteSelectorBar.vue";
 import { useAuthStore } from "@/stores/auth";
+import { adminPublishingApi, type SeoPageRecord } from "@/api/adminPublishing";
 import {
   legalApi,
   ALL_DOC_TYPES, DOC_TYPE_LABELS,
@@ -356,8 +537,9 @@ import {
 const TABS = [
   { key: "legal" as const, label: "Legal documents" },
   { key: "help"  as const, label: "Help center" },
+  { key: "pages" as const, label: "Static pages" },
 ];
-const tab = ref<"legal" | "help">("legal");
+const tab = ref<"legal" | "help" | "pages">("legal");
 const auth = useAuthStore();
 const isSuperAdmin = (auth.user as Record<string, unknown>)?.role === "superadmin"
   || !!(auth.user as Record<string, unknown>)?.is_superuser;
@@ -551,12 +733,100 @@ function fmtDate(v: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(v));
 }
 
+// ── Static pages ─────────────────────────────────────────────────────────────
+const pages            = ref<SeoPageRecord[]>([]);
+const isLoadingPages   = ref(false);
+const editingPage      = ref<Partial<SeoPageRecord & { body_html: string }> | null>(null);
+const isSavingPage     = ref(false);
+const pageSaveError    = ref("");
+
+// Extract HTML body from the first paragraph block
+function extractBody(page: SeoPageRecord): string {
+  const para = (page.blocks ?? []).find((b) => (b as Record<string,unknown>).type === "paragraph");
+  return para ? String((para as Record<string,unknown>).value ?? "") : "";
+}
+
+// Pack HTML back into a paragraph block
+function packBody(html: string): Record<string, unknown>[] {
+  return html.trim() ? [{ type: "paragraph", value: html }] : [];
+}
+
+async function loadPages() {
+  isLoadingPages.value = true;
+  try {
+    const params: Record<string, unknown> = {};
+    if (websiteId.value) params.website_id = websiteId.value;
+    const { data } = await adminPublishingApi.seoPages(params);
+    pages.value = Array.isArray(data) ? data : (data as { results: SeoPageRecord[] }).results ?? [];
+  } catch { pages.value = []; }
+  finally { isLoadingPages.value = false; }
+}
+
+function newPage() {
+  editingPage.value = {
+    title: "",
+    slug: "",
+    meta_title: "",
+    meta_description: "",
+    is_published: false,
+    blocks: [],
+    body_html: "",
+    publish_date: null,
+  };
+}
+
+function editPage(page: SeoPageRecord) {
+  editingPage.value = { ...page, body_html: extractBody(page) };
+}
+
+async function savePage(publish: boolean) {
+  if (!editingPage.value) return;
+  isSavingPage.value = true;
+  pageSaveError.value = "";
+  try {
+    const payload = {
+      title: editingPage.value.title ?? "",
+      slug: editingPage.value.slug ?? "",
+      meta_title: editingPage.value.meta_title ?? editingPage.value.title ?? "",
+      meta_description: editingPage.value.meta_description ?? "",
+      blocks: packBody(editingPage.value.body_html ?? ""),
+      is_published: publish,
+      publish_date: publish ? (editingPage.value.publish_date ?? null) : null,
+      website: websiteId.value ?? (pages.value[0]?.website ?? 1),
+    };
+    if (editingPage.value.id) {
+      await adminPublishingApi.updateSeoPage(editingPage.value.id, payload);
+    } else {
+      await adminPublishingApi.createSeoPage(payload as Parameters<typeof adminPublishingApi.createSeoPage>[0]);
+    }
+    editingPage.value = null;
+    await loadPages();
+  } catch {
+    pageSaveError.value = "Save failed. Check the slug is unique and all fields are filled.";
+  } finally {
+    isSavingPage.value = false;
+  }
+}
+
+async function togglePublish(page: SeoPageRecord) {
+  await adminPublishingApi.updateSeoPage(page.id, { is_published: !page.is_published });
+  await loadPages();
+}
+
+async function deletePage(page: SeoPageRecord) {
+  if (!confirm(\`Delete "\${page.title}"? This cannot be undone.\`)) return;
+  await adminPublishingApi.updateSeoPage(page.id, { is_published: false });
+  // Soft-archive by unpublishing (hard delete not exposed via API)
+  await loadPages();
+}
+
 onMounted(async () => {
   await Promise.all([
     loadDocVersions(),
     loadActiveVersions(),
     loadCategories(),
     loadArticles(),
+    loadPages(),
   ]);
 });
 </script>
