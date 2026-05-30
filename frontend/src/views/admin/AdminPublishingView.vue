@@ -7,6 +7,7 @@ import {
   FilePenLine,
   Globe2,
   LibraryBig,
+  Link2,
   Newspaper,
   RefreshCw,
   Search,

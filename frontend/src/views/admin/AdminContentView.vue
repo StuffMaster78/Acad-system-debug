@@ -814,7 +814,7 @@ async function togglePublish(page: SeoPageRecord) {
 }
 
 async function deletePage(page: SeoPageRecord) {
-  if (!confirm(\`Delete "\${page.title}"? This cannot be undone.\`)) return;
+  if (!confirm('Delete "' + page.title + '"? This cannot be undone.')) return;
   await adminPublishingApi.updateSeoPage(page.id, { is_published: false });
   // Soft-archive by unpublishing (hard delete not exposed via API)
   await loadPages();
