@@ -185,8 +185,9 @@ class SpecialOrderAdminOverrideService:
                 idempotency_key=idempotency_key,
             )
         elif override.override_type == AdminOverrideType.WAIVE_MILESTONE:
-            raise NotImplementedError(
-                "Waive milestone should be implemented with a milestone id."
+            cls._apply_waive_milestone(
+                override=override,
+                applied_by=applied_by,
             )
         else:
             raise ValueError("Unsupported override type.")
@@ -306,6 +307,69 @@ class SpecialOrderAdminOverrideService:
                 "updated_at",
             ]
         )
+
+    @classmethod
+    def _apply_waive_milestone(
+        cls,
+        *,
+        override: SpecialOrderAdminOverride,
+        applied_by,
+    ) -> None:
+        """
+        Waive a specific funding milestone so the client is not required to pay it.
+
+        The milestone PK must be stored in override.metadata["milestone_id"].
+        After waiving, any delivery checkpoint that required the milestone is
+        also unlocked so the writer's delivery is not blocked.
+        """
+        from special_orders.constants import FundingMilestoneStatus
+        from special_orders.models.funding import SpecialOrderFundingMilestone
+
+        milestone_id = (override.metadata or {}).get("milestone_id")
+        if not milestone_id:
+            raise ValueError(
+                "WAIVE_MILESTONE override requires 'milestone_id' in metadata."
+            )
+
+        try:
+            milestone = SpecialOrderFundingMilestone.objects.select_for_update().get(
+                pk=milestone_id,
+                special_order=override.special_order,
+                website=override.special_order.website,
+            )
+        except SpecialOrderFundingMilestone.DoesNotExist:
+            raise ValueError(
+                f"Milestone {milestone_id} not found for this special order."
+            )
+
+        if milestone.status in {FundingMilestoneStatus.PAID, FundingMilestoneStatus.CANCELLED}:
+            raise ValueError(
+                f"Milestone {milestone_id} is already {milestone.status} and cannot be waived."
+            )
+
+        milestone.status = FundingMilestoneStatus.CANCELLED
+        milestone.save(update_fields=["status", "updated_at"])
+
+        # Unlock any delivery checkpoint that was gated on this milestone.
+        checkpoints = override.special_order.special_order_delivery_checkpoints.filter(
+            required_milestone=milestone,
+        ).exclude(status=DeliveryCheckpointStatus.WAIVED)
+
+        now = timezone.now()
+        for checkpoint in checkpoints:
+            checkpoint.status = DeliveryCheckpointStatus.WAIVED
+            checkpoint.unlocked_at = now
+            checkpoint.unlocked_by = applied_by
+            checkpoint.waiver_reason = override.reason or "Milestone waived by admin"
+            checkpoint.save(
+                update_fields=[
+                    "status",
+                    "unlocked_at",
+                    "unlocked_by",
+                    "waiver_reason",
+                    "updated_at",
+                ]
+            )
 
     @classmethod
     def _apply_force_complete(
