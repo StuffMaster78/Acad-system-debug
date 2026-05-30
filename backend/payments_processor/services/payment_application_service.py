@@ -209,19 +209,48 @@ class PaymentApplicationService:
         payment_intent: PaymentIntent,
     ) -> dict[str, Any]:
         """
-        Handle order settlement.
+        Apply a confirmed payment to an order and unlock delivery files.
         """
-        order = payment_intent.payable
+        from orders.services.order_payment_application_service import (
+            OrderPaymentApplicationService,
+        )
+        from files_management.services.file_delivery_guard_service import (
+            FileDeliveryGuardService,
+        )
 
+        order = payment_intent.payable
         if order is None:
             raise PaymentError("Order payable missing.")
 
-        # TODO: integrate OrderService.mark_paid(order)
+        updated_order = OrderPaymentApplicationService.apply_confirmed_payment(
+            order=order,
+            amount=payment_intent.amount,
+            payment_reference=payment_intent.reference,
+            payment_intent_reference=payment_intent.reference,
+            source="external",
+            metadata={
+                "payment_intent_id": payment_intent.pk,
+                "provider": getattr(payment_intent, "provider", ""),
+            },
+        )
+
+        # Unlock any final files now that the balance is cleared.
+        try:
+            FileDeliveryGuardService.unlock_after_payment(order=updated_order)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "unlock_after_payment failed for order_id=%s",
+                getattr(updated_order, "pk", None),
+                exc_info=True,
+            )
 
         return {
             "domain": "orders",
-            "object_id": getattr(order, "pk", None),
+            "object_id": getattr(updated_order, "pk", None),
             "action": "mark_paid",
+            "payment_status": getattr(updated_order, "payment_status", ""),
+            "order_status": getattr(updated_order, "status", ""),
         }
 
     @staticmethod
@@ -284,26 +313,37 @@ class PaymentApplicationService:
         payment_intent: PaymentIntent,
     ) -> dict[str, Any]:
         """
-        Handle wallet top-up settlement.
+        Credit a client wallet after a successful top-up payment.
         """
-        # NOTE:
-        # This should eventually call:
-        # WalletService.credit_wallet(...)
-        # ClientWalletService.fund_wallet(
-        #     website=website,
-        #     client=client,
-        #     amounyt=wamount,
-        #     created_by=user,
-        #     description=description,
-        #     reference_type=reference_type,
-        #     metadata={},
+        from wallets.services.client_wallet_service import ClientWalletService
 
-        # )
+        client = payment_intent.client
+        website = payment_intent.website
+
+        if client is None:
+            raise PaymentError("Wallet top-up requires a client on the intent.")
+        if website is None:
+            raise PaymentError("Wallet top-up requires a website on the intent.")
+
+        wallet = ClientWalletService.fund_wallet(
+            website=website,
+            client=client,
+            amount=payment_intent.amount,
+            description="Wallet top-up",
+            reference=payment_intent.reference,
+            reference_type="payment_intent",
+            reference_id=str(payment_intent.pk),
+            metadata={
+                "payment_intent_id": payment_intent.pk,
+                "provider": getattr(payment_intent, "provider", ""),
+            },
+        )
 
         return {
             "domain": "wallets",
-            "object_id": payment_intent.client.pk,
+            "object_id": getattr(wallet, "pk", client.pk),
             "action": "credit_wallet",
+            "amount": str(payment_intent.amount),
         }
 
     @staticmethod
