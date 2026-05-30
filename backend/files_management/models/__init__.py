@@ -9,6 +9,9 @@ from files_management.models.file_category import FileCategory
 from files_management.models.file_deletion_request import (
     FileDeletionRequest,
 )
+from files_management.models.file_delivery_guard_result import (
+    FileDeliveryGuardResult,
+)
 from files_management.models.file_download_log import FileDownloadLog
 from files_management.models.file_policy import FilePolicy
 from files_management.models.file_processing_job import FileProcessingJob
@@ -22,6 +25,7 @@ __all__ = [
     "FileAttachment",
     "FileCategory",
     "FileDeletionRequest",
+    "FileDeliveryGuardResult",
     "FileDownloadLog",
     "FilePolicy",
     "FileProcessingJob",

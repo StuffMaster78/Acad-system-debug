@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from files_management.enums import FilePurpose, FileVisibility
+from files_management.enums import DeliveryStatus, FilePurpose, FileVisibility
 
 
 class FileAttachment(models.Model):
@@ -103,6 +103,62 @@ class FileAttachment(models.Model):
         default=dict,
         blank=True,
         help_text="Flexible context metadata for domain integrations.",
+    )
+
+    # ------------------------------------------------------------------
+    # Delivery tracking — populated for ORDER_FINAL and milestone files
+    # ------------------------------------------------------------------
+
+    delivery_status = models.CharField(
+        max_length=32,
+        choices=DeliveryStatus.choices,
+        default=DeliveryStatus.PENDING,
+        db_index=True,
+        help_text="Delivery lifecycle state for final and milestone files.",
+    )
+
+    is_submitted = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text=(
+            "True once the writer (or staff) has explicitly submitted "
+            "this file as the delivery candidate."
+        ),
+    )
+
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="submitted_file_attachments",
+        help_text="Who pressed Submit Final.",
+    )
+
+    submitted_on_behalf_of = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="file_attachments_submitted_on_behalf",
+        help_text="Writer the staff member acted for, if applicable.",
+    )
+
+    submission_reason = models.TextField(
+        blank=True,
+        help_text="Required when staff submits on behalf of a writer.",
+    )
+
+    submitted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the file was submitted for delivery.",
+    )
+
+    first_downloaded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of the client's first successful download.",
     )
 
     attached_at = models.DateTimeField(auto_now_add=True)

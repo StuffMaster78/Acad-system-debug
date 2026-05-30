@@ -112,6 +112,18 @@ class FilePurpose(models.TextChoices):
     CLASS_RESOURCE = "class_resource", "Class Resource"
     CLASS_ASSIGNMENT = "class_assignment", "Class Assignment"
     CLASS_SUBMISSION = "class_submission", "Class Submission"
+    CLASS_SYLLABUS = "class_syllabus", "Class Syllabus"
+    CLASS_RUBRIC = "class_rubric", "Class Rubric"
+    CLASS_GRADE_EVIDENCE = "class_grade_evidence", "Class Grade Evidence"
+    CLASS_FEEDBACK = "class_feedback", "Class Feedback"
+    CLASS_SCREENSHOT = "class_screenshot", "Class Screenshot"
+    CLASS_CREDENTIAL = "class_credential", "Class Credential"
+
+    SPECIAL_ORDER_REFERENCE = "special_order_reference", "Special Order Reference"
+    SPECIAL_ORDER_SCREENSHOT = "special_order_screenshot", "Special Order Screenshot"
+    SPECIAL_ORDER_CREDENTIAL = "special_order_credential", "Special Order Credential"
+    SPECIAL_ORDER_MILESTONE = "special_order_milestone", "Special Order Milestone Deliverable"
+    SPECIAL_ORDER_REPORT = "special_order_report", "Special Order Report"
 
     PAYMENT_PROOF = "payment_proof", "Payment Proof"
     INVOICE = "invoice", "Invoice"
@@ -248,3 +260,25 @@ class DeletionRequestScope(models.TextChoices):
     DETACH_ONLY = "detach_only", "Detach Only"
     ARCHIVE_FILE = "archive_file", "Archive File"
     DELETE_FILE = "delete_file", "Delete File"
+
+
+class DeliveryStatus(models.TextChoices):
+    """Delivery lifecycle state for a final or milestone file attachment."""
+
+    PENDING = "pending", "Pending"
+    SUBMITTED = "submitted", "Submitted for Delivery"
+    LOCKED = "locked", "Locked — Payment Required"
+    APPROVED = "approved", "Approved for Download"
+    REJECTED = "rejected", "Rejected by Staff"
+
+
+class DeliveryGuardBlockReason(models.TextChoices):
+    """Why the delivery guard denied a download."""
+
+    BALANCE_DUE = "balance_due", "Outstanding Balance"
+    SCAN_PENDING = "scan_pending", "Scan Not Completed"
+    SCAN_FAILED = "scan_failed", "Scan Failed or Infected"
+    NOT_SUBMITTED = "not_submitted", "File Not Submitted for Delivery"
+    APPROVAL_PENDING = "approval_pending", "Awaiting Staff Approval"
+    REJECTED = "rejected", "File Rejected by Staff"
+    GUARD_ERROR = "guard_error", "Guard Check Error"

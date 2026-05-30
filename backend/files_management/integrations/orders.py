@@ -5,7 +5,7 @@ from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 
 from files_management.enums import FilePurpose, FileVisibility
-from files_management.models import FileAttachment
+from files_management.models.file_attachment import FileAttachment
 from files_management.services import (
     ExternalFileLinkService,
     FileAttachmentService,
@@ -90,7 +90,7 @@ class OrderFileIntegrationService:
             uploaded_by=uploaded_by,
             uploaded_file=uploaded_file,
             purpose=FilePurpose.ORDER_DRAFT,
-            visibility=FileVisibility.CLIENT_WRITER_STAFF,
+            visibility=FileVisibility.WRITER_AND_STAFF,
             metadata={
                 "order_file_status": "draft",
                 "source_domain": "orders",
@@ -122,6 +122,41 @@ class OrderFileIntegrationService:
                 "is_final_paper": True,
                 "source_domain": "orders",
             },
+        )
+
+    @classmethod
+    @transaction.atomic
+    def submit_final_file(
+        cls,
+        *,
+        attachment: FileAttachment,
+        submitted_by,
+        on_behalf_of=None,
+        reason: str = "",
+    ) -> FileAttachment:
+        """
+        Submit an uploaded final file as the delivery candidate.
+
+        Delegates to FileDeliveryGuardService which validates that the
+        scan has passed before flipping the submitted flag.
+
+        Args:
+            attachment:    The ORDER_FINAL attachment to submit.
+            submitted_by:  Actor pressing Submit Final.
+            on_behalf_of:  Writer being represented by staff, if any.
+            reason:        Required when on_behalf_of is set.
+
+        Returns:
+            Updated FileAttachment with is_submitted=True.
+        """
+        from files_management.services.file_delivery_guard_service import (
+            FileDeliveryGuardService,
+        )
+        return FileDeliveryGuardService.submit_as_final(
+            attachment=attachment,
+            submitted_by=submitted_by,
+            on_behalf_of=on_behalf_of,
+            reason=reason,
         )
 
     @classmethod

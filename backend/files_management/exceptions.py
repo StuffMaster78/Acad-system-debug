@@ -59,3 +59,22 @@ class SignedUrlGenerationError(FileManagementError):
     """
     Raised when a signed URL cannot be generated.
     """
+
+
+class FileDeliveryBlocked(FileManagementError):
+    """
+    Raised when the delivery guard blocks a download.
+
+    Carries blocked_reason and optional amount_due so API views can
+    return structured responses the frontend can act on directly.
+    """
+
+    def __init__(
+        self,
+        blocked_reason: str,
+        amount_due=None,
+        message: str = "",
+    ):
+        self.blocked_reason = blocked_reason
+        self.amount_due = amount_due
+        super().__init__(message or f"Download blocked: {blocked_reason}")
