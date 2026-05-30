@@ -332,169 +332,190 @@
     <!-- ── Dialogs ──────────────────────────────────────────────────────────── -->
 
     <!-- Create window -->
-    <div v-if="showCreateWindow" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-        <h3 class="font-semibold text-gray-800">Create Payout Window</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Cycle Type</label>
-            <select v-model="newWindow.cycle_type" class="input">
-              <option value="weekly">Weekly</option>
-              <option value="biweekly">Bi-Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
+    <Teleport to="body">
+      <div v-if="showCreateWindow" class="fixed inset-0 z-50 flex">
+        <div class="absolute inset-0 bg-black/30" @click="showCreateWindow = false" />
+        <div class="relative ml-auto flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h3 class="font-bold text-ink">Create payout window</h3>
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="showCreateWindow = false">
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
           </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Start Date</label>
-            <input v-model="newWindow.start_date" type="date" class="input" />
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <div><label class="block text-xs font-medium text-graphite mb-1">Cycle type</label>
+              <select v-model="newWindow.cycle_type" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <option value="weekly">Weekly</option><option value="biweekly">Bi-Weekly</option><option value="monthly">Monthly</option>
+              </select></div>
+            <div><label class="block text-xs font-medium text-graphite mb-1">Start date</label>
+              <input v-model="newWindow.start_date" type="date" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
+            <div><label class="block text-xs font-medium text-graphite mb-1">End date</label>
+              <input v-model="newWindow.end_date" type="date" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
           </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">End Date</label>
-            <input v-model="newWindow.end_date" type="date" class="input" />
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+            <button @click="showCreateWindow = false" class="focus-ring rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50">Cancel</button>
+            <button @click="doCreateWindow" :disabled="actioning" class="focus-ring rounded-lg bg-berry px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50">{{ actioning ? 'Creating…' : 'Create window' }}</button>
           </div>
-        </div>
-        <div class="flex justify-end gap-3 pt-2">
-          <button @click="showCreateWindow = false" class="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-          <button @click="doCreateWindow" :disabled="actioning" class="btn-primary text-sm">
-            {{ actioning ? 'Creating…' : 'Create' }}
-          </button>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Hold payout -->
-    <div v-if="holdDialog.open" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h3 class="font-semibold text-gray-800">Hold Payout — {{ holdDialog.writerName }}</h3>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Reason</label>
-          <textarea v-model="holdDialog.reason" class="input h-20 resize-none" placeholder="Required" />
-        </div>
-        <div class="flex justify-end gap-3">
-          <button @click="holdDialog.open = false" class="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-          <button @click="doHold" :disabled="actioning || !holdDialog.reason.trim()" class="btn-primary text-sm">
-            {{ actioning ? 'Holding…' : 'Hold' }}
-          </button>
+    <Teleport to="body">
+      <div v-if="holdDialog.open" class="fixed inset-0 z-50 flex">
+        <div class="absolute inset-0 bg-black/30" @click="holdDialog.open = false" />
+        <div class="relative ml-auto flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h3 class="font-bold text-ink">Hold payout — {{ holdDialog.writerName }}</h3>
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="holdDialog.open = false">
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <div><label class="block text-xs font-medium text-graphite mb-1">Reason <span class="text-rose-500">*</span></label>
+              <textarea v-model="holdDialog.reason" rows="4" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm resize-none" placeholder="Required" /></div>
+          </div>
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+            <button @click="holdDialog.open = false" class="focus-ring rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50">Cancel</button>
+            <button @click="doHold" :disabled="actioning || !holdDialog.reason.trim()" class="focus-ring rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50">{{ actioning ? 'Holding…' : 'Hold payout' }}</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Approve advance -->
-    <div v-if="approveAdvanceDialog.open" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h3 class="font-semibold text-gray-800">Approve Advance — {{ approveAdvanceDialog.writerName }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Approved Amount</label>
-            <input v-model="approveAdvanceDialog.amount" type="number" step="0.01" min="0.01" class="input" />
+    <Teleport to="body">
+      <div v-if="approveAdvanceDialog.open" class="fixed inset-0 z-50 flex">
+        <div class="absolute inset-0 bg-black/30" @click="approveAdvanceDialog.open = false" />
+        <div class="relative ml-auto flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h3 class="font-bold text-ink">Approve advance — {{ approveAdvanceDialog.writerName }}</h3>
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="approveAdvanceDialog.open = false">
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
           </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Admin Notes (optional)</label>
-            <input v-model="approveAdvanceDialog.notes" class="input" />
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <div><label class="block text-xs font-medium text-graphite mb-1">Approved amount ($) <span class="text-rose-500">*</span></label>
+              <input v-model="approveAdvanceDialog.amount" type="number" step="0.01" min="0.01" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
+            <div><label class="block text-xs font-medium text-graphite mb-1">Admin notes (optional)</label>
+              <input v-model="approveAdvanceDialog.notes" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
           </div>
-        </div>
-        <div class="flex justify-end gap-3 pt-2">
-          <button @click="approveAdvanceDialog.open = false" class="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-          <button @click="doApproveAdvance" :disabled="actioning || !approveAdvanceDialog.amount" class="btn-primary text-sm">
-            {{ actioning ? 'Approving…' : 'Approve' }}
-          </button>
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+            <button @click="approveAdvanceDialog.open = false" class="focus-ring rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50">Cancel</button>
+            <button @click="doApproveAdvance" :disabled="actioning || !approveAdvanceDialog.amount" class="focus-ring rounded-lg bg-signal px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{{ actioning ? 'Approving…' : 'Approve advance' }}</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Recover advance -->
-    <div v-if="recoverAdvanceDialog.open" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h3 class="font-semibold text-gray-800">Record Recovery — {{ recoverAdvanceDialog.writerName }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Recovery Amount</label>
-            <input v-model="recoverAdvanceDialog.amount" type="number" step="0.01" min="0.01" class="input" />
+    <Teleport to="body">
+      <div v-if="recoverAdvanceDialog.open" class="fixed inset-0 z-50 flex">
+        <div class="absolute inset-0 bg-black/30" @click="recoverAdvanceDialog.open = false" />
+        <div class="relative ml-auto flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h3 class="font-bold text-ink">Record recovery — {{ recoverAdvanceDialog.writerName }}</h3>
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="recoverAdvanceDialog.open = false">
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
           </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
-            <input v-model="recoverAdvanceDialog.notes" class="input" />
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <div><label class="block text-xs font-medium text-graphite mb-1">Recovery amount ($) <span class="text-rose-500">*</span></label>
+              <input v-model="recoverAdvanceDialog.amount" type="number" step="0.01" min="0.01" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
+            <div><label class="block text-xs font-medium text-graphite mb-1">Notes (optional)</label>
+              <input v-model="recoverAdvanceDialog.notes" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
           </div>
-        </div>
-        <div class="flex justify-end gap-3 pt-2">
-          <button @click="recoverAdvanceDialog.open = false" class="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-          <button @click="doRecoverAdvance" :disabled="actioning || !recoverAdvanceDialog.amount" class="btn-primary text-sm">
-            {{ actioning ? 'Saving…' : 'Record' }}
-          </button>
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+            <button @click="recoverAdvanceDialog.open = false" class="focus-ring rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50">Cancel</button>
+            <button @click="doRecoverAdvance" :disabled="actioning || !recoverAdvanceDialog.amount" class="focus-ring rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50">{{ actioning ? 'Saving…' : 'Record recovery' }}</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Mark payout paid -->
-    <div v-if="markPaidDialog.open" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h3 class="font-semibold text-gray-800">Mark Paid — {{ markPaidDialog.writerName }}</h3>
-        <p class="text-xs text-gray-500">${{ markPaidDialog.amount }} payout</p>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Payment Method</label>
-            <select v-model="markPaidDialog.method" class="input">
-              <option value="">— Select method —</option>
-              <option value="Bank Transfer">Bank Transfer</option>
-              <option value="PayPal">PayPal</option>
-              <option value="Wise">Wise</option>
-              <option value="M-Pesa">M-Pesa</option>
-              <option value="Crypto">Crypto</option>
-              <option value="Other">Other</option>
-            </select>
+    <Teleport to="body">
+      <div v-if="markPaidDialog.open" class="fixed inset-0 z-50 flex">
+        <div class="absolute inset-0 bg-black/30" @click="markPaidDialog.open = false" />
+        <div class="relative ml-auto flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h3 class="font-bold text-ink">Mark paid — {{ markPaidDialog.writerName }}</h3>
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="markPaidDialog.open = false">
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
           </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">External Reference / Transaction ID</label>
-            <input v-model="markPaidDialog.external_reference" class="input" placeholder="e.g. WIRE-20240510-001" />
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <div class="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm">
+              <p class="font-semibold text-emerald-800">${{ markPaidDialog.amount }} payout</p>
+            </div>
+            <div><label class="block text-xs font-medium text-graphite mb-1">Payment method <span class="text-rose-500">*</span></label>
+              <select v-model="markPaidDialog.method" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <option value="">— Select method —</option>
+                <option value="Bank Transfer">Bank Transfer</option><option value="PayPal">PayPal</option>
+                <option value="Wise">Wise</option><option value="M-Pesa">M-Pesa</option>
+                <option value="Crypto">Crypto</option><option value="Other">Other</option>
+              </select></div>
+            <div><label class="block text-xs font-medium text-graphite mb-1">Transaction / reference ID</label>
+              <input v-model="markPaidDialog.external_reference" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="e.g. WIRE-20240510-001" /></div>
+            <div><label class="block text-xs font-medium text-graphite mb-1">Notes (optional)</label>
+              <textarea v-model="markPaidDialog.notes" rows="3" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm resize-none" /></div>
           </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
-            <textarea v-model="markPaidDialog.notes" class="input h-16 resize-none" />
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+            <button @click="markPaidDialog.open = false" class="focus-ring rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50">Cancel</button>
+            <button @click="doMarkPaid" :disabled="actioning || !markPaidDialog.method" class="focus-ring rounded-lg bg-signal px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{{ actioning ? 'Saving…' : 'Confirm payment' }}</button>
           </div>
-        </div>
-        <div class="flex justify-end gap-3 pt-2">
-          <button @click="markPaidDialog.open = false" class="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-          <button @click="doMarkPaid" :disabled="actioning || !markPaidDialog.method" class="btn-primary text-sm">
-            {{ actioning ? 'Saving…' : 'Mark Paid' }}
-          </button>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Reject cycle change -->
-    <div v-if="rejectCycleDialog.open" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h3 class="font-semibold text-gray-800">Reject Cycle Change — {{ rejectCycleDialog.writerName }}</h3>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Rejection Reason (optional)</label>
-          <textarea v-model="rejectCycleDialog.reason" class="input h-20 resize-none" />
-        </div>
-        <div class="flex justify-end gap-3">
-          <button @click="rejectCycleDialog.open = false" class="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-          <button @click="doRejectCycleChange" :disabled="actioning" class="text-sm px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50">
-            {{ actioning ? 'Rejecting…' : 'Reject' }}
-          </button>
+    <Teleport to="body">
+      <div v-if="rejectCycleDialog.open" class="fixed inset-0 z-50 flex">
+        <div class="absolute inset-0 bg-black/30" @click="rejectCycleDialog.open = false" />
+        <div class="relative ml-auto flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h3 class="font-bold text-ink">Reject cycle change — {{ rejectCycleDialog.writerName }}</h3>
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="rejectCycleDialog.open = false">
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <div><label class="block text-xs font-medium text-graphite mb-1">Rejection reason (optional)</label>
+              <textarea v-model="rejectCycleDialog.reason" rows="4" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm resize-none" /></div>
+          </div>
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+            <button @click="rejectCycleDialog.open = false" class="focus-ring rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50">Cancel</button>
+            <button @click="doRejectCycleChange" :disabled="actioning" class="focus-ring rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50">{{ actioning ? 'Rejecting…' : 'Reject request' }}</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Run settlement -->
-    <div v-if="showRunSettlement" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h3 class="font-semibold text-gray-800">Run Settlement</h3>
-        <p class="text-sm text-gray-500">This will compute settlement records for all writers in the selected window.</p>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Payment Window ID</label>
-          <input v-model.number="runSettlementWindowId" type="number" class="input" placeholder="Enter window ID" />
-        </div>
-        <div class="flex justify-end gap-3">
-          <button @click="showRunSettlement = false" class="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-          <button @click="doRunSettlement" :disabled="actioning || !runSettlementWindowId" class="btn-primary text-sm">
-            {{ actioning ? 'Running…' : 'Run' }}
-          </button>
+    <Teleport to="body">
+      <div v-if="showRunSettlement" class="fixed inset-0 z-50 flex">
+        <div class="absolute inset-0 bg-black/30" @click="showRunSettlement = false" />
+        <div class="relative ml-auto flex h-full w-full max-w-sm flex-col bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h3 class="font-bold text-ink">Run settlement</h3>
+            <button class="rounded p-1 text-graphite hover:text-ink" @click="showRunSettlement = false">
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <div class="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+              This will compute settlement records for all writers in the selected window.
+            </div>
+            <div><label class="block text-xs font-medium text-graphite mb-1">Payment window ID <span class="text-rose-500">*</span></label>
+              <input v-model.number="runSettlementWindowId" type="number" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Enter window ID" /></div>
+          </div>
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+            <button @click="showRunSettlement = false" class="focus-ring rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50">Cancel</button>
+            <button @click="doRunSettlement" :disabled="actioning || !runSettlementWindowId" class="focus-ring rounded-lg bg-berry px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50">{{ actioning ? 'Running…' : 'Run settlement' }}</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Toast -->
     <div

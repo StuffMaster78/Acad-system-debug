@@ -1,7 +1,23 @@
 # Writer User Guide
 
 **Version**: 1.0  
-**Last Updated**: December 2025
+---
+
+## Submitting Final Work
+
+Upload your final file on the Files tab, then click Submit for delivery on the file card.
+Simply uploading does NOT notify the client — you must click Submit for delivery.
+
+The system verifies the file passed the virus scan before allowing submission.
+
+## Special Orders
+
+Each milestone has its own delivery form. Click Deliver milestone, add notes and a file link.
+The client receives notification and can approve or request revision per milestone.
+
+---
+
+**Last Updated**: May 2026
 
 ---
 
@@ -480,6 +496,22 @@ A: Yes, click on any day in the calendar to see all tasks due that day.
 
 ---
 
-**Last Updated**: December 2025  
+---
+
+## Submitting Final Work
+
+Upload your final file on the Files tab, then click Submit for delivery on the file card.
+Simply uploading does NOT notify the client — you must click Submit for delivery.
+
+The system verifies the file passed the virus scan before allowing submission.
+
+## Special Orders
+
+Each milestone has its own delivery form. Click Deliver milestone, add notes and a file link.
+The client receives notification and can approve or request revision per milestone.
+
+---
+
+**Last Updated**: May 2026  
 **For the latest updates, check the system announcements**
 

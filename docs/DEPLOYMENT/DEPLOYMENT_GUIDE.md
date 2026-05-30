@@ -1,7 +1,30 @@
 # Deployment Guide
 
 **Version**: 1.0  
-**Last Updated**: December 2025
+---
+
+## Required GitHub Secrets
+
+PROD_SSH_HOST, PROD_SSH_USER, PROD_SSH_KEY, PROD_DEPLOY_PATH, PROD_ENV_FILE (secrets)
+PROD_DOMAIN (variable, not secret)
+SLACK_WEBHOOK_URL (optional, for uptime alerts)
+
+## SSL Certificate Setup
+
+Initial issuance (run once after first deploy):
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d yourdomain.com --email admin@yourdomain.com --agree-tos --non-interactive
+
+Auto-renewal crontab entry:
+  0 0,12 * * * /opt/writing-system/nginx/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
+
+## Uptime Monitoring
+
+Uptime Kuma: https://yourdomain.com/status/ (configure monitors in UI after first boot)
+GitHub Actions uptime ping: every 5 minutes via .github/workflows/uptime-check.yml
+
+---
+
+**Last Updated**: May 2026
 
 ---
 
@@ -384,4 +407,27 @@ For deployment assistance:
 
 ---
 
-**Last Updated**: December 2025
+---
+
+## Required GitHub Secrets
+
+PROD_SSH_HOST, PROD_SSH_USER, PROD_SSH_KEY, PROD_DEPLOY_PATH, PROD_ENV_FILE (secrets)
+PROD_DOMAIN (variable, not secret)
+SLACK_WEBHOOK_URL (optional, for uptime alerts)
+
+## SSL Certificate Setup
+
+Initial issuance (run once after first deploy):
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d yourdomain.com --email admin@yourdomain.com --agree-tos --non-interactive
+
+Auto-renewal crontab entry:
+  0 0,12 * * * /opt/writing-system/nginx/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
+
+## Uptime Monitoring
+
+Uptime Kuma: https://yourdomain.com/status/ (configure monitors in UI after first boot)
+GitHub Actions uptime ping: every 5 minutes via .github/workflows/uptime-check.yml
+
+---
+
+**Last Updated**: May 2026

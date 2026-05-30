@@ -1,7 +1,31 @@
 # Admin User Guide
 
 **Version**: 1.0  
-**Last Updated**: December 2025
+---
+
+## Content Management (/admin/content)
+
+Three tabs: Legal Documents, Help Center, Static Pages.
+
+- Legal Documents: create versioned T&C, Privacy, Refund, Cookie Policy etc. with WYSIWYG editor. Activate a version to publish; previous versions are archived.
+- Help Center: manage categories (with audience filter) and articles. Featured articles appear on the Help Center home page.
+- Static Pages: create informational pages at /lp/<slug> with WYSIWYG editor and SEO meta fields.
+
+Superadmins see a site switcher at the top — all content is scoped to the selected website.
+
+## Content Graph (/admin/content-graph)
+
+Four-tab dashboard: Pillars overview, Funnel analytics (3-stage: awareness/consideration/conversion), Freshness alerts, Content health (top/worst performers).
+
+## Publishing Desk (/admin/publishing)
+
+Blog articles and service pages are created in Wagtail (/cms-admin/).
+SEO landing pages are created directly in the publishing desk.
+Click "Wagtail publishing guide" for a step-by-step editorial workflow guide.
+
+---
+
+**Last Updated**: May 2026
 
 ---
 
@@ -379,5 +403,29 @@ A: Yes, you can create partial resolutions with specific conditions.
 
 ---
 
-**Last Updated**: December 2025
+---
+
+## Content Management (/admin/content)
+
+Three tabs: Legal Documents, Help Center, Static Pages.
+
+- Legal Documents: create versioned T&C, Privacy, Refund, Cookie Policy etc. with WYSIWYG editor. Activate a version to publish; previous versions are archived.
+- Help Center: manage categories (with audience filter) and articles. Featured articles appear on the Help Center home page.
+- Static Pages: create informational pages at /lp/<slug> with WYSIWYG editor and SEO meta fields.
+
+Superadmins see a site switcher at the top — all content is scoped to the selected website.
+
+## Content Graph (/admin/content-graph)
+
+Four-tab dashboard: Pillars overview, Funnel analytics (3-stage: awareness/consideration/conversion), Freshness alerts, Content health (top/worst performers).
+
+## Publishing Desk (/admin/publishing)
+
+Blog articles and service pages are created in Wagtail (/cms-admin/).
+SEO landing pages are created directly in the publishing desk.
+Click "Wagtail publishing guide" for a step-by-step editorial workflow guide.
+
+---
+
+**Last Updated**: May 2026
 

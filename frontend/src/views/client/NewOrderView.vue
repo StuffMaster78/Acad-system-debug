@@ -20,6 +20,8 @@ const files = useFilesStore();
 const error = ref("");
 const success = ref("");
 const paymentMethod = ref<PaymentMethod>("wallet");
+const couponCode = ref("");
+const couponApplied = ref(false);
 const showAdvanced = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const attempted = ref(false);
@@ -160,6 +162,7 @@ async function submit() {
       writer_level_id: form.writer_level_id,
       is_urgent: deadlineHours.value <= 24,
       ...provider,
+      ...(couponCode.value.trim() ? { entered_code: couponCode.value.trim() } : {}),
     });
 
     if (files.uploadQueue.length) {
@@ -520,6 +523,30 @@ onMounted(loadConfig);
             <Calculator v-else class="h-4 w-4" />
             {{ orders.isLoading ? "Calculating…" : "Calculate price" }}
           </button>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 class="text-base font-semibold text-ink">Discount code</h2>
+          <div class="mt-3 flex gap-2">
+            <input
+              v-model.trim="couponCode"
+              type="text"
+              placeholder="Enter promo or discount code"
+              class="focus-ring min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono uppercase"
+              :class="couponApplied ? 'border-emerald-400 bg-emerald-50' : ''"
+              @input="couponApplied = false"
+            />
+            <button
+              v-if="couponCode"
+              type="button"
+              class="rounded-lg border border-slate-200 px-3 py-2 text-xs text-graphite hover:bg-slate-50"
+              @click="couponCode = ''; couponApplied = false"
+            >Clear</button>
+          </div>
+          <p v-if="couponApplied" class="mt-1.5 text-xs text-emerald-700">
+            ✓ Code applied — discount will be calculated at checkout.
+          </p>
+          <p class="mt-1.5 text-xs text-graphite">Applied at checkout if valid for your order.</p>
         </section>
 
         <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">

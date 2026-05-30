@@ -103,3 +103,34 @@ The backend passes Django system checks with the test settings. OpenAPI schema
 generation completes, but the schema still reports many quality warnings and
 errors from serializers/views. Those schema issues are the next major backend
 readiness pass before the new frontend should depend on generated API types.
+
+
+---
+
+## Documentation
+
+Full docs at /docs/:
+- docs/USER_GUIDES/ - Role guides (client, writer, editor, support, admin, superadmin)
+- docs/DEPLOYMENT/DEPLOYMENT_GUIDE.md - Docker, nginx, SSL, GitHub Actions
+- docs/API/API_DOCUMENTATION.md - REST API reference
+- backend/GETTING_STARTED.md - Local dev setup
+- .github/SECRETS_SETUP.md - GitHub Actions secrets
+
+## Quick Start
+
+```bash
+cp backend/.env.example backend/.env
+docker compose up -d
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py createsuperuser
+docker compose exec web python manage.py seed_templates
+```
+
+Frontend:
+```bash
+cd frontend && pnpm install && pnpm dev
+```
+
+Wagtail CMS admin: http://localhost:8000/cms-admin/
+
+**Last Updated**: May 2026
