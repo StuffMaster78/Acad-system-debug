@@ -1,0 +1,66 @@
+name: Uptime Check
+
+# External health ping — runs every 5 minutes as a secondary monitor.
+# Complements Uptime Kuma (self-hosted) with a GitHub-hosted probe that
+# can alert independently if the server is unreachable.
+#
+# Required variables:
+#   vars.PROD_DOMAIN   — production domain (e.g. yourdomain.com)
+#
+# Optional secret:
+#   SLACK_WEBHOOK_URL  — Slack incoming webhook for failure notifications
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # every 5 minutes
+  workflow_dispatch:          # manual trigger for testing
+
+jobs:
+  ping:
+    name: Health Ping
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Ping liveness endpoint
+        id: live
+        run: |
+          STATUS=$(curl --silent --max-time 10 --write-out "%{http_code}" \
+            --output /dev/null \
+            "https://${{ vars.PROD_DOMAIN }}/health/live/")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Live endpoint returned: $STATUS"
+          [ "$STATUS" = "200" ] || exit 1
+
+      - name: Ping readiness endpoint
+        id: ready
+        run: |
+          RESPONSE=$(curl --silent --max-time 15 \
+            "https://${{ vars.PROD_DOMAIN }}/health/ready/")
+          echo "Ready response: $RESPONSE"
+          STATUS=$(curl --silent --max-time 15 --write-out "%{http_code}" \
+            --output /dev/null \
+            "https://${{ vars.PROD_DOMAIN }}/health/ready/")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          [ "$STATUS" = "200" ] || exit 1
+
+      - name: Notify Slack on failure
+        if: failure() && vars.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": ":red_circle: *Production health check failed*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":red_circle: *Production is down or degraded*\n*Domain:* `${{ vars.PROD_DOMAIN }}`\n*Time:* ${{ github.event.schedule || 'manual' }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View details>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

@@ -214,6 +214,60 @@ services:
       timeout: 10s
       retries: 3
 
+  # ── Database backup ────────────────────────────────────────────────────────
+  # Runs pg_dump daily at 03:00, compresses, and uploads to S3/DO Spaces.
+  # Keeps last 7 local backups and enforces 30-day S3 retention.
+  backup:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_USER_NAME: ${POSTGRES_USER_NAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME}
+      AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL}
+      AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME:-us-east-1}
+      BACKUP_S3_PREFIX: backups/db
+      BACKUP_LOCAL_KEEP: "7"
+      BACKUP_S3_KEEP_DAYS: "30"
+    volumes:
+      - backup_volume:/backups
+      - ./backend/scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    # Install awscli then run backup at 03:00 daily via crond
+    command: >
+      sh -c "
+        apk add --no-cache aws-cli &&
+        echo '0 3 * * * /usr/local/bin/backup-db.sh >> /var/log/db-backup.log 2>&1' | crontab - &&
+        crond -f -d 8
+      "
+
+  # ── Uptime Kuma — self-hosted monitoring dashboard ─────────────────────────
+  # Access at http://your-server:3001 (or proxy through nginx).
+  # Configure monitors via the UI at first launch.
+  # Recommended monitors to add:
+  #   - HTTP: https://yourdomain.com/health/live/    (interval: 60s)
+  #   - HTTP: https://yourdomain.com/health/ready/   (interval: 60s)
+  #   - HTTP: https://yourdomain.com/health/         (interval: 300s)
+  #   - Postgres: host=db port=5432 (internal)
+  #   - Redis: redis://:PASSWORD@redis:6379/0 (internal)
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: always
+    ports:
+      - "127.0.0.1:3001:3001"   # bind to loopback — proxy through nginx for external access
+    volumes:
+      - kuma_data:/app/data
+    depends_on:
+      - web
+      - db
+      - redis
+
   # Certbot — runs once to issue/renew certs; nginx reloads automatically
   certbot:
     image: certbot/certbot:latest
@@ -235,3 +289,5 @@ volumes:
   static_volume:
   media_volume:
   log_volume:
+  backup_volume:
+  kuma_data:

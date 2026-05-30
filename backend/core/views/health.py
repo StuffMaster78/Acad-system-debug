@@ -1,139 +1,185 @@
 """
 Public health check endpoints for high availability.
-These endpoints allow the system to report degraded status while still serving requests.
+
+Endpoints:
+    GET /health/        — deep check: DB + cache + celery + storage
+    GET /health/ready/  — readiness: DB + cache must pass (used by LB)
+    GET /health/live/   — liveness: process alive (used by container runtime)
 """
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.cache import never_cache
-from django.core.cache import cache
-from django.db import connection
-from django.conf import settings
+from __future__ import annotations
+
 import logging
 import time
 
+from django.conf import settings
+from django.core.cache import cache
+from django.db import connection
+from django.http import JsonResponse
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_http_methods
+
 logger = logging.getLogger(__name__)
+
+APP_VERSION = getattr(settings, "APP_VERSION", "unknown")
 
 
 @require_http_methods(["GET"])
 @never_cache
 def health_check(request):
     """
-    Public health check endpoint (no authentication required).
-    Returns 200 if system is healthy, 503 if degraded.
-    System continues to serve requests even when degraded.
+    Deep health check — DB, cache, Celery workers, and storage.
+    Returns 200 (healthy or degraded) or 503 (critical failure).
+    System continues serving even in degraded state.
     """
-    checks = {
-        'status': 'healthy',
-        'timestamp': time.time(),
-        'services': {}
-    }
-    
-    overall_healthy = True
-    
-    # Check database (critical - but allow degraded mode)
-    db_check = _check_database()
-    checks['services']['database'] = db_check
-    if db_check['status'] == 'error':
-        overall_healthy = False
-        checks['status'] = 'degraded'
-    
-    # Check cache (non-critical - can operate without)
-    cache_check = _check_cache()
-    checks['services']['cache'] = cache_check
-    if cache_check['status'] == 'error' and overall_healthy:
-        checks['status'] = 'degraded'
-    
-    # Return 200 even if degraded - system is still serving requests
-    # Only return 503 if completely down
-    status_code = 200 if checks['status'] in ['healthy', 'degraded'] else 503
-    
-    return JsonResponse(checks, status=status_code)
+    t0 = time.time()
+
+    db = _check_database()
+    redis = _check_cache()
+    celery = _check_celery()
+    storage = _check_storage()
+
+    critical_failure = db["status"] == "error"
+    degraded = any(
+        s["status"] == "error"
+        for s in [db, redis, celery, storage]
+    )
+
+    status = "healthy"
+    if critical_failure:
+        status = "critical"
+    elif degraded:
+        status = "degraded"
+
+    return JsonResponse(
+        {
+            "status": status,
+            "version": APP_VERSION,
+            "timestamp": time.time(),
+            "duration_ms": round((time.time() - t0) * 1000, 2),
+            "services": {
+                "database": db,
+                "cache": redis,
+                "celery": celery,
+                "storage": storage,
+            },
+        },
+        status=503 if critical_failure else 200,
+    )
 
 
 @require_http_methods(["GET"])
 @never_cache
 def health_ready(request):
     """
-    Readiness check - returns 200 only if system is ready to accept traffic.
-    Used by load balancers and orchestration systems.
+    Readiness check — 200 only when DB and cache are reachable.
+    Used by load balancers and orchestration systems to gate traffic.
     """
-    checks = {
-        'status': 'ready',
-        'timestamp': time.time(),
-        'checks': {}
-    }
-    
-    # Database must be available for readiness
-    db_check = _check_database()
-    checks['checks']['database'] = db_check
-    if db_check['status'] != 'healthy':
-        checks['status'] = 'not_ready'
-        return JsonResponse(checks, status=503)
-    
-    # Cache is nice to have but not required
-    cache_check = _check_cache()
-    checks['checks']['cache'] = cache_check
-    
-    return JsonResponse(checks, status=200)
+    db = _check_database()
+    redis = _check_cache()
+
+    ready = db["status"] == "healthy" and redis["status"] == "healthy"
+
+    return JsonResponse(
+        {
+            "status": "ready" if ready else "not_ready",
+            "timestamp": time.time(),
+            "checks": {"database": db, "cache": redis},
+        },
+        status=200 if ready else 503,
+    )
 
 
 @require_http_methods(["GET"])
 @never_cache
 def health_live(request):
     """
-    Liveness check - returns 200 if the process is alive.
-    Always returns 200 unless the process is completely dead.
+    Liveness check — 200 as long as the process can respond.
+    Never returns 503 unless the process is completely dead.
     """
-    return JsonResponse({
-        'status': 'alive',
-        'timestamp': time.time()
-    }, status=200)
+    return JsonResponse(
+        {"status": "alive", "version": APP_VERSION, "timestamp": time.time()},
+        status=200,
+    )
 
 
-def _check_database():
-    """Check database connectivity with timeout."""
+# ------------------------------------------------------------------
+# Internal checkers
+# ------------------------------------------------------------------
+
+def _check_database() -> dict:
     try:
-        start_time = time.time()
+        t0 = time.time()
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
-        response_time = (time.time() - start_time) * 1000  # Convert to ms
-        
-        return {
-            'status': 'healthy',
-            'response_time_ms': round(response_time, 2)
-        }
-    except Exception as e:
-        logger.warning(f"Database health check failed: {e}")
-        return {
-            'status': 'error',
-            'error': str(e)
-        }
+        return {"status": "healthy", "response_time_ms": _ms(t0)}
+    except Exception as exc:
+        logger.warning("DB health check failed: %s", exc)
+        return {"status": "error", "error": str(exc)}
 
 
-def _check_cache():
-    """Check cache connectivity with timeout."""
+def _check_cache() -> dict:
     try:
-        start_time = time.time()
-        test_key = 'health_check_' + str(time.time())
-        cache.set(test_key, 'ok', 10)
-        result = cache.get(test_key)
-        response_time = (time.time() - start_time) * 1000  # Convert to ms
-        
-        if result == 'ok':
-            cache.delete(test_key)
-            return {
-                'status': 'healthy',
-                'response_time_ms': round(response_time, 2)
-            }
-        else:
-            return {
-                'status': 'error',
-                'error': 'Cache get failed'
-            }
-    except Exception as e:
-        logger.warning(f"Cache health check failed: {e}")
-        return {
-            'status': 'error',
-            'error': str(e)
-        }
+        t0 = time.time()
+        key = f"health:{t0}"
+        cache.set(key, "ok", timeout=10)
+        val = cache.get(key)
+        cache.delete(key)
+        if val == "ok":
+            return {"status": "healthy", "response_time_ms": _ms(t0)}
+        return {"status": "error", "error": "cache get/set mismatch"}
+    except Exception as exc:
+        logger.warning("Cache health check failed: %s", exc)
+        return {"status": "error", "error": str(exc)}
 
+
+def _check_celery() -> dict:
+    """
+    Verify Celery workers are reachable by pinging the control channel.
+    Uses a short timeout (2 s) so this never blocks the health response.
+    """
+    try:
+        from celery import current_app
+
+        t0 = time.time()
+        inspector = current_app.control.inspect(timeout=2.0)
+        ping_result = inspector.ping()  # dict of {worker: {ok: "pong"}} or None
+
+        if ping_result:
+            worker_count = len(ping_result)
+            return {
+                "status": "healthy",
+                "workers": worker_count,
+                "response_time_ms": _ms(t0),
+            }
+        # No workers responded — not necessarily fatal; warn only
+        return {
+            "status": "warning",
+            "workers": 0,
+            "note": "No Celery workers responded to ping",
+        }
+    except Exception as exc:
+        logger.warning("Celery health check failed: %s", exc)
+        return {"status": "error", "error": str(exc)}
+
+
+def _check_storage() -> dict:
+    """
+    Write and delete a tiny probe file to verify the storage backend is writable.
+    Uses Django's default storage (local or S3/DO Spaces).
+    """
+    try:
+        from django.core.files.base import ContentFile
+        from django.core.files.storage import default_storage
+
+        t0 = time.time()
+        probe_path = "health_probes/.probe"
+        default_storage.save(probe_path, ContentFile(b"ok"))
+        default_storage.delete(probe_path)
+        return {"status": "healthy", "response_time_ms": _ms(t0)}
+    except Exception as exc:
+        logger.warning("Storage health check failed: %s", exc)
+        return {"status": "error", "error": str(exc)}
+
+
+def _ms(t0: float) -> float:
+    return round((time.time() - t0) * 1000, 2)
