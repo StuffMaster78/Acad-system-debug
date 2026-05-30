@@ -1,253 +1,144 @@
-<script setup lang="ts">
-import { computed, ref } from "vue";
-import { RouterLink } from "vue-router";
-import { ArrowRight, Clock } from "@lucide/vue";
-
-interface Service {
-  title: string;
-  description: string;
-  category: string;
-  levels: string[];
-  turnaround: string;
-  from: string;
-}
-
-const services: Service[] = [
-  {
-    title: "Essays",
-    description: "Argumentative, descriptive, compare-and-contrast, reflective, and narrative essays across all academic levels.",
-    category: "Academic writing",
-    levels: ["High school", "Undergraduate", "Graduate"],
-    turnaround: "From 3 hours",
-    from: "$12",
-  },
-  {
-    title: "Research papers",
-    description: "Primary and secondary research papers with proper sourcing, citations, and literature synthesis.",
-    category: "Academic writing",
-    levels: ["Undergraduate", "Graduate", "PhD"],
-    turnaround: "From 6 hours",
-    from: "$15",
-  },
-  {
-    title: "Case studies",
-    description: "In-depth analysis of real-world scenarios applied to business, law, medicine, and social sciences.",
-    category: "Academic writing",
-    levels: ["Undergraduate", "Graduate"],
-    turnaround: "From 6 hours",
-    from: "$14",
-  },
-  {
-    title: "Annotated bibliography",
-    description: "Source summaries with critical evaluation, formatted to APA, MLA, Chicago, or Harvard style.",
-    category: "Academic writing",
-    levels: ["Undergraduate", "Graduate", "PhD"],
-    turnaround: "From 3 hours",
-    from: "$11",
-  },
-  {
-    title: "Dissertations & theses",
-    description: "Full chapter-by-chapter support — literature review, methodology, analysis, and conclusions.",
-    category: "Dissertations",
-    levels: ["Graduate", "PhD"],
-    turnaround: "From 5 days",
-    from: "$20",
-  },
-  {
-    title: "Capstone projects",
-    description: "Comprehensive final-year projects integrating coursework knowledge with applied research.",
-    category: "Dissertations",
-    levels: ["Undergraduate", "Graduate"],
-    turnaround: "From 3 days",
-    from: "$18",
-  },
-  {
-    title: "Proofreading",
-    description: "Grammar, syntax, punctuation, and clarity corrections on your existing draft with tracked changes.",
-    category: "Editing",
-    levels: ["All levels"],
-    turnaround: "From 2 hours",
-    from: "$7",
-  },
-  {
-    title: "Substantive editing",
-    description: "Structural reorganization, argument strengthening, and cohesion improvements beyond surface corrections.",
-    category: "Editing",
-    levels: ["Undergraduate", "Graduate", "PhD"],
-    turnaround: "From 4 hours",
-    from: "$10",
-  },
-  {
-    title: "Formatting & citation",
-    description: "APA, MLA, Chicago, Harvard, and Vancouver formatting applied to an existing document.",
-    category: "Editing",
-    levels: ["All levels"],
-    turnaround: "From 1 hour",
-    from: "$8",
-  },
-  {
-    title: "Business reports",
-    description: "Market analysis, feasibility studies, strategic plans, and executive summaries.",
-    category: "Business writing",
-    levels: ["Undergraduate", "Professional"],
-    turnaround: "From 6 hours",
-    from: "$15",
-  },
-  {
-    title: "Cover letters & CVs",
-    description: "Professionally crafted application documents tailored to your target role and industry.",
-    category: "Business writing",
-    levels: ["All levels"],
-    turnaround: "From 2 hours",
-    from: "$12",
-  },
-  {
-    title: "Lab reports",
-    description: "Structured scientific reports covering hypothesis, methodology, results, and discussion.",
-    category: "STEM",
-    levels: ["Undergraduate", "Graduate"],
-    turnaround: "From 4 hours",
-    from: "$14",
-  },
-  {
-    title: "Math problem sets",
-    description: "Step-by-step worked solutions for calculus, statistics, algebra, and discrete mathematics.",
-    category: "STEM",
-    levels: ["High school", "Undergraduate", "Graduate"],
-    turnaround: "From 3 hours",
-    from: "$13",
-  },
-  {
-    title: "Programming assignments",
-    description: "Python, Java, JavaScript, SQL, and R assignments with documented, runnable code.",
-    category: "STEM",
-    levels: ["Undergraduate", "Graduate"],
-    turnaround: "From 4 hours",
-    from: "$16",
-  },
-  {
-    title: "PowerPoint presentations",
-    description: "Visually consistent slide decks with speaker notes, charts, and branded layouts.",
-    category: "Multimedia",
-    levels: ["All levels"],
-    turnaround: "From 3 hours",
-    from: "$12",
-  },
-  {
-    title: "Online course help",
-    description: "Assignment completion, quiz support, and discussion post contributions for online learning.",
-    category: "Multimedia",
-    levels: ["Undergraduate", "Graduate"],
-    turnaround: "Varies",
-    from: "$10",
-  },
-];
-
-const categories = computed(() => ["All", ...new Set(services.map((s) => s.category))]);
-const active = ref("All");
-
-const filtered = computed(() =>
-  active.value === "All" ? services : services.filter((s) => s.category === active.value),
-);
-</script>
-
 <template>
-  <div>
-    <section class="border-b border-slate-200 bg-white py-14">
-      <div class="mx-auto max-w-7xl px-4 lg:px-6">
-        <p class="text-sm font-semibold uppercase tracking-wide text-signal">Services</p>
-        <h1 class="mt-3 text-4xl font-semibold text-ink">Service catalog</h1>
-        <p class="mt-4 max-w-2xl text-base leading-7 text-graphite">
-          Academic writing, editing, business documents, and STEM assignments — all delivered through a managed order workflow with writer matching and editorial QA.
-        </p>
-        <RouterLink
-          class="focus-ring mt-6 inline-flex h-11 items-center gap-2 rounded-md bg-ink px-5 text-sm font-semibold text-white hover:bg-graphite"
-          to="/auth/login"
-        >
-          Place an order
-          <ArrowRight class="h-4 w-4" />
-        </RouterLink>
-      </div>
-    </section>
+  <div class="min-h-screen bg-slate-50">
 
-    <section class="mx-auto max-w-7xl px-4 py-12 lg:px-6">
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="cat in categories"
-          :key="cat"
-          class="focus-ring rounded-full px-4 py-2 text-sm font-semibold transition-colors"
-          :class="active === cat
-            ? 'bg-ink text-white'
-            : 'border border-slate-200 bg-white text-graphite hover:border-slate-300 hover:text-ink'"
-          type="button"
-          @click="active = cat"
-        >
-          {{ cat }}
-        </button>
-      </div>
+    <!-- Hero -->
+    <div class="bg-white border-b border-slate-200 px-6 py-16 text-center">
+      <h1 class="text-4xl font-extrabold text-ink">Academic writing services</h1>
+      <p class="mt-3 max-w-2xl mx-auto text-lg text-graphite">
+        Expert writing assistance across every subject, academic level, and deadline.
+      </p>
+      <RouterLink
+        to="/auth/register"
+        class="mt-8 inline-flex items-center gap-2 rounded-xl bg-berry px-7 py-3.5 font-bold text-white shadow-lg hover:bg-rose-700 transition-colors"
+      >
+        Place an order <ArrowRight class="size-4" />
+      </RouterLink>
+    </div>
 
-      <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <article
-          v-for="service in filtered"
-          :key="service.title"
-          class="flex flex-col rounded-lg border border-slate-200 bg-white p-6"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-signal">{{ service.category }}</p>
-              <h2 class="mt-1 text-base font-semibold text-ink">{{ service.title }}</h2>
-            </div>
-            <div class="shrink-0 text-right">
-              <p class="text-xs text-graphite">from</p>
-              <p class="text-lg font-semibold text-ink">{{ service.from }}<span class="text-xs font-normal">/page</span></p>
-            </div>
-          </div>
+    <div class="mx-auto max-w-6xl px-6 py-12">
 
-          <p class="mt-3 flex-1 text-sm leading-6 text-graphite">{{ service.description }}</p>
-
-          <div class="mt-4 flex flex-wrap gap-1.5">
-            <span
-              v-for="level in service.levels"
-              :key="level"
-              class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-graphite"
-            >
-              {{ level }}
-            </span>
-          </div>
-
-          <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
-            <div class="flex items-center gap-1.5 text-xs text-graphite">
-              <Clock class="h-3.5 w-3.5" />
-              {{ service.turnaround }}
-            </div>
-            <RouterLink
-              class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
-              to="/auth/login"
-            >
-              Order now
-              <ArrowRight class="h-3 w-3" />
-            </RouterLink>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="border-t border-slate-200 bg-slate-50 py-14">
-      <div class="mx-auto max-w-7xl px-4 lg:px-6">
-        <div class="rounded-2xl bg-ink px-8 py-12 text-center text-white md:px-14">
-          <h2 class="text-2xl font-semibold">Don't see what you need?</h2>
-          <p class="mt-3 text-base leading-7 text-white/70">
-            Our support team can match almost any academic or professional writing task to a qualified writer.
-          </p>
-          <RouterLink
-            class="focus-ring mt-6 inline-flex h-11 items-center gap-2 rounded-md bg-white px-5 text-sm font-semibold text-ink hover:bg-slate-100"
-            to="/auth/login"
-          >
-            Sign in and ask support
-            <ArrowRight class="h-4 w-4" />
-          </RouterLink>
+      <!-- Loading -->
+      <div v-if="isLoading" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 animate-pulse">
+        <div v-for="n in 6" :key="n" class="rounded-xl border border-slate-200 bg-white p-6 space-y-3">
+          <div class="h-4 w-3/4 rounded bg-slate-200" />
+          <div class="h-3 w-full rounded bg-slate-100" />
+          <div class="h-3 w-2/3 rounded bg-slate-100" />
         </div>
       </div>
-    </section>
+
+      <template v-else>
+        <!-- Category filters -->
+        <div v-if="categories.length" class="mb-8 flex flex-wrap gap-2">
+          <button
+            class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
+            :class="activeCategory === null
+              ? 'border-berry bg-berry text-white'
+              : 'border-slate-200 bg-white text-graphite hover:border-slate-300'"
+            @click="activeCategory = null"
+          >All</button>
+          <button
+            v-for="cat in categories"
+            :key="cat"
+            class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
+            :class="activeCategory === cat
+              ? 'border-berry bg-berry text-white'
+              : 'border-slate-200 bg-white text-graphite hover:border-slate-300'"
+            @click="activeCategory = cat"
+          >{{ cat }}</button>
+        </div>
+
+        <!-- CMS service cards -->
+        <div v-if="filteredServices.length" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <RouterLink
+            v-for="svc in filteredServices"
+            :key="svc.id"
+            :to="`/services/${svc.meta.slug}`"
+            class="group flex flex-col rounded-xl border border-slate-200 bg-white p-6 transition-all hover:border-berry/40 hover:shadow-md"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <span v-if="svc.service_category" class="mb-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-graphite">
+                  {{ svc.service_category.name }}
+                </span>
+                <h2 class="text-base font-bold text-ink group-hover:text-berry transition-colors">{{ svc.title }}</h2>
+              </div>
+              <div v-if="svc.pricing_from" class="shrink-0 text-right">
+                <p class="text-lg font-bold text-ink">from ${{ svc.pricing_from }}</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-3 text-xs text-graphite">
+              <span v-if="svc.turnaround_hours_fastest" class="flex items-center gap-1">
+                <Clock class="size-3.5" /> From {{ formatTurnaround(svc.turnaround_hours_fastest) }}
+              </span>
+            </div>
+            <p class="mt-auto pt-4 text-xs font-semibold text-berry group-hover:underline">Learn more →</p>
+          </RouterLink>
+        </div>
+
+        <!-- Static fallback when CMS has no published pages yet -->
+        <div v-else class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-for="svc in STATIC_SERVICES" :key="svc.title" class="rounded-xl border border-slate-200 bg-white p-6">
+            <span class="mb-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-graphite">{{ svc.category }}</span>
+            <h2 class="text-base font-bold text-ink">{{ svc.title }}</h2>
+            <p class="mt-2 text-sm leading-6 text-graphite">{{ svc.description }}</p>
+            <p class="mt-3 text-xs text-graphite">{{ svc.turnaround }} · from {{ svc.from }}</p>
+          </div>
+        </div>
+      </template>
+    </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import { RouterLink } from "vue-router";
+import { ArrowRight, Clock } from "@lucide/vue";
+import { cmsApi, type ServicePageSummary } from "@/api/cms";
+import { useMeta, webPageSchema } from "@/composables/useMeta";
+
+useMeta({
+  title: "Academic Writing Services",
+  description: "Expert writing assistance across every subject and academic level. Essays, research papers, dissertations, and more.",
+  schema: webPageSchema({ title: "Services", url: window.location.href }),
+});
+
+const isLoading      = ref(true);
+const services       = ref<ServicePageSummary[]>([]);
+const activeCategory = ref<string | null>(null);
+
+const categories = computed(() => {
+  const cats = new Set(
+    services.value.map((s) => s.service_category?.name).filter(Boolean) as string[],
+  );
+  return [...cats].sort();
+});
+
+const filteredServices = computed(() =>
+  activeCategory.value
+    ? services.value.filter((s) => s.service_category?.name === activeCategory.value)
+    : services.value,
+);
+
+function formatTurnaround(hours: number): string {
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days !== 1 ? "s" : ""}`;
+}
+
+onMounted(async () => {
+  try {
+    const { data } = await cmsApi.servicePages();
+    services.value = data.items;
+  } catch { /* falls back to static */ }
+  finally { isLoading.value = false; }
+});
+
+const STATIC_SERVICES = [
+  { title: "Essays", category: "Academic writing", description: "Argumentative, descriptive, compare-and-contrast, reflective, and narrative essays across all academic levels.", turnaround: "From 3 hours", from: "$12" },
+  { title: "Research papers", category: "Academic writing", description: "Primary and secondary research papers with proper sourcing, citations, and literature synthesis.", turnaround: "From 6 hours", from: "$15" },
+  { title: "Case studies", category: "Academic writing", description: "In-depth analysis of real-world scenarios applied to business, law, medicine, and social sciences.", turnaround: "From 6 hours", from: "$14" },
+  { title: "Dissertations", category: "Graduate work", description: "Full dissertations from proposal through final chapter with methodology and literature review support.", turnaround: "From 7 days", from: "$22" },
+  { title: "Lab reports", category: "STEM", description: "Scientific lab reports following APA, IEEE, or custom institutional formats.", turnaround: "From 6 hours", from: "$13" },
+  { title: "Editing & proofreading", category: "Editing", description: "Grammar, clarity, structure, and citation review by academic editors.", turnaround: "From 3 hours", from: "$8" },
+];
+</script>

@@ -26,6 +26,13 @@ import { RouterLink, RouterView } from "vue-router";
             Services
           </RouterLink>
           <RouterLink
+            class="rounded-lg px-3.5 py-2 text-graphite transition-colors hover:bg-slate-100 hover:text-ink"
+            active-class="bg-slate-100 text-ink"
+            to="/blog"
+          >
+            Blog
+          </RouterLink>
+          <RouterLink
             class="rounded-lg px-3 py-2 text-sm font-medium text-graphite transition-colors hover:bg-slate-100 hover:text-ink"
             active-class="bg-slate-100 text-ink"
             to="/help"
