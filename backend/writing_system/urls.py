@@ -116,6 +116,7 @@ path("api/v1/special-orders/", include("special_orders.urls")),
     path("api/v1/dropdown-options/", include("core.urls")),
     path("api/v1/dashboard-config/", include("core.urls_dashboard")),
     path("api/v1/config-versioning/", include("core.urls_config_versioning")),
+    path("api/v1/runtime-config/", include("config_system.api.urls")),
 
     # ── Platform & multi-tenant ────────────────────────────────────────────────
     path("api/v1/websites/", include("websites.urls")),
