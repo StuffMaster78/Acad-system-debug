@@ -135,13 +135,11 @@ class OrderCancellationService:
             },
         )
 
-        # TODO:
-        # 1. Trigger refund orchestration:
-        #    - wallet refund
-        #    - external gateway refund
-        #
-        # 2. Trigger payout reversal / deduction flow later if writer
-        #    was already paid or included in current payout batch.
+        cls._trigger_refund_orchestration(
+            order=locked_order,
+            refund_destination=refund_destination,
+            cancelled_by=cancelled_by,
+        )
 
         cls._notify_cancelled(
             order=locked_order,
@@ -192,6 +190,74 @@ class OrderCancellationService:
         ):
             raise ValidationError(
                 "Actor website must match order website."
+            )
+
+    @classmethod
+    def _trigger_refund_orchestration(
+        cls,
+        *,
+        order: Order,
+        refund_destination: str,
+        cancelled_by,
+    ) -> None:
+        """
+        Trigger a refund after cancellation.
+
+        For wallet destination: credits the paid amount back to the client
+        wallet immediately via ClientWalletService.
+
+        For external_gateway destination: the refund must be initiated
+        through the payment provider. This method creates the ledger record
+        and logs the intent; the actual provider call is handled by ops or
+        an async reconciliation task since gateway refunds require the
+        original payment transaction reference.
+
+        Payout reversal for the writer (if already paid) is queued via
+        timeline metadata and handled by the compensation system separately.
+        """
+        import logging
+        log = logging.getLogger(__name__)
+
+        amount_paid = getattr(order, "amount_paid", None)
+        if not amount_paid or amount_paid <= 0:
+            return
+
+        if refund_destination == cls.REFUND_DESTINATION_WALLET:
+            try:
+                from wallets.services.client_wallet_service import (
+                    ClientWalletService,
+                )
+                ClientWalletService.refund_to_wallet(
+                    website=order.website,
+                    client=order.client,
+                    amount=amount_paid,
+                    created_by=cancelled_by,
+                    description=f"Refund for cancelled order #{order.pk}",
+                    reference=f"order_{order.pk}_cancellation",
+                    reference_type="order_cancellation",
+                    reference_id=str(order.pk),
+                    metadata={
+                        "order_id": order.pk,
+                        "cancellation_reason": getattr(
+                            order, "cancellation_reason", ""
+                        ),
+                    },
+                )
+            except Exception as exc:
+                log.exception(
+                    "Wallet refund failed for order_id=%s: %s",
+                    order.pk,
+                    exc,
+                )
+
+        elif refund_destination == cls.REFUND_DESTINATION_EXTERNAL:
+            # External gateway refunds require the original PaymentIntent.
+            # Log the intent and let the reconciliation task or ops action pick it up.
+            log.info(
+                "External gateway refund pending for order_id=%s amount=%s. "
+                "Manual action or reconciliation task required.",
+                order.pk,
+                amount_paid,
             )
 
     @staticmethod

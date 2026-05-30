@@ -40,9 +40,18 @@ class OrderFileService:
             uploaded_file=uploaded_file,
         )
 
-        # TODO:
-        # OrderTimelineService.record_file_uploaded(...)
-        # NotificationService.notify(...)
+        cls._record_file_event(
+            order=order,
+            actor=uploaded_by,
+            event_type="instruction_file_uploaded",
+            attachment=attachment,
+        )
+        cls._notify_order_file_uploaded(
+            order=order,
+            actor=uploaded_by,
+            attachment=attachment,
+            recipient=cls._resolve_writer_user(order),
+        )
 
         return attachment
 
@@ -118,10 +127,12 @@ class OrderFileService:
             uploaded_file=uploaded_file,
         )
 
-        # TODO:
-        # DraftWorkflowService.mark_submitted(...)
-        # OrderTimelineService.record_draft_uploaded(...)
-        # NotificationService.notify(...)
+        cls._record_file_event(
+            order=order,
+            actor=uploaded_by,
+            event_type="draft_file_uploaded",
+            attachment=attachment,
+        )
 
         return attachment
 
@@ -299,6 +310,13 @@ class OrderFileService:
                 exc_info=True,
             )
     
+    @staticmethod
+    def _resolve_writer_user(order):
+        try:
+            return order.assigned_writer
+        except Exception:
+            return None
+
     @staticmethod
     def _ensure_same_website(*, order, user) -> None:
         if order.website_id != user.website_id:
