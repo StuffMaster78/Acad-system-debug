@@ -77,9 +77,9 @@ def legal_document(request: Request, doc_type: str) -> Response:
     GET /api/v1/legal/<doc_type>/
     Return the active legal document for the tenant's website.
     """
-    website = getattr(request, "website", None)
+    website = _resolve_website(request)
     if website is None:
-        return Response({"detail": "Website context missing."}, status=400)
+        return Response({"detail": "Website context missing. Pass ?website_id= or access via a tenant domain."}, status=400)
 
     doc = LegalDocument.objects.filter(
         website=website,
@@ -103,9 +103,9 @@ def legal_document_list(request: Request) -> Response:
     GET /api/v1/legal/
     Return all active document types and their basic metadata.
     """
-    website = getattr(request, "website", None)
+    website = _resolve_website(request)
     if website is None:
-        return Response({"detail": "Website context missing."}, status=400)
+        return Response({"detail": "Website context missing. Pass ?website_id= or access via a tenant domain."}, status=400)
 
     docs = LegalDocument.objects.filter(
         website=website,
@@ -122,9 +122,9 @@ def record_agreement(request: Request, doc_type: str) -> Response:
     POST /api/v1/legal/<doc_type>/agree/
     Record that the authenticated user has accepted the active document.
     """
-    website = getattr(request, "website", None)
+    website = _resolve_website(request)
     if website is None:
-        return Response({"detail": "Website context missing."}, status=400)
+        return Response({"detail": "Website context missing. Pass ?website_id= or access via a tenant domain."}, status=400)
 
     doc = LegalDocument.objects.filter(
         website=website,
@@ -170,9 +170,9 @@ def help_categories(request: Request) -> Response:
     GET /api/v1/help/categories/
     Return all active help categories visible to the requesting user.
     """
-    website = getattr(request, "website", None)
+    website = _resolve_website(request)
     if website is None:
-        return Response({"detail": "Website context missing."}, status=400)
+        return Response({"detail": "Website context missing. Pass ?website_id= or access via a tenant domain."}, status=400)
 
     audience = _resolve_audience(request)
 
@@ -192,9 +192,9 @@ def help_articles(request: Request) -> Response:
     GET /api/v1/help/articles/
     Return published articles. Filterable by ?category=<slug>&featured=true.
     """
-    website = getattr(request, "website", None)
+    website = _resolve_website(request)
     if website is None:
-        return Response({"detail": "Website context missing."}, status=400)
+        return Response({"detail": "Website context missing. Pass ?website_id= or access via a tenant domain."}, status=400)
 
     audience = _resolve_audience(request)
 
@@ -221,9 +221,9 @@ def help_article_detail(request: Request, slug: str) -> Response:
     GET /api/v1/help/articles/<slug>/
     Return the full content of a single published article.
     """
-    website = getattr(request, "website", None)
+    website = _resolve_website(request)
     if website is None:
-        return Response({"detail": "Website context missing."}, status=400)
+        return Response({"detail": "Website context missing. Pass ?website_id= or access via a tenant domain."}, status=400)
 
     audience = _resolve_audience(request)
 
@@ -294,6 +294,25 @@ class HelpArticleWriteSerializer(serializers.ModelSerializer):
         read_only_fields = ("id",)
 
 
+def _resolve_website(request):
+    """
+    Resolve the active website for content management.
+    Normal staff: use request.website (set by tenant middleware).
+    Superadmin with ?website_id= param: look up the specified website.
+    """
+    from websites.models.websites import Website
+    website_id = request.query_params.get("website_id") or request.data.get("website_id")
+    if website_id and (
+        getattr(request.user, "is_superuser", False)
+        or getattr(request.user, "role", "") == "superadmin"
+    ):
+        try:
+            return Website.objects.get(pk=int(website_id), is_active=True)
+        except (Website.DoesNotExist, (ValueError, TypeError)):
+            pass
+    return getattr(request, "website", None)
+
+
 def _staff_required(request):
     user = request.user
     return (
@@ -315,9 +334,9 @@ def admin_legal_documents(request: Request) -> Response:
     if not _staff_required(request):
         return Response({"detail": "Staff access required."}, status=403)
 
-    website = getattr(request, "website", None)
+    website = _resolve_website(request)
     if website is None:
-        return Response({"detail": "Website context missing."}, status=400)
+        return Response({"detail": "Website context missing. Pass ?website_id= or access via a tenant domain."}, status=400)
 
     if request.method == "GET":
         doc_type = request.query_params.get("doc_type")
@@ -389,9 +408,9 @@ def admin_help_categories(request: Request) -> Response:
     if not _staff_required(request):
         return Response({"detail": "Staff access required."}, status=403)
 
-    website = getattr(request, "website", None)
+    website = _resolve_website(request)
     if website is None:
-        return Response({"detail": "Website context missing."}, status=400)
+        return Response({"detail": "Website context missing. Pass ?website_id= or access via a tenant domain."}, status=400)
 
     if request.method == "GET":
         qs = HelpCategory.objects.filter(website=website).order_by("order", "title")
@@ -435,9 +454,9 @@ def admin_help_articles(request: Request) -> Response:
     if not _staff_required(request):
         return Response({"detail": "Staff access required."}, status=403)
 
-    website = getattr(request, "website", None)
+    website = _resolve_website(request)
     if website is None:
-        return Response({"detail": "Website context missing."}, status=400)
+        return Response({"detail": "Website context missing. Pass ?website_id= or access via a tenant domain."}, status=400)
 
     if request.method == "GET":
         category_id = request.query_params.get("category")

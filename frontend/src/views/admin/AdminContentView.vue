@@ -7,6 +7,14 @@
       </div>
     </div>
 
+    <!-- Website selector (superadmin only) -->
+    <WebsiteSelectorBar
+      v-if="isSuperAdmin"
+      v-model="websiteId"
+      class="mb-4"
+      @update:modelValue="() => { loadDocVersions(); loadActiveVersions(); loadCategories(); loadArticles(); }"
+    />
+
     <!-- Tabs -->
     <div class="border-b border-slate-200">
       <nav class="flex gap-1">
@@ -337,6 +345,8 @@
 import { onMounted, ref, watch } from "vue";
 import { FileText, Loader2, Pencil, Trash2, X } from "@lucide/vue";
 import RichTextEditor from "@/components/ui/RichTextEditor.vue";
+import WebsiteSelectorBar from "@/components/ui/WebsiteSelectorBar.vue";
+import { useAuthStore } from "@/stores/auth";
 import {
   legalApi,
   ALL_DOC_TYPES, DOC_TYPE_LABELS,
@@ -348,6 +358,15 @@ const TABS = [
   { key: "help"  as const, label: "Help center" },
 ];
 const tab = ref<"legal" | "help">("legal");
+const auth = useAuthStore();
+const isSuperAdmin = (auth.user as Record<string, unknown>)?.role === "superadmin"
+  || !!(auth.user as Record<string, unknown>)?.is_superuser;
+const websiteId = ref<number | null>(null);
+
+// Build website_id param for API calls (superadmin only)
+function wsParam() {
+  return websiteId.value ? { website_id: websiteId.value } : {};
+}
 
 // ── Legal documents ──────────────────────────────────────────────────────────
 const selectedDocType = ref<DocType>("terms_of_service");
@@ -359,13 +378,13 @@ const docSaveError = ref("");
 const activating = ref<number | null>(null);
 
 async function loadDocVersions() {
-  const { data } = await legalApi.admin.listDocuments({ doc_type: selectedDocType.value });
+  const { data } = await legalApi.admin.listDocuments({ doc_type: selectedDocType.value, ...wsParam() });
   docVersions.value = data;
 }
 
 async function loadActiveVersions() {
   try {
-    const { data } = await legalApi.admin.listDocuments();
+    const { data } = await legalApi.admin.listDocuments({ ...wsParam() });
     const active: Record<string, string> = {};
     data.filter((d) => d.is_active).forEach((d) => { active[d.doc_type] = d.version; });
     activeVersions.value = active;
@@ -401,10 +420,10 @@ async function saveDocument(activate: boolean) {
   try {
     const payload = { ...editingDoc.value, is_active: activate };
     if (editingDoc.value.id) {
-      await legalApi.admin.updateDocument(editingDoc.value.id, payload);
+      await legalApi.admin.updateDocument(editingDoc.value.id, { ...payload, ...wsParam() });
       if (activate) await legalApi.admin.activateDocument(editingDoc.value.id);
     } else {
-      const { data } = await legalApi.admin.createDocument(payload);
+      const { data } = await legalApi.admin.createDocument({ ...payload, ...wsParam() });
       if (activate) await legalApi.admin.activateDocument(data.id);
     }
     editingDoc.value = null;
@@ -450,7 +469,7 @@ async function loadCategories() {
 
 async function loadArticles() {
   const params = selectedCategory.value ? { category: selectedCategory.value.id } : undefined;
-  const { data } = await legalApi.admin.listArticles(params);
+  const { data } = await legalApi.admin.listArticles({ ...params, ...wsParam() });
   articles.value = data;
 }
 
@@ -474,7 +493,7 @@ async function saveCategory() {
     if (editingCategory.value.id) {
       await legalApi.admin.updateCategory(editingCategory.value.id, editingCategory.value);
     } else {
-      await legalApi.admin.createCategory(editingCategory.value);
+      await legalApi.admin.createCategory({ ...editingCategory.value, ...wsParam() });
     }
     editingCategory.value = null;
     await loadCategories();
@@ -509,7 +528,7 @@ async function saveArticle() {
     if (editingArticle.value.id) {
       await legalApi.admin.updateArticle(editingArticle.value.id, editingArticle.value);
     } else {
-      await legalApi.admin.createArticle(editingArticle.value);
+      await legalApi.admin.createArticle({ ...editingArticle.value, ...wsParam() });
     }
     editingArticle.value = null;
     await loadArticles();

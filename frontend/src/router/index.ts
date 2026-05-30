@@ -420,6 +420,16 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminPublishingView.vue"),
       },
       {
+        path: "content",
+        name: "editor-content",
+        component: () => import("@/views/admin/AdminContentView.vue"),
+      },
+      {
+        path: "content-graph",
+        name: "editor-content-graph",
+        component: () => import("@/views/admin/AdminContentGraphView.vue"),
+      },
+      {
         path: "workload",
         name: "editor-workload",
         component: () => import("@/views/editor/EditorWorkloadView.vue"),
@@ -471,6 +481,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "publishing",
         name: "support-publishing",
         component: () => import("@/views/admin/AdminPublishingView.vue"),
+      },
+      {
+        path: "content",
+        name: "support-content",
+        component: () => import("@/views/admin/AdminContentView.vue"),
       },
       {
         path: "escalations",
