@@ -183,6 +183,19 @@ DEFAULT_TEMPLATES = {
             'available_variables': ['order_id', 'order_topic', 'interest_id'],
         },
     },
+    'file.delivery_unlocked': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your files for Order #{{order_id}} are now available',
+            'body_html': 'notifications/emails/file_delivery_unlocked.html',
+            'body_text': 'Your payment for order #{{order_id}} has been confirmed. You can now download all delivery files.',
+            'available_variables': ['order_id', 'order_topic', 'client_name', 'website_name', 'download_url'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Files unlocked — Order #{{order_id}}',
+            'message': 'Your delivery files for order #{{order_id}} are ready to download.',
+            'available_variables': ['order_id', 'order_topic', 'download_url'],
+        },
+    },
     'file.uploaded': {
         NotificationChannel.EMAIL: {
             'subject': 'New file uploaded for Order #{{order_id}}',

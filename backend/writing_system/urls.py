@@ -133,6 +133,9 @@ path("api/v1/special-orders/", include("special_orders.urls")),
 
     # ── Privacy & data rights (GDPR / data subject requests) ──────────────────
     path("api/v1/privacy/", include("privacy.urls", namespace="privacy")),
+
+    # ── Reputation system ─────────────────────────────────────────────────────
+    path("api/v1/reputation/", include("reputation_system.api.urls", namespace="reputation_system")),
 ]
 
 

@@ -1,0 +1,4 @@
+allowBuilds:
+  esbuild: true
+  vue-demi: true
+storeDir: /Users/awwy/Library/pnpm/store/v11

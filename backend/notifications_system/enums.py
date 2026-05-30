@@ -154,6 +154,7 @@ class NotificationEvent(TextChoices):
     FILE_UPLOADED = 'file.uploaded', _('File Uploaded')
     FILE_UPDATED = 'file.updated', _('File Updated')
     FILE_DELETED = 'file.deleted', _('File Deleted')
+    FILE_DELIVERY_UNLOCKED = 'file.delivery_unlocked', _('File Delivery Unlocked')
 
     # Loyalty and referrals
     LOYALTY_POINTS_AWARDED = 'loyalty.points_awarded', _(

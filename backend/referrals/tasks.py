@@ -9,17 +9,19 @@ from wallets.models import WalletEntry
 
 @shared_task
 def expire_referral_bonuses():
-    """
-    Legacy compatibility task.
-
-    Referral bonuses now live as immutable wallet entries in the canonical
-    wallets app, so expiration should be represented by policy/redemption
-    rules instead of mutating wallet transactions.
-    """
+    """Legacy no-op kept for backwards compat with any queued messages."""
     count = WalletEntry.objects.filter(
         entry_type=WalletEntryType.REFERRAL_BONUS,
     ).count()
     return f"Referral bonus expiration is policy-managed for {count} wallet entries."
+
+
+@shared_task
+def expire_stale_referral_invitations():
+    """Expire pending invitations that have passed their expiry date."""
+    from referrals.services.referral_invitation_service import ReferralInvitationService
+    expired = ReferralInvitationService.expire_stale()
+    return f"Expired {expired} stale referral invitations."
 
 
 def send_referral_bonus_expired_email(user):

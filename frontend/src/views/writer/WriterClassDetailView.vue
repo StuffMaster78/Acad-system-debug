@@ -32,6 +32,7 @@ const taskStatusClass: Record<ClassTaskStatus, string> = {
 
 const submittingTaskId = ref<number | null>(null);
 const submissionNotes = ref("");
+const submissionFileUrl = ref("");
 
 function canSubmit(status: ClassTaskStatus) {
   return status === "in_progress" || status === "assigned" || status === "revision_requested";
@@ -40,11 +41,15 @@ function canSubmit(status: ClassTaskStatus) {
 function startSubmit(taskId: number) {
   submittingTaskId.value = taskId;
   submissionNotes.value = "";
+  submissionFileUrl.value = "";
 }
 
 async function confirmSubmit(taskId: number) {
   if (!store.detail) return;
-  await store.submitTask(store.detail.id, taskId, { submission_notes: submissionNotes.value });
+  await store.submitTask(store.detail.id, taskId, {
+    submission_notes: submissionNotes.value,
+    ...(submissionFileUrl.value ? { submission_file_url: submissionFileUrl.value } : {}),
+  });
   submittingTaskId.value = null;
 }
 </script>
@@ -113,6 +118,16 @@ async function confirmSubmit(taskId: number) {
                 placeholder="Notes for the client (optional)…"
                 class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus-ring resize-none"
               />
+              <div>
+                <label class="text-xs font-medium text-graphite">Submission file URL (optional)</label>
+                <input
+                  v-model="submissionFileUrl"
+                  type="url"
+                  placeholder="https://drive.google.com/…"
+                  class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus-ring"
+                />
+                <p class="mt-0.5 text-xs text-graphite">Paste a Google Drive, Dropbox, or OneDrive share link.</p>
+              </div>
               <div class="flex gap-2">
                 <button
                   class="flex items-center gap-1.5 rounded-lg bg-berry px-4 py-1.5 text-sm font-medium text-white hover:bg-berry/90 disabled:opacity-60"

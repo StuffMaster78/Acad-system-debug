@@ -558,8 +558,19 @@ CELERY_BEAT_SCHEDULE = {
     # Referrals
     # ----------------------------------------------------------------
     "referrals.expire_stale_invitations": {
-        "task": "referrals.tasks.expire_referral_bonuses",
+        "task": "referrals.tasks.expire_stale_referral_invitations",
         "schedule": crontab(hour=6, minute=30),        # nightly 06:30
+    },
+
+    # Reputation system
+    # ----------------------------------------------------------------
+    "reputation.snapshot_update": {
+        "task": "reputation_system.tasks.snapshot_tasks.update_snapshot_task",
+        "schedule": crontab(hour=3, minute=0),          # nightly 03:00
+    },
+    "reputation.emit_events": {
+        "task": "reputation_system.tasks.events_tasks.emit_reputation_recalculated_event",
+        "schedule": crontab(hour=3, minute=30),         # after snapshot
     },
 }
 

@@ -1,12 +1,12 @@
 <template>
   <div class="p-6 space-y-4">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Writer Compensation</h1>
-      <p class="text-sm text-gray-500 mt-0.5">Payout windows, settlements, advances &amp; cycle changes</p>
+      <h1 class="text-2xl font-bold text-ink">Writer Compensation</h1>
+      <p class="text-sm text-graphite mt-0.5">Payout windows, settlements, advances &amp; cycle changes</p>
     </div>
 
     <!-- Tabs -->
-    <div class="border-b border-gray-200">
+    <div class="border-b border-slate-200">
       <nav class="-mb-px flex gap-6">
         <button
           v-for="tab in tabs"
@@ -15,8 +15,8 @@
           :class="[
             'pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
             activeTab === tab.key
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700',
+              ? 'border-berry text-berry'
+              : 'border-transparent text-graphite hover:text-ink',
           ]"
         >
           {{ tab.label }}
@@ -31,20 +31,20 @@
     <!-- ── Windows ───────────────────────────────────────────────────────── -->
     <div v-if="activeTab === 'windows'" class="space-y-4">
       <div class="flex items-center justify-between">
-        <p class="text-sm text-gray-500">Payout cycles that define which earnings are settled and paid out.</p>
-        <button @click="showCreateWindow = true" class="btn-primary text-sm">+ New Window</button>
+        <p class="text-sm text-graphite">Payout cycles that define which earnings are settled and paid out.</p>
+        <button @click="showCreateWindow = true" class="focus-ring rounded-lg bg-berry px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">+ New Window</button>
       </div>
 
-      <div v-if="loadingWindows" class="text-center py-10 text-gray-400">Loading…</div>
-      <div v-else-if="!windows.length" class="text-center py-10 text-gray-400 text-sm">No payout windows found.</div>
+      <div v-if="loadingWindows" class="text-center py-10 text-graphite">Loading…</div>
+      <div v-else-if="!windows.length" class="text-center py-10 text-graphite text-sm">No payout windows found.</div>
       <div v-else class="space-y-3">
         <div
           v-for="win in windows"
           :key="win.id"
-          class="bg-white rounded-lg border border-gray-200 overflow-hidden"
+          class="bg-white rounded-lg border border-slate-200 overflow-hidden"
         >
           <div
-            class="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50"
+            class="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-slate-50"
             @click="toggleWindow(win.id)"
           >
             <div class="flex items-center gap-4">
@@ -52,8 +52,8 @@
                 {{ win.status }}
               </span>
               <div>
-                <p class="font-medium text-gray-800 text-sm">{{ win.cycle_type }} &mdash; {{ win.start_date }} → {{ win.end_date }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">Created {{ fmtDate(win.created_at) }}</p>
+                <p class="font-medium text-ink text-sm">{{ win.cycle_type }} &mdash; {{ win.start_date }} → {{ win.end_date }}</p>
+                <p class="text-xs text-graphite mt-0.5">Created {{ fmtDate(win.created_at) }}</p>
               </div>
             </div>
             <div class="flex items-center gap-2">
@@ -61,7 +61,7 @@
                 v-if="win.status === 'open'"
                 @click.stop="doWindowAction(win.id, 'close')"
                 :disabled="actioning"
-                class="text-xs px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-50"
+                class="text-xs px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-100 disabled:opacity-50"
               >Close</button>
               <button
                 v-if="win.status === 'closed'"
@@ -75,19 +75,19 @@
                 :disabled="actioning"
                 class="text-xs px-3 py-1.5 rounded border border-green-200 text-green-600 hover:bg-green-50 disabled:opacity-50"
               >Mark Done</button>
-              <span class="text-gray-300">›</span>
+              <span class="text-slate-300">›</span>
             </div>
           </div>
 
           <!-- Expanded: batch detail -->
-          <div v-if="expandedWindow === win.id" class="border-t border-gray-100 px-5 py-4 space-y-4 bg-gray-50">
-            <div v-if="loadingBatch" class="text-center text-gray-400 text-sm py-4">Loading batch…</div>
+          <div v-if="expandedWindow === win.id" class="border-t border-slate-100 px-5 py-4 space-y-4 bg-slate-50">
+            <div v-if="loadingBatch" class="text-center text-graphite text-sm py-4">Loading batch…</div>
             <template v-else-if="activeBatch">
               <!-- Batch header -->
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-sm font-semibold text-gray-700">Batch #{{ activeBatch.id }}</p>
-                  <p class="text-xs text-gray-500 mt-0.5">
+                  <p class="text-sm font-semibold text-ink">Batch #{{ activeBatch.id }}</p>
+                  <p class="text-xs text-graphite mt-0.5">
                     {{ activeBatch.total_writers }} writers · ${{ activeBatch.total_amount }}
                     &nbsp;·&nbsp; {{ activeBatch.paid_count }} paid, {{ activeBatch.held_count }} held, {{ activeBatch.pending_count }} pending
                   </p>
@@ -107,9 +107,9 @@
               </div>
 
               <!-- Payout records table -->
-              <div class="overflow-x-auto rounded-lg border border-gray-200">
+              <div class="overflow-x-auto rounded-lg border border-slate-200">
                 <table class="w-full text-sm">
-                  <thead class="bg-white text-xs text-gray-500 uppercase">
+                  <thead class="bg-white text-xs text-graphite uppercase">
                     <tr>
                       <th class="px-4 py-2 text-left">Writer</th>
                       <th class="px-4 py-2 text-right">Amount</th>
@@ -117,13 +117,13 @@
                       <th class="px-4 py-2 text-left">Actions</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-gray-100 bg-white">
-                    <tr v-for="rec in activeBatch.records" :key="rec.id" class="hover:bg-gray-50">
+                  <tbody class="divide-y divide-slate-100 bg-white">
+                    <tr v-for="rec in activeBatch.records" :key="rec.id" class="hover:bg-slate-50">
                       <td class="px-4 py-2">
-                        <p class="font-medium text-gray-800">{{ rec.writer_name }}</p>
-                        <p class="text-xs text-gray-400">{{ rec.writer_email }}</p>
+                        <p class="font-medium text-ink">{{ rec.writer_name }}</p>
+                        <p class="text-xs text-graphite">{{ rec.writer_email }}</p>
                       </td>
-                      <td class="px-4 py-2 text-right font-mono font-semibold text-gray-800">${{ rec.total_amount }}</td>
+                      <td class="px-4 py-2 text-right font-mono font-semibold text-ink">${{ rec.total_amount }}</td>
                       <td class="px-4 py-2">
                         <span :class="payoutStatusClass(rec.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ rec.status }}</span>
                         <p v-if="rec.hold_reason" class="text-xs text-red-500 mt-0.5">{{ rec.hold_reason }}</p>
@@ -152,7 +152,7 @@
                             v-if="rec.status === 'held'"
                             @click="doPayoutAction(rec, 'release')"
                             :disabled="actioning"
-                            class="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-50"
+                            class="text-xs px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 disabled:opacity-50"
                           >Release</button>
                         </div>
                       </td>
@@ -161,7 +161,7 @@
                 </table>
               </div>
             </template>
-            <p v-else class="text-sm text-gray-400 text-center py-4">No batch found for this window.</p>
+            <p v-else class="text-sm text-graphite text-center py-4">No batch found for this window.</p>
           </div>
         </div>
       </div>
@@ -170,13 +170,13 @@
     <!-- ── Settlements ────────────────────────────────────────────────────── -->
     <div v-if="activeTab === 'settlements'" class="space-y-4">
       <div class="flex items-center justify-between">
-        <p class="text-sm text-gray-500">Per-writer settlement periods showing gross earnings, deductions, and net payable.</p>
-        <button @click="showRunSettlement = true" class="btn-primary text-sm">Run Settlement</button>
+        <p class="text-sm text-graphite">Per-writer settlement periods showing gross earnings, deductions, and net payable.</p>
+        <button @click="showRunSettlement = true" class="focus-ring rounded-lg bg-berry px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">Run Settlement</button>
       </div>
 
       <!-- Filter -->
       <div class="flex gap-3">
-        <select v-model="settlementStatusFilter" class="input text-sm w-40">
+        <select v-model="settlementStatusFilter" class="focus-ring rounded-lg border border-slate-200 px-3 py-2 text-sm w-40">
           <option value="">All Statuses</option>
           <option value="pending">Pending</option>
           <option value="finalized">Finalized</option>
@@ -184,11 +184,11 @@
         </select>
       </div>
 
-      <div v-if="loadingSettlements" class="text-center py-10 text-gray-400">Loading…</div>
-      <div v-else-if="!filteredSettlements.length" class="text-center py-10 text-gray-400 text-sm">No settlements found.</div>
-      <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div v-if="loadingSettlements" class="text-center py-10 text-graphite">Loading…</div>
+      <div v-else-if="!filteredSettlements.length" class="text-center py-10 text-graphite text-sm">No settlements found.</div>
+      <div v-else class="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table class="w-full text-sm">
-          <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <thead class="bg-slate-50 text-xs text-graphite uppercase">
             <tr>
               <th class="px-3 py-2 text-left">Writer</th>
               <th class="px-3 py-2 text-right">Gross</th>
@@ -198,16 +198,16 @@
               <th class="px-3 py-2 text-left">Window</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="s in filteredSettlements" :key="s.id" class="hover:bg-gray-50">
-              <td class="px-3 py-2 text-gray-700">#{{ s.writer }}</td>
-              <td class="px-3 py-2 text-right font-mono text-gray-800">${{ s.gross_earnings }}</td>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="s in filteredSettlements" :key="s.id" class="hover:bg-slate-50">
+              <td class="px-3 py-2 text-ink">#{{ s.writer }}</td>
+              <td class="px-3 py-2 text-right font-mono text-ink">${{ s.gross_earnings }}</td>
               <td class="px-3 py-2 text-right font-mono text-red-600">-${{ s.total_deductions }}</td>
               <td class="px-3 py-2 text-right font-mono font-semibold text-green-700">${{ s.net_payable }}</td>
               <td class="px-3 py-2">
                 <span :class="settlementStatusClass(s.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ s.status }}</span>
               </td>
-              <td class="px-3 py-2 text-gray-400 text-xs">Win #{{ s.payment_window }}</td>
+              <td class="px-3 py-2 text-graphite text-xs">Win #{{ s.payment_window }}</td>
             </tr>
           </tbody>
         </table>
@@ -216,7 +216,7 @@
 
     <!-- ── Advances ───────────────────────────────────────────────────────── -->
     <div v-if="activeTab === 'advances'" class="space-y-4">
-      <p class="text-sm text-gray-500">Writer advance payment requests requiring admin review.</p>
+      <p class="text-sm text-graphite">Writer advance payment requests requiring admin review.</p>
 
       <!-- Filter -->
       <div class="flex gap-2 flex-wrap">
@@ -227,49 +227,49 @@
           :class="[
             'text-xs px-3 py-1.5 rounded-full border transition',
             advanceFilter === s
-              ? 'bg-indigo-600 text-white border-indigo-600'
-              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+              ? 'bg-berry text-white border-berry'
+              : 'border-slate-200 text-graphite hover:bg-slate-50',
           ]"
         >{{ s.charAt(0).toUpperCase() + s.slice(1) }}</button>
       </div>
 
-      <div v-if="loadingAdvances" class="text-center py-10 text-gray-400">Loading…</div>
-      <div v-else-if="!filteredAdvances.length" class="text-center py-10 text-gray-400 text-sm">No advances found.</div>
+      <div v-if="loadingAdvances" class="text-center py-10 text-graphite">Loading…</div>
+      <div v-else-if="!filteredAdvances.length" class="text-center py-10 text-graphite text-sm">No advances found.</div>
       <div v-else class="space-y-3">
         <div
           v-for="adv in filteredAdvances"
           :key="adv.id"
-          class="bg-white rounded-lg border border-gray-200 p-5 space-y-3"
+          class="bg-white rounded-lg border border-slate-200 p-5 space-y-3"
         >
           <div class="flex items-start justify-between">
             <div>
-              <p class="font-semibold text-gray-800 text-sm">{{ adv.writer_name }}</p>
-              <p class="text-xs text-gray-400 mt-0.5">Requested {{ fmtDate(adv.created_at) }}</p>
+              <p class="font-semibold text-ink text-sm">{{ adv.writer_name }}</p>
+              <p class="text-xs text-graphite mt-0.5">Requested {{ fmtDate(adv.created_at) }}</p>
             </div>
             <span :class="advanceStatusClass(adv.status)" class="text-xs font-semibold px-2.5 py-1 rounded-full">{{ adv.status }}</span>
           </div>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div class="bg-gray-50 rounded-lg p-2.5">
-              <p class="text-gray-500">Requested</p>
-              <p class="font-semibold text-gray-800 mt-0.5">${{ adv.requested_amount }}</p>
+            <div class="bg-slate-50 rounded-lg p-2.5">
+              <p class="text-graphite">Requested</p>
+              <p class="font-semibold text-ink mt-0.5">${{ adv.requested_amount }}</p>
             </div>
-            <div class="bg-gray-50 rounded-lg p-2.5">
-              <p class="text-gray-500">Approved</p>
-              <p class="font-semibold text-gray-800 mt-0.5">{{ adv.approved_amount ? '$' + adv.approved_amount : '—' }}</p>
+            <div class="bg-slate-50 rounded-lg p-2.5">
+              <p class="text-graphite">Approved</p>
+              <p class="font-semibold text-ink mt-0.5">{{ adv.approved_amount ? '$' + adv.approved_amount : '—' }}</p>
             </div>
-            <div class="bg-gray-50 rounded-lg p-2.5">
-              <p class="text-gray-500">Recovered</p>
-              <p class="font-semibold text-gray-800 mt-0.5">${{ adv.recovered_amount }}</p>
+            <div class="bg-slate-50 rounded-lg p-2.5">
+              <p class="text-graphite">Recovered</p>
+              <p class="font-semibold text-ink mt-0.5">${{ adv.recovered_amount }}</p>
             </div>
-            <div class="bg-gray-50 rounded-lg p-2.5">
-              <p class="text-gray-500">Outstanding</p>
+            <div class="bg-slate-50 rounded-lg p-2.5">
+              <p class="text-graphite">Outstanding</p>
               <p class="font-semibold text-amber-700 mt-0.5">${{ adv.outstanding_balance }}</p>
             </div>
           </div>
 
-          <p v-if="adv.reason" class="text-xs text-gray-500 italic">"{{ adv.reason }}"</p>
-          <p v-if="adv.admin_notes" class="text-xs text-indigo-600">Admin: {{ adv.admin_notes }}</p>
+          <p v-if="adv.reason" class="text-xs text-graphite italic">"{{ adv.reason }}"</p>
+          <p v-if="adv.admin_notes" class="text-xs text-berry">Admin: {{ adv.admin_notes }}</p>
 
           <div v-if="adv.status === 'pending'" class="flex gap-2 pt-1">
             <button @click="openApproveAdvance(adv)" class="text-xs px-3 py-1.5 rounded border border-green-200 text-green-600 hover:bg-green-50">Approve</button>
@@ -284,13 +284,13 @@
 
     <!-- ── Cycle Changes ──────────────────────────────────────────────────── -->
     <div v-if="activeTab === 'cycle-changes'" class="space-y-4">
-      <p class="text-sm text-gray-500">Writers requesting a change to their payout cycle frequency.</p>
+      <p class="text-sm text-graphite">Writers requesting a change to their payout cycle frequency.</p>
 
-      <div v-if="loadingCycleChanges" class="text-center py-10 text-gray-400">Loading…</div>
-      <div v-else-if="!cycleChanges.length" class="text-center py-10 text-gray-400 text-sm">No cycle change requests.</div>
-      <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div v-if="loadingCycleChanges" class="text-center py-10 text-graphite">Loading…</div>
+      <div v-else-if="!cycleChanges.length" class="text-center py-10 text-graphite text-sm">No cycle change requests.</div>
+      <div v-else class="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table class="w-full text-sm">
-          <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <thead class="bg-slate-50 text-xs text-graphite uppercase">
             <tr>
               <th class="px-3 py-2 text-left">Writer</th>
               <th class="px-3 py-2 text-left">From</th>
@@ -300,12 +300,12 @@
               <th class="px-3 py-2 text-left">Actions</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="cc in cycleChanges" :key="cc.id" class="hover:bg-gray-50">
-              <td class="px-3 py-2 font-medium text-gray-800">{{ cc.writer_name }}</td>
-              <td class="px-3 py-2 text-gray-500 font-mono text-xs">{{ cc.from_cycle }}</td>
-              <td class="px-3 py-2 text-indigo-700 font-mono text-xs font-semibold">{{ cc.requested_cycle }}</td>
-              <td class="px-3 py-2 text-gray-500 max-w-xs truncate text-xs">{{ cc.reason ?? '—' }}</td>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="cc in cycleChanges" :key="cc.id" class="hover:bg-slate-50">
+              <td class="px-3 py-2 font-medium text-ink">{{ cc.writer_name }}</td>
+              <td class="px-3 py-2 text-graphite font-mono text-xs">{{ cc.from_cycle }}</td>
+              <td class="px-3 py-2 text-berry font-mono text-xs font-semibold">{{ cc.requested_cycle }}</td>
+              <td class="px-3 py-2 text-graphite max-w-xs truncate text-xs">{{ cc.reason ?? '—' }}</td>
               <td class="px-3 py-2">
                 <span :class="cycleChangeStatusClass(cc.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ cc.status }}</span>
               </td>
@@ -321,7 +321,7 @@
                     class="text-xs px-2.5 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50"
                   >Reject</button>
                 </div>
-                <span v-else class="text-xs text-gray-400">{{ cc.reviewed_at ? fmtDate(cc.reviewed_at) : '—' }}</span>
+                <span v-else class="text-xs text-graphite">{{ cc.reviewed_at ? fmtDate(cc.reviewed_at) : '—' }}</span>
               </td>
             </tr>
           </tbody>
@@ -603,11 +603,11 @@ function fmtDate(ts: string) {
 function windowStatusClass(status: string) {
   const map: Record<string, string> = {
     open: "bg-green-100 text-green-700",
-    closed: "bg-gray-100 text-gray-600",
+    closed: "bg-slate-100 text-graphite",
     processing: "bg-blue-100 text-blue-700",
-    done: "bg-indigo-100 text-indigo-700",
+    done: "bg-purple-100 text-purple-700",
   };
-  return map[status] ?? "bg-gray-100 text-gray-600";
+  return map[status] ?? "bg-slate-100 text-graphite";
 }
 
 function payoutStatusClass(status: string) {
@@ -617,16 +617,16 @@ function payoutStatusClass(status: string) {
     paid: "bg-green-100 text-green-700",
     held: "bg-red-100 text-red-700",
   };
-  return map[status] ?? "bg-gray-100 text-gray-600";
+  return map[status] ?? "bg-slate-100 text-graphite";
 }
 
 function settlementStatusClass(status: string) {
   const map: Record<string, string> = {
     pending: "bg-amber-100 text-amber-700",
     finalized: "bg-green-100 text-green-700",
-    locked: "bg-gray-100 text-gray-600",
+    locked: "bg-slate-100 text-graphite",
   };
-  return map[status] ?? "bg-gray-100 text-gray-600";
+  return map[status] ?? "bg-slate-100 text-graphite";
 }
 
 function advanceStatusClass(status: string) {
@@ -634,9 +634,9 @@ function advanceStatusClass(status: string) {
     pending: "bg-amber-100 text-amber-700",
     approved: "bg-green-100 text-green-700",
     rejected: "bg-red-100 text-red-700",
-    recovered: "bg-gray-100 text-gray-600",
+    recovered: "bg-slate-100 text-graphite",
   };
-  return map[status] ?? "bg-gray-100 text-gray-600";
+  return map[status] ?? "bg-slate-100 text-graphite";
 }
 
 function cycleChangeStatusClass(status: string) {
@@ -645,7 +645,7 @@ function cycleChangeStatusClass(status: string) {
     approved: "bg-green-100 text-green-700",
     rejected: "bg-red-100 text-red-700",
   };
-  return map[status] ?? "bg-gray-100 text-gray-600";
+  return map[status] ?? "bg-slate-100 text-graphite";
 }
 
 function extractList<T>(data: { count: number; next: string | null; previous: string | null; results: T[] } | T[]): T[] {
@@ -999,10 +999,4 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.input {
-  @apply w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent;
-}
-.btn-primary {
-  @apply px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition;
-}
 </style>
