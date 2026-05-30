@@ -701,6 +701,26 @@ export const router = createRouter({
           component: () => import("@/views/public/LandingPageView.vue"),
         },
         {
+          path: "authors",
+          name: "authors",
+          component: () => import("@/views/public/AuthorsView.vue"),
+        },
+        {
+          path: "authors/:slug",
+          name: "author",
+          component: () => import("@/views/public/AuthorView.vue"),
+        },
+        {
+          path: "resources",
+          name: "resources",
+          component: () => import("@/views/public/ResourcesView.vue"),
+        },
+        {
+          path: "resources/:slug",
+          name: "resource",
+          component: () => import("@/views/public/ResourceView.vue"),
+        },
+        {
           path: "help",
           name: "help-center",
           component: () => import("@/views/public/HelpCenterView.vue"),

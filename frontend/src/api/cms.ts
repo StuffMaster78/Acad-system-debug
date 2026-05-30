@@ -121,6 +121,87 @@ export interface SeoLandingPage {
   publish_date?: string | null;
 }
 
+// ── Attachments / downloadable resources ─────────────────────────────────
+
+export interface AttachmentCategory {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface AttachmentSummary {
+  id: number;
+  title: string;
+  slug: string;
+  description?: string;
+  attachment_type: string;
+  category?: AttachmentCategory | null;
+  academic_level?: string;
+  formatting_style?: string;
+  file_format?: string;
+  file_size_bytes?: number;
+  page_count?: number;
+  gate_type: "free" | "email" | "account" | "customer" | "paid";
+  price?: string | null;
+  is_featured?: boolean;
+  average_rating?: number;
+  rating_count?: number;
+  download_count?: number;
+  author?: CMSAuthor | null;
+  related_service?: { id: number; title: string; slug: string } | null;
+}
+
+export interface AccessCheckResult {
+  allowed: boolean;
+  requires_email?: boolean;
+  requires_account?: boolean;
+  requires_purchase?: boolean;
+  price?: string | null;
+  reason?: string;
+}
+
+export interface DownloadResult {
+  download_url?: string;
+  error?: string;
+}
+
+// ── References / citations ────────────────────────────────────────────────
+
+export interface ReferenceAuthor {
+  family: string;
+  given?: string;
+  middle?: string;
+}
+
+export interface Reference {
+  id: number;
+  reference_type: string;
+  title: string;
+  authors: ReferenceAuthor[];
+  publication_year?: number | null;
+  publication_month?: number | null;
+  journal_name?: string;
+  journal_volume?: string;
+  journal_issue?: string;
+  pages?: string;
+  publisher?: string;
+  publisher_location?: string;
+  doi?: string;
+  isbn?: string;
+  url?: string;
+  url_archived?: string;
+  is_peer_reviewed?: boolean;
+  is_open_access?: boolean;
+}
+
+export interface Citation {
+  id: number;
+  position: number;
+  page?: string;
+  editor_note?: string;
+  reference: Reference;
+}
+
 // ── Content graph ─────────────────────────────────────────────────────────
 
 export interface ContentPillar {
@@ -221,6 +302,33 @@ export const cmsApi = {
   // ── SEO landing pages ────────────────────────────────────────────────────
   landingPage: (slug: string) =>
     api.get<SeoLandingPage>(apiPath(`/seo-pages/public/seo-pages/${slug}/`)),
+
+  // ── Attachments / downloadable resources ────────────────────────────────
+  attachments: (params?: {
+    type?: string;
+    category?: string;
+    level?: string;
+    style?: string;
+    featured?: boolean;
+    limit?: number;
+  }) =>
+    api.get<AttachmentSummary[]>(apiPath("/cms-api/attachments/"), { params }),
+
+  attachment: (slug: string) =>
+    api.get<AttachmentSummary>(apiPath(`/cms-api/attachments/${slug}/`)),
+
+  checkAccess: (slug: string) =>
+    api.get<AccessCheckResult>(apiPath(`/cms-api/attachments/${slug}/check_access/`)),
+
+  download: (slug: string, payload?: { email?: string; consent_marketing?: boolean; consent_newsletter?: boolean }) =>
+    api.post<DownloadResult>(apiPath(`/cms-api/attachments/${slug}/download/`), payload ?? {}),
+
+  rateAttachment: (slug: string, rating: number) =>
+    api.post(apiPath(`/cms-api/attachments/${slug}/rate/`), { rating }),
+
+  // ── Citations ────────────────────────────────────────────────────────────
+  citations: (blogPostId: number) =>
+    api.get<Citation[]>(apiPath("/cms-api/citations/"), { params: { blog_post: blogPostId } }),
 
   // ── Content graph ────────────────────────────────────────────────────────
   pillars: () =>

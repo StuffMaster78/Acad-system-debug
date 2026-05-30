@@ -60,6 +60,10 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
+function isScheduled(item: PublishingItem): boolean {
+  return item.status === 'draft' && !!item.publishedAt && new Date(item.publishedAt) > new Date();
+}
+
 function statusTone(status: string) {
   if (status === "published") return "success";
   if (status.includes("ready")) return "neutral";
@@ -226,7 +230,10 @@ onMounted(() => {
                   {{ sourceLabel(item) }}
                 </td>
                 <td class="px-3 py-2.5">
-                  <StatusPill :label="item.status" :tone="statusTone(item.status)" />
+                  <StatusPill
+                    :label="isScheduled(item) ? 'scheduled' : item.status"
+                    :tone="isScheduled(item) ? 'warn' : statusTone(item.status)"
+                  />
                 </td>
                 <td class="px-3 py-2.5 text-graphite">
                   {{ formatDate(item.publishedAt) }}
@@ -371,6 +378,21 @@ onMounted(() => {
             <p class="text-sm font-semibold text-ink">{{ publishing.selectedWritePath.title }}</p>
             <p class="mt-1 text-xs leading-5 text-graphite">{{ publishing.selectedWritePath.detail }}</p>
           </div>
+
+          <!-- Schedule publish (SEO pages only) -->
+          <label
+            v-if="publishing.draft.type === 'seo'"
+            class="mt-4 block"
+          >
+            <span class="text-xs font-semibold uppercase text-graphite">Schedule publish (optional)</span>
+            <input
+              v-model="publishing.draft.publish_date"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+              type="datetime-local"
+              :min="new Date().toISOString().slice(0, 16)"
+            />
+            <p class="mt-1 text-xs text-graphite">Leave blank to publish immediately.</p>
+          </label>
 
           <div class="mt-4 grid gap-2">
             <button

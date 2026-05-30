@@ -127,6 +127,7 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
     cta_href: "/client/new-order",
     review_notes: "Check keyword intent, internal links, and website fit before publishing.",
     is_published: false,
+    publish_date: null as string | null,
   });
 
   const flowSteps: PublishingFlowStep[] = [
@@ -338,7 +339,7 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
       meta_title: draft.value.title,
       meta_description: draft.value.meta_description,
       is_published: publish,
-      publish_date: publish ? now : null,
+      publish_date: draft.value.publish_date || (publish ? now : null),
       blocks: [
         {
           type: "hero",

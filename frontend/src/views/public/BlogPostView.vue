@@ -141,6 +141,13 @@
           </RouterLink>
         </div>
       </div>
+
+        <!-- Citations / references -->
+        <CitationList
+          v-if="citations.length && post.citation_mode && post.citation_mode !== 'none'"
+          :citations="citations"
+          :mode="post.citation_mode"
+        />
     </template>
   </div>
 </template>
@@ -149,14 +156,16 @@
 import { onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { ArrowLeft, ArrowRight } from "@lucide/vue";
-import { cmsApi, type BlogPost } from "@/api/cms";
+import { cmsApi, type BlogPost, type Citation } from "@/api/cms";
 import { useMeta, articleSchema } from "@/composables/useMeta";
 import BlockRenderer from "@/components/cms/BlockRenderer.vue";
+import CitationList from "@/components/cms/CitationList.vue";
 
 const route    = useRoute();
 const isLoading = ref(true);
 const notFound  = ref(false);
 const post      = ref<BlogPost | null>(null);
+const citations = ref<Citation[]>([]);
 
 async function load() {
   const slug = route.params.slug as string;
@@ -171,6 +180,14 @@ async function load() {
       return;
     }
     post.value = data.items[0];
+
+    // Fetch formal citations if mode requires it
+    if (post.value.citation_mode && post.value.citation_mode !== 'none') {
+      try {
+        const citRes = await cmsApi.citations(post.value.id);
+        citations.value = Array.isArray(citRes.data) ? citRes.data : [];
+      } catch { citations.value = []; }
+    }
 
     useMeta({
       title: post.value.title,
