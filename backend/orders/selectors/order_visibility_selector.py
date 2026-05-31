@@ -5,6 +5,18 @@ from typing import Any
 
 from django.db.models import Q, QuerySet
 
+# FK fields accessed by OrderListSerializer on every list response.
+# Bundled into one constant so all selectors stay in sync.
+ORDER_LIST_SELECT_RELATED = (
+    "client",
+    "assigned_writer",
+    "preferred_writer",
+    "website",
+    "paper_type",
+    "subject",
+    "academic_level",
+)
+
 from orders.models import OrderInterest
 from orders.models.orders.constants import (
     ORDER_INTEREST_STATUS_ACCEPTED,
@@ -51,7 +63,7 @@ class OrderVisibilitySelector:
     def visible_to_client(cls, *, client: Any) -> QuerySet[Order]:
         """Return orders visible to a client."""
         website = cls._website_for_user(client)
-        queryset = Order.objects.filter(client=client)
+        queryset = Order.objects.select_related(*ORDER_LIST_SELECT_RELATED).filter(client=client)
         if website is not None:
             queryset = queryset.filter(website=website)
         return queryset
@@ -60,7 +72,7 @@ class OrderVisibilitySelector:
     def visible_to_staff(cls, *, staff_user: Any) -> QuerySet[Order]:
         """Return all tenant orders visible to staff."""
         website = cls._website_for_user(staff_user)
-        queryset = Order.objects.all()
+        queryset = Order.objects.select_related(*ORDER_LIST_SELECT_RELATED).all()
         if website is not None:
             queryset = queryset.filter(website=website)
         return queryset
@@ -73,7 +85,9 @@ class OrderVisibilitySelector:
         if website is None or writer_profile is None:
             return Order.objects.none()
 
-        return Order.objects.filter(website=website).filter(
+        return Order.objects.select_related(*ORDER_LIST_SELECT_RELATED).filter(
+            website=website
+        ).filter(
             cls._writer_visibility_q(
                 writer=writer,
                 writer_profile=writer_profile,
