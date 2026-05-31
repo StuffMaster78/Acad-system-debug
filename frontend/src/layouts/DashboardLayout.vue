@@ -298,55 +298,6 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       <!-- Header -->
       <header class="sticky top-0 z-10 flex items-center border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-sm lg:px-6">
 
-        <!-- Avatar — left edge, opens downward -->
-        <div ref="userMenuRoot" class="relative mr-3 shrink-0">
-          <button
-            class="focus-ring flex h-8 w-8 items-center justify-center rounded-full ring-2 ring-transparent transition-all hover:ring-slate-200"
-            type="button"
-            :title="auth.user?.full_name || auth.user?.email"
-            @click="userMenuOpen = !userMenuOpen"
-          >
-            <UserAvatar :user="auth.user" size="sm" />
-          </button>
-
-          <Transition
-            enter-active-class="transition duration-100 ease-out"
-            enter-from-class="opacity-0 scale-95 -translate-y-1"
-            enter-to-class="opacity-100 scale-100 translate-y-0"
-            leave-active-class="transition duration-75 ease-in"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
-          >
-            <div
-              v-if="userMenuOpen"
-              class="absolute left-0 top-10 z-30 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
-            >
-                <div class="border-b border-slate-100 px-3.5 py-2.5">
-                  <p class="truncate text-[13px] font-semibold text-ink">
-                    {{ auth.user?.full_name || auth.user?.email }}
-                  </p>
-                  <p class="mt-px truncate text-[11px] text-graphite">{{ auth.user?.email }}</p>
-                </div>
-                <RouterLink
-                  class="flex items-center gap-2 px-3.5 py-2 text-[13px] font-medium text-graphite transition-colors hover:bg-slate-50 hover:text-ink"
-                  :to="`/${role}/account`"
-                  @click="userMenuOpen = false"
-                >
-                  <Settings class="h-3.5 w-3.5" />
-                  My account
-                </RouterLink>
-                <button
-                  class="flex w-full items-center gap-2 border-t border-slate-100 px-3.5 py-2 text-[13px] font-medium text-graphite transition-colors hover:bg-rose-50 hover:text-berry"
-                  type="button"
-                  @click="auth.logout()"
-                >
-                  <LogOut class="h-3.5 w-3.5" />
-                  Sign out
-                </button>
-              </div>
-          </Transition>
-        </div>
-
         <!-- Mobile burger -->
         <button
           class="focus-ring mr-3 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-slate-200 text-graphite hover:bg-slate-50 lg:hidden"
@@ -379,6 +330,58 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
             />
             {{ isConnected ? "Live" : "Offline" }}
           </span>
+        </div>
+
+        <!-- Spacer + Divider before avatar -->
+        <div class="mx-5 h-5 w-px shrink-0 bg-slate-200" />
+
+        <!-- Avatar — far right with generous gap from utilities -->
+        <div ref="userMenuRoot" class="relative shrink-0">
+          <button
+            class="focus-ring flex h-8 w-8 items-center justify-center rounded-full ring-2 ring-transparent transition-all hover:ring-slate-200"
+            type="button"
+            :title="auth.user?.full_name || auth.user?.email"
+            @click="userMenuOpen = !userMenuOpen"
+          >
+            <UserAvatar :user="auth.user" size="sm" />
+          </button>
+
+          <Transition
+            enter-active-class="transition duration-100 ease-out"
+            enter-from-class="opacity-0 scale-95 -translate-y-1"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+            leave-active-class="transition duration-75 ease-in"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <div
+              v-if="userMenuOpen"
+              class="absolute right-0 top-10 z-30 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+            >
+                <div class="border-b border-slate-100 px-3.5 py-2.5">
+                  <p class="truncate text-[13px] font-semibold text-ink">
+                    {{ auth.user?.full_name || auth.user?.email }}
+                  </p>
+                  <p class="mt-px truncate text-[11px] text-graphite">{{ auth.user?.email }}</p>
+                </div>
+                <RouterLink
+                  class="flex items-center gap-2 px-3.5 py-2 text-[13px] font-medium text-graphite transition-colors hover:bg-slate-50 hover:text-ink"
+                  :to="`/${role}/account`"
+                  @click="userMenuOpen = false"
+                >
+                  <Settings class="h-3.5 w-3.5" />
+                  My account
+                </RouterLink>
+                <button
+                  class="flex w-full items-center gap-2 border-t border-slate-100 px-3.5 py-2 text-[13px] font-medium text-graphite transition-colors hover:bg-rose-50 hover:text-berry"
+                  type="button"
+                  @click="auth.logout()"
+                >
+                  <LogOut class="h-3.5 w-3.5" />
+                  Sign out
+                </button>
+              </div>
+          </Transition>
         </div>
 
       </header>
