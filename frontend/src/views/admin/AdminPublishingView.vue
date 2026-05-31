@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import {
+  AlertTriangle,
   BookOpen,
   CheckCircle2,
   ChevronDown,
@@ -20,6 +21,7 @@ import {
 } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import WagtailGuideModal from "@/components/cms/WagtailGuideModal.vue";
+import ContentHealthPanel from "@/components/cms/ContentHealthPanel.vue";
 import { useAdminPublishingStore } from "@/stores/adminPublishing";
 import type { PublishingContentType, PublishingItem } from "@/types/adminPublishing";
 
@@ -114,6 +116,8 @@ function typeLabel(type: PublishingContentType): string {
 onMounted(() => {
   publishing.hydrate().catch(() => undefined);
 });
+
+const showHealth = ref(false);
 </script>
 
 <template>
@@ -161,6 +165,17 @@ onMounted(() => {
         <WagtailGuideModal />
 
         <button
+          class="focus-ring inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
+          :class="showHealth
+            ? 'border-amber-300 bg-amber-50 text-amber-800'
+            : 'border-slate-200 bg-white text-graphite hover:bg-slate-50'"
+          @click="showHealth = !showHealth"
+        >
+          <AlertTriangle class="size-3.5" />
+          Health
+        </button>
+
+        <button
           class="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50 disabled:opacity-50"
           :disabled="publishing.isLoading"
           @click="publishing.hydrate().catch(() => undefined)"
@@ -185,6 +200,11 @@ onMounted(() => {
       <p v-if="publishing.notice" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-900">
         {{ publishing.notice }}
       </p>
+    </div>
+
+    <!-- ── Content health panel (toggled) ───────────────────────────────── -->
+    <div v-if="showHealth" class="border-b border-amber-200 bg-amber-50/60 px-6 py-5">
+      <ContentHealthPanel />
     </div>
 
     <!-- ── Body: inventory + sidebar ────────────────────────────────────── -->

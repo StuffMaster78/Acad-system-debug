@@ -54,6 +54,41 @@ export interface SeoPagePayload {
 
 type ListResponse<T> = T[] | { results: T[] };
 
+export type ContentHealthFlag =
+  | "missing_meta"
+  | "missing_author"
+  | "stale"
+  | "no_cta"
+  | "no_service_route"
+  | "no_citations";
+
+export interface ContentHealthItem {
+  id: number;
+  source: "wagtail" | "seo_pages";
+  type: "blog" | "service" | "seo";
+  title: string;
+  slug: string;
+  edit_url: string;
+  flags: ContentHealthFlag[];
+  is_healthy: boolean;
+}
+
+export interface ContentHealthSummary {
+  total: number;
+  healthy: number;
+  missing_meta: number;
+  missing_author: number;
+  stale: number;
+  no_cta: number;
+  no_service_route: number;
+  no_citations: number;
+}
+
+export interface ContentHealthReport {
+  summary: ContentHealthSummary;
+  items: ContentHealthItem[];
+}
+
 export const adminPublishingApi = {
   wagtailPages: (params?: Record<string, unknown>) =>
     api.get<WagtailPageListResponse>(apiPath("/api/v2/pages/"), { params }),
@@ -68,4 +103,6 @@ export const adminPublishingApi = {
     api.patch<SeoPageRecord>(apiPath(`/seo-pages/seo-pages/${id}/`), payload),
   previewSeoPage: (id: number) =>
     api.get(apiPath(`/seo-pages/seo-pages/${id}/preview/`)),
+  contentHealth: () =>
+    api.get<ContentHealthReport>(apiPath("/cms-api/content-health/")),
 };

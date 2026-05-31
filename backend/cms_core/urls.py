@@ -19,10 +19,12 @@ via the api_router in cms_core/api.py::
 """
 
 from django.urls import include, path
+from cms_core.views import ContentHealthView
 
 app_name = "cms"
 
 urlpatterns = [
+    path("content-health/", ContentHealthView.as_view(), name="content-health"),
     path("content-graph/", include("cms_content_graph.urls")),
     path("references/", include("cms_references.urls")),
     path("attachments/", include("cms_attachments.urls")),
