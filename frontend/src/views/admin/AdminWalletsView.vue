@@ -17,6 +17,7 @@ import EmptyState from "@/components/ui/EmptyState.vue";
 import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminWalletsStore } from "@/stores/adminWallets";
+import { useWebsitesStore } from "@/stores/websites";
 
 const wallets = useAdminWalletsStore();
 
@@ -107,8 +108,10 @@ function selectHold(row: Record<string, unknown>) {
   if (!Number.isNaN(id)) wallets.selectedHoldId = id;
 }
 
+const websites = useWebsitesStore();
 onMounted(() => {
   wallets.hydrate().catch(() => undefined);
+  websites.ensure();
 });
 </script>
 
@@ -215,7 +218,7 @@ onMounted(() => {
               >
                 #{{ row.id }}
               </button>
-              <p class="mt-1 text-xs text-graphite">Site {{ row.website_id ?? "n/a" }}</p>
+              <p class="mt-1 text-xs text-graphite">{{ websites.nameById(row.website_id as number | null) }}</p>
             </template>
             <template #cell-wallet_type="{ value }">
               <span class="capitalize">{{ value }}</span>

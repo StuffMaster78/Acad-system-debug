@@ -30,6 +30,7 @@ import {
   workTone,
 } from "@/stores/adminWork";
 import { useOrderStore } from "@/stores/orders";
+import { useWebsitesStore } from "@/stores/websites";
 import type { AdminWorkItem } from "@/types/adminWork";
 import type { AdminWorkKind } from "@/types/adminWork";
 import type { OrderOpsRow } from "@/types/orderOps";
@@ -239,8 +240,10 @@ function firstRecordLabel(record: Record<string, unknown>) {
   return valueOf(record, ["title", "name", "label", "status", "event_type", "task_type", "id"], "Record");
 }
 
+const websites = useWebsitesStore();
 onMounted(() => {
   refreshAll().catch(() => undefined);
+  websites.ensure();
 });
 </script>
 
@@ -691,7 +694,7 @@ onMounted(() => {
               <h3 class="text-sm font-semibold uppercase text-graphite">Core identity</h3>
               <dl class="mt-3 space-y-2 text-sm">
                 <div class="flex justify-between gap-3"><dt class="text-graphite">Order ID</dt><dd class="font-semibold text-ink">#{{ detailOrderId }}</dd></div>
-                <div class="flex justify-between gap-3"><dt class="text-graphite">Tenant website</dt><dd class="font-semibold text-ink">{{ orderDetails.selectedLifecycle?.website_id ? `Site #${orderDetails.selectedLifecycle.website_id}` : 'Not loaded' }}</dd></div>
+                <div class="flex justify-between gap-3"><dt class="text-graphite">Tenant website</dt><dd class="font-semibold text-ink">{{ websites.nameById(orderDetails.selectedLifecycle?.website_id) }}</dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-graphite">Client</dt><dd class="font-semibold text-ink">{{ orderDetails.selectedOrder?.client_username || orderDetails.selectedOrder?.client_email || orderDetails.selectedLifecycle?.client_id || 'Not loaded' }}</dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-graphite">Service type</dt><dd class="font-semibold text-ink">{{ orderDetails.selectedOrder?.service_code || orderDetails.selectedOrder?.service_family || 'Not loaded' }}</dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-graphite">Subject</dt><dd class="font-semibold text-ink">{{ orderDetails.selectedOrder?.subject || ('subject' in (detailContext || {}) ? (detailContext as AdminWorkItem).subject : '') || 'Not loaded' }}</dd></div>

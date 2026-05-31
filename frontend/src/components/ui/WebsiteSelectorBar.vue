@@ -25,24 +25,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted } from "vue";
 import { Globe } from "@lucide/vue";
-import { websitesApi, type Website } from "@/api/websites";
 import { useAuthStore } from "@/stores/auth";
+import { useWebsitesStore } from "@/stores/websites";
 
 const props = withDefaults(
   defineProps<{ modelValue: number | null; label?: string }>(),
   { label: "Managing content for:" },
 );
-const emit  = defineEmits<{ "update:modelValue": [id: number | null] }>();
+const emit = defineEmits<{ "update:modelValue": [id: number | null] }>();
 
-const auth     = useAuthStore();
-const websites = ref<Website[]>([]);
+const auth           = useAuthStore();
+const websitesStore  = useWebsitesStore();
 
-const isStaff = computed(() => {
-  const role = auth.role;
-  return role === "superadmin" || role === "admin";
-});
+const isStaff = computed(() => auth.role === "superadmin" || auth.role === "admin");
+
+const websites = computed(() => websitesStore.list);
 
 const currentWebsite = computed(() =>
   websites.value.find((w) => w.id === props.modelValue) ?? websites.value[0] ?? null
@@ -50,12 +49,9 @@ const currentWebsite = computed(() =>
 
 onMounted(async () => {
   if (!isStaff.value) return;
-  try {
-    const { data } = await websitesApi.list({ is_active: true, limit: 50 });
-    websites.value = Array.isArray(data) ? data : (data as { results: Website[] }).results ?? [];
-    if (websites.value.length && !props.modelValue) {
-      emit("update:modelValue", websites.value[0].id);
-    }
-  } catch { /* non-fatal */ }
+  await websitesStore.ensure();
+  if (websites.value.length && !props.modelValue) {
+    emit("update:modelValue", websites.value[0].id);
+  }
 });
 </script>

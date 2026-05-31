@@ -17,6 +17,7 @@ import {
 import EmptyState from "@/components/ui/EmptyState.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminPaymentsStore } from "@/stores/adminPayments";
+import { useWebsitesStore } from "@/stores/websites";
 import {
   billingApi,
   type AdminInvoice,
@@ -205,8 +206,10 @@ function statusTone(status?: string | null) {
   return "neutral";
 }
 
+const websites = useWebsitesStore();
 onMounted(() => {
   payments.hydrate().catch(() => undefined);
+  websites.ensure();
   fetchInvoices();
   fetchPaymentRequests();
 });
@@ -450,7 +453,7 @@ onMounted(() => {
               <div>
                 <p class="font-semibold text-ink capitalize">{{ wallet.wallet_type }} wallet #{{ wallet.id }}</p>
                 <p class="mt-1 text-xs text-graphite">
-                  Owner #{{ wallet.owner_user_id || "n/a" }} · Site #{{ wallet.website_id || "n/a" }}
+                  Owner #{{ wallet.owner_user_id || "n/a" }} · {{ websites.nameById(wallet.website_id) }}
                 </p>
               </div>
               <div class="sm:text-right">
