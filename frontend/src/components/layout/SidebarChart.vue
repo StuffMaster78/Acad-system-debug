@@ -59,7 +59,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mx-2 mb-2 rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
+  <div class="mx-2 mb-2 rounded-lg border border-slate-700 bg-slate-700/40 p-3">
     <!-- Stat row -->
     <div class="mb-2.5 flex items-center justify-between gap-2">
       <div>

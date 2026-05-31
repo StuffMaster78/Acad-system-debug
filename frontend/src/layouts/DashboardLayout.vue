@@ -91,7 +91,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
 
     <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
     <aside
-      class="fixed inset-y-0 left-0 z-30 flex flex-col bg-zinc-950 transition-all duration-200 lg:z-20 lg:translate-x-0"
+      class="fixed inset-y-0 left-0 z-30 flex flex-col bg-slate-800 transition-all duration-200 lg:z-20 lg:translate-x-0"
       :class="[
         ui.sidebarCollapsed ? 'w-14' : 'w-[220px]',
         ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
@@ -99,14 +99,13 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
     >
       <!-- Brand bar -->
       <div
-        class="flex h-11 shrink-0 items-center border-b border-white/[0.06]"
+        class="flex h-11 shrink-0 items-center border-b border-slate-700"
         :class="ui.sidebarCollapsed ? 'justify-center' : 'justify-between px-3'"
       >
         <div ref="brandMenuRoot" class="relative">
           <button
-            class="flex h-7 w-7 items-center justify-center rounded bg-white/[0.08] text-[10px] font-bold text-white transition-colors hover:bg-white/[0.14]"
+            class="flex h-7 w-7 items-center justify-center rounded bg-white/[0.12] text-[10px] font-bold text-white transition-colors hover:bg-white/[0.2]"
             type="button"
-            :title="ui.sidebarCollapsed ? 'WritingSystem — ' + theme.label : undefined"
             @click="brandMenuOpen = !brandMenuOpen"
           >
             WS
@@ -122,23 +121,23 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
           >
             <div
               v-if="brandMenuOpen"
-              class="absolute left-0 top-9 z-50 w-52 overflow-hidden rounded-lg border border-white/[0.08] bg-zinc-900 shadow-xl"
+              class="absolute left-0 top-9 z-50 w-52 overflow-hidden rounded-lg border border-slate-600 bg-slate-700 shadow-xl"
             >
-              <div class="border-b border-white/[0.06] px-3.5 py-3">
-                <p class="text-sm font-semibold text-zinc-100">WritingSystem</p>
-                <p class="mt-0.5 text-xs text-zinc-500">{{ theme.label }}</p>
+              <div class="border-b border-slate-600 px-3.5 py-3">
+                <p class="text-sm font-semibold text-white">WritingSystem</p>
+                <p class="mt-0.5 text-xs text-slate-400">{{ theme.label }}</p>
               </div>
               <div class="p-1">
                 <RouterLink
                   :to="`/${role}/account`"
-                  class="flex items-center gap-2 rounded px-3 py-1.5 text-[13px] text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-100"
+                  class="flex items-center gap-2 rounded px-3 py-1.5 text-[13px] text-slate-300 transition-colors hover:bg-white/[0.1] hover:text-white"
                   @click="brandMenuOpen = false"
                 >
                   <Settings class="h-3.5 w-3.5" />
                   Account settings
                 </RouterLink>
                 <button
-                  class="flex w-full items-center gap-2 rounded px-3 py-1.5 text-[13px] text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-rose-400"
+                  class="flex w-full items-center gap-2 rounded px-3 py-1.5 text-[13px] text-slate-300 transition-colors hover:bg-white/[0.1] hover:text-rose-400"
                   type="button"
                   @click="auth.logout(); brandMenuOpen = false"
                 >
@@ -153,7 +152,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
         <!-- Mobile close (only when expanded) -->
         <button
           v-if="!ui.sidebarCollapsed"
-          class="flex h-6 w-6 items-center justify-center rounded text-zinc-600 transition-colors hover:bg-white/[0.06] hover:text-zinc-300 lg:hidden"
+          class="flex h-6 w-6 items-center justify-center rounded text-slate-400 transition-colors hover:bg-white/[0.1] hover:text-white lg:hidden"
           type="button"
           @click="ui.closeSidebar()"
         >
@@ -167,23 +166,33 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
         :class="ui.sidebarCollapsed ? 'px-1.5' : 'px-2'"
         aria-label="Main navigation"
       >
-        <!-- Collapsed: icon rail -->
+        <!-- Collapsed: icon rail with custom tooltips -->
         <template v-if="ui.sidebarCollapsed">
           <div v-for="group in navGroups" :key="group.label" class="mb-1">
-            <RouterLink
+            <div
               v-for="item in group.items"
               :key="item.to"
-              :to="item.to"
-              :title="item.label"
-              class="mb-px flex h-9 w-full items-center justify-center rounded-md transition-colors"
-              :class="isActive(item.to)
-                ? 'bg-white/[0.08] text-white'
-                : 'text-zinc-600 hover:bg-white/[0.04] hover:text-zinc-300'"
-              @click="ui.closeSidebar()"
+              class="group relative mb-px"
             >
-              <component :is="item.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
-            </RouterLink>
-            <div class="mx-auto my-1.5 w-5 border-t border-white/[0.04]" />
+              <RouterLink
+                :to="item.to"
+                class="flex h-9 w-full items-center justify-center rounded-md transition-colors"
+                :class="isActive(item.to)
+                  ? 'bg-white/[0.15] text-white'
+                  : 'text-slate-400 hover:bg-white/[0.08] hover:text-white'"
+                @click="ui.closeSidebar()"
+              >
+                <component :is="item.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
+              </RouterLink>
+              <!-- Tooltip -->
+              <div
+                class="pointer-events-none absolute left-full top-1/2 z-50 ml-2.5 -translate-y-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg ring-1 ring-slate-700 transition-opacity duration-150 group-hover:opacity-100"
+              >
+                {{ item.label }}
+                <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
+              </div>
+            </div>
+            <div class="mx-auto my-1.5 w-5 border-t border-slate-700/60" />
           </div>
         </template>
 
@@ -195,11 +204,11 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
               class="flex w-full items-center px-2.5 py-1"
               @click="toggleGroup(group.label)"
             >
-              <span class="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+              <span class="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
                 {{ group.label }}
               </span>
               <ChevronRight
-                class="ml-auto h-2.5 w-2.5 text-zinc-700 transition-transform duration-150"
+                class="ml-auto h-2.5 w-2.5 text-slate-600 transition-transform duration-150"
                 :class="openGroups.has(group.label) ? 'rotate-90' : ''"
               />
             </button>
@@ -211,14 +220,14 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
                 :to="item.to"
                 class="focus-ring group flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors"
                 :class="isActive(item.to)
-                  ? 'bg-white/[0.08] text-white'
-                  : 'text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100'"
+                  ? 'bg-white/[0.12] text-white'
+                  : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'"
                 @click="ui.closeSidebar()"
               >
                 <component
                   :is="item.icon"
                   class="h-[14px] w-[14px] shrink-0 transition-colors"
-                  :class="isActive(item.to) ? 'text-white' : 'text-zinc-600 group-hover:text-zinc-400'"
+                  :class="isActive(item.to) ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'"
                   aria-hidden="true"
                 />
                 {{ item.label }}
@@ -235,14 +244,13 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       />
 
       <!-- Footer -->
-      <div class="shrink-0 space-y-px border-t border-white/[0.06] p-2">
+      <div class="shrink-0 space-y-px border-t border-slate-700 p-2">
 
         <!-- Collapse toggle (desktop only) -->
         <button
-          class="hidden w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-zinc-600 transition-colors hover:bg-white/[0.04] hover:text-zinc-300 lg:flex"
+          class="hidden w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white lg:flex"
           :class="ui.sidebarCollapsed ? 'justify-center' : ''"
           type="button"
-          :title="ui.sidebarCollapsed ? 'Expand sidebar' : undefined"
           @click="ui.toggleSidebarCollapse()"
         >
           <ChevronRight
@@ -255,26 +263,24 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
         <!-- User row -->
         <RouterLink
           :to="`/${role}/account`"
-          class="focus-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors hover:bg-white/[0.04]"
+          class="focus-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors hover:bg-white/[0.06]"
           :class="ui.sidebarCollapsed ? 'justify-center' : ''"
-          :title="ui.sidebarCollapsed ? (auth.user?.full_name || auth.user?.email) : undefined"
           @click="ui.closeSidebar()"
         >
           <UserAvatar :user="auth.user" size="sm" />
           <div v-if="!ui.sidebarCollapsed" class="min-w-0 flex-1">
-            <p class="truncate text-[13px] font-medium leading-tight text-zinc-200">
+            <p class="truncate text-[13px] font-medium leading-tight text-white">
               {{ auth.user?.full_name || auth.user?.email }}
             </p>
-            <p class="mt-px text-[10px] capitalize text-zinc-500">{{ role }}</p>
+            <p class="mt-px text-[10px] capitalize text-slate-400">{{ role }}</p>
           </div>
-          <Settings v-if="!ui.sidebarCollapsed" class="h-[13px] w-[13px] shrink-0 text-zinc-700" aria-hidden="true" />
+          <Settings v-if="!ui.sidebarCollapsed" class="h-[13px] w-[13px] shrink-0 text-slate-500" aria-hidden="true" />
         </RouterLink>
 
         <!-- Sign out -->
         <button
-          class="focus-ring flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-zinc-600 transition-colors hover:bg-white/[0.04] hover:text-zinc-300"
+          class="focus-ring flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-rose-400"
           :class="ui.sidebarCollapsed ? 'justify-center' : ''"
-          :title="ui.sidebarCollapsed ? 'Sign out' : undefined"
           type="button"
           @click="auth.logout()"
         >
