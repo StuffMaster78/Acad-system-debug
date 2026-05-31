@@ -22,6 +22,7 @@ import {
 import StatusPill from "@/components/ui/StatusPill.vue";
 import WagtailGuideModal from "@/components/cms/WagtailGuideModal.vue";
 import ContentHealthPanel from "@/components/cms/ContentHealthPanel.vue";
+import SyncStatusPanel from "@/components/cms/SyncStatusPanel.vue";
 import { useAdminPublishingStore } from "@/stores/adminPublishing";
 import type { PublishingContentType, PublishingItem } from "@/types/adminPublishing";
 
@@ -118,6 +119,7 @@ onMounted(() => {
 });
 
 const showHealth = ref(false);
+const showSync  = ref(false);
 </script>
 
 <template>
@@ -169,10 +171,21 @@ const showHealth = ref(false);
           :class="showHealth
             ? 'border-amber-300 bg-amber-50 text-amber-800'
             : 'border-slate-200 bg-white text-graphite hover:bg-slate-50'"
-          @click="showHealth = !showHealth"
+          @click="showHealth = !showHealth; showSync = false"
         >
           <AlertTriangle class="size-3.5" />
           Health
+        </button>
+
+        <button
+          class="focus-ring inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
+          :class="showSync
+            ? 'border-sky-300 bg-sky-50 text-sky-800'
+            : 'border-slate-200 bg-white text-graphite hover:bg-slate-50'"
+          @click="showSync = !showSync; showHealth = false"
+        >
+          <RefreshCw class="size-3.5" />
+          Sync
         </button>
 
         <button
@@ -205,6 +218,10 @@ const showHealth = ref(false);
     <!-- ── Content health panel (toggled) ───────────────────────────────── -->
     <div v-if="showHealth" class="border-b border-amber-200 bg-amber-50/60 px-6 py-5">
       <ContentHealthPanel />
+    </div>
+
+    <div v-if="showSync" class="border-b border-sky-200 bg-sky-50/60 px-6 py-5">
+      <SyncStatusPanel />
     </div>
 
     <!-- ── Body: inventory + sidebar ────────────────────────────────────── -->

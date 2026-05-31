@@ -57,13 +57,25 @@ def scan_freshness():
             logger.error("Freshness scan failed for %s: %s", site.site_name, exc)
             results.append({"site": site.site_name, "error": str(exc)})
 
+    from cms_intelligence.tasks.sync_logger import log_sync
+
     total_alerts = sum(r.get("alerts_raised", 0) for r in results)
     total_resolved = sum(r.get("auto_resolved", 0) for r in results)
+    errors = [r for r in results if "error" in r]
+    status = "failed" if len(errors) == len(results) and results else (
+        "partial" if errors else "success"
+    )
     logger.info(
         "Freshness scan complete: %d new alerts, %d auto-resolved",
         total_alerts, total_resolved,
     )
-    return results
+    log_sync(
+        task="freshness",
+        status=status,
+        rows_processed=total_alerts + total_resolved,
+        error_message="; ".join(r.get("error", "") for r in errors) if errors else "",
+    )
+    return {"status": status, "alerts_raised": total_alerts, "auto_resolved": total_resolved}
 
 
 def _scan_site(site) -> dict:

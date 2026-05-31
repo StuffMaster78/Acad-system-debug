@@ -65,13 +65,27 @@ def pull_gsc_data():
                 "error": str(exc),
             })
 
+    from cms_intelligence.tasks.sync_logger import log_sync
+
     total_rows = sum(r.get("rows_stored", 0) for r in results)
+    errors = [r for r in results if "error" in r]
+    status = "failed" if len(errors) == len(results) and results else (
+        "partial" if errors else "success"
+    )
     logger.info(
         "GSC ingestion complete: %d sites, %d total rows stored",
         len(results),
         total_rows,
     )
-    return results
+    for r in results:
+        log_sync(
+            task="gsc",
+            site=None,
+            status="failed" if "error" in r else "success",
+            rows_processed=r.get("rows_stored", 0),
+            error_message=r.get("error", ""),
+        )
+    return {"status": status, "sites": len(results), "rows": total_rows}
 
 
 def _pull_gsc_for_site(site, seo_settings) -> dict:

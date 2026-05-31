@@ -50,13 +50,26 @@ def pull_ga4_data():
             logger.error("GA4 pull failed for %s: %s", site.site_name, exc)
             results.append({"site": site.site_name, "error": str(exc)})
 
+    from cms_intelligence.tasks.sync_logger import log_sync
+
     total_rows = sum(r.get("rows_stored", 0) for r in results)
+    errors = [r for r in results if "error" in r]
+    status = "failed" if len(errors) == len(results) and results else (
+        "partial" if errors else "success"
+    )
     logger.info(
         "GA4 ingestion complete: %d sites, %d total rows",
         len(results),
         total_rows,
     )
-    return results
+    for r in results:
+        log_sync(
+            task="ga4",
+            status="failed" if "error" in r else "success",
+            rows_processed=r.get("rows_stored", 0),
+            error_message=r.get("error", ""),
+        )
+    return {"status": status, "sites": len(results), "rows": total_rows}
 
 
 def _pull_ga4_for_site(site, seo_settings) -> dict:

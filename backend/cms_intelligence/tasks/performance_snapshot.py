@@ -41,9 +41,21 @@ def compute_performance_snapshots():
             logger.error("Snapshot computation failed for %s: %s", site.site_name, exc)
             results.append({"site": site.site_name, "error": str(exc)})
 
+    from cms_intelligence.tasks.sync_logger import log_sync
+
     total = sum(r.get("pages_updated", 0) for r in results)
+    errors = [r for r in results if "error" in r]
+    status = "failed" if len(errors) == len(results) and results else (
+        "partial" if errors else "success"
+    )
     logger.info("Performance snapshots computed: %d pages across %d sites", total, len(results))
-    return results
+    log_sync(
+        task="snapshot",
+        status=status,
+        rows_processed=total,
+        error_message="; ".join(r.get("error", "") for r in errors) if errors else "",
+    )
+    return {"status": status, "pages_updated": total, "sites": len(results)}
 
 
 def _compute_for_site(site) -> dict:

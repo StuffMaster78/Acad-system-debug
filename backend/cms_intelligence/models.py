@@ -371,3 +371,56 @@ class ContentEmbedding(models.Model):
 
     class Meta:
         unique_together = ["content_type", "object_id"]
+
+
+# ===========================================================================
+# 7. Task Sync Log — persistent record of scheduled intelligence task runs
+# ===========================================================================
+
+class TaskSyncLog(models.Model):
+    """
+    Written by each Celery intelligence task at completion.
+    Gives staff a persistent, per-site view of when data was last ingested
+    and whether it succeeded — independent of Redis result-backend lifetime.
+    """
+
+    TASK_CHOICES = [
+        ("gsc", "GSC ingestion"),
+        ("ga4", "GA4 ingestion"),
+        ("freshness", "Freshness scanner"),
+        ("snapshot", "Performance snapshots"),
+        ("attribution", "Conversion attribution"),
+        ("embeddings", "Embedding generation"),
+    ]
+
+    STATUS_CHOICES = [
+        ("success", "Success"),
+        ("partial", "Partial — some sites failed"),
+        ("failed", "Failed"),
+        ("skipped", "Skipped — no config"),
+    ]
+
+    task = models.CharField(max_length=30, choices=TASK_CHOICES, db_index=True)
+    site = models.ForeignKey(
+        "wagtailcore.Site",
+        on_delete=models.CASCADE,
+        related_name="sync_logs",
+        null=True, blank=True,
+        help_text="Null = platform-wide task (e.g. embeddings)",
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="success")
+    rows_processed = models.PositiveIntegerField(default=0)
+    duration_seconds = models.FloatField(null=True, blank=True)
+    error_message = models.TextField(blank=True)
+    ran_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-ran_at"]
+        indexes = [
+            models.Index(fields=["task", "-ran_at"]),
+            models.Index(fields=["site", "task", "-ran_at"]),
+        ]
+
+    def __str__(self) -> str:
+        site_name = self.site.site_name if self.site_id else "all sites"
+        return f"{self.task} | {site_name} | {self.status} @ {self.ran_at:%Y-%m-%d %H:%M}"

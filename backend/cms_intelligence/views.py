@@ -6,6 +6,7 @@ from cms_intelligence.models import (
     ContentPerformanceSnapshot,
     FreshnessAlert,
     GSCDailyMetric,
+    TaskSyncLog,
 )
 from cms_intelligence.serializers import (
     FreshnessAlertSerializer,
@@ -144,3 +145,49 @@ class DashboardView(viewsets.ViewSet):
         }
 
         return Response(data)
+
+
+class SyncStatusView(viewsets.ViewSet):
+    """
+    GET /cms-api/intelligence/sync-status/
+    Returns the latest sync log entry for each task type,
+    giving staff a live view of when intelligence data was last updated.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    TASKS = ["gsc", "ga4", "freshness", "snapshot", "attribution", "embeddings"]
+
+    def list(self, request):
+        result = {}
+        for task in self.TASKS:
+            latest = TaskSyncLog.objects.filter(task=task).first()
+            if latest:
+                result[task] = {
+                    "status": latest.status,
+                    "rows_processed": latest.rows_processed,
+                    "ran_at": latest.ran_at.isoformat(),
+                    "error_message": latest.error_message or None,
+                    "duration_seconds": latest.duration_seconds,
+                }
+            else:
+                result[task] = None
+
+        # Also surface recent failures (last 7 days)
+        from django.utils import timezone
+        from datetime import timedelta
+        recent_failures = (
+            TaskSyncLog.objects
+            .filter(status="failed", ran_at__gte=timezone.now() - timedelta(days=7))
+            .order_by("-ran_at")[:10]
+        )
+        result["recent_failures"] = [
+            {
+                "task": f.task,
+                "ran_at": f.ran_at.isoformat(),
+                "error_message": f.error_message,
+            }
+            for f in recent_failures
+        ]
+
+        return Response(result)
