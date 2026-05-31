@@ -2,7 +2,9 @@
 import { computed, onMounted } from "vue";
 import { BarChart3, RefreshCw } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import AppChart from "@/components/ui/AppChart.vue";
 import { useEditorWorkspaceStore } from "@/stores/editorWorkspace";
+import type { EChartsOption } from "echarts";
 
 const workspace = useEditorWorkspaceStore();
 
@@ -23,6 +25,34 @@ function formatDate(value?: string | null): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(value));
 }
+
+const weeklyChartOption = computed<EChartsOption>(() => {
+  const weeks = weeklyTasks.value;
+  if (!weeks.length) return {};
+  return {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    grid: { left: 80, right: 20, top: 10, bottom: 20 },
+    xAxis: { type: "value" },
+    yAxis: { type: "category", data: weeks.map((w) => w.week ?? ""), axisLabel: { fontSize: 11 } },
+    series: [{ name: "Tasks", type: "bar", data: weeks.map((w) => w.count), itemStyle: { color: "#0ea5e9" } }],
+  };
+});
+
+const statusChartOption = computed<EChartsOption>(() => {
+  const entries = statusBreakdown.value;
+  if (!entries.length) return {};
+  return {
+    tooltip: { trigger: "item" },
+    legend: { bottom: 0, type: "scroll" },
+    series: [{
+      name: "Tasks",
+      type: "pie",
+      radius: ["40%", "70%"],
+      data: entries.map(([name, value]) => ({ name, value })),
+      label: { formatter: "{b}: {c}" },
+    }],
+  };
+});
 
 onMounted(async () => {
   if (!workspace.tasks.length) await workspace.hydrate();
@@ -76,25 +106,13 @@ onMounted(async () => {
     <section class="grid gap-6 lg:grid-cols-2">
       <div class="rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="text-base font-semibold text-ink">Status breakdown</h2>
-        <div class="mt-4 space-y-2">
-          <div
-            v-for="([status, count]) in statusBreakdown"
-            :key="status"
-            class="flex items-center justify-between gap-3"
-          >
-            <span class="text-sm capitalize text-graphite">{{ status.replace(/_/g, " ") }}</span>
-            <div class="flex items-center gap-3">
-              <div class="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  class="h-full rounded-full bg-signal"
-                  :style="{ width: `${Math.min(((count as number) / (workspace.analytics.total_tasks ?? 1)) * 100, 100)}%` }"
-                />
-              </div>
-              <span class="w-8 text-right text-sm font-semibold text-ink">{{ count }}</span>
-            </div>
-          </div>
-          <p v-if="!statusBreakdown.length" class="text-sm text-graphite">No status data available.</p>
-        </div>
+        <AppChart
+          v-if="statusBreakdown.length"
+          :option="statusChartOption"
+          height="200px"
+          class="mt-2"
+        />
+        <p v-else class="mt-4 text-sm text-graphite">No status data available.</p>
       </div>
 
       <div class="rounded-lg border border-slate-200 bg-white p-5">
@@ -128,22 +146,12 @@ onMounted(async () => {
           <h2 class="text-base font-semibold text-ink">Weekly output</h2>
         </div>
 
-        <div v-if="weeklyTasks.length" class="mt-5 space-y-3">
-          <div
-            v-for="week in weeklyTasks"
-            :key="week.week ?? String(weeklyTasks.indexOf(week))"
-            class="flex items-center gap-3"
-          >
-            <span class="w-20 shrink-0 text-xs text-graphite">{{ week.week }}</span>
-            <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
-              <div
-                class="h-5 rounded-full bg-signal transition-all"
-                :style="{ width: `${(week.count / maxWeeklyCount) * 100}%` }"
-              />
-            </div>
-            <span class="w-8 text-right text-sm font-semibold text-ink">{{ week.count }}</span>
-          </div>
-        </div>
+        <AppChart
+          v-if="weeklyTasks.length"
+          :option="weeklyChartOption"
+          height="220px"
+          class="mt-4"
+        />
         <p v-else class="mt-5 text-sm text-graphite">No weekly data available.</p>
       </div>
 

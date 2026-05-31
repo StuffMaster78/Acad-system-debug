@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
+import AppChart from "@/components/ui/AppChart.vue";
+import { analyticsChartsApi, type ChartData } from "@/api/analyticsCharts";
+import type { EChartsOption } from "echarts";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -105,11 +108,50 @@ function sourceLabel(source: string) {
   return source;
 }
 
+// ── Charts ────────────────────────────────────────────────────────────────────
+const websiteChart = ref<ChartData | null>(null);
+const chartsLoading = ref(false);
+
+const revenueTrendOption = computed<EChartsOption>(() => {
+  const rows = revenueRows.value;
+  if (!rows.length) return {};
+  return {
+    tooltip: { trigger: "axis" },
+    legend: { data: ["Revenue", "Expenses", "Net"], bottom: 0 },
+    grid: { left: 60, right: 20, top: 10, bottom: 40 },
+    xAxis: { type: "category", data: rows.map((r) => r.month || r.period || ""), axisLabel: { rotate: 30, fontSize: 10 } },
+    yAxis: { type: "value", axisLabel: { formatter: (v: number) => `$${(v / 1000).toFixed(0)}k` } },
+    series: [
+      { name: "Revenue", type: "line", data: rows.map((r) => Number(r.revenue?.total ?? 0)), smooth: true, itemStyle: { color: "#7c3aed" }, lineStyle: { color: "#7c3aed", width: 2 }, areaStyle: { color: "rgba(124,58,237,0.07)" } },
+      { name: "Expenses", type: "line", data: rows.map((r) => Number(r.expenses?.total ?? 0)), smooth: true, itemStyle: { color: "#f59e0b" }, lineStyle: { color: "#f59e0b" } },
+      { name: "Net", type: "bar", data: rows.map((r) => Number(r.net_revenue ?? 0)), itemStyle: { color: "#10b981" } },
+    ],
+  };
+});
+
+const websiteChartOption = computed<EChartsOption>(() => {
+  if (!websiteChart.value) return {};
+  const d = websiteChart.value;
+  return {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    grid: { left: 130, right: 40, top: 10, bottom: 30 },
+    xAxis: { type: "value", axisLabel: { formatter: (v: number) => `$${(v / 1000).toFixed(0)}k` } },
+    yAxis: { type: "category", data: [...d.labels].reverse(), axisLabel: { fontSize: 11 } },
+    series: [{ name: "Revenue", type: "bar", data: [...d.series[0].data].reverse(), itemStyle: { color: "#7c3aed" } }],
+  };
+});
+
 onMounted(() => {
   finance.hydratePlatformFinance().then(() => {
     const first = finance.financeOpsItems[0];
     if (first) financeControl.itemKey = `${first.source}:${first.id}`;
   }).catch(() => undefined);
+
+  chartsLoading.value = true;
+  analyticsChartsApi.revenueByWebsite({ months: 12, top: 8 })
+    .then((r) => { websiteChart.value = r.data; })
+    .catch(() => undefined)
+    .finally(() => { chartsLoading.value = false; });
 });
 </script>
 
@@ -450,12 +492,15 @@ onMounted(() => {
     <section class="grid gap-6 xl:grid-cols-[1fr_1fr]">
       <div class="rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="text-lg font-semibold text-ink">Monthly finance trend</h2>
-        <div class="mt-4 overflow-hidden rounded-md border border-slate-200">
+        <AppChart
+          v-if="revenueRows.length"
+          :option="revenueTrendOption"
+          height="280px"
+          class="mt-4"
+        />
+        <div v-else class="mt-4 overflow-hidden rounded-md border border-slate-200">
           <div class="grid grid-cols-[1fr_auto_auto_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase text-graphite">
-            <span>Period</span>
-            <span>Revenue</span>
-            <span>Expenses</span>
-            <span class="text-right">Net</span>
+            <span>Period</span><span>Revenue</span><span>Expenses</span><span class="text-right">Net</span>
           </div>
           <div
             v-for="row in revenueRows"
@@ -545,5 +590,19 @@ onMounted(() => {
         </div>
       </div>
     </section>
+
+    <!-- Revenue by website (cross-tenant) -->
+    <section v-if="websiteChart || chartsLoading" class="rounded-xl border border-slate-200 bg-white p-5">
+      <h2 class="text-base font-semibold text-ink">Revenue by website — last 12 months</h2>
+      <AppChart
+        v-if="websiteChart"
+        :option="websiteChartOption"
+        :loading="chartsLoading"
+        height="320px"
+        class="mt-4"
+      />
+      <div v-else-if="chartsLoading" class="mt-4 h-72 animate-pulse rounded-lg bg-slate-100" />
+    </section>
+
   </div>
 </template>
