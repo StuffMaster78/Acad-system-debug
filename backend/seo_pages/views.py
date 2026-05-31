@@ -9,22 +9,38 @@ from django.shortcuts import get_object_or_404
 
 from .models import SeoPage
 from .serializers import SeoPageSerializer, PublicSeoPageSerializer
-from websites.models.websites import Website
 
 
 class SeoPageViewSet(viewsets.ModelViewSet):
     """
     ViewSet for SEO Pages (admin/internal use).
     """
-    queryset = SeoPage.objects.filter(is_deleted=False)
     serializer_class = SeoPageSerializer
-    
+
     def get_queryset(self):
-        qs = super().get_queryset()
-        website_id = self.request.query_params.get('website_id')
-        if website_id:
-            qs = qs.filter(website_id=website_id)
-        return qs
+        qs = SeoPage.objects.filter(is_deleted=False)
+        user = self.request.user
+
+        if not user.is_authenticated:
+            return qs.none()
+
+        # Superadmin sees all tenants; optional website_id narrows further.
+        if getattr(user, 'role', None) == 'superadmin' or getattr(user, 'is_superuser', False):
+            website_id = self.request.query_params.get('website_id')
+            if website_id:
+                qs = qs.filter(website_id=website_id)
+            return qs
+
+        # All other staff are scoped to the website resolved from the host,
+        # falling back to the website assigned to their user account.
+        website = (
+            getattr(self.request, 'website', None)
+            or getattr(user, 'website', None)
+        )
+        if website:
+            return qs.filter(website=website)
+
+        return qs.none()
     
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -65,33 +81,25 @@ class SeoPageViewSet(viewsets.ModelViewSet):
 class PublicSeoPageViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Public read-only ViewSet for SEO Pages.
-    Exposes published pages via slug.
+
+    Scoped to the website resolved from the request host by
+    PortalTenantResolverMiddleware — a slug on site A never leaks to site B.
     """
     permission_classes = [AllowAny]
     serializer_class = PublicSeoPageSerializer
     lookup_field = 'slug'
-    
+
     def get_queryset(self):
-        return SeoPage.objects.filter(
-            is_published=True,
-            is_deleted=False
-        )
-    
+        qs = SeoPage.objects.filter(is_published=True, is_deleted=False)
+        # Always scope to the host-resolved website so slugs are tenant-isolated.
+        website = getattr(self.request, 'website', None)
+        if website:
+            qs = qs.filter(website=website)
+        return qs
+
     @action(detail=False, methods=['get'], url_path='by-slug/(?P<slug>[^/.]+)')
     def by_slug(self, request, slug=None):
-        """
-        Get a published SEO page by slug.
-        
-        Query params:
-        - website_id (optional): Filter by website
-        """
-        website_id = request.query_params.get('website_id')
-        
-        queryset = self.get_queryset()
-        if website_id:
-            queryset = queryset.filter(website_id=website_id)
-        
-        page = get_object_or_404(queryset, slug=slug)
-        serializer = self.get_serializer(page)
-        return Response(serializer.data)
+        """GET a published SEO page by slug, scoped to the current domain."""
+        page = get_object_or_404(self.get_queryset(), slug=slug)
+        return Response(self.get_serializer(page).data)
 

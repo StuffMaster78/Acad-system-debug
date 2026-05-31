@@ -13,32 +13,31 @@ from cms_content_graph.models import (
 
 
 class ContentPillarSerializer(serializers.ModelSerializer):
-    service_page_title = serializers.CharField(
-        source="service_page.title", read_only=True
-    )
-    service_page_url = serializers.CharField(
-        source="service_page.url", read_only=True
-    )
-    hub_post_title = serializers.SerializerMethodField()
-    hub_post_url = serializers.SerializerMethodField()
+    service_page = serializers.SerializerMethodField()
+    hub_post = serializers.SerializerMethodField()
 
     class Meta:
         model = ContentPillar
         fields = [
             "id", "name", "slug", "description",
-            "service_page_title", "service_page_url",
-            "hub_post_title", "hub_post_url",
+            "service_page", "hub_post",
             "target_keywords",
             "spoke_count", "avg_gsc_position",
             "total_clicks_30d", "total_conversions_30d",
             "attributed_revenue_30d",
         ]
 
-    def get_hub_post_title(self, obj) -> str | None:
-        return obj.hub_post.title if obj.hub_post else None
+    def get_service_page(self, obj) -> dict | None:
+        sp = obj.service_page
+        if not sp:
+            return None
+        return {"id": sp.pk, "title": sp.title, "slug": sp.slug}
 
-    def get_hub_post_url(self, obj) -> str | None:
-        return obj.hub_post.url if obj.hub_post else None
+    def get_hub_post(self, obj) -> dict | None:
+        hp = obj.hub_post
+        if not hp:
+            return None
+        return {"id": hp.pk, "title": hp.title, "slug": hp.slug}
 
 
 class BlogServiceLinkSerializer(serializers.ModelSerializer):

@@ -93,7 +93,6 @@ class ResourceIndexPage(Page):
 # SNIPPETS — tenant-scoped categories and tags
 # ===========================================================================
 
-@register_snippet
 class BlogCategory(index.Indexed, models.Model):
     """Blog post category. Tenant-scoped via site FK."""
     site = models.ForeignKey(
@@ -152,7 +151,6 @@ class BlogCategory(index.Indexed, models.Model):
         return self.name
 
 
-@register_snippet
 class BlogTag(models.Model):
     """Blog post tag. Tenant-scoped."""
     site = models.ForeignKey(
