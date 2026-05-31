@@ -333,7 +333,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
         </div>
 
         <!-- Account pill — absolute top-right corner -->
-        <div ref="userMenuRoot" class="absolute right-2 top-2">
+        <div ref="userMenuRoot" class="absolute right-1 top-1">
           <button
             class="focus-ring flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-[13px] font-medium text-graphite transition-colors hover:border-slate-200 hover:bg-slate-50"
             type="button"
