@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
-import { ChevronRight, LogOut, Menu, Settings, X } from "@lucide/vue";
+import { ChevronDown, ChevronRight, LogOut, Menu, Settings, X } from "@lucide/vue";
 import ActivityShortcut from "@/components/layout/ActivityShortcut.vue";
 import GlobalSearch from "@/components/layout/GlobalSearch.vue";
 import SidebarChart from "@/components/layout/SidebarChart.vue";
@@ -332,18 +332,21 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
           </span>
         </div>
 
-        <!-- Thin divider, close to avatar -->
-        <div class="ml-4 mr-2 h-5 w-px shrink-0 bg-slate-200" />
-
-        <!-- Avatar — right edge -->
-        <div ref="userMenuRoot" class="relative shrink-0">
+        <!-- Account pill — Stripe-style: avatar + name + chevron -->
+        <div ref="userMenuRoot" class="relative ml-3 shrink-0">
           <button
-            class="focus-ring flex h-8 w-8 items-center justify-center rounded-full ring-2 ring-transparent transition-all hover:ring-slate-200"
+            class="focus-ring flex items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-[13px] font-medium text-graphite transition-colors hover:border-slate-200 hover:bg-slate-50"
             type="button"
-            :title="auth.user?.full_name || auth.user?.email"
             @click="userMenuOpen = !userMenuOpen"
           >
-            <UserAvatar :user="auth.user" size="sm" />
+            <UserAvatar :user="auth.user" size="xs" />
+            <span class="hidden max-w-[96px] truncate sm:block">
+              {{ auth.user?.full_name?.split(" ")[0] || auth.user?.email?.split("@")[0] || "Account" }}
+            </span>
+            <ChevronDown
+              class="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150"
+              :class="userMenuOpen ? 'rotate-180' : ''"
+            />
           </button>
 
           <Transition
