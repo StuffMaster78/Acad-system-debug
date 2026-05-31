@@ -89,7 +89,7 @@ export const legalApi = {
   // ── Admin CRUD (staff only) ────────────────────────────────────────────────
   admin: {
     // Legal documents
-    listDocuments: (params?: { doc_type?: string }) =>
+    listDocuments: (params?: { doc_type?: string; website_id?: number }) =>
       api.get<LegalDocument[]>(apiPath("/legal/admin/documents/"), { params }),
     createDocument: (payload: Partial<LegalDocument>) =>
       api.post<LegalDocument>(apiPath("/legal/admin/documents/"), payload),

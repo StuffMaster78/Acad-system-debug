@@ -8,8 +8,7 @@ from config_system.cache.keys import build_config_cache_key
 from config_system.registry import CONFIG_REGISTRY
 from config_system.core.schema import ConfigType
 from config_system.storage.models import ConfigItem
-from config_system.rollout.kill_switch import KillSwitchEngine
-from config_system.rollout.cohort_engine import RolloutEngine
+from config_system.rollout.cohort_engine import CohortEngine as RolloutEngine
 
 
 class ConfigEvaluationError(Exception):
@@ -45,6 +44,7 @@ class ConfigEvaluator:
         # -------------------------
         # 1. Kill Switch (HARD STOP)
         # -------------------------
+        from config_system.rollout.kill_switch import KillSwitchEngine  # local to break circular import
         if KillSwitchEngine.is_disabled(
             key=key,
             user_id=user_id,

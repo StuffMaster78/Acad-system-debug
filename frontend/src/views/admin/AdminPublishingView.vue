@@ -257,7 +257,7 @@ onMounted(() => {
                 <td class="px-3 py-3">
                   <StatusPill
                     :label="isScheduled(item) ? 'scheduled' : item.status"
-                    :tone="isScheduled(item) ? 'warn' : statusTone(item.status)"
+                    :tone="isScheduled(item) ? 'warning' : statusTone(item.status)"
                   />
                 </td>
 

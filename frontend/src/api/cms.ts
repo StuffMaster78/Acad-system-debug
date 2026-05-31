@@ -30,6 +30,7 @@ export interface CMSAuthor {
   profile_photo?: WagtailImage | null;
   credentials?: string;
   degrees?: string[];
+  licenses?: string[];
   areas_of_expertise?: string;
   years_experience?: number;
   role?: string;
@@ -212,6 +213,9 @@ export interface ContentPillar {
   service_page?: { id: number; title: string; slug: string } | null;
   hub_post?: { id: number; title: string; slug: string } | null;
   spoke_count?: number;
+  attributed_revenue_30d?: number;
+  total_clicks_30d?: number;
+  total_conversions_30d?: number;
 }
 
 // ── Wagtail list response ─────────────────────────────────────────────────

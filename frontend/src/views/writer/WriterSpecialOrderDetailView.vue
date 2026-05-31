@@ -181,7 +181,7 @@ const milestonesLoading = ref(false);
 onMounted(async () => {
   isLoading.value = true;
   try {
-    const { data } = await specialOrdersApi.detail(orderId);
+    const { data } = await specialOrdersApi.get(orderId);
     order.value = data;
     await loadMilestones();
   } finally {

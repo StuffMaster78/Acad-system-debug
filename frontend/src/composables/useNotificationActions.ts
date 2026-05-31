@@ -8,16 +8,8 @@
  */
 import { watch } from "vue";
 import { useNotificationStore } from "@/stores/notifications";
-
-// Lazy store imports to avoid circular dependency at module load time.
-function getFilesStore() {
-  const { useFilesStore } = require("@/stores/files");
-  return useFilesStore();
-}
-function getOrderStore() {
-  const { useOrderStore } = require("@/stores/orders");
-  return useOrderStore();
-}
+import { useFilesStore } from "@/stores/files";
+import { useOrderStore } from "@/stores/orders";
 
 // Event keys that should trigger a files store refresh.
 const FILE_REFRESH_EVENTS = new Set([
@@ -41,39 +33,26 @@ const ORDER_REFRESH_EVENTS = new Set([
 
 export function useNotificationActions() {
   const notifs = useNotificationStore();
+  const filesStore = useFilesStore();
+  const orderStore = useOrderStore();
 
-  // Watch for new notifications (items grows when pollUnreadCount pushes one).
   watch(
     () => notifs.items.length,
     (newLen, oldLen) => {
       if (newLen <= oldLen) return;
 
-      // The newest item is at index 0 (items are prepended).
       const latest = notifs.items[0];
       if (!latest?.event_key) return;
 
       const key = latest.event_key;
 
       if (FILE_REFRESH_EVENTS.has(key)) {
-        try {
-          const filesStore = getFilesStore();
-          // fetchOrderAttachments requires an orderId — extract from notification metadata if available.
-          // If unavailable, a broader refetch can be triggered by the parent component instead.
-          // We just clear the delivery-blocked state so the UI is ready for re-download.
-          filesStore.clearMessages();
-        } catch {
-          // Store not yet loaded — no-op.
-        }
+        filesStore.clearMessages();
       }
 
       if (ORDER_REFRESH_EVENTS.has(key)) {
-        try {
-          const orderStore = getOrderStore();
-          if (typeof orderStore.fetchOrders === "function") {
-            orderStore.fetchOrders().catch(() => undefined);
-          }
-        } catch {
-          // Store not yet loaded — no-op.
+        if (typeof orderStore.fetchOrders === "function") {
+          orderStore.fetchOrders().catch(() => undefined);
         }
       }
     },

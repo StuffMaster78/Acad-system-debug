@@ -563,7 +563,7 @@ function wsParam() {
 const selectedDocType = ref<DocType>("terms_of_service");
 const docVersions = ref<LegalDocument[]>([]);
 const activeVersions = ref<Record<string, string>>({});
-const editingDoc = ref<Partial<LegalDocument> | null>(null);
+const editingDoc = ref<(Partial<LegalDocument> & { content: string }) | null>(null);
 const isSavingDoc = ref(false);
 const docSaveError = ref("");
 const activating = ref<number | null>(null);
@@ -651,7 +651,7 @@ const categories = ref<HelpCategory[]>([]);
 const selectedCategory = ref<HelpCategory | null>(null);
 const editingCategory = ref<Partial<HelpCategory> | null>(null);
 const articles = ref<HelpArticle[]>([]);
-const editingArticle = ref<Partial<HelpArticle> | null>(null);
+const editingArticle = ref<(Partial<HelpArticle> & { content: string }) | null>(null);
 const isSavingArticle = ref(false);
 const articleSaveError = ref("");
 
@@ -751,7 +751,7 @@ function fmtDate(v: string) {
 // ── Static pages ─────────────────────────────────────────────────────────────
 const pages            = ref<SeoPageRecord[]>([]);
 const isLoadingPages   = ref(false);
-const editingPage      = ref<Partial<SeoPageRecord & { body_html: string }> | null>(null);
+const editingPage      = ref<(Partial<SeoPageRecord> & { body_html: string }) | null>(null);
 const isSavingPage     = ref(false);
 const pageSaveError    = ref("");
 

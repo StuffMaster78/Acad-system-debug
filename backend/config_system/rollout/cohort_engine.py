@@ -3,9 +3,9 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from rollout.context import RolloutContext
-from rollout.rules import RolloutRule
-from rollout.operators import RuleOperators
+from .context import RolloutContext
+from .rules import RolloutRule
+from .operators import RuleOperators
 
 
 class CohortEngine:

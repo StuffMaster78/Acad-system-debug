@@ -88,7 +88,7 @@
             <li v-for="deg in author.degrees ?? []" :key="deg" class="flex items-start gap-2 text-sm text-graphite">
               <GraduationCap class="mt-0.5 size-4 shrink-0 text-berry" />{{ deg }}
             </li>
-            <li v-for="lic in (author as any).licenses ?? []" :key="lic" class="flex items-start gap-2 text-sm text-graphite">
+            <li v-for="lic in author.licenses ?? []" :key="lic" class="flex items-start gap-2 text-sm text-graphite">
               <Award class="mt-0.5 size-4 shrink-0 text-signal" />{{ lic }}
             </li>
           </ul>
