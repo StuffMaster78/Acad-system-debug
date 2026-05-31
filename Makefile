@@ -1,4 +1,4 @@
-.PHONY: help install install-backend check-backend schema test test-backend test-backend-unit test-backend-integration test-backend-e2e coverage coverage-backend lint lint-backend lint-fix-backend migrate migrate-test makemigrations docker-up docker-down docker-logs docker-test-backend clean clean-backend clean-all dev dev-backend ci-test ci-coverage ci-lint
+.PHONY: help install install-backend install-frontend check check-backend typecheck schema test test-backend test-backend-unit test-backend-integration test-backend-e2e test-frontend coverage coverage-backend lint lint-backend lint-fix-backend migrate migrate-test makemigrations docker-up docker-down docker-logs docker-test-backend clean clean-backend clean-frontend clean-all dev dev-backend dev-frontend build-frontend ci-test ci-coverage ci-lint
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -7,20 +7,31 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 # Installation
-install: install-backend ## Install backend dependencies
+install: install-backend install-frontend ## Install all dependencies (backend + frontend)
 
-install-backend: ## Install backend dependencies
+install-backend: ## Install backend Python dependencies
 	cd backend && pip install -r requirements.txt
 
+install-frontend: ## Install frontend Node dependencies
+	cd frontend && pnpm install
+
 # Verification
+check: check-backend typecheck ## Run backend system check + frontend typecheck
+
 check-backend: ## Run Django system checks with test settings
 	cd backend && .venv/bin/python manage.py check --settings=writing_system.settings_test
+
+typecheck: ## Run vue-tsc type check on the frontend
+	cd frontend && pnpm typecheck
 
 schema: ## Generate an OpenAPI schema snapshot
 	cd backend && .venv/bin/python manage.py spectacular --file /tmp/writing-system-schema.yml --settings=writing_system.settings_test
 
 # Testing
-test: test-backend ## Run backend tests
+test: test-backend test-frontend ## Run all tests (backend + frontend)
+
+test-frontend: ## Run frontend tests (vitest)
+	cd frontend && pnpm test
 
 test-backend: ## Run backend tests
 	cd backend && pytest -v --tb=short
@@ -42,7 +53,7 @@ coverage-backend: ## Generate backend coverage report
 	@echo "Backend coverage report: backend/htmlcov/index.html"
 
 # Linting
-lint: lint-backend ## Run backend linters
+lint: lint-backend ## Run all linters
 
 lint-backend: ## Lint backend code
 	cd backend && flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
@@ -77,7 +88,11 @@ docker-test-backend: ## Run backend tests in Docker
 	docker-compose exec web pytest -v
 
 # Cleanup
-clean: clean-backend ## Clean generated backend files
+clean: clean-backend clean-frontend ## Clean all generated files
+
+clean-frontend: ## Clean frontend build artifacts
+	rm -rf frontend/dist
+	rm -rf frontend/.vite
 
 clean-backend: ## Clean backend generated files
 	find backend -type d -name "__pycache__" -exec rm -r {} + 2>/dev/null || true
@@ -99,6 +114,12 @@ dev: dev-backend ## Start backend development server
 
 dev-backend: ## Start backend development server
 	cd backend && python manage.py runserver
+
+dev-frontend: ## Start frontend dev server (hot-reload on :5174)
+	cd frontend && pnpm dev
+
+build-frontend: ## Build frontend for production
+	cd frontend && pnpm build
 
 # CI helpers
 ci-test: test-backend ## Run tests as CI would

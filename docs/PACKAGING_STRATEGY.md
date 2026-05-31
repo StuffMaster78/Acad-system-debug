@@ -1,96 +1,76 @@
 # Packaging Strategy
 
-This is the working direction for making the project easier to follow, split,
-and maintain.
+## Current Decision (updated May 2026)
 
-## Decision
+**The frontend lives in this repository.** The earlier plan to keep this
+backend-only and add the frontend in a separate package has been superseded.
+The Vue 3 frontend is now built, feature-complete, and maintained here as a
+monorepo alongside the Django backend.
 
-Do not physically split the repository yet.
+The split-repository target shape described in the original plan (below) remains
+a valid future option if the codebase grows to a size where separate CI,
+separate deployments, or separate teams make sense. For now, a monorepo with
+clear internal boundaries is the right call.
 
-First, stabilize the backend as the source of truth, finish cleaning legacy
-frontend assumptions, and improve the OpenAPI contract. Once the new frontend
-work starts, create a separate frontend package or repository that consumes the
-backend contract instead of sharing application code with this repo.
+---
 
-## Target Shape
+## Repository Boundaries (current)
 
 ```text
-writing-backend/
-  Django API, domain modules, migrations, Celery tasks, OpenAPI schema
-
-writing-frontend/
-  Fresh portals and dashboards for clients, writers, editors, support,
-  admins, and superadmins
-
-writing-infra/
-  Production deployment, environment orchestration, observability,
-  reverse proxy, and cloud resources
-
-writing-docs/ (optional)
-  Product specs, API integration guides, design decisions, and runbooks
+writing_project/
+├── backend/     Django API · domain apps · migrations · Celery · OpenAPI
+├── frontend/    Vue 3 portals · Pinia stores · TypeScript · Tailwind
+├── nginx/       Reverse proxy config
+├── docs/        Architecture, API reference, deployment runbooks
+└── .github/     CI workflows (backend + frontend), deploy, PR hygiene
 ```
 
-This can live under a GitHub organization later, similar to a clean
-multi-repository product layout. The names above are placeholders; the
-important boundary is backend, frontend, infrastructure, and docs.
+Each layer has a clear owner:
 
-## Current Repository Role
+- **Backend** owns the API contract, database schema, business logic, and
+  background tasks. It does not import or depend on frontend code.
+- **Frontend** consumes the API. It does not contain business logic that belongs
+  in Django. It communicates with the backend exclusively through
+  `GET /api/v1/portal-context/` at boot and REST endpoints under `/api/v1/`.
+- **nginx** proxies the two. Static assets are served directly; `/api/` is
+  forwarded to Django; SSE endpoints get appropriate buffering disabled.
 
-For now, `writing_project` is the backend/system repository.
+---
 
-It should contain:
+## Portal Surface Separation
 
-- Django apps and migrations
-- Backend tests
-- Celery workers and scheduled tasks
-- API schema generation
-- Backend Docker development services
-- Backend-facing docs and product notes
+The frontend is a single build, but it enforces domain-based surface isolation
+at runtime via the portal context endpoint. Client websites, the writer domain,
+and the staff domain each get a different surface with different allowed routes
+and roles. See `README.md` → Portal Architecture for the full mapping.
 
-It should not contain:
+---
 
-- New frontend app source
-- Generated frontend API clients
-- Dashboard builds
-- Node/Vite/Next project scaffolding
-- Legacy frontend compatibility layers
+## Frontend Readiness Gates (met)
 
-## Backend Boundaries
+The following gates from the original strategy have been cleared:
 
-Keep backend domains modular and explicit:
+- [x] Django system checks pass
+- [x] OpenAPI schema generation completes
+- [x] `vue-tsc --noEmit` passes clean
+- [x] Authentication, tenant selection, file upload, order lifecycle, payments,
+      notifications, and role dashboards have canonical endpoints
+- [x] Portal context endpoint live (`GET /api/v1/portal-context/`)
+- [x] Payment disclosure wired end-to-end
 
-- `accounts`, `authentication`, `users`: identity and access
-- `websites`: tenant/site context
-- `orders`, `order_pricing_core`, `order_payments_management`: order and money
-  workflows
-- `files_management`: uploaded file lifecycle and metadata
-- `communications`, `notifications_system`: messaging and notification
-  surfaces
-- `cms_core`, `cms_intelligence`: CMS infrastructure that still has an active
-  backend reason to exist
-- management apps: operational APIs for staff-facing domains
+---
 
-When a module only exists to serve a deleted frontend or old CMS surface, remove
-it or fold the durable behavior into a real backend domain.
+## Original Target Shape (reference)
 
-## Frontend Readiness Gate
+The original plan described splitting into four packages:
 
-Before a new frontend leans on generated types or strict API clients:
+```text
+writing-backend/    Django API, domain logic, migrations, OpenAPI schema
+writing-frontend/   Fresh portals and dashboards for all user types
+writing-infra/      Production deployment, observability, reverse proxy
+writing-docs/       Product specs, API guides, design decisions, runbooks
+```
 
-1. Django system checks must pass.
-2. OpenAPI schema generation must complete.
-3. Schema warnings/errors should be reduced enough that generated clients are
-   trustworthy.
-4. Authentication, tenant selection, file upload, order lifecycle, payments,
-   notifications, and role dashboards need clear canonical endpoints.
-5. Deprecated or duplicate endpoints should be marked, removed, or documented.
-
-## Near-Term Cleanup
-
-- Keep Docker Compose backend-only.
-- Keep Makefile commands backend-only.
-- Treat stale frontend docs as reference until rewritten.
-- Continue harmonizing `files_management` and other app APIs around serializers,
-  permissions, schema annotations, and domain services.
-- Preserve `backend/API_CONTRACT_FRONTEND.md` as the temporary frontend contract
-  note until the OpenAPI schema is reliable enough to replace it.
+This remains a valid future migration path. The internal boundaries enforced
+now (backend owns logic, frontend owns UI, nginx owns routing) make a future
+split straightforward without requiring a rewrite.
