@@ -59,6 +59,11 @@ export const useNotificationStore = defineStore("notifications", () => {
       const { data } = await notificationsApi.list({ page: 1, page_size: pageSize });
       items.value = data.results ?? [];
       total.value = data.count ?? items.value.length;
+    } catch {
+      // Degrade silently — bell still renders, just shows empty state.
+      // Common for staff roles without a website context on first load.
+      items.value = [];
+      total.value = 0;
     } finally {
       isLoading.value = false;
     }

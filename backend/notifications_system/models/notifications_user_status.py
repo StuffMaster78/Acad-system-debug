@@ -24,6 +24,7 @@ class NotificationsUserStatus(models.Model):
         'websites.Website',
         on_delete=models.CASCADE,
         related_name='notification_user_statuses',
+        null=True, blank=True,
     )
 
     # Read state

@@ -23,6 +23,7 @@ class UserNotificationMeta(models.Model):
         'websites.Website',
         on_delete=models.CASCADE,
         related_name='user_notification_meta',
+        null=True, blank=True,
     )
 
     # When the user last opened their notification feed
