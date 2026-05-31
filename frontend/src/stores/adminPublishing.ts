@@ -7,6 +7,7 @@ import {
   type WagtailPageRecord,
 } from "@/api/adminPublishing";
 import { useAuthStore } from "@/stores/auth";
+import { useWebsitesStore } from "@/stores/websites";
 import type {
   PublishingAdminLink,
   PublishingContentType,
@@ -46,6 +47,8 @@ function normalizeWagtailPage(record: WagtailPageRecord): PublishingItem {
 }
 
 function normalizeSeoPage(record: SeoPageRecord): PublishingItem {
+  const sites = useWebsitesStore();
+  const websiteId = typeof record.website === "number" ? record.website : null;
   return {
     id: record.id,
     type: "seo",
@@ -56,6 +59,8 @@ function normalizeSeoPage(record: SeoPageRecord): PublishingItem {
     updatedAt: record.updated_at ?? null,
     publishedAt: record.publish_date ?? null,
     summary: record.meta_description,
+    websiteId,
+    websiteName: websiteId ? sites.nameById(websiteId) : undefined,
   };
 }
 
@@ -286,7 +291,8 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
   });
 
   async function hydrate() {
-    const auth = useAuthStore();
+    const auth  = useAuthStore();
+    const sites = useWebsitesStore();
     isLoading.value = true;
     error.value = "";
 
@@ -295,6 +301,9 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
         items.value = previewItems();
         return;
       }
+
+      // Pre-load website names so normalizeSeoPage can resolve them synchronously
+      await sites.ensure();
 
       const [blogRes, serviceRes, seoRes] = await Promise.allSettled([
         adminPublishingApi.wagtailPages({

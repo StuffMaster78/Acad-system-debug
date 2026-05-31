@@ -13,6 +13,8 @@ export interface PublishingItem {
   summary?: string;
   keyword?: string;
   ownerRole?: string;
+  websiteId?: number | null;
+  websiteName?: string;
 }
 
 export interface PublishingMetric {
