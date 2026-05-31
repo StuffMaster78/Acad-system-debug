@@ -105,4 +105,16 @@ export const adminPublishingApi = {
     api.get(apiPath(`/seo-pages/seo-pages/${id}/preview/`)),
   contentHealth: () =>
     api.get<ContentHealthReport>(apiPath("/cms-api/content-health/")),
+
+  createPageDraft: (payload: {
+    type: "blog" | "service";
+    title: string;
+    slug: string;
+    meta_description?: string;
+    primary_keyword?: string;
+  }) =>
+    api.post<{ page_id: number; edit_url: string }>(
+      apiPath("/cms-api/pages/create-draft/"),
+      payload,
+    ),
 };

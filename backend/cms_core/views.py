@@ -308,3 +308,133 @@ class ContentHealthView(APIView):
                 summary[f] = summary.get(f, 0) + 1
         else:
             summary["healthy"] += 1
+
+
+# ---------------------------------------------------------------------------
+# Wagtail draft creation — staff app → Wagtail handoff
+# ---------------------------------------------------------------------------
+
+class CreatePageDraftView(APIView):
+    """
+    POST /cms-api/pages/create-draft/
+
+    Creates a Wagtail page as a draft under the correct index page for the
+    current site, pre-filled with the fields the staff member entered in the
+    publishing desk. Returns the Wagtail admin edit URL so the frontend can
+    redirect staff directly to the rich editor.
+
+    Body:
+        {
+          "type":             "blog" | "service",
+          "title":            "How to write a nursing essay",
+          "slug":             "how-to-write-nursing-essay",
+          "meta_description": "...",
+          "primary_keyword":  "nursing essay" (optional)
+        }
+
+    Response:
+        { "page_id": 42, "edit_url": "/cms-admin/pages/42/edit/" }
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    STAFF_ROLES = ("superadmin", "admin", "editor")
+
+    def post(self, request):
+        user = request.user
+        if getattr(user, "role", None) not in self.STAFF_ROLES and not user.is_staff:
+            return Response(
+                {"detail": "Only staff may create CMS drafts."},
+                status=403,
+            )
+
+        page_type    = request.data.get("type", "blog")
+        title        = (request.data.get("title") or "").strip()
+        slug         = (request.data.get("slug") or "").strip()
+        meta_desc    = request.data.get("meta_description", "")
+        primary_kw   = request.data.get("primary_keyword", "")
+
+        if not title or not slug:
+            return Response({"detail": "title and slug are required."}, status=400)
+
+        site = getattr(request, "site", None)
+        if site is None:
+            # Fall back to default site when middleware hasn't resolved one
+            try:
+                from wagtail.models import Site as WagtailSite
+                site = WagtailSite.objects.filter(is_default_site=True).first()
+            except Exception:
+                pass
+
+        if site is None:
+            return Response(
+                {"detail": "Could not resolve a Wagtail site for this request."},
+                status=400,
+            )
+
+        try:
+            page_id, edit_url = self._create_draft(
+                page_type, title, slug, meta_desc, primary_kw, site, user
+            )
+        except LookupError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        except Exception as exc:
+            return Response({"detail": f"Could not create draft: {exc}"}, status=500)
+
+        return Response({"page_id": page_id, "edit_url": edit_url})
+
+    def _create_draft(self, page_type, title, slug, meta_desc, primary_kw, site, user):
+        from wagtail.models import Page
+
+        if page_type == "blog":
+            from cms_blog.models import BlogIndexPage, BlogPostPage
+
+            index = (
+                BlogIndexPage.objects.live()
+                .descendant_of(site.root_page)
+                .first()
+            )
+            if index is None:
+                raise LookupError(
+                    "No BlogIndexPage found under this site. "
+                    "Run setup_tenants or create one in Wagtail first."
+                )
+
+            page = BlogPostPage(
+                title=title,
+                slug=slug,
+                search_description=meta_desc,
+                primary_author=None,
+            )
+            index.add_child(instance=page)
+
+        elif page_type == "service":
+            from cms_service_pages.models import ServiceIndexPage, ServicePage
+
+            index = (
+                ServiceIndexPage.objects.live()
+                .descendant_of(site.root_page)
+                .first()
+            )
+            if index is None:
+                raise LookupError(
+                    "No ServiceIndexPage found under this site. "
+                    "Run setup_tenants or create one in Wagtail first."
+                )
+
+            page = ServicePage(
+                title=title,
+                slug=slug,
+                search_description=meta_desc,
+            )
+            index.add_child(instance=page)
+
+        else:
+            raise LookupError(f"Unknown page type: {page_type!r}")
+
+        # Save an initial revision so the page appears in the Wagtail edit UI
+        # add_child() already sets live=False, so this is a proper draft.
+        page.save_revision(user=user)
+
+        edit_url = f"/cms-admin/pages/{page.id}/edit/"
+        return page.id, edit_url

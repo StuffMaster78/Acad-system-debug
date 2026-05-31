@@ -613,7 +613,9 @@ const showSync  = ref(false);
               </button>
             </div>
             <p class="mt-2 text-center text-xs text-graphite">
-              Blog and service pages open in Wagtail after draft creation.
+              {{ publishing.draft.type === 'seo'
+                  ? 'SEO pages are saved directly from this desk.'
+                  : 'Draft is created in Wagtail and the editor opens in a new tab.' }}
             </p>
           </div>
         </div>

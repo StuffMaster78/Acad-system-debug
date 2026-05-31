@@ -280,8 +280,8 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
 
     return {
       title: "Wagtail CMS workflow",
-      detail: `${contentTypeLabel(draft.value.type)} drafts use Wagtail so staff get rich blocks, preview, media, revisions, and approvals.`,
-      actionLabel: "Queue CMS draft",
+      detail: `${contentTypeLabel(draft.value.type)} drafts are created in Wagtail so you get rich blocks, media, preview, revisions, and editorial approvals. The Wagtail editor opens automatically after creation.`,
+      actionLabel: "Create in CMS",
     };
   });
 
@@ -390,9 +390,20 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
       if (draft.value.type !== "seo") {
         if (auth.isPreviewSession) {
           queueCmsDraft(publish);
-        } else {
-          notice.value = `${contentTypeLabel(draft.value.type)} drafts belong in Wagtail so media, revisions, preview, and approvals are preserved. Open CMS pages to create it there.`;
+          return;
         }
+        // Create the Wagtail draft via the backend, then redirect to the edit page
+        const { data } = await adminPublishingApi.createPageDraft({
+          type: draft.value.type as "blog" | "service",
+          title: draft.value.title,
+          slug: draft.value.slug,
+          meta_description: draft.value.meta_description,
+          primary_keyword: draft.value.primary_keyword,
+        });
+        notice.value = `Draft created in Wagtail (page #${data.page_id}). Opening editor…`;
+        // Open the Wagtail edit page in the same tab so staff are taken directly
+        // to the rich editor with the fields pre-filled.
+        window.open(data.edit_url, "_blank", "noopener");
         return;
       }
 
