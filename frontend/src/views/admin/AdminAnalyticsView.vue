@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { BarChart3, Download, RefreshCw, ShieldAlert, TrendingUp, Users } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import AppChart from "@/components/ui/AppChart.vue";
 import { useAdminAnalyticsStore } from "@/stores/adminAnalytics";
+import { analyticsChartsApi, type ChartData } from "@/api/analyticsCharts";
+import type { EChartsOption } from "echarts";
 
 const analytics = useAdminAnalyticsStore();
 
@@ -61,8 +64,101 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
+// ── Charts ───────────────────────────────────────────────────────────────────
+
+const revenueChart = ref<ChartData | null>(null);
+const ordersChart  = ref<ChartData | null>(null);
+const clientsChart = ref<ChartData | null>(null);
+const chartsLoading = ref(false);
+
+function buildRevenueOption(d: ChartData): EChartsOption {
+  return {
+    tooltip: { trigger: "axis" },
+    legend: { data: d.series.map((s) => s.name), bottom: 0 },
+    grid: { left: 60, right: 60, top: 20, bottom: 40 },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10 } },
+    yAxis: [
+      { type: "value", name: "$", axisLabel: { formatter: (v: number) => `$${(v / 1000).toFixed(0)}k` } },
+      { type: "value", name: "Orders", splitLine: { show: false } },
+    ],
+    series: d.series.map((s) => ({
+      name: s.name,
+      type: s.type,
+      data: s.data,
+      yAxisIndex: s.yAxisIndex ?? 0,
+      smooth: true,
+      itemStyle: s.type === "bar" ? { color: "#e2e8f0" } : { color: "#7c3aed" },
+      lineStyle: { color: "#7c3aed", width: 2 },
+      areaStyle: s.type === "line" ? { color: "rgba(124,58,237,0.08)" } : undefined,
+    })),
+  };
+}
+
+function buildOrdersOption(d: ChartData): EChartsOption {
+  const palette = ["#94a3b8","#3b82f6","#f59e0b","#10b981","#6366f1","#ef4444"];
+  return {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    legend: { data: d.series.map((s) => s.name), bottom: 0, type: "scroll" },
+    grid: { left: 50, right: 20, top: 20, bottom: 50 },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10 } },
+    yAxis: { type: "value" },
+    series: d.series.map((s, i) => ({
+      name: s.name,
+      type: "bar",
+      stack: "orders",
+      data: s.data,
+      itemStyle: { color: palette[i % palette.length] },
+    })),
+  };
+}
+
+function buildClientsOption(d: ChartData): EChartsOption {
+  return {
+    tooltip: { trigger: "axis" },
+    legend: { data: d.series.map((s) => s.name), bottom: 0 },
+    grid: { left: 50, right: 20, top: 20, bottom: 40 },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10 } },
+    yAxis: { type: "value" },
+    series: d.series.map((s, i) => ({
+      name: s.name,
+      type: s.type,
+      data: s.data,
+      smooth: true,
+      itemStyle: { color: i === 0 ? "#0ea5e9" : "#7c3aed" },
+      lineStyle: { color: "#7c3aed", width: 2 },
+      areaStyle: s.type === "line" ? { color: "rgba(124,58,237,0.06)" } : undefined,
+    })),
+  };
+}
+
+async function loadCharts() {
+  chartsLoading.value = true;
+  try {
+    const [rev, ord, cli] = await Promise.all([
+      analyticsChartsApi.revenue({ months: 12 }),
+      analyticsChartsApi.orders({ months: 12 }),
+      analyticsChartsApi.clients({ months: 12 }),
+    ]);
+    revenueChart.value = rev.data;
+    ordersChart.value  = ord.data;
+    clientsChart.value = cli.data;
+  } catch { /* non-fatal */ }
+  finally { chartsLoading.value = false; }
+}
+
+function changeLabel(pct: number | null | undefined): string {
+  if (pct == null) return "—";
+  const sign = pct >= 0 ? "+" : "";
+  return `${sign}${pct.toFixed(1)}%`;
+}
+function changeTone(pct: number | null | undefined): string {
+  if (pct == null) return "text-graphite";
+  return pct >= 0 ? "text-emerald-600" : "text-rose-600";
+}
+
 onMounted(() => {
   analytics.hydrate().catch(() => undefined);
+  loadCharts();
 });
 </script>
 
@@ -111,6 +207,85 @@ onMounted(() => {
     <div v-if="analytics.notice" class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
       {{ analytics.notice }}
     </div>
+
+    <!-- ── Trend charts ────────────────────────────────────────────────────── -->
+    <section class="grid gap-6 xl:grid-cols-3">
+
+      <!-- Revenue trend -->
+      <div class="rounded-xl border border-slate-200 bg-white p-5 col-span-2">
+        <div class="mb-4 flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-semibold text-ink">Revenue trend</h2>
+            <p
+              v-if="revenueChart?.summary?.change_pct != null"
+              class="mt-0.5 text-xs"
+              :class="changeTone(revenueChart.summary.change_pct)"
+            >
+              {{ revenueChart.summary.current?.label }}
+              &nbsp;{{ changeLabel(revenueChart.summary.change_pct) }} vs {{ revenueChart.summary.previous?.label }}
+            </p>
+          </div>
+          <TrendingUp class="size-4 text-graphite" />
+        </div>
+        <AppChart
+          v-if="revenueChart"
+          :option="buildRevenueOption(revenueChart)"
+          :loading="chartsLoading"
+          height="260px"
+        />
+        <div v-else-if="chartsLoading" class="h-64 animate-pulse rounded-lg bg-slate-100" />
+      </div>
+
+      <!-- Client growth -->
+      <div class="rounded-xl border border-slate-200 bg-white p-5">
+        <div class="mb-4 flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-semibold text-ink">Client growth</h2>
+            <p
+              v-if="clientsChart?.summary?.change_pct != null"
+              class="mt-0.5 text-xs"
+              :class="changeTone(clientsChart.summary.change_pct)"
+            >
+              New this month {{ changeLabel(clientsChart.summary.change_pct) }}
+            </p>
+          </div>
+          <Users class="size-4 text-graphite" />
+        </div>
+        <AppChart
+          v-if="clientsChart"
+          :option="buildClientsOption(clientsChart)"
+          :loading="chartsLoading"
+          height="260px"
+        />
+        <div v-else-if="chartsLoading" class="h-64 animate-pulse rounded-lg bg-slate-100" />
+      </div>
+
+    </section>
+
+    <!-- Orders by status stacked bar -->
+    <section class="rounded-xl border border-slate-200 bg-white p-5">
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-semibold text-ink">Orders by status</h2>
+          <p
+            v-if="ordersChart?.summary?.change_pct != null"
+            class="mt-0.5 text-xs"
+            :class="changeTone(ordersChart.summary.change_pct)"
+          >
+            {{ ordersChart.summary.current?.label }} — {{ ordersChart.summary.current?.value.toLocaleString() }} orders
+            &nbsp;{{ changeLabel(ordersChart.summary.change_pct) }}
+          </p>
+        </div>
+        <BarChart3 class="size-4 text-graphite" />
+      </div>
+      <AppChart
+        v-if="ordersChart"
+        :option="buildOrdersOption(ordersChart)"
+        :loading="chartsLoading"
+        height="280px"
+      />
+      <div v-else-if="chartsLoading" class="h-64 animate-pulse rounded-lg bg-slate-100" />
+    </section>
 
     <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <div class="rounded-md border border-slate-200 bg-white p-4">

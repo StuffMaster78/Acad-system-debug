@@ -9,6 +9,12 @@ from .views import (
     ClassAnalyticsViewSet,
     ContentEventViewSet,
 )
+from .chart_views import (
+    RevenueTrendView,
+    OrdersTrendView,
+    ClientGrowthView,
+    RevenueByWebsiteView,
+)
 
 router = DefaultRouter()
 router.register(r'client', ClientAnalyticsViewSet, basename='client-analytics')
@@ -18,5 +24,10 @@ router.register(r'content-events', ContentEventViewSet, basename='content-events
 
 urlpatterns = [
     path('', include(router.urls)),
+    # Chart-ready endpoints
+    path('charts/revenue/', RevenueTrendView.as_view(), name='chart-revenue'),
+    path('charts/orders/', OrdersTrendView.as_view(), name='chart-orders'),
+    path('charts/clients/', ClientGrowthView.as_view(), name='chart-clients'),
+    path('charts/revenue-by-website/', RevenueByWebsiteView.as_view(), name='chart-revenue-by-website'),
 ]
 
