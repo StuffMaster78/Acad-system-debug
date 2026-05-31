@@ -251,6 +251,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Content Graph", to: "/superadmin/content-graph", icon: GitBranch },
       { label: "Files", to: "/superadmin/files", icon: FolderOpen },
       { label: "Analytics", to: "/superadmin/analytics", icon: BarChart3 },
+      { label: "Charts", to: "/superadmin/charts", icon: LineChart },
       { label: "Website", to: "/superadmin/website", icon: Globe },
     ]},
     { label: "Config", items: [
@@ -304,6 +305,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Content Graph", to: "/admin/content-graph", icon: GitBranch },
       { label: "Files", to: "/admin/files", icon: FolderOpen },
       { label: "Analytics", to: "/admin/analytics", icon: BarChart3 },
+      { label: "Charts", to: "/admin/charts", icon: LineChart },
       { label: "Website", to: "/admin/website", icon: Globe },
     ]},
     { label: "Config", items: [
