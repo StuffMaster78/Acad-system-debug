@@ -17,6 +17,7 @@ from .chart_views import (
     WriterEarningsTrendView,
     ClientSpendingTrendView,
     PeriodComparisonView,
+    DailySparklineView,
 )
 
 router = DefaultRouter()
@@ -35,5 +36,6 @@ urlpatterns = [
     path('charts/writer-earnings/', WriterEarningsTrendView.as_view(), name='chart-writer-earnings'),
     path('charts/client-spending/', ClientSpendingTrendView.as_view(), name='chart-client-spending'),
     path('charts/comparison/', PeriodComparisonView.as_view(), name='chart-comparison'),
+    path('charts/daily/', DailySparklineView.as_view(), name='chart-daily'),
 ]
 

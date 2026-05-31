@@ -59,4 +59,9 @@ export const analyticsChartsApi = {
 
   comparison: (params: { metric?: string; compare?: "mom" | "qoq" | "yoy"; website_id?: number | null }) =>
     api.get<ComparisonData>(analyticsPath("charts/comparison/"), { params }),
+
+  daily: (params?: { days?: number; website_id?: number | null }) =>
+    api.get<ChartData & { summary: { total_revenue: number; total_orders: number; days: number } }>(
+      analyticsPath("charts/daily/"), { params }
+    ),
 };

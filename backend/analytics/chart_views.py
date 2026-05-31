@@ -258,6 +258,58 @@ class ClientGrowthView(APIView):
 
 # ── Revenue by website (top N) ────────────────────────────────────────────────
 
+class DailySparklineView(APIView):
+    """
+    GET /api/v1/analytics/charts/daily/
+    ?days=14   (default 14, max 30)
+    ?website_id=
+
+    Last N days of daily revenue + order count — used for the sidebar sparkline.
+    Returns lightweight data: labels are short day strings, two series.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from orders.models.orders import Order
+        from django.db.models.functions import TruncDay
+
+        days = min(int(request.query_params.get("days", 14)), 30)
+        wf = _website_filter(request)
+        start = timezone.now() - timedelta(days=days)
+
+        rows = (
+            Order.objects.filter(wf, is_paid=True, created_at__gte=start)
+            .annotate(day=TruncDay("created_at"))
+            .values("day")
+            .annotate(
+                revenue=Sum("total_price", output_field=DecimalField()),
+                orders=Count("id"),
+            )
+            .order_by("day")
+        )
+
+        labels = [r["day"].strftime("%-d %b") for r in rows]
+        revenue_data = [float(r["revenue"] or 0) for r in rows]
+        orders_data = [r["orders"] for r in rows]
+
+        total_revenue = sum(revenue_data)
+        total_orders = sum(orders_data)
+
+        return Response({
+            "labels": labels,
+            "series": [
+                {"name": "Revenue", "data": revenue_data, "type": "line"},
+                {"name": "Orders", "data": orders_data, "type": "line"},
+            ],
+            "summary": {
+                "total_revenue": total_revenue,
+                "total_orders": total_orders,
+                "days": days,
+            },
+        })
+
+
 class PeriodComparisonView(APIView):
     """
     GET /api/v1/analytics/charts/comparison/

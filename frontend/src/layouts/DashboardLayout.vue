@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRoute } from "vue-router";
 import { ChevronRight, LogOut, Menu, Settings, X } from "@lucide/vue";
 import ActivityShortcut from "@/components/layout/ActivityShortcut.vue";
 import GlobalSearch from "@/components/layout/GlobalSearch.vue";
+import SidebarChart from "@/components/layout/SidebarChart.vue";
 import NotificationBell from "@/components/layout/NotificationBell.vue";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
 import WalletBalancePill from "@/components/wallet/WalletBalancePill.vue";
@@ -226,6 +227,12 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
           </div>
         </template>
       </nav>
+
+      <!-- Sidebar chart — admin / superadmin only, expanded only -->
+      <SidebarChart
+        v-if="(role === 'admin' || role === 'superadmin') && !ui.sidebarCollapsed"
+        :role="role"
+      />
 
       <!-- Footer -->
       <div class="shrink-0 space-y-px border-t border-white/[0.06] p-2">
