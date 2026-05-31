@@ -34,7 +34,7 @@ class AuthorSnippetViewSet(SnippetViewSet):
     search_fields = ["name", "bio", "areas_of_expertise", "credentials"]
     ordering = ["display_order", "name"]
 
-    def get_queryset(self):
+    def get_queryset(self, request=None):
         qs = super().get_queryset()
         return filter_queryset_by_user_sites(qs, self.request.user)
 

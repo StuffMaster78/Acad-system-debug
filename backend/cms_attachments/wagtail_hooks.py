@@ -20,7 +20,7 @@ class AttachmentCategorySnippetViewSet(SnippetViewSet):
     list_filter = ["site"]
     search_fields = ["name"]
 
-    def get_queryset(self):
+    def get_queryset(self, request=None):
         qs = super().get_queryset()
         return filter_queryset_by_user_sites(qs, self.request.user)
 
@@ -53,7 +53,7 @@ class AttachmentSnippetViewSet(SnippetViewSet):
     search_fields = ["title", "description", "subject_area"]
     ordering = ["-is_featured", "-download_count"]
 
-    def get_queryset(self):
+    def get_queryset(self, request=None):
         qs = super().get_queryset()
         return filter_queryset_by_user_sites(qs, self.request.user)
 

@@ -34,7 +34,7 @@ class BlogCategorySnippetViewSet(SnippetViewSet):
     list_filter = ["is_featured", "is_active", "site"]
     search_fields = ["name", "description"]
 
-    def get_queryset(self):
+    def get_queryset(self, request=None):
         qs = super().get_queryset()
         return filter_queryset_by_user_sites(qs, self.request.user)
 
@@ -52,7 +52,7 @@ class BlogTagSnippetViewSet(SnippetViewSet):
     list_filter = ["site"]
     search_fields = ["name"]
 
-    def get_queryset(self):
+    def get_queryset(self, request=None):
         qs = super().get_queryset()
         return filter_queryset_by_user_sites(qs, self.request.user)
 
