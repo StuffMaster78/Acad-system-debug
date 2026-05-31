@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { Calculator, Loader2, Paperclip, RefreshCw, Send, X } from "@lucide/vue";
 import ConfigSelect from "@/components/forms/ConfigSelect.vue";
 import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector.vue";
+import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
 import type { PaymentMethod } from "@/components/payment/PaymentMethodSelector.vue";
 import { useFilesStore } from "@/stores/files";
 import { useOrderConfigStore } from "@/stores/orderConfig";
@@ -557,6 +558,7 @@ onMounted(loadConfig);
         </section>
 
         <div class="space-y-2">
+          <PaymentDisclosureBanner />
           <button
             class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="!canQuote || orders.isCreating"
@@ -579,6 +581,8 @@ onMounted(loadConfig);
         <div v-if="success" class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-800" role="status">
           <span class="shrink-0 font-bold">✓</span>
           {{ success }}
+        </div>
+        <PaymentDisclosureBanner v-if="success" variant="post" />
         </div>
       </aside>
     </form>

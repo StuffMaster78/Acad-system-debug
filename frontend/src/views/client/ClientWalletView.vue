@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
+import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -520,6 +521,7 @@ onMounted(() => {
               {{ topupError }}
             </p>
 
+            <PaymentDisclosureBanner />
             <button
               class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
               type="button"

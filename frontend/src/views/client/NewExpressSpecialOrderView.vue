@@ -180,6 +180,7 @@
 
             <div v-if="error" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error }}</div>
 
+            <PaymentDisclosureBanner class="mb-1" />
             <div class="flex gap-3 pt-1">
               <button
                 class="flex-1 rounded-lg bg-berry px-5 py-3 text-sm font-semibold text-white hover:bg-berry/90 disabled:opacity-60 transition-colors"
@@ -206,6 +207,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ArrowLeft, Check, Zap } from "@lucide/vue";
+import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
 import { specialOrdersApi } from "@/api/specialOrders";
 import { useAuthStore } from "@/stores/auth";
 import type { PredefinedConfig, PredefinedConfigDuration, FixedPricePreview } from "@/types/specialOrders";

@@ -30,6 +30,7 @@
           <p class="mb-3 text-sm font-semibold text-ink">Pay remaining balance</p>
           <div v-if="payError" class="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-berry">{{ payError }}</div>
           <div v-if="paySuccess" class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-signal">{{ paySuccess }}</div>
+          <PaymentDisclosureBanner class="mb-3" />
           <div class="flex flex-wrap gap-2">
             <button
               class="focus-ring inline-flex items-center gap-2 rounded-md bg-signal px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
@@ -44,6 +45,7 @@
               Balance: {{ walletBalance }}
             </span>
           </div>
+          <PaymentDisclosureBanner v-if="paySuccess" variant="post" class="mt-3" />
         </div>
 
         <p class="mt-4 text-xs text-graphite">Invoice and receipt available from your billing page.</p>
@@ -202,6 +204,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { AlertCircle, CheckCircle2, Clock, CreditCard, Loader2, RefreshCw, Wallet, XCircle } from "@lucide/vue";
+import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderPaymentSummary, OrderSummary } from "@/types/orders";
 import { ordersApi } from "@/api/orders";
