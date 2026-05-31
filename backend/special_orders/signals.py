@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
-from django.core.mail import send_mail
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from core.utils.email_helpers import send_website_mail
 
 from communications.constants import CommunicationThreadKind
 from communications.models import CommunicationThread
@@ -12,18 +12,12 @@ from special_orders.models import SpecialOrder, SpecialOrderFundingMilestone
 User = get_user_model()
 
 
-def notify_users(subject, message, recipients):
+def notify_users(subject, message, recipients, website=None):
     """
-    Send an email notification to a list of recipients.
+    Send an email notification using the tenant's configured sender address.
     """
     try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email='no-reply@yourdomain.com',
-            recipient_list=recipients,
-            fail_silently=True
-        )
+        send_website_mail(subject, message, recipients, website=website)
     except Exception as e:
         print(f"Email send error: {e}")
 

@@ -1,8 +1,7 @@
 from celery import shared_task
 from django.utils.timezone import now
-from django.core.mail import send_mail
-from django.conf import settings
 from datetime import timedelta
+from core.utils.email_helpers import send_website_mail
 from referrals.models import ReferralBonusDecay
 from wallets.constants import WalletEntryType
 from wallets.models import WalletEntry
@@ -28,10 +27,8 @@ def send_referral_bonus_expired_email(user):
     """Send an email notification to the user when their referral bonus expires."""
     subject = "Referral Bonus Expired"
     message = f"Hello {user.first_name},\n\nYour referral bonus has expired and is no longer available."
-    from_email = settings.DEFAULT_FROM_EMAIL
-    recipient_list = [user.email]
-
-    send_mail(subject, message, from_email, recipient_list)
+    website = getattr(user, "website", None)
+    send_website_mail(subject, message, [user.email], website=website)
 
 
 @shared_task
@@ -46,10 +43,8 @@ def send_referral_bonus_expiration_warning_email(user):
     """Send an email reminder when the referral bonus is close to expiration."""
     subject = "Referral Bonus Expiring Soon"
     message = f"Hello {user.first_name},\n\nYour referral bonus is about to expire in 24 hours. Please make use of it before it expires!"
-    from_email = settings.DEFAULT_FROM_EMAIL
-    recipient_list = [user.email]
-
-    send_mail(subject, message, from_email, recipient_list)
+    website = getattr(user, "website", None)
+    send_website_mail(subject, message, [user.email], website=website)
 
 
 @shared_task
@@ -68,9 +63,9 @@ def apply_monthly_referral_bonus_decay():
 def send_referral_bonus_decay_email(user, new_amount):
     """Send an email notification about the decay of the referral bonus."""
     subject = "Your Referral Bonus Has Decayed"
-    message = f"Hello {user.first_name},\n\nYour referral bonus has decreased in value due to the approaching expiration date. " \
-              f"The new value of your bonus is {new_amount}."
-    from_email = settings.DEFAULT_FROM_EMAIL
-    recipient_list = [user.email]
-
-    send_mail(subject, message, from_email, recipient_list)
+    message = (
+        f"Hello {user.first_name},\n\nYour referral bonus has decreased in value "
+        f"due to the approaching expiration date. The new value of your bonus is {new_amount}."
+    )
+    website = getattr(user, "website", None)
+    send_website_mail(subject, message, [user.email], website=website)

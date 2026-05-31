@@ -1,25 +1,21 @@
 import logging
 
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from notifications_system.services.notification_service import (
-    NotificationService,
-)
-
+from core.utils.email_helpers import send_website_mail
+from notifications_system.services.notification_service import NotificationService
 from .models import Ticket, TicketLog
 
 logger = logging.getLogger(__name__)
 
 
-def _safe_send_mail(subject: str, message: str, recipient: str | None):
+def _safe_send_mail(subject: str, message: str, recipient: str | None, website=None):
     try:
         if recipient:
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [recipient])
+            send_website_mail(subject, message, [recipient], website=website)
     except Exception:
-        # Never break tests due to email issues
+        # Never break request handling due to email issues
         pass
 
 

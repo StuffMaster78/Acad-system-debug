@@ -1,8 +1,8 @@
 from celery import shared_task
 from core.utils.notifications import send_notification
+from core.utils.email_helpers import send_website_mail
 from django.utils.timezone import now
 from orders.models.orders import Order
-from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 import logging
 from django.utils import timezone
@@ -52,16 +52,18 @@ def notify_writer(order_id):
 
         # Email notification
         if order.writer.email:
-            send_mail(
+            website = getattr(order, "website", None)
+            send_website_mail(
                 subject="New Order Assignment",
-                message=f"Dear {order.writer.username},\n\n"
-                        f"You have been assigned a new order.\n\n"
-                        f"Order ID: {order.id}\n"
-                        f"Topic: {order.topic}\n\n"
-                        f"Please log in to your dashboard to view the details.",
-                from_email="no-reply@example.com",
+                message=(
+                    f"Dear {order.writer.username},\n\n"
+                    f"You have been assigned a new order.\n\n"
+                    f"Order ID: {order.id}\n"
+                    f"Topic: {order.topic}\n\n"
+                    f"Please log in to your dashboard to view the details."
+                ),
                 recipient_list=[order.writer.email],
-                fail_silently=True
+                website=website,
             )
 
         logger.info(f"Notification sent to writer {order.writer.email} for Order #{order.id}")
@@ -86,9 +88,7 @@ def send_order_completion_email(client_email, client_username, order_id):
     try:
         subject = "Your Order is Completed!"
         message = f"Dear {client_username},\n\nYour order #{order_id} has been marked as completed."
-        send_mail(
-            subject, message, "no-reply@yourdomain.com", [client_email], fail_silently=True
-        )
+        send_website_mail(subject, message, [client_email])
         logger.info(f"Order completion email sent to {client_email} for Order #{order_id}")
         return f"Order completion email sent to {client_email} for Order #{order_id}"
 
@@ -287,7 +287,7 @@ def archive_expired_orders():
 def send_order_completion_email(email, username, order_id):
     subject = f"Order #{order_id} Completed"
     message = f"Hi {username}, your order #{order_id} has been successfully completed!"
-    send_mail(subject, message, 'noreply@penman.com', [email])
+    send_website_mail(subject, message, [email])
 
 @shared_task
 def expire_stale_writer_requests():
