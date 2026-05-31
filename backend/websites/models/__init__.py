@@ -40,6 +40,11 @@ except ImportError:
     TenantBranding = None
     TenantFeatureToggle = None
 
+try:
+    from .website_branding import WebsiteBranding
+except ImportError:
+    WebsiteBranding = None
+
 __all__ = [
     'Website',
     'WebsiteActionLog',
@@ -51,5 +56,6 @@ __all__ = [
     'User',
     'TenantBranding',
     'TenantFeatureToggle',
+    'WebsiteBranding',
 ]
 

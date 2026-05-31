@@ -13,6 +13,7 @@ from drf_spectacular.views import (
 )
 
 from core.api_root import api_root
+from websites.views.portal_context_view import PortalContextView
 from core.views.health import health_check, health_live, health_ready
 
 try:
@@ -117,6 +118,9 @@ path("api/v1/special-orders/", include("special_orders.urls")),
     path("api/v1/dashboard-config/", include("core.urls_dashboard")),
     path("api/v1/config-versioning/", include("core.urls_config_versioning")),
     path("api/v1/runtime-config/", include("config_system.api.urls")),
+
+    # ── Portal surface resolution (public, called at frontend boot) ───────────
+    path("api/v1/portal-context/", PortalContextView.as_view(), name="portal-context"),
 
     # ── Platform & multi-tenant ────────────────────────────────────────────────
     path("api/v1/websites/", include("websites.urls")),

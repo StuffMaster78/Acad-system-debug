@@ -11,7 +11,7 @@ class WebsiteBranding(models.Model):
     website = models.OneToOneField(
         "websites.Website",
         on_delete=models.CASCADE,
-        related_name="branding",
+        related_name="public_branding",
     )
 
     brand_name = models.CharField(max_length=120)
@@ -29,6 +29,17 @@ class WebsiteBranding(models.Model):
 
     trust_claims = models.JSONField(default=list, blank=True)
     footer_disclaimer = models.TextField(blank=True)
+
+    payment_processor_name = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Display name of the payment processor shown to clients, e.g. 'OrderBridge Payments'",
+    )
+    payment_statement_descriptor = models.CharField(
+        max_length=22,
+        blank=True,
+        help_text="Exact string clients will see on their card statement, e.g. 'ORDERBRIDGE PAYMENTS'",
+    )
 
     is_public = models.BooleanField(default=True)
 

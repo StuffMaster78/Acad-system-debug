@@ -1,7 +1,17 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import { roleHome } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth";
+import { usePortalContextStore } from "@/stores/portalContext";
 import type { UserRole } from "@/types/roles";
+
+const ROLE_SURFACE: Record<UserRole, string> = {
+  client: "client",
+  writer: "writer",
+  editor: "staff",
+  support: "staff",
+  admin: "staff",
+  superadmin: "staff",
+};
 
 const DashboardLayout = () => import("@/layouts/DashboardLayout.vue");
 const PublicLayout = () => import("@/layouts/PublicLayout.vue");
@@ -697,7 +707,7 @@ function roleRoute(role: UserRole): RouteRecordRaw {
     path: `/${role}`,
     component: DashboardLayout,
     props: { role },
-    meta: { roles: [role] },
+    meta: { roles: [role], surface: ROLE_SURFACE[role] },
     children: roleChildren,
   };
 }
@@ -813,12 +823,19 @@ export const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore();
-  const roles = to.meta.roles as UserRole[] | undefined;
+  const portalCtx = usePortalContextStore();
 
+  // Surface guard: block routes that don't belong to this portal's surface.
+  const routeSurface = to.meta.surface as string | undefined;
+  if (routeSurface && routeSurface !== portalCtx.surface) {
+    return portalCtx.homeRoute;
+  }
+
+  // Auth guard.
+  const roles = to.meta.roles as UserRole[] | undefined;
   if (roles?.length && !auth.isAuthenticated) {
     return { name: "login", query: { redirect: to.fullPath } };
   }
-
   if (roles?.length && (!auth.role || !roles.includes(auth.role))) {
     if (auth.role) return roleHome[auth.role];
     return { name: "unauthorized" };

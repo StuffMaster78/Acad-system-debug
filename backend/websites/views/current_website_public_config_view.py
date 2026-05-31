@@ -31,7 +31,7 @@ class CurrentWebsitePublicConfigView(APIView):
                 status=404,
             )
 
-        branding = getattr(website, "branding", None)
+        branding = getattr(website, "public_branding", None)
         niche = getattr(website, "niche", None)
         settings = website.website_settings.first()
 

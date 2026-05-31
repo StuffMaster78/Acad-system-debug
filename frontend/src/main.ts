@@ -3,5 +3,19 @@ import { createPinia } from "pinia";
 import App from "./App.vue";
 import { router } from "./router";
 import "./styles/main.css";
+import { usePortalContextStore } from "@/stores/portalContext";
 
-createApp(App).use(createPinia()).use(router).mount("#app");
+async function bootstrap() {
+  const app = createApp(App);
+  const pinia = createPinia();
+  app.use(pinia);
+
+  // Resolve portal surface before the router starts so the navigation guard
+  // can make synchronous surface decisions on the first navigation.
+  const portalStore = usePortalContextStore();
+  await portalStore.init();
+
+  app.use(router).mount("#app");
+}
+
+bootstrap();
