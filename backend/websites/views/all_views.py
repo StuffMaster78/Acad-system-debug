@@ -1,8 +1,6 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 from websites.models.websites import Website
 from websites.models.action_log import WebsiteActionLog
 from websites.models.website_settings import  WebsiteTermsAcceptance
@@ -76,11 +74,6 @@ class WebsiteViewSet(viewsets.ModelViewSet):
             return WebsiteSoftDeleteSerializer
         return super().get_serializer_class()
 
-    @swagger_auto_schema(
-        operation_description="Update website SEO settings (Google Analytics, Bing Webmaster, etc.).",
-        request_body=WebsiteSEOUpdateSerializer,
-        responses={200: "SEO settings updated successfully."},
-    )
     @action(detail=True, methods=["patch"], permission_classes=[IsAdminOrSuperadmin])
     def update_seo_settings(self, request, pk=None):
         """Allows only superadmins & admins to update SEO & Analytics settings."""
@@ -99,10 +92,6 @@ class WebsiteViewSet(viewsets.ModelViewSet):
         
         return Response(serializer.errors, status=400)
 
-    @swagger_auto_schema(
-        operation_description="Soft delete a website (mark as inactive instead of deleting permanently).",
-        responses={200: "Website soft-deleted successfully."},
-    )
     @action(detail=True, methods=["post"], permission_classes=[IsAdminOrSuperadmin])  # 🔥 Restrict to Superadmins/Admins
     def soft_delete(self, request, pk=None):
         """Allows only admins to soft delete a website."""
@@ -115,11 +104,6 @@ class WebsiteViewSet(viewsets.ModelViewSet):
             details="Website was soft deleted.",
         )
         return Response({"message": "Website soft-deleted successfully!"})
-
-    @swagger_auto_schema(
-        operation_description="Restore a soft-deleted website.",
-        responses={200: "Website restored successfully."},
-    )
     @action(detail=True, methods=["post"], permission_classes=[IsAdminOrSuperadmin])  # 🔥 Restrict to Superadmins/Admins
     def restore(self, request, pk=None):
         """Allows only admins to restore a soft-deleted website."""
@@ -133,22 +117,6 @@ class WebsiteViewSet(viewsets.ModelViewSet):
         )
         return Response({"message": "Website restored successfully!"})
 
-    @swagger_auto_schema(
-        operation_description=(
-            "Create or update the Terms & Conditions page (slug='terms') for this website.\n\n"
-            "Fields:\n"
-            "- title (optional, default: 'Terms & Conditions')\n"
-            "- content (required): HTML or text content of the terms\n"
-            "- language (optional, default: 'en')\n"
-            "- meta_title (optional)\n"
-            "- meta_description (optional)\n\n"
-            "Notes:\n"
-            "- This action is restricted to Admin/Superadmin.\n"
-            "- Version is incremented automatically when content changes."
-        ),
-        request_body=WebsiteTermsUpdateSerializer,
-        responses={200: WebsiteStaticPageSerializer()},
-    )
     @action(
         detail=True,
         methods=["post"],
@@ -213,10 +181,6 @@ class WebsiteActionLogViewSet(viewsets.ReadOnlyModelViewSet):
 
         return queryset[:100]  # 🔥 Limit logs to the last 100 records for performance
 
-    @swagger_auto_schema(
-        operation_description="Retrieve all website update logs (SEO updates, deletions, restorations).",
-        responses={200: WebsiteActionLogSerializer(many=True)},
-    )
     def list(self, request, *args, **kwargs):
         """Retrieve all logs for admin actions on websites."""
         return super().list(request, *args, **kwargs)
@@ -240,30 +204,6 @@ class WebsiteStaticPageViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = "slug"
     throttle_classes = [StaticPageThrottle]  # 🔥 Prevent abuse by bots
 
-    @swagger_auto_schema(
-        operation_description="Retrieve all static pages filtered by website domain and language.",
-        manual_parameters=[
-            openapi.Parameter(
-                "website",
-                openapi.IN_QUERY,
-                description="Domain of the website (e.g., example.com)",
-                type=openapi.TYPE_STRING,
-                required=True,
-            ),
-            openapi.Parameter(
-                "lang",
-                openapi.IN_QUERY,
-                description="Language code for the static page (e.g., en, fr, es). Default is English (en).",
-                type=openapi.TYPE_STRING,
-                required=False,
-                default="en",
-            ),
-        ],
-        responses={
-            200: WebsiteStaticPageSerializer(many=True),
-            400: "Invalid request parameters",
-        },
-    )
     def get_queryset(self):
         """
         Filters static pages by website and language.
@@ -300,13 +240,6 @@ class WebsiteStaticPageViewSet(viewsets.ReadOnlyModelViewSet):
         # No website context – return empty queryset for safety
         return self.queryset.none()
 
-    @swagger_auto_schema(
-        operation_description="Retrieve a static page by its slug. Increments view count (rate-limited).",
-        responses={
-            200: WebsiteStaticPageSerializer(),
-            404: "Page not found",
-        },
-    )
     def retrieve(self, request, *args, **kwargs):
         """Retrieves a specific static page by slug and increments views (rate-limited)."""
         instance = self.get_object()
@@ -320,19 +253,6 @@ class WebsiteStaticPageViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    @swagger_auto_schema(
-        method="post",
-        operation_description=(
-            "Record acceptance of the current website terms.\n\n"
-            "Expected usage:\n"
-            "- This should be called when the user explicitly clicks "
-            "\"I agree\" on the Terms & Conditions page.\n\n"
-            "Notes:\n"
-            "- This action assumes slug='terms' for the terms page.\n"
-            "- Website is resolved from ?website=<domain> or X-Website header."
-        ),
-        responses={200: WebsiteTermsAcceptanceSerializer()},
-    )
     @action(
         detail=False,
         methods=["post"],

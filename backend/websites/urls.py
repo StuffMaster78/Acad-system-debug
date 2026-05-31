@@ -5,23 +5,6 @@ from .views.all_views import (
     WebsiteIntegrationConfigViewSet
 )
 from .views.tenant_features import TenantFeatureToggleViewSet, TenantBrandingViewSet
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
-from rest_framework.permissions import AllowAny
-
-# API Documentation (Swagger & ReDoc)
-schema_view = get_schema_view(
-    openapi.Info(
-        title="Website Management API",
-        default_version="v1",
-        description="API for managing websites, SEO settings, soft deletion, and action logging.",
-        terms_of_service="https://yourwebsite.com/terms/",
-        contact=openapi.Contact(email="support@yourwebsite.com"),
-        license=openapi.License(name="MIT License"),
-    ),
-    public=True,
-    permission_classes=[AllowAny],
-)
 
 # ✅ Register Website Routes with DefaultRouter
 router = DefaultRouter()
@@ -51,7 +34,5 @@ urlpatterns = [
     # ✅ Admin Action Logs API
     path("website-logs/", WebsiteActionLogViewSet.as_view({"get": "list"}), name="website-logs"),
 
-    # 📄 API Documentation (Swagger & ReDoc)
-    path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
-    path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
+    # API docs served by drf_spectacular at /api/v1/docs/ (project-level)
 ]
