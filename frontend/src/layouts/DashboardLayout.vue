@@ -296,11 +296,11 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       :class="ui.sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-[220px]'"
     >
       <!-- Header -->
-      <header class="sticky top-0 z-10 flex items-start border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-1 backdrop-blur-sm lg:pl-6 lg:pr-2">
+      <header class="relative sticky top-0 z-10 flex items-center border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-14 backdrop-blur-sm lg:pl-6 lg:pr-16">
 
         <!-- Mobile burger -->
         <button
-          class="focus-ring mr-3 mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-slate-200 text-graphite hover:bg-slate-50 lg:hidden"
+          class="focus-ring mr-3 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-slate-200 text-graphite hover:bg-slate-50 lg:hidden"
           type="button"
           title="Open navigation"
           @click="ui.toggleSidebar()"
@@ -309,10 +309,10 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
         </button>
 
         <!-- Search — takes all remaining space -->
-        <GlobalSearch :role="role" class="mt-0.5 min-w-0 flex-1" />
+        <GlobalSearch :role="role" class="min-w-0 flex-1" />
 
         <!-- Right cluster: utilities — compact gap -->
-        <div class="ml-3 mt-0.5 flex items-center gap-2">
+        <div class="ml-3 flex items-center gap-2">
           <WalletBalancePill />
           <ActivityShortcut :role="role" />
           <NotificationBell />
@@ -332,15 +332,15 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
           </span>
         </div>
 
-        <!-- Account pill — top-right corner, small gap from edge -->
-        <div ref="userMenuRoot" class="relative ml-3 mt-1.5 shrink-0">
+        <!-- Account pill — absolute top-right corner -->
+        <div ref="userMenuRoot" class="absolute right-2 top-2">
           <button
-            class="focus-ring flex items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-[13px] font-medium text-graphite transition-colors hover:border-slate-200 hover:bg-slate-50"
+            class="focus-ring flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-[13px] font-medium text-graphite transition-colors hover:border-slate-200 hover:bg-slate-50"
             type="button"
             @click="userMenuOpen = !userMenuOpen"
           >
             <UserAvatar :user="auth.user" size="xs" />
-            <span class="hidden max-w-[96px] truncate sm:block">
+            <span class="hidden max-w-[96px] truncate 2xl:block">
               {{ auth.user?.full_name?.split(" ")[0] || auth.user?.email?.split("@")[0] || "Account" }}
             </span>
             <ChevronDown
