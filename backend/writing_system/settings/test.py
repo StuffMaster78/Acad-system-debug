@@ -167,8 +167,4 @@ DISABLE_COMMUNICATION_EVENTS = True
 DISABLE_PRICE_RECALC_DURING_TESTS = True
 DISABLE_AUTO_CREATE_WRITER_PROFILE = True
 
-ALLOWED_HOSTS = [
-    "testserver",
-    "localhost",
-    "127.0.0.1",
-]
+ALLOWED_HOSTS = ["*"]  # tests use arbitrary tenant hostnames
