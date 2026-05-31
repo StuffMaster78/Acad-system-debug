@@ -8,6 +8,7 @@ import SidebarChart from "@/components/layout/SidebarChart.vue";
 import NotificationBell from "@/components/layout/NotificationBell.vue";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
 import WalletBalancePill from "@/components/wallet/WalletBalancePill.vue";
+import HeaderContextPill from "@/components/layout/HeaderContextPill.vue";
 import { groupedNavigationByRole } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth";
 import { useUiStore } from "@/stores/ui";
@@ -315,6 +316,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
         <div class="ml-6 flex shrink-0 items-center gap-3.5 pr-1">
 
           <WalletBalancePill />
+          <HeaderContextPill :role="role" />
           <ActivityShortcut :role="role" />
           <NotificationBell />
 
