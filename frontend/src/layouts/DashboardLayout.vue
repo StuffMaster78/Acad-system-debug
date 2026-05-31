@@ -296,7 +296,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       :class="ui.sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-[220px]'"
     >
       <!-- Header -->
-      <header class="relative sticky top-0 z-10 flex items-center border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-14 backdrop-blur-sm lg:pl-6 lg:pr-16">
+      <header class="sticky top-0 z-10 flex items-center border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-2 backdrop-blur-sm lg:pl-6 lg:pr-3">
 
         <!-- Mobile burger -->
         <button
@@ -332,15 +332,15 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
           </span>
         </div>
 
-        <!-- Account pill — absolute top-right corner -->
-        <div ref="userMenuRoot" class="absolute right-1 top-1">
+        <!-- Account pill — flex, right edge, slightly larger -->
+        <div ref="userMenuRoot" class="relative ml-4 shrink-0">
           <button
-            class="focus-ring flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-[13px] font-medium text-graphite transition-colors hover:border-slate-200 hover:bg-slate-50"
+            class="focus-ring flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-[13px] font-medium text-graphite transition-colors hover:border-slate-200 hover:bg-slate-50"
             type="button"
             @click="userMenuOpen = !userMenuOpen"
           >
             <UserAvatar :user="auth.user" size="xs" />
-            <span class="hidden max-w-[96px] truncate 2xl:block">
+            <span class="hidden max-w-[120px] truncate lg:block">
               {{ auth.user?.full_name?.split(" ")[0] || auth.user?.email?.split("@")[0] || "Account" }}
             </span>
             <ChevronDown
