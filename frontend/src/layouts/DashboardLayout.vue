@@ -296,7 +296,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       :class="ui.sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-[220px]'"
     >
       <!-- Header -->
-      <header class="sticky top-0 z-10 flex items-center border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-2 backdrop-blur-sm lg:pl-6 lg:pr-3">
+      <header class="sticky top-0 z-10 flex items-center border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-0 backdrop-blur-sm lg:pl-6">
 
         <!-- Mobile burger -->
         <button
@@ -308,32 +308,32 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
           <Menu class="h-4 w-4" />
         </button>
 
-        <!-- Search — takes all remaining space -->
+        <!-- Search — expands to fill all available space -->
         <GlobalSearch :role="role" class="min-w-0 flex-1" />
 
-        <!-- Right cluster: utilities — compact gap -->
-        <div class="ml-3 flex items-center gap-2">
+        <!-- Right group: all utilities + account pill, pushed to edge -->
+        <div class="ml-6 flex shrink-0 items-center gap-3.5 pr-1">
+
           <WalletBalancePill />
           <ActivityShortcut :role="role" />
           <NotificationBell />
 
-          <!-- Live status -->
+          <!-- Live status pill -->
           <span
-            class="hidden items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium md:inline-flex"
+            class="hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium md:inline-flex"
             :class="isConnected
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
               : 'border-slate-200 bg-slate-50 text-slate-500'"
           >
-            <span
-              class="h-1.5 w-1.5 rounded-full"
-              :class="isConnected ? 'bg-emerald-400' : 'bg-slate-300'"
-            />
+            <span class="h-1.5 w-1.5 rounded-full" :class="isConnected ? 'bg-emerald-400' : 'bg-slate-300'" />
             {{ isConnected ? "Live" : "Offline" }}
           </span>
-        </div>
 
-        <!-- Account pill — flex, right edge, slightly larger -->
-        <div ref="userMenuRoot" class="relative ml-4 shrink-0">
+          <!-- Thin separator -->
+          <div class="h-5 w-px shrink-0 bg-slate-200" />
+
+          <!-- Account pill -->
+          <div ref="userMenuRoot" class="relative shrink-0">
           <button
             class="focus-ring flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-[13px] font-medium text-graphite transition-colors hover:border-slate-200 hover:bg-slate-50"
             type="button"
@@ -385,7 +385,11 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
                 </button>
               </div>
           </Transition>
+          </div>
+          <!-- end account pill -->
+
         </div>
+        <!-- end right group -->
 
       </header>
 
