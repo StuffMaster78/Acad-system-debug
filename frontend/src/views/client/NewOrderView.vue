@@ -583,7 +583,6 @@ onMounted(loadConfig);
           {{ success }}
         </div>
         <PaymentDisclosureBanner v-if="success" variant="post" />
-        </div>
       </aside>
     </form>
   </div>
