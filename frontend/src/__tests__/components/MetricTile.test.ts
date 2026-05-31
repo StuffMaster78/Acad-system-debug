@@ -7,6 +7,7 @@ const baseMetric = {
   label: "Revenue",
   value: "$12,400",
   tone: "neutral" as const,
+  detail: "",
 };
 
 describe("MetricTile", () => {
