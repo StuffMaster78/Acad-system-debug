@@ -23,11 +23,15 @@ import StatusPill from "@/components/ui/StatusPill.vue";
 import WagtailGuideModal from "@/components/cms/WagtailGuideModal.vue";
 import ContentHealthPanel from "@/components/cms/ContentHealthPanel.vue";
 import SyncStatusPanel from "@/components/cms/SyncStatusPanel.vue";
+import WebsiteSelectorBar from "@/components/ui/WebsiteSelectorBar.vue";
 import { useAdminPublishingStore } from "@/stores/adminPublishing";
+import { useAuthStore } from "@/stores/auth";
 import type { PublishingContentType, PublishingItem } from "@/types/adminPublishing";
 
 const route      = useRoute();
 const publishing = useAdminPublishingStore();
+const auth       = useAuthStore();
+const isSuperAdmin = computed(() => auth.role === "superadmin");
 
 // ── Filters ───────────────────────────────────────────────────────────────
 const tabs: Array<{ key: PublishingContentType | "all"; label: string }> = [
@@ -485,6 +489,17 @@ const showSync  = ref(false);
           <!-- Form -->
           <div class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
 
+            <!-- Website selector — superadmin only (admin is scoped by site) -->
+            <div v-if="isSuperAdmin">
+              <p class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-graphite">
+                Publishing to
+              </p>
+              <WebsiteSelectorBar
+                v-model="publishing.draft.website"
+                label="Website:"
+              />
+            </div>
+
             <!-- Type selector — visual cards -->
             <div>
               <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Content type</p>
@@ -585,10 +600,6 @@ const showSync  = ref(false);
                     <input v-model="publishing.draft.cta_href" class="focus-ring mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" type="text" />
                   </label>
                 </div>
-                <label class="block">
-                  <span class="text-xs font-semibold text-graphite">Website ID</span>
-                  <input v-model.number="publishing.draft.website" class="focus-ring mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" type="number" min="1" />
-                </label>
               </div>
             </div>
 

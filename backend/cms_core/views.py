@@ -357,9 +357,29 @@ class CreatePageDraftView(APIView):
         if not title or not slug:
             return Response({"detail": "title and slug are required."}, status=400)
 
-        site = getattr(request, "site", None)
+        # Prefer an explicit website_id from the request body so staff can
+        # choose which tenant site they're publishing to.
+        website_id = request.data.get("website_id")
+        site = None
+
+        if website_id:
+            try:
+                from websites.models.websites import Website
+                from cms_core.services.tenant_service import get_site_for_website
+                website = Website.objects.get(pk=website_id, is_active=True)
+                site = get_site_for_website(website)
+            except Exception:
+                return Response(
+                    {"detail": f"Website #{website_id} not found or has no linked Wagtail site."},
+                    status=400,
+                )
+
+        # Fall back to the middleware-resolved site (single-site or client domain)
         if site is None:
-            # Fall back to default site when middleware hasn't resolved one
+            site = getattr(request, "site", None)
+
+        # Last resort: default site
+        if site is None:
             try:
                 from wagtail.models import Site as WagtailSite
                 site = WagtailSite.objects.filter(is_default_site=True).first()
@@ -368,7 +388,7 @@ class CreatePageDraftView(APIView):
 
         if site is None:
             return Response(
-                {"detail": "Could not resolve a Wagtail site for this request."},
+                {"detail": "Could not resolve a Wagtail site. Pass website_id or access from a known domain."},
                 status=400,
             )
 

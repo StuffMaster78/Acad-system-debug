@@ -112,6 +112,7 @@ export const adminPublishingApi = {
     slug: string;
     meta_description?: string;
     primary_keyword?: string;
+    website_id?: number | null;
   }) =>
     api.post<{ page_id: number; edit_url: string }>(
       apiPath("/cms-api/pages/create-draft/"),

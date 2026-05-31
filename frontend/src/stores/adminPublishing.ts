@@ -399,6 +399,7 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
           slug: draft.value.slug,
           meta_description: draft.value.meta_description,
           primary_keyword: draft.value.primary_keyword,
+          website_id: draft.value.website || null,
         });
         notice.value = `Draft created in Wagtail (page #${data.page_id}). Opening editor…`;
         // Open the Wagtail edit page in the same tab so staff are taken directly
