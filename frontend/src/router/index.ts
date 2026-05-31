@@ -825,9 +825,13 @@ router.beforeEach((to) => {
   const auth = useAuthStore();
   const portalCtx = usePortalContextStore();
 
-  // Surface guard: block routes that don't belong to this portal's surface.
+  // Surface guard: only enforce when the host resolved to a registered portal or
+  // website. On localhost / unregistered hosts both portal and website are null,
+  // which means we're in dev or an unknown domain — allow all routes through so
+  // staff can reach every portal without separate domain setup.
   const routeSurface = to.meta.surface as string | undefined;
-  if (routeSurface && routeSurface !== portalCtx.surface) {
+  const hostIsRegistered = portalCtx.portal !== null || portalCtx.website !== null;
+  if (routeSurface && hostIsRegistered && routeSurface !== portalCtx.surface) {
     return portalCtx.homeRoute;
   }
 
