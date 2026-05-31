@@ -258,6 +258,115 @@ class ClientGrowthView(APIView):
 
 # ── Revenue by website (top N) ────────────────────────────────────────────────
 
+class WriterEarningsTrendView(APIView):
+    """
+    GET /api/v1/analytics/charts/writer-earnings/
+    ?months=12
+
+    Writer's own earnings by month from wallet credit events.
+    Scoped to the authenticated writer automatically.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from wallets.models import Wallet
+
+        months = min(int(request.query_params.get("months", 12)), 36)
+        start = (timezone.now() - timedelta(days=months * 31)).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+
+        try:
+            wallet = Wallet.objects.get(user=request.user)
+            rows = (
+                wallet.entries.filter(created_at__gte=start, direction="credit")
+                .annotate(month=TruncMonth("created_at"))
+                .values("month")
+                .annotate(earnings=Sum("amount", output_field=DecimalField()), events=Count("id"))
+                .order_by("month")
+            )
+        except Exception:
+            rows = []
+
+        labels = [_month_label(r["month"].date()) for r in rows]
+        earnings_data = [float(r["earnings"] or 0) for r in rows]
+        events_data = [r["events"] for r in rows]
+
+        summary: dict = {}
+        if len(earnings_data) >= 2:
+            summary = {
+                "current": {"label": labels[-1], "value": earnings_data[-1]},
+                "previous": {"label": labels[-2], "value": earnings_data[-2]},
+                "change_pct": _pct_change(earnings_data[-1], earnings_data[-2]),
+            }
+
+        return Response(
+            {
+                "labels": labels,
+                "series": [
+                    {"name": "Earnings ($)", "data": earnings_data, "type": "bar"},
+                    {"name": "Events", "data": events_data, "type": "line", "yAxisIndex": 1},
+                ],
+                "summary": summary,
+            }
+        )
+
+
+class ClientSpendingTrendView(APIView):
+    """
+    GET /api/v1/analytics/charts/client-spending/
+    ?months=12
+
+    Client's own paid orders by month — spend trend and order count.
+    Scoped to the authenticated client automatically.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from orders.models.orders import Order
+
+        months = min(int(request.query_params.get("months", 12)), 36)
+        start = (timezone.now() - timedelta(days=months * 31)).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+
+        rows = (
+            Order.objects.filter(client=request.user, is_paid=True, created_at__gte=start)
+            .annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(
+                spend=Sum("total_price", output_field=DecimalField()),
+                orders=Count("id"),
+            )
+            .order_by("month")
+        )
+
+        labels = [_month_label(r["month"].date()) for r in rows]
+        spend_data = [float(r["spend"] or 0) for r in rows]
+        orders_data = [r["orders"] for r in rows]
+
+        summary: dict = {}
+        if len(spend_data) >= 2:
+            summary = {
+                "current": {"label": labels[-1], "value": spend_data[-1]},
+                "previous": {"label": labels[-2], "value": spend_data[-2]},
+                "change_pct": _pct_change(spend_data[-1], spend_data[-2]),
+            }
+
+        return Response(
+            {
+                "labels": labels,
+                "series": [
+                    {"name": "Spend ($)", "data": spend_data, "type": "bar"},
+                    {"name": "Orders", "data": orders_data, "type": "line", "yAxisIndex": 1},
+                ],
+                "summary": summary,
+            }
+        )
+
+
 class RevenueByWebsiteView(APIView):
     """
     GET /api/v1/analytics/charts/revenue-by-website/

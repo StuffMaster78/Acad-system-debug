@@ -14,6 +14,8 @@ from .chart_views import (
     OrdersTrendView,
     ClientGrowthView,
     RevenueByWebsiteView,
+    WriterEarningsTrendView,
+    ClientSpendingTrendView,
 )
 
 router = DefaultRouter()
@@ -29,5 +31,7 @@ urlpatterns = [
     path('charts/orders/', OrdersTrendView.as_view(), name='chart-orders'),
     path('charts/clients/', ClientGrowthView.as_view(), name='chart-clients'),
     path('charts/revenue-by-website/', RevenueByWebsiteView.as_view(), name='chart-revenue-by-website'),
+    path('charts/writer-earnings/', WriterEarningsTrendView.as_view(), name='chart-writer-earnings'),
+    path('charts/client-spending/', ClientSpendingTrendView.as_view(), name='chart-client-spending'),
 ]
 

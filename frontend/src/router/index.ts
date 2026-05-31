@@ -102,6 +102,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/client/ClientLoyaltyView.vue"),
       },
       {
+        path: "charts",
+        name: "client-charts",
+        component: () => import("@/views/client/ClientChartsView.vue"),
+      },
+      {
         path: "classes",
         name: "client-classes",
         component: () => import("@/views/client/ClientClassesView.vue"),
@@ -254,6 +259,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminAnalyticsView.vue"),
       },
       {
+        path: "charts",
+        name: "admin-charts",
+        component: () => import("@/views/admin/AdminChartsView.vue"),
+      },
+      {
         path: "support",
         name: "admin-support",
         component: () => import("@/views/admin/AdminSupportView.vue"),
@@ -377,6 +387,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/writer/WriterEarningsView.vue"),
       },
       {
+        path: "charts",
+        name: "writer-charts",
+        component: () => import("@/views/writer/WriterChartsView.vue"),
+      },
+      {
         path: "bids",
         name: "writer-bids",
         component: () => import("@/views/writer/WriterBidsView.vue"),
@@ -452,6 +467,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "analytics",
         name: "editor-analytics",
+        component: () => import("@/views/editor/EditorAnalyticsView.vue"),
+      },
+      {
+        path: "charts",
+        name: "editor-charts",
         component: () => import("@/views/editor/EditorAnalyticsView.vue"),
       },
       {
@@ -639,6 +659,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "analytics",
         name: "superadmin-analytics",
         component: () => import("@/views/admin/AdminAnalyticsView.vue"),
+      },
+      {
+        path: "charts",
+        name: "superadmin-charts",
+        component: () => import("@/views/admin/AdminChartsView.vue"),
       },
       {
         path: "operations",

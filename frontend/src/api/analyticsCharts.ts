@@ -43,4 +43,10 @@ export const analyticsChartsApi = {
 
   revenueByWebsite: (params?: ChartParams) =>
     api.get<ChartData>(analyticsPath("charts/revenue-by-website/"), { params }),
+
+  writerEarnings: (params?: ChartParams) =>
+    api.get<ChartData>(analyticsPath("charts/writer-earnings/"), { params }),
+
+  clientSpending: (params?: ChartParams) =>
+    api.get<ChartData>(analyticsPath("charts/client-spending/"), { params }),
 };
