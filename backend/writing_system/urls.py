@@ -14,6 +14,8 @@ from drf_spectacular.views import (
 
 from core.api_root import api_root
 from websites.views.portal_context_view import PortalContextView
+from cms_core.sitemaps import sitemap_view
+from cms_core.robots_view import robots_txt
 from core.views.health import health_check, health_live, health_ready
 
 try:
@@ -147,6 +149,9 @@ if wagtailadmin_urls and wagtail_urls and api_router:
     urlpatterns += [
         path("cms-admin/", include(wagtailadmin_urls)),
         path("api/v2/", api_router.urls),
+        # Tenant-scoped sitemap and robots — must precede Wagtail catch-all
+        path("sitemap.xml", sitemap_view, name="sitemap"),
+        path("robots.txt", robots_txt, name="robots-txt"),
         path("", include(wagtail_urls)),  # Wagtail page serving — must be last
     ]
 
