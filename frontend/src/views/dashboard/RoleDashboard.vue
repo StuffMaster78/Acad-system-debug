@@ -23,11 +23,14 @@ import {
 } from "@lucide/vue";
 import type { Component } from "vue";
 import MetricTile from "@/components/ui/MetricTile.vue";
+import AppChart from "@/components/ui/AppChart.vue";
 import { dashboards } from "@/config/dashboard";
 import { groupedNavigationByRole } from "@/config/navigation";
 import { useDashboardData } from "@/composables/useDashboardData";
 import { useAuthStore } from "@/stores/auth";
+import { analyticsChartsApi, type ChartData } from "@/api/analyticsCharts";
 import type { UserRole } from "@/types/roles";
+import type { EChartsOption } from "echarts";
 
 const props = defineProps<{ role: UserRole }>();
 
@@ -38,6 +41,123 @@ const { isLoading, error, metrics, workItems, primaryActionTo, load } = useDashb
 
 const isFirstVisit = ref(false);
 
+// ── Dashboard chart ───────────────────────────────────────────────────────────
+
+const chartData   = ref<ChartData | null>(null);
+const chartLoading = ref(false);
+
+const chartOption = computed<EChartsOption>(() => {
+  const d = chartData.value;
+  if (!d || !d.labels.length) return {};
+
+  const role = props.role;
+
+  if (role === "client") {
+    // Spend trend: bar only, compact
+    return {
+      tooltip: { trigger: "axis" },
+      grid: { left: 56, right: 8, top: 8, bottom: 32 },
+      xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10 } },
+      yAxis: { type: "value", axisLabel: { formatter: (v: number) => `$${v}` } },
+      series: [{ name: "Spend", type: "bar", data: d.series[0]?.data ?? [], itemStyle: { color: "#6366f1" } }],
+    };
+  }
+
+  if (role === "writer") {
+    return {
+      tooltip: { trigger: "axis" },
+      grid: { left: 56, right: 8, top: 8, bottom: 32 },
+      xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10 } },
+      yAxis: { type: "value", axisLabel: { formatter: (v: number) => `$${v}` } },
+      series: [{ name: "Earnings", type: "bar", data: d.series[0]?.data ?? [], itemStyle: { color: "#10b981" } }],
+    };
+  }
+
+  if (role === "editor" || role === "support") {
+    // Pie / donut
+    return {
+      tooltip: { trigger: "item" },
+      legend: { right: 0, top: "middle", orient: "vertical", textStyle: { fontSize: 11 } },
+      series: [{
+        name: d.series[0]?.name ?? "Status",
+        type: "pie",
+        radius: ["38%", "65%"],
+        center: ["38%", "50%"],
+        data: d.labels.map((l, i) => ({ name: l, value: d.series[0]?.data[i] ?? 0 })),
+        label: { show: false },
+      }],
+    };
+  }
+
+  // admin / superadmin: revenue line
+  return {
+    tooltip: { trigger: "axis" },
+    grid: { left: 56, right: 8, top: 8, bottom: 32 },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10 } },
+    yAxis: { type: "value", axisLabel: { formatter: (v: number) => `$${(v / 1000).toFixed(0)}k` } },
+    series: [{
+      name: "Revenue", type: "line", data: d.series[0]?.data ?? [],
+      smooth: true, symbol: "none",
+      lineStyle: { color: "#7c3aed", width: 2 },
+      areaStyle: { color: "rgba(124,58,237,0.10)" },
+    }],
+  };
+});
+
+const chartTitle = computed(() => {
+  const r = props.role;
+  if (r === "client") return "Monthly spend";
+  if (r === "writer") return "Monthly earnings";
+  if (r === "editor") return "Task status";
+  if (r === "support") return "Ticket priority";
+  return "Revenue — last 6 months";
+});
+
+async function loadDashboardChart() {
+  const role = props.role;
+  chartLoading.value = true;
+  try {
+    if (role === "admin" || role === "superadmin") {
+      const { data } = await analyticsChartsApi.revenue({ months: 6 });
+      chartData.value = data;
+    } else if (role === "writer") {
+      const { data } = await analyticsChartsApi.writerEarnings({ months: 6 });
+      chartData.value = data;
+    } else if (role === "client") {
+      const { data } = await analyticsChartsApi.clientSpending({ months: 6 });
+      chartData.value = data;
+    } else if (role === "editor") {
+      // Build from editorWorkspace store after load
+      const { useEditorWorkspaceStore } = await import("@/stores/editorWorkspace");
+      const editorWs = useEditorWorkspaceStore();
+      await editorWs.hydrate().catch(() => undefined);
+      const breakdown = Object.entries(editorWs.analytics.status_breakdown ?? {});
+      if (breakdown.length) {
+        chartData.value = {
+          labels: breakdown.map(([k]) => k.replace(/_/g, " ")),
+          series: [{ name: "Tasks", data: breakdown.map(([, v]) => Number(v)), type: "bar" }],
+          summary: {},
+        };
+      }
+    } else if (role === "support") {
+      const { useSupportWorkspaceStore } = await import("@/stores/supportWorkspace");
+      const supportWs = useSupportWorkspaceStore();
+      await supportWs.hydrate().catch(() => undefined);
+      const tickets = supportWs.tickets;
+      const priorities = ["critical", "high", "medium", "low"];
+      const counts = priorities.map((p) => tickets.filter((t) => t.priority === p).length);
+      if (counts.some((c) => c > 0)) {
+        chartData.value = {
+          labels: priorities,
+          series: [{ name: "Tickets", data: counts, type: "bar" }],
+          summary: {},
+        };
+      }
+    }
+  } catch { /* non-fatal */ }
+  finally { chartLoading.value = false; }
+}
+
 onMounted(() => {
   const key = `ws-visited-${auth.user?.id ?? "guest"}`;
   if (!localStorage.getItem(key)) {
@@ -45,6 +165,7 @@ onMounted(() => {
     localStorage.setItem(key, "1");
   }
   load().catch(() => undefined);
+  loadDashboardChart();
 });
 
 const firstName = computed(() => {
@@ -151,7 +272,27 @@ function metricIcon(label: string): Component | undefined {
       </template>
     </section>
 
-
+    <!-- Dashboard chart -->
+    <section class="rounded-xl border border-slate-200 bg-white p-4">
+      <div class="mb-2 flex items-center justify-between">
+        <p class="text-sm font-semibold text-ink flex items-center gap-2">
+          <TrendingUp class="size-3.5 text-graphite" />
+          {{ chartTitle }}
+        </p>
+        <router-link
+          :to="`/${props.role}/charts`"
+          class="text-xs text-berry hover:underline"
+        >View all charts →</router-link>
+      </div>
+      <AppChart
+        v-if="chartData && chartData.labels.length"
+        :option="chartOption"
+        :loading="chartLoading"
+        height="160px"
+      />
+      <div v-else-if="chartLoading" class="h-40 animate-pulse rounded-lg bg-slate-100" />
+      <p v-else class="py-8 text-center text-xs text-graphite">No data yet.</p>
+    </section>
 
     <!-- Main grid -->
     <div class="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(260px,1fr)]">
