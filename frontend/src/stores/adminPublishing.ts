@@ -121,7 +121,7 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
   const notice = ref("");
 
   const draft = ref({
-    website: 1,
+    website: null as number | null,
     type: "seo" as PublishingContentType,
     title: "New service landing page",
     slug: "new-service-landing-page",
@@ -305,6 +305,11 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
       // Pre-load website names so normalizeSeoPage can resolve them synchronously
       await sites.ensure();
 
+      // Auto-select first available website for the draft if not already set
+      if (!draft.value.website && sites.list.length > 0) {
+        draft.value.website = sites.list[0].id;
+      }
+
       const [blogRes, serviceRes, seoRes] = await Promise.allSettled([
         adminPublishingApi.wagtailPages({
           type: "cms_blog.BlogPostPage",
@@ -342,7 +347,7 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
   function buildSeoPayload(publish = false): SeoPagePayload {
     const now = new Date().toISOString();
     return {
-      website: draft.value.website,
+      website: draft.value.website ?? 1,
       title: draft.value.title,
       slug: draft.value.slug,
       meta_title: draft.value.title,

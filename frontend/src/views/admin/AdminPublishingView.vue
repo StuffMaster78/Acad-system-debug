@@ -34,6 +34,7 @@ const publishing = useAdminPublishingStore();
 const auth         = useAuthStore();
 const websites     = useWebsitesStore();
 const isSuperAdmin = computed(() => auth.role === "superadmin");
+const isStaff      = computed(() => ["superadmin", "admin", "editor", "support"].includes(auth.role ?? ""));
 
 // ── Filters ───────────────────────────────────────────────────────────────
 const tabs: Array<{ key: PublishingContentType | "all"; label: string }> = [
@@ -274,7 +275,7 @@ const showSync  = ref(false);
               <tr>
                 <th class="px-6 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Page</th>
                 <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Type</th>
-                <th v-if="isSuperAdmin" class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Website</th>
+                <th v-if="isStaff" class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Website</th>
                 <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Status</th>
                 <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Published</th>
                 <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-graphite">Actions</th>
@@ -298,8 +299,8 @@ const showSync  = ref(false);
                   >{{ typeLabel(item.type) }}</span>
                 </td>
 
-                <!-- Website name — superadmin only -->
-                <td v-if="isSuperAdmin" class="px-3 py-3">
+                <!-- Website name — all staff roles -->
+                <td v-if="isStaff" class="px-3 py-3">
                   <span v-if="item.websiteName" class="text-xs font-medium text-graphite">
                     {{ item.websiteName }}
                   </span>
@@ -534,7 +535,7 @@ const showSync  = ref(false);
             <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs">
               <p class="font-semibold text-ink">{{ publishing.selectedWritePath.title }}</p>
               <p class="mt-0.5 text-graphite leading-5">{{ publishing.selectedWritePath.detail }}</p>
-              <p v-if="isSuperAdmin && publishing.draft.website" class="mt-1.5 font-medium text-ink">
+              <p v-if="isStaff && publishing.draft.website" class="mt-1.5 font-medium text-ink">
                 Publishing to: <span class="text-berry">{{ websites.nameById(publishing.draft.website) }}</span>
               </p>
             </div>
