@@ -2,7 +2,7 @@
   <div class="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5">
     <Globe class="size-4 shrink-0 text-amber-700" />
     <div class="min-w-0 flex-1">
-      <span class="text-xs font-semibold text-amber-800">Managing content for:</span>
+      <span class="text-xs font-semibold text-amber-800">{{ label }}</span>
       <select
         v-if="websites.length > 1"
         :value="modelValue"
@@ -30,27 +30,26 @@ import { Globe } from "@lucide/vue";
 import { websitesApi, type Website } from "@/api/websites";
 import { useAuthStore } from "@/stores/auth";
 
-const props = defineProps<{ modelValue: number | null }>();
+const props = withDefaults(
+  defineProps<{ modelValue: number | null; label?: string }>(),
+  { label: "Managing content for:" },
+);
 const emit  = defineEmits<{ "update:modelValue": [id: number | null] }>();
 
 const auth     = useAuthStore();
 const websites = ref<Website[]>([]);
 
-const isSuperAdmin = computed(() =>
-  getattr(auth.user, "role") === "superadmin"
-  || getattr(auth.user, "is_superuser")
-);
+const isStaff = computed(() => {
+  const role = auth.role;
+  return role === "superadmin" || role === "admin";
+});
 
 const currentWebsite = computed(() =>
   websites.value.find((w) => w.id === props.modelValue) ?? websites.value[0] ?? null
 );
 
-function getattr(obj: unknown, key: string): unknown {
-  return obj ? (obj as Record<string, unknown>)[key] : null;
-}
-
 onMounted(async () => {
-  if (!isSuperAdmin.value) return;
+  if (!isStaff.value) return;
   try {
     const { data } = await websitesApi.list({ is_active: true, limit: 50 });
     websites.value = Array.isArray(data) ? data : (data as { results: Website[] }).results ?? [];

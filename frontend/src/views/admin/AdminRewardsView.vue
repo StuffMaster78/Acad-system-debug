@@ -258,10 +258,10 @@
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
           <h3 class="font-semibold text-gray-800">Run Reconciliation</h3>
           <div class="space-y-3">
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Website ID</label>
-              <input v-model.number="runForm.website_id" type="number" class="input" placeholder="1" />
-            </div>
+            <WebsiteSelectorBar
+              v-model="runForm.website_id"
+              label="Website:"
+            />
             <div>
               <label class="block text-xs font-medium text-gray-600 mb-1">Payout Batch ID</label>
               <input v-model.number="runForm.payout_batch_id" type="number" class="input" />
@@ -302,6 +302,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
+import WebsiteSelectorBar from "@/components/ui/WebsiteSelectorBar.vue";
 import { adminRewardsApi } from "@/api/adminRewards";
 import type { LeaderboardEntry, RewardRule, RewardAnalyticsOverview, ReconciliationReport } from "@/api/adminRewards";
 
@@ -381,7 +382,7 @@ const showRunForm = ref(false);
 const actioning = ref(false);
 
 const runForm = reactive({
-  website_id: 1,
+  website_id: null as number | null,
   payout_batch_id: null as number | null,
   ledger_total: "",
   payout_total: "",

@@ -170,19 +170,19 @@ export const adminLoyaltyApi = {
     api.post<RedemptionRequest>(apiPath(`/loyalty-management/redemption-requests/${id}/cancel/`), {}),
 
   // ── Admin point operations ─────────────────────────────────────────────────
-  awardPoints: (clientId: number, points: number, reason: string, websiteId = 1) =>
+  awardPoints: (clientId: number, points: number, reason: string, websiteId: number) =>
     api.post<{ message: string }>(apiPath("/loyalty-management/admin/award-loyalty/"), {
       client_id: clientId, points, reason, website_id: websiteId,
     }),
-  deductPoints: (clientId: number, points: number, reason: string, websiteId = 1) =>
+  deductPoints: (clientId: number, points: number, reason: string, websiteId: number) =>
     api.post<{ message: string }>(apiPath("/loyalty-management/admin/deduct-loyalty/"), {
       client_id: clientId, points, reason, website_id: websiteId,
     }),
-  transferPoints: (fromClientId: number, toClientId: number, points: number, reason: string, websiteId = 1) =>
+  transferPoints: (fromClientId: number, toClientId: number, points: number, reason: string, websiteId: number) =>
     api.post<{ message: string }>(apiPath("/loyalty-management/admin/transfer-loyalty/"), {
       from_client_id: fromClientId, to_client_id: toClientId, points, reason, website_id: websiteId,
     }),
-  forceConvert: (clientId: number, points: number, websiteId = 1) =>
+  forceConvert: (clientId: number, points: number, websiteId: number) =>
     api.post<{ message: string }>(apiPath(`/loyalty-management/admin/force-convert/${clientId}/`), {
       points, website_id: websiteId,
     }),

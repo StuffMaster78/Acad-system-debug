@@ -18,6 +18,7 @@ import {
   Zap,
 } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import WebsiteSelectorBar from "@/components/ui/WebsiteSelectorBar.vue";
 import { adminLoyaltyApi } from "@/api/adminLoyalty";
 import type {
   LoyaltyConversionConfig,
@@ -95,6 +96,8 @@ const pendingCount = computed(() => requests.value.filter((r) => r.status === "p
 
 // ── Point Operations ──────────────────────────────────────────────────────────
 
+const selectedWebsiteId = ref<number | null>(null);
+
 type OpMode = "award" | "deduct" | "transfer" | "convert";
 const opMode = ref<OpMode>("award");
 const opLoading = ref(false);
@@ -112,26 +115,31 @@ async function submitOp() {
   opError.value = "";
   const clientId = Number(opForm.value.clientId);
   const points = Number(opForm.value.points);
+  if (!selectedWebsiteId.value) {
+    opError.value = "Select a website before performing point operations.";
+    return;
+  }
   if (!clientId || !points || points < 1) {
     opError.value = "Client ID and a positive point value are required.";
     return;
   }
   opLoading.value = true;
+  const websiteId = selectedWebsiteId.value;
   try {
     let msg = "";
     if (opMode.value === "award") {
-      const { data } = await adminLoyaltyApi.awardPoints(clientId, points, opForm.value.reason);
+      const { data } = await adminLoyaltyApi.awardPoints(clientId, points, opForm.value.reason, websiteId);
       msg = data.message ?? `Awarded ${points} pts to client ${clientId}`;
     } else if (opMode.value === "deduct") {
-      const { data } = await adminLoyaltyApi.deductPoints(clientId, points, opForm.value.reason);
+      const { data } = await adminLoyaltyApi.deductPoints(clientId, points, opForm.value.reason, websiteId);
       msg = data.message ?? `Deducted ${points} pts from client ${clientId}`;
     } else if (opMode.value === "transfer") {
       const toId = Number(opForm.value.toClientId);
       if (!toId) { opError.value = "Destination client ID required."; return; }
-      const { data } = await adminLoyaltyApi.transferPoints(clientId, toId, points, opForm.value.reason);
+      const { data } = await adminLoyaltyApi.transferPoints(clientId, toId, points, opForm.value.reason, websiteId);
       msg = data.message ?? `Transferred ${points} pts from ${clientId} to ${toId}`;
     } else {
-      const { data } = await adminLoyaltyApi.forceConvert(clientId, points);
+      const { data } = await adminLoyaltyApi.forceConvert(clientId, points, websiteId);
       msg = data.message ?? `Converted ${points} pts for client ${clientId}`;
     }
     opFeedback.value = msg;
@@ -515,6 +523,11 @@ onMounted(async () => {
 
     <!-- ── POINT OPERATIONS ───────────────────────────────────────────────────── -->
     <template v-if="activeTab === 'operations'">
+      <WebsiteSelectorBar
+        v-model="selectedWebsiteId"
+        label="Operating on website:"
+        class="mb-4"
+      />
       <!-- Mode selector -->
       <div class="flex rounded-lg border border-neutral-200 overflow-hidden text-sm w-fit">
         <button
