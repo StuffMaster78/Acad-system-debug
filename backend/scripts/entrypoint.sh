@@ -55,7 +55,12 @@ fi
 
 if [ "$should_prepare_web" = "true" ]; then
     echo "[entrypoint] Running Django system check..."
-    python manage.py check --deploy 2>&1 | grep -v "^System check" || true
+    # --deploy checks production-hardened settings; skip it in development
+    if [ "${DJANGO_ENV:-development}" = "production" ]; then
+        python manage.py check --deploy 2>&1 | grep -v "^System check" || true
+    else
+        python manage.py check 2>&1 | grep -v "^System check" || true
+    fi
 
     if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
         echo "[entrypoint] Running migrations..."
