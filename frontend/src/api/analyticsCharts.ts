@@ -14,6 +14,13 @@ export interface ChartSummary {
   change_pct?: number | null;
 }
 
+export interface ComparisonData extends ChartData {
+  metric: string;
+  compare: string;
+  current: { label: string; value: number };
+  previous: { label: string; value: number };
+}
+
 export interface ChartData {
   labels: string[];
   series: ChartSeries[];
@@ -49,4 +56,7 @@ export const analyticsChartsApi = {
 
   clientSpending: (params?: ChartParams) =>
     api.get<ChartData>(analyticsPath("charts/client-spending/"), { params }),
+
+  comparison: (params: { metric?: string; compare?: "mom" | "qoq" | "yoy"; website_id?: number | null }) =>
+    api.get<ComparisonData>(analyticsPath("charts/comparison/"), { params }),
 };

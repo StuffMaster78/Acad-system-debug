@@ -7,6 +7,7 @@ import {
   type WebsiteRecord,
 } from "@/api/adminWork";
 import { useAuthStore } from "@/stores/auth";
+import { useWebsitesStore } from "@/stores/websites";
 import type {
   AdminWorkItem,
   AdminWorkKind,
@@ -139,6 +140,9 @@ function previewWorkItems(): AdminWorkItem[] {
 
 function websiteLabel(websites: WebsiteRecord[], id?: number | null) {
   if (!id) return "Platform";
+  // Prefer the shared websites store which is already loaded; fall back to local list
+  const shared = useWebsitesStore().nameById(id);
+  if (shared !== `Site #${id}`) return shared;
   const website = websites.find((item) => item.id === id);
   return website?.name ?? website?.domain ?? website?.slug ?? `Website #${id}`;
 }

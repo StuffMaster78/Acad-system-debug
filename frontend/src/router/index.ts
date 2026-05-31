@@ -542,6 +542,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "support-config",
         component: () => import("@/views/admin/AdminConfigHubView.vue"),
       },
+      {
+        path: "charts",
+        name: "support-charts",
+        component: () => import("@/views/support/SupportChartsView.vue"),
+      },
     );
   }
 

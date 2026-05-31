@@ -206,6 +206,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Messages", to: "/support/messages", icon: MessageSquare },
     { label: "Announcements", to: "/support/announcements", icon: Megaphone },
     { label: "Notifications", to: "/support/notifications", icon: Bell },
+    { label: "Charts", to: "/support/charts", icon: LineChart },
     { label: "Settings", to: "/support/config", icon: Wrench, separator: true },
   ],
 };
@@ -399,6 +400,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Notifications", to: "/support/notifications", icon: Bell },
     ]},
     { label: "Config", items: [
+      { label: "Charts", to: "/support/charts", icon: LineChart },
       { label: "Settings", to: "/support/config", icon: Wrench },
     ]},
   ],

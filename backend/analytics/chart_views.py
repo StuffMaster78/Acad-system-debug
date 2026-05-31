@@ -258,6 +258,81 @@ class ClientGrowthView(APIView):
 
 # ── Revenue by website (top N) ────────────────────────────────────────────────
 
+class PeriodComparisonView(APIView):
+    """
+    GET /api/v1/analytics/charts/comparison/
+    ?metric=revenue|orders|clients  (default revenue)
+    ?compare=mom|qoq|yoy            (default mom)
+    ?website_id=
+
+    Returns current period vs previous period side-by-side with growth %.
+    MoM = current month vs prior month
+    QoQ = current quarter vs prior quarter
+    YoY = current year vs prior year
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from orders.models.orders import Order
+
+        metric  = request.query_params.get("metric", "revenue")
+        compare = request.query_params.get("compare", "mom")
+        wf      = _website_filter(request)
+        now     = timezone.now()
+
+        # Determine date ranges
+        if compare == "yoy":
+            cur_start  = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            cur_end    = now
+            prev_start = cur_start.replace(year=cur_start.year - 1)
+            prev_end   = cur_end.replace(year=cur_end.year - 1)
+            label_cur  = str(now.year)
+            label_prev = str(now.year - 1)
+        elif compare == "qoq":
+            q = (now.month - 1) // 3
+            cur_start  = now.replace(month=q * 3 + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            cur_end    = now
+            prev_month = (q - 1) * 3 + 1 if q > 0 else 10
+            prev_year  = now.year if q > 0 else now.year - 1
+            prev_start = now.replace(year=prev_year, month=prev_month, day=1, hour=0, minute=0, second=0, microsecond=0)
+            prev_end   = cur_start
+            label_cur  = f"Q{q + 1} {now.year}"
+            label_prev = f"Q{q} {prev_year}" if q > 0 else f"Q4 {now.year - 1}"
+        else:  # mom
+            cur_start  = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            cur_end    = now
+            prev_end   = cur_start
+            prev_start = (cur_start - timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            label_cur  = cur_start.strftime("%b %Y")
+            label_prev = prev_start.strftime("%b %Y")
+
+        if metric == "clients":
+            cur_val  = User.objects.filter(role="client", date_joined__gte=cur_start, date_joined__lte=cur_end).count()
+            prev_val = User.objects.filter(role="client", date_joined__gte=prev_start, date_joined__lte=prev_end).count()
+        elif metric == "orders":
+            cur_val  = Order.objects.filter(wf, created_at__gte=cur_start, created_at__lte=cur_end).count()
+            prev_val = Order.objects.filter(wf, created_at__gte=prev_start, created_at__lte=prev_end).count()
+        else:  # revenue
+            from django.db.models import Sum, DecimalField
+            cur_val  = float(Order.objects.filter(wf, is_paid=True, created_at__gte=cur_start, created_at__lte=cur_end).aggregate(v=Sum("total_price", output_field=DecimalField()))["v"] or 0)
+            prev_val = float(Order.objects.filter(wf, is_paid=True, created_at__gte=prev_start, created_at__lte=prev_end).aggregate(v=Sum("total_price", output_field=DecimalField()))["v"] or 0)
+
+        return Response({
+            "metric": metric,
+            "compare": compare,
+            "current":  {"label": label_cur,  "value": cur_val},
+            "previous": {"label": label_prev, "value": prev_val},
+            "change_pct": _pct_change(float(cur_val), float(prev_val)),
+            "labels":  [label_prev, label_cur],
+            "series": [{
+                "name": metric.title(),
+                "data": [prev_val, cur_val],
+                "type": "bar",
+            }],
+        })
+
+
 class WriterEarningsTrendView(APIView):
     """
     GET /api/v1/analytics/charts/writer-earnings/

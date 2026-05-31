@@ -2,20 +2,23 @@
 import { ref, computed, onMounted } from "vue";
 import { BarChart3, TrendingUp, Users, Globe, RefreshCw } from "@lucide/vue";
 import AppChart from "@/components/ui/AppChart.vue";
-import { analyticsChartsApi, type ChartData } from "@/api/analyticsCharts";
+import { analyticsChartsApi, type ChartData, type ComparisonData } from "@/api/analyticsCharts";
 import { useAuthStore } from "@/stores/auth";
 import type { EChartsOption } from "echarts";
 
 const auth = useAuthStore();
 const isSuperAdmin = computed(() => auth.role === "superadmin");
 
-const revenue   = ref<ChartData | null>(null);
-const orders    = ref<ChartData | null>(null);
-const clients   = ref<ChartData | null>(null);
-const byWebsite = ref<ChartData | null>(null);
-const loading   = ref(false);
-const period    = ref<"month" | "quarter">("month");
-const months    = ref(12);
+const revenue    = ref<ChartData | null>(null);
+const orders     = ref<ChartData | null>(null);
+const clients    = ref<ChartData | null>(null);
+const byWebsite  = ref<ChartData | null>(null);
+const comparison = ref<ComparisonData | null>(null);
+const loading    = ref(false);
+const period     = ref<"month" | "quarter">("month");
+const months     = ref(12);
+const compareMode = ref<"mom" | "qoq" | "yoy">("mom");
+const compareMetric = ref<"revenue" | "orders" | "clients">("revenue");
 
 // ── ECharts options ───────────────────────────────────────────────────────────
 
@@ -87,6 +90,41 @@ function changeBadge(pct?: number | null) {
   return { label: `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`, positive: pct >= 0 };
 }
 
+// ── Comparison option ─────────────────────────────────────────────────────────
+
+const comparisonOption = computed<EChartsOption>(() => {
+  const d = comparison.value;
+  if (!d) return {};
+  const palette = ["#cbd5e1", "#7c3aed"];
+  return {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    grid: { left: 48, right: 16, top: 16, bottom: 32 },
+    xAxis: { type: "category", data: d.labels, axisLabel: { fontSize: 12 } },
+    yAxis: { type: "value", axisLabel: {
+      formatter: compareMetric.value === "revenue"
+        ? (v: number) => `$${(v / 1000).toFixed(0)}k`
+        : String,
+    }},
+    series: d.series.map((s, i) => ({
+      name: s.name, type: "bar", data: s.data, barMaxWidth: 80,
+      itemStyle: { color: palette[i % 2], borderRadius: [4, 4, 0, 0] },
+      label: {
+        show: true, position: "top" as const, fontSize: 11,
+        formatter: compareMetric.value === "revenue"
+          ? ((p: unknown) => `$${Number((p as { value: number }).value).toLocaleString()}`) as any
+          : ((p: unknown) => String((p as { value: number }).value)) as any,
+      },
+    })),
+  };
+});
+
+async function loadComparison() {
+  try {
+    const r = await analyticsChartsApi.comparison({ metric: compareMetric.value, compare: compareMode.value });
+    comparison.value = r.data;
+  } catch { /* non-fatal */ }
+}
+
 // ── data loading ──────────────────────────────────────────────────────────────
 
 async function load() {
@@ -109,7 +147,7 @@ async function load() {
   finally { loading.value = false; }
 }
 
-onMounted(load);
+onMounted(() => { load(); loadComparison(); });
 </script>
 
 <template>
@@ -209,6 +247,60 @@ onMounted(load);
       </div>
       <AppChart v-if="orders" :option="ordersOption(orders)" :loading="loading" height="300px" class="mt-2" />
       <div v-else-if="loading" class="h-72 animate-pulse rounded-lg bg-slate-100 mt-2" />
+    </div>
+
+    <!-- Period comparison (MoM / QoQ / YoY) -->
+    <div class="rounded-xl border border-slate-200 bg-white p-5">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 class="text-sm font-semibold text-ink">Period comparison</h2>
+        <div class="flex flex-wrap gap-2">
+          <div class="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+            <button
+              v-for="m in [{ key: 'revenue', label: 'Revenue' }, { key: 'orders', label: 'Orders' }, { key: 'clients', label: 'Clients' }]"
+              :key="m.key"
+              class="px-2.5 py-1.5 transition-colors"
+              :class="compareMetric === m.key ? 'bg-ink text-white' : 'bg-white text-graphite hover:bg-slate-50'"
+              @click="compareMetric = m.key as typeof compareMetric.value; loadComparison()"
+            >{{ m.label }}</button>
+          </div>
+          <div class="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+            <button
+              v-for="c in [{ key: 'mom', label: 'MoM' }, { key: 'qoq', label: 'QoQ' }, { key: 'yoy', label: 'YoY' }]"
+              :key="c.key"
+              class="px-2.5 py-1.5 transition-colors"
+              :class="compareMode === c.key ? 'bg-berry text-white' : 'bg-white text-graphite hover:bg-slate-50'"
+              @click="compareMode = c.key as typeof compareMode.value; loadComparison()"
+            >{{ c.label }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="comparison" class="mb-4 flex flex-wrap gap-6">
+        <div>
+          <p class="text-xs text-graphite">{{ comparison.previous.label }}</p>
+          <p class="text-xl font-bold text-ink">
+            {{ compareMetric === 'revenue' ? `$${Number(comparison.previous.value).toLocaleString()}` : Number(comparison.previous.value).toLocaleString() }}
+          </p>
+        </div>
+        <div>
+          <p class="text-xs text-graphite">{{ comparison.current.label }}</p>
+          <p class="text-xl font-bold text-ink">
+            {{ compareMetric === 'revenue' ? `$${Number(comparison.current.value).toLocaleString()}` : Number(comparison.current.value).toLocaleString() }}
+          </p>
+        </div>
+        <div v-if="comparison.summary?.change_pct != null">
+          <p class="text-xs text-graphite">Change</p>
+          <p
+            class="text-xl font-bold"
+            :class="(comparison.summary.change_pct ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'"
+          >
+            {{ (comparison.summary.change_pct ?? 0) >= 0 ? '+' : '' }}{{ (comparison.summary.change_pct ?? 0).toFixed(1) }}%
+          </p>
+        </div>
+      </div>
+
+      <AppChart v-if="comparison" :option="comparisonOption" height="220px" />
+      <div v-else class="h-56 animate-pulse rounded-lg bg-slate-100" />
     </div>
 
     <!-- Revenue by website (superadmin only) -->

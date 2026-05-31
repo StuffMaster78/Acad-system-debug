@@ -23,15 +23,11 @@ import {
 } from "@lucide/vue";
 import type { Component } from "vue";
 import MetricTile from "@/components/ui/MetricTile.vue";
-import AppChart from "@/components/ui/AppChart.vue";
 import { dashboards } from "@/config/dashboard";
 import { groupedNavigationByRole } from "@/config/navigation";
 import { useDashboardData } from "@/composables/useDashboardData";
 import { useAuthStore } from "@/stores/auth";
-import { analyticsChartsApi, type ChartData } from "@/api/analyticsCharts";
-import { useOrderStore } from "@/stores/orders";
 import type { UserRole } from "@/types/roles";
-import type { EChartsOption } from "echarts";
 
 const props = defineProps<{ role: UserRole }>();
 
@@ -42,52 +38,6 @@ const { isLoading, error, metrics, workItems, primaryActionTo, load } = useDashb
 
 const isFirstVisit = ref(false);
 
-// ── Dashboard mini chart ──────────────────────────────────────────────────────
-const miniChart = ref<ChartData | null>(null);
-
-const miniChartOption = computed<EChartsOption>(() => {
-  if (!miniChart.value) return {};
-  const d = miniChart.value;
-
-  if (props.role === "client") {
-    // Orders store: status distribution donut
-    const orderStore = useOrderStore();
-    const statuses = ["pending", "in_progress", "completed", "cancelled"];
-    const counts = statuses.map((s) => ({
-      name: s.replace(/_/g, " "),
-      value: orderStore.orders.filter((o) => o.status === s).length,
-    }));
-    return {
-      tooltip: { trigger: "item" },
-      series: [{ name: "Orders", type: "pie", radius: ["50%", "80%"], data: counts, label: { show: false } }],
-      legend: { bottom: 0, type: "scroll", textStyle: { fontSize: 11 } },
-    };
-  }
-
-  // admin / superadmin: revenue line
-  return {
-    grid: { left: 10, right: 10, top: 8, bottom: 10, containLabel: false },
-    xAxis: { type: "category", data: d.labels, show: false },
-    yAxis: { type: "value", show: false },
-    series: [{
-      type: "line",
-      data: d.series[0]?.data ?? [],
-      smooth: true,
-      symbol: "none",
-      lineStyle: { color: "#7c3aed", width: 2 },
-      areaStyle: { color: "rgba(124,58,237,0.12)" },
-    }],
-    tooltip: { trigger: "axis", formatter: (p: unknown) => {
-      const params = p as Array<{ name: string; value: number }>;
-      return `${params[0]?.name}<br/>$${Number(params[0]?.value ?? 0).toLocaleString()}`;
-    }},
-  };
-});
-
-const showMiniChart = computed(() =>
-  ["admin", "superadmin", "client"].includes(props.role)
-);
-
 onMounted(() => {
   const key = `ws-visited-${auth.user?.id ?? "guest"}`;
   if (!localStorage.getItem(key)) {
@@ -95,15 +45,6 @@ onMounted(() => {
     localStorage.setItem(key, "1");
   }
   load().catch(() => undefined);
-
-  if (["admin", "superadmin"].includes(props.role)) {
-    analyticsChartsApi.revenue({ months: 6 })
-      .then((r) => { miniChart.value = r.data; })
-      .catch(() => undefined);
-  } else if (props.role === "client") {
-    // Client chart is derived from orders store; mark ready
-    miniChart.value = { labels: [], series: [], summary: {} };
-  }
 });
 
 const firstName = computed(() => {
@@ -210,16 +151,7 @@ function metricIcon(label: string): Component | undefined {
       </template>
     </section>
 
-    <!-- Mini trend chart (admin / superadmin: 6-month revenue; client: order status) -->
-    <section v-if="showMiniChart && miniChart" class="rounded-xl border border-slate-200 bg-white p-4">
-      <div class="mb-2 flex items-center justify-between">
-        <p class="text-sm font-semibold text-ink">
-          {{ ['admin','superadmin'].includes(props.role) ? 'Revenue — last 6 months' : 'Orders by status' }}
-        </p>
-        <TrendingUp class="size-4 text-graphite" />
-      </div>
-      <AppChart :option="miniChartOption" height="140px" />
-    </section>
+
 
     <!-- Main grid -->
     <div class="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(260px,1fr)]">
