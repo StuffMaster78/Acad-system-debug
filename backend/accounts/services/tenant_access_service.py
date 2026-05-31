@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from rest_framework.exceptions import PermissionDenied
 from accounts.models import TenantAccess
 from websites.models.websites import Website
 
@@ -36,8 +37,8 @@ class TenantAccessService:
             user=user,
             website=website,
         ):
-            raise PermissionError(
-                f"User has no access to tenant: {website}"
+            raise PermissionDenied(
+                f"You do not have access to this website: {website}"
             )
 
     @staticmethod

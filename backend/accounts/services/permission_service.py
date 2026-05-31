@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Set
 
+from rest_framework.exceptions import PermissionDenied
 from accounts.models import AccountRole, RolePermission
 
 
@@ -84,6 +85,6 @@ class AccountPermissionService:
         )
 
         if not has_permission:
-            raise PermissionError(
-                f"User lacks permission: {permission_code}"
+            raise PermissionDenied(
+                f"You do not have the required permission: {permission_code}"
             )
