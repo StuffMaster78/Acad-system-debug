@@ -12,6 +12,8 @@ services:
     restart: always
     security_opt:
       - no-new-privileges:true
+    networks:
+      - internal
     environment:
       POSTGRES_DB: ${POSTGRES_DB_NAME}
       POSTGRES_USER: ${POSTGRES_USER_NAME}
@@ -30,6 +32,8 @@ services:
     restart: always
     security_opt:
       - no-new-privileges:true
+    networks:
+      - internal
     command: ["sh", "-c", "redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes --loglevel warning"]
     environment:
       REDIS_HOST: redis
@@ -49,6 +53,9 @@ services:
     restart: always
     security_opt:
       - no-new-privileges:true
+    networks:
+      - internal   # reaches db + redis
+      - proxy      # reachable by nginx
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -117,6 +124,8 @@ services:
     restart: always
     security_opt:
       - no-new-privileges:true
+    networks:
+      - internal
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -170,6 +179,8 @@ services:
     restart: always
     security_opt:
       - no-new-privileges:true
+    networks:
+      - internal
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -211,6 +222,8 @@ services:
     restart: always
     security_opt:
       - no-new-privileges:true
+    networks:
+      - proxy      # nginx only talks to web — cannot reach db or redis
     ports:
       - "80:80"
       - "443:443"
@@ -237,6 +250,8 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    networks:
+      - internal   # needs to reach db
     environment:
       POSTGRES_HOST: db
       POSTGRES_USER_NAME: ${POSTGRES_USER_NAME}
@@ -283,6 +298,8 @@ services:
     restart: always
     security_opt:
       - no-new-privileges:true
+    networks:
+      - internal   # monitors internal services; bound to 127.0.0.1
     ports:
       - "127.0.0.1:3001:3001"   # bind to loopback — proxy through nginx for external access
     volumes:
@@ -295,6 +312,8 @@ services:
   # Certbot — runs once to issue/renew certs; nginx reloads automatically
   certbot:
     image: certbot/certbot:latest
+    networks:
+      - proxy      # needs to reach nginx webroot for ACME challenge
     volumes:
       - ./nginx/certs:/etc/letsencrypt
       - ./nginx/certbot:/var/www/certbot
@@ -315,3 +334,14 @@ volumes:
   log_volume:
   backup_volume:
   kuma_data:
+
+# ── Network segmentation ───────────────────────────────────────────────────────
+# internal: db, redis, workers, backup — isolated from the public internet.
+#           Only 'web' bridges into this network from the proxy side.
+# proxy:    nginx ↔ web only. nginx cannot reach db or redis directly.
+networks:
+  internal:
+    driver: bridge
+    internal: true          # no outbound internet access from this network
+  proxy:
+    driver: bridge
