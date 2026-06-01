@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
+import { useRouter } from "vue-router";
+const router = useRouter();
 import type { Component } from "vue";
 import {
   CreditCard,
@@ -128,7 +130,8 @@ onMounted(() => {
           <div
             v-for="record in bucket.records"
             :key="String(record.id ?? record.order_id)"
-            class="flex items-start justify-between gap-4 px-5 py-4"
+            class="flex cursor-pointer items-start justify-between gap-4 px-5 py-4 transition-colors hover:bg-slate-50"
+            @click="router.push(`/support/orders/${record.order_id ?? record.id}`)"
           >
             <div class="min-w-0 flex-1">
               <p class="truncate font-semibold text-ink">{{ recordLabel(record) }}</p>

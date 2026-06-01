@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 import {
   CheckCircle2,
   ClipboardCheck,
+  ExternalLink,
   FileSearch,
   Loader2,
   RefreshCw,
@@ -12,6 +14,7 @@ import {
   UserPlus,
   XCircle,
 } from "@lucide/vue";
+const router = useRouter();
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useEditorWorkspaceStore } from "@/stores/editorWorkspace";
 import type { EditorTask, SubmitEditorReviewPayload } from "@/types/editor";
@@ -193,6 +196,13 @@ onMounted(async () => {
             <p class="mt-1 text-sm text-graphite">
               {{ selectedTask ? taskTitle(selectedTask) : "Select a task to review." }}
             </p>
+            <button
+              v-if="selectedTask"
+              class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-signal hover:underline"
+              @click="router.push(`/editor/orders/${selectedTask.order_id ?? selectedTask.order ?? selectedTask.id}`)"
+            >
+              <ExternalLink class="h-3 w-3" /> Open full order
+            </button>
           </div>
           <ClipboardCheck class="h-5 w-5 text-signal" />
         </div>

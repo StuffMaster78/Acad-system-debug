@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { computed, onMounted } from "vue";
 import {
   Ban,
   CheckCircle2,
+  ExternalLink,
   KeyRound,
   RefreshCw,
   Search,
@@ -10,11 +11,15 @@ import {
   UserRoundCheck,
   Users,
 } from "@lucide/vue";
+import { useRoute, useRouter } from "vue-router";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminClientsStore } from "@/stores/adminClients";
 
 const clients = useAdminClientsStore();
+const router = useRouter();
+const route = useRoute();
+const routePrefix = computed(() => route.path.startsWith("/superadmin") ? "/superadmin" : "/admin");
 
 const metricToneClasses = {
   neutral: "border-slate-200 bg-white",
@@ -209,6 +214,12 @@ onMounted(() => {
                   {{ clients.selectedClient.fullName }}
                 </h2>
                 <p class="mt-1 text-sm text-graphite">{{ clients.selectedClient.email }}</p>
+                <button
+                  class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-signal hover:underline"
+                  @click="router.push(`${routePrefix}/clients/${clients.selectedClient.id}`)"
+                >
+                  <ExternalLink class="h-3 w-3" /> Full profile
+                </button>
               </div>
               <StatusPill
                 :label="statusLabel(clients.selectedClient)"

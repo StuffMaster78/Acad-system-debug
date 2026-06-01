@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import {
   Ban,
   CheckCircle2,
+  ExternalLink,
   Fingerprint,
   KeyRound,
   LogOut,
@@ -22,6 +24,9 @@ import { useAdminAccessStore } from "@/stores/adminAccess";
 import type { UserRole } from "@/types/roles";
 
 const access = useAdminAccessStore();
+const router = useRouter();
+const route = useRoute();
+const routePrefix = computed(() => route.path.startsWith("/superadmin") ? "/superadmin" : "/admin");
 
 const metricToneClasses = {
   neutral: "border-slate-200 bg-white",
@@ -233,6 +238,20 @@ onMounted(() => {
                   <p class="font-semibold text-ink">{{ access.selectedUser.full_name || access.selectedUser.username }}</p>
                   <p class="mt-1 text-sm text-graphite">{{ access.selectedUser.email }}</p>
                   <p class="mt-1 text-xs text-graphite">Joined {{ formatDate(access.selectedUser.date_joined) }}</p>
+                  <button
+                    v-if="access.selectedUser.role === 'writer'"
+                    class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-signal hover:underline"
+                    @click="router.push(`${routePrefix}/writers/${access.selectedUser.id}`)"
+                  >
+                    <ExternalLink class="h-3 w-3" /> Full writer profile
+                  </button>
+                  <button
+                    v-else-if="access.selectedUser.role === 'client'"
+                    class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-signal hover:underline"
+                    @click="router.push(`${routePrefix}/clients/${access.selectedUser.id}`)"
+                  >
+                    <ExternalLink class="h-3 w-3" /> Full client profile
+                  </button>
                 </div>
                 <StatusPill :label="access.selectedUser.role" :tone="roleTone(access.selectedUser.role)" />
               </div>

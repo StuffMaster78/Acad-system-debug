@@ -189,6 +189,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminClientsView.vue"),
       },
       {
+        path: "clients/:id",
+        name: "admin-client-profile",
+        component: () => import("@/views/admin/AdminClientProfileView.vue"),
+      },
+      {
         path: "payments",
         name: "admin-payments",
         component: () => import("@/views/admin/AdminPaymentsView.vue"),
@@ -445,6 +450,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/editor/EditorQAView.vue"),
       },
       {
+        path: "orders/:id",
+        name: "editor-order-detail",
+        component: () => import("@/views/editor/EditorOrderDetailView.vue"),
+      },
+      {
         path: "publishing",
         name: "editor-publishing",
         component: () => import("@/views/admin/AdminPublishingView.vue"),
@@ -511,6 +521,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "orders",
         name: "support-orders",
         component: () => import("@/views/support/SupportOrdersView.vue"),
+      },
+      {
+        path: "orders/:id",
+        name: "support-order-detail",
+        component: () => import("@/views/support/SupportOrderDetailView.vue"),
       },
       {
         path: "publishing",
@@ -586,14 +601,29 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminOrdersView.vue"),
       },
       {
+        path: "orders/:id",
+        name: "superadmin-order-detail",
+        component: () => import("@/views/admin/AdminOrderDetailView.vue"),
+      },
+      {
         path: "classes",
         name: "superadmin-classes",
         component: () => import("@/views/admin/AdminClassesView.vue"),
       },
       {
+        path: "classes/:id",
+        name: "superadmin-class-detail",
+        component: () => import("@/views/admin/AdminClassDetailView.vue"),
+      },
+      {
         path: "special-orders",
         name: "superadmin-special-orders",
         component: () => import("@/views/admin/AdminSpecialOrdersView.vue"),
+      },
+      {
+        path: "special-orders/:id",
+        name: "superadmin-special-order-detail",
+        component: () => import("@/views/admin/AdminSpecialOrderDetailView.vue"),
       },
       {
         path: "writers",
@@ -604,6 +634,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "clients",
         name: "superadmin-clients",
         component: () => import("@/views/admin/AdminClientsView.vue"),
+      },
+      {
+        path: "clients/:id",
+        name: "superadmin-client-profile",
+        component: () => import("@/views/admin/AdminClientProfileView.vue"),
       },
       {
         path: "payments",
