@@ -103,10 +103,18 @@ class LoyaltyPointsConversionConfigViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
 
     def get_queryset(self):
-        """
-        Filter by website if needed (you can extend this logic).
-        """
-        return LoyaltyPointsConversionConfig.objects.filter(website=self.request.website)
+        from websites.models.websites import Website
+        website = getattr(self.request, "website", None)
+        if website is None:
+            is_super = (
+                getattr(self.request.user, "is_superuser", False)
+                or getattr(self.request.user, "role", "") == "superadmin"
+            )
+            if is_super:
+                website = Website.objects.filter(is_active=True).order_by("id").first()
+        if website is None:
+            return LoyaltyPointsConversionConfig.objects.none()
+        return LoyaltyPointsConversionConfig.objects.filter(website=website)
     
 
 class AdminForceConversionView(APIView):

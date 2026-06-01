@@ -292,6 +292,87 @@
     </div>
 
     <!-- Toast -->
+    <!-- ── Badge Management Tab ────────────────────────────────────────── -->
+    <div v-if="activeTab === 'badges'" class="space-y-4">
+      <p class="text-sm text-graphite">Manually award or revoke badges for individual writers.</p>
+
+      <!-- Award form -->
+      <div class="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+        <h3 class="text-sm font-semibold text-ink">Award a badge</h3>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div>
+            <label class="block text-xs font-medium text-graphite mb-1">Writer registration ID</label>
+            <input v-model="badgeForm.registration_id" type="text" placeholder="e.g. WR-00042"
+              class="focus-ring h-9 w-full rounded-md border border-slate-200 px-3 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-graphite mb-1">Badge</label>
+            <select v-model="badgeForm.badge_id"
+              class="focus-ring h-9 w-full rounded-md border border-slate-200 px-3 text-sm bg-white">
+              <option :value="null">— select badge —</option>
+              <option v-for="b in availableBadges" :key="b.id" :value="b.id">{{ b.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-graphite mb-1">Notes (optional)</label>
+            <input v-model="badgeForm.notes" type="text" placeholder="Reason for manual award"
+              class="focus-ring h-9 w-full rounded-md border border-slate-200 px-3 text-sm" />
+          </div>
+        </div>
+        <button
+          class="inline-flex items-center gap-1.5 rounded-md bg-berry px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          :disabled="badgeSaving || !badgeForm.registration_id || !badgeForm.badge_id"
+          @click="awardBadge"
+        >
+          {{ badgeSaving ? "Awarding…" : "Award badge" }}
+        </button>
+        <p v-if="badgeNotice" class="text-sm text-emerald-700">{{ badgeNotice }}</p>
+        <p v-if="badgeError" class="text-sm text-rose-700">{{ badgeError }}</p>
+      </div>
+
+      <!-- Writer badge lookup -->
+      <div class="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+        <h3 class="text-sm font-semibold text-ink">Writer badge history</h3>
+        <div class="flex gap-3">
+          <input v-model="badgeLookupId" type="text" placeholder="Writer registration ID"
+            class="focus-ring h-9 w-full max-w-xs rounded-md border border-slate-200 px-3 text-sm" />
+          <button class="inline-flex items-center rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+            @click="loadWriterBadges">Lookup</button>
+        </div>
+        <div v-if="writerBadges.length" class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-xs text-graphite uppercase">
+              <tr>
+                <th class="px-3 py-2 text-left">Badge</th>
+                <th class="px-3 py-2 text-left">Type</th>
+                <th class="px-3 py-2 text-left">Issued</th>
+                <th class="px-3 py-2 text-left">Source</th>
+                <th class="px-3 py-2 text-left">Notes</th>
+                <th class="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr v-for="wb in writerBadges" :key="wb.id" class="hover:bg-slate-50">
+                <td class="px-3 py-2 font-medium">{{ wb.badge_name }}</td>
+                <td class="px-3 py-2 capitalize text-graphite">{{ wb.badge_type }}</td>
+                <td class="px-3 py-2 text-graphite">{{ wb.issued_at ? new Date(wb.issued_at).toLocaleDateString() : '—' }}</td>
+                <td class="px-3 py-2">
+                  <span class="rounded px-1.5 py-0.5 text-xs" :class="wb.is_auto_awarded ? 'bg-slate-100 text-graphite' : 'bg-berry/10 text-berry'">
+                    {{ wb.is_auto_awarded ? 'Auto' : 'Manual' }}
+                  </span>
+                </td>
+                <td class="px-3 py-2 text-xs text-graphite">{{ wb.notes || '—' }}</td>
+                <td class="px-3 py-2">
+                  <button class="text-xs text-rose-600 hover:underline" @click="revokeBadge(wb.id)">Revoke</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-else-if="badgeLookupId" class="text-sm text-graphite">No badges found.</p>
+      </div>
+    </div>
+
     <div
       v-if="toast"
       class="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm text-white"
@@ -310,6 +391,7 @@ const tabs = [
   { key: "leaderboard", label: "Leaderboard" },
   { key: "analytics", label: "Analytics & Rules" },
   { key: "reconciliation", label: "Reconciliation" },
+  { key: "badges", label: "Badge Management" },
 ] as const;
 
 const activeTab = ref("leaderboard");
@@ -450,7 +532,75 @@ onMounted(() => {
   loadAnalytics();
   loadRules();
   loadReports();
+  loadAvailableBadges();
 });
+
+// ── Badge Management ────────────────────────────────────────────────────────
+import { api, apiPath } from "@/api/client";
+
+interface BadgeDef { id: number; name: string; type: string }
+interface WriterBadgeRecord {
+  id: number; badge_id: number; badge_name: string; badge_type: string;
+  is_auto_awarded: boolean; issued_at: string | null; notes: string | null;
+}
+
+const availableBadges = ref<BadgeDef[]>([]);
+const badgeForm = reactive({ registration_id: "", badge_id: null as number | null, notes: "" });
+const badgeSaving = ref(false);
+const badgeNotice = ref("");
+const badgeError = ref("");
+const badgeLookupId = ref("");
+const writerBadges = ref<WriterBadgeRecord[]>([]);
+
+async function loadAvailableBadges() {
+  try {
+    const { data } = await api.get<BadgeDef[]>(apiPath("/writer-management/badges/"));
+    availableBadges.value = Array.isArray(data) ? data : (data as { results: BadgeDef[] }).results ?? [];
+  } catch { /* non-fatal */ }
+}
+
+async function awardBadge() {
+  badgeNotice.value = "";
+  badgeError.value = "";
+  if (!badgeForm.registration_id || !badgeForm.badge_id) return;
+  badgeSaving.value = true;
+  try {
+    await api.post(apiPath(`/writer-management/writers/${badgeForm.registration_id}/badges/award/`), {
+      badge_id: badgeForm.badge_id,
+      notes: badgeForm.notes,
+    });
+    badgeNotice.value = "Badge awarded successfully.";
+    Object.assign(badgeForm, { registration_id: "", badge_id: null, notes: "" });
+    if (badgeLookupId.value) await loadWriterBadges();
+  } catch (e: unknown) {
+    const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    badgeError.value = msg || "Failed to award badge.";
+  } finally {
+    badgeSaving.value = false;
+  }
+}
+
+async function loadWriterBadges() {
+  if (!badgeLookupId.value) return;
+  try {
+    const { data } = await api.get<WriterBadgeRecord[]>(
+      apiPath(`/writer-management/writers/${badgeLookupId.value}/badges/`)
+    );
+    writerBadges.value = Array.isArray(data) ? data : (data as { results: WriterBadgeRecord[] }).results ?? [];
+  } catch { writerBadges.value = []; }
+}
+
+async function revokeBadge(writerbadgeId: number) {
+  const reason = prompt("Reason for revoking this badge:");
+  if (reason === null) return;
+  try {
+    await api.post(apiPath(`/writer-management/writer-badges/${writerbadgeId}/revoke/`), { reason });
+    showToast("Badge revoked.", "success");
+    if (badgeLookupId.value) await loadWriterBadges();
+  } catch {
+    showToast("Failed to revoke badge.", "error");
+  }
+}
 </script>
 
 <style scoped>

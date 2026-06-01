@@ -299,18 +299,24 @@ def _resolve_website(request):
     Resolve the active website for content management.
     Normal staff: use request.website (set by tenant middleware).
     Superadmin with ?website_id= param: look up the specified website.
+    Superadmin with no param and no request.website: fall back to the
+    first active website so staff-portal / localhost requests don't 400.
     """
     from websites.models.websites import Website
-    website_id = request.query_params.get("website_id") or request.data.get("website_id")
-    if website_id and (
+    is_superadmin = (
         getattr(request.user, "is_superuser", False)
         or getattr(request.user, "role", "") == "superadmin"
-    ):
+    )
+    website_id = request.query_params.get("website_id") or request.data.get("website_id")
+    if website_id and is_superadmin:
         try:
             return Website.objects.get(pk=int(website_id), is_active=True)
-        except (Website.DoesNotExist, (ValueError, TypeError)):
+        except (Website.DoesNotExist, ValueError, TypeError):
             pass
-    return getattr(request, "website", None)
+    resolved = getattr(request, "website", None)
+    if resolved is None and is_superadmin:
+        resolved = Website.objects.filter(is_active=True).order_by("id").first()
+    return resolved
 
 
 def _staff_required(request):

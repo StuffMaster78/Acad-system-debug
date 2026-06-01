@@ -179,6 +179,7 @@ class OrderStaffingService:
         cls._ensure_no_current_assignment(locked_order)
 
         cls._validate_writer_website(writer=writer, order=locked_order)
+        cls._validate_writer_intake(writer=writer, order=locked_order)
 
         existing_interest = cls._get_pending_interest(
             order=locked_order,
@@ -315,6 +316,7 @@ class OrderStaffingService:
         )
         cls._ensure_no_current_assignment(locked_order)
         cls._validate_writer_website(writer=writer, order=locked_order)
+        cls._validate_writer_intake(writer=writer, order=locked_order)
 
         existing_interest = cls._get_pending_interest(
             order=locked_order,
@@ -1261,6 +1263,70 @@ class OrderStaffingService:
             .select_related("writer")
             .first()
         )
+
+    @classmethod
+    def _validate_writer_intake(cls, *, writer: Any, order: Order) -> None:
+        """
+        Enforce writer-level intake limits before allowing a bid or take.
+
+        Checks:
+        - max_active_orders: writer must have capacity for another order
+        - max_manual_takes: writer must have remaining self-take quota
+
+        Silently skips when WriterProfile or WriterLevelSettings are not found
+        so that orders without a level config remain accessible.
+        """
+        from django.db.models import Q
+
+        try:
+            profile = getattr(writer, "writerprofile", None)
+            if profile is None:
+                return
+
+            level = getattr(profile, "writer_level", None)
+            if level is None:
+                return
+
+            settings = getattr(level, "settings", None)
+            if settings is None:
+                return
+
+            # --- active order cap ---
+            max_active = getattr(settings, "max_active_orders", None)
+            if max_active is not None and max_active > 0:
+                active_count = OrderAssignment.objects.filter(
+                    writer=writer,
+                    is_current=True,
+                    order__website=order.website,
+                ).exclude(
+                    order__status__in=["completed", "cancelled", "archived", "closed"]
+                ).count()
+                if active_count >= max_active:
+                    raise ValidationError(
+                        f"Your writer level allows a maximum of {max_active} active "
+                        "order(s) at a time. Complete or deliver an existing order first."
+                    )
+
+            # --- manual take quota ---
+            max_takes = getattr(settings, "max_manual_takes", None)
+            if max_takes is not None and max_takes > 0:
+                pending_takes = OrderInterest.objects.filter(
+                    writer=writer,
+                    status=ORDER_INTEREST_STATUS_PENDING,
+                    interest_type=ORDER_INTEREST_TYPE_REQUEST_TAKE,
+                    order__website=order.website,
+                ).count()
+                if pending_takes >= max_takes:
+                    raise ValidationError(
+                        f"Your writer level allows a maximum of {max_takes} pending "
+                        "take request(s) at a time."
+                    )
+
+        except ValidationError:
+            raise
+        except Exception:
+            # Non-fatal: if level/settings lookup fails, allow the action.
+            pass
 
     @classmethod
     def _lock_order(cls, order: Order) -> Order:

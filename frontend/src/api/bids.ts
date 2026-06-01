@@ -11,8 +11,11 @@ export const bidsApi = {
   listMine: (params?: Record<string, unknown>) =>
     api.get<Bid[] | { results: Bid[] }>(apiPath("/bids/my/"), { params }),
 
-  accept: (orderId: number | string, bidId: number | string) =>
-    api.post<Bid>(apiPath(`/orders/${orderId}/bids/${bidId}/accept/`), {}),
+  // Accepts a bid by assigning the writer via the interest endpoint.
+  // _close_other_open_interests() in OrderStaffingService auto-decays
+  // all competing PENDING interests for the same order on assignment.
+  accept: (_orderId: number | string, bidId: number | string) =>
+    api.post(apiPath(`/orders/staffing/interests/${bidId}/assign/`), {}),
 
   reject: (orderId: number | string, bidId: number | string, reason?: string) =>
     api.post<Bid>(apiPath(`/orders/${orderId}/bids/${bidId}/reject/`), { reason }),

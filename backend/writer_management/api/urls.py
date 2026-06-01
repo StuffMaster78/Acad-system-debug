@@ -113,6 +113,12 @@ from writer_management.api.views.performance_views import (
     WriterMetricsListView,
 )
 from writer_management.api.views.reward_views import WriterRewardListView
+from writer_management.api.views.badge_views import (
+    AdminBadgeListView,
+    AdminWriterBadgeAwardView,
+    AdminWriterBadgeRevokeView,
+    AdminWriterBadgeListView,
+)
 from writer_management.api.views.note_views import (
     WriterNoteListView,
     CreateWriterNoteView,
@@ -344,6 +350,30 @@ urlpatterns = [
         "resources/<int:pk>/download/",
         DownloadResourceView.as_view(),
         name="resource-download",
+    ),
+
+    # ----------------------------------------------------------------
+    # BADGES
+    # ----------------------------------------------------------------
+    path(
+        "badges/",
+        AdminBadgeListView.as_view(),
+        name="badge-list",
+    ),
+    path(
+        "writers/<str:registration_id>/badges/",
+        AdminWriterBadgeListView.as_view(),
+        name="writer-badge-list",
+    ),
+    path(
+        "writers/<str:registration_id>/badges/award/",
+        AdminWriterBadgeAwardView.as_view(),
+        name="writer-badge-award",
+    ),
+    path(
+        "writer-badges/<int:pk>/revoke/",
+        AdminWriterBadgeRevokeView.as_view(),
+        name="writer-badge-revoke",
     ),
 
     # ----------------------------------------------------------------
