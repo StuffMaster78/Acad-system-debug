@@ -1,6 +1,8 @@
 from typing import Any, cast
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,7 +13,7 @@ from authentication.api.serializers.auth_serializers import (
 )
 from authentication.services.login_flow_service import LoginFlowService
 from authentication.throttles.login_throttles import LoginRateThrottle
-# from accounts.services import AccountAccessProvisioningService
+
 
 class LoginView(APIView):
     """
@@ -31,18 +33,18 @@ class LoginView(APIView):
         )
         website = getattr(request, "website", None)
 
-        # AccountAccessProvisioningService.provision_client(
-        # user=user,
-        # website=website, # resolved from request.domain
-        # )
-
-
-        result = LoginFlowService.login(
-            email=validated_data["email"],
-            password=validated_data["password"],
-            request=request,
-            website=website,
-        )
+        try:
+            result = LoginFlowService.login(
+                email=validated_data["email"],
+                password=validated_data["password"],
+                request=request,
+                website=website,
+            )
+        except DjangoValidationError as exc:
+            # LoginFlowService raises django ValidationError for wrong credentials.
+            # Convert to a DRF 400 so the frontend receives a proper JSON error.
+            messages = exc.messages if hasattr(exc, "messages") else [str(exc)]
+            raise AuthenticationFailed(messages[0]) from exc
 
         response_serializer = LoginResponseSerializer(result)
         return Response(
