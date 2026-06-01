@@ -1,6 +1,18 @@
 """
-Orders task package.
-
-This package contains scheduled and background task entrypoints for the
-orders domain.
+Import all task sub-modules so Celery autodiscover registers every task.
 """
+from orders.tasks import (  # noqa: F401
+    adjustment_tasks,
+    order_adjustment_tasks,
+    order_approval_tasks,
+    order_archival_tasks,
+    order_completion_tasks,
+    order_dispute_tasks,
+    order_hold_tasks,
+    order_monitoring_tasks,
+    order_reassignment_tasks,
+    order_reminder_tasks,
+    order_staffing_tasks,
+    preferred_writer_tasks,
+    unpaid_order_reminder_tasks,
+)

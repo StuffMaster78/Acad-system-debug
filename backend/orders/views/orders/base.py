@@ -1045,7 +1045,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     pass
 
             # Use pricing calculator service
-            from orders.services.old_services.pricing_calculator import PricingCalculatorService
+            from orders.services.pricing_calculator import PricingCalculatorService
             calculator = PricingCalculatorService(temp)
             breakdown = calculator.calculate_breakdown()
             total = calculator.calculate_total_price()
@@ -1266,7 +1266,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         try:
             with transaction.atomic():
                 # Calculate the cost for additional pages/slides
-                from orders.services.old_services.pricing_calculator import PricingCalculatorService
+                from orders.services.pricing_calculator import PricingCalculatorService
                 calculator = PricingCalculatorService(order)
                 
                 # Get pricing config
@@ -1405,7 +1405,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         try:
             with transaction.atomic():
                 from order_pricing_core.models import AdditionalService
-                from orders.services.old_services.pricing_calculator import PricingCalculatorService
+                from orders.services.pricing_calculator import PricingCalculatorService
                 
                 # Get the services
                 services = AdditionalService.objects.filter(

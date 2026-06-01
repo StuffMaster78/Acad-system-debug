@@ -300,3 +300,23 @@ def send_preferred_writer_staff_visibility_reminders(
         "reminded": reminded,
         "failed": failed,
     }
+
+@shared_task(
+    name="orders.tasks.release_stale_preferred_orders",
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    max_retries=3,
+)
+def release_stale_preferred_orders(self) -> dict[str, int]:
+    """
+    Expire stale preferred-writer invitations and fall back timed-out
+    preferred orders to the open pool.
+    """
+    expire_result = expire_preferred_writer_invitations.apply()
+    fallback_result = fallback_expired_preferred_writer_orders_to_pool.apply()
+
+    return {
+        "expired_invitations": (expire_result.result or {}).get("expired", 0),
+        "moved_to_pool": (fallback_result.result or {}).get("moved", 0),
+    }
