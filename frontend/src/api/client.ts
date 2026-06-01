@@ -65,6 +65,12 @@ api.interceptors.response.use(
       | undefined;
 
     if (error.response?.status === 401 && original && !original._retry) {
+      // Preview sessions use fake tokens that always 401. Never clear them —
+      // the whole point is to browse the app with mock data without a real backend session.
+      if (auth.isPreviewSession) {
+        return Promise.reject(error);
+      }
+
       original._retry = true;
       const refreshed = await auth.refreshToken();
       if (refreshed) return api(original);

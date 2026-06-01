@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { websitesApi, type Website } from "@/api/websites";
+import { useAuthStore } from "@/stores/auth";
 
 export const useWebsitesStore = defineStore("websites", () => {
   const list = ref<Website[]>([]);
@@ -8,6 +9,8 @@ export const useWebsitesStore = defineStore("websites", () => {
 
   async function ensure() {
     if (loaded.value) return;
+    const auth = useAuthStore();
+    if (auth.isPreviewSession) { loaded.value = true; return; }
     try {
       const { data } = await websitesApi.list({ is_active: true, limit: 100 });
       list.value = Array.isArray(data) ? data : (data as { results: Website[] }).results ?? [];

@@ -22,7 +22,7 @@ export function useNotifications() {
   }
 
   async function tick() {
-    if (!auth.accessToken) return;
+    if (!auth.accessToken || auth.isPreviewSession) return;
     try {
       const latest = await notifications.pollUnreadCount();
       if (latest && (latest as unknown as Record<string, unknown>).type === "wallet_update") {
