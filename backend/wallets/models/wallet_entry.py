@@ -86,6 +86,13 @@ class WalletEntry(models.Model):
         default=dict,
         blank=True,
     )
+
+    # Payment disclosure audit — populated when a top-up or payment is card-processed
+    processor_display_name = models.CharField(max_length=120, blank=True, default="")
+    statement_descriptor_snapshot = models.CharField(max_length=22, blank=True, default="")
+    client_disclosure_text = models.TextField(blank=True, default="")
+    disclosure_shown_at = models.DateTimeField(null=True, blank=True)
+
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

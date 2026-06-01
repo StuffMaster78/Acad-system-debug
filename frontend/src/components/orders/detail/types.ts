@@ -33,8 +33,9 @@ export const TAB_LABELS: Record<string, string> = {
   audit: "Audit",
 };
 
-// Masked identity helpers — display only, no real names crossing role boundary
-// TODO: enforce server-side: API must strip client_username/writer_username from writer/client responses respectively
+// Masked identity helpers — display only.
+// Server-side enforcement: OrderListSerializer.to_representation() strips
+// client_username from writer responses and writer_username from client responses.
 export function maskedClient(order: OrderSummary): string {
   if (order.client_registration_id) return `Client #${order.client_registration_id}`;
   if (order.client) return `Client #C${String(order.client).padStart(4, "0")}`;

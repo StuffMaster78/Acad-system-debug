@@ -254,6 +254,13 @@ class Invoice(models.Model):
         ),
     )
 
+    # Payment disclosure audit — snapshot what the client was shown at payment time
+    processor_display_name = models.CharField(max_length=120, blank=True, default="")
+    statement_descriptor_snapshot = models.CharField(max_length=22, blank=True, default="")
+    client_disclosure_text = models.TextField(blank=True, default="")
+    disclosure_shown_at = models.DateTimeField(null=True, blank=True)
+    disclosure_accepted_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(
         auto_now_add=True,
         help_text="Timestamp when the invoice was created.",

@@ -97,10 +97,10 @@ def notify_writer_on_acceptance(sender, instance, created, **kwargs):
         },
         channels=["email", "in_app"],
         triggered_by=None,
-        is_broadcast=False
+        is_broadcast=False,
         priority="high",
         is_digest=False,
         is_critical=True,
-        is_silent=False
+        is_silent=False,
         digest_group=None
     )

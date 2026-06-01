@@ -5,10 +5,42 @@ import { AlertTriangle, BadgeMinus, Ban, BriefcaseBusiness, ExternalLink, FileTe
 import StatusPill from "@/components/ui/StatusPill.vue";
 import BulkActionBar from "@/components/ui/BulkActionBar.vue";
 import { useAdminWritersStore } from "@/stores/adminWriters";
+import { api, apiPath } from "@/api/client";
 
 const router = useRouter();
 
 const writers = useAdminWritersStore();
+
+// ── Writer Level Intake Settings ────────────────────────────────────────────
+interface LevelSettings {
+  id: number; level_id: number; level_name: string;
+  max_active_orders: number; max_manual_takes: number;
+  max_pending_assignments: number; base_pay_per_page: string;
+}
+const levelSettings = ref<LevelSettings[]>([]);
+const levelSaving = ref<Record<number,boolean>>({});
+const levelNotice = ref("");
+
+async function loadLevelSettings() {
+  try {
+    const { data } = await api.get<LevelSettings[]>(apiPath("/writer-management/level-settings/"));
+    levelSettings.value = Array.isArray(data) ? data : (data as {results:LevelSettings[]}).results ?? [];
+  } catch { /* non-fatal */ }
+}
+
+async function saveLevelSettings(s: LevelSettings) {
+  levelSaving.value[s.id] = true;
+  try {
+    await api.patch(apiPath(`/writer-management/level-settings/${s.id}/`), {
+      max_active_orders: s.max_active_orders,
+      max_manual_takes: s.max_manual_takes,
+      max_pending_assignments: s.max_pending_assignments,
+    });
+    levelNotice.value = `${s.level_name} limits saved.`;
+    setTimeout(() => { levelNotice.value = ""; }, 3000);
+  } catch { levelNotice.value = "Save failed."; }
+  finally { levelSaving.value[s.id] = false; }
+}
 const actionForm = reactive({
   reason: "Staff review action from writer operations console.",
   penaltyAmount: "25",
@@ -101,6 +133,7 @@ function riskTone(writer: {
 
 onMounted(() => {
   writers.hydrate().catch(() => undefined);
+  loadLevelSettings();
 });
 </script>
 
@@ -473,6 +506,54 @@ onMounted(() => {
                 >
                   Inspect
                 </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Writer Level Intake Settings -->
+    <section v-if="levelSettings.length" class="rounded-lg border border-slate-200 bg-white">
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <div>
+          <h2 class="text-sm font-semibold text-ink">Writer level intake limits</h2>
+          <p class="mt-0.5 text-xs text-graphite">Controls how many orders each level can hold simultaneously.</p>
+        </div>
+        <span v-if="levelNotice" class="text-xs font-medium text-emerald-700">{{ levelNotice }}</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 text-xs uppercase text-graphite">
+            <tr>
+              <th class="px-4 py-2 text-left">Level</th>
+              <th class="px-4 py-2 text-right">Max active orders</th>
+              <th class="px-4 py-2 text-right">Max manual takes</th>
+              <th class="px-4 py-2 text-right">Max pending</th>
+              <th class="px-4 py-2"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="s in levelSettings" :key="s.id" class="hover:bg-slate-50">
+              <td class="px-4 py-2 font-medium text-ink">{{ s.level_name }}</td>
+              <td class="px-4 py-2 text-right">
+                <input v-model.number="s.max_active_orders" type="number" min="0" max="100"
+                  class="focus-ring w-16 rounded border border-slate-200 px-2 py-1 text-right text-xs" />
+              </td>
+              <td class="px-4 py-2 text-right">
+                <input v-model.number="s.max_manual_takes" type="number" min="0" max="50"
+                  class="focus-ring w-16 rounded border border-slate-200 px-2 py-1 text-right text-xs" />
+              </td>
+              <td class="px-4 py-2 text-right">
+                <input v-model.number="s.max_pending_assignments" type="number" min="0" max="50"
+                  class="focus-ring w-16 rounded border border-slate-200 px-2 py-1 text-right text-xs" />
+              </td>
+              <td class="px-4 py-2 text-right">
+                <button
+                  class="focus-ring rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
+                  :disabled="levelSaving[s.id]"
+                  @click="saveLevelSettings(s)"
+                >{{ levelSaving[s.id] ? "Saving…" : "Save" }}</button>
               </td>
             </tr>
           </tbody>

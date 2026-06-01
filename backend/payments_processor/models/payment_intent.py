@@ -139,6 +139,14 @@ class PaymentIntent(models.Model):
 
     metadata = models.JSONField(default=dict, blank=True)
 
+    # Payment disclosure audit trail — snapshot what the client was shown
+    # at payment time so support can prove it regardless of future branding changes.
+    processor_display_name = models.CharField(max_length=120, blank=True, default="")
+    statement_descriptor_snapshot = models.CharField(max_length=22, blank=True, default="")
+    client_disclosure_text = models.TextField(blank=True, default="")
+    disclosure_shown_at = models.DateTimeField(null=True, blank=True)
+    disclosure_accepted_at = models.DateTimeField(null=True, blank=True)
+
     expires_at = models.DateTimeField(null=True, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
 

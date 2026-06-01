@@ -104,6 +104,7 @@ class ClassWalletPaymentIntegration:
                 else "",
             },
             reference_prefix="class",
+            website=getattr(payer, "website", None) or getattr(class_order, "website", None),
         )
 
     @staticmethod

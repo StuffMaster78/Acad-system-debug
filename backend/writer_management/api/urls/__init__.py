@@ -49,6 +49,10 @@ from writer_management.api.views.resource_views import (
     DownloadResourceView,
 )
 from writer_management.api.views.application_views import WriterApplicationViewSet
+from writer_management.api.views.level_settings_views import (
+    WriterLevelSettingsListView,
+    WriterLevelSettingsDetailView,
+)
 from writer_management.api.views.badge_views import (
     AdminBadgeListView,
     AdminWriterBadgeAwardView,
@@ -115,6 +119,9 @@ urlpatterns = [
     path("achievements/", include("writer_management.api.urls.achievement_urls")),
 
     # Badges (admin manual award/revoke)
+    path("level-settings/", WriterLevelSettingsListView.as_view(), name="level-settings-list"),
+    path("level-settings/<int:pk>/", WriterLevelSettingsDetailView.as_view(), name="level-settings-detail"),
+
     path("badges/", AdminBadgeListView.as_view(), name="badge-list"),
     path("writers/<str:registration_id>/badges/", AdminWriterBadgeListView.as_view(), name="writer-badge-list"),
     path("writers/<str:registration_id>/badges/award/", AdminWriterBadgeAwardView.as_view(), name="writer-badge-award"),

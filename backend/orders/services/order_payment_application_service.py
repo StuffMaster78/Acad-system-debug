@@ -108,6 +108,7 @@ class OrderPaymentApplicationService:
                 **(metadata or {}),
             },
             reference_prefix=f"order_{order.pk}",
+            website=order.website,
         )
 
         if order.status != OrderStatus.PENDING_PAYMENT:

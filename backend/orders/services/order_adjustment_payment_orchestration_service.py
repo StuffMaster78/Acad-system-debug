@@ -404,6 +404,7 @@ class OrderAdjustmentPaymentOrchestrationService:
                 ),
             },
             reference_prefix=reference_prefix,
+            website=getattr(billing_payment_request.client, "website", None),
         )
 
         payment_intent = create_result["payment_intent"]

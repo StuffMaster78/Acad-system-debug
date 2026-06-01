@@ -15,10 +15,24 @@ class OrderListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for order list views.
     Excludes large fields like order_instructions and style_reference_files.
-    Optimized for fast list rendering in admin dashboard.
+    Strips cross-role identity fields: writers never see client_username and
+    clients never see writer_username — enforced server-side here.
     """
     client_username = serializers.CharField(source='client.username', read_only=True, allow_null=True)
     writer_username = serializers.CharField(source='assigned_writer.username', read_only=True, allow_null=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            role = getattr(request.user, "role", None)
+            if role == "writer":
+                data.pop("client_username", None)
+                data.pop("client", None)
+            elif role == "client":
+                data.pop("writer_username", None)
+                data.pop("assigned_writer", None)
+        return data
     paper_type_name = serializers.CharField(source='paper_type.name', read_only=True, allow_null=True)
     academic_level_name = serializers.CharField(source='academic_level.name', read_only=True, allow_null=True)
     subject_name = serializers.CharField(source='subject.name', read_only=True, allow_null=True)
