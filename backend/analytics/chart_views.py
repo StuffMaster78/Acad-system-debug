@@ -112,7 +112,7 @@ class RevenueTrendView(APIView):
         label_fn = _quarter_label if period == "quarter" else _month_label
 
         rows = (
-            Order.objects.filter(wf, is_paid=True, created_at__gte=start)
+            Order.objects.filter(wf, payment_status='paid', created_at__gte=start)
             .annotate(period=trunc("created_at"))
             .values("period")
             .annotate(
@@ -310,7 +310,7 @@ class DailySparklineView(APIView):
         start = timezone.now() - timedelta(days=days)
 
         rows = (
-            Order.objects.filter(wf, is_paid=True, created_at__gte=start)
+            Order.objects.filter(wf, payment_status='paid', created_at__gte=start)
             .annotate(day=TruncDay("created_at"))
             .values("day")
             .annotate(
@@ -398,8 +398,8 @@ class PeriodComparisonView(APIView):
             prev_val = Order.objects.filter(wf, created_at__gte=prev_start, created_at__lte=prev_end).count()
         else:  # revenue
             from django.db.models import Sum, DecimalField
-            cur_val  = float(Order.objects.filter(wf, is_paid=True, created_at__gte=cur_start, created_at__lte=cur_end).aggregate(v=Sum("total_price", output_field=DecimalField()))["v"] or 0)
-            prev_val = float(Order.objects.filter(wf, is_paid=True, created_at__gte=prev_start, created_at__lte=prev_end).aggregate(v=Sum("total_price", output_field=DecimalField()))["v"] or 0)
+            cur_val  = float(Order.objects.filter(wf, payment_status='paid', created_at__gte=cur_start, created_at__lte=cur_end).aggregate(v=Sum("total_price", output_field=DecimalField()))["v"] or 0)
+            prev_val = float(Order.objects.filter(wf, payment_status='paid', created_at__gte=prev_start, created_at__lte=prev_end).aggregate(v=Sum("total_price", output_field=DecimalField()))["v"] or 0)
 
         return Response({
             "metric": metric,
@@ -491,7 +491,7 @@ class ClientSpendingTrendView(APIView):
         )
 
         rows = (
-            Order.objects.filter(client=request.user, is_paid=True, created_at__gte=start)
+            Order.objects.filter(client=request.user, payment_status='paid', created_at__gte=start)
             .annotate(month=TruncMonth("created_at"))
             .values("month")
             .annotate(
@@ -547,7 +547,7 @@ class RevenueByWebsiteView(APIView):
         start = timezone.now() - timedelta(days=months * 31)
 
         rows = (
-            Order.objects.filter(is_paid=True, created_at__gte=start, website__isnull=False)
+            Order.objects.filter(payment_status='paid', created_at__gte=start, website__isnull=False)
             .values("website_id")
             .annotate(revenue=Sum("total_price", output_field=DecimalField()), orders=Count("id"))
             .order_by("-revenue")[:top]

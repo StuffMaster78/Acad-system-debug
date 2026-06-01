@@ -679,10 +679,10 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "burst": "60/min",
-        "sustained": "1000/hour",
-        "user": "5000/hour",
-        "anon": "500/hour",
+        "burst": "200/min",
+        "sustained": "5000/hour",
+        "user": "10000/hour",
+        "anon": "2000/hour",
         "write": "200/hour",
         "read": "10000/hour",
         "ip": "1000/hour",
@@ -780,6 +780,13 @@ CORS_ALLOWED_ORIGINS = env_list(
 )
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False
+
+from corsheaders.defaults import default_headers  # noqa: E402
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "X-Device-Fingerprint",
+    "X-Session-ID",
+]
 
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",

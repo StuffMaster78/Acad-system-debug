@@ -245,18 +245,17 @@ class DeviceFingerprintService:
         Returns:
             DeviceFingerprint instance.
         """
-        if request is None:
-            raise ValidationError("Fingerprint request is required.")
-
+        # Gracefully handle API clients / curl / mobile apps that don't send
+        # browser fingerprint headers.  Create an anonymous fingerprint so
+        # login still succeeds; the session will be treated as untrusted.
         service = cls(user=user, website=website)
-        fingerprint_data = _extract_fingerprint_data(request)
+        fingerprint_data = _extract_fingerprint_data(request) if request is not None else {}
 
-        if not fingerprint_data:
-            raise ValidationError("Fingerprint data is required.")
-
-        raw_fingerprint_data = fingerprint_data.get("raw_fingerprint_data")
+        raw_fingerprint_data = (fingerprint_data or {}).get("raw_fingerprint_data") if fingerprint_data else None
         if not raw_fingerprint_data:
-            raise ValidationError("Fingerprint data is required.")
+            ip = request.META.get("REMOTE_ADDR", "") if request else ""
+            ua = (request.headers.get("User-Agent", "") if request else "")
+            raw_fingerprint_data = f"anon:{ip}:{ua}" or "anonymous"
 
         fingerprint_hash = service.hash_fingerprint_data(
             raw_fingerprint_data,
@@ -265,9 +264,9 @@ class DeviceFingerprintService:
         return service.create_or_update_fingerprint(
                 {
                     "fingerprint_hash": fingerprint_hash,
-                    "ip_address": request.META.get("REMOTE_ADDR"),
-                    "user_agent": request.headers.get("User-Agent", ""),
-                    "device_name": fingerprint_data.get("device_name"),
+                    "ip_address": request.META.get("REMOTE_ADDR") if request else None,
+                    "user_agent": request.headers.get("User-Agent", "") if request else "",
+                    "device_name": (fingerprint_data or {}).get("device_name"),
                 }
             )
 

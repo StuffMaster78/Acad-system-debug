@@ -354,14 +354,17 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 models.Q(external_contact_phone__icontains=contact_search)
             )
 
+        # is_paid is a property (amount_paid >= total_price), not a DB field.
+        # Filter by payment_status instead.
         paid = parse_bool(params.get('is_paid'))
         if paid is not None:
-            base_qs = base_qs.filter(is_paid=paid)
-        
-        # Filter by special order flag
-        is_special_order = parse_bool(params.get('is_special_order'))
-        if is_special_order is not None:
-            base_qs = base_qs.filter(is_special_order=is_special_order)
+            if paid:
+                base_qs = base_qs.filter(payment_status='paid')
+            else:
+                base_qs = base_qs.exclude(payment_status='paid')
+
+        # is_special_order is not a DB field on Order; skip this filter.
+        # Special orders live in a separate model/app.
 
         # Apply status filtering early for optimal query performance
         # This uses the status index and reduces the dataset early
@@ -435,7 +438,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 )
             elif needs_attention == 'unpaid':
                 base_qs = base_qs.filter(
-                    is_paid=False,
+                    payment_status__in=['unpaid', 'partial'],
                     status__in=[
                         OrderStatus.UNPAID.value,
                         OrderStatus.PENDING.value,
@@ -733,7 +736,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             if hasattr(permission, 'has_object_permission'):
                 if not permission.has_object_permission(self.request, self, order):
                     # Provide a more helpful error message
-                    if self.request.user.role == 'writer' and not order.is_paid:
+                    if self.request.user.role == 'writer' and not order.is_fully_paid:
                         raise PermissionDenied(
                             "You cannot view this order because it has not been paid yet. "
                             "Only paid orders are visible to writers."
@@ -953,7 +956,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 client_deadline=data["client_deadline"],
                 order_instructions=data["order_instructions"],
                 created_by_admin=False,
-                is_paid=False,
+                payment_status='unpaid',
             )
 
             # Optional fields

@@ -196,17 +196,10 @@ class LoginFlowService:
 
         User = get_user_model()
 
-        if website is not None:
-            # Tenant-scoped lookup: user must belong to this website, OR be
-            # a platform-level user (website=None) such as staff/admin.
-            user = User.objects.filter(email=email, website=website).first()
-            if user is None:
-                user = User.objects.filter(email=email, website=None).first()
-            return user
-
-        # No website resolved (localhost / staff portal / unknown host):
-        # find the user by email alone so all roles are reachable in dev
-        # and from the staff/writer portal domains.
+        # Look up by email — the JWT token carries website_id so session
+        # isolation is enforced at the data-access layer, not at login time.
+        # Restricting by website here breaks dev (localhost maps to a different
+        # website than seeded users) and the staff portal (no website).
         return User.objects.filter(email=email).first()
 
     @staticmethod

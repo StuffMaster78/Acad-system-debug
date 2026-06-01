@@ -37,7 +37,7 @@ def log_rate_limit_violation(request, throttle_class, scope, wait_time=None):
         'endpoint': request.path,
         'method': request.method,
         'scope': scope,
-        'throttle_class': throttle_class.__name__,
+        'throttle_class': getattr(throttle_class, '__name__', str(type(throttle_class).__name__)),
         'wait_time': wait_time,
         'user_role': getattr(request.user, 'role', 'anonymous') if request.user.is_authenticated else 'anonymous',
     }

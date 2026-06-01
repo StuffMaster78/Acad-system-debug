@@ -24,11 +24,15 @@ class PortalContextView(APIView):
     branding for client domains, payment disclosure config, and the list
     of roles permitted on this surface.
 
+    No rate limit — this is a read-only boot endpoint called once per page
+    load by every visitor. Throttling it breaks the SPA for all users.
+
     Requires no authentication — called before the user has logged in.
     """
 
     authentication_classes = []
     permission_classes = []
+    throttle_classes = []  # no rate limit on a public boot endpoint
 
     def get(self, request):
         portal = getattr(request, "portal", None)

@@ -8,6 +8,7 @@ from rest_framework.throttling import UserRateThrottle, AnonRateThrottle, Scoped
 from rest_framework.exceptions import Throttled
 from django.core.cache import cache
 from django.conf import settings
+from core.throttling.monitoring import log_rate_limit_violation
 from django.utils import timezone
 from ipware import get_client_ip
 
