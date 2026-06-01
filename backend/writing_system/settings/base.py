@@ -402,6 +402,35 @@ CELERY_BEAT_SCHEDULER = (
     "django_celery_beat.schedulers:DatabaseScheduler"
 )
 
+# Explicitly import task sub-modules that live in packages (not flat tasks.py).
+# Celery autodiscover only loads tasks/__init__.py; sub-modules must be listed
+# here so every @shared_task decorated function gets registered at startup.
+CELERY_IMPORTS = [
+    "notifications_system.tasks.maintenance",
+    "notifications_system.tasks.digest",
+    "notifications_system.tasks.send",
+    "payments_processor.tasks.payment_application_tasks",
+    "payments_processor.tasks.payment_cleanup_tasks",
+    "payments_processor.tasks.payment_reconciliation_tasks",
+    "payments_processor.tasks.pending_payment_resolution_tasks",
+    "payments_processor.tasks.refund_tasks",
+    "orders.tasks.adjustment_tasks",
+    "orders.tasks.order_adjustment_tasks",
+    "orders.tasks.order_approval_tasks",
+    "orders.tasks.order_archival_tasks",
+    "orders.tasks.order_completion_tasks",
+    "orders.tasks.order_dispute_tasks",
+    "orders.tasks.order_hold_tasks",
+    "orders.tasks.order_monitoring_tasks",
+    "orders.tasks.order_reassignment_tasks",
+    "orders.tasks.order_reminder_tasks",
+    "orders.tasks.order_staffing_tasks",
+    "orders.tasks.preferred_writer_tasks",
+    "orders.tasks.unpaid_order_reminder_tasks",
+    "files_management.tasks.quotas",
+    "files_management.tasks.cleanup",
+]
+
 from celery.schedules import crontab  # noqa: E402
 
 CELERY_BEAT_SCHEDULE = {

@@ -1,7 +1,4 @@
-"""
-Import all task sub-modules so Celery autodiscover registers every task.
-"""
-from orders.tasks import (  # noqa: F401
+from . import (  # noqa: F401
     adjustment_tasks,
     order_adjustment_tasks,
     order_approval_tasks,
