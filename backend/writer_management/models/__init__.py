@@ -204,3 +204,4 @@ __all__ = [
     # Application
     "WriterApplication",
 ]
+from writer_management.models.badges import Badge, WriterBadge  # noqa: F401

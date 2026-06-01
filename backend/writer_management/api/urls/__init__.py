@@ -49,6 +49,12 @@ from writer_management.api.views.resource_views import (
     DownloadResourceView,
 )
 from writer_management.api.views.application_views import WriterApplicationViewSet
+from writer_management.api.views.badge_views import (
+    AdminBadgeListView,
+    AdminWriterBadgeAwardView,
+    AdminWriterBadgeRevokeView,
+    AdminWriterBadgeListView,
+)
 
 router = DefaultRouter()
 router.register("applications", WriterApplicationViewSet, basename="writer-application")
@@ -107,6 +113,12 @@ urlpatterns = [
 
     # Achievements (writer)
     path("achievements/", include("writer_management.api.urls.achievement_urls")),
+
+    # Badges (admin manual award/revoke)
+    path("badges/", AdminBadgeListView.as_view(), name="badge-list"),
+    path("writers/<str:registration_id>/badges/", AdminWriterBadgeListView.as_view(), name="writer-badge-list"),
+    path("writers/<str:registration_id>/badges/award/", AdminWriterBadgeAwardView.as_view(), name="writer-badge-award"),
+    path("writer-badges/<int:pk>/revoke/", AdminWriterBadgeRevokeView.as_view(), name="writer-badge-revoke"),
 
     # Applications (router)
     path("", include(router.urls)),

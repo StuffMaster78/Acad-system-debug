@@ -68,8 +68,12 @@ api.interceptors.response.use(
       original._retry = true;
       const refreshed = await auth.refreshToken();
       if (refreshed) return api(original);
-      // Refresh failed — session is dead, send to login
-      window.location.href = "/auth/login";
+      // Refresh failed — clear session and redirect via router (no full-page reload)
+      auth.clearSession();
+      // Lazy import to avoid circular dep: api → router → stores → api
+      import("@/router").then(({ router }) => {
+        router.push({ name: "login" }).catch(() => undefined);
+      });
       return new Promise(() => {}); // halt the rejection chain
     }
 

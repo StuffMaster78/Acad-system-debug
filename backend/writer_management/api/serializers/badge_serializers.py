@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
+from writer_management.models.badges import Badge
+
 
 class BadgeSerializer(serializers.ModelSerializer):
     class Meta:
-        from writer_management.models.old_models.badges import Badge
         model = Badge
         fields = [
             "id", "name", "icon", "type", "description",

@@ -27,7 +27,7 @@ class AdminBadgeListView(APIView):
     def get(self, request):
         if not _require_staff(request):
             return Response({"detail": "Forbidden."}, status=403)
-        from writer_management.models.old_models.badges import Badge
+        from writer_management.models.badges import Badge
         from writer_management.api.serializers.badge_serializers import BadgeSerializer
         website = getattr(request, "website", None)
         qs = Badge.objects.filter(is_active=True)
@@ -58,7 +58,7 @@ class AdminWriterBadgeAwardView(APIView):
         if not _require_staff(request):
             return Response({"detail": "Forbidden."}, status=403)
 
-        from writer_management.models.old_models.badges import Badge, WriterBadge
+        from writer_management.models.badges import Badge, WriterBadge
         from writer_management.services.writer_profile_service import WriterProfileService
 
         badge_id = request.data.get("badge_id")
@@ -117,7 +117,7 @@ class AdminWriterBadgeRevokeView(APIView):
             return Response({"detail": "Forbidden."}, status=403)
 
         from django.utils import timezone
-        from writer_management.models.old_models.badges import WriterBadge
+        from writer_management.models.badges import WriterBadge
 
         try:
             writer_badge = WriterBadge.objects.get(pk=pk, revoked=False)
@@ -144,7 +144,7 @@ class AdminWriterBadgeListView(APIView):
         if not _require_staff(request):
             return Response({"detail": "Forbidden."}, status=403)
 
-        from writer_management.models.old_models.badges import WriterBadge
+        from writer_management.models.badges import WriterBadge
         from writer_management.services.writer_profile_service import WriterProfileService
 
         try:
