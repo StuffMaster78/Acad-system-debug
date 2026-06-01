@@ -1,6 +1,5 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
-import { useRouter } from "vue-router";
 import { authApi, type LoginPayload } from "@/api/auth";
 import type { AuthUser, UserRole } from "@/types/roles";
 
@@ -26,7 +25,10 @@ function readUser(): AuthUser | null {
 }
 
 export const useAuthStore = defineStore("auth", () => {
-  const router = useRouter();
+  // router is NOT stored here — useRouter() is called at store-creation time which
+  // can happen before app.use(router) in main.ts (the axios interceptor creates the
+  // store on the first API call). Instead, navigate via window.location.replace so
+  // redirects always work regardless of when the store is instantiated.
   const accessToken = ref(window.localStorage.getItem(ACCESS_KEY) || "");
   const refresh = ref(window.localStorage.getItem(REFRESH_KEY) || "");
   const user = ref<AuthUser | null>(readUser());
@@ -100,7 +102,7 @@ export const useAuthStore = defineStore("auth", () => {
   async function logout() {
     if (isPreviewSession.value) {
       clearSession();
-      router.push("/auth/login");
+      window.location.replace("/auth/login");
       return;
     }
 
@@ -108,7 +110,7 @@ export const useAuthStore = defineStore("auth", () => {
       await authApi.logout();
     } finally {
       clearSession();
-      router.push("/auth/login");
+      window.location.replace("/auth/login");
     }
   }
 
