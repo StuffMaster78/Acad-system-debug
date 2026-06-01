@@ -36,7 +36,6 @@ class LimitedPagination(PageNumberPagination):
     
     def get_paginated_response(self, data):
         """Return paginated response with metadata."""
-        from rest_framework.response import Response
         return Response({
             'count': self.page.paginator.count,
             'next': self.get_next_link(),
@@ -653,7 +652,6 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             # Try cache
             cached_result = cache.get(cache_key)
             if cached_result is not None:
-                from rest_framework.response import Response
                 return Response(cached_result)
         
         try:
