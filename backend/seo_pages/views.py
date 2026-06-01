@@ -92,10 +92,12 @@ class PublicSeoPageViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = SeoPage.objects.filter(is_published=True, is_deleted=False)
         # Always scope to the host-resolved website so slugs are tenant-isolated.
+        # If no website resolves (unknown host, dev localhost) return nothing —
+        # public SEO content must never leak across tenant boundaries.
         website = getattr(self.request, 'website', None)
-        if website:
-            qs = qs.filter(website=website)
-        return qs
+        if website is None:
+            return qs.none()
+        return qs.filter(website=website)
 
     @action(detail=False, methods=['get'], url_path='by-slug/(?P<slug>[^/.]+)')
     def by_slug(self, request, slug=None):

@@ -29,6 +29,19 @@ from rest_framework.views import APIView
 
 User = get_user_model()
 
+_STAFF_ROLES = {"superadmin", "admin", "support", "editor"}
+
+
+class IsStaffOrAdmin(permissions.BasePermission):
+    """Restrict analytics endpoints to staff roles (admin, support, editor, superadmin)."""
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        role = getattr(request.user, "role", None)
+        return role in _STAFF_ROLES or getattr(request.user, "is_superuser", False)
+
+
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def _month_label(d: date) -> str:
@@ -44,14 +57,32 @@ def _pct_change(current: float, previous: float) -> float | None:
     return round((current - previous) / previous * 100, 1)
 
 def _website_filter(request):
-    """Return a Q() filter for website scoping."""
+    """
+    Return a Q() filter for website scoping.
+
+    Security: only superadmin may see cross-tenant data (no website filter).
+    All other roles are scoped to their resolved website, then to their user
+    website as a fallback. Non-staff roles (writer, client) get an impossible
+    Q that returns no rows.
+    """
+    user = request.user
+    role = getattr(user, "role", None)
+    is_super = role == "superadmin" or getattr(user, "is_superuser", False)
+
     website_id = request.query_params.get("website_id")
-    if website_id:
+    if website_id and is_super:
         return Q(website_id=website_id)
-    website = getattr(request, "website", None)
+
+    website = getattr(request, "website", None) or getattr(user, "website", None)
     if website:
         return Q(website=website)
-    return Q()
+
+    # Superadmin without a specific website_id or resolved website → all tenants.
+    if is_super:
+        return Q()
+
+    # Any other role with no resolvable website: deny all rows.
+    return Q(pk__isnull=True)
 
 
 # ── Revenue trend ─────────────────────────────────────────────────────────────
@@ -64,7 +95,7 @@ class RevenueTrendView(APIView):
     ?website_id=  (superadmin multi-tenant filter)
     """
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStaffOrAdmin]
 
     def get(self, request):
         from orders.models.orders import Order
@@ -127,7 +158,7 @@ class OrdersTrendView(APIView):
     ?website_id=
     """
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStaffOrAdmin]
 
     TRACKED_STATUSES = [
         "pending", "assigned", "in_progress",
@@ -197,7 +228,7 @@ class ClientGrowthView(APIView):
     Returns new client registrations + cumulative active clients per month.
     """
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStaffOrAdmin]
 
     def get(self, request):
         months = min(int(request.query_params.get("months", 12)), 36)
@@ -268,7 +299,7 @@ class DailySparklineView(APIView):
     Returns lightweight data: labels are short day strings, two series.
     """
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStaffOrAdmin]
 
     def get(self, request):
         from orders.models.orders import Order
@@ -323,7 +354,7 @@ class PeriodComparisonView(APIView):
     YoY = current year vs prior year
     """
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStaffOrAdmin]
 
     def get(self, request):
         from orders.models.orders import Order
@@ -394,7 +425,7 @@ class WriterEarningsTrendView(APIView):
     Scoped to the authenticated writer automatically.
     """
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStaffOrAdmin]
 
     def get(self, request):
         from wallets.models import Wallet
@@ -449,7 +480,7 @@ class ClientSpendingTrendView(APIView):
     Scoped to the authenticated client automatically.
     """
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStaffOrAdmin]
 
     def get(self, request):
         from orders.models.orders import Order
@@ -502,7 +533,7 @@ class RevenueByWebsiteView(APIView):
     Superadmin cross-tenant revenue comparison.
     """
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStaffOrAdmin]
 
     def get(self, request):
         from orders.models.orders import Order

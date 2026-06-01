@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from special_orders.models import (
@@ -16,7 +18,7 @@ class SpecialOrderQuoteLineInputSerializer(serializers.Serializer):
     unit_price = serializers.DecimalField(
         max_digits=12,
         decimal_places=2,
-        min_value=0,
+        min_value=Decimal("0"),
     )
 
 
