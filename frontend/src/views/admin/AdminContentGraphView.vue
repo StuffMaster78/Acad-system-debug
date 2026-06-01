@@ -334,40 +334,40 @@ import {
 
 const TABS = [
   { key: "pillars" as const, label: "Pillars" },
-  { key: "funnel"  as const, label: "Funnel" },
+  { key: "funnel" as const, label: "Funnel" },
   { key: "freshness" as const, label: "Freshness" },
   { key: "health" as const, label: "Content health" },
 ];
 
 const HEALTH_METRICS = [
-  { label: "Clicks",      value: "clicks"      as const },
-  { label: "Page views",  value: "views"       as const },
+  { label: "Clicks", value: "clicks" as const },
+  { label: "Page views", value: "views" as const },
   { label: "Conversions", value: "conversions" as const },
-  { label: "Revenue",     value: "revenue"     as const },
+  { label: "Revenue", value: "revenue" as const },
 ];
 
-const tab            = ref<"pillars" | "funnel" | "freshness" | "health">("pillars");
-const isLoading      = ref(false);
-const dashboard      = ref<IntelligenceDashboard | null>(null);
+const tab = ref<"pillars" | "funnel" | "freshness" | "health">("pillars");
+const isLoading = ref(false);
+const dashboard = ref<IntelligenceDashboard | null>(null);
 
 // Pillars
-const pillars        = ref<ContentPillar[]>([]);
+const pillars = ref<ContentPillar[]>([]);
 const isLoadingPillars = ref(false);
 
 // Funnel
 const selectedPillarSlug = ref<string | null>(null);
-const funnel         = ref<FunnelReport | null>(null);
+const funnel = ref<FunnelReport | null>(null);
 const isLoadingFunnel = ref(false);
 
 // Freshness
-const alerts         = ref<FreshnessAlert[]>([]);
+const alerts = ref<FreshnessAlert[]>([]);
 const freshnessFilter = ref<"unresolved" | "resolved">("unresolved");
 const isLoadingAlerts = ref(false);
 
 // Health
-const topPerformers  = ref<PerformanceSnapshot[]>([]);
+const topPerformers = ref<PerformanceSnapshot[]>([]);
 const worstPerformers = ref<PerformanceSnapshot[]>([]);
-const healthMetric   = ref<"clicks" | "views" | "conversions" | "revenue">("clicks");
+const healthMetric = ref<"clicks" | "views" | "conversions" | "revenue">("clicks");
 const isLoadingHealth = ref(false);
 
 // ── Load functions ────────────────────────────────────────────────────────
@@ -418,7 +418,7 @@ async function loadTopPerformers(metric: typeof healthMetric.value = "clicks") {
       cmsIntelligenceApi.topPerformers(metric),
       cmsIntelligenceApi.worstPerformers(),
     ]);
-    topPerformers.value   = Array.isArray(topRes.data) ? topRes.data : [];
+    topPerformers.value = Array.isArray(topRes.data) ? topRes.data : [];
     worstPerformers.value = Array.isArray(worstRes.data) ? worstRes.data : [];
   } catch { /* empty states */ }
   finally { isLoadingHealth.value = false; }

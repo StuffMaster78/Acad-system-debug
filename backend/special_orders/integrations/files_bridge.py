@@ -112,7 +112,7 @@ class SpecialOrderFilesBridge:
 
         if not file_reference:
             raise ValueError("Deliverable has no file reference.")
-        
+
         return FileAttachment.objects.get(
             website=deliverable.website,
             id=int(file_reference),
@@ -131,7 +131,7 @@ class SpecialOrderFilesBridge:
             return ""
 
         return str(request.META.get("HTTP_USER_AGENT", ""))
-    
+
     @staticmethod
     def _validate_download_actor(
         *,

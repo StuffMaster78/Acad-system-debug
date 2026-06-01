@@ -6,6 +6,6 @@ class AdminManagementConfig(AppConfig):
 
     def ready(self):
         try:
-            import admin_management.signals  # noqa: F401
+            import admin_management.signals # noqa: F401
         except Exception:
             pass

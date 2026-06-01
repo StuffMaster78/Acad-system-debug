@@ -22,7 +22,7 @@ class OrderDraftViewSet(viewsets.ModelViewSet):
     """
     permission_classes = [IsAuthenticated]
     serializer_class = OrderDraftSerializer
-    
+
     def get_queryset(self):
         """Get drafts for current user."""
         queryset = OrderDraft.objects.filter(
@@ -31,45 +31,45 @@ class OrderDraftViewSet(viewsets.ModelViewSet):
         ).select_related(
             'type_of_work', 'english_type', 'preferred_writer', 'converted_to_order'
         ).prefetch_related('extra_services')
-        
+
         # Filter by is_quote if provided
         is_quote = self.request.query_params.get('is_quote')
         if is_quote is not None:
             queryset = queryset.filter(is_quote=is_quote.lower() == 'true')
-        
+
         # Search by title or topic
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
                 Q(title__icontains=search) | Q(topic__icontains=search)
             )
-        
+
         return queryset.order_by('-updated_at')
-    
+
     def get_serializer_class(self):
         """Return appropriate serializer based on action."""
         if self.action == 'create':
             return OrderDraftCreateSerializer
         return OrderDraftSerializer
-    
+
     def perform_create(self, serializer):
         """Create draft for current user."""
         serializer.save(
             client=self.request.user,
             website=self.request.user.website
         )
-    
+
     @action(detail=True, methods=['post'], url_path='calculate-price')
     def calculate_price(self, request, pk=None):
         """Calculate estimated price for draft."""
         draft = self.get_object()
-        
+
         if not draft.number_of_pages:
             return Response(
                 {'error': 'Number of pages is required to calculate price'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             # Create temporary order data for price calculation
             order_data = {
@@ -82,15 +82,15 @@ class OrderDraftViewSet(viewsets.ModelViewSet):
                 'english_type': draft.english_type,
                 'deadline': draft.deadline,
             }
-            
+
             # Calculate price
             calculator = PricingCalculatorService()
             estimated_price = calculator.calculate_total_price(**order_data)
-            
+
             # Update draft
             draft.estimated_price = estimated_price
             draft.save(update_fields=['estimated_price'])
-            
+
             return Response({
                 'estimated_price': str(estimated_price),
                 'currency': draft.website.currency or 'USD',
@@ -100,27 +100,27 @@ class OrderDraftViewSet(viewsets.ModelViewSet):
                 {'error': f'Failed to calculate price: {str(e)}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=True, methods=['post'], url_path='convert-to-order')
     def convert_to_order(self, request, pk=None):
         """Convert draft to actual order."""
         draft = self.get_object()
-        
+
         if draft.converted_to_order:
             return Response(
                 {'error': 'This draft has already been converted to an order'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         serializer = OrderDraftConvertSerializer(
             data=request.data,
             context={'draft': draft, 'request': request}
         )
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             order = draft.convert_to_order()
-            
+
             # Calculate price if requested
             if serializer.validated_data.get('calculate_price', True):
                 calculator = PricingCalculatorService()
@@ -135,10 +135,10 @@ class OrderDraftViewSet(viewsets.ModelViewSet):
                     deadline=order.deadline,
                 )
                 order.save(update_fields=['total_price'])
-            
+
             from orders.serializers import OrderSerializer
             order_serializer = OrderSerializer(order, context={'request': request})
-            
+
             return Response({
                 'message': 'Draft converted to order successfully',
                 'order': order_serializer.data,
@@ -148,7 +148,7 @@ class OrderDraftViewSet(viewsets.ModelViewSet):
                 {'error': f'Failed to convert draft: {str(e)}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=True, methods=['patch'], url_path='update-last-viewed')
     def update_last_viewed(self, request, pk=None):
         """Update last viewed timestamp."""
@@ -156,6 +156,6 @@ class OrderDraftViewSet(viewsets.ModelViewSet):
         from django.utils import timezone
         draft.last_viewed_at = timezone.now()
         draft.save(update_fields=['last_viewed_at'])
-        
+
         return Response({'message': 'Last viewed updated'})
 

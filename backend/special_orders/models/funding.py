@@ -88,7 +88,7 @@ class SpecialOrderFundingPlan(TimeStampedModel):
 
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "status"]),
@@ -185,7 +185,7 @@ class SpecialOrderFundingMilestone(TimeStampedModel):
 
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("sequence",)
         constraints = [
             models.UniqueConstraint(
@@ -316,7 +316,7 @@ class SpecialOrderPaymentApplication(TimeStampedModel):
 
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         constraints = [
             models.UniqueConstraint(
@@ -431,7 +431,7 @@ class SpecialOrderRefundApplication(TimeStampedModel):
 
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "status"]),

@@ -17,7 +17,7 @@ class ReceiptReadSerializer(serializers.ModelSerializer):
         source="description_snapshot",
         read_only=True,
     )
-    
+
     class Meta:
         """
         Configure serializer fields for receipt reads.

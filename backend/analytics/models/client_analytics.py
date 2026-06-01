@@ -24,7 +24,7 @@ class ClientAnalytics(models.Model):
         on_delete=models.CASCADE,
         related_name='client_analytics'
     )
-    
+
     # Time period
     period_start = models.DateField(
         help_text="Start of analytics period"
@@ -32,7 +32,7 @@ class ClientAnalytics(models.Model):
     period_end = models.DateField(
         help_text="End of analytics period"
     )
-    
+
     # Spend metrics
     total_spend = models.DecimalField(
         max_digits=10,
@@ -50,7 +50,7 @@ class ClientAnalytics(models.Model):
         default=0,
         help_text="Total orders in period"
     )
-    
+
     # Delivery metrics
     on_time_delivery_count = models.PositiveIntegerField(
         default=0,
@@ -66,7 +66,7 @@ class ClientAnalytics(models.Model):
         default=0.00,
         help_text="Percentage of orders delivered on time"
     )
-    
+
     # Revision metrics
     total_revisions = models.PositiveIntegerField(
         default=0,
@@ -84,7 +84,7 @@ class ClientAnalytics(models.Model):
         default=0.00,
         help_text="Average number of revisions per order"
     )
-    
+
     # Writer performance (aggregated)
     top_writers = models.JSONField(
         default=list,
@@ -97,10 +97,10 @@ class ClientAnalytics(models.Model):
         default=0.00,
         help_text="Average rating of writers used"
     )
-    
+
     # Calculated at
     calculated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         unique_together = ('client', 'website', 'period_start', 'period_end')
         indexes = [
@@ -108,10 +108,10 @@ class ClientAnalytics(models.Model):
         ]
         verbose_name = "Client Analytics"
         verbose_name_plural = "Client Analytics"
-    
+
     def __str__(self):
         return f"Analytics for {self.client.email} - {self.period_start} to {self.period_end}"
-    
+
     def recalculate(self):
         """Recalculate all metrics from orders."""
         orders = Order.objects.filter(
@@ -120,13 +120,13 @@ class ClientAnalytics(models.Model):
             created_at__date__gte=self.period_start,
             created_at__date__lte=self.period_end
         )
-        
+
         # Spend metrics
         self.total_orders = orders.count()
         if self.total_orders > 0:
             self.total_spend = orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
             self.average_order_value = self.total_spend / self.total_orders
-        
+
         # Delivery metrics
         from django.db.models import F
         completed_orders = orders.filter(status='completed', submitted_at__isnull=False)
@@ -135,7 +135,7 @@ class ClientAnalytics(models.Model):
             self.on_time_delivery_count = on_time
             self.late_delivery_count = completed_orders.count() - on_time
             self.on_time_delivery_rate = (on_time / completed_orders.count()) * 100
-        
+
         # Revision metrics
         from orders.models.legacy_models.enhanced_revisions import RevisionRequest
         revisions = RevisionRequest.objects.filter(
@@ -149,7 +149,7 @@ class ClientAnalytics(models.Model):
             orders_with_revisions = revisions.values('order').distinct().count()
             self.revision_rate = (orders_with_revisions / self.total_orders) * 100
             self.average_revisions_per_order = self.total_revisions / self.total_orders
-        
+
         # Writer performance
         from writer_management.models.feedback import Feedback
         writer_stats = {}
@@ -158,7 +158,7 @@ class ClientAnalytics(models.Model):
             if writer_id not in writer_stats:
                 writer_stats[writer_id] = {'orders': 0, 'ratings': []}
             writer_stats[writer_id]['orders'] += 1
-            
+
             # Get feedback ratings
             feedbacks = Feedback.objects.filter(
                 order=order,
@@ -166,7 +166,7 @@ class ClientAnalytics(models.Model):
             )
             for feedback in feedbacks:
                 writer_stats[writer_id]['ratings'].append(feedback.overall_rating)
-        
+
         # Calculate top writers
         top_writers = []
         for writer_id, stats in writer_stats.items():
@@ -176,16 +176,16 @@ class ClientAnalytics(models.Model):
                 'orders': stats['orders'],
                 'avg_rating': float(avg_rating)
             })
-        
+
         self.top_writers = sorted(top_writers, key=lambda x: x['orders'], reverse=True)[:10]
-        
+
         # Average writer rating
         all_ratings = []
         for stats in writer_stats.values():
             all_ratings.extend(stats['ratings'])
         if all_ratings:
             self.average_writer_rating = sum(all_ratings) / len(all_ratings)
-        
+
         self.save()
 
 
@@ -204,7 +204,7 @@ class ClientAnalyticsSnapshot(models.Model):
         on_delete=models.CASCADE,
         related_name='client_analytics_snapshots'
     )
-    
+
     snapshot_date = models.DateField(
         help_text="Date of snapshot"
     )
@@ -213,22 +213,22 @@ class ClientAnalyticsSnapshot(models.Model):
         choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly')],
         default='daily'
     )
-    
+
     # Metrics snapshot
     total_spend = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_orders = models.PositiveIntegerField(default=0)
     on_time_delivery_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     revision_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         unique_together = ('client', 'website', 'snapshot_date', 'snapshot_type')
         ordering = ['-snapshot_date']
         indexes = [
             models.Index(fields=['client', 'website', 'snapshot_date']),
         ]
-    
+
     def __str__(self):
         return f"Snapshot for {self.client.email} - {self.snapshot_date}"
 

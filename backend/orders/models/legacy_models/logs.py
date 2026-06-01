@@ -29,7 +29,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.utils.timezone import now
 from django.utils.text import slugify
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 class OrderTransitionLog(models.Model):
     """
@@ -48,10 +48,10 @@ class OrderTransitionLog(models.Model):
     )
     old_status = models.CharField(max_length=32)
     new_status = models.CharField(max_length=32)
-    action = models.CharField(max_length=64)  # e.g. "mark_paid", "auto_expire"
+    action = models.CharField(max_length=64) # e.g. "mark_paid", "auto_expire"
     is_automatic = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
-    meta = models.JSONField(null=True, blank=True)  # optional context or payload
+    meta = models.JSONField(null=True, blank=True) # optional context or payload
 
     class Meta:
         ordering = ['-timestamp']
@@ -103,7 +103,7 @@ class WriterReassignmentLog(models.Model):
     def __str__(self):
         return f"Order #{self.order.id} reassigned to {self.new_writer}"
 
-    
+
 class OrderPricingSnapshot(models.Model):
     """
     Captures a snapshot of the order's pricing details at a specific time.
@@ -117,7 +117,7 @@ class OrderPricingSnapshot(models.Model):
 
     def __str__(self):
         return f"Pricing Snapshot for Order #{self.order.id} at {self.calculated_at}"
-    
+
     class Meta:
         verbose_name = "Order Pricing Snapshot"
         verbose_name_plural = "Order Pricing Snapshots"

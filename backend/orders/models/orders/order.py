@@ -343,7 +343,7 @@ class Order(models.Model):
         null=True,
         blank=True,
         related_name="qa_reviewed_orders",
-    )   
+    )
     completed_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -525,7 +525,7 @@ class Order(models.Model):
                 condition=models.Q(preferred_writer_fee_amount__gte=0),
                 name="orders_order_pref_fee_gte_zero",
             ),
-            
+
         ]
 
     def __str__(self) -> str:
@@ -576,7 +576,7 @@ class Order(models.Model):
         return assignments.filter(
             is_current=True,
         ).select_related("writer").first()
-    
+
     @property
     def assigned_writer(self):
         """
@@ -590,7 +590,7 @@ class Order(models.Model):
         if current is None:
             return None
         return current.writer
-    
+
     @property
     def remaining_balance(self) -> Decimal:
         """

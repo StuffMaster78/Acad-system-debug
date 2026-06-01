@@ -157,7 +157,7 @@ class BalanceService:
         )
 
         return cast(Decimal, total)
-    
+
     @staticmethod
     def get_available_balance(
         *,
@@ -197,7 +197,7 @@ class BalanceService:
             wallet_reference=wallet_reference,
             currency=currency,
         )
-    
+
 
     @staticmethod
     def get_client_wallet_available_balance(
@@ -292,7 +292,7 @@ class BalanceService:
             wallet_reference=writer_reference,
             currency=currency,
         )
-    
+
     @staticmethod
     def get_writer_tip_payable_balance(
         *,
@@ -334,7 +334,7 @@ class BalanceService:
             wallet_reference=writer_reference,
             currency=currency,
         )
-    
+
     @staticmethod
     def create_snapshot(
         *,

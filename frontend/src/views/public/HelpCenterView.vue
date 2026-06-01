@@ -99,23 +99,23 @@ const categories = ref<HelpCategory[]>([]);
 const featured = ref<HelpArticleSummary[]>([]);
 
 const legalLinks = [
-  { label: "Terms of Service",      to: "/legal/terms_of_service" },
-  { label: "Privacy Policy",        to: "/legal/privacy_policy" },
-  { label: "Refund Policy",         to: "/legal/refund_policy" },
-  { label: "Cookie Policy",         to: "/legal/cookie_policy" },
+  { label: "Terms of Service", to: "/legal/terms_of_service" },
+  { label: "Privacy Policy", to: "/legal/privacy_policy" },
+  { label: "Refund Policy", to: "/legal/refund_policy" },
+  { label: "Cookie Policy", to: "/legal/cookie_policy" },
   { label: "Acceptable Use Policy", to: "/legal/acceptable_use_policy" },
 ];
 
 const ICON_MAP: Record<string, unknown> = {
-  "book-open":     BookOpen,
-  "credit-card":   CreditCard,
-  "file-text":     FileText,
-  "help-circle":   HelpCircle,
-  "life-buoy":     LifeBuoy,
+  "book-open": BookOpen,
+  "credit-card": CreditCard,
+  "file-text": FileText,
+  "help-circle": HelpCircle,
+  "life-buoy": LifeBuoy,
   "message-square": MessageSquare,
-  "settings":      Settings,
-  "shield-check":  ShieldCheck,
-  "users":         Users,
+  "settings": Settings,
+  "shield-check": ShieldCheck,
+  "users": Users,
 };
 
 function icon(name: string) {

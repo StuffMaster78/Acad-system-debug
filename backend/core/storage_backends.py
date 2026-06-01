@@ -25,7 +25,7 @@ if STORAGE_BACKEND in ['do_spaces', 's3']:
         location = 'media'
         default_acl = 'private'
         file_overwrite = False
-        
+
         def get_valid_name(self, name):
             """Add website prefix for multi-tenant isolation."""
             # Try to get website from context
@@ -41,9 +41,9 @@ if STORAGE_BACKEND in ['do_spaces', 's3']:
             except (ImportError, AttributeError, Exception):
                 # If tenant context not available, continue without prefix
                 pass
-            
+
             return super().get_valid_name(name)
-        
+
         def url(self, name, parameters=None, expire=3600):
             """
             Generate signed URL for private files.
@@ -52,10 +52,10 @@ if STORAGE_BACKEND in ['do_spaces', 's3']:
             # Increase expiry for certain file types if needed
             if isinstance(name, str):
                 if name.endswith(('.pdf', '.doc', '.docx', '.xls', '.xlsx')):
-                    expire = 3600 * 24  # 24 hours for documents
+                    expire = 3600 * 24 # 24 hours for documents
                 elif name.endswith(('.jpg', '.jpeg', '.png', '.gif')):
-                    expire = 3600 * 12  # 12 hours for images
-            
+                    expire = 3600 * 12 # 12 hours for images
+
             try:
                 return super().url(name, parameters=parameters, expire=expire)
             except Exception:
@@ -68,7 +68,7 @@ if STORAGE_BACKEND in ['do_spaces', 's3']:
         These can be public for better CDN performance.
         """
         location = 'static'
-        default_acl = 'public-read'  # Static files can be public
+        default_acl = 'public-read' # Static files can be public
         file_overwrite = True
 
     class PublicMediaStorage(S3Boto3Storage):
@@ -83,15 +83,15 @@ if STORAGE_BACKEND in ['do_spaces', 's3']:
 else:
     # Fallback to default storage if S3 not enabled
     from django.core.files.storage import FileSystemStorage
-    
+
     class MediaStorage(FileSystemStorage):
         """Local filesystem storage for development."""
         pass
-    
+
     class StaticStorage(FileSystemStorage):
         """Local filesystem storage for static files."""
         pass
-    
+
     class PublicMediaStorage(FileSystemStorage):
         """Local filesystem storage for public media."""
         pass

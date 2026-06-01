@@ -28,7 +28,7 @@ class TipCreationContract:
     idempotency_key: str
 
     reason: str = ""
-    
+
     currency: str = "USD"
 
     # attribution objects (IMPORTANT: NOT IDs)

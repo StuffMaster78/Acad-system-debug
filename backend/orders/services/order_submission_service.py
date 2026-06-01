@@ -6,18 +6,18 @@ WORKFLOW
 Writer IN_PROGRESS → submit_order()
         │
         ├─ requires_editing = True
-        │       └─ UNDER_EDITING
-        │               │ (auto-assign editor on commit)
-        │         Editor reviews
-        │               ├─ approved  → SUBMITTED → client
-        │               └─ revision  → REVISION_REQUESTED → writer
+        │ └─ UNDER_EDITING
+        │ │ (auto-assign editor on commit)
+        │ Editor reviews
+        │ ├─ approved → SUBMITTED → client
+        │ └─ revision → REVISION_REQUESTED → writer
         │
         ├─ requires_qa = True (and not editing)
-        │       └─ QA_REVIEW
-        │               │ (notify_staff on commit)
-        │         Admin reviews
-        │               ├─ approved  → SUBMITTED → client
-        │               └─ returned  → IN_PROGRESS → writer
+        │ └─ QA_REVIEW
+        │ │ (notify_staff on commit)
+        │ Admin reviews
+        │ ├─ approved → SUBMITTED → client
+        │ └─ returned → IN_PROGRESS → writer
         │
         └─ neither → SUBMITTED → client directly
 
@@ -29,10 +29,10 @@ notify_staff() alerts all active staff on the website on commit.
 
 QA FIELDS (add to EditingRequirementConfig via migration)
 ----------------------------------------------------------
-enable_qa_by_default         BooleanField(default=False)
-qa_required_for_high_value   BooleanField(default=True)
-qa_required_for_new_writers  BooleanField(default=True)
-new_writer_order_threshold   PositiveIntegerField(default=5)
+enable_qa_by_default BooleanField(default=False)
+qa_required_for_high_value BooleanField(default=True)
+qa_required_for_new_writers BooleanField(default=True)
+new_writer_order_threshold PositiveIntegerField(default=5)
 
 Until migration runs, getattr() defaults keep QA disabled safely.
 """
@@ -92,11 +92,11 @@ class OrderSubmissionService:
 
         Evaluates editing and QA policy in order:
             1. requires_editing → UNDER_EDITING + auto-assign editor
-            2. requires_qa      → QA_REVIEW + notify staff
-            3. neither          → SUBMITTED directly to client
+            2. requires_qa → QA_REVIEW + notify staff
+            3. neither → SUBMITTED directly to client
 
         Args:
-            order:        Order being submitted.
+            order: Order being submitted.
             submitted_by: Writer submitting the order.
             triggered_by: Optional actor performing the action.
 
@@ -175,7 +175,7 @@ class OrderSubmissionService:
             actor=triggered_by or submitted_by,
             metadata={
                 "submitted_by_id": getattr(submitted_by, "pk", None),
-                "routed_to":       "editor",
+                "routed_to": "editor",
             },
         )
 
@@ -200,9 +200,9 @@ class OrderSubmissionService:
         The notification event key is: order.qa_review_ready
 
         Admin action URLs:
-            Queue:   GET  /api/orders/?status=qa_review
+            Queue: GET /api/orders/?status=qa_review
             Approve: POST /api/orders/<pk>/qa/approve/
-            Return:  POST /api/orders/<pk>/qa/return/
+            Return: POST /api/orders/<pk>/qa/return/
         """
         validate_status_transition(
             from_status=locked_order.status,
@@ -222,7 +222,7 @@ class OrderSubmissionService:
             actor=triggered_by or submitted_by,
             metadata={
                 "submitted_by_id": getattr(submitted_by, "pk", None),
-                "routed_to":       "qa",
+                "routed_to": "qa",
             },
         )
 
@@ -398,7 +398,7 @@ class OrderSubmissionService:
                 "completed_by_id": None,
                 "internal_reason": internal_reason,
                 "completion_mode": "auto",
-                "is_automatic":    True,
+                "is_automatic": True,
             },
         )
         cls._notify_completed(
@@ -443,7 +443,7 @@ class OrderSubmissionService:
             actor=triggered_by or reopened_by,
             metadata={
                 "reopened_by_id": getattr(reopened_by, "pk", None),
-                "reason":         reason,
+                "reason": reason,
             },
         )
         cls._notify_reopened(
@@ -676,7 +676,7 @@ class OrderSubmissionService:
         Returns False on any error — QA must not fire on ambiguity.
 
         Args:
-            order:  The order being submitted.
+            order: The order being submitted.
             config: EditingRequirementConfig instance.
 
         Returns:
@@ -858,19 +858,19 @@ def _notify_qa_queue(order_pk: int) -> None:
     Never raises — notification failure must not roll back
     the writer's submission.
 
-    Notification event key:  order.qa_review_ready
+    Notification event key: order.qa_review_ready
 
     Context variables sent to template:
-        order_id     int      — order PK
-        order_topic  str      — topic truncated to 80 chars
-        total_price  str      — decimal string e.g. "250.00"
-        is_urgent    bool     — whether order is urgent
-        writer_id    int|None — PK of the assigned writer
+        order_id int — order PK
+        order_topic str — topic truncated to 80 chars
+        total_price str — decimal string e.g. "250.00"
+        is_urgent bool — whether order is urgent
+        writer_id int|None — PK of the assigned writer
 
     Admin workflow after notification:
-        View queue:  GET  /api/orders/?status=qa_review
-        Approve:     POST /api/orders/<pk>/qa/approve/
-        Return:      POST /api/orders/<pk>/qa/return/
+        View queue: GET /api/orders/?status=qa_review
+        Approve: POST /api/orders/<pk>/qa/approve/
+        Return: POST /api/orders/<pk>/qa/return/
     """
     try:
         order = Order.objects.select_related("website").get(pk=order_pk)
@@ -896,11 +896,11 @@ def _notify_qa_queue(order_pk: int) -> None:
             event_key="order.qa_review_ready",
             website=order.website,
             context={
-                "order_id":    order.pk,
+                "order_id": order.pk,
                 "order_topic": (order.topic or "")[:80],
                 "total_price": str(order.total_price),
-                "is_urgent":   order.is_urgent,
-                "writer_id":   writer_id,
+                "is_urgent": order.is_urgent,
+                "writer_id": writer_id,
             },
         )
 

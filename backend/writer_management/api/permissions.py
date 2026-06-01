@@ -5,11 +5,11 @@ DRF permission classes for the writer_management API.
 
 CLASSES
 -------
-IsAdminUser          — admin or superadmin role only
-IsWriterUser         — has a non-deleted WriterProfile on this website
-IsWriterOwner        — is the writer being accessed (object-level)
+IsAdminUser — admin or superadmin role only
+IsWriterUser — has a non-deleted WriterProfile on this website
+IsWriterOwner — is the writer being accessed (object-level)
 IsAdminOrWriterOwner — admin OR the owner of the resource
-IsAdminOrReadOnly    — read for all authenticated, write for admins only
+IsAdminOrReadOnly — read for all authenticated, write for admins only
 """
 
 from rest_framework.permissions import BasePermission, SAFE_METHODS

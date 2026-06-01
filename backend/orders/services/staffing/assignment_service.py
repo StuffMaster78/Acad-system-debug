@@ -4,9 +4,9 @@ order_actions/services/assignment_service.py
 Assigns a writer to an order.
 
 This is the orchestration layer. It coordinates across three apps:
-    writer_management   — eligibility check, capacity update
+    writer_management — eligibility check, capacity update
     writer_compensation — rate card snapshot capture
-    orders              — order status update
+    orders — order status update
 
 THE FULL FLOW
 -------------
@@ -17,25 +17,25 @@ THE FULL FLOW
     AssignmentService.assign(order, writer_profile)
             │
             ├─ 1. Eligibility check
-            │       WriterEligibilityService.is_eligible(writer_profile)
-            │       Raises WriterNotEligibleError if any gate fails.
+            │ WriterEligibilityService.is_eligible(writer_profile)
+            │ Raises WriterNotEligibleError if any gate fails.
             │
-            ├─ 2. Capture rate card snapshot  ◄─── KEY STEP
-            │       RateCardSnapshotService.capture(writer_profile, order)
-            │       Freezes WriterLevelSettings values into RateCardSnapshot.
-            │       If this fails → entire transaction rolls back.
-            │       No snapshot = no assignment.
+            ├─ 2. Capture rate card snapshot ◄─── KEY STEP
+            │ RateCardSnapshotService.capture(writer_profile, order)
+            │ Freezes WriterLevelSettings values into RateCardSnapshot.
+            │ If this fails → entire transaction rolls back.
+            │ No snapshot = no assignment.
             │
             ├─ 3. Update order
-            │       order.assigned_writer = writer_profile
-            │       order.assigned_at = now()
-            │       order.status = "assigned"
-            │       order.save(update_fields=[...])
+            │ order.assigned_writer = writer_profile
+            │ order.assigned_at = now()
+            │ order.status = "assigned"
+            │ order.save(update_fields=[...])
             │
             ├─ 4. Increment writer capacity counter
-            │       WriterCapacity.objects.filter(writer=writer_profile)
-            │           .update(active_orders_count=F("active_orders_count") + 1)
-            │       F() expression — no race condition.
+            │ WriterCapacity.objects.filter(writer=writer_profile)
+            │ .update(active_orders_count=F("active_orders_count") + 1)
+            │ F() expression — no race condition.
             │
             └─ 5. Emit assignment event
                     (notification system, outbox, or signal)
@@ -50,22 +50,22 @@ EARNINGS FLOW (at order completion — separate service)
     PaymentService.compute_and_record(order)
             │
             ├─ 1. Fetch snapshot
-            │       snapshot = RateCardSnapshotService.get_for_order(order)
-            │       Raises RateCardSnapshot.DoesNotExist if missing.
+            │ snapshot = RateCardSnapshotService.get_for_order(order)
+            │ Raises RateCardSnapshot.DoesNotExist if missing.
             │
             ├─ 2. Calculate earnings
-            │       result = EarningsCalculator.calculate(snapshot, order)
-            │       Returns EarningsResult dataclass.
+            │ result = EarningsCalculator.calculate(snapshot, order)
+            │ Returns EarningsResult dataclass.
             │
             ├─ 3. Record payment
-            │       WriterPayment.objects.create(
-            │           writer=snapshot.writer,
-            │           order=order,
-            │           gross_amount=result.gross_earnings,
-            │           tip_percentage=result.tip_percentage,
-            │           level_name=result.level_name,
-            │           calculation_notes=result.calculation_notes,
-            │       )
+            │ WriterPayment.objects.create(
+            │ writer=snapshot.writer,
+            │ order=order,
+            │ gross_amount=result.gross_earnings,
+            │ tip_percentage=result.tip_percentage,
+            │ level_name=result.level_name,
+            │ calculation_notes=result.calculation_notes,
+            │ )
             │
             └─ 4. Decrement writer capacity counter
                     WriterCapacity.objects.filter(writer=snapshot.writer)
@@ -78,15 +78,15 @@ TIP FLOW (when client sends a tip — tips app)
     TipCreationService.create_tip(client, receiver_user, order, tip_amount)
             │
             ├─ 1. Resolve writer profile
-            │       profile = receiver_user.account_profile.writer_profile
+            │ profile = receiver_user.account_profile.writer_profile
             │
             ├─ 2. Get rate card snapshot for this order
-            │       snapshot = RateCardSnapshotService.get_for_order(order)
-            │       tip_percentage = snapshot.tip_percentage
+            │ snapshot = RateCardSnapshotService.get_for_order(order)
+            │ tip_percentage = snapshot.tip_percentage
             │
             ├─ 3. Compute split
-            │       writer_share = tip_amount * tip_percentage / 100
-            │       platform_fee = tip_amount - writer_share
+            │ writer_share = tip_amount * tip_percentage / 100
+            │ platform_fee = tip_amount - writer_share
             │
             └─ 4. Create Tip record
                     Tip.objects.create(
@@ -136,13 +136,13 @@ class AssignmentService:
         not created, the counter is not incremented.
 
         Args:
-            order:          orders.Order — must be in assignable status.
+            order: orders.Order — must be in assignable status.
             writer_profile: writer_management.WriterProfile.
 
         Raises:
-            WriterNotEligibleError  — writer fails eligibility check.
+            WriterNotEligibleError — writer fails eligibility check.
             LevelSettingsMissingError — writer has no level or settings.
-            AlreadyAssignedError    — order already has an assignment.
+            AlreadyAssignedError — order already has an assignment.
         """
         logger.info(
             "AssignmentService.assign: order=%s writer=%s",
@@ -205,7 +205,7 @@ class AssignmentService:
         financial audit record even if the assignment was reversed.
 
         Args:
-            order:  orders.Order with assigned_writer set.
+            order: orders.Order with assigned_writer set.
             reason: Optional reason string for audit log.
         """
         writer_profile = order.assigned_writer

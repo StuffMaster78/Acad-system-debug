@@ -19,8 +19,8 @@ def _require_staff(request) -> bool:
 
 class AdminBadgeListView(APIView):
     """
-    GET  /api/writer-management/badges/        — list all badge definitions
-    POST /api/writer-management/badges/        — create a badge definition
+    GET /api/writer-management/badges/ — list all badge definitions
+    POST /api/writer-management/badges/ — create a badge definition
     """
     permission_classes = [IsAuthenticated]
 

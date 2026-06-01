@@ -12,4 +12,4 @@ class SupportManagementConfig(AppConfig):
         """
         Import signals to ensure they are registered on app startup.
         """
-        import support_management.signals 
+        import support_management.signals

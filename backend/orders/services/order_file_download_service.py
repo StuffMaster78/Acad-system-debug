@@ -47,7 +47,7 @@ class OrderFileDownloadService:
             user=user,
             attachment=attachment,
         )
-        
+
         OrderDownloadEligibilityService.ensure_can_download(
             order=order,
             user=user,

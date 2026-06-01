@@ -6,7 +6,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from orders.models.orders import Order
-from orders.order_enums import OrderStatus  # you already have this
+from orders.order_enums import OrderStatus # you already have this
 from websites.models.websites import Website
 
 
@@ -121,7 +121,7 @@ class OrderDeletionService:
 
         # Optional safety net: forbid hard delete of PAID unless superadmin
         # if order.status != OrderStatus.UNPAID and user.role != "superadmin":
-        #     raise PermissionDenied("Only superadmin can purge paid orders.")
+        # raise PermissionDenied("Only superadmin can purge paid orders.")
 
         oid = order.id
         order.delete()

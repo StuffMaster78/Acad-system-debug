@@ -25,7 +25,7 @@ class WriterConfig(models.Model):
         default=10,
         help_text="Maximum number of orders a writer can take at once."
     )
-    
+
 
     def __str__(self):
         return f"Config for {self.website.name} - Takes Enabled: {self.takes_enabled}"
@@ -64,11 +64,11 @@ class WriterConfigHistory(models.Model):
         related_name="config_changes"
     )
     change_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the change was made."
     )
     change_type = models.CharField(
-        max_length=50, 
+        max_length=50,
         choices=[("Created", "Created"), ("Updated", "Updated"), ("Deleted", "Deleted")],
         help_text="Type of change made."
     )
@@ -79,7 +79,7 @@ class WriterConfigHistory(models.Model):
 
     def __str__(self):
         return f"Config History: {self.config.website.name} - {self.change_type} ({self.change_date})"
-    
+
     class Meta:
         verbose_name = "Writer Config History"
         verbose_name_plural = "Writer Config Histories"
@@ -132,7 +132,7 @@ class WriterLevelConfig(models.Model):
 
     def __str__(self):
         return f"{self.website.name} – {self.name}"
-    
+
 
 class WriterWarningEscalationConfig(models.Model):
     """

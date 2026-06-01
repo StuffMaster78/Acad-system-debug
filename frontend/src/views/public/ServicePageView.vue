@@ -68,10 +68,10 @@ import { cmsApi, type ServicePage } from "@/api/cms";
 import { useMeta, serviceSchema } from "@/composables/useMeta";
 import BlockRenderer from "@/components/cms/BlockRenderer.vue";
 
-const route     = useRoute();
+const route = useRoute();
 const isLoading = ref(true);
-const notFound  = ref(false);
-const page      = ref<ServicePage | null>(null);
+const notFound = ref(false);
+const page = ref<ServicePage | null>(null);
 
 function formatTurnaround(hours: number): string {
   if (hours < 24) return `${hours}h`;
@@ -81,8 +81,8 @@ function formatTurnaround(hours: number): string {
 async function load() {
   const slug = route.params.slug as string;
   isLoading.value = true;
-  notFound.value  = false;
-  page.value      = null;
+  notFound.value = false;
+  page.value = null;
 
   try {
     const { data } = await cmsApi.servicePage(slug);

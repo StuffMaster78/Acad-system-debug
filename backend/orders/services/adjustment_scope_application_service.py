@@ -54,7 +54,7 @@ class AdjustmentScopeApplicationService:
         """
         Dispatch funded adjustment by adjustment kind.
             - For scope increments, apply the countered scope
-            and price to the order immediately.   
+            and price to the order immediately.
             - For extra service adjustments, the countered scope and price
             will be applied when the order item is fulfilled,
             similar to non-countered extra service adjustments.
@@ -71,23 +71,23 @@ class AdjustmentScopeApplicationService:
         """
         if adjustment_request.applied_at is not None:
             return adjustment_request.order
-        
+
         if adjustment_request.adjustment_kind == ORDER_ADJUSTMENT_KIND_SCOPE_INCREMENT:
             return cls.apply_funded_scope_increment(
                 adjustment_request=adjustment_request,
                 triggered_by=triggered_by,
             )
-        
+
         if adjustment_request.adjustment_kind == ORDER_ADJUSTMENT_KIND_EXTRA_SERVICE:
             return cls.apply_funded_extra_service(
                 adjustment_request=adjustment_request,
                 triggered_by=triggered_by,
             )
-        
+
         raise ValidationError(
             f"Unsupported adjustment kind: {adjustment_request.adjustment_kind}"
         )
-    
+
 
     @classmethod
     @transaction.atomic
@@ -116,7 +116,7 @@ class AdjustmentScopeApplicationService:
             adjustment_request.countered_quantity
             or adjustment_request.requested_quantity
         )
-        quantity_delta = final_quantity - adjustment_request.requested_quantity 
+        quantity_delta = final_quantity - adjustment_request.requested_quantity
 
         if quantity_delta <= 0:
             raise ValidationError(
@@ -178,7 +178,7 @@ class AdjustmentScopeApplicationService:
         )
 
         return order
-    
+
 
 
     @classmethod
@@ -267,7 +267,7 @@ class AdjustmentScopeApplicationService:
         )
 
         return order
-    
+
 
     @classmethod
     def _record_snapshot(
@@ -298,7 +298,7 @@ class AdjustmentScopeApplicationService:
             currency=getattr(order, "currency", "USD"),
             pricing_policy_version="adjustment_applied",
         )
-    
+
 
     @classmethod
     def _create_compensation_adjustment(
@@ -331,7 +331,7 @@ class AdjustmentScopeApplicationService:
                 "adjustment_type": adjustment_request.adjustment_type,
             },
         )
-    
+
 
     @staticmethod
     def _mark_applied(
@@ -383,7 +383,7 @@ class AdjustmentScopeApplicationService:
         if adjustment_request.countered_quantity:
             return Decimal(str(adjustment_request.counter_total_amount))
         return Decimal(str(adjustment_request.requested_total_amount))
-        
+
 
     @staticmethod
     def _final_writer_amount(adjustment_request) -> Decimal:
@@ -397,7 +397,7 @@ class AdjustmentScopeApplicationService:
         return Decimal(
             str(adjustment_request.requested_writer_compensation_amount)
         )
-    
+
 
     @staticmethod
     def _final_payload(adjustment_request) -> dict:
@@ -407,7 +407,7 @@ class AdjustmentScopeApplicationService:
         if adjustment_request.countered_quantity:
             return adjustment_request.counter_pricing_payload or {}
         return adjustment_request.requested_pricing_payload or {}
-    
+
     @staticmethod
     def _final_pricing_snapshot(adjustment_request) -> Optional[OrderPricingSnapshot]:
         """
@@ -416,7 +416,7 @@ class AdjustmentScopeApplicationService:
         if adjustment_request.countered_quantity:
             return adjustment_request.counter_pricing_snapshot
         return adjustment_request.requested_pricing_snapshot
-    
+
 
     @staticmethod
     def _to_decimal(value: Any) -> Decimal:
@@ -424,7 +424,7 @@ class AdjustmentScopeApplicationService:
         if isinstance(value, Decimal):
             return value
         return Decimal(str(value))
-    
+
     @staticmethod
     def _compensation_type(adjustment_request) -> str:
         """

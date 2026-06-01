@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from django.conf import settings
 from .models import (
-    Ticket, TicketMessage, TicketLog, 
+    Ticket, TicketMessage, TicketLog,
     TicketStatistics, TicketAttachment
-)   
+)
 
 class TicketMessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source='sender.username', read_only=True)
@@ -30,8 +30,8 @@ class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = [
-            'id', 'title', 'description', 'created_by', 'created_by_name', 
-            'assigned_to', 'assigned_to_name', 'website', 'status', 'priority', 
+            'id', 'title', 'description', 'created_by', 'created_by_name',
+            'assigned_to', 'assigned_to_name', 'website', 'status', 'priority',
             'category', 'is_escalated', 'resolution_time', 'created_at', 'updated_at',
             'messages', 'logs'
         ]
@@ -59,18 +59,18 @@ class TicketAttachmentSerializer(serializers.ModelSerializer):
 
 class TicketCreateSerializer(serializers.ModelSerializer):
     created_by = serializers.PrimaryKeyRelatedField(
-        read_only=True,  # Default to read_only, will be made writable in __init__ for support/admin
+        read_only=True, # Default to read_only, will be made writable in __init__ for support/admin
         required=False,
         allow_null=False,
         help_text="The user this ticket is for (recipient). Required for support/admin creating tickets on behalf of others."
     )
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Set queryset for created_by field
         User = settings.AUTH_USER_MODEL
         request = self.context.get('request')
-        
+
         if request and hasattr(request, 'user'):
             user = request.user
             # Support and admin can create tickets for any user
@@ -81,7 +81,7 @@ class TicketCreateSerializer(serializers.ModelSerializer):
                 # Other roles can only create tickets for themselves
                 self.fields['created_by'].read_only = True
                 self.fields['created_by'].queryset = User.objects.filter(id=user.id)
-    
+
     def validate_created_by(self, value):
         """Validate that created_by is provided for support/admin."""
         request = self.context.get('request')
@@ -92,7 +92,7 @@ class TicketCreateSerializer(serializers.ModelSerializer):
                 if not value:
                     raise serializers.ValidationError("Please select a user (client, writer, editor, etc.) for this ticket.")
         return value
-    
+
     def create(self, validated_data):
         # website optional: infer from creator if missing
         created_by = validated_data.get('created_by')

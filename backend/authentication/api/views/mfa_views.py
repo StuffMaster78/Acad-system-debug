@@ -184,7 +184,7 @@ class MFAVerifyView(APIView):
         NotImpersonatingPermission,
     ]
     throttle_classes = [MFAVerifyThrottle]
-    
+
     def post(self, request, *args, **kwargs):
         serializer = MFAVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -463,7 +463,7 @@ class BackupCodeGenerateView(APIView):
             response_serializer.data,
             status=status.HTTP_201_CREATED,
         )
-    
+
 
 
 class MFAVerifyDeviceView(APIView):

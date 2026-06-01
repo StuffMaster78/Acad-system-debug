@@ -3,17 +3,17 @@ Derivative Service
 ====================
 
 Generates derived versions of uploaded files:
-    • thumbnail_sm  — 150×150 px
-    • thumbnail_md  — 400×400 px
-    • thumbnail_lg  — 800×800 px
-    • webp           — WebP version of images (smaller, faster)
-    • preview_pdf    — first-page render of PDFs as PNG
+    • thumbnail_sm — 150×150 px
+    • thumbnail_md — 400×400 px
+    • thumbnail_lg — 800×800 px
+    • webp — WebP version of images (smaller, faster)
+    • preview_pdf — first-page render of PDFs as PNG
 
 Dependencies:
     pip install Pillow
 
 For PDF previews (optional, install if needed):
-    apt-get install poppler-utils   # for pdf2image
+    apt-get install poppler-utils # for pdf2image
     pip install pdf2image
 
 Each derivative is stored as its own ManagedFile with
@@ -208,7 +208,7 @@ class DerivativeService:
             return None
 
         try:
-            from pdf2image import convert_from_bytes  # type: ignore[import-untyped]
+            from pdf2image import convert_from_bytes # type: ignore[import-untyped]
 
             images = convert_from_bytes(
                 pdf_bytes,
@@ -341,7 +341,7 @@ class DerivativeService:
             parent_file=parent,
             derivative_type=derivative_type,
             lifecycle_status=FileLifecycleStatus.ACTIVE,
-            scan_status=FileScanStatus.SKIPPED,  # Derivatives inherit parent's scan
+            scan_status=FileScanStatus.SKIPPED, # Derivatives inherit parent's scan
             retention_policy=parent.retention_policy,
             width_px=width,
             height_px=height,

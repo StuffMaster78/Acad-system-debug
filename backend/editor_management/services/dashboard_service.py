@@ -24,42 +24,42 @@ class EditorDashboardService:
     """
     Service for generating comprehensive dashboard data for editors.
     """
-    
+
     @staticmethod
     def get_dashboard_data(editor: EditorProfile, days: int = 30) -> Dict:
         """
         Get complete dashboard data for an editor.
-        
+
         Args:
             editor: The editor profile
             days: Number of days for statistics
-            
+
         Returns:
             Dict with dashboard data
         """
         cutoff_date = now() - timedelta(days=days)
-        
+
         # Task statistics
         all_tasks = EditorTaskAssignment.objects.filter(assigned_editor=editor)
         active_tasks = all_tasks.filter(review_status__in=['pending', 'in_review'])
         pending_tasks = all_tasks.filter(review_status='pending')
         in_review_tasks = all_tasks.filter(review_status='in_review')
         completed_tasks = all_tasks.filter(review_status='completed')
-        
+
         # Available tasks (unclaimed in editor's website)
         available_tasks = EditorTaskAssignment.objects.filter(
-            Q(review_status='unclaimed') | 
+            Q(review_status='unclaimed') |
             (Q(review_status='pending') & Q(assigned_editor__isnull=True))
         ).filter(
             order__website=editor.website,
             order__status=OrderStatus.UNDER_EDITING.value
         )
-        
+
         # Recent completions
         recent_completions = completed_tasks.filter(
             reviewed_at__gte=cutoff_date
         )
-        
+
         # Upcoming deadlines (tasks due in next 7 days)
         # Get order IDs from active tasks first, then filter Orders by client_deadline
         # This avoids OneToOneField lookup issues
@@ -71,32 +71,32 @@ class EditorDashboardService:
             client_deadline__gte=now()
         ).values_list('id', flat=True)
         urgent_tasks = active_tasks.filter(order_id__in=urgent_order_ids)
-        
+
         # Overdue tasks
         overdue_order_ids = Order.objects.filter(
             id__in=active_order_ids,
             client_deadline__lt=now()
         ).values_list('id', flat=True)
         overdue_tasks = active_tasks.filter(order_id__in=overdue_order_ids)
-        
+
         # Performance metrics
         try:
             performance = editor.performance
         except EditorPerformance.DoesNotExist:
             performance = EditorPerformanceCalculationService.calculate_performance(editor)
-        
+
         # Performance stats
         performance_stats = EditorPerformanceCalculationService.get_performance_stats(
             editor, days=days
         )
-        
+
         # Recent activity
         from editor_management.models import EditorActionLog
         recent_activity = EditorActionLog.objects.filter(
             editor=editor,
             timestamp__gte=cutoff_date
         ).select_related('related_order').order_by('-timestamp')[:10]
-        
+
         # Task breakdown by status
         task_breakdown = {
             'pending': pending_tasks.count(),
@@ -105,20 +105,20 @@ class EditorDashboardService:
             'rejected': all_tasks.filter(review_status='rejected').count(),
             'unclaimed': all_tasks.filter(review_status='unclaimed').count(),
         }
-        
+
         # Task breakdown by assignment type
         assignment_breakdown = {
             'auto': all_tasks.filter(assignment_type='auto').count(),
             'manual': all_tasks.filter(assignment_type='manual').count(),
             'claimed': all_tasks.filter(assignment_type='claimed').count(),
         }
-        
+
         # Recent reviews
         recent_reviews = EditorReviewSubmission.objects.filter(
             editor=editor,
             submitted_at__gte=cutoff_date
         ).select_related('order', 'task_assignment').order_by('-submitted_at')[:10]
-        
+
         return {
             'summary': {
                 'active_tasks_count': active_tasks.count(),
@@ -216,15 +216,15 @@ class EditorDashboardService:
                 for review in recent_reviews
             ],
         }
-    
+
     @staticmethod
     def get_team_overview(website) -> Dict:
         """
         Get team overview for admin (all editors in website).
-        
+
         Args:
             website: Website to get editors for
-            
+
         Returns:
             Dict with team overview data
         """
@@ -232,25 +232,25 @@ class EditorDashboardService:
             website=website,
             is_active=True
         )
-        
+
         # Calculate performance for all editors
         EditorPerformanceCalculationService.calculate_all_editors_performance(website)
-        
+
         # Get all tasks for these editors
         all_tasks = EditorTaskAssignment.objects.filter(
             assigned_editor__in=editors,
             order__website=website
         )
-        
+
         # Unassigned tasks
         unassigned_tasks = EditorTaskAssignment.objects.filter(
             order__website=website,
             order__status=OrderStatus.UNDER_EDITING.value
         ).filter(
-            Q(review_status='unclaimed') | 
+            Q(review_status='unclaimed') |
             (Q(review_status='pending') & Q(assigned_editor__isnull=True))
         )
-        
+
         # Editor stats
         editor_stats = []
         for editor in editors:
@@ -258,12 +258,12 @@ class EditorDashboardService:
                 assigned_editor=editor,
                 review_status__in=['pending', 'in_review']
             ).count()
-            
+
             try:
                 perf = editor.performance
             except EditorPerformance.DoesNotExist:
                 perf = EditorPerformanceCalculationService.calculate_performance(editor)
-            
+
             editor_stats.append({
                 'editor_id': editor.id,
                 'editor_name': editor.name,
@@ -278,7 +278,7 @@ class EditorDashboardService:
                 if perf.average_quality_score else None,
                 'can_take_more': editor.can_take_more_tasks(),
             })
-        
+
         return {
             'total_editors': editors.count(),
             'active_editors': editors.filter(

@@ -38,7 +38,7 @@ class AuditWriter:
 
             if event.metadata is None:
                 event.metadata = {}
-                
+
             event.save()
             return event
 

@@ -58,11 +58,11 @@ class OrderCreationPayloadGuard:
             raise PermissionDenied(
                 "Only staff can enable unpaid access for order creation."
             )
-        
+
 class CanAccessOrderCreation(BasePermission):
     message = "You are not allowed to create orders."
 
-    def has_permission(self, request, view):  # type: ignore[override]
+    def has_permission(self, request, view): # type: ignore[override]
         user = request.user
         website = getattr(request, "website", None)
         if website is None:

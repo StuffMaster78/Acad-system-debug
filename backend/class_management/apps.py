@@ -7,6 +7,6 @@ class ClassManagementConfig(AppConfig):
 
     def ready(self):
         try:
-            import class_management.signals  # noqa: F401
+            import class_management.signals # noqa: F401
         except ImportError:
             pass

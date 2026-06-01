@@ -6,7 +6,7 @@ r = Redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 class PresenceService:
     """Service to manage user presence in chat threads using Redis."""
-    TTL = 60  # seconds
+    TTL = 60 # seconds
     PREFIX = "active_users"
 
     @classmethod

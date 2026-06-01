@@ -34,7 +34,7 @@ class OrderAdjustmentRequest(models.Model):
         related_name="adjustment_requests",
         help_text="Order affected by the adjustment request.",
     )
-    
+
     requested_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -222,7 +222,7 @@ class OrderAdjustmentRequest(models.Model):
         related_name="resolved_order_adjustments",
         null=True,
         blank=True,
-    )    
+    )
     expires_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -351,7 +351,7 @@ class OrderAdjustmentRequest(models.Model):
             raise ValidationError(
                 "counter_pricing_payload must be set if counter_pricing_snapshot is set."
             )
-        
+
         if self.countered_quantity is not None:
             if self.countered_quantity <= self.current_quantity:
                 raise ValidationError(
@@ -371,17 +371,17 @@ class OrderAdjustmentRequest(models.Model):
                 raise ValidationError(
                     "requested_quantity must be greater than current_quantity for scope_increment adjustments."
                 )
-            
+
             if self.quantity_delta != self.requested_quantity - self.current_quantity:
                 raise ValidationError(
                     "quantity_delta must equal requested_quantity minus current_quantity for scope_increment adjustments."
                 )
-            
+
             if self.extra_service_code:
                 raise ValidationError(
                     "extra_service_code must be empty when adjustment_kind is scope_increment."
                 )
-            
+
             if self.quantity_delta <= 0:
                 raise ValidationError(
                     "quantity_delta must be greater than 0 for scope_increment adjustments."

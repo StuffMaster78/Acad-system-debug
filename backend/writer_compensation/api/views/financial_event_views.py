@@ -17,7 +17,7 @@ class FinancialEventListView(generics.ListAPIView):
     serializer_class = CompensationEventSerializer
     permission_classes = [IsFinanceStaff]
 
-    
+
     def get_queryset( # pyright: ignore[reportIncompatibleMethodOverride]
               self
         ):

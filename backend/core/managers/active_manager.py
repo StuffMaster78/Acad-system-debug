@@ -13,7 +13,7 @@ class ActiveManager(models.Manager):
     def all_with_deleted(self):
         """Return all records, including soft-deleted ones."""
         return super().get_queryset()
-    
+
     def active_count(self):
         """Count active (non-soft-deleted) records."""
         return self.get_queryset().count()

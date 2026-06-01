@@ -3,7 +3,7 @@ from django.dispatch import receiver
 from django.contrib.auth.signals import user_logged_in
 from django.utils.timezone import now
 from .models import (
-    SupportProfile, SupportActivityLog, SupportNotification, EscalationLog, 
+    SupportProfile, SupportActivityLog, SupportNotification, EscalationLog,
     SupportOrderManagement, SupportWorkloadTracker, PaymentIssueLog, SupportActionLog,
     SupportDashboard
 )
@@ -18,7 +18,7 @@ from django.conf import settings
 User = settings.AUTH_USER_MODEL
 
 
-# 🚀 **1️⃣ Automatically Create Support Profile**
+# ** Automatically Create Support Profile**
 @receiver(post_save, sender=User)
 def create_support_profile(sender, instance, created, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
@@ -47,7 +47,7 @@ def create_support_profile(sender, instance, created, **kwargs):
             )
 
 
-# 🚀 **2️⃣ Track Last Login for Support Agents**
+# ** Track Last Login for Support Agents**
 @receiver(user_logged_in)
 def update_last_logged_in(sender, request, user, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
@@ -61,7 +61,7 @@ def update_last_logged_in(sender, request, user, **kwargs):
         support_profile.save()
 
 
-# 🚀 **3️⃣ Log Creation of Support Profile**
+# ** Log Creation of Support Profile**
 @receiver(post_save, sender=SupportProfile)
 def log_profile_creation(sender, instance, created, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
@@ -77,7 +77,7 @@ def log_profile_creation(sender, instance, created, **kwargs):
         send_support_notification(instance, f"New support profile created: {instance.name}.")
 
 
-# 🚀 **4️⃣ Log All Support Actions & Send Notifications**
+# ** Log All Support Actions & Send Notifications**
 @receiver(post_save, sender=SupportActivityLog)
 def send_activity_notification(sender, instance, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
@@ -93,7 +93,7 @@ def send_activity_notification(sender, instance, **kwargs):
     send_support_notification(instance.support_staff.support_profile, message)
 
 
-# 🚀 **5️⃣ Track Support Workload on Order Management Updates**
+# ** Track Support Workload on Order Management Updates**
 @receiver(post_save, sender=SupportOrderManagement)
 def update_workload_on_order_management(sender, instance, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
@@ -104,7 +104,7 @@ def update_workload_on_order_management(sender, instance, **kwargs):
     update_support_workload(instance.support_staff)
 
 
-# 🚀 **6️⃣ Notify Admin on Escalation Log Entries**
+# ** Notify Admin on Escalation Log Entries**
 @receiver(post_save, sender=EscalationLog)
 def notify_admin_on_escalation(sender, instance, created, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
@@ -114,12 +114,12 @@ def notify_admin_on_escalation(sender, instance, created, **kwargs):
     """
     if created:
         send_support_notification(
-            instance.escalated_to.support_profile, 
+            instance.escalated_to.support_profile,
             f"New escalation: {instance.action_type} for {instance.target_user.username}."
         )
 
 
-# 🚀 **7️⃣ Track & Notify on Payment Issues**
+# ** Track & Notify on Payment Issues**
 @receiver(post_save, sender=PaymentIssueLog)
 def notify_on_payment_issue(sender, instance, created, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
@@ -129,12 +129,12 @@ def notify_on_payment_issue(sender, instance, created, **kwargs):
     """
     if created:
         send_support_notification(
-            instance.reported_by.support_profile, 
+            instance.reported_by.support_profile,
             f"Payment issue logged for Order {instance.order.id}: {instance.issue_type}."
         )
 
 
-# 🚀 **8️⃣ Remove Support Workload Data on Profile Deletion**
+# ** Remove Support Workload Data on Profile Deletion**
 @receiver(post_delete, sender=SupportProfile)
 def cleanup_support_workload(sender, instance, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
@@ -145,7 +145,7 @@ def cleanup_support_workload(sender, instance, **kwargs):
     SupportWorkloadTracker.objects.filter(support_staff=instance.user).delete()
 
 
-# 🚀 **9️⃣ Auto-Update Dashboard on Ticket Changes**
+# ** Auto-Update Dashboard on Ticket Changes**
 @receiver(post_save, sender=Ticket)
 def update_dashboard_on_ticket_change(sender, instance, created, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
@@ -163,7 +163,7 @@ def update_dashboard_on_ticket_change(sender, instance, created, **kwargs):
             dashboard.update_dashboard()
 
 
-# 🚀 **🔟 Auto-Update Dashboard on Dispute Changes**
+# ** Auto-Update Dashboard on Dispute Changes**
 @receiver(post_save, sender=Dispute)
 def update_dashboard_on_dispute_change(sender, instance, created, **kwargs):
     if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):

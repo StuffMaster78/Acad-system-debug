@@ -53,7 +53,7 @@ class PaymentInstallmentService:
             raise ValidationError(
                 "Installment amount must be greater than zero."
             )
-        
+
 
     @staticmethod
     def _validate_amount_paid(
@@ -83,7 +83,7 @@ class PaymentInstallmentService:
             raise ValidationError(
                 "Installment amount_paid cannot exceed amount."
             )
-        
+
 
     @staticmethod
     def _validate_schedule_payload(
@@ -193,7 +193,7 @@ class PaymentInstallmentService:
                 invalid.
         """
         if invoice.status in {
-            InvoiceStatus.PAID, 
+            InvoiceStatus.PAID,
             InvoiceStatus.CANCELLED,
             InvoiceStatus.EXPIRED
         }:
@@ -293,7 +293,7 @@ class PaymentInstallmentService:
             update_fields=["amount_paid", "paid_at", "updated_at"]
         )
         return locked_installment
-    
+
     @classmethod
     @transaction.atomic
     def mark_paid(

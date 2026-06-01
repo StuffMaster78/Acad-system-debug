@@ -93,8 +93,8 @@ class Command(BaseCommand):
 
     def create_website_configs(self, website):
         """Create all necessary configurations for a website."""
-        self.stdout.write(f"  Creating configurations for {website.name}...")
-        
+        self.stdout.write(f" Creating configurations for {website.name}...")
+
         # Paper Types
         paper_types = [
             'Essay', 'Research Paper', 'Term Paper', 'Dissertation', 'Thesis',
@@ -103,12 +103,12 @@ class Command(BaseCommand):
         ]
         for pt_name in paper_types:
             self.safe_get_or_create(PaperType, pt_name, website)
-        
+
         # Formatting Styles
         formatting_styles = ['APA', 'MLA', 'Chicago', 'Turabian', 'Harvard', 'IEEE']
         for style_name in formatting_styles:
             self.safe_get_or_create(FormattingandCitationStyle, style_name, website)
-        
+
         # Academic Levels
         academic_levels = [
             'High School', 'College', 'Undergraduate', 'Bachelor\'s', 'Master\'s',
@@ -120,7 +120,7 @@ class Command(BaseCommand):
                 website=website,
                 defaults={}
             )
-        
+
         # Subjects
         subjects_data = [
             ('English', False), ('Literature', False), ('History', False),
@@ -131,12 +131,12 @@ class Command(BaseCommand):
         ]
         for subject_name, is_technical in subjects_data:
             self.safe_get_or_create(Subject, subject_name, website, is_technical=is_technical)
-        
+
         # Types of Work
         types_of_work = ['Writing', 'Editing', 'Proofreading', 'Rewriting', 'Research']
         for work_type_name in types_of_work:
             self.safe_get_or_create(TypeOfWork, work_type_name, website)
-        
+
         # English Types
         english_types = [
             ('US English', 'US'), ('UK English', 'UK'),
@@ -150,7 +150,7 @@ class Command(BaseCommand):
             existing_name = EnglishType.objects.filter(name=eng_name).exclude(website=website).first()
             # Check if code already exists
             existing_code = EnglishType.objects.filter(code=code).exclude(website=website).first()
-            
+
             if existing_name or existing_code:
                 # Use modified name and code to avoid conflicts
                 unique_name = f"{eng_name} ({website.name})"
@@ -162,14 +162,14 @@ class Command(BaseCommand):
                 EnglishType.objects.create(name=unique_name, website=website, code=unique_code)
             else:
                 EnglishType.objects.create(name=eng_name, website=website, code=code)
-        
+
         # Writer Deadline Config
         WriterDeadlineConfig.objects.get_or_create(
             website=website,
             writer_deadline_percentage=80,
             defaults={}
         )
-        
+
         # Pricing Configuration
         pricing_config, _ = PricingConfiguration.objects.get_or_create(
             website=website,
@@ -180,7 +180,7 @@ class Command(BaseCommand):
                 'non_technical_order_multiplier': Decimal('1.0'),
             }
         )
-        
+
         # Academic Level Pricing
         level_multipliers = {
             'High School': Decimal('0.8'),
@@ -202,7 +202,7 @@ class Command(BaseCommand):
                     unique_slug = f"{base_slug}-{website.slug}"
                 else:
                     unique_slug = base_slug
-                
+
                 AcademicLevelPricing.objects.get_or_create(
                     website=website,
                     academic_level=level,
@@ -212,7 +212,7 @@ class Command(BaseCommand):
                         'slug': unique_slug,
                     }
                 )
-        
+
         # Writer Level Options
         writer_levels = [
             ('Standard', Decimal('0.00'), 'Standard quality writer'),
@@ -229,14 +229,14 @@ class Command(BaseCommand):
                     'active': True,
                 }
             )
-        
-        self.stdout.write(self.style.SUCCESS(f"  ✓ Configurations created for {website.name}"))
+
+        self.stdout.write(self.style.SUCCESS(f" Configurations created for {website.name}"))
 
     def create_sample_writer_payments(self, writer_user):
         """Create historical writer payment data for the given writer."""
         self.stdout.write(
             self.style.WARNING(
-                "  ⚠ Writer payment seeding is skipped; payouts are now "
+                " Writer payment seeding is skipped; payouts are now "
                 "owned by writer_compensation."
             )
         )
@@ -245,34 +245,34 @@ class Command(BaseCommand):
         # Temporarily disable cache operations that require Redis
         original_delete = cache.delete
         original_set = cache.set
-        
+
         def safe_delete(*args, **kwargs):
             try:
                 return original_delete(*args, **kwargs)
             except Exception:
                 return None
-        
+
         def safe_set(*args, **kwargs):
             try:
                 return original_set(*args, **kwargs)
             except Exception:
                 return None
-        
+
         cache.delete = safe_delete
         cache.set = safe_set
-        
+
         # Disable notification signals during seeding
         original_disable = getattr(settings, 'DISABLE_NOTIFICATION_SIGNALS', False)
         settings.DISABLE_NOTIFICATION_SIGNALS = True
-        
+
         # Disable Celery
         original_enable_celery = os.environ.get('ENABLE_CELERY', '1')
         os.environ['ENABLE_CELERY'] = '0'
-        
+
         # Disable auto-creation of WriterProfile
         original_disable_writer_profile = getattr(settings, 'DISABLE_AUTO_CREATE_WRITER_PROFILE', False)
         settings.DISABLE_AUTO_CREATE_WRITER_PROFILE = True
-        
+
         try:
             self._handle(*args, **options)
         finally:
@@ -281,10 +281,10 @@ class Command(BaseCommand):
             settings.DISABLE_NOTIFICATION_SIGNALS = original_disable
             os.environ['ENABLE_CELERY'] = original_enable_celery
             settings.DISABLE_AUTO_CREATE_WRITER_PROFILE = original_disable_writer_profile
-    
+
     def _handle(self, *args, **options):
         clear_existing = options["clear"]
-        
+
         if clear_existing:
             self.stdout.write(self.style.WARNING("Clearing existing seeded data..."))
             # Clear seeded orders
@@ -297,19 +297,19 @@ class Command(BaseCommand):
                 email__startswith="dryrun.writer"
             ).delete()
             self.stdout.write(self.style.SUCCESS("Cleared existing seeded data."))
-        
+
         # Create 3 websites
         self.stdout.write("\n" + "="*70)
         self.stdout.write("CREATING WEBSITES")
         self.stdout.write("="*70)
-        
+
         websites = []
         website_data = [
             ("Academic Writing Pro", "https://academicwritingpro.com", "academic-pro"),
             ("Essay Masters", "https://essaymasters.com", "essay-masters"),
             ("Paper Experts", "https://paperexperts.com", "paper-experts"),
         ]
-        
+
         for name, domain, slug in website_data:
             website, created = Website.objects.get_or_create(
                 domain=domain,
@@ -322,17 +322,17 @@ class Command(BaseCommand):
             )
             websites.append(website)
             if created:
-                self.stdout.write(self.style.SUCCESS(f"✓ Created website: {name}"))
+                self.stdout.write(self.style.SUCCESS(f" Created website: {name}"))
             else:
-                self.stdout.write(f"  Using existing website: {name}")
-        
+                self.stdout.write(f" Using existing website: {name}")
+
         # Create configurations for each website
         self.stdout.write("\n" + "="*70)
         self.stdout.write("CREATING CONFIGURATIONS")
         self.stdout.write("="*70)
         for website in websites:
             self.create_website_configs(website)
-        
+
         # Create staff users (superadmins, admins, editors, support) for each website
         self.stdout.write("\n" + "="*70)
         self.stdout.write("CREATING STAFF USERS")
@@ -341,7 +341,7 @@ class Command(BaseCommand):
         admins = []
         editors = []
         support_staff = []
-        
+
         for website in websites:
             # Superadmin (1 per website)
             superadmin = self.ensure_user(
@@ -360,7 +360,7 @@ class Command(BaseCommand):
                 SuperadminProfile.objects.get_or_create(user=superadmin)
             except Exception:
                 pass
-            
+
             # Admin (2 per website)
             for i in range(2):
                 admin = self.ensure_user(
@@ -378,7 +378,7 @@ class Command(BaseCommand):
                     AdminProfile.objects.get_or_create(user=admin)
                 except Exception:
                     pass
-            
+
             # Editor (3 per website)
             for i in range(3):
                 editor = self.ensure_user(
@@ -407,8 +407,8 @@ class Command(BaseCommand):
                         }
                     )
                 except Exception as e:
-                    self.stdout.write(self.style.WARNING(f"  ⚠ Could not create EditorProfile for {editor.username}: {e}"))
-            
+                    self.stdout.write(self.style.WARNING(f" Could not create EditorProfile for {editor.username}: {e}"))
+
             # Support (3 per website)
             for i in range(3):
                 support = self.ensure_user(
@@ -434,16 +434,16 @@ class Command(BaseCommand):
                     )
                 except Exception:
                     pass
-            
-            self.stdout.write(self.style.SUCCESS(f"✓ Created staff for {website.name}: 1 superadmin, 2 admins, 3 editors, 3 support"))
-        
+
+            self.stdout.write(self.style.SUCCESS(f" Created staff for {website.name}: 1 superadmin, 2 admins, 3 editors, 3 support"))
+
         # Create 100 clients distributed across websites
         self.stdout.write("\n" + "="*70)
         self.stdout.write("CREATING 100 CLIENTS")
         self.stdout.write("="*70)
         clients = []
-        clients_per_website = [34, 33, 33]  # Distribute 100 clients
-        
+        clients_per_website = [34, 33, 33] # Distribute 100 clients
+
         for idx, website in enumerate(websites):
             count = clients_per_website[idx]
             for i in range(count):
@@ -466,10 +466,10 @@ class Command(BaseCommand):
                         wallet_type=WalletType.CLIENT,
                     )
                 except Exception:
-                    pass  # Wallet creation may fail, continue anyway
+                    pass # Wallet creation may fail, continue anyway
                 clients.append(client)
-            self.stdout.write(self.style.SUCCESS(f"✓ Created {count} clients for {website.name}"))
-        
+            self.stdout.write(self.style.SUCCESS(f" Created {count} clients for {website.name}"))
+
         # Create writers for each website (10 per website)
         self.stdout.write("\n" + "="*70)
         self.stdout.write("CREATING WRITERS")
@@ -514,28 +514,28 @@ class Command(BaseCommand):
                         )
                 except Exception as e:
                     # If WriterProfile creation fails (e.g., schema mismatch), continue
-                    self.stdout.write(self.style.WARNING(f"  ⚠ Could not create WriterProfile for {writer.username}: {e}"))
+                    self.stdout.write(self.style.WARNING(f" Could not create WriterProfile for {writer.username}: {e}"))
                 website_writers.append(writer)
                 all_writers.append(writer)
-            self.stdout.write(self.style.SUCCESS(f"✓ Created 10 writers for {website.name}"))
-        
+            self.stdout.write(self.style.SUCCESS(f" Created 10 writers for {website.name}"))
+
         # Get configuration objects for each website
         self.stdout.write("\n" + "="*70)
         self.stdout.write("CREATING ORDERS")
         self.stdout.write("="*70)
-        
+
         # Temporarily disable price recalculation
         original_disable_pricing = getattr(settings, "DISABLE_PRICE_RECALC_DURING_TESTS", False)
         settings.DISABLE_PRICE_RECALC_DURING_TESTS = True
-        
+
         try:
             created_orders = []
             order_counter = 1
-            
+
             # Create orders for each client
             for client in clients:
                 website = client.website
-                
+
                 # Get configs for this website
                 paper_type = PaperType.objects.filter(website=website).first()
                 academic_level = AcademicLevel.objects.filter(website=website).first()
@@ -544,11 +544,11 @@ class Command(BaseCommand):
                 type_of_work = TypeOfWork.objects.filter(website=website).first()
                 english_type = EnglishType.objects.filter(website=website).first()
                 writer_deadline_cfg = WriterDeadlineConfig.objects.filter(website=website).first()
-                
+
                 if not all([paper_type, academic_level, formatting_style, subject, type_of_work, english_type]):
-                    self.stdout.write(self.style.WARNING(f"  ⚠ Skipping client {client.id} - missing configs"))
+                    self.stdout.write(self.style.WARNING(f" Skipping client {client.id} - missing configs"))
                     continue
-                
+
                 # Create 2-5 orders per client for more comprehensive testing
                 num_orders = randint(2, 5)
                 for order_idx in range(num_orders):
@@ -584,13 +584,13 @@ class Command(BaseCommand):
                         OrderStatus.REFUNDED.value: 2,
                         OrderStatus.DISPUTED.value: 2,
                     }
-                    
+
                     # Weighted random selection
                     statuses = []
                     for status, weight in status_weights.items():
                         statuses.extend([status] * weight)
                     status = choice(statuses)
-                    
+
                     # Determine if order should have writer assigned
                     assigned_writer = None
                     if status in [
@@ -615,7 +615,7 @@ class Command(BaseCommand):
                         website_writers = [w for w in all_writers if w.website_id == website.id]
                         if website_writers:
                             assigned_writer = choice(website_writers)
-                    
+
                     # Determine payment status
                     is_paid = status in [
                         OrderStatus.AVAILABLE.value,
@@ -636,14 +636,14 @@ class Command(BaseCommand):
                         OrderStatus.CLOSED.value,
                         OrderStatus.DISPUTED.value,
                     ]
-                    
+
                     # Set deadlines
                     days_offset = randint(-30, 30)
                     client_deadline = timezone.now() + timedelta(days=days_offset)
                     writer_deadline = None
                     if assigned_writer and writer_deadline_cfg:
                         writer_deadline = client_deadline - timedelta(days=1)
-                    
+
                     # Create order
                     order = Order.objects.create(
                         website=website,
@@ -669,111 +669,111 @@ class Command(BaseCommand):
                         is_paid=is_paid,
                         order_instructions=f"This is a dry run order with status '{status}'. Created for system testing.",
                     )
-                    
+
                     # Set additional fields based on status
                     update_fields = []
                     if status == OrderStatus.COMPLETED.value and assigned_writer:
                         order.completed_by = assigned_writer
                         order.submitted_at = timezone.now() - timedelta(days=randint(1, 7))
                         update_fields.extend(['completed_by', 'submitted_at'])
-                    
+
                     if status == OrderStatus.SUBMITTED.value and assigned_writer:
                         order.submitted_at = timezone.now() - timedelta(days=randint(0, 3))
                         update_fields.append('submitted_at')
-                    
+
                     if status in [OrderStatus.REVISION_REQUESTED.value, OrderStatus.ON_REVISION.value, OrderStatus.REVISED.value]:
                         # Add some revision context
                         order.order_instructions += f"\n[Revision Status: {status}]"
                         update_fields.append('order_instructions')
-                    
+
                     if status == OrderStatus.DISPUTED.value:
                         # Add dispute context
                         order.order_instructions += "\n[Dispute: Client requested revision or refund]"
                         update_fields.append('order_instructions')
-                    
+
                     if update_fields:
                         order.save(update_fields=update_fields)
-                    
+
                     created_orders.append(order)
                     order_counter += 1
-                    
+
                     if order_counter % 20 == 0:
-                        self.stdout.write(f"  Created {order_counter} orders...")
-            
+                        self.stdout.write(f" Created {order_counter} orders...")
+
         finally:
             settings.DISABLE_PRICE_RECALC_DURING_TESTS = original_disable_pricing
-        
+
         # Ensure sample writer payments exist for the main dry run writer
         sample_writer = User.objects.filter(email="dryrun.writer1@academic-pro.com").first()
         if sample_writer:
             self.create_sample_writer_payments(sample_writer)
         else:
-            self.stdout.write(self.style.WARNING("  ⚠ Could not locate dryrun.writer1@academic-pro.com to seed writer payments."))
-        
+            self.stdout.write(self.style.WARNING(" Could not locate dryrun.writer1@academic-pro.com to seed writer payments."))
+
         # Summary
         self.stdout.write("\n" + "="*70)
         self.stdout.write("SUMMARY")
         self.stdout.write("="*70)
-        self.stdout.write(f"✓ Websites: {len(websites)}")
-        self.stdout.write(f"✓ Superadmins: {len(superadmins)}")
-        self.stdout.write(f"✓ Admins: {len(admins)}")
-        self.stdout.write(f"✓ Editors: {len(editors)}")
-        self.stdout.write(f"✓ Support Staff: {len(support_staff)}")
-        self.stdout.write(f"✓ Clients: {len(clients)}")
-        self.stdout.write(f"✓ Writers: {len(all_writers)}")
-        self.stdout.write(f"✓ Orders: {len(created_orders)}")
-        
+        self.stdout.write(f" Websites: {len(websites)}")
+        self.stdout.write(f" Superadmins: {len(superadmins)}")
+        self.stdout.write(f" Admins: {len(admins)}")
+        self.stdout.write(f" Editors: {len(editors)}")
+        self.stdout.write(f" Support Staff: {len(support_staff)}")
+        self.stdout.write(f" Clients: {len(clients)}")
+        self.stdout.write(f" Writers: {len(all_writers)}")
+        self.stdout.write(f" Orders: {len(created_orders)}")
+
         # Status distribution
         from django.db.models import Count
         status_summary = Order.objects.filter(
             topic__startswith="Dry Run Order"
         ).values('status').annotate(count=Count('id')).order_by('status')
-        
+
         self.stdout.write("\nOrder Status Distribution:")
         for item in status_summary:
-            self.stdout.write(f"  {item['status']}: {item['count']} orders")
-        
+            self.stdout.write(f" {item['status']}: {item['count']} orders")
+
         # Website distribution
         website_summary = Order.objects.filter(
             topic__startswith="Dry Run Order"
         ).values('website__name').annotate(count=Count('id')).order_by('website__name')
-        
+
         self.stdout.write("\nOrders by Website:")
         for item in website_summary:
-            self.stdout.write(f"  {item['website__name']}: {item['count']} orders")
-        
-        self.stdout.write("\n" + self.style.SUCCESS("✅ Dry run system seeded successfully!"))
+            self.stdout.write(f" {item['website__name']}: {item['count']} orders")
+
+        self.stdout.write("\n" + self.style.SUCCESS(" Dry run system seeded successfully!"))
         self.stdout.write("="*70 + "\n")
-        
+
         # Print login credentials
         self.stdout.write("\n" + "="*70)
         self.stdout.write("LOGIN CREDENTIALS")
         self.stdout.write("="*70)
-        
+
         self.stdout.write("\nSuperadmins:")
         for website, superadmin in zip(websites, superadmins):
-            self.stdout.write(f"  {website.name}: {superadmin.email} / SuperAdmin123!")
-        
+            self.stdout.write(f" {website.name}: {superadmin.email} / SuperAdmin123!")
+
         self.stdout.write("\nAdmins (sample):")
         for admin in admins[:3]:
-            self.stdout.write(f"  {admin.email} / Admin123!")
-        
+            self.stdout.write(f" {admin.email} / Admin123!")
+
         self.stdout.write("\nEditors (sample):")
         for editor in editors[:3]:
-            self.stdout.write(f"  {editor.email} / Editor123!")
-        
+            self.stdout.write(f" {editor.email} / Editor123!")
+
         self.stdout.write("\nSupport Staff (sample):")
         for support in support_staff[:3]:
-            self.stdout.write(f"  {support.email} / Support123!")
-        
+            self.stdout.write(f" {support.email} / Support123!")
+
         self.stdout.write("\nSample Clients:")
         for client in clients[:5]:
-            self.stdout.write(f"  {client.email} / Client123!")
-        
+            self.stdout.write(f" {client.email} / Client123!")
+
         self.stdout.write("\nSample Writers:")
         for writer in all_writers[:5]:
-            self.stdout.write(f"  {writer.email} / Writer123!")
-        
+            self.stdout.write(f" {writer.email} / Writer123!")
+
         self.stdout.write("\n" + "="*70)
         self.stdout.write("NOTE: All passwords follow the pattern: [Role]123!")
         self.stdout.write("="*70 + "\n")

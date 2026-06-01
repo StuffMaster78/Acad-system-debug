@@ -31,9 +31,9 @@ class PreferredWriterResponseAction(BaseOrderAction):
     This is typically used for manual operations, like an admin action.
     """
     def execute(self):
-        response_type = self.params.get('response', 'accept')  # 'accept' or 'reject'
+        response_type = self.params.get('response', 'accept') # 'accept' or 'reject'
         reason = self.params.get('reason', '')
-        
+
         if response_type == 'accept':
             result = PreferredWriterResponseService.accept(self.order_id, self.user)
         elif response_type == 'reject':

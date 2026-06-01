@@ -1,11 +1,11 @@
 # from core.models.base import BaseModel
 from django.db import models
-import re  # Fix missing import
+import re # Fix missing import
 from django.conf import settings
 from websites.models.websites import Website
 from websites.models.static_pages import WebsiteStaticPage
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 class WebsiteTermsAcceptance(models.Model):
@@ -166,7 +166,7 @@ class WebsiteSettings(models.Model):
         max_length=200,
         help_text="Sender's email address"
     )
-    
+
     # Payment Settings
     manual_payment_requests_enabled = models.BooleanField(
         default=True,
@@ -181,14 +181,14 @@ class WebsiteSettings(models.Model):
         default='bi-weekly',
         help_text="Default payment schedule for new writers"
     )
-    
+
     def __str__(self):
         return self.sender_name
 
 
 class ExternalReviewLink(models.Model):
     """
-    Stores external review site links (TrustPilot, Google Reviews, etc.) 
+    Stores external review site links (TrustPilot, Google Reviews, etc.)
     where clients can rate and review the website, orders, and writers.
     """
     website = models.ForeignKey(
@@ -235,11 +235,11 @@ class ExternalReviewLink(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['display_order', 'review_site_name']
         verbose_name = "External Review Link"
         verbose_name_plural = "External Review Links"
-    
+
     def __str__(self):
         return f"{self.review_site_name} - {self.get_review_type_display()} ({self.website.name})"

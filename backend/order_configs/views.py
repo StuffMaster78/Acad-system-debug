@@ -30,7 +30,7 @@ class AcademicLevelViewSet(viewsets.ModelViewSet):
     queryset = AcademicLevel.objects.all()
     serializer_class = AcademicLevelSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
-    
+
     def get_queryset(self):
         """Filter by website if specified."""
         queryset = super().get_queryset()
@@ -44,7 +44,7 @@ class PaperTypeViewSet(viewsets.ModelViewSet):
     queryset = PaperType.objects.all()
     serializer_class = PaperTypeSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
-    
+
     def get_queryset(self):
         """Filter by website if specified."""
         queryset = super().get_queryset()
@@ -58,7 +58,7 @@ class FormattingStyleViewSet(viewsets.ModelViewSet):
     queryset = FormattingandCitationStyle.objects.all()
     serializer_class = FormattingStyleSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
-    
+
     def get_queryset(self):
         """Filter by website if specified."""
         queryset = super().get_queryset()
@@ -72,7 +72,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
-    
+
     def get_queryset(self):
         """Filter by website if specified."""
         queryset = super().get_queryset()
@@ -91,7 +91,7 @@ class SubjectTemplateViewSet(viewsets.ModelViewSet):
     queryset = SubjectTemplate.objects.filter(is_active=True)
     serializer_class = SubjectTemplateSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter by category if specified."""
         queryset = super().get_queryset()
@@ -99,31 +99,31 @@ class SubjectTemplateViewSet(viewsets.ModelViewSet):
         if category:
             queryset = queryset.filter(category=category)
         return queryset.order_by('category', 'name')
-    
+
     def get_permissions(self):
         """Only superadmins can create/edit/delete templates."""
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsSuperadmin()]
         return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
-    
+
     @action(detail=True, methods=['post'], url_path='clone-to-website')
     def clone_to_website(self, request, pk=None):
         """
         Clone this template's subjects to a website.
-        
+
         POST /api/v1/order-configs/subject-templates/{id}/clone-to-website/
         Body: {"website_id": 1, "skip_existing": true}
         """
         template = self.get_object()
         website_id = request.data.get('website_id')
         skip_existing = request.data.get('skip_existing', True)
-        
+
         if not website_id:
             return Response(
                 {"detail": "website_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -131,7 +131,7 @@ class SubjectTemplateViewSet(viewsets.ModelViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Check permissions - user must have access to this website
         if not request.user.is_superuser:
             if not hasattr(request.user, 'website') or request.user.website.id != website.id:
@@ -139,17 +139,17 @@ class SubjectTemplateViewSet(viewsets.ModelViewSet):
                     {"detail": "You don't have permission to clone to this website."},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
         # Clone the template
         result = template.clone_to_website(website, skip_existing=skip_existing)
-        
+
         return Response({
             "detail": f"Template cloned successfully to {website.name}",
             "template": SubjectTemplateSerializer(template).data,
             "website": website.name,
             "results": result
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'], url_path='categories')
     def list_categories(self, request):
         """List all available template categories."""
@@ -170,7 +170,7 @@ class PaperTypeTemplateViewSet(viewsets.ModelViewSet):
     queryset = PaperTypeTemplate.objects.filter(is_active=True)
     serializer_class = PaperTypeTemplateSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter by category if specified."""
         queryset = super().get_queryset()
@@ -178,31 +178,31 @@ class PaperTypeTemplateViewSet(viewsets.ModelViewSet):
         if category:
             queryset = queryset.filter(category=category)
         return queryset.order_by('category', 'name')
-    
+
     def get_permissions(self):
         """Only superadmins can create/edit/delete templates."""
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsSuperadmin()]
         return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
-    
+
     @action(detail=True, methods=['post'], url_path='clone-to-website')
     def clone_to_website(self, request, pk=None):
         """
         Clone this template's paper types to a website.
-        
+
         POST /api/v1/order-configs/paper-type-templates/{id}/clone-to-website/
         Body: {"website_id": 1, "skip_existing": true}
         """
         template = self.get_object()
         website_id = request.data.get('website_id')
         skip_existing = request.data.get('skip_existing', True)
-        
+
         if not website_id:
             return Response(
                 {"detail": "website_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -210,7 +210,7 @@ class PaperTypeTemplateViewSet(viewsets.ModelViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Check permissions - user must have access to this website
         if not request.user.is_superuser:
             if not hasattr(request.user, 'website') or request.user.website.id != website.id:
@@ -218,17 +218,17 @@ class PaperTypeTemplateViewSet(viewsets.ModelViewSet):
                     {"detail": "You don't have permission to clone to this website."},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
         # Clone the template
         result = template.clone_to_website(website, skip_existing=skip_existing)
-        
+
         return Response({
             "detail": f"Template cloned successfully to {website.name}",
             "template": PaperTypeTemplateSerializer(template).data,
             "website": website.name,
             "results": result
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'], url_path='categories')
     def list_categories(self, request):
         """List all available template categories."""
@@ -249,7 +249,7 @@ class TypeOfWorkTemplateViewSet(viewsets.ModelViewSet):
     queryset = TypeOfWorkTemplate.objects.filter(is_active=True)
     serializer_class = TypeOfWorkTemplateSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter by category if specified."""
         queryset = super().get_queryset()
@@ -257,31 +257,31 @@ class TypeOfWorkTemplateViewSet(viewsets.ModelViewSet):
         if category:
             queryset = queryset.filter(category=category)
         return queryset.order_by('category', 'name')
-    
+
     def get_permissions(self):
         """Only superadmins can create/edit/delete templates."""
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsSuperadmin()]
         return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
-    
+
     @action(detail=True, methods=['post'], url_path='clone-to-website')
     def clone_to_website(self, request, pk=None):
         """
         Clone this template's types of work to a website.
-        
+
         POST /api/v1/order-configs/type-of-work-templates/{id}/clone-to-website/
         Body: {"website_id": 1, "skip_existing": true}
         """
         template = self.get_object()
         website_id = request.data.get('website_id')
         skip_existing = request.data.get('skip_existing', True)
-        
+
         if not website_id:
             return Response(
                 {"detail": "website_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -289,7 +289,7 @@ class TypeOfWorkTemplateViewSet(viewsets.ModelViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Check permissions - user must have access to this website
         if not request.user.is_superuser:
             if not hasattr(request.user, 'website') or request.user.website.id != website.id:
@@ -297,17 +297,17 @@ class TypeOfWorkTemplateViewSet(viewsets.ModelViewSet):
                     {"detail": "You don't have permission to clone to this website."},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
         # Clone the template
         result = template.clone_to_website(website, skip_existing=skip_existing)
-        
+
         return Response({
             "detail": f"Template cloned successfully to {website.name}",
             "template": TypeOfWorkTemplateSerializer(template).data,
             "website": website.name,
             "results": result
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'], url_path='categories')
     def list_categories(self, request):
         """List all available template categories."""
@@ -323,7 +323,7 @@ class TypeOfWorkViewSet(viewsets.ModelViewSet):
     queryset = TypeOfWork.objects.all()
     serializer_class = TypeOfWorkSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
-    
+
     def get_queryset(self):
         """Filter by website if specified."""
         queryset = super().get_queryset()
@@ -337,7 +337,7 @@ class EnglishTypeViewSet(viewsets.ModelViewSet):
     queryset = EnglishType.objects.all()
     serializer_class = EnglishTypeSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
-    
+
     def get_queryset(self):
         """Filter by website if specified."""
         queryset = super().get_queryset()
@@ -355,7 +355,7 @@ class WriterDeadlineConfigViewSet(viewsets.ModelViewSet):
 class RevisionPolicyConfigViewSet(viewsets.ModelViewSet):
     queryset = RevisionPolicyConfig.objects.all().order_by('-created_at')
     serializer_class = RevisionPolicyConfigSerializer
-    permission_classes = [permissions.IsAdminUser]  # Only admins can manage revision configs
+    permission_classes = [permissions.IsAdminUser] # Only admins can manage revision configs
 
     def perform_create(self, serializer):
         # Ensure the new config is set to active and others are deactivated
@@ -383,7 +383,7 @@ class RevisionPolicyConfigViewSet(viewsets.ModelViewSet):
             {"message": f"Revision policy '{config.name}' is now active for website '{config.website.name}'."},
             status=status.HTTP_200_OK
         )
-    
+
     def save(self, *args, **kwargs):
         if self.active:
             RevisionPolicyConfig.objects.filter(website=self.website, active=True).exclude(pk=self.pk).update(active=False)
@@ -398,7 +398,7 @@ class EditingRequirementConfigViewSet(viewsets.ModelViewSet):
     queryset = EditingRequirementConfig.objects.select_related('website', 'created_by')
     serializer_class = EditingRequirementConfigSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
-    
+
     def get_queryset(self):
         """Filter by website if specified."""
         queryset = super().get_queryset()
@@ -406,24 +406,24 @@ class EditingRequirementConfigViewSet(viewsets.ModelViewSet):
         if website_id:
             queryset = queryset.filter(website_id=website_id)
         return queryset
-    
+
     def perform_create(self, serializer):
         """Set created_by to current user."""
         serializer.save(created_by=self.request.user)
-    
+
     @action(detail=False, methods=['get'])
     def get_config(self, request):
         """Get editing config for current website."""
         from websites.utils import get_current_website
         from editor_management.services.editing_decision_service import EditingDecisionService
-        
+
         website = get_current_website(request)
         if not website:
             return Response(
                 {"detail": "Website context required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         config = EditingDecisionService.get_config(website)
         if config:
             serializer = self.get_serializer(config)
@@ -449,7 +449,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
     Admin-only endpoint.
     """
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='dropdown-options')
     def dropdown_options(self, request):
         """
@@ -458,19 +458,19 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
         """
         website_id = request.query_params.get('website_id')
         user_website = None
-        
+
         # Get user's website if not superadmin
         if request.user.role != 'superadmin':
             user_website = getattr(request.user, 'website', None)
             if user_website:
                 website_id = str(user_website.id)
-        
+
         website_filter = Q()
         if website_id:
             website_filter = Q(website_id=website_id)
         elif user_website:
             website_filter = Q(website=user_website)
-        
+
         return Response({
             'paper_types': [
                 {'id': pt.id, 'name': pt.name, 'website_id': pt.website_id}
@@ -497,7 +497,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 for et in EnglishType.objects.filter(website_filter).select_related('website').order_by('name')
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='available-default-sets')
     def available_default_sets(self, request):
         """
@@ -505,7 +505,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
         """
         from order_configs.services.default_configs import get_available_default_sets
         return Response(get_available_default_sets(), status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['post'], url_path='populate-defaults')
     def populate_defaults(self, request):
         """
@@ -515,13 +515,13 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
         """
         website_id = request.data.get('website_id')
         default_set = request.data.get('default_set', 'general')
-        
+
         if not website_id:
             return Response(
                 {"detail": "website_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -529,9 +529,9 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         from order_configs.services.default_configs import populate_default_configs_for_website
-        
+
         try:
             counts = populate_default_configs_for_website(website, skip_existing=True, default_set=default_set)
             return Response({
@@ -558,37 +558,37 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": f"Error populating defaults: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     @action(detail=False, methods=['post'], url_path='clone-from-defaults')
     def clone_from_defaults(self, request):
         """
         Clone configurations from a default set to a website.
         Allows admins to select which default set to use and optionally
         clear existing configs before cloning.
-        
+
         Requires:
         - website_id: The target website
         - default_set: Which default set to clone ('general', 'nursing', 'technical')
-        
+
         Optional:
         - clear_existing: If True, delete existing configs before cloning (default: False)
         """
         website_id = request.data.get('website_id')
         default_set = request.data.get('default_set', 'general')
         clear_existing = request.data.get('clear_existing', False)
-        
+
         if not website_id:
             return Response(
                 {"detail": "website_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if default_set not in ['general', 'nursing', 'technical']:
             return Response(
                 {"detail": "default_set must be one of: 'general', 'nursing', 'technical'."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -596,9 +596,9 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         from order_configs.services.default_configs import populate_default_configs_for_website
-        
+
         try:
             # Clear existing configs if requested
             if clear_existing:
@@ -608,14 +608,14 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 Subject.objects.filter(website=website).delete()
                 TypeOfWork.objects.filter(website=website).delete()
                 EnglishType.objects.filter(website=website).delete()
-            
+
             # Populate with selected default set
             counts = populate_default_configs_for_website(
                 website,
                 skip_existing=not clear_existing,
                 default_set=default_set
             )
-            
+
             return Response({
                 "message": f"Configurations cloned from '{default_set}' default set successfully",
                 "website": {
@@ -645,7 +645,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     @action(detail=False, methods=['get'], url_path='usage-analytics')
     def usage_analytics(self, request):
         """
@@ -659,7 +659,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "website_id query parameter is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -667,10 +667,10 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         from orders.models.orders import Order
         from django.db.models import Count, Q
-        
+
         # Get usage counts for each config type
         analytics = {
             'paper_types': [],
@@ -680,7 +680,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             'types_of_work': [],
             'english_types': [],
         }
-        
+
         # Paper Types
         paper_types = PaperType.objects.filter(website=website).annotate(
             usage_count=Count('order', filter=Q(order__website=website))
@@ -694,7 +694,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             }
             for pt in paper_types
         ]
-        
+
         # Formatting Styles
         formatting_styles = FormattingandCitationStyle.objects.filter(website=website).annotate(
             usage_count=Count('order', filter=Q(order__website=website))
@@ -708,7 +708,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             }
             for fs in formatting_styles
         ]
-        
+
         # Academic Levels
         academic_levels = AcademicLevel.objects.filter(website=website).annotate(
             usage_count=Count('order', filter=Q(order__website=website))
@@ -722,7 +722,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             }
             for al in academic_levels
         ]
-        
+
         # Subjects
         subjects = Subject.objects.filter(website=website).annotate(
             usage_count=Count('order', filter=Q(order__website=website))
@@ -737,7 +737,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             }
             for s in subjects
         ]
-        
+
         # Types of Work
         types_of_work = TypeOfWork.objects.filter(website=website).annotate(
             usage_count=Count('order', filter=Q(order__website=website))
@@ -751,7 +751,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             }
             for tow in types_of_work
         ]
-        
+
         # English Types
         english_types = EnglishType.objects.filter(website=website).annotate(
             usage_count=Count('order', filter=Q(order__website=website))
@@ -766,12 +766,12 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             }
             for et in english_types
         ]
-        
+
         # Summary statistics
         total_configs = sum(len(v) for v in analytics.values())
         unused_configs = sum(sum(1 for item in v if not item['is_used']) for v in analytics.values())
         used_configs = total_configs - unused_configs
-        
+
         return Response({
             'website': {
                 'id': website.id,
@@ -786,7 +786,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 'usage_percentage': round((used_configs / total_configs * 100) if total_configs > 0 else 0, 2)
             }
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['post'], url_path='bulk-delete')
     def bulk_delete(self, request):
         """
@@ -799,13 +799,13 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
         config_type = request.data.get('config_type')
         ids = request.data.get('ids', [])
         website_id = request.data.get('website_id')
-        
+
         if not config_type or not ids:
             return Response(
                 {"detail": "config_type and ids are required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Map config types to models
         model_map = {
             'paper-types': PaperType,
@@ -815,23 +815,23 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             'types-of-work': TypeOfWork,
             'english-types': EnglishType,
         }
-        
+
         if config_type not in model_map:
             return Response(
                 {"detail": f"Invalid config_type. Must be one of: {', '.join(model_map.keys())}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         Model = model_map[config_type]
-        
+
         # Check for usage before deletion
         from orders.models.orders import Order
         from django.db.models import Q
-        
+
         queryset = Model.objects.filter(id__in=ids)
         if website_id:
             queryset = queryset.filter(website_id=website_id)
-        
+
         # Check which configs are in use
         # Map config types to Order model field names
         field_map = {
@@ -842,14 +842,14 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             'types-of-work': 'type_of_work',
             'english-types': 'english_type',
         }
-        
+
         field_name = field_map.get(config_type)
         if not field_name:
             return Response(
                 {"detail": "Invalid config_type."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         used_configs = []
         for config in queryset:
             usage_count = Order.objects.filter(**{field_name: config}).count()
@@ -859,7 +859,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                     'name': getattr(config, 'name', str(config)),
                     'usage_count': usage_count
                 })
-        
+
         # If any configs are in use, return error with details
         if used_configs:
             return Response(
@@ -870,15 +870,15 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Delete configs
         deleted_count = queryset.delete()[0]
-        
+
         return Response({
             "message": f"Successfully deleted {deleted_count} configuration(s).",
             "deleted_count": deleted_count
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['post'], url_path='preview-clone')
     def preview_clone(self, request):
         """
@@ -891,19 +891,19 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
         website_id = request.data.get('website_id')
         default_set = request.data.get('default_set', 'general')
         clear_existing = request.data.get('clear_existing', False)
-        
+
         if not website_id:
             return Response(
                 {"detail": "website_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if default_set not in ['general', 'nursing', 'technical']:
             return Response(
                 {"detail": "default_set must be one of: 'general', 'nursing', 'technical'."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -911,15 +911,15 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         from order_configs.services.default_configs import DEFAULT_SETS
-        
+
         if default_set not in DEFAULT_SETS:
             return Response(
                 {"detail": "Invalid default set."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         config_set = DEFAULT_SETS[default_set]
         preview = {
             'paper_types': {'to_add': [], 'to_remove': [], 'to_keep': []},
@@ -929,41 +929,41 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             'types_of_work': {'to_add': [], 'to_remove': [], 'to_keep': []},
             'english_types': {'to_add': [], 'to_remove': [], 'to_keep': []},
         }
-        
+
         # Helper function to check what will be added/removed
         def analyze_configs(model_class, default_list, existing_queryset):
             existing_names = set(existing_queryset.values_list('name', flat=True))
             default_names = set(default_list)
-            
+
             to_add = list(default_names - existing_names)
             to_remove = list(existing_names - default_names) if clear_existing else []
             to_keep = list(existing_names & default_names)
-            
+
             return {
                 'to_add': sorted(to_add),
                 'to_remove': sorted(to_remove),
                 'to_keep': sorted(to_keep)
             }
-        
+
         # Analyze each config type
         preview['paper_types'] = analyze_configs(
             PaperType,
             config_set['paper_types'],
             PaperType.objects.filter(website=website)
         )
-        
+
         preview['formatting_styles'] = analyze_configs(
             FormattingandCitationStyle,
             config_set['formatting_styles'],
             FormattingandCitationStyle.objects.filter(website=website)
         )
-        
+
         preview['academic_levels'] = analyze_configs(
             AcademicLevel,
             config_set['academic_levels'],
             AcademicLevel.objects.filter(website=website)
         )
-        
+
         # Subjects need special handling (tuples)
         existing_subjects = set(Subject.objects.filter(website=website).values_list('name', flat=True))
         default_subjects = set(name for name, _ in config_set['subjects'])
@@ -972,13 +972,13 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             'to_remove': sorted(existing_subjects - default_subjects) if clear_existing else [],
             'to_keep': sorted(existing_subjects & default_subjects)
         }
-        
+
         preview['types_of_work'] = analyze_configs(
             TypeOfWork,
             config_set['types_of_work'],
             TypeOfWork.objects.filter(website=website)
         )
-        
+
         # English types need special handling (tuples)
         existing_english = set(EnglishType.objects.filter(website=website).values_list('name', flat=True))
         default_english = set(name for name, _ in config_set['english_types'])
@@ -987,12 +987,12 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             'to_remove': sorted(existing_english - default_english) if clear_existing else [],
             'to_keep': sorted(existing_english & default_english)
         }
-        
+
         # Calculate totals
         total_to_add = sum(len(v['to_add']) for v in preview.values())
         total_to_remove = sum(len(v['to_remove']) for v in preview.values())
         total_to_keep = sum(len(v['to_keep']) for v in preview.values())
-        
+
         return Response({
             'website': {
                 'id': website.id,
@@ -1009,7 +1009,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 'total_changes': total_to_add + total_to_remove
             }
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'], url_path='export')
     def export_configs(self, request):
         """
@@ -1022,7 +1022,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "website_id query parameter is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -1030,9 +1030,9 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         from django.utils import timezone
-        
+
         export_data = {
             'website': {
                 'id': website.id,
@@ -1063,9 +1063,9 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 ],
             }
         }
-        
+
         return Response(export_data, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['post'], url_path='import')
     def import_configs(self, request):
         """
@@ -1078,13 +1078,13 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
         website_id = request.data.get('website_id')
         configs = request.data.get('configs', {})
         skip_existing = request.data.get('skip_existing', True)
-        
+
         if not website_id:
             return Response(
                 {"detail": "website_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -1092,9 +1092,9 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         from django.utils import timezone
-        
+
         results = {
             'paper_types': {'created': 0, 'skipped': 0, 'errors': []},
             'formatting_styles': {'created': 0, 'skipped': 0, 'errors': []},
@@ -1103,7 +1103,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             'types_of_work': {'created': 0, 'skipped': 0, 'errors': []},
             'english_types': {'created': 0, 'skipped': 0, 'errors': []},
         }
-        
+
         # Import Paper Types
         for item in configs.get('paper_types', []):
             name = item.get('name', '').strip()
@@ -1117,7 +1117,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['paper_types']['created'] += 1
             except Exception as e:
                 results['paper_types']['errors'].append(f"{name}: {str(e)}")
-        
+
         # Import Formatting Styles
         for item in configs.get('formatting_styles', []):
             name = item.get('name', '').strip()
@@ -1131,7 +1131,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['formatting_styles']['created'] += 1
             except Exception as e:
                 results['formatting_styles']['errors'].append(f"{name}: {str(e)}")
-        
+
         # Import Academic Levels
         for item in configs.get('academic_levels', []):
             name = item.get('name', '').strip()
@@ -1145,7 +1145,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['academic_levels']['created'] += 1
             except Exception as e:
                 results['academic_levels']['errors'].append(f"{name}: {str(e)}")
-        
+
         # Import Subjects
         for item in configs.get('subjects', []):
             name = item.get('name', '').strip()
@@ -1164,7 +1164,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['subjects']['created'] += 1
             except Exception as e:
                 results['subjects']['errors'].append(f"{name}: {str(e)}")
-        
+
         # Import Types of Work
         for item in configs.get('types_of_work', []):
             name = item.get('name', '').strip()
@@ -1178,7 +1178,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['types_of_work']['created'] += 1
             except Exception as e:
                 results['types_of_work']['errors'].append(f"{name}: {str(e)}")
-        
+
         # Import English Types
         for item in configs.get('english_types', []):
             name = item.get('name', '').strip()
@@ -1197,11 +1197,11 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['english_types']['created'] += 1
             except Exception as e:
                 results['english_types']['errors'].append(f"{name}: {str(e)}")
-        
+
         total_created = sum(r['created'] for r in results.values())
         total_skipped = sum(r['skipped'] for r in results.values())
         total_errors = sum(len(r['errors']) for r in results.values())
-        
+
         return Response({
             'website': {
                 'id': website.id,
@@ -1215,7 +1215,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 'total_errors': total_errors
             }
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'], url_path='export')
     def export_configs(self, request):
         """
@@ -1228,7 +1228,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "website_id query parameter is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -1236,7 +1236,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Collect all configs
         export_data = {
             'website': {
@@ -1256,21 +1256,21 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                     {'name': al.name} for al in AcademicLevel.objects.filter(website=website).order_by('name')
                 ],
                 'subjects': [
-                    {'name': s.name, 'is_technical': s.is_technical} 
+                    {'name': s.name, 'is_technical': s.is_technical}
                     for s in Subject.objects.filter(website=website).order_by('name')
                 ],
                 'types_of_work': [
                     {'name': tow.name} for tow in TypeOfWork.objects.filter(website=website).order_by('name')
                 ],
                 'english_types': [
-                    {'name': et.name, 'code': et.code} 
+                    {'name': et.name, 'code': et.code}
                     for et in EnglishType.objects.filter(website=website).order_by('name')
                 ],
             }
         }
-        
+
         return Response(export_data, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['post'], url_path='import')
     def import_configs(self, request):
         """
@@ -1280,13 +1280,13 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
         website_id = request.data.get('website_id')
         configurations = request.data.get('configurations', {})
         skip_existing = request.data.get('skip_existing', True)
-        
+
         if not website_id:
             return Response(
                 {"detail": "website_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -1294,7 +1294,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         results = {
             'paper_types': {'created': 0, 'skipped': 0, 'errors': []},
             'formatting_styles': {'created': 0, 'skipped': 0, 'errors': []},
@@ -1303,7 +1303,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             'types_of_work': {'created': 0, 'skipped': 0, 'errors': []},
             'english_types': {'created': 0, 'skipped': 0, 'errors': []},
         }
-        
+
         # Import Paper Types
         for item in configurations.get('paper_types', []):
             name = item.get('name')
@@ -1317,7 +1317,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['paper_types']['created'] += 1
             except Exception as e:
                 results['paper_types']['errors'].append(f"{name}: {str(e)}")
-        
+
         # Import Formatting Styles
         for item in configurations.get('formatting_styles', []):
             name = item.get('name')
@@ -1331,7 +1331,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['formatting_styles']['created'] += 1
             except Exception as e:
                 results['formatting_styles']['errors'].append(f"{name}: {str(e)}")
-        
+
         # Import Academic Levels
         for item in configurations.get('academic_levels', []):
             name = item.get('name')
@@ -1345,7 +1345,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['academic_levels']['created'] += 1
             except Exception as e:
                 results['academic_levels']['errors'].append(f"{name}: {str(e)}")
-        
+
         # Import Subjects
         for item in configurations.get('subjects', []):
             name = item.get('name')
@@ -1360,7 +1360,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['subjects']['created'] += 1
             except Exception as e:
                 results['subjects']['errors'].append(f"{name}: {str(e)}")
-        
+
         # Import Types of Work
         for item in configurations.get('types_of_work', []):
             name = item.get('name')
@@ -1374,7 +1374,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['types_of_work']['created'] += 1
             except Exception as e:
                 results['types_of_work']['errors'].append(f"{name}: {str(e)}")
-        
+
         # Import English Types
         for item in configurations.get('english_types', []):
             name = item.get('name')
@@ -1389,11 +1389,11 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 results['english_types']['created'] += 1
             except Exception as e:
                 results['english_types']['errors'].append(f"{name}: {str(e)}")
-        
+
         total_created = sum(r['created'] for r in results.values())
         total_skipped = sum(r['skipped'] for r in results.values())
         total_errors = sum(len(r['errors']) for r in results.values())
-        
+
         return Response({
             'message': f'Import completed: {total_created} created, {total_skipped} skipped, {total_errors} errors',
             'website': {
@@ -1408,7 +1408,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 'total_errors': total_errors
             }
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'], url_path='check-defaults')
     def check_defaults(self, request):
         """
@@ -1421,7 +1421,7 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "website_id query parameter is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             website = Website.objects.get(id=website_id)
         except Website.DoesNotExist:
@@ -1429,55 +1429,55 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": "Website not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         from order_configs.services.default_configs import (
             is_default_paper_type, is_default_formatting_style,
             is_default_academic_level, is_default_subject,
             is_default_type_of_work, is_default_english_type
         )
-        
+
         # Check paper types
         paper_types = PaperType.objects.filter(website=website)
         paper_types_data = [
             {"id": pt.id, "name": pt.name, "is_default": is_default_paper_type(pt.name)}
             for pt in paper_types
         ]
-        
+
         # Check formatting styles
         formatting_styles = FormattingandCitationStyle.objects.filter(website=website)
         formatting_styles_data = [
             {"id": fs.id, "name": fs.name, "is_default": is_default_formatting_style(fs.name)}
             for fs in formatting_styles
         ]
-        
+
         # Check academic levels
         academic_levels = AcademicLevel.objects.filter(website=website)
         academic_levels_data = [
             {"id": al.id, "name": al.name, "is_default": is_default_academic_level(al.name)}
             for al in academic_levels
         ]
-        
+
         # Check subjects
         subjects = Subject.objects.filter(website=website)
         subjects_data = [
             {"id": s.id, "name": s.name, "is_technical": s.is_technical, "is_default": is_default_subject(s.name)}
             for s in subjects
         ]
-        
+
         # Check types of work
         types_of_work = TypeOfWork.objects.filter(website=website)
         types_of_work_data = [
             {"id": tow.id, "name": tow.name, "is_default": is_default_type_of_work(tow.name)}
             for tow in types_of_work
         ]
-        
+
         # Check English types
         english_types = EnglishType.objects.filter(website=website)
         english_types_data = [
             {"id": et.id, "name": et.name, "code": et.code, "is_default": is_default_english_type(et.name)}
             for et in english_types
         ]
-        
+
         return Response({
             "website": {
                 "id": website.id,

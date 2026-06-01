@@ -42,7 +42,7 @@ class EventTimelineService:
         return EventAuditLog.objects.filter(
             event_status="FAILED"
         ).order_by("-created_at")[:limit]
-    
+
     # ----------------------------
     # 2. RECONSTRUCTED TIMELINE
     # ----------------------------

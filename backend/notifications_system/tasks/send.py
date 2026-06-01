@@ -127,7 +127,7 @@ def send_channel_notification(self, delivery_id: int) -> None:
     from notifications_system.backends.in_app import InAppBackend
 
     BACKEND_MAP = {
-        NotificationChannel.EMAIL:  EmailBackend,
+        NotificationChannel.EMAIL: EmailBackend,
         NotificationChannel.IN_APP: InAppBackend,
     }
 
@@ -402,7 +402,7 @@ def _attempt_fallback(delivery) -> None:
         status=DeliveryStatus.QUEUED,
     )
 
-    send_channel_notification.delay(fallback_delivery.pk)  # type: ignore[attr-defined]
+    send_channel_notification.delay(fallback_delivery.pk) # type: ignore[attr-defined]
 
     logger.info(
         "_attempt_fallback: queued fallback delivery=%s "

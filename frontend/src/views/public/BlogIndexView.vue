@@ -116,15 +116,15 @@ import { BookOpen } from "@lucide/vue";
 import { cmsApi, type BlogPostSummary } from "@/api/cms";
 import { useMeta, webPageSchema } from "@/composables/useMeta";
 
-const route  = useRoute();
+const route = useRoute();
 const router = useRouter();
 
-const pageSize  = 12;
-const page      = ref(Number(route.query.page ?? 1));
-const posts     = ref<BlogPostSummary[]>([]);
+const pageSize = 12;
+const page = ref(Number(route.query.page ?? 1));
+const posts = ref<BlogPostSummary[]>([]);
 const totalCount = ref(0);
-const isLoading  = ref(true);
-const error      = ref("");
+const isLoading = ref(true);
+const error = ref("");
 
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize));
 
@@ -147,7 +147,7 @@ async function load() {
       limit: pageSize,
       offset: (page.value - 1) * pageSize,
     });
-    posts.value      = data.items;
+    posts.value = data.items;
     totalCount.value = data.meta.total_count;
   } catch {
     error.value = "Could not load articles. Please try again.";

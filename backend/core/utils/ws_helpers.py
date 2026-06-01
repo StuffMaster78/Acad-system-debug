@@ -20,11 +20,11 @@ def get_channel_layer():
 def send_ws_notification(user, message, group_name=None):
     """
     Sends a WebSocket notification to a user or a group of users.
-    
+
     Args:
         user: The user to notify. The user must have a valid WebSocket connection.
         message: The message to send over WebSocket.
-        group_name: Optional; group to broadcast the message to. If not provided, 
+        group_name: Optional; group to broadcast the message to. If not provided,
                      sends to the individual user's WebSocket channel.
 
     Returns:
@@ -32,7 +32,7 @@ def send_ws_notification(user, message, group_name=None):
     """
     if not user.is_authenticated:
         logger.warning(f"User {user.username} is not authenticated.")
-        return False  # Don't send notifications to unauthenticated users.
+        return False # Don't send notifications to unauthenticated users.
 
     # Use group_name for broadcasting, otherwise send to the user individually
     channel_layer = get_channel_layer()
@@ -43,7 +43,7 @@ def send_ws_notification(user, message, group_name=None):
             channel_layer.group_send(
                 group_name,
                 {
-                    'type': 'send_notification',  # This will be handled by your consumer's method
+                    'type': 'send_notification', # This will be handled by your consumer's method
                     'message': message
                 }
             )
@@ -52,7 +52,7 @@ def send_ws_notification(user, message, group_name=None):
             channel_layer.send(
                 f'notifications_{user.id}',
                 {
-                    'type': 'send_notification',  # Will be handled by the consumer
+                    'type': 'send_notification', # Will be handled by the consumer
                     'message': message
                 }
             )

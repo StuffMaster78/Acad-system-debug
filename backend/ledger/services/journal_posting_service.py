@@ -196,7 +196,7 @@ class JournalPostingService:
         effective_at=None,
         metadata: dict[str, Any] | None = None,
     ) -> JournalEntry:
-        
+
         JournalPostingService._lock_line_accounts(lines=lines)
 
         JournalPostingService._validate_unique_reference(
@@ -269,7 +269,7 @@ class JournalPostingService:
         )
 
         return entry
-    
+
 
     @staticmethod
     def _validate_unique_reference(

@@ -11,11 +11,11 @@ from orders.models.orders import Order
 from websites.models.websites import Website
 
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 class OrderRequest(models.Model):
-    """ 
-    Represents a request made by a writer to work on an order. 
+    """
+    Represents a request made by a writer to work on an order.
     This is used when a writer wants to take on an order that is not assigned to them.
     """
     order = models.ForeignKey(
@@ -41,7 +41,7 @@ class OrderRequest(models.Model):
         default=OrderRequestStatus.PENDING,
     )
     rejection_feedback = models.TextField(blank=True, null=True)
-  
+
     accepted_by_admin_at = models.DateTimeField(null=True, blank=True)
     writer_accepted_assignment_at = models.DateTimeField(null=True, blank=True)
 
@@ -52,7 +52,7 @@ class OrderRequest(models.Model):
 
     def __str__(self):
         return f"Writer {self.writer_id} requested Order {self.order_id}"
-    
+
     def is_expired(self):
         """
         Checks if the order request has expired.
@@ -70,7 +70,7 @@ class OrderRequest(models.Model):
         self.status = OrderRequestStatus.EXPIRED
         self.rejection_feedback = "Request expired due to no response."
         self.save(update_fields=["status", "rejection_feedback"])
-    
+
     class Meta:
         unique_together = ('order', 'writer')
         ordering = ['-created_at']
@@ -92,7 +92,7 @@ class WriterRequest(models.Model):
         PENDING = 'pending', 'Pending'
         ACCEPTED = 'accepted', 'Accepted'
         DECLINED = 'declined', 'Declined'
-    
+
     website = models.ForeignKey(
         'websites.Website',
         on_delete=models.CASCADE,
@@ -124,7 +124,7 @@ class WriterRequest(models.Model):
         choices=RequestStatus.choices,
         default=RequestStatus.PENDING
     )
-    
+
     # Counter offer fields
     client_counter_pages = models.PositiveIntegerField(
         null=True, blank=True,
@@ -193,9 +193,9 @@ class ReassignmentRequest(models.Model):
 
     STATUS_CHOICES = (
         ('pending', 'Pending'),
-        ('approved', 'Approved'),    # e.g. admin approved but not reassigned yet
+        ('approved', 'Approved'), # e.g. admin approved but not reassigned yet
         ('rejected', 'Rejected'),
-        ('reassigned', 'Reassigned'),  # actioned
+        ('reassigned', 'Reassigned'), # actioned
     )
 
     order = models.ForeignKey(
@@ -373,11 +373,11 @@ class DraftRequest(models.Model):
         # Admins can always request drafts
         if hasattr(self.requested_by, 'role') and self.requested_by.role in ['admin', 'superadmin', 'support']:
             return True, None
-        
+
         # Check if order is in a valid status
         if self.order.status not in ['in_progress', 'under_editing', 'on_hold']:
             return False, f"Order status '{self.order.status}' does not allow draft requests"
-        
+
         # Check if Progressive Delivery extra service is purchased
         # Check if the order has the Progressive Delivery extra service
         from django.db.models import Q
@@ -386,18 +386,18 @@ class DraftRequest(models.Model):
             Q(service_name__icontains='draft') |
             Q(slug__iexact='progressive-delivery')
         ).exists()
-        
+
         if not has_progressive_delivery:
             return False, "Progressive Delivery extra service is required to request drafts"
-        
+
         return True, None
-    
+
     def fulfill(self, fulfilled_by):
         """Mark the draft request as fulfilled."""
         from django.utils import timezone
         self.status = 'fulfilled'
         self.fulfilled_at = timezone.now()
         self.save()
-    
+
     def __str__(self):
         return f"Draft Request #{self.id} - Order #{self.order.id} - {self.status}"

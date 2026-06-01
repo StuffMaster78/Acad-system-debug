@@ -16,7 +16,7 @@ def recalculate_all_quotas():
     Recalculate storage quotas for all tenants.
 
     Fixes drift from failed uploads, manual storage deletions,
-    or interrupted cleanup tasks.  Run nightly via Celery beat.
+    or interrupted cleanup tasks. Run nightly via Celery beat.
     """
     from files_management.services.quota_service import QuotaService
 

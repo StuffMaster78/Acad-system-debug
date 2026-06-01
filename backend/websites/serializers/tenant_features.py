@@ -8,7 +8,7 @@ from websites.models.tenant_features import TenantBranding, TenantFeatureToggle
 class TenantBrandingSerializer(serializers.ModelSerializer):
     """Serializer for tenant branding."""
     website_name = serializers.CharField(source='website.name', read_only=True)
-    
+
     class Meta:
         model = TenantBranding
         fields = [
@@ -24,7 +24,7 @@ class TenantBrandingSerializer(serializers.ModelSerializer):
 
 class TenantBrandingUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating tenant branding."""
-    
+
     class Meta:
         model = TenantBranding
         fields = [
@@ -38,7 +38,7 @@ class TenantBrandingUpdateSerializer(serializers.ModelSerializer):
 class TenantFeatureToggleSerializer(serializers.ModelSerializer):
     """Serializer for tenant feature toggles."""
     website_name = serializers.CharField(source='website.name', read_only=True)
-    
+
     class Meta:
         model = TenantFeatureToggle
         fields = [
@@ -57,7 +57,7 @@ class TenantFeatureToggleSerializer(serializers.ModelSerializer):
 
 class TenantFeatureToggleUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating tenant feature toggles."""
-    
+
     class Meta:
         model = TenantFeatureToggle
         fields = [

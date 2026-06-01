@@ -90,26 +90,26 @@ class AdminRetryTipAPIView(APIView):
 
     def post(self, request, pk):
         tip = get_object_or_404(Tip, pk=pk)
- 
-        if tip.status != TipStatus.FAILED:          # FIX: use enum not raw string
+
+        if tip.status != TipStatus.FAILED: # FIX: use enum not raw string
             return Response(
                 {"detail": f"Tip is {tip.status}, not failed."},
                 status=409,
             )
- 
+
         success = TipWCSBridge.fire_safe(tip)
- 
+
         # update_fields must match actual Tip model fields.
         # compensation_event and confirmed_at do not exist on Tip.
         # settlement_reference and paid_at do.
         tip.save(update_fields=["status", "settlement_reference", "paid_at"])
- 
+
         if not success:
             return Response(
                 {"detail": "No open compensation window. Try again later."},
                 status=409,
             )
- 
+
         retried_tip = TipRetryService.retry(
             tip=tip,
             triggered_by=request.user,

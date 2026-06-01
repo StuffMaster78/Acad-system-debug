@@ -44,7 +44,7 @@ class TicketStatisticsAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
 
     def avg_resolution_time(self, obj):
-        return obj.calculate_avg_resolution_time() 
+        return obj.calculate_avg_resolution_time()
 
 admin.site.register(TicketStatistics, TicketStatisticsAdmin)
 

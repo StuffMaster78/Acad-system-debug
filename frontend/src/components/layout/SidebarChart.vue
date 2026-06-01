@@ -13,9 +13,9 @@ use([CanvasRenderer, LineChart, GridComponent, TooltipComponent]);
 const props = defineProps<{ role: "admin" | "superadmin" }>();
 
 const totalRevenue = ref<number | null>(null);
-const totalOrders  = ref<number | null>(null);
-const sparkData    = ref<number[]>([]);
-const sparkLabels  = ref<string[]>([]);
+const totalOrders = ref<number | null>(null);
+const sparkData = ref<number[]>([]);
+const sparkLabels = ref<string[]>([]);
 
 const option = computed<EChartsOption>(() => ({
   backgroundColor: "transparent",
@@ -50,10 +50,10 @@ function money(v: number) {
 onMounted(async () => {
   try {
     const { data } = await analyticsChartsApi.daily({ days: 14 });
-    sparkData.value   = data.series[0]?.data ?? [];
+    sparkData.value = data.series[0]?.data ?? [];
     sparkLabels.value = data.labels;
     totalRevenue.value = data.summary.total_revenue;
-    totalOrders.value  = data.summary.total_orders;
+    totalOrders.value = data.summary.total_orders;
   } catch { /* non-fatal */ }
 });
 </script>

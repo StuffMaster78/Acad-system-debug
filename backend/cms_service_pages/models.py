@@ -158,7 +158,7 @@ class ServicePage(Page):
     ]
 
     # --- Subpage rules ---
-    subpage_types = []  # Service pages have no children
+    subpage_types = [] # Service pages have no children
     parent_page_types = ["cms_service_pages.ServiceIndexPage"]
 
     # --- Search indexing ---

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from writer_management.models.writer_reward import WriterReward, WriterRewardCriteria
- 
- 
+
+
 class WriterRewardSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterReward
@@ -19,8 +19,8 @@ class WriterRewardSerializer(serializers.ModelSerializer):
             "awarded_at",
         ]
         read_only_fields = fields
- 
- 
+
+
 class WriterRewardCriteriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterRewardCriteria

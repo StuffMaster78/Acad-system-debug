@@ -221,8 +221,8 @@ def process_pending_webhook_events() -> None:
 
     SUPPRESS_TYPES = {
         'sendgrid': {'bounce', 'spamreport', 'unsubscribe', 'group_unsubscribe'},
-        'ses':      {'bounce', 'complaint'},
-        'mailgun':  {'bounced', 'complained', 'unsubscribed'},
+        'ses': {'bounce', 'complaint'},
+        'mailgun': {'bounced', 'complained', 'unsubscribed'},
     }
 
     pending = ProviderWebhookEvent.objects.filter(

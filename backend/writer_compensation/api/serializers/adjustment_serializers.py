@@ -35,15 +35,14 @@ class CreateAdjustmentSerializer(serializers.Serializer):
             )
 
         return value
-    
+
 
 class PostCloseAdjustmentSerializer(serializers.Serializer):
     writer_id = serializers.IntegerField()
-    amount    = serializers.DecimalField(max_digits=12, decimal_places=2)
-    notes     = serializers.CharField(max_length=2000)
- 
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    notes = serializers.CharField(max_length=2000)
+
     def validate_amount(self, value):
         if value == Decimal("0.00"):
             raise serializers.ValidationError("Amount cannot be zero.")
         return value
- 

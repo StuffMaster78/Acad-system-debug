@@ -23,7 +23,7 @@ class RequestAdvanceSerializer(serializers.Serializer):
 
 class ApproveAdvanceSerializer(serializers.Serializer):
     approved_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
-    admin_notes     = serializers.CharField(max_length=1000, required=False, default="")
+    admin_notes = serializers.CharField(max_length=1000, required=False, default="")
 
     def validate_approved_amount(self, value: Decimal) -> Decimal:
         if value <= Decimal("0.00"):
@@ -33,7 +33,7 @@ class ApproveAdvanceSerializer(serializers.Serializer):
 
 class RecordAdvanceRecoverySerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2)
-    notes  = serializers.CharField(max_length=1000, required=False, default="")
+    notes = serializers.CharField(max_length=1000, required=False, default="")
 
     def validate_amount(self, value: Decimal) -> Decimal:
         if value <= Decimal("0.00"):
@@ -43,18 +43,18 @@ class RecordAdvanceRecoverySerializer(serializers.Serializer):
 
 class AdvanceRecoverySerializer(serializers.ModelSerializer):
     class Meta:
-        model  = AdvanceRecovery
+        model = AdvanceRecovery
         fields = ["id", "amount", "settlement_period", "notes", "recovered_at"]
         read_only_fields = fields
 
 
 class AdvancePaymentRequestSerializer(serializers.ModelSerializer):
     outstanding_balance = serializers.SerializerMethodField()
-    recoveries          = AdvanceRecoverySerializer(many=True, read_only=True)
-    writer_name         = serializers.SerializerMethodField()
+    recoveries = AdvanceRecoverySerializer(many=True, read_only=True)
+    writer_name = serializers.SerializerMethodField()
 
     class Meta:
-        model  = AdvancePaymentRequest
+        model = AdvancePaymentRequest
         fields = [
             "id",
             "writer_name",

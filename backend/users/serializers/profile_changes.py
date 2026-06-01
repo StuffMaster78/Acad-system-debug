@@ -11,7 +11,7 @@ class ProfileChangeRequestSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     user_email = serializers.CharField(source='user.email', read_only=True)
     approved_by_email = serializers.CharField(source='approved_by.email', read_only=True, allow_null=True)
-    
+
     class Meta:
         model = ProfileChangeRequest
         fields = [
@@ -31,7 +31,7 @@ class WriterAvatarUploadSerializer(serializers.ModelSerializer):
     user_email = serializers.CharField(source='user.email', read_only=True)
     approved_by_email = serializers.CharField(source='approved_by.email', read_only=True, allow_null=True)
     avatar_url = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = WriterAvatarUpload
         fields = [
@@ -42,7 +42,7 @@ class WriterAvatarUploadSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id', 'user', 'status', 'approved_by', 'approved_at', 'created_at'
         ]
-    
+
     def get_avatar_url(self, obj):
         """Get avatar URL."""
         if obj.avatar_file:

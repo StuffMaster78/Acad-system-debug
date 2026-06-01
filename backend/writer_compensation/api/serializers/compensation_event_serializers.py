@@ -11,13 +11,13 @@ from writer_compensation.models.compensation_event import CompensationEvent
 
 
 class CompensationEventSerializer(serializers.ModelSerializer):
-    created_by_name      = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
     related_window_label = serializers.SerializerMethodField()
-    is_positive          = serializers.SerializerMethodField()
-    window_label         = serializers.SerializerMethodField()
+    is_positive = serializers.SerializerMethodField()
+    window_label = serializers.SerializerMethodField()
 
     class Meta:
-        model  = CompensationEvent
+        model = CompensationEvent
         fields = [
             "id",
             "website",
@@ -72,5 +72,5 @@ class CompensationEventSerializer(serializers.ModelSerializer):
         return obj.amount > Decimal("0.00")
 
     def get_window_label(self, obj) -> str:
-        w = obj.payment_window       # FIX: was obj.window
+        w = obj.payment_window # FIX: was obj.window
         return f"{w.start_date} – {w.end_date}"

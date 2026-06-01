@@ -39,15 +39,15 @@ def track_config_save(sender, instance, created, **kwargs):
     """
     if not should_track_version(sender):
         return
-    
+
     # Skip if this is a migration or fixture load
     if kwargs.get('raw', False):
         return
-    
+
     try:
         # Determine change type
         change_type = 'created' if created else 'updated'
-        
+
         # Get previous version if updating
         previous_version = None
         if not created:
@@ -55,11 +55,11 @@ def track_config_save(sender, instance, created, **kwargs):
             previous_version = ConfigVersion.get_current_version(
                 content_type, instance.pk
             )
-        
+
         # Get user from thread local or request (if available)
         # This is a simplified version - in production, you'd use middleware
         changed_by = getattr(instance, '_versioning_user', None)
-        
+
         # Create version
         ConfigVersioningService.create_version(
             instance,
@@ -81,18 +81,18 @@ def track_config_delete(sender, instance, **kwargs):
     """
     if not should_track_version(sender):
         return
-    
+
     try:
         # Get current version before deletion
         content_type = ContentType.objects.get_for_model(sender)
         previous_version = ConfigVersion.get_current_version(
             content_type, instance.pk
         )
-        
+
         # Get user from thread local (set by middleware) or instance attribute
         from core.middleware.config_versioning import get_current_user
         changed_by = getattr(instance, '_versioning_user', None) or get_current_user()
-        
+
         # Create deletion version
         ConfigVersioningService.create_version(
             instance,

@@ -3,7 +3,7 @@ from orders.actions.base import BaseOrderAction
 from orders.services.pricing_calculator import PricingCalculatorService
 from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
-from orders.services.order_pricing_snapshot import OrderPricingSnapshotService 
+from orders.services.order_pricing_snapshot import OrderPricingSnapshotService
 
 @register_order_action("calculate_pricing")
 class PricingCalculatorAction(BaseOrderAction):

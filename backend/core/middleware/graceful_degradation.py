@@ -14,20 +14,20 @@ logger = logging.getLogger(__name__)
 class GracefulDegradationMiddleware(MiddlewareMixin):
     """
     Middleware that enables graceful degradation when services fail.
-    
+
     Features:
     - Database read fallback to cache
     - Cache fallback to in-memory
     - Service isolation (one failure doesn't kill everything)
     - Degraded mode flag
     """
-    
+
     def __init__(self, get_response):
         self.get_response = get_response
         self.degraded_mode = False
         self.degraded_services = set()
         super().__init__(get_response)
-    
+
     def process_request(self, request):
         """Check service health and set degraded mode if needed."""
         # Check database
@@ -38,7 +38,7 @@ class GracefulDegradationMiddleware(MiddlewareMixin):
             logger.warning(f"Database check failed: {e}")
             self.degraded_services.add('database')
             self.degraded_mode = True
-        
+
         # Check cache
         try:
             cache.get('health_check')
@@ -46,13 +46,13 @@ class GracefulDegradationMiddleware(MiddlewareMixin):
             logger.warning(f"Cache check failed: {e}")
             self.degraded_services.add('cache')
             # Cache failure is not critical - don't set degraded mode
-        
+
         # Store in request for use in views
         request.degraded_mode = self.degraded_mode
         request.degraded_services = self.degraded_services
-        
+
         return None
-    
+
     def process_exception(self, request, exception):
         """Handle exceptions gracefully."""
         # Don't handle exceptions here - let Django handle them

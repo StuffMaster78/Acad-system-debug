@@ -71,7 +71,7 @@ class AdjustmentFundingService:
         cls._validate_amount(amount_expected)
 
         existing_funding = cls._get_funding_record(locked_request)
-        
+
         if existing_funding is not None:
             raise ValidationError(
                 "Adjustment request already has a funding record."
@@ -87,7 +87,7 @@ class AdjustmentFundingService:
             amount_paid=Decimal("0.00"),
             metadata={},
         )
-        
+
 
         locked_request.status = ORDER_ADJUSTMENT_STATUS_FUNDING_PENDING
         locked_request.save(
@@ -271,7 +271,7 @@ class AdjustmentFundingService:
             # longer valid but the original offer is still accepted.
             final_status = ORDER_ADJUSTMENT_STATUS_COUNTER_FUNDED_FINAL
             locked_request.is_counter_final = True
-            
+
         locked_request.status = final_status
         locked_request.funded_at = locked_funding.funded_at
         locked_request.save(
@@ -312,7 +312,7 @@ class AdjustmentFundingService:
                 "amount_paid": str(new_amount_paid),
                 "amount_expected": str(locked_funding.amount_expected),
                 "external_reference": external_reference,
-            
+
             },
         )
 
@@ -371,9 +371,9 @@ class AdjustmentFundingService:
             ORDER_ADJUSTMENT_STATUS_CLIENT_COUNTERED,
         }:
             raise ValidationError(
-                "Only accepted  or client-countered adjustment requests can enter funding."
+                "Only accepted or client-countered adjustment requests can enter funding."
             )
-        
+
 
     @classmethod
     def _validate_amount(cls, amount: Decimal) -> None:

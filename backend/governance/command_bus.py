@@ -80,7 +80,7 @@ class CommandBus:
             role=getattr(command, "role", None),
             correlation_id=str(uuid.uuid4()),
         )
-        
+
         result = CommandExecutor.execute(ctx)
 
         return {

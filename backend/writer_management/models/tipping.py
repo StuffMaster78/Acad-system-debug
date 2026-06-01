@@ -2,4 +2,4 @@
 Compatibility import for legacy writer tipping callers.
 """
 
-from tips.models.tip import Tip  # noqa: F401
+from tips.models.tip import Tip # noqa: F401

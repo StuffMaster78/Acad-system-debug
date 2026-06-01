@@ -37,7 +37,7 @@ class CommunicationScreeningRuleService:
             website=website,
             is_platform_rule=is_platform_rule,
         )
-        
+
         return CommunicationScreeningRule.objects.create(
             website=website,
             name=name,

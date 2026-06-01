@@ -8,7 +8,7 @@ from pathlib import Path
 
 # Get the views.py file path
 _views_py_path = Path(__file__).parent / 'views.py'
-_parent_dir = str(Path(__file__).parent.parent)  # Go up to writing_project/backend level
+_parent_dir = str(Path(__file__).parent.parent) # Go up to writing_project/backend level
 
 # Add parent directory to path to allow proper imports
 if _parent_dir not in sys.path:
@@ -19,24 +19,24 @@ try:
     # This allows relative imports (from .permissions import ...) to work
     spec = importlib.util.spec_from_file_location("client_management.views", str(_views_py_path))
     views_module = importlib.util.module_from_spec(spec)
-    
+
     # Set up proper package context for relative imports
     views_module.__package__ = 'client_management'
     views_module.__name__ = 'client_management.views'
     views_module.__file__ = str(_views_py_path)
-    
+
     # Register the parent package in sys.modules if not already there
     if 'client_management' not in sys.modules:
         import types
         client_management_pkg = types.ModuleType('client_management')
         client_management_pkg.__path__ = [str(Path(__file__).parent)]
         sys.modules['client_management'] = client_management_pkg
-    
+
     # Now execute the module - relative imports should work now
     spec.loader.exec_module(views_module)
-    
+
     # Extract all the views we need
-    views = views_module  # Use as 'views' for consistency with existing code
+    views = views_module # Use as 'views' for consistency with existing code
     BlacklistEmailListView = views_module.BlacklistEmailListView
     BlacklistEmailAddView = views_module.BlacklistEmailAddView
     BlacklistEmailRemoveView = views_module.BlacklistEmailRemoveView

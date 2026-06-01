@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Referral, ReferralBonusConfig, ReferralCode, ReferralStats, 
+    Referral, ReferralBonusConfig, ReferralCode, ReferralStats,
     ReferralBonusDecay, ReferralAbuseFlag
 )
 from users.models import User
@@ -70,22 +70,22 @@ class ReferralCodeSerializer(serializers.ModelSerializer):
     def get_referral_link(self, obj):
         """Include the referral link in the serialized output."""
         return obj.get_referral_link()
-    
+
     def get_usage_stats(self, obj):
         """Get usage statistics for this referral code."""
         from django.db.models import Count, Sum, Q
         from referrals.models import Referral
-        
+
         referrals = Referral.objects.filter(
             referral_code=obj.code,
             website=obj.website
         )
-        
+
         total_referrals = referrals.count()
         successful_referrals = referrals.filter(bonus_awarded=True).count()
         flagged_referrals = referrals.filter(is_flagged=True).count()
         voided_referrals = referrals.filter(is_voided=True).count()
-        
+
         # Get orders placed by referees
         from orders.models.orders import Order
         referee_ids = referrals.values_list('referee_id', flat=True)
@@ -93,10 +93,10 @@ class ReferralCodeSerializer(serializers.ModelSerializer):
             client_id__in=referee_ids,
             website=obj.website
         ).count()
-        
+
         # Calculate conversion rate
         conversion_rate = (successful_referrals / total_referrals * 100) if total_referrals > 0 else 0
-        
+
         return {
             'total_referrals': total_referrals,
             'successful_referrals': successful_referrals,
@@ -137,7 +137,7 @@ class ReferralAbuseFlagSerializer(serializers.ModelSerializer):
     reviewed_by_username = serializers.CharField(source='reviewed_by.username', read_only=True)
     abuse_type_display = serializers.CharField(source='get_abuse_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    
+
     class Meta:
         model = ReferralAbuseFlag
         fields = '__all__'
@@ -150,7 +150,7 @@ class ReferralAbuseFlagSerializer(serializers.ModelSerializer):
     reviewed_by_username = serializers.CharField(source='reviewed_by.username', read_only=True)
     abuse_type_display = serializers.CharField(source='get_abuse_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    
+
     class Meta:
         model = ReferralAbuseFlag
         fields = '__all__'

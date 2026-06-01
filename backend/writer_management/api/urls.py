@@ -12,29 +12,29 @@ MOUNT IN ROOT urls.py:
 FULL ROUTE MAP
 --------------
 Profile (admin):
-    GET  writers/                              list all writers
-    GET  writers/<rid>/                        writer detail
-    GET  writers/<uuid>/card/                  public client card
-    POST writers/<rid>/delete/                 soft delete
-    POST writers/<rid>/restore/               restore
+    GET writers/ list all writers
+    GET writers/<rid>/ writer detail
+    GET writers/<uuid>/card/ public client card
+    POST writers/<rid>/delete/ soft delete
+    POST writers/<rid>/restore/ restore
 
 My Profile (writer):
-    GET   me/profile/                          own profile
-    PATCH me/profile/                          update own profile
+    GET me/profile/ own profile
+    PATCH me/profile/ update own profile
 
 Availability (writer):
-    GET  me/availability/                      active + upcoming windows
-    POST me/availability/declare/              declare unavailability
-    POST me/availability/<pk>/end/             end window early
-    POST me/availability/toggle/               toggle is_accepting_orders
-    PATCH me/availability/preferences/         update preferences
+    GET me/availability/ active + upcoming windows
+    POST me/availability/declare/ declare unavailability
+    POST me/availability/<pk>/end/ end window early
+    POST me/availability/toggle/ toggle is_accepting_orders
+    PATCH me/availability/preferences/ update preferences
 
 Discipline (admin):
-    GET  writers/<rid>/discipline/
-    GET  writers/<rid>/warnings/
+    GET writers/<rid>/discipline/
+    GET writers/<rid>/warnings/
     POST writers/<rid>/warnings/issue/
     POST warnings/<pk>/void/
-    GET  writers/<rid>/strikes/
+    GET writers/<rid>/strikes/
     POST writers/<rid>/strikes/issue/
     POST strikes/<pk>/void/
     POST writers/<rid>/suspend/
@@ -45,33 +45,33 @@ Discipline (admin):
     POST writers/<rid>/penalties/
 
 Performance (admin + writer owner):
-    GET  writers/<rid>/performance/
-    GET  writers/<rid>/performance/snapshots/
-    GET  writers/<rid>/performance/metrics/
+    GET writers/<rid>/performance/
+    GET writers/<rid>/performance/snapshots/
+    GET writers/<rid>/performance/metrics/
 
 Rewards (admin + writer owner):
-    GET  writers/<rid>/rewards/
+    GET writers/<rid>/rewards/
 
 Notes (admin):
-    GET  writers/<rid>/notes/
+    GET writers/<rid>/notes/
     POST writers/<rid>/notes/
     PATCH notes/<pk>/
     DELETE notes/<pk>/
-    POST  notes/<pk>/pin/
+    POST notes/<pk>/pin/
 
 Resources (writer):
-    GET  resources/
-    GET  resources/<pk>/
+    GET resources/
+    GET resources/<pk>/
     POST resources/<pk>/download/
 
 Applications (router):
-    GET  applications/                         admin list
-    GET  applications/<pk>/                    admin detail
-    POST applications/submit/                  public submit
-    POST applications/<pk>/review/             admin mark under review
-    POST applications/<pk>/approve/            admin approve
-    POST applications/<pk>/reject/             admin reject
-    POST applications/<pk>/withdraw/           applicant withdraw
+    GET applications/ admin list
+    GET applications/<pk>/ admin detail
+    POST applications/submit/ public submit
+    POST applications/<pk>/review/ admin mark under review
+    POST applications/<pk>/approve/ admin approve
+    POST applications/<pk>/reject/ admin reject
+    POST applications/<pk>/withdraw/ applicant withdraw
 """
 
 from django.urls import path, include

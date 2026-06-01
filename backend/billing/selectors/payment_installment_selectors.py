@@ -292,7 +292,7 @@ class PaymentInstallmentSelector:
             return False
 
         return installment.due_at < timezone.now()
-    
+
     @staticmethod
     def get_balance(
         *,
@@ -336,7 +336,7 @@ class PaymentInstallmentSelector:
             installment.amount_paid > Decimal("0")
             and installment.amount_paid < installment.amount
         )
-    
+
 
     @classmethod
     def get_upcoming_queryset_for_invoice(

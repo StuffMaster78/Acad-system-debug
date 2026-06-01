@@ -72,4 +72,4 @@ def IsReviewApproved(review):
     """
     Check if the review is approved.
     """
-    return review.is_approved   
+    return review.is_approved

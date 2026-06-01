@@ -153,7 +153,7 @@ class CommunicationMessageViewSet(ReadOnlyModelViewSet):
 
         output = CommunicationMessageSerializer(withdrawn_message)
         return Response(output.data, status=status.HTTP_200_OK)
-    
+
 
     @action(
         detail=True,
@@ -174,7 +174,7 @@ class CommunicationMessageViewSet(ReadOnlyModelViewSet):
 
         serializer = CommunicationReadReceiptSerializer(receipt)
         return Response(serializer.data)
-    
+
 
     @action(detail=True, methods=["get", "post"])
     def attachments(self, request, pk=None):
@@ -207,7 +207,7 @@ class CommunicationMessageViewSet(ReadOnlyModelViewSet):
 
         output = CommunicationAttachmentSerializer(attachment)
         return Response(output.data, status=status.HTTP_201_CREATED)
-    
+
     @action(detail=False, methods=["get"])
     def search(self, request):
         """

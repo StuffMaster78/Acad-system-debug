@@ -4,7 +4,7 @@ from functools import lru_cache
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from discounts.services.discount_engine import DiscountEngine
-from order_pricing_core.services.deadline_multiplier_service import DeadlineMultiplierService 
+from order_pricing_core.services.deadline_multiplier_service import DeadlineMultiplierService
 
 class PricingCalculatorService:
     """
@@ -33,7 +33,7 @@ class PricingCalculatorService:
 
         if not config:
             raise ValueError("PricingConfiguration is not defined in the database.")
-        
+
         return config
 
     def get_pricing_config(self):
@@ -42,7 +42,7 @@ class PricingCalculatorService:
         the website associated with the order.
         """
         return self.get_pricing_config_for_website(self.website.id)
-    
+
 
     def get_deadline_multiplier(self) -> Decimal:
         """
@@ -57,11 +57,11 @@ class PricingCalculatorService:
             website=self.website,
             deadline=self.order.deadline
         )
-    
+
     def get_deadline_multiplier_info(self) -> dict:
         """
         Get detailed information about the deadline multiplier being applied.
-        
+
         Returns:
             Dict with multiplier details including label, hours, etc.
         """
@@ -72,13 +72,13 @@ class PricingCalculatorService:
                 'hours': None,
                 'is_past_deadline': False
             }
-        
+
         now = timezone.now()
         if self.order.deadline < now:
             hours = (now - self.order.deadline).total_seconds() / 3600
         else:
             hours = (self.order.deadline - now).total_seconds() / 3600
-        
+
         return DeadlineMultiplierService.get_multiplier_info(
             website=self.website,
             hours=hours if self.order.deadline >= now else -hours
@@ -88,7 +88,7 @@ class PricingCalculatorService:
         """
         Calculates the base price of the order based on number of pages, slides,
         and type of work.
-        
+
         Args:
             order (Order): The order instance.
 
@@ -135,7 +135,7 @@ class PricingCalculatorService:
         if self.order.writer_level:
             return self.order.writer_level.value
         return Decimal(0)
-    
+
     def calculate_preferred_writer_fee(self) -> Decimal:
         """
         Calculates the additional fee for the preferred writer assigned to the order.
@@ -207,7 +207,7 @@ class PricingCalculatorService:
         return sum(
             service.service_cost for service in self.order.extra_services.all()
         )
-    
+
 
 
     def calculate_additional_cost(self, discount_codes=None) -> Decimal:
@@ -305,7 +305,7 @@ class PricingCalculatorService:
             "discount": float(discount),
             "final_total": float(total)
         }
-    
+
     def save_snapshot(self):
         """
         Saves or updates a snapshot of the pricing breakdown.

@@ -53,7 +53,7 @@ class PromotionalCampaign(models.Model):
         default='draft'
     )
      # Active window
-    start_date = models.DateTimeField(help_text="When the  promotional campaign starts")
+    start_date = models.DateTimeField(help_text="When the promotional campaign starts")
     end_date = models.DateTimeField(help_text="When the promotional campaign ends")
     is_active = models.BooleanField(
         default=True,
@@ -212,7 +212,7 @@ class PromotionalCampaign(models.Model):
             raise ValidationError(
                 "Deleted campaigns must have status 'deleted' or 'archived"
             )
-        
+
     def generate_unique_slug(self, base, website_id, model_class):
         '''
         Generate a unique slug for the campaign based on its name and website ID.
@@ -231,15 +231,15 @@ class PromotionalCampaign(models.Model):
         Returns a status color code for UI badge rendering.
         """
         return {
-            'draft': 'secondary',      # Gray
-            'active': 'success',       # Green
-            'paused': 'warning',       # Yellow
-            'pending': 'info',         # Blue
-            'cancelled': 'danger',     # Red
-            'deleted': 'dark',         # Black/Grey
-            'completed': 'primary',    # Blue/Purple
-            'archived': 'muted',       # Faded
-        }.get(self.status, 'light')   # Default fallback
+            'draft': 'secondary', # Gray
+            'active': 'success', # Green
+            'paused': 'warning', # Yellow
+            'pending': 'info', # Blue
+            'cancelled': 'danger', # Red
+            'deleted': 'dark', # Black/Grey
+            'completed': 'primary', # Blue/Purple
+            'archived': 'muted', # Faded
+        }.get(self.status, 'light') # Default fallback
 
 
     @property

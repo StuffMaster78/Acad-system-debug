@@ -17,7 +17,7 @@ class PolicyViewSet(viewsets.ViewSet):
     def create(self, request):
         policy = Policy.objects.create(
             name=request.data["name"],
-            rule=request.data["rule"],  # graph JSON
+            rule=request.data["rule"], # graph JSON
             effect=request.data["effect"],
             tenant_id=request.data.get("tenant_id"),
         )
@@ -34,7 +34,7 @@ class PolicyViewSet(viewsets.ViewSet):
         return {
             "id": str(policy.id),
             "name": policy.name,
-            "rule": policy.rule,  # graph editor uses this
+            "rule": policy.rule, # graph editor uses this
             "effect": policy.effect,
             "version": policy.version,
             "priority": policy.priority,

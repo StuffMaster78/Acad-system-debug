@@ -13,7 +13,7 @@ from orders.models.legacy_models.order_disputes import Dispute
 from orders.models.orders import Order
 from communications.models import CommunicationMessage
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 class SupportProfile(models.Model):
     """
@@ -261,11 +261,11 @@ class SupportPermission(models.Model):
     can_manage_tickets = models.BooleanField(default=True)
     can_handle_disputes = models.BooleanField(default=True)
     can_recommend_blacklist = models.BooleanField(default=True)
-    can_approve_probation = models.BooleanField(default=False)  # Admins only
-    can_approve_blacklist = models.BooleanField(default=False)  # Admins only
+    can_approve_probation = models.BooleanField(default=False) # Admins only
+    can_approve_blacklist = models.BooleanField(default=False) # Admins only
     can_recommend_writer_promotion = models.BooleanField(default=True)
     can_put_writer_on_probation = models.BooleanField(default=True)
-    can_promote_writer = models.BooleanField(default=False)  # Admins only
+    can_promote_writer = models.BooleanField(default=False) # Admins only
     can_create_internal_tickets = models.BooleanField(default=True)
 
     def __str__(self):
@@ -685,11 +685,11 @@ class SupportWorkloadTracker(models.Model):
             )
 
             for ticket in unresolved_tickets:
-                ticket.assigned_to = None  # Mark as unassigned for reassignment
+                ticket.assigned_to = None # Mark as unassigned for reassignment
                 ticket.save()
 
             for dispute in unresolved_disputes:
-                dispute.assigned_to = None  # Mark as unassigned for reassignment
+                dispute.assigned_to = None # Mark as unassigned for reassignment
                 dispute.save()
 
     def __str__(self):
@@ -705,7 +705,7 @@ class OrderDisputeSLA(models.Model):
         ("order_resolution", "Order Resolution"),
         ("dispute_resolution", "Dispute Resolution"),
     )
-    
+
     SLA_STATUS_CHOICES = (
         ("on_track", "On Track"),
         ("warning", "Warning (Approaching Deadline)"),
@@ -728,14 +728,14 @@ class OrderDisputeSLA(models.Model):
     expected_resolution_time = models.DateTimeField()
     actual_resolution_time = models.DateTimeField(blank=True, null=True)
     sla_breached = models.BooleanField(default=False)
-    
+
     # Enhanced tracking fields
     warning_sent_at = models.DateTimeField(blank=True, null=True, help_text="When warning was sent (before breach)")
     breach_notified_at = models.DateTimeField(blank=True, null=True, help_text="When breach notification was sent")
     email_alert_sent = models.BooleanField(default=False, help_text="Whether email alert was sent")
     status = models.CharField(
-        max_length=20, 
-        choices=SLA_STATUS_CHOICES, 
+        max_length=20,
+        choices=SLA_STATUS_CHOICES,
         default="on_track",
         help_text="Current SLA status"
     )
@@ -747,7 +747,7 @@ class OrderDisputeSLA(models.Model):
         null=True, blank=True,
         help_text="Minutes past deadline if breached (cached for performance)"
     )
-    
+
     class Meta:
         verbose_name = "Order/Dispute SLA"
         verbose_name_plural = "Order/Dispute SLAs"
@@ -765,21 +765,21 @@ class OrderDisputeSLA(models.Model):
         """
         from django.utils import timezone
         from datetime import timedelta
-        
+
         if self.actual_resolution_time:
             # Already resolved
             self.status = "resolved"
             self.sla_breached = self.actual_resolution_time > self.expected_resolution_time
             self.save()
             return
-        
+
         now = timezone.now()
         time_remaining = self.expected_resolution_time - now
         time_remaining_minutes = int(time_remaining.total_seconds() / 60)
-        
+
         # Update cached time remaining
         self.time_remaining_minutes = time_remaining_minutes
-        
+
         # Check if breached
         if now > self.expected_resolution_time:
             breach_duration = now - self.expected_resolution_time
@@ -791,7 +791,7 @@ class OrderDisputeSLA(models.Model):
             self.status = "warning"
         else:
             self.status = "on_track"
-        
+
         self.save()
 
     def mark_resolved(self):
@@ -808,7 +808,7 @@ class OrderDisputeSLA(models.Model):
         if self.actual_resolution_time:
             return None
         return self.expected_resolution_time - timezone.now()
-    
+
     def get_breach_duration(self):
         """Get duration past deadline if breached."""
         from django.utils import timezone
@@ -848,7 +848,7 @@ class FAQCategory(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.get_category_type_display()})"
-    
+
 class FAQManagement(models.Model):
     """
     Allows support to manage FAQs for Writers and Clients.

@@ -107,7 +107,7 @@ class DiscountUsageService:
             )
 
             return usage
-        
+
         except IntegrityError as exc:
             raise DiscountAlreadyAppliedError(
                 "This payable item already has a discount."

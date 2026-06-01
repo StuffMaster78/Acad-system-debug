@@ -19,16 +19,16 @@ The following order-scoped log models moved to order_actions app:
     WriterOrderDeadlineExtensionLog
     WriterOrderReopenLog
     WriterOrderMessageLog
-    WriterRatingLog  (→ reviews_system)
+    WriterRatingLog (→ reviews_system)
 
 MODELS IN THIS FILE
 -------------------
-WriterActionLog       — discipline events (warning, strike, suspension, etc.)
-WriterActivityLog     — writer's own platform actions (order accepted, etc.)
+WriterActionLog — discipline events (warning, strike, suspension, etc.)
+WriterActivityLog — writer's own platform actions (order accepted, etc.)
 WriterActivityTracking — last seen / last login presence cache
-WriterIPLog           — IP addresses used (fraud detection)
+WriterIPLog — IP addresses used (fraud detection)
 WriterProfileUpdateLog — profile field changes (audit)
-WriterFileDownloadLog  — file access by writer (stays until central files app
+WriterFileDownloadLog — file access by writer (stays until central files app
                          provides its own download log)
 
 WHAT WAS FIXED
@@ -73,25 +73,25 @@ class WriterActionLog(models.Model):
 
     class ActionType(models.TextChoices):
         # Warnings
-        WARNING_ISSUED   = "warning_issued",   "Warning Issued"
-        WARNING_VOIDED   = "warning_voided",   "Warning Voided"
+        WARNING_ISSUED = "warning_issued", "Warning Issued"
+        WARNING_VOIDED = "warning_voided", "Warning Voided"
         # Strikes
-        STRIKE_ISSUED    = "strike_issued",    "Strike Issued"
-        STRIKE_VOIDED    = "strike_voided",    "Strike Voided"
+        STRIKE_ISSUED = "strike_issued", "Strike Issued"
+        STRIKE_VOIDED = "strike_voided", "Strike Voided"
         # Suspension
-        SUSPENDED        = "suspended",        "Suspended"
+        SUSPENDED = "suspended", "Suspended"
         SUSPENSION_LIFTED = "suspension_lifted", "Suspension Lifted"
         # Blacklist
-        BLACKLISTED      = "blacklisted",      "Blacklisted"
+        BLACKLISTED = "blacklisted", "Blacklisted"
         BLACKLIST_LIFTED = "blacklist_lifted", "Blacklist Lifted"
         # Probation
         PROBATION_PLACED = "probation_placed", "Probation Placed"
-        PROBATION_ENDED  = "probation_ended",  "Probation Ended"
+        PROBATION_ENDED = "probation_ended", "Probation Ended"
         # Penalty
-        PENALTY_APPLIED  = "penalty_applied",  "Penalty Applied"
+        PENALTY_APPLIED = "penalty_applied", "Penalty Applied"
         # Other
-        DEACTIVATED      = "deactivated",      "Deactivated"
-        REACTIVATED      = "reactivated",      "Reactivated"
+        DEACTIVATED = "deactivated", "Deactivated"
+        REACTIVATED = "reactivated", "Reactivated"
 
     website = models.ForeignKey(
         "websites.Website",
@@ -170,23 +170,23 @@ class WriterActivityLog(models.Model):
 
     class ActionType(models.TextChoices):
         # Profile
-        PROFILE_UPDATED      = "profile_updated",      "Profile Updated"
-        BIO_UPDATED          = "bio_updated",           "Bio Updated"
+        PROFILE_UPDATED = "profile_updated", "Profile Updated"
+        BIO_UPDATED = "bio_updated", "Bio Updated"
         QUALIFICATIONS_UPDATED = "qualifications_updated", "Qualifications Updated"
-        PEN_NAME_REQUESTED   = "pen_name_requested",   "Pen Name Change Requested"
+        PEN_NAME_REQUESTED = "pen_name_requested", "Pen Name Change Requested"
         # Availability
-        AVAILABILITY_SET     = "availability_set",     "Availability Set"
-        WINDOW_DECLARED      = "window_declared",      "Unavailability Window Declared"
-        WINDOW_ENDED         = "window_ended",         "Unavailability Window Ended"
+        AVAILABILITY_SET = "availability_set", "Availability Set"
+        WINDOW_DECLARED = "window_declared", "Unavailability Window Declared"
+        WINDOW_ENDED = "window_ended", "Unavailability Window Ended"
         # Authentication
-        LOGIN                = "login",                "Logged In"
-        LOGOUT               = "logout",               "Logged Out"
-        PASSWORD_CHANGED     = "password_changed",     "Password Changed"
+        LOGIN = "login", "Logged In"
+        LOGOUT = "logout", "Logged Out"
+        PASSWORD_CHANGED = "password_changed", "Password Changed"
         # Resources
-        RESOURCE_VIEWED      = "resource_viewed",      "Resource Viewed"
-        RESOURCE_DOWNLOADED  = "resource_downloaded",  "Resource Downloaded"
+        RESOURCE_VIEWED = "resource_viewed", "Resource Viewed"
+        RESOURCE_DOWNLOADED = "resource_downloaded", "Resource Downloaded"
         # Other
-        OTHER                = "other",                "Other"
+        OTHER = "other", "Other"
 
     website = models.ForeignKey(
         "websites.Website",

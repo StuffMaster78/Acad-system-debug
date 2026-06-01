@@ -65,7 +65,7 @@ class SpecialOrderAnalyticsEvent(TimeStampedModel):
 
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "event_type"]),

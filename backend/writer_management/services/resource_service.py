@@ -2,24 +2,24 @@
 Manages WriterResource views and downloads.
 """
 import logging
- 
+
 from django.db import models
- 
+
 from writer_management.models.resources import (
     WriterResource,
     WriterResourceView,
 )
- 
+
 logger = logging.getLogger(__name__)
- 
- 
+
+
 class ResourceService:
- 
+
     @staticmethod
     def record_view(writer, resource: WriterResource) -> None:
         """
         Record that a writer viewed a resource.
- 
+
         Upserts WriterResourceView (one per writer per resource).
         Increments view_count on both the view record and the resource.
         """
@@ -33,7 +33,7 @@ class ResourceService:
                 WriterResourceView.objects.filter(pk=view.pk).update(
                     view_count=models.F("view_count") + 1
                 )
- 
+
             WriterResource.objects.filter(pk=resource.pk).update(
                 view_count=models.F("view_count") + 1
             )
@@ -44,7 +44,7 @@ class ResourceService:
                 getattr(writer, "registration_id", "?"),
                 exc,
             )
- 
+
     @staticmethod
     def record_download(writer, resource: WriterResource) -> None:
         """
@@ -70,7 +70,7 @@ class ResourceService:
             if not website:
                 return
 
-            file_id = resource.files_app_file_id  # consistent name
+            file_id = resource.files_app_file_id # consistent name
             if file_id is None:
                 logger.warning(
                     "record_download: resource=%s has no files_app_file_id. "
@@ -81,7 +81,7 @@ class ResourceService:
             WriterFileDownloadLog.objects.create(
                 website=website,
                 writer=writer,
-                file_id=file_id or 0,  # 0 = sentinel for missing files app PK
+                file_id=file_id or 0, # 0 = sentinel for missing files app PK
                 file_name=resource.title,
             )
 
@@ -92,7 +92,7 @@ class ResourceService:
                 getattr(writer, "registration_id", "?"),
                 exc,
             )
- 
+
     @staticmethod
     def get_active_resources(website, category=None):
         """Return active resources for a website, optionally by category."""

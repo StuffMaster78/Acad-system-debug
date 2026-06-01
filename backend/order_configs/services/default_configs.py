@@ -57,7 +57,7 @@ DEFAULT_SUBJECTS = [
     ('Music', False), ('Theater', False), ('Film Studies', False),
     ('Linguistics', False), ('Languages', False), ('Spanish', False),
     ('French', False), ('German', False), ('Chinese', False), ('Japanese', False),
-    
+
     # Social Sciences
     ('Psychology', False), ('Sociology', False), ('Anthropology', False),
     ('Political Science', False), ('Economics', False), ('Geography', False),
@@ -65,7 +65,7 @@ DEFAULT_SUBJECTS = [
     ('Social Work', False), ('Public Administration', False),
     ('International Relations', False), ('Urban Studies', False),
     ('Gender Studies', False), ('Ethnic Studies', False),
-    
+
     # Sciences (Technical)
     ('Biology', True), ('Chemistry', True), ('Physics', True),
     ('Mathematics', True), ('Statistics', True), ('Computer Science', True),
@@ -79,7 +79,7 @@ DEFAULT_SUBJECTS = [
     ('Biochemistry', True), ('Organic Chemistry', True),
     ('Inorganic Chemistry', True), ('Physical Chemistry', True),
     ('Quantum Physics', True),
-    
+
     # Health Sciences
     ('Nursing', False), ('Medicine', True), ('Public Health', False),
     ('Healthcare', False), ('Health Administration', False),
@@ -90,7 +90,7 @@ DEFAULT_SUBJECTS = [
     ('Veterinary Medicine', True), ('Dentistry', True),
     ('Optometry', True), ('Radiology', True),
     ('Medical Laboratory Science', True), ('Respiratory Therapy', False),
-    
+
     # Business
     ('Business', False), ('Management', False), ('Marketing', False),
     ('Finance', False), ('Accounting', False),
@@ -99,7 +99,7 @@ DEFAULT_SUBJECTS = [
     ('Project Management', False), ('Business Administration', False),
     ('International Business', False), ('Real Estate', False),
     ('Hospitality Management', False), ('Tourism', False),
-    
+
     # Education
     ('Education', False), ('Teaching', False),
     ('Curriculum Development', False), ('Educational Technology', False),
@@ -107,7 +107,7 @@ DEFAULT_SUBJECTS = [
     ('Elementary Education', False), ('Secondary Education', False),
     ('Higher Education', False), ('Educational Leadership', False),
     ('Educational Psychology', False),
-    
+
     # Technology (Technical)
     ('Information Systems', True), ('Cybersecurity', True),
     ('Data Science', True), ('Artificial Intelligence', True),
@@ -115,13 +115,13 @@ DEFAULT_SUBJECTS = [
     ('Web Development', True), ('Database Management', True),
     ('Network Administration', True), ('Cloud Computing', True),
     ('Mobile Development', True), ('Game Development', True),
-    
+
     # Communications
     ('Communications', False), ('Journalism', False),
     ('Public Relations', False), ('Media Studies', False),
     ('Advertising', False), ('Marketing Communications', False),
     ('Digital Media', False), ('Broadcasting', False),
-    
+
     # Other
     ('Environmental Studies', False), ('Sustainability', False),
     ('Agriculture', False), ('Architecture', False),
@@ -177,7 +177,7 @@ NURSING_SUBJECTS = [
     ('Healthcare', False), ('Health Administration', False),
     ('Health Policy', False), ('Health Promotion', False),
     ('Epidemiology', False), ('Health Education', False),
-    
+
     # Related Health Fields
     ('Medicine', True), ('Pharmacy', True), ('Physical Therapy', False),
     ('Occupational Therapy', False), ('Nutrition', False),
@@ -185,7 +185,7 @@ NURSING_SUBJECTS = [
     ('Exercise Science', False), ('Sports Medicine', False),
     ('Respiratory Therapy', False), ('Radiology', True),
     ('Medical Laboratory Science', True),
-    
+
     # Supporting Subjects
     ('Biology', True), ('Chemistry', True), ('Psychology', False),
     ('Sociology', False), ('Statistics', True),
@@ -230,26 +230,26 @@ TECHNICAL_SUBJECTS = [
     ('Data Science', True), ('Artificial Intelligence', True),
     ('Machine Learning', True), ('Data Analytics', True),
     ('Big Data', True), ('Blockchain', True), ('DevOps', True),
-    
+
     # Mathematics & Statistics
     ('Mathematics', True), ('Statistics', True), ('Applied Mathematics', True),
     ('Discrete Mathematics', True), ('Linear Algebra', True),
     ('Calculus', True), ('Probability', True), ('Numerical Analysis', True),
-    
+
     # Engineering
     ('Engineering', True), ('Mechanical Engineering', True),
     ('Electrical Engineering', True), ('Civil Engineering', True),
     ('Chemical Engineering', True), ('Biomedical Engineering', True),
     ('Computer Engineering', True), ('Aerospace Engineering', True),
     ('Industrial Engineering', True), ('Environmental Engineering', True),
-    
+
     # Technical Sciences
     ('Physics', True), ('Chemistry', True), ('Biology', True),
     ('Biochemistry', True), ('Organic Chemistry', True),
     ('Inorganic Chemistry', True), ('Physical Chemistry', True),
     ('Quantum Physics', True), ('Astrophysics', True),
     ('Neuroscience', True), ('Genetics', True),
-    
+
     # Technical Business
     ('Information Systems', True), ('Business Analytics', True),
     ('Operations Research', True), ('Supply Chain Management', False),
@@ -325,20 +325,20 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
     """
     Populate default configurations for a website.
     Uses get_or_create so it won't duplicate existing entries.
-    
+
     Args:
         website: The website to populate configurations for
         skip_existing: If True, skip entries that already exist (default: True)
         default_set: Which default set to use ('general', 'nursing', 'technical')
-    
+
     Returns:
         dict with counts of created items for each config type
     """
     if default_set not in DEFAULT_SETS:
         default_set = 'general'
-    
+
     config_set = DEFAULT_SETS[default_set]
-    
+
     counts = {
         'paper_types': 0,
         'formatting_styles': 0,
@@ -347,7 +347,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
         'types_of_work': 0,
         'english_types': 0,
     }
-    
+
     # Paper Types
     for paper_type_name in config_set['paper_types']:
         if skip_existing and PaperType.objects.filter(website=website, name=paper_type_name).exists():
@@ -359,7 +359,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
         )
         if created:
             counts['paper_types'] += 1
-    
+
     # Formatting Styles
     for style_name in config_set['formatting_styles']:
         if skip_existing and FormattingandCitationStyle.objects.filter(website=website, name=style_name).exists():
@@ -371,7 +371,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
         )
         if created:
             counts['formatting_styles'] += 1
-    
+
     # Academic Levels
     for level_name in config_set['academic_levels']:
         if skip_existing and AcademicLevel.objects.filter(website=website, name=level_name).exists():
@@ -383,7 +383,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
         )
         if created:
             counts['academic_levels'] += 1
-    
+
     # Subjects
     for subject_data in config_set['subjects']:
         if isinstance(subject_data, tuple):
@@ -391,7 +391,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
         else:
             subject_name = subject_data
             is_technical = False
-        
+
         if skip_existing and Subject.objects.filter(website=website, name=subject_name).exists():
             continue
         _, created = Subject.objects.get_or_create(
@@ -401,7 +401,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
         )
         if created:
             counts['subjects'] += 1
-    
+
     # Types of Work
     for work_type_name in config_set['types_of_work']:
         if skip_existing and TypeOfWork.objects.filter(website=website, name=work_type_name).exists():
@@ -413,7 +413,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
         )
         if created:
             counts['types_of_work'] += 1
-    
+
     # English Types
     for english_type_data in config_set['english_types']:
         if isinstance(english_type_data, tuple):
@@ -421,7 +421,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
         else:
             english_type_name = english_type_data
             code = ''
-        
+
         if skip_existing and EnglishType.objects.filter(website=website, name=english_type_name).exists():
             continue
         # Check for code conflicts across websites
@@ -430,7 +430,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
             if existing and existing.name != english_type_name:
                 # Code already exists for this website with different name, skip
                 continue
-        
+
         _, created = EnglishType.objects.get_or_create(
             name=english_type_name,
             website=website,
@@ -438,14 +438,14 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
         )
         if created:
             counts['english_types'] += 1
-    
+
     return counts
 
 
 def get_available_default_sets():
     """
     Get list of available default sets with their metadata.
-    
+
     Returns:
         list of dicts with 'id', 'name', 'description' for each default set
     """

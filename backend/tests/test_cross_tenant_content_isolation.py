@@ -165,7 +165,7 @@ class TestPublicSeoPageSlugIsolation:
 
         shared_slug = "nursing-essay-help"
         page_a = make_seo_page(site_a, shared_slug, title="Nursing Help — A")
-        page_b = make_seo_page(site_b, shared_slug, title="Nursing Help — B")  # noqa: F841
+        page_b = make_seo_page(site_b, shared_slug, title="Nursing Help — B") # noqa: F841
 
         # The queryset scoped to site_a must only find page_a
         qs_a = SeoPage.objects.filter(is_published=True, is_deleted=False, website=site_a)

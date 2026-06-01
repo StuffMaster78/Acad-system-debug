@@ -187,7 +187,7 @@ class EventAuditLogAdmin(admin.ModelAdmin):
     )
 
     ordering = ("-created_at",)
-    
+
     @admin.display(description="Event Timeline")
     def timeline_view(self, obj):
         timeline = EventTimelineService.get_event_timeline(

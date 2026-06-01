@@ -72,8 +72,8 @@ class TrackPageView(APIView):
     Body: {
         "content_type_id": 42,
         "object_id": 123,
-        "time_on_page": 45,  (optional, updated via beacon)
-        "scroll_depth": 72   (optional, updated via beacon)
+        "time_on_page": 45, (optional, updated via beacon)
+        "scroll_depth": 72 (optional, updated via beacon)
     }
     """
 

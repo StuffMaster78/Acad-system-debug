@@ -17,12 +17,12 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
     ViewSet for privacy controls and settings.
     """
     permission_classes = [IsAuthenticated]
-    
+
     @action(detail=False, methods=['get'], url_path='settings')
     def get_settings(self, request):
         """
         Get current privacy settings.
-        
+
         Response:
         {
             "profile_visibility": {
@@ -46,7 +46,7 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
         user = request.user
         # get_or_create_for_user returns only the settings object, not a tuple
         settings = PrivacySettings.get_or_create_for_user(user)
-        
+
         return Response({
             "profile_visibility": {
                 "to_writers": settings.profile_visibility_to_writers,
@@ -65,12 +65,12 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
             },
             "privacy_score": settings.calculate_privacy_score()
         })
-    
+
     @action(detail=False, methods=['post'], url_path='update-visibility')
     def update_visibility(self, request):
         """
         Update profile visibility settings.
-        
+
         Request body:
         {
             "to_writers": "limited",
@@ -81,16 +81,16 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
         user = request.user
         # get_or_create_for_user returns only the settings object, not a tuple
         settings = PrivacySettings.get_or_create_for_user(user)
-        
+
         if 'to_writers' in request.data:
             settings.profile_visibility_to_writers = request.data['to_writers']
         if 'to_admins' in request.data:
             settings.profile_visibility_to_admins = request.data['to_admins']
         if 'to_support' in request.data:
             settings.profile_visibility_to_support = request.data['to_support']
-        
+
         settings.save()
-        
+
         # Log privacy settings change
         from authentication.models.security_events import SecurityEvent
         website = get_current_website(request)
@@ -103,17 +103,17 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
                 ip_address=get_client_ip(request),
                 metadata={'visibility_changes': request.data}
             )
-        
+
         return Response({
             "message": "Privacy settings updated",
             "privacy_score": settings.calculate_privacy_score()
         })
-    
+
     @action(detail=False, methods=['post'], url_path='update-data-sharing')
     def update_data_sharing(self, request):
         """
         Update data sharing preferences.
-        
+
         Request body:
         {
             "analytics": true,
@@ -124,26 +124,26 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
         user = request.user
         # get_or_create_for_user returns only the settings object, not a tuple
         settings = PrivacySettings.get_or_create_for_user(user)
-        
+
         if 'analytics' in request.data:
             settings.allow_analytics = request.data['analytics']
         if 'marketing' in request.data:
             settings.allow_marketing = request.data['marketing']
         if 'third_party' in request.data:
             settings.allow_third_party_sharing = request.data['third_party']
-        
+
         settings.save()
-        
+
         return Response({
             "message": "Data sharing preferences updated",
             "privacy_score": settings.calculate_privacy_score()
         })
-    
+
     @action(detail=False, methods=['get'], url_path='access-log')
     def get_access_log(self, request):
         """
         Get data access log (who accessed user's data).
-        
+
         Query params:
         - limit: Number of entries to return (default: 50)
         - days: Number of days to look back (default: 30)
@@ -151,14 +151,14 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
         user = request.user
         limit = int(request.query_params.get('limit', 50))
         days = int(request.query_params.get('days', 30))
-        
+
         cutoff = timezone.now() - timezone.timedelta(days=days)
-        
+
         logs = DataAccessLog.objects.filter(
             user=user,
             accessed_at__gte=cutoff
         ).select_related('accessed_by')[:limit]
-        
+
         return Response({
             "count": len(logs),
             "logs": [
@@ -177,17 +177,17 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
                 for log in logs
             ]
         })
-    
+
     @action(detail=False, methods=['get'], url_path='export-data')
     def export_data(self, request):
         """
         Export all user data (GDPR compliance).
-        
+
         Response: Comprehensive JSON export of all user data.
         """
         user = request.user
         website = get_current_website(request)
-        
+
         # Collect all user data
         from users.serializers import UserSerializer
         from orders.serializers import OrderSerializer
@@ -211,7 +211,7 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
             )
         except Exception:
             pass
-        
+
         # Get privacy settings
         try:
             privacy_settings = PrivacySettings.objects.get(user=user)
@@ -229,17 +229,17 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
             }
         except PrivacySettings.DoesNotExist:
             pass
-        
+
         # Log data export
         if website:
             DataAccessLog.objects.create(
                 user=user,
-                accessed_by=user,  # User accessing their own data
+                accessed_by=user, # User accessing their own data
                 access_type='data_export',
                 ip_address=get_client_ip(request),
                 user_agent=request.headers.get('User-Agent', ''),
                 metadata={'export_type': 'full'}
             )
-        
+
         return Response(export_data)
 

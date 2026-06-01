@@ -9,24 +9,24 @@ THE SCORE
 A number between 0 and 100.
 Higher is better.
 Used by:
-    level_progression_service  — promotion/demotion decisions
-    performance_aggregator     — weekly ranking/percentile
-    reward_evaluation_service  — min_composite_score threshold
+    level_progression_service — promotion/demotion decisions
+    performance_aggregator — weekly ranking/percentile
+    reward_evaluation_service — min_composite_score threshold
 
 WEIGHTS (default — configurable per website in future)
 -------
-    avg_rating          40%   — client satisfaction (most important)
-    completion_rate     25%   — reliability
-    lateness_rate       15%   — time management (penalty — inverted)
-    revision_rate       10%   — quality on first submission (penalty)
-    dispute_rate         5%   — conflict rate (penalty)
-    cancellation_rate    5%   — commitment (penalty)
+    avg_rating 40% — client satisfaction (most important)
+    completion_rate 25% — reliability
+    lateness_rate 15% — time management (penalty — inverted)
+    revision_rate 10% — quality on first submission (penalty)
+    dispute_rate 5% — conflict rate (penalty)
+    cancellation_rate 5% — commitment (penalty)
                        ----
                        100%
 
 Penalty components: raw value is subtracted from maximum.
     e.g. lateness_rate=20% → penalty_score = 15 * (1 - 0.20) = 12.0
-    e.g. lateness_rate=0%  → penalty_score = 15 * (1 - 0.00) = 15.0
+    e.g. lateness_rate=0% → penalty_score = 15 * (1 - 0.00) = 15.0
 
 INPUTS
 ------
@@ -49,12 +49,12 @@ logger = logging.getLogger(__name__)
 
 # Default weights — must sum to Decimal("1.00")
 DEFAULT_WEIGHTS = {
-    "avg_rating":        Decimal("0.40"),
-    "completion_rate":   Decimal("0.25"),
-    "lateness_rate":     Decimal("0.15"),  # penalty
-    "revision_rate":     Decimal("0.10"),  # penalty
-    "dispute_rate":      Decimal("0.05"),  # penalty
-    "cancellation_rate": Decimal("0.05"),  # penalty
+    "avg_rating": Decimal("0.40"),
+    "completion_rate": Decimal("0.25"),
+    "lateness_rate": Decimal("0.15"), # penalty
+    "revision_rate": Decimal("0.10"), # penalty
+    "dispute_rate": Decimal("0.05"), # penalty
+    "cancellation_rate": Decimal("0.05"), # penalty
 }
 
 MAX_RATING = Decimal("5.00")
@@ -71,7 +71,7 @@ class CompositeScoreService:
         Args:
             snapshot: WriterPerformanceSnapshot instance or dict
                       with the same field names.
-            weights:  Optional weight overrides. Must sum to 1.00.
+            weights: Optional weight overrides. Must sum to 1.00.
                       Defaults to DEFAULT_WEIGHTS.
 
         Returns:
@@ -80,32 +80,32 @@ class CompositeScoreService:
         w = weights or DEFAULT_WEIGHTS
 
         # Extract values — handle both model instance and dict
-        avg_rating        = CompositeScoreService._get(snapshot, "average_rating", Decimal("0"))
-        completion_rate   = CompositeScoreService._get(snapshot, "completion_rate", Decimal("0"))
-        lateness_rate     = CompositeScoreService._get(snapshot, "lateness_rate", Decimal("0"))
-        revision_rate     = CompositeScoreService._get(snapshot, "revision_rate", Decimal("0"))
-        dispute_rate      = CompositeScoreService._get(snapshot, "dispute_rate", Decimal("0"))
+        avg_rating = CompositeScoreService._get(snapshot, "average_rating", Decimal("0"))
+        completion_rate = CompositeScoreService._get(snapshot, "completion_rate", Decimal("0"))
+        lateness_rate = CompositeScoreService._get(snapshot, "lateness_rate", Decimal("0"))
+        revision_rate = CompositeScoreService._get(snapshot, "revision_rate", Decimal("0"))
+        dispute_rate = CompositeScoreService._get(snapshot, "dispute_rate", Decimal("0"))
         cancellation_rate = CompositeScoreService._get(snapshot, "cancellation_rate", Decimal("0"))
 
         # Clamp all inputs to valid ranges
-        avg_rating        = CompositeScoreService._clamp(avg_rating, Decimal("0"), MAX_RATING)
-        completion_rate   = CompositeScoreService._clamp(completion_rate, Decimal("0"), Decimal("1"))
-        lateness_rate     = CompositeScoreService._clamp(lateness_rate, Decimal("0"), Decimal("1"))
-        revision_rate     = CompositeScoreService._clamp(revision_rate, Decimal("0"), Decimal("1"))
-        dispute_rate      = CompositeScoreService._clamp(dispute_rate, Decimal("0"), Decimal("1"))
+        avg_rating = CompositeScoreService._clamp(avg_rating, Decimal("0"), MAX_RATING)
+        completion_rate = CompositeScoreService._clamp(completion_rate, Decimal("0"), Decimal("1"))
+        lateness_rate = CompositeScoreService._clamp(lateness_rate, Decimal("0"), Decimal("1"))
+        revision_rate = CompositeScoreService._clamp(revision_rate, Decimal("0"), Decimal("1"))
+        dispute_rate = CompositeScoreService._clamp(dispute_rate, Decimal("0"), Decimal("1"))
         cancellation_rate = CompositeScoreService._clamp(cancellation_rate, Decimal("0"), Decimal("1"))
 
         # Normalise rating to 0–1 scale
         rating_norm = avg_rating / MAX_RATING
 
         # Compute weighted component scores (all 0–1)
-        rating_score      = rating_norm        * w["avg_rating"]
-        completion_score  = completion_rate    * w["completion_rate"]
+        rating_score = rating_norm * w["avg_rating"]
+        completion_score = completion_rate * w["completion_rate"]
         # Penalties: invert the rate (higher rate = lower score)
-        lateness_score    = (Decimal("1") - lateness_rate)     * w["lateness_rate"]
-        revision_score    = (Decimal("1") - revision_rate)     * w["revision_rate"]
-        dispute_score     = (Decimal("1") - dispute_rate)      * w["dispute_rate"]
-        cancel_score      = (Decimal("1") - cancellation_rate) * w["cancellation_rate"]
+        lateness_score = (Decimal("1") - lateness_rate) * w["lateness_rate"]
+        revision_score = (Decimal("1") - revision_rate) * w["revision_rate"]
+        dispute_score = (Decimal("1") - dispute_rate) * w["dispute_rate"]
+        cancel_score = (Decimal("1") - cancellation_rate) * w["cancellation_rate"]
 
         # Sum and scale to 0–100
         raw = (
@@ -161,7 +161,7 @@ class CompositeScoreService:
 
         Args:
             writer_score: This writer's composite score.
-            all_scores:   All composite scores for the same site/period.
+            all_scores: All composite scores for the same site/period.
 
         Returns:
             Decimal 0.00–100.00.

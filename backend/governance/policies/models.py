@@ -64,7 +64,7 @@ class PolicyDecisionLog(models.Model):
 
     tenant_id = models.BigIntegerField()
 
-    decision = models.CharField(max_length=50)  # allow/deny/approval
+    decision = models.CharField(max_length=50) # allow/deny/approval
 
     matched_policies = models.JSONField(default=list)
 

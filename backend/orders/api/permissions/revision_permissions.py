@@ -32,12 +32,12 @@ class CanRequestRevision(BaseRevisionTenantPermission):
     message = "You are not allowed to request revision for this order."
     required_permission = "orders.request_revision"
 
-    def has_object_permission(# type: ignore[override] 
+    def has_object_permission(# type: ignore[override]
         self,
         request: Request,
         view: APIView,
         obj: Any,
-    ):  
+    ):
         if not self._same_tenant(request, obj):
             return False
 

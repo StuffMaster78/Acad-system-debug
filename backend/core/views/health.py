@@ -2,9 +2,9 @@
 Public health check endpoints for high availability.
 
 Endpoints:
-    GET /health/        — deep check: DB + cache + celery + storage
-    GET /health/ready/  — readiness: DB + cache must pass (used by LB)
-    GET /health/live/   — liveness: process alive (used by container runtime)
+    GET /health/ — deep check: DB + cache + celery + storage
+    GET /health/ready/ — readiness: DB + cache must pass (used by LB)
+    GET /health/live/ — liveness: process alive (used by container runtime)
 """
 from __future__ import annotations
 
@@ -142,7 +142,7 @@ def _check_celery() -> dict:
 
         t0 = time.time()
         inspector = current_app.control.inspect(timeout=2.0)
-        ping_result = inspector.ping()  # dict of {worker: {ok: "pong"}} or None
+        ping_result = inspector.ping() # dict of {worker: {ok: "pong"}} or None
 
         if ping_result:
             worker_count = len(ping_result)

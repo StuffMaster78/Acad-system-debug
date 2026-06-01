@@ -14,7 +14,7 @@ def _get_website(request):
 
 
 class SettlementListView(generics.ListAPIView):
-    serializer_class   = SettlementPeriodSerializer
+    serializer_class = SettlementPeriodSerializer
     permission_classes = [IsFinanceStaff]
 
     def get_queryset( # pyright: ignore[reportIncompatibleMethodOverride]
@@ -29,7 +29,7 @@ class SettlementListView(generics.ListAPIView):
 
 
 class SettlementDetailView(generics.RetrieveAPIView):
-    serializer_class   = SettlementPeriodSerializer
+    serializer_class = SettlementPeriodSerializer
     permission_classes = [IsFinanceStaff]
 
     def get_queryset( # pyright: ignore[reportIncompatibleMethodOverride]

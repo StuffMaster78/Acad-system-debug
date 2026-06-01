@@ -34,16 +34,16 @@ def check_sla_breaches():
     """
     try:
         from .services.sla_service import SLAService
-        
+
         # Check and update all SLA statuses
         result = SLAService.check_and_update_all_slas()
-        
+
         # Send warning alerts for approaching deadlines
         warning_count = SLAService.send_warning_alerts()
-        
+
         # Send breach alerts
         breach_count = SLAService.send_breach_alerts()
-        
+
         return f"SLA check completed: {result['checked']} checked, {result['new_breaches']} new breaches, {result['new_warnings']} new warnings, {breach_count} breach alerts sent, {warning_count} warning alerts sent"
     except Exception as e:
         return f"Error checking SLA breaches: {str(e)}"
@@ -71,17 +71,17 @@ def update_support_workload_trackers():
     """
     try:
         from .utils import update_support_workload
-        
+
         support_profiles = SupportProfile.objects.filter(status='active')
         updated_count = 0
-        
+
         for profile in support_profiles:
             try:
                 update_support_workload(profile.user)
                 updated_count += 1
             except Exception:
                 continue
-        
+
         return f"Updated workload for {updated_count} support agents"
     except Exception as e:
         return f"Error updating workload trackers: {str(e)}"
@@ -110,10 +110,10 @@ def calculate_support_performance_metrics():
     """
     try:
         from .services.performance_service import SupportPerformanceService
-        
+
         support_profiles = SupportProfile.objects.filter(status='active')
         calculated_count = 0
-        
+
         for profile in support_profiles:
             try:
                 service = SupportPerformanceService(profile.user)
@@ -121,7 +121,7 @@ def calculate_support_performance_metrics():
                 calculated_count += 1
             except Exception:
                 continue
-        
+
         return f"Calculated performance metrics for {calculated_count} support agents"
     except Exception as e:
         return f"Error calculating performance metrics: {str(e)}"

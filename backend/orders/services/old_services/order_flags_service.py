@@ -8,7 +8,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from orders.order_enums import OrderFlags
-from orders.models.orders import Order  # Adjust path as needed
+from orders.models.orders import Order # Adjust path as needed
 from users.models import User
 
 
@@ -17,7 +17,7 @@ class OrderFlagsService:
     Service to determine and apply appropriate flags to an Order instance.
     """
 
-    HIGH_VALUE_THRESHOLD = 300  # USD
+    HIGH_VALUE_THRESHOLD = 300 # USD
     URGENT_THRESHOLD_HOURS = 24
 
     def __init__(self, order: Order):

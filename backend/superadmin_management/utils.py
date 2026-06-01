@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from websites.models.websites import Website
 # from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from superadmin_management.tasks import send_email_task  # Celery task for email retry
+from superadmin_management.tasks import send_email_task # Celery task for email retry
 import logging
 
 User = get_user_model()
@@ -18,7 +18,7 @@ class SuperadminNotifier:
     def notify_superadmins(title, message, category="general", website=None):
         """
         Sends notifications via WebSocket, email (with retry), and in-app alerts.
-        
+
         Args:
             title: Notification title
             message: Notification message
@@ -46,7 +46,7 @@ class SuperadminNotifier:
         for superadmin in superadmins:
             # Use superadmin's website if available, otherwise use the default
             notification_website = getattr(superadmin, 'website', None) or website
-            
+
             # In-App Notification - use get_or_create to avoid duplicates
             try:
                 Notification.objects.get_or_create(
@@ -66,28 +66,28 @@ class SuperadminNotifier:
 
             # # Collect emails for batch email sending
             # if superadmin.email:
-            #     recipient_emails.append(superadmin.email)
+            # recipient_emails.append(superadmin.email)
 
         # # Send Email via Celery Task (Retries on Failure)
         # if recipient_emails:
-        #     try:
-        #         send_email_task.delay(
-        #             subject=f"Superadmin Alert: {title}",
-        #             message=message,
-        #             recipient_list=recipient_emails
-        #         )
-        #     except (ConnectionRefusedError, OSError) as e:
-        #         # Celery/Redis not available - log but don't fail
-        #         logger.debug(f"Could not queue email task (Celery/Redis unavailable): {e}")
-        #     except Exception as e:
-        #         logger.warning(f"Failed to queue email task: {e}", exc_info=True)
+        # try:
+        # send_email_task.delay(
+        # subject=f"Superadmin Alert: {title}",
+        # message=message,
+        # recipient_list=recipient_emails
+        # )
+        # except (ConnectionRefusedError, OSError) as e:
+        # # Celery/Redis not available - log but don't fail
+        # logger.debug(f"Could not queue email task (Celery/Redis unavailable): {e}")
+        # except Exception as e:
+        # logger.warning(f"Failed to queue email task: {e}", exc_info=True)
 
         # # Send WebSocket Notification
         # try:
-        #     channel_layer = get_channel_layer()
-        #     async_to_sync(channel_layer.group_send)(
-        #         "superadmin_notifications",
-        #         {"type": "send_notification", "message": {"title": title, "message": message}}
-        #     )
+        # channel_layer = get_channel_layer()
+        # async_to_sync(channel_layer.group_send)(
+        # "superadmin_notifications",
+        # {"type": "send_notification", "message": {"title": title, "message": message}}
+        # )
         # except Exception as e:
-        #     logger.error(f"WebSocket notification failed: {e}")
+        # logger.error(f"WebSocket notification failed: {e}")

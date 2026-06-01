@@ -33,14 +33,14 @@ logger = logging.getLogger(__name__)
 
 # Thresholds (configurable per content type)
 AGE_THRESHOLDS = {
-    "BlogPostPage": timedelta(days=365),    # 12 months
-    "ServicePage": timedelta(days=180),      # 6 months
+    "BlogPostPage": timedelta(days=365), # 12 months
+    "ServicePage": timedelta(days=180), # 6 months
     "default": timedelta(days=365),
 }
 
-POSITION_DECLINE_THRESHOLD = 5.0   # positions lost
-CLICK_DECLINE_THRESHOLD = 0.30     # 30% drop
-ENGAGEMENT_DECLINE_THRESHOLD = 0.25  # 25% drop
+POSITION_DECLINE_THRESHOLD = 5.0 # positions lost
+CLICK_DECLINE_THRESHOLD = 0.30 # 30% drop
+ENGAGEMENT_DECLINE_THRESHOLD = 0.25 # 25% drop
 
 
 @shared_task
@@ -246,9 +246,9 @@ def _condition_recovered(alert, snapshot) -> bool:
         return False
 
     if alert.alert_type == "position_decline":
-        return snapshot.position_delta <= 2.0  # recovered to within 2 positions
+        return snapshot.position_delta <= 2.0 # recovered to within 2 positions
 
     if alert.alert_type == "click_decline":
-        return snapshot.clicks_delta_pct >= -10  # clicks recovered to within 10% of baseline
+        return snapshot.clicks_delta_pct >= -10 # clicks recovered to within 10% of baseline
 
     return False

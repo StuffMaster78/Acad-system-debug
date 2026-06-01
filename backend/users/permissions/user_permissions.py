@@ -13,7 +13,7 @@ from users.models.user import UserRole
 class IsProfileOwner(BasePermission):
     message = "You can only access your own profile resource."
 
-    def has_object_permission(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def has_object_permission( # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         request: Request,
         view: APIView,
@@ -39,7 +39,7 @@ class CanSubmitOwnProfileUpdateRequest(BasePermission):
         UserRole.WRITER,
     }
 
-    def has_permission(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def has_permission( # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         request: Request,
         view: APIView,
@@ -55,7 +55,7 @@ class CanSubmitOwnProfileUpdateRequest(BasePermission):
 class IsProfileUpdateOwner(BasePermission):
     message = "You can only act on your own profile update request."
 
-    def has_object_permission(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def has_object_permission( # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         request: Request,
         view: APIView,
@@ -82,7 +82,7 @@ class CanReviewProfileUpdateRequest(BasePermission):
         UserRole.SUPPORT,
     }
 
-    def has_permission(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def has_permission( # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         request: Request,
         view: APIView,
@@ -97,7 +97,7 @@ class CanReviewProfileUpdateRequest(BasePermission):
             )
         )
 
-    def has_object_permission(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def has_object_permission( # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         request: Request,
         view: APIView,
@@ -122,7 +122,7 @@ class CanReviewProfileUpdateRequest(BasePermission):
 class CanCancelOwnProfileUpdateRequest(BasePermission):
     message = "You cannot cancel this profile update request."
 
-    def has_object_permission(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def has_object_permission( # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         request: Request,
         view: APIView,

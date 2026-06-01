@@ -15,7 +15,7 @@ def generate_derivatives(self, managed_file_id: int):
     """
     Generate thumbnails, WebP, and PDF previews for a file.
 
-    Called after upload.  Skips if not an image or PDF.
+    Called after upload. Skips if not an image or PDF.
     """
     from files_management.models import ManagedFile
     from files_management.services.derivative_service import DerivativeService

@@ -32,8 +32,8 @@ class WriterNote(models.Model):
     Pinned notes appear at the top of the writer's note history.
     Sensitive notes may require elevated admin permissions to view.
 
-    Created by:  Admin via admin API
-    Visible to:  Staff and admins only — never to writers
+    Created by: Admin via admin API
+    Visible to: Staff and admins only — never to writers
     """
 
     website = models.ForeignKey(

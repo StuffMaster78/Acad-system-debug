@@ -34,15 +34,15 @@ class DeliveryResult:
     Immutable result returned by every backend's send() method.
 
     The pipeline reads this to decide:
-        success=True  → mark Delivery SENT, update Notification status
+        success=True → mark Delivery SENT, update Notification status
         success=False → record error, schedule retry or attempt fallback
 
     Fields:
-        success:        True if the provider accepted the message.
+        success: True if the provider accepted the message.
                         False on any failure — validation, network,
                         provider error, or missing config.
 
-        message:        Human-readable outcome description.
+        message: Human-readable outcome description.
                         On success: brief confirmation e.g. 'Email sent.'
                         On failure: what went wrong e.g. 'SMTP timeout.'
 
@@ -51,25 +51,25 @@ class DeliveryResult:
                         Telegram's message_id, Mailgun's id field.
                         Empty string if not applicable or unavailable.
 
-        error_code:     Short machine-readable error code.
+        error_code: Short machine-readable error code.
                         Used by the pipeline to decide retry strategy
                         and by support to diagnose delivery failures.
                         Empty string on success.
 
                         Standard codes:
-                            NO_EMAIL            recipient has no email address
-                            NO_BODY             template rendered no body
-                            NO_BACKEND          no backend for this channel
-                            NO_CONFIG           provider not configured
-                            NO_CHAT_ID          user has no Telegram chat ID
-                            NO_PHONE            user has no phone number
-                            NO_FCM_TOKEN        user has no FCM token
-                            BACKEND_CRASH       backend raised an exception
-                            SEND_ERROR          provider API or SMTP error
-                            INVALID_CHANNEL     channel type is wrong
-                            META_UPDATE_FAILED  unread count update failed
+                            NO_EMAIL recipient has no email address
+                            NO_BODY template rendered no body
+                            NO_BACKEND no backend for this channel
+                            NO_CONFIG provider not configured
+                            NO_CHAT_ID user has no Telegram chat ID
+                            NO_PHONE user has no phone number
+                            NO_FCM_TOKEN user has no FCM token
+                            BACKEND_CRASH backend raised an exception
+                            SEND_ERROR provider API or SMTP error
+                            INVALID_CHANNEL channel type is wrong
+                            META_UPDATE_FAILED unread count update failed
 
-        meta:           Optional dict for any extra provider data
+        meta: Optional dict for any extra provider data
                         worth recording — rate limit headers,
                         bounce codes, provider status codes etc.
                         Not used by the pipeline — for debugging only.
@@ -156,14 +156,14 @@ class BaseDeliveryBackend(ABC):
         - Never mutate self.delivery — it is read-only context
 
     Available on every instance via self:
-        self.delivery       the Delivery model instance
-        self.user           delivery.user (recipient)
-        self.website        delivery.website (tenant)
-        self.notification   delivery.notification
-        self.rendered       delivery.rendered (pre-rendered content dict)
-        self.payload        delivery.payload (original event payload)
-        self.channel        delivery.channel (string)
-        self.priority       delivery.priority
+        self.delivery the Delivery model instance
+        self.user delivery.user (recipient)
+        self.website delivery.website (tenant)
+        self.notification delivery.notification
+        self.rendered delivery.rendered (pre-rendered content dict)
+        self.payload delivery.payload (original event payload)
+        self.channel delivery.channel (string)
+        self.priority delivery.priority
 
     Usage:
         backend = EmailBackend(delivery)
@@ -220,9 +220,9 @@ class BaseDeliveryBackend(ABC):
         """
         Pre-rendered content dict from TemplateService.
 
-        Email keys:    subject, body_html, body_text
-        In-app keys:   title, message
-        All channels:  event_key, category, priority
+        Email keys: subject, body_html, body_text
+        In-app keys: title, message
+        All channels: event_key, category, priority
 
         Always returns a dict — never None.
         """

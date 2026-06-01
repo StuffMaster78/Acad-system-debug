@@ -11,7 +11,7 @@ class OrderPresetSerializer(serializers.ModelSerializer):
     default_english_type_name = serializers.CharField(source='default_english_type.name', read_only=True)
     preferred_writer_email = serializers.CharField(source='preferred_writer.email', read_only=True)
     default_extra_services_names = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = OrderPreset
         fields = [
@@ -42,18 +42,18 @@ class OrderPresetSerializer(serializers.ModelSerializer):
             'id', 'client', 'website', 'usage_count', 'last_used_at',
             'created_at', 'updated_at'
         ]
-    
+
     def get_default_extra_services_names(self, obj):
         """Get names of default extra services."""
         return [service.name for service in obj.default_extra_services.all()]
-    
+
     def create(self, validated_data):
         """Create preset for the current user."""
         request = self.context.get('request')
         if request and request.user:
             validated_data['client'] = request.user
             validated_data['website'] = request.user.website
-            
+
             # If this is set as default, unset other defaults
             if validated_data.get('is_default', False):
                 OrderPreset.objects.filter(
@@ -61,9 +61,9 @@ class OrderPresetSerializer(serializers.ModelSerializer):
                     website=request.user.website,
                     is_default=True
                 ).update(is_default=False)
-        
+
         return super().create(validated_data)
-    
+
     def update(self, instance, validated_data):
         """Update preset."""
         # If setting as default, unset other defaults
@@ -73,7 +73,7 @@ class OrderPresetSerializer(serializers.ModelSerializer):
                 website=instance.website,
                 is_default=True
             ).exclude(id=instance.id).update(is_default=False)
-        
+
         return super().update(instance, validated_data)
 
 

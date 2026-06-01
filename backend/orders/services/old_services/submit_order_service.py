@@ -32,7 +32,7 @@ class SubmitOrderService:
             raise ValueError("Order must be in progress to be submitted.")
 
         from django.utils import timezone
-        order.submitted_at = timezone.now()  # Track submission time for fine calculation
+        order.submitted_at = timezone.now() # Track submission time for fine calculation
         order.save(update_fields=["submitted_at"])
 
         # Use unified transition helper to move to submitted
@@ -55,5 +55,5 @@ class SubmitOrderService:
 
         # Auto-issue fine if late
         auto_issue_late_fine(order)
-        
+
         return order

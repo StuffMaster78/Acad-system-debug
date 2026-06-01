@@ -10,7 +10,7 @@ class ReviewOrderAction(BaseOrderAction):
 
         AuditLogService.log_auto(
             actor=self.user,
-            action="REVIEW",  # Add to ACTION_CHOICES if needed
+            action="REVIEW", # Add to ACTION_CHOICES if needed
             target="orders.Order",
             target_id=self.order_id,
             metadata={"message": "Order reviewed."}

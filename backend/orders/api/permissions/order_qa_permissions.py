@@ -24,7 +24,7 @@ class CanSubmitOrderForQA(BasePlatformPermission):
         request: Request,
         view: APIView,
         obj: Any,
-    ) -> bool: 
+    ) -> bool:
         user = getattr(request, "user", None)
         website = getattr(request, "website", None)
 

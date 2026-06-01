@@ -22,7 +22,7 @@ if _legacy_path.exists():
             _legacy_module.__name__ = 'users.serializers_legacy'
             sys.modules["users.serializers_legacy"] = _legacy_module
             spec.loader.exec_module(_legacy_module)
-            
+
             # Import all serializers from the legacy file
             SimpleUserSerializer = getattr(_legacy_module, 'SimpleUserSerializer', None)
             UserSerializer = getattr(_legacy_module, 'UserSerializer', None)

@@ -18,14 +18,14 @@ class DiscountStatusService:
     }
 
     STATUS_EMOJI_MAP = {
-        'draft': '📝',
-        'active': '🔥',
-        'expired': '💀',
+        'draft': '',
+        'active': '',
+        'expired': '',
         'paused': '⏸️',
-        'scheduled': '📅',
-        'disabled': '🚫',
-        'archived': '📦',
-        'deleted': '🗑️',
+        'scheduled': '',
+        'disabled': '',
+        'archived': '',
+        'deleted': '️',
     }
 
     STATUS_LABEL_MAP = {
@@ -44,7 +44,7 @@ class DiscountStatusService:
 
     @classmethod
     def get_emoji(cls, status):
-        return cls.STATUS_EMOJI_MAP.get(status, '❓')
+        return cls.STATUS_EMOJI_MAP.get(status, '')
 
     @classmethod
     def get_label(cls, status):

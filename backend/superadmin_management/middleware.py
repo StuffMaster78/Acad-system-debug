@@ -16,6 +16,6 @@ class BlacklistMiddleware:
 
             if user_blacklisted or ip_blacklisted:
                 logout(request)
-                return redirect("blacklist_notice")  # Redirect to a "You're Blacklisted" page.
+                return redirect("blacklist_notice") # Redirect to a "You're Blacklisted" page.
 
         return self.get_response(request)

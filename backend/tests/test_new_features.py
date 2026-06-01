@@ -67,13 +67,13 @@ def writer_user(db, test_website):
 
 class TestLoginAlerts:
     """Test login alert preferences endpoints."""
-    
+
     def test_get_login_alert_preferences(self, api_client, client_user):
         """Test getting login alert preferences."""
         api_client.force_authenticate(user=client_user)
         response = api_client.get('/api/v1/users/login-alerts/')
         assert response.status_code in [status.HTTP_200_OK, status.HTTP_404_NOT_FOUND]
-    
+
     def test_create_login_alert_preferences(self, api_client, client_user):
         """Test creating login alert preferences."""
         api_client.force_authenticate(user=client_user)
@@ -88,13 +88,13 @@ class TestLoginAlerts:
 
 class TestOrderDrafts:
     """Test order drafts endpoints."""
-    
+
     def test_list_order_drafts(self, api_client, client_user, test_website):
         """Test listing order drafts."""
         api_client.force_authenticate(user=client_user)
         response = api_client.get('/api/v1/orders/drafts/')
         assert response.status_code == status.HTTP_200_OK
-    
+
     def test_create_order_draft(self, api_client, client_user, test_website):
         """Test creating an order draft."""
         api_client.force_authenticate(user=client_user)
@@ -110,7 +110,7 @@ class TestOrderDrafts:
 
 class TestOrderPresets:
     """Test order presets endpoints."""
-    
+
     def test_list_order_presets(self, api_client, client_user):
         """Test listing order presets."""
         api_client.force_authenticate(user=client_user)
@@ -120,13 +120,13 @@ class TestOrderPresets:
 
 class TestAnalytics:
     """Test analytics endpoints."""
-    
+
     def test_client_analytics_current_period(self, api_client, client_user):
         """Test getting current period analytics for client."""
         api_client.force_authenticate(user=client_user)
         response = api_client.get('/api/v1/analytics/client/current_period/')
         assert response.status_code in [status.HTTP_200_OK, status.HTTP_404_NOT_FOUND]
-    
+
     def test_writer_analytics_current_period(self, api_client, writer_user):
         """Test getting current period analytics for writer."""
         api_client.force_authenticate(user=writer_user)
@@ -136,13 +136,13 @@ class TestAnalytics:
 
 class TestWriterCapacity:
     """Test writer capacity endpoints."""
-    
+
     def test_get_writer_capacity(self, api_client, writer_user):
         """Test getting writer capacity settings."""
         api_client.force_authenticate(user=writer_user)
         response = api_client.get('/api/v1/writer-management/capacity/')
         assert response.status_code == status.HTTP_200_OK
-    
+
     def test_create_writer_capacity(self, api_client, writer_user, test_website):
         """Test creating writer capacity settings."""
         api_client.force_authenticate(user=writer_user)
@@ -157,7 +157,7 @@ class TestWriterCapacity:
 
 class TestTenantBranding:
     """Test tenant branding endpoints."""
-    
+
     def test_get_tenant_branding(self, api_client, admin_user):
         """Test getting tenant branding."""
         api_client.force_authenticate(user=admin_user)
@@ -167,7 +167,7 @@ class TestTenantBranding:
 
 class TestDisputes:
     """Test dispute endpoints."""
-    
+
     def test_list_disputes(self, api_client, client_user):
         """Test listing disputes."""
         api_client.force_authenticate(user=client_user)

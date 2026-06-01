@@ -18,6 +18,6 @@ class OrderCommunicationsConfig(AppConfig):
             )
 
             register_communication_adapters()
-            import communications.signals  # noqa: F401
+            import communications.signals # noqa: F401
         except Exception:
             pass

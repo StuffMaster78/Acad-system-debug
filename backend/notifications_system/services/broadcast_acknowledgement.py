@@ -21,7 +21,7 @@ from notifications_system.models.broadcast_notification import (
 logger = logging.getLogger(__name__)
 
 
-def _is_visible_to_user(                    # ← module-level, not inside class
+def _is_visible_to_user( # ← module-level, not inside class
     broadcast: BroadcastNotification,
     user,
     user_role: Optional[str],
@@ -31,16 +31,16 @@ def _is_visible_to_user(                    # ← module-level, not inside class
     Determine if a broadcast should be visible to this user.
 
     Visibility rules (any one match = visible):
-        1. show_to_all=True          → visible to everyone
-        2. target_roles contains     → visible to that role
+        1. show_to_all=True → visible to everyone
+        2. target_roles contains → visible to that role
            the user's role
-        3. BroadcastOverride exists  → explicit per-user override
+        3. BroadcastOverride exists → explicit per-user override
            for this user with is_active=True
 
     Args:
-        broadcast:              BroadcastNotification instance
-        user:                   User instance
-        user_role:              User's role string, may be None
+        broadcast: BroadcastNotification instance
+        user: User instance
+        user_role: User's role string, may be None
         override_broadcast_ids: Pre-fetched set of broadcast IDs
                                 the user has an active override for.
                                 Pass this to avoid N+1 queries when
@@ -101,9 +101,9 @@ class BroadcastAcknowledgementService:
         Idempotent — calling twice returns the existing row.
 
         Args:
-            user:        The acknowledging user
-            broadcast:   The broadcast being acknowledged
-            website:     Tenant context
+            user: The acknowledging user
+            broadcast: The broadcast being acknowledged
+            website: Tenant context
             via_channel: Channel through which the user saw the broadcast
 
         Returns:
@@ -243,7 +243,7 @@ class BroadcastAcknowledgementService:
                so users work through them in order
 
         Args:
-            user:    Authenticated user instance
+            user: Authenticated user instance
             website: Website instance for tenant scoping
 
         Returns:

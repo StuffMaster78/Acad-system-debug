@@ -426,4 +426,4 @@ class OrderScopeUnitType(models.TextChoices):
     SECTION = "section", "Section"
     DEADLINE = "deadline", "Deadline"
     OTHER = "other", "Other"
-    
+

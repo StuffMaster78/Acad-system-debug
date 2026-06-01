@@ -154,7 +154,7 @@ def _compute_for_site(site) -> dict:
 
         position_current = gsc_30d["avg_position"] or 0
         position_previous = gsc_prev["avg_position"] or 0
-        position_delta = position_current - position_previous  # positive = worsened
+        position_delta = position_current - position_previous # positive = worsened
 
         # --- Diagnosis ---
         diagnosis = _diagnose(

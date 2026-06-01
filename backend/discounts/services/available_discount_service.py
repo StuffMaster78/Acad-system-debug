@@ -283,7 +283,7 @@ class AvailableDiscountService:
         """
         Return a human-friendly eligibility explanation.
         """
-        
+
         if discount.origin == DiscountOrigin.SPEND_TIER:
             tier = getattr(discount, "spend_tier", None)
 

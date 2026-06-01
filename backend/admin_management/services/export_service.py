@@ -19,38 +19,38 @@ except ImportError:
 
 class ExportService:
     """Service for exporting data to various formats."""
-    
+
     @staticmethod
     def export_to_csv(data: List[Dict[str, Any]], filename: str = 'export.csv') -> tuple:
         """
         Export data to CSV format.
-        
+
         Args:
             data: List of dictionaries containing the data to export
             filename: Name for the exported file
-            
+
         Returns:
             Tuple of (HttpResponse, filename)
         """
         from django.http import HttpResponse
-        
+
         if not data:
             response = HttpResponse(content_type='text/csv')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response, filename
-        
+
         # Get all unique keys from all dictionaries
         fieldnames = set()
         for row in data:
             fieldnames.update(row.keys())
         fieldnames = sorted(list(fieldnames))
-        
+
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
+
         writer = csv.DictWriter(response, fieldnames=fieldnames)
         writer.writeheader()
-        
+
         for row in data:
             # Convert values to strings, handling None and special types
             cleaned_row = {}
@@ -66,27 +66,27 @@ class ExportService:
                 else:
                     cleaned_row[key] = value
             writer.writerow(cleaned_row)
-        
+
         return response, filename
-    
+
     @staticmethod
     def export_to_excel(data: List[Dict[str, Any]], filename: str = 'export.xlsx', sheet_name: str = 'Data') -> tuple:
         """
         Export data to Excel format.
-        
+
         Args:
             data: List of dictionaries containing the data to export
             filename: Name for the exported file
             sheet_name: Name for the Excel sheet
-            
+
         Returns:
             Tuple of (HttpResponse, filename)
         """
         if not OPENPYXL_AVAILABLE:
             raise ImportError("openpyxl is required for Excel export. Install it with: pip install openpyxl")
-        
+
         from django.http import HttpResponse
-        
+
         if not data:
             wb = Workbook()
             ws = wb.active
@@ -97,34 +97,34 @@ class ExportService:
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             wb.save(response)
             return response, filename
-        
+
         # Get all unique keys from all dictionaries
         fieldnames = set()
         for row in data:
             fieldnames.update(row.keys())
         fieldnames = sorted(list(fieldnames))
-        
+
         wb = Workbook()
         ws = wb.active
         ws.title = sheet_name
-        
+
         # Header row styling
         header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
         header_font = Font(bold=True, color='FFFFFF')
         header_alignment = Alignment(horizontal='center', vertical='center')
-        
+
         # Write headers
         for col_num, fieldname in enumerate(fieldnames, 1):
             cell = ws.cell(row=1, column=col_num, value=fieldname)
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = header_alignment
-        
+
         # Write data rows
         for row_num, row_data in enumerate(data, 2):
             for col_num, fieldname in enumerate(fieldnames, 1):
                 value = row_data.get(fieldname, '')
-                
+
                 # Convert special types
                 if isinstance(value, (datetime,)):
                     value = value.strftime('%Y-%m-%d %H:%M:%S')
@@ -134,9 +134,9 @@ class ExportService:
                     value = str(value)
                 elif value is None:
                     value = ''
-                
+
                 ws.cell(row=row_num, column=col_num, value=value)
-        
+
         # Auto-adjust column widths
         for col_num, fieldname in enumerate(fieldnames, 1):
             column_letter = get_column_letter(col_num)
@@ -146,15 +146,15 @@ class ExportService:
             )
             adjusted_width = min(max_length + 2, 50)
             ws.column_dimensions[column_letter].width = adjusted_width
-        
+
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         wb.save(response)
-        
+
         return response, filename
-    
+
     @staticmethod
     def prepare_orders_export(orders) -> List[Dict[str, Any]]:
         """Prepare order data for export."""
@@ -183,7 +183,7 @@ class ExportService:
                 'Website': order.website.name if order.website else '',
             })
         return export_data
-    
+
     @staticmethod
     def prepare_payments_export(payments) -> List[Dict[str, Any]]:
         """Prepare payment data for export."""
@@ -207,7 +207,7 @@ class ExportService:
                 'Website': payment.website.name if payment.website else '',
             })
         return export_data
-    
+
     @staticmethod
     def prepare_users_export(users) -> List[Dict[str, Any]]:
         """Prepare user data for export."""
@@ -230,12 +230,12 @@ class ExportService:
                 'Pen Name': getattr(user.writer_profile, 'pen_name', '') if hasattr(user, 'writer_profile') and user.writer_profile else '',
             })
         return export_data
-    
+
     @staticmethod
     def prepare_financial_report_export(financial_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Prepare financial overview data for export."""
         export_data = []
-        
+
         # Summary section
         export_data.append({
             'Category': 'Summary',
@@ -261,7 +261,7 @@ class ExportService:
             'Amount': financial_data.get('net_profit', 0),
             'Date': datetime.now().strftime('%Y-%m-%d')
         })
-        
+
         # Revenue by source
         revenue_by_source = financial_data.get('revenue_by_source', {})
         for source, amount in revenue_by_source.items():
@@ -271,6 +271,6 @@ class ExportService:
                 'Amount': amount,
                 'Date': datetime.now().strftime('%Y-%m-%d')
             })
-        
+
         return export_data
 

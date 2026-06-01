@@ -3,7 +3,7 @@ Factory classes for generating test data using factory_boy.
 
 Usage:
     from tests.factories import UserFactory, OrderFactory
-    
+
     user = UserFactory(role='client')
     order = OrderFactory(client=user)
 """
@@ -16,7 +16,7 @@ from faker import Faker
 
 from websites.models.websites import Website
 from orders.models.orders import Order
-from wallets.models import Wallet as ClientWallet  # canonical replacement
+from wallets.models import Wallet as ClientWallet # canonical replacement
 from writer_management.models import WriterProfile
 
 User = settings.AUTH_USER_MODEL
@@ -25,11 +25,11 @@ fake = Faker()
 
 class WebsiteFactory(factory.django.DjangoModelFactory):
     """Factory for creating Website instances."""
-    
+
     class Meta:
         model = Website
         django_get_or_create = ('domain',)
-    
+
     name = factory.Sequence(lambda n: f"Test Website {n}")
     domain = factory.Sequence(lambda n: f"test{n}.local")
     slug = factory.Sequence(lambda n: f"test-{n}")
@@ -38,11 +38,11 @@ class WebsiteFactory(factory.django.DjangoModelFactory):
 
 class UserFactory(factory.django.DjangoModelFactory):
     """Factory for creating User instances."""
-    
+
     class Meta:
         model = User
         django_get_or_create = ('email',)
-    
+
     username = factory.Sequence(lambda n: f"user{n}")
     email = factory.LazyAttribute(lambda obj: f"{obj.username}@test.com")
     password = factory.PostGenerationMethodCall('set_password', 'testpass123')
@@ -96,11 +96,11 @@ class SuperadminUserFactory(UserFactory):
 
 class WriterProfileFactory(factory.django.DjangoModelFactory):
     """Factory for creating WriterProfile instances."""
-    
+
     class Meta:
         model = WriterProfile
         django_get_or_create = ('user',)
-    
+
     user = factory.SubFactory(WriterUserFactory)
     registration_id = factory.Sequence(lambda n: f"W{n:05d}")
     email = factory.LazyAttribute(lambda obj: obj.user.email)
@@ -124,10 +124,10 @@ class ClientWalletFactory(factory.django.DjangoModelFactory):
 
 class OrderFactory(factory.django.DjangoModelFactory):
     """Factory for creating Order instances."""
-    
+
     class Meta:
         model = Order
-    
+
     title = factory.Faker('sentence', nb_words=4)
     description = factory.Faker('text', max_nb_chars=500)
     deadline = factory.LazyFunction(lambda: timezone.now() + timedelta(days=7))

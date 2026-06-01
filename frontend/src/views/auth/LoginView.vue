@@ -99,7 +99,7 @@ async function preview(role: UserRole) {
               class="flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800"
               role="alert"
             >
-              <span class="mt-0.5 h-4 w-4 shrink-0 text-rose-500" aria-hidden="true">✕</span>
+              <span class="mt-0.5 h-4 w-4 shrink-0 text-rose-500" aria-hidden="true"></span>
               {{ error }}
             </div>
           </Transition>

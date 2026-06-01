@@ -22,16 +22,16 @@ const isDirty = computed(() => props.modelValue !== props.savedValue);
 
 const scopeColors: Record<string, string> = {
   superadmin: "bg-rose-50 text-rose-700 border-rose-200",
-  admin:      "bg-amber-50 text-amber-700 border-amber-200",
-  editor:     "bg-sky-50 text-sky-700 border-sky-200",
-  support:    "bg-slate-100 text-graphite border-slate-200",
+  admin: "bg-amber-50 text-amber-700 border-amber-200",
+  editor: "bg-sky-50 text-sky-700 border-sky-200",
+  support: "bg-slate-100 text-graphite border-slate-200",
 };
 
 const scopeLabel: Record<string, string> = {
   superadmin: "Superadmin",
-  admin:      "Admin",
-  editor:     "Editor",
-  support:    "Support",
+  admin: "Admin",
+  editor: "Editor",
+  support: "Support",
 };
 
 function relativeTime(iso: string | null) {

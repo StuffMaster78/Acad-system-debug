@@ -36,4 +36,4 @@ class BaseOrderAction(ABC):
             Any: Result of the action execution.
         """
         raise NotImplementedError("You must implement the execute() method.")
-    
+

@@ -7,7 +7,7 @@ from django.core.mail import send_mail
 from twilio.rest import Client
 import redis
 from datetime import timedelta
-#  Fancy 
+# Fancy
 import qrcode
 import requests
 from io import BytesIO
@@ -45,9 +45,9 @@ def get_client_ip(requests):
     """
     x_forwarded_for = requests.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]  # Get the first IP (real IP)
+        ip = x_forwarded_for.split(',')[0] # Get the first IP (real IP)
     else:
-        ip = requests.META.get('REMOTE_ADDR')  # Fallback to remote address
+        ip = requests.META.get('REMOTE_ADDR') # Fallback to remote address
     return ip
 
 
@@ -60,7 +60,7 @@ def send_deletion_confirmation_email(user):
 
     subject = "Confirm Your Account Deletion Request"
     confirmation_link = f"https://{user.website.domain}/confirm-deletion/{user.id}"
-    
+
     message = f"""
     Hello {user.username},
 
@@ -106,10 +106,10 @@ def send_otp_sms(user, otp):
     """Sends OTP via SMS using Twilio."""
     if not user.phone_number:
         return False
-    
+
     client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
     message = f"Your OTP for login is: {otp}. It will expire in 10 minutes."
-    
+
     client.messages.create(
         body=message,
         from_=settings.TWILIO_PHONE_NUMBER,
@@ -144,7 +144,7 @@ def generate_totp_qr_code(user):
 def send_unlock_email(user):
     """Send unlock instructions to the user's email."""
     unlock_link = f"https://{user.website.domain}/unlock/{user.id}"
-    
+
     send_mail(
         subject="Unlock Your Account",
         message=f"Your account is locked due to multiple failed login attempts.\nClick the link below to unlock it:\n\n{unlock_link}",
@@ -159,7 +159,7 @@ def send_unlock_email(user):
 # Initialize Redis connection
 redis_client = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=0, decode_responses=True)
 
-TOKEN_EXPIRY_SECONDS = 60 * 60 * 24  # 1 day
+TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 # 1 day
 
 def store_active_token(user_id, token):
     """Store an active token in Redis with expiration."""
@@ -216,7 +216,7 @@ def send_mfa_recovery_email(user):
     recovery_link = f"https://{user.website.domain}/mfa-recover/{user.mfa_recovery_token}"
     subject = "Multi-Factor Authentication Recovery"
     message = f"Hello {user.username},\n\nClick the link below to reset your MFA setup:\n\n{recovery_link}\n\nThis link expires in 15 minutes."
-    
+
     send_mfa_email(user, subject, message)
 
 
@@ -260,7 +260,7 @@ def send_security_alert(user, request):
 def get_device_info(request):
     ua_string = request.META.get('HTTP_USER_AGENT', '')
     user_agent = parse(ua_string)
-    
+
     return {
         "browser": user_agent.browser.family,
         "os": user_agent.os.family,

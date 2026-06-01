@@ -165,7 +165,7 @@ class ActivityEventFilter(django_filters.FilterSet):
             feed_states__user=user,
             feed_states__is_dismissed=value,
         )
-    
+
 
     def _get_request_user(self):
         """

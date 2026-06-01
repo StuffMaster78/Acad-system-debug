@@ -14,7 +14,7 @@ class CanViewActivityEvent(BasePermission):
             self,
             request,
             view,
-        ):  
+        ):
         """
         Allow authenticated users only.
         """
@@ -28,7 +28,7 @@ class CanViewActivityEvent(BasePermission):
             request,
             view,
             obj,
-        ):  
+        ):
         """
         Check object visibility for the current user.
         """

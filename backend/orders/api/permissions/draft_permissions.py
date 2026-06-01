@@ -20,7 +20,7 @@ class CanSubmitDraft(BasePlatformPermission):
     required_permission = "orders.submit_draft"
     require_tenant = True
 
-    def has_permission(self, request: Request, view: APIView):  # type: ignore[override]
+    def has_permission(self, request: Request, view: APIView): # type: ignore[override]
         return bool(request.user and request.user.is_authenticated)
 
     def has_object_permission( # type: ignore[override]
@@ -28,7 +28,7 @@ class CanSubmitDraft(BasePlatformPermission):
         request: Request,
         view: APIView,
         obj: Any,
-    ):  
+    ):
         website = _request_website(request=request)
 
         # Tenant safety
@@ -68,7 +68,7 @@ class CanReviewDraft(BasePlatformPermission):
     required_permission = "orders.review_draft"
     require_tenant = True
 
-    def has_permission(self, request: Request, view: APIView):  # type: ignore[override]
+    def has_permission(self, request: Request, view: APIView): # type: ignore[override]
         user = request.user
         if not user or not user.is_authenticated:
             return False

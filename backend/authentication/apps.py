@@ -7,4 +7,4 @@ class AuthenticationConfig(AppConfig):
 
 
     def ready(self):
-        import authentication.signals  # noqa:F401
+        import authentication.signals # noqa:F401

@@ -38,7 +38,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             return None
 
     @action(detail=False, methods=['get'], url_path='stats')
-    @cache_view_result(timeout=300, key_prefix='client_dashboard')  # 5 minute cache
+    @cache_view_result(timeout=300, key_prefix='client_dashboard') # 5 minute cache
     def get_stats(self, request):
         """Get comprehensive client dashboard statistics - with caching."""
         profile = self.get_client_profile(request)
@@ -47,19 +47,19 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Client profile not found."},
                 status=404
             )
-        
+
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
-        
+
         # All-time orders (counts should reflect current portfolio, not only recent)
         all_orders = Order.objects.filter(client=request.user)
         recent_orders = all_orders.filter(created_at__gte=date_from)
-        
+
         # Order statistics - all-time status breakdown
         orders_by_status = all_orders.values('status').annotate(count=Count('id'))
         status_breakdown = {item['status']: item['count'] for item in orders_by_status}
         total_orders = all_orders.count()
-        
+
         # All-time payment stats
         all_time_payments = PaymentIntent.objects.filter(
             client=request.user,
@@ -71,9 +71,9 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         )
         total_spend = payment_stats['total_spend'] or Decimal('0.00')
         avg_order_value = payment_stats['avg_order_value'] or Decimal('0.00')
-        
+
         paid_orders_count = all_orders.filter(is_paid=True).count()
-        
+
         # All-time statistics - combined queries
         all_time_orders_qs = Order.objects.filter(client=request.user)
         all_time_payments_qs = PaymentIntent.objects.filter(
@@ -88,7 +88,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         )
         all_time_orders = all_time_stats['total_orders'] or 0
         all_time_spend = all_time_payment_stats['total_spend'] or Decimal('0.00')
-        
+
         # This month statistics - combined queries
         month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         month_orders_qs = Order.objects.filter(
@@ -108,7 +108,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         )
         month_orders = month_stats['total_orders'] or 0
         month_spend = month_payment_stats['total_spend'] or Decimal('0.00')
-        
+
         # This year statistics - combined queries
         year_start = timezone.now().replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
         year_orders_qs = Order.objects.filter(
@@ -128,7 +128,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         )
         year_orders = year_stats['total_orders'] or 0
         year_spend = year_payment_stats['total_spend'] or Decimal('0.00')
-        
+
         return Response({
             'total_orders': total_orders,
             'orders_by_status': status_breakdown,
@@ -152,9 +152,9 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'spend': float(year_spend),
             },
         })
-    
+
     @action(detail=False, methods=['get'], url_path='loyalty')
-    @cache_view_result(timeout=300, key_prefix='client_dashboard')  # 5 minute cache
+    @cache_view_result(timeout=300, key_prefix='client_dashboard') # 5 minute cache
     def get_loyalty(self, request):
         """Get loyalty points summary and tier information - with caching."""
         profile = self.get_client_profile(request)
@@ -163,11 +163,11 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Client profile not found."},
                 status=404
             )
-        
+
         # Get current tier
         current_tier = profile.tier
         tier_name = current_tier.name if current_tier else 'None'
-        
+
         # Get next tier
         next_tier = None
         points_to_next = 0
@@ -177,15 +177,15 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             ).order_by('points_required').first()
             if next_tier:
                 points_to_next = next_tier.points_required - profile.loyalty_points
-        
+
         # Get recent transactions
         recent_transactions = LoyaltyTransaction.objects.filter(
             client=profile
         ).order_by('-timestamp')[:10]
-        
+
         # Get badges
         badges = ClientBadge.objects.filter(client=profile).order_by('-awarded_at')
-        
+
         # Get points earned this month
         month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         month_transactions = LoyaltyTransaction.objects.filter(
@@ -196,7 +196,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         points_earned_this_month = month_transactions.aggregate(
             Sum('points')
         )['points__sum'] or 0
-        
+
         return Response({
             'loyalty_points': profile.loyalty_points,
             'current_tier': {
@@ -228,9 +228,9 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 for b in badges
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='analytics')
-    @cache_view_result(timeout=300, key_prefix='client_dashboard')  # 5 minute cache
+    @cache_view_result(timeout=300, key_prefix='client_dashboard') # 5 minute cache
     def get_analytics(self, request):
         """Get order and spending analytics - with caching."""
         profile = self.get_client_profile(request)
@@ -239,10 +239,10 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Client profile not found."},
                 status=404
             )
-        
+
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
-        
+
         # Order trends (daily)
         orders_trend = Order.objects.filter(
             client=request.user,
@@ -253,7 +253,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             count=Count('id'),
             total_spend=Sum('payments__amount', filter=Q(payments__status='completed'))
         ).order_by('date')
-        
+
         # Spending trends (daily)
         spending_trend = PaymentIntent.objects.filter(
             client=request.user,
@@ -266,7 +266,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             total=Sum('amount'),
             count=Count('id'),
         ).order_by('date')
-        
+
         # Service type breakdown (using type_of_work)
         service_breakdown = Order.objects.filter(
             client=request.user,
@@ -275,14 +275,14 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             count=Count('id'),
             total_spend=Sum('payments__amount', filter=Q(payments__status='completed'))
         ).order_by('-count')
-        
+
         # Average completion time (if orders have completion dates)
         completed_orders = Order.objects.filter(
             client=request.user,
             status='completed',
             created_at__gte=date_from
         )
-        
+
         # Calculate average days to completion
         avg_completion_days = None
         if completed_orders.exists():
@@ -292,11 +292,11 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 completed_at = getattr(order, 'completed_at', None)
                 if completed_at and order.created_at:
                     days = (completed_at - order.created_at).days
-                    if days >= 0:  # Only count positive days
+                    if days >= 0: # Only count positive days
                         completion_times.append(days)
             if completion_times:
                 avg_completion_days = sum(completion_times) / len(completion_times)
-        
+
         # Revision rate
         total_orders_count = Order.objects.filter(
             client=request.user,
@@ -308,7 +308,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             status='on_revision'
         ).count()
         revision_rate = (revised_orders / total_orders_count * 100) if total_orders_count > 0 else 0
-        
+
         return Response({
             'order_trends': [
                 {
@@ -337,7 +337,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             'avg_completion_days': avg_completion_days,
             'revision_rate': revision_rate,
         })
-    
+
     @action(detail=False, methods=['get'], url_path='wallet')
     def get_wallet_analytics(self, request):
         """Get wallet analytics and transaction history."""
@@ -347,15 +347,15 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Client profile not found."},
                 status=404
             )
-        
+
         wallet = ClientWalletService.get_wallet(
             website=profile.website,
             client=request.user,
         )
-        
+
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
-        
+
         # Get transactions
         transactions = WalletEntrySelectors.for_owner(
             website=profile.website,
@@ -364,19 +364,19 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         ).filter(
             created_at__gte=date_from,
         ).order_by('-created_at')
-        
+
         # Get top-up history
         top_ups = transactions.filter(
             direction=WalletEntryDirection.CREDIT,
             entry_type=WalletEntryType.FUNDING,
         ).order_by('-created_at')
-        
+
         # Spending breakdown by category
         spending = transactions.filter(direction=WalletEntryDirection.DEBIT)
         spending_breakdown = spending.values('description').annotate(
             total=Sum('amount')
         ).order_by('-total')
-        
+
         return Response({
             'balance': float(wallet.available_balance),
             'transactions': [
@@ -388,7 +388,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     'description': t.description,
                     'created_at': t.created_at.isoformat() if t.created_at else None,
                 }
-                for t in transactions[:50]  # Limit to 50 most recent
+                for t in transactions[:50] # Limit to 50 most recent
             ],
             'top_up_history': [
                 {
@@ -403,7 +403,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 for item in spending_breakdown
             },
         })
-    
+
     @action(detail=False, methods=['get'], url_path='referrals')
     def get_referrals(self, request):
         """Get referral dashboard data."""
@@ -413,7 +413,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Client profile not found."},
                 status=404
             )
-        
+
         if not Referral:
             return Response({
                 'total_referrals': 0,
@@ -423,17 +423,17 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'referral_link': None,
                 'recent_referrals': [],
             })
-        
+
         # Get client's referrals (exclude deleted)
         referrals = Referral.objects.filter(referrer=request.user, is_deleted=False)
-        
+
         # Get referral stats
         total_referrals = referrals.count()
         # Successful referrals are those where bonus has been awarded
         successful_referrals = referrals.filter(bonus_awarded=True).count()
         # Pending referrals are those where bonus hasn't been awarded yet
         pending_referrals = referrals.filter(bonus_awarded=False).count()
-        
+
         # Get referral earnings - calculate from wallet transactions or referral bonus usage
         # For now, we'll use a placeholder since there's no direct reward_amount field
         referral_earnings = Decimal('0.00')
@@ -447,7 +447,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             referral_earnings = bonus_usages['total'] or Decimal('0.00')
         except Exception:
             pass
-        
+
         # Get referral link (if exists)
         referral_link = None
         try:
@@ -457,7 +457,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 referral_link = f"/refer/{referral_code_obj.code}"
         except Exception:
             pass
-        
+
         return Response({
             'total_referrals': total_referrals,
             'successful_referrals': successful_referrals,
@@ -475,7 +475,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 for r in referrals[:10]
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='order-activity-timeline')
     def get_order_activity_timeline(self, request):
         """Get comprehensive activity timeline for client's orders."""
@@ -485,28 +485,28 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Client profile not found."},
                 status=404
             )
-        
+
         # Get order ID if specified, otherwise get all orders
         order_id = request.query_params.get('order_id', None)
         days = int(request.query_params.get('days', 90))
         date_from = timezone.now() - timedelta(days=days)
-        
+
         # Get orders
         orders_query = Order.objects.filter(
             client=request.user,
             created_at__gte=date_from
         )
-        
+
         if order_id:
             orders_query = orders_query.filter(id=order_id)
-        
+
         orders = orders_query.select_related(
             'assigned_writer', 'type_of_work', 'paper_type'
         ).prefetch_related('transitions')
-        
+
         # Build timeline
         timeline = []
-        
+
         for order in orders:
             # Order creation
             timeline.append({
@@ -519,7 +519,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'status': order.status,
                 'actor': order.client.username if order.client else 'System',
             })
-            
+
             # Status transitions
             transitions = order.transitions.all().order_by('timestamp')
             for transition in transitions:
@@ -537,7 +537,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     'actor': transition.user.username if transition.user else ('System' if transition.is_automatic else 'Unknown'),
                     'meta': transition.meta,
                 })
-            
+
             # Payment events
             from django.contrib.contenttypes.models import ContentType
             from orders.models.orders import Order as OrderModel
@@ -559,7 +559,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     'payment_status': payment.status,
                     'actor': order.client.username if order.client else 'System',
                 })
-            
+
             # Writer assignment
             if order.assigned_writer:
                 # Try to find when writer was assigned (could be from transitions or created_at)
@@ -576,7 +576,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     'writer_username': order.assigned_writer.username,
                     'actor': 'System',
                 })
-            
+
             # Submission
             if order.submitted_at:
                 timeline.append({
@@ -589,7 +589,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     'status': order.status,
                     'actor': order.assigned_writer.username if order.assigned_writer else 'Writer',
                 })
-            
+
             # Deadlines
             if order.client_deadline:
                 timeline.append({
@@ -603,19 +603,19 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     'is_overdue': order.client_deadline < timezone.now() if order.client_deadline else False,
                     'actor': 'System',
                 })
-        
+
         # Sort timeline by timestamp (most recent first)
         timeline.sort(key=lambda x: x['timestamp'] or '', reverse=True)
-        
+
         # Group by date for easier frontend rendering
         timeline_by_date = {}
         for event in timeline:
             if event['timestamp']:
-                date_key = event['timestamp'][:10]  # Extract date part (YYYY-MM-DD)
+                date_key = event['timestamp'][:10] # Extract date part (YYYY-MM-DD)
                 if date_key not in timeline_by_date:
                     timeline_by_date[date_key] = []
                 timeline_by_date[date_key].append(event)
-        
+
         return Response({
             'timeline': timeline,
             'timeline_by_date': timeline_by_date,
@@ -626,7 +626,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             },
             'order_id': order_id,
         })
-    
+
     @action(detail=False, methods=['get'], url_path='enhanced-order-status')
     def get_enhanced_order_status(self, request):
         """Get detailed order status with progress tracking, estimated completion, and quality metrics."""
@@ -636,13 +636,13 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "order_id parameter is required."},
                 status=400
             )
-        
+
         user = request.user
         user_role = getattr(user, 'role', None)
-        
+
         # Build query based on user role
         order_query = {'id': order_id}
-        
+
         if user_role == 'client':
             # Clients can only see their own orders
             order_query['client'] = user
@@ -676,7 +676,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "You don't have permission to access this endpoint."},
                 status=403
             )
-        
+
         # For clients and admins, use the original query
         if user_role != 'writer':
             try:
@@ -692,16 +692,16 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     {"detail": "Order not found."},
                     status=404
                 )
-        
+
         now = timezone.now()
-        
+
         # Calculate progress percentage from WriterProgress logs
         progress_logs = order.progress_logs.filter(is_withdrawn=False).order_by('-timestamp')
         current_progress = 0
         if progress_logs.exists():
             latest_progress = progress_logs.first()
             current_progress = latest_progress.progress_percentage
-        
+
         # Estimate completion time
         estimated_completion = None
         if order.assigned_writer and order.writer_deadline:
@@ -736,7 +736,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     'days_remaining': 0,
                     'is_overdue': True,
                 }
-        
+
         # Writer activity status
         writer_activity = None
         if order.assigned_writer:
@@ -747,13 +747,13 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 last_activity_time = last_progress.timestamp
             elif order.updated_at:
                 last_activity_time = order.updated_at
-            
+
             # Determine activity status
             is_active = False
             if last_activity_time:
                 hours_since_activity = (now - last_activity_time).total_seconds() / 3600
-                is_active = hours_since_activity < 24  # Active if activity within 24 hours
-            
+                is_active = hours_since_activity < 24 # Active if activity within 24 hours
+
             writer_activity = {
                 'writer_id': order.assigned_writer.id,
                 'writer_username': order.assigned_writer.username,
@@ -761,13 +761,13 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'last_activity': last_activity_time.isoformat() if last_activity_time else None,
                 'hours_since_activity': round((now - last_activity_time).total_seconds() / 3600, 2) if last_activity_time else None,
             }
-        
+
         # Revision history
         revision_history = []
         transitions = order.transitions.filter(
             new_status__in=['revision_requested', 'on_revision', 'revised', 'revision_in_progress']
         ).order_by('timestamp')
-        
+
         for transition in transitions:
             revision_history.append({
                 'timestamp': transition.timestamp.isoformat(),
@@ -776,7 +776,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'is_automatic': transition.is_automatic,
                 'actor': transition.user.username if transition.user else 'System',
             })
-        
+
         # Quality metrics
         quality_metrics = {
             'revision_count': len(revision_history),
@@ -784,7 +784,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             'has_reviews': order.reviews.exists(),
             'average_rating': None,
         }
-        
+
         # Get average rating if reviews exist
         if order.reviews.exists():
             try:
@@ -795,16 +795,16 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     quality_metrics['average_rating'] = round(avg_rating, 2) if avg_rating else None
             except Exception:
                 pass
-        
+
         # Recent progress updates
         recent_progress = []
-        for progress in progress_logs[:5]:  # Last 5 progress updates
+        for progress in progress_logs[:5]: # Last 5 progress updates
             recent_progress.append({
                 'timestamp': progress.timestamp.isoformat(),
                 'progress_percentage': progress.progress_percentage,
                 'notes': progress.notes,
             })
-        
+
         # Status timeline
         status_timeline = []
         all_transitions = order.transitions.all().order_by('timestamp')
@@ -817,7 +817,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'is_automatic': transition.is_automatic,
                 'actor': transition.user.username if transition.user else 'System',
             })
-        
+
         # Writer reassignments
         reassignments = []
         for reassignment in order.reassignment_logs.all().order_by('-created_at'):
@@ -828,7 +828,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'reason': reassignment.reason,
                 'reassigned_by': reassignment.reassigned_by.username if reassignment.reassigned_by else 'System',
             })
-        
+
         return Response({
             'order_id': order.id,
             'order_topic': order.topic,
@@ -854,7 +854,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'subject': order.subject.name if order.subject else None,
             },
         })
-    
+
     @action(detail=False, methods=['get'], url_path='payment-reminders')
     def get_payment_reminders(self, request):
         """Get payment reminders for client's unpaid orders."""
@@ -864,7 +864,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Client profile not found."},
                 status=404
             )
-        
+
         try:
             from orders.models.legacy_models.unpaid_order_payment_reminders import (
                 PaymentReminderSent, PaymentReminderConfig
@@ -875,7 +875,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'unpaid_orders': [],
                 'message': 'Payment reminder system not available.',
             })
-        
+
         # Get unpaid orders
         unpaid_orders = Order.objects.filter(
             client=request.user,
@@ -883,19 +883,19 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         ).exclude(
             status__in=['cancelled', 'refunded', 'closed']
         ).select_related('type_of_work')
-        
+
         # Get sent reminders for these orders
         sent_reminders = PaymentReminderSent.objects.filter(
             client=request.user,
             order__in=unpaid_orders
         ).select_related('reminder_config', 'order').order_by('-sent_at')
-        
+
         # Get reminder configurations
         reminder_configs = PaymentReminderConfig.objects.filter(
             website=request.user.website,
             is_active=True
         ).order_by('deadline_percentage')
-        
+
         # Build reminders list
         reminders_list = []
         for reminder in sent_reminders:
@@ -910,7 +910,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'sent_as_notification': reminder.sent_as_notification,
                 'sent_as_email': reminder.sent_as_email,
             })
-        
+
         # Build unpaid orders list with reminder eligibility
         unpaid_orders_list = []
         for order in unpaid_orders:
@@ -923,13 +923,13 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     elapsed = (now - order.created_at).total_seconds()
                     if total_duration > 0:
                         deadline_percentage = (elapsed / total_duration) * 100
-            
+
             # Check which reminders have been sent
             sent_for_order = PaymentReminderSent.objects.filter(
                 order=order,
                 client=request.user
             ).values_list('reminder_config__deadline_percentage', flat=True)
-            
+
             # Find next eligible reminder
             next_reminder = None
             if deadline_percentage is not None:
@@ -942,7 +942,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                                 'message': config.message,
                             }
                             break
-            
+
             unpaid_orders_list.append({
                 'order_id': order.id,
                 'order_topic': order.topic,
@@ -954,14 +954,14 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 'next_reminder': next_reminder,
                 'reminders_sent': list(sent_for_order),
             })
-        
+
         return Response({
             'reminders': reminders_list,
             'unpaid_orders': unpaid_orders_list,
             'total_unpaid_orders': len(unpaid_orders_list),
             'total_reminders_sent': len(reminders_list),
         })
-    
+
     @action(detail=False, methods=['post'], url_path='payment-reminders/create')
     def create_payment_reminder_preference(self, request):
         """Create a payment reminder preference for a specific order."""
@@ -971,17 +971,17 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Client profile not found."},
                 status=404
             )
-        
+
         order_id = request.data.get('order_id')
         reminder_config_id = request.data.get('reminder_config_id')
         custom_message = request.data.get('custom_message')
-        
+
         if not order_id:
             return Response(
                 {"detail": "order_id is required."},
                 status=400
             )
-        
+
         try:
             order = Order.objects.get(id=order_id, client=request.user)
         except Order.DoesNotExist:
@@ -989,14 +989,14 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Order not found."},
                 status=404
             )
-        
+
         # Check if order is unpaid
         if order.is_paid:
             return Response(
                 {"detail": "Order is already paid."},
                 status=400
             )
-        
+
         try:
             from orders.models.legacy_models.unpaid_order_payment_reminders import (
                 PaymentReminderConfig, PaymentReminderSent
@@ -1005,7 +1005,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             return Response({
                 'detail': 'Payment reminder system not available.',
             }, status=503)
-        
+
         # If reminder_config_id is provided, use it; otherwise create a default preference
         if reminder_config_id:
             try:
@@ -1025,26 +1025,26 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 website=request.user.website,
                 is_active=True
             ).first()
-            
+
             if not reminder_config:
                 return Response(
                     {"detail": "No active reminder configurations available."},
                     status=404
                 )
-        
+
         # Check if reminder already sent for this order and config
         existing = PaymentReminderSent.objects.filter(
             order=order,
             reminder_config=reminder_config,
             client=request.user
         ).first()
-        
+
         if existing:
             return Response(
                 {"detail": "Reminder already sent for this order and configuration."},
                 status=400
             )
-        
+
         # Create reminder sent record (this marks the preference)
         reminder_sent = PaymentReminderSent.objects.create(
             reminder_config=reminder_config,
@@ -1053,7 +1053,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             sent_as_notification=reminder_config.send_as_notification,
             sent_as_email=reminder_config.send_as_email
         )
-        
+
         return Response({
             'id': reminder_sent.id,
             'order_id': order.id,
@@ -1062,7 +1062,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             'created_at': reminder_sent.sent_at.isoformat(),
             'message': 'Payment reminder preference created successfully.',
         }, status=201)
-    
+
     @action(detail=False, methods=['patch'], url_path='payment-reminders/(?P<reminder_id>[^/.]+)/update')
     def update_payment_reminder_preference(self, request, reminder_id=None):
         """Update a payment reminder preference."""
@@ -1072,7 +1072,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Client profile not found."},
                 status=404
             )
-        
+
         try:
             from orders.models.legacy_models.unpaid_order_payment_reminders import (
                 PaymentReminderSent
@@ -1081,7 +1081,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             return Response({
                 'detail': 'Payment reminder system not available.',
             }, status=503)
-        
+
         try:
             reminder_sent = PaymentReminderSent.objects.get(
                 id=reminder_id,
@@ -1092,7 +1092,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Reminder preference not found."},
                 status=404
             )
-        
+
         # Update preferences if provided
         if 'reminder_config_id' in request.data:
             try:
@@ -1108,15 +1108,15 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                     {"detail": "Reminder configuration not found."},
                     status=404
                 )
-        
+
         if 'send_as_notification' in request.data:
             reminder_sent.sent_as_notification = request.data['send_as_notification']
-        
+
         if 'send_as_email' in request.data:
             reminder_sent.sent_as_email = request.data['send_as_email']
-        
+
         reminder_sent.save()
-        
+
         return Response({
             'id': reminder_sent.id,
             'order_id': reminder_sent.order.id if reminder_sent.order else None,

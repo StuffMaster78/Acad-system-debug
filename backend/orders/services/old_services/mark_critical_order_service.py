@@ -33,7 +33,7 @@ class MarkCriticalOrderService:
         order.is_critical = True
         save_order(order)
         return order
-    
+
 
     @staticmethod
     def get_critical_threshold():
@@ -41,23 +41,23 @@ class MarkCriticalOrderService:
         config = CriticalDeadlineSetting.objects.first()
         if config:
             return config.critical_deadline_threshold_hours
-        return 8  # hard fallback
+        return 8 # hard fallback
 
     @staticmethod
     def update_order_status_based_on_deadline(order):
         """Label order CRITICAL if deadline is within threshold hours."""
         if not order.deadline:
             return
-        
+
         threshold_hours = MarkCriticalOrderService.get_critical_threshold()
         now = datetime.utcnow()
         time_left = order.deadline - now
-        
+
         if time_left <= timedelta(hours=threshold_hours):
             if order.status != OrderStatus.CRITICAL:
                 order.status = OrderStatus.CRITICAL
                 order.save(update_fields=["status"])
         else:
             if order.status == OrderStatus.CRITICAL:
-                order.status = OrderStatus.PENDING  # or appropriate fallback
+                order.status = OrderStatus.PENDING # or appropriate fallback
                 order.save(update_fields=["status"])

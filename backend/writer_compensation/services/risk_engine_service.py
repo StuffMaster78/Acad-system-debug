@@ -81,7 +81,7 @@ class RiskEngineService:
         )
 
         return amount <= available
-    
+
 
     @staticmethod
     def get_advance_cap(

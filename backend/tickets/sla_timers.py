@@ -15,12 +15,12 @@ class TicketSLA(models.Model):
     SLA tracking for tickets with visible countdowns.
     """
     PRIORITY_SLA_HOURS = {
-        'critical': 1,   # 1 hour
-        'high': 4,       # 4 hours
-        'medium': 24,    # 24 hours
-        'low': 72,       # 72 hours
+        'critical': 1, # 1 hour
+        'high': 4, # 4 hours
+        'medium': 24, # 24 hours
+        'low': 72, # 72 hours
     }
-    
+
     ticket = models.OneToOneField(
         'tickets.Ticket',
         on_delete=models.CASCADE,
@@ -31,7 +31,7 @@ class TicketSLA(models.Model):
         on_delete=models.CASCADE,
         related_name='ticket_slas'
     )
-    
+
     # SLA timers
     created_at = models.DateTimeField(auto_now_add=True)
     first_response_deadline = models.DateTimeField(
@@ -40,7 +40,7 @@ class TicketSLA(models.Model):
     resolution_deadline = models.DateTimeField(
         help_text="Deadline for resolution"
     )
-    
+
     # Actual times
     first_response_at = models.DateTimeField(
         null=True,
@@ -52,7 +52,7 @@ class TicketSLA(models.Model):
         blank=True,
         help_text="When ticket was resolved"
     )
-    
+
     # Status
     first_response_breached = models.BooleanField(
         default=False,
@@ -62,7 +62,7 @@ class TicketSLA(models.Model):
         default=False,
         help_text="Whether resolution SLA was breached"
     )
-    
+
     # Priority (synced from ticket)
     # Use same choices as Ticket model
     PRIORITY_CHOICES = [
@@ -76,7 +76,7 @@ class TicketSLA(models.Model):
         choices=PRIORITY_CHOICES,
         help_text="Priority level (affects SLA)"
     )
-    
+
     class Meta:
         indexes = [
             models.Index(fields=['ticket', 'resolution_deadline']),
@@ -84,19 +84,19 @@ class TicketSLA(models.Model):
         ]
         verbose_name = "Ticket SLA"
         verbose_name_plural = "Ticket SLAs"
-    
+
     def __str__(self):
         return f"SLA for Ticket #{self.ticket.id} - {self.priority}"
-    
+
     @classmethod
     def create_for_ticket(cls, ticket):
         """Create SLA tracking for a ticket based on priority."""
         hours = cls.PRIORITY_SLA_HOURS.get(ticket.priority, 24)
-        
+
         now = timezone.now()
         first_response_deadline = now + timezone.timedelta(hours=hours // 2)
         resolution_deadline = now + timezone.timedelta(hours=hours)
-        
+
         return cls.objects.create(
             ticket=ticket,
             website=ticket.website,
@@ -104,26 +104,26 @@ class TicketSLA(models.Model):
             first_response_deadline=first_response_deadline,
             resolution_deadline=resolution_deadline
         )
-    
+
     def get_time_remaining(self):
         """Get time remaining until resolution deadline."""
         if self.resolved_at:
             return None
-        
+
         remaining = self.resolution_deadline - timezone.now()
         return {
             'total_seconds': int(remaining.total_seconds()),
             'hours': int(remaining.total_seconds() / 3600),
             'minutes': int((remaining.total_seconds() % 3600) / 60),
             'is_overdue': remaining.total_seconds() < 0,
-            'is_urgent': 0 < remaining.total_seconds() < 3600,  # Less than 1 hour
+            'is_urgent': 0 < remaining.total_seconds() < 3600, # Less than 1 hour
         }
-    
+
     def get_first_response_time_remaining(self):
         """Get time remaining until first response deadline."""
         if self.first_response_at:
             return None
-        
+
         remaining = self.first_response_deadline - timezone.now()
         return {
             'total_seconds': int(remaining.total_seconds()),
@@ -131,28 +131,28 @@ class TicketSLA(models.Model):
             'minutes': int((remaining.total_seconds() % 3600) / 60),
             'is_overdue': remaining.total_seconds() < 0,
         }
-    
+
     def check_and_update_breaches(self):
         """Check and update SLA breach status."""
         now = timezone.now()
-        
+
         # Check first response
         if not self.first_response_at and now > self.first_response_deadline:
             self.first_response_breached = True
-        
+
         # Check resolution
         if not self.resolved_at and now > self.resolution_deadline:
             self.resolution_breached = True
-        
+
         self.save(update_fields=['first_response_breached', 'resolution_breached'])
-    
+
     def mark_first_response(self):
         """Mark first response sent."""
         if not self.first_response_at:
             self.first_response_at = timezone.now()
             self.first_response_breached = timezone.now() > self.first_response_deadline
             self.save(update_fields=['first_response_at', 'first_response_breached'])
-    
+
     def mark_resolved(self):
         """Mark ticket as resolved."""
         if not self.resolved_at:

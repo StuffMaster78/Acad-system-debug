@@ -203,7 +203,7 @@ class Command(BaseCommand):
                     website=website,
                     key=item["key"],
                     defaults={
-                        "name": item["label"],  # use name not label
+                        "name": item["label"], # use name not label
                         "description": item["description"],
                         "is_system_role": True,
                         "is_active": True,

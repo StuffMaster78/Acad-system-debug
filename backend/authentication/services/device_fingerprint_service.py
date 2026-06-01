@@ -42,7 +42,7 @@ class DeviceFingerprintService:
     """
 
     DEFAULT_AUTO_TRUST_AFTER_LOGINS = 5
-    
+
 
     def __init__(
         self,
@@ -155,7 +155,7 @@ class DeviceFingerprintService:
         )
 
         return fingerprint
-    
+
     @classmethod
     def is_trusted_device(
         cls,
@@ -201,7 +201,7 @@ class DeviceFingerprintService:
             return False
 
         return bool(fingerprint.is_trusted)
-    
+
     @transaction.atomic
     def create_fingerprint(
         self,
@@ -225,7 +225,7 @@ class DeviceFingerprintService:
             login_count=1,
             last_seen_at=timezone.now(),
         )
-    
+
     @classmethod
     def resolve_or_create(
         cls,
@@ -246,7 +246,7 @@ class DeviceFingerprintService:
             DeviceFingerprint instance.
         """
         # Gracefully handle API clients / curl / mobile apps that don't send
-        # browser fingerprint headers.  Create an anonymous fingerprint so
+        # browser fingerprint headers. Create an anonymous fingerprint so
         # login still succeeds; the session will be treated as untrusted.
         service = cls(user=user, website=website)
         fingerprint_data = _extract_fingerprint_data(request) if request is not None else {}
@@ -260,7 +260,7 @@ class DeviceFingerprintService:
         fingerprint_hash = service.hash_fingerprint_data(
             raw_fingerprint_data,
         )
-        
+
         return service.create_or_update_fingerprint(
                 {
                     "fingerprint_hash": fingerprint_hash,
@@ -410,7 +410,7 @@ class DeviceFingerprintService:
             if (
                 current_user_agent
                 and current_user_agent.lower()
-                not in (fingerprint.user_agent or  "").lower()
+                not in (fingerprint.user_agent or "").lower()
             ):
                 reasons.append("User-Agent mismatch")
                 severity += 0.4
@@ -453,7 +453,7 @@ class DeviceFingerprintService:
             "score": score,
             "is_high_risk": score >= 0.8,
         }
-    
+
 
     def get_fingerprint_by_hash(
         self,
@@ -474,7 +474,7 @@ class DeviceFingerprintService:
             website=self.website,
             fingerprint_hash=fingerprint_hash,
         ).first()
-    
+
 
 
     @transaction.atomic

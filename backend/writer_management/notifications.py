@@ -53,13 +53,13 @@ class DisciplineEvents:
     """
     Sent to: writer
     Context:
-        registration_id     str   — writer's stable identifier
-        category            str   — human-readable category label
-        reason              str   — full reason text
-        issued_at           str   — ISO 8601 timestamp
-        expires_at          str|null — when warning expires
-        days_remaining      int|null — days until expiry
-        active_warning_count int  — total active warnings now
+        registration_id str — writer's stable identifier
+        category str — human-readable category label
+        reason str — full reason text
+        issued_at str — ISO 8601 timestamp
+        expires_at str|null — when warning expires
+        days_remaining int|null — days until expiry
+        active_warning_count int — total active warnings now
     """
 
     WARNING_VOIDED = "writer.discipline.warning_voided"
@@ -67,19 +67,19 @@ class DisciplineEvents:
     Sent to: writer
     Context:
         registration_id str
-        category        str
-        void_reason     str
-        voided_at       str — ISO 8601 timestamp
+        category str
+        void_reason str
+        voided_at str — ISO 8601 timestamp
     """
 
     WARNING_THRESHOLD_REACHED = "writer.discipline.warning_threshold_reached"
     """
     Sent to: all admins on the website
     Context:
-        registration_id      str
+        registration_id str
         active_warning_count int
-        threshold            int — the threshold that was crossed
-        suggested_action     str — "probation_triggered" | "suspension_triggered"
+        threshold int — the threshold that was crossed
+        suggested_action str — "probation_triggered" | "suspension_triggered"
                                    | "review_recommended"
     """
 
@@ -92,10 +92,10 @@ class DisciplineEvents:
     Sent to: writer
     Context:
         registration_id str
-        category        str — human-readable category label
-        reason          str — public-facing reason
+        category str — human-readable category label
+        reason str — public-facing reason
                               (evidence_notes is internal only)
-        issued_at       str — ISO 8601 timestamp
+        issued_at str — ISO 8601 timestamp
     """
 
     STRIKE_VOIDED = "writer.discipline.strike_voided"
@@ -103,8 +103,8 @@ class DisciplineEvents:
     Sent to: writer
     Context:
         registration_id str
-        category        str
-        void_reason     str
+        category str
+        void_reason str
     """
 
     # ----------------------------------------------------------------
@@ -116,10 +116,10 @@ class DisciplineEvents:
     Sent to: writer
     Context:
         registration_id str
-        reason          str
-        end_date        str|null — ISO 8601 date, null = indefinite
-        auto_triggered  bool
-        duration_days   int|null
+        reason str
+        end_date str|null — ISO 8601 date, null = indefinite
+        auto_triggered bool
+        duration_days int|null
     """
 
     SUSPENSION_LIFTED = "writer.discipline.suspension_lifted"
@@ -127,8 +127,8 @@ class DisciplineEvents:
     Sent to: writer
     Context:
         registration_id str
-        lift_reason     str
-        lifted_at       str — ISO 8601 timestamp
+        lift_reason str
+        lifted_at str — ISO 8601 timestamp
     """
 
     # ----------------------------------------------------------------
@@ -141,8 +141,8 @@ class DisciplineEvents:
     is_critical: True
     Context:
         registration_id str
-        reason          str
-        auto_triggered  bool
+        reason str
+        auto_triggered bool
     """
 
     BLACKLIST_LIFTED = "writer.discipline.blacklist_lifted"
@@ -150,7 +150,7 @@ class DisciplineEvents:
     Sent to: writer
     Context:
         registration_id str
-        lift_reason     str
+        lift_reason str
     """
 
     # ----------------------------------------------------------------
@@ -162,9 +162,9 @@ class DisciplineEvents:
     Sent to: writer
     Context:
         registration_id str
-        reason          str
-        end_date        str — ISO 8601 date
-        auto_triggered  bool
+        reason str
+        end_date str — ISO 8601 date
+        auto_triggered bool
     """
 
     PROBATION_ENDED = "writer.discipline.probation_ended"
@@ -172,7 +172,7 @@ class DisciplineEvents:
     Sent to: writer
     Context:
         registration_id str
-        ended_at        str|null — ISO 8601 timestamp
+        ended_at str|null — ISO 8601 timestamp
     """
 
     # ----------------------------------------------------------------
@@ -184,10 +184,10 @@ class DisciplineEvents:
     Sent to: writer
     Context:
         registration_id str
-        reason          str — human-readable reason label
+        reason str — human-readable reason label
         amount_deducted str — decimal string e.g. "15.00"
-        order_id        int|null
-        notes           str|null
+        order_id int|null
+        notes str|null
     """
 
 
@@ -199,9 +199,9 @@ class LevelEvents:
     Sent to: writer
     Context:
         registration_id str
-        previous_level  str|null — level name before change
-        new_level       str      — level name after change
-        change_type     str      — "promotion"
+        previous_level str|null — level name before change
+        new_level str — level name after change
+        change_type str — "promotion"
     """
 
     DEMOTED = "writer.level.demoted"
@@ -209,9 +209,9 @@ class LevelEvents:
     Sent to: writer
     Context:
         registration_id str
-        previous_level  str|null
-        new_level       str
-        change_type     str — "demotion"
+        previous_level str|null
+        new_level str
+        change_type str — "demotion"
     """
 
 
@@ -222,13 +222,13 @@ class RewardEvents:
     """
     Sent to: writer
     Context:
-        registration_id       str
-        reward_id             int
-        title                 str
-        prize_description     str
-        prize_amount          str  — decimal string, "0.00" if non-financial
+        registration_id str
+        reward_id int
+        title str
+        prize_description str
+        prize_amount str — decimal string, "0.00" if non-financial
         has_financial_component bool
-        awarded_at            str  — ISO 8601 timestamp
+        awarded_at str — ISO 8601 timestamp
     """
 
 
@@ -240,9 +240,9 @@ class AvailabilityEvents:
     Sent to: writer (confirmation)
     Context:
         registration_id str
-        start_at        str — ISO 8601 datetime
-        end_at          str|null
-        reason          str — human-readable reason label
+        start_at str — ISO 8601 datetime
+        end_at str|null
+        reason str — human-readable reason label
     """
 
     WINDOW_ENDED = "writer.availability.window_ended"
@@ -250,7 +250,7 @@ class AvailabilityEvents:
     Sent to: writer (confirmation)
     Context:
         registration_id str
-        ended_at        str — ISO 8601 datetime
+        ended_at str — ISO 8601 datetime
     """
 
 
@@ -261,10 +261,10 @@ class PenNameEvents:
     """
     Sent to: admins
     Context:
-        registration_id  str
-        current_name     str
-        requested_name   str
-        reason           str
+        registration_id str
+        current_name str
+        requested_name str
+        reason str
     """
 
     REQUEST_APPROVED = "writer.pen_name.request_approved"
@@ -272,7 +272,7 @@ class PenNameEvents:
     Sent to: writer
     Context:
         registration_id str
-        approved_name   str — the new pen name now active
+        approved_name str — the new pen name now active
     """
 
     REQUEST_REJECTED = "writer.pen_name.request_rejected"
@@ -280,8 +280,8 @@ class PenNameEvents:
     Sent to: writer
     Context:
         registration_id str
-        requested_name  str
-        review_notes    str — why it was rejected
+        requested_name str
+        review_notes str — why it was rejected
     """
 
 

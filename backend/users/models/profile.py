@@ -39,7 +39,7 @@ class UserProfile(models.Model):
         null=True,
         blank=True,
     )
-    # profile_url = 
+    # profile_url =
     timezone = models.CharField(
         max_length=64,
         blank=True,

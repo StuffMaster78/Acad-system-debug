@@ -17,12 +17,12 @@ class DashboardConfigView(APIView):
     Get dashboard configuration (cards, fonts, colors) for the current user's role
     """
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
         user = request.user
         user_role = getattr(user, 'role', 'client')
         website = getattr(user, 'website', None) or get_current_website(request)
-        
+
         # Get font configuration
         font_config = None
         try:
@@ -32,13 +32,13 @@ class DashboardConfigView(APIView):
                 font_config = DashboardFontConfig.objects.filter(website__isnull=True).first()
         except Exception:
             pass
-        
+
         # Get card configurations for this role
         cards = DashboardCardConfig.objects.filter(
             is_active=True,
             allowed_roles__contains=[user_role]
         )
-        
+
         # Filter by website if specified
         if website:
             cards = cards.filter(
@@ -46,10 +46,10 @@ class DashboardConfigView(APIView):
             )
         else:
             cards = cards.filter(website__isnull=True)
-        
+
         # Order by position
         cards = cards.order_by('position', 'title')
-        
+
         # Serialize cards
         cards_data = []
         for card in cards:
@@ -65,7 +65,7 @@ class DashboardConfigView(APIView):
                 'position': card.position,
                 'config': card.config,
             })
-        
+
         # Serialize font config
         font_data = None
         if font_config:
@@ -85,7 +85,7 @@ class DashboardConfigView(APIView):
                 'card_value_font_size': 'clamp(24px, 3vw, 32px)',
                 'card_label_font_size': '13px',
             }
-        
+
         return Response({
             'role': user_role,
             'cards': cards_data,

@@ -28,7 +28,7 @@ class CommunicationReadReceiptViewSet(ReadOnlyModelViewSet):
         CanViewCommunicationObject,
     ]
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         """
         Return receipts visible to user.
         """

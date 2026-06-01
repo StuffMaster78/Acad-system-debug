@@ -15,7 +15,7 @@ mark_bonus_awarded.short_description = "Mark as Bonus Awarded"
 
 @admin.register(Referral)
 class ReferralAdmin(admin.ModelAdmin):
-    list_display = ('referrer', 'referee', 'referral_code', 'created_at', 
+    list_display = ('referrer', 'referee', 'referral_code', 'created_at',
                     'registration_bonus_credited', 'first_order_bonus_credited',
                     'website', 'completed_orders_count'
     )
@@ -39,7 +39,7 @@ class ReferralAdmin(admin.ModelAdmin):
 
         # Self-referral fraud
         self_referrals = queryset.filter(referrer=Q(referee__username=F('referrer__username')))
-        
+
         # High referrals with no activity
         high_referrals = queryset.annotate(referral_count=Count('referrer__referrals')).filter(
             referral_count__gt=10, referee__orders__isnull=True
@@ -85,15 +85,15 @@ class ReferralAdmin(admin.ModelAdmin):
                 # Log transaction in loyalty management
                 LoyaltyTransaction.objects.create(
                     client=referral.referrer,
-                    points=int(bonus_amount),  # Convert bonus to points if needed
+                    points=int(bonus_amount), # Convert bonus to points if needed
                     transaction_type="add",
                     reason="Referral reward for {}".format(referral.referee.username)
                 )
-                
+
                 # Award the bonus
                 referral.bonus_awarded = True
                 referral.save()
-            
+
         self.message_user(request, "Referral bonuses successfully awarded!")
     award_loyalty_bonus.short_description = "Award Referral Bonuses"
 

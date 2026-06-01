@@ -8,7 +8,7 @@ from django.db import models
 from django.utils import timezone
 from orders.models.orders import Order
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 class WriterProgress(models.Model):
     """
@@ -77,19 +77,19 @@ class WriterProgress(models.Model):
         """Check if notes contain screened words."""
         if not self.notes:
             return False
-        
+
         from communications.models import ScreenedWord
         screened_words = ScreenedWord.objects.values_list('word', flat=True)
-        
+
         notes_lower = self.notes.lower()
         for word in screened_words:
             if word.lower() in notes_lower:
                 self.contains_screened_words = True
                 return True
-        
+
         self.contains_screened_words = False
         return False
-    
+
     def withdraw(self, withdrawn_by, reason=None):
         """Withdraw this progress report."""
         self.is_withdrawn = True
@@ -98,13 +98,13 @@ class WriterProgress(models.Model):
         if reason:
             self.withdrawal_reason = reason
         self.save()
-    
+
     def save(self, *args, **kwargs):
         """Override save to check for screened words."""
         if self.notes:
             self.check_screened_words()
         super().save(*args, **kwargs)
-    
+
     class Meta:
         ordering = ['-timestamp']
         indexes = [

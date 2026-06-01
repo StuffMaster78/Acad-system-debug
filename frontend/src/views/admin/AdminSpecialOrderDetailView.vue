@@ -171,7 +171,7 @@
                 <input v-model="m.label" placeholder="Milestone label" class="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
                 <input v-model="m.due_date" type="date" class="w-36 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
                 <input v-model="m.price" placeholder="Price" class="w-24 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
-                <button class="text-rose-400 hover:text-rose-600 text-sm" @click="removeMilestone(i)">✕</button>
+                <button class="text-rose-400 hover:text-rose-600 text-sm" @click="removeMilestone(i)"></button>
               </div>
             </div>
           </div>

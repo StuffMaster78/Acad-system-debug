@@ -15,7 +15,7 @@ for any order assigned before a rate change.
 INPUTS
 ------
     snapshot: RateCardSnapshot — frozen rates at assignment time
-    order:    orders.Order     — pages, slides, deadline, urgency
+    order: orders.Order — pages, slides, deadline, urgency
 
 OUTPUT
 ------
@@ -43,13 +43,13 @@ class EarningsResult:
     tip_writer_share is computed separately when a tip arrives —
     not at order completion time.
     """
-    base_earnings:     Decimal   # pages/slides/charts at base rate
-    urgency_uplift:    Decimal   # additional pay for urgency
-    gross_earnings:    Decimal   # base + urgency
-    tip_percentage:    Decimal   # writer's tip retention rate (for tips app)
-    level_name:        str       # which level was applied
-    earning_mode:      str       # how earnings were computed
-    is_urgent:         bool
+    base_earnings: Decimal # pages/slides/charts at base rate
+    urgency_uplift: Decimal # additional pay for urgency
+    gross_earnings: Decimal # base + urgency
+    tip_percentage: Decimal # writer's tip retention rate (for tips app)
+    level_name: str # which level was applied
+    earning_mode: str # how earnings were computed
+    is_urgent: bool
     calculation_notes: list[str] # audit trail of what was applied
 
 
@@ -62,7 +62,7 @@ class EarningsCalculator:
 
         Args:
             snapshot: RateCardSnapshot for this order.
-            order:    orders.Order with pages, slides, deadline resolved.
+            order: orders.Order with pages, slides, deadline resolved.
 
         Returns:
             EarningsResult — call payment_service.record() to persist.
@@ -147,11 +147,11 @@ class EarningsCalculator:
 
     @staticmethod
     def _fixed_base(snapshot, order, notes: list) -> Decimal:
-        pages  = EarningsCalculator._page_count(order)
+        pages = EarningsCalculator._page_count(order)
         slides = EarningsCalculator._slide_count(order)
         charts = EarningsCalculator._chart_count(order)
 
-        page_pay  = pages  * snapshot.base_pay_per_page
+        page_pay = pages * snapshot.base_pay_per_page
         slide_pay = slides * snapshot.base_pay_per_slide
         chart_pay = charts * snapshot.base_pay_per_chart
 
@@ -170,7 +170,7 @@ class EarningsCalculator:
         cost = EarningsCalculator._order_cost(order)
         # WriterLevelSettings stores this as a percentage integer
         # e.g. 70.00 means 70%
-        pct = snapshot.base_pay_per_page  # reused field — see note below
+        pct = snapshot.base_pay_per_page # reused field — see note below
         # NOTE: in percentage modes, base_pay_per_page stores the
         # percentage value (e.g. Decimal("70.00") = 70%).
         # This is a known naming awkwardness — a future migration
@@ -186,7 +186,7 @@ class EarningsCalculator:
     def _pct_of_total(snapshot, order, notes: list) -> Decimal:
         """Percentage of order total after discounts."""
         total = EarningsCalculator._order_total(order)
-        pct = snapshot.base_pay_per_slide  # see note above
+        pct = snapshot.base_pay_per_slide # see note above
         result = (total * pct / Decimal("100")).quantize(
             CENTS, rounding=ROUND_HALF_UP
         )

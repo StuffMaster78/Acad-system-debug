@@ -10,7 +10,7 @@ class CreateTipSerializer(serializers.Serializer):
 
     receiver_id = serializers.IntegerField()
     gross_amount_cents = serializers.IntegerField()
-    
+
     currency = serializers.CharField(default="USD")
 
     context_type = serializers.CharField()

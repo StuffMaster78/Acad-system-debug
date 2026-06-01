@@ -335,7 +335,7 @@ class MagicLinkService:
         ).delete()
 
         return deleted_count
-    
+
 
     @classmethod
     def request_magic_link(

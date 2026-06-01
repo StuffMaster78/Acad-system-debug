@@ -31,7 +31,7 @@ from orders.api.serializers.adjustments.adjustment_create_serializer import (
 from orders.api.serializers.adjustments.adjustment_decline_serializer import (
     AdjustmentDeclineSerializer,
 )
-from orders.api.serializers.adjustments.adjustment_staff_override_serializer import (  # noqa: E501
+from orders.api.serializers.adjustments.adjustment_staff_override_serializer import ( # noqa: E501
     AdjustmentStaffOverrideSerializer,
 )
 from orders.models import Order, OrderAdjustmentRequest

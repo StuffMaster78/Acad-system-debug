@@ -94,21 +94,21 @@ class AuditDeadLetter(models.Model):
     # # ------------------------------------------------------------------
 
     # span_id = models.CharField(
-    #     max_length=64,
-    #     null=True,
-    #     blank=True,
-    #     db_index=True,
+    # max_length=64,
+    # null=True,
+    # blank=True,
+    # db_index=True,
     # )
 
     # span_name = models.CharField(
-    #     max_length=255,
-    #     null=True,
-    #     blank=True,
+    # max_length=255,
+    # null=True,
+    # blank=True,
     # )
 
     # span_duration_ms = models.BigIntegerField(
-    #     null=True,
-    #     blank=True,
+    # null=True,
+    # blank=True,
     # )
 
     # ------------------------------------------------------------------

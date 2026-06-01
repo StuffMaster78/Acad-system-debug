@@ -58,7 +58,7 @@ EVENT_CONFIG_DEFAULTS = {
     },
     'wallet.balance_low': {
         'priority': NotificationPriority.HIGH,
-        'cooldown_seconds': 86400,  # once per day max
+        'cooldown_seconds': 86400, # once per day max
     },
 
     # Digest eligible — group into daily summary
@@ -75,7 +75,7 @@ EVENT_CONFIG_DEFAULTS = {
     'ticket.comment_added': {
         'digest_eligible': True,
         'digest_group': 'daily_summary',
-        'cooldown_seconds': 300,  # 5 min cooldown per ticket
+        'cooldown_seconds': 300, # 5 min cooldown per ticket
     },
 
     # Role-specific recipients
@@ -167,13 +167,13 @@ class Command(BaseCommand):
 
             if was_created:
                 created += 1
-                self.stdout.write(f"  CREATE  {event.event_key}")
+                self.stdout.write(f" CREATE {event.event_key}")
             elif update:
                 for field, value in config_data.items():
                     setattr(obj, field, value)
                 obj.save()
                 updated += 1
-                self.stdout.write(f"  UPDATE  {event.event_key}")
+                self.stdout.write(f" UPDATE {event.event_key}")
             else:
                 skipped += 1
 

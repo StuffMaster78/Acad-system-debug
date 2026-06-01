@@ -62,7 +62,7 @@ class SpecialOrderDeliveryCheckpoint(TimeStampedModel):
     waiver_reason = models.TextField(blank=True)
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("created_at",)
         constraints = [
             models.UniqueConstraint(
@@ -147,7 +147,7 @@ class SpecialOrderDeliverable(TimeStampedModel):
     review_notes = models.TextField(blank=True)
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "special_order"]),
@@ -199,7 +199,7 @@ class SpecialOrderCompletionLog(TimeStampedModel):
     justification = models.TextField(blank=True)
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "special_order"]),

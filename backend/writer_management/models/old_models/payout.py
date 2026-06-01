@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from websites.models.websites import Website 
+from websites.models.websites import Website
 from writer_management.models.writer_profile import WriterProfile
 from orders.models.orders import Order
 
@@ -30,7 +30,7 @@ class WriterPayoutPreference(models.Model):
         related_name="payout_preferences"
     )
     preferred_method = models.CharField(
-        max_length=20, choices=PAYMENT_METHOD_CHOICES, 
+        max_length=20, choices=PAYMENT_METHOD_CHOICES,
         default="Bank Transfer"
     )
     payout_threshold = models.DecimalField(
@@ -120,7 +120,7 @@ class WriterPayment(models.Model):
             f"Compensation of ${self.amount} to {self.writer.user.username}"
              f"on {self.payment_date}"
         )
-    
+
     def save(self, *args, **kwargs):
         if not self.writer.user.is_staff and self.conversion_rate is not None:
             raise PermissionDenied("Only admins can set conversion rates.")
@@ -167,7 +167,7 @@ class WriterEarningsHistory(models.Model):
         help_text="Total earnings for the period."
     )
     orders_completed = models.PositiveIntegerField(
-        default=0, 
+        default=0,
         help_text="Number of completed orders during this period."
     )
 

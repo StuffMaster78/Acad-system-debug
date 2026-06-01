@@ -1,13 +1,13 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.utils import timezone 
+from django.utils import timezone
 from django.utils.text import slugify
-import re  # Fix missing import
-from django.utils.timezone import now  # Fix missing import
-from django.contrib.postgres.fields import JSONField  # PostgreSQL JSON support
+import re # Fix missing import
+from django.utils.timezone import now # Fix missing import
+from django.contrib.postgres.fields import JSONField # PostgreSQL JSON support
 from django.conf import settings
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 def validate_hex_color(value):
     """Ensures valid HEX color format."""
@@ -50,7 +50,7 @@ class Website(models.Model):
     slug = models.SlugField(
         unique=True,
         blank=True
-    ) 
+    )
     # Contact details
     contact_email = models.EmailField(
         null=True,
@@ -130,7 +130,7 @@ class Website(models.Model):
         max_length=255, blank=True, null=True,
         help_text="Bing Webmaster Tools verification meta tag"
     )
-    
+
     # Communication Widgets & Live Chat
     enable_live_chat = models.BooleanField(
         default=False,
@@ -165,7 +165,7 @@ class Website(models.Model):
         blank=True,
         help_text="Additional configuration for communication widgets (JSON format)"
     )
-    
+
     # Email Campaign Management
     default_sender_name = models.CharField(
         max_length=100,
@@ -210,7 +210,7 @@ class Website(models.Model):
     def soft_delete(self):
         """Marks the website as deleted instead of removing it permanently."""
         self.is_deleted = True
-        self.deleted_at = timezone.now()  # Use timezone-aware timestamp
+        self.deleted_at = timezone.now() # Use timezone-aware timestamp
         self.save(update_fields=["is_deleted", "deleted_at"])
 
     def restore(self):
@@ -234,7 +234,7 @@ class Website(models.Model):
                 counter += 1
             self.slug = base_slug
 
-        self.domain = self.domain.replace("www.", "")  # Normalize domain
+        self.domain = self.domain.replace("www.", "") # Normalize domain
         super().save(*args, **kwargs)
 
 

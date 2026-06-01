@@ -20,12 +20,12 @@ class BasePlatformPermission(BasePermission):
     required_portal: str | None = None
     require_tenant: bool = True
 
-    def has_permission(self, request: Any, view: Any):  # type: ignore[override]
+    def has_permission(self, request: Any, view: Any): # type: ignore[override]
         user = request.user
 
         if not user or not user.is_authenticated:
             return False
-        
+
         website = getattr(request, "website", None)
         if website is None:
             website = getattr(user, "website", None)

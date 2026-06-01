@@ -22,9 +22,9 @@ from users.services.profile_completeness_service import (
 
 try:
     from notifications_system.services.notification_service import NotificationService
-except Exception:  # pragma: no cover
-    NotificationService = None  # type: ignore[assignment]
-    
+except Exception: # pragma: no cover
+    NotificationService = None # type: ignore[assignment]
+
 from users.services.profile_service import ProfileService
 from core.urls.frontend_url import get_profile_url
 
@@ -142,8 +142,8 @@ class ProfileReminderService:
         )
 
         return reminder
-    
-   
+
+
     @staticmethod
     def _dispatch_missing_phone_notification(
         *,

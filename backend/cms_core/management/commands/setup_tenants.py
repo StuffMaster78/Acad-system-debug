@@ -9,7 +9,7 @@ Idempotent — safe to run multiple times.
 
 Usage:
     python manage.py setup_tenants
-    python manage.py setup_tenants --workflow=simple   # simpler approval chain
+    python manage.py setup_tenants --workflow=simple # simpler approval chain
 """
 
 from django.core.management.base import BaseCommand, CommandParser
@@ -87,7 +87,7 @@ class Command(BaseCommand):
             # --- 1. Site + Home Page ---
             site = Site.objects.filter(hostname=hostname).first()
             if site:
-                self.stdout.write(self.style.SUCCESS(f"  Site exists: {hostname}"))
+                self.stdout.write(self.style.SUCCESS(f" Site exists: {hostname}"))
                 home_page = site.root_page.specific
             else:
                 home_page = TenantHomePage(title=f"{name} Home", slug=slug)
@@ -98,7 +98,7 @@ class Command(BaseCommand):
                     is_default_site=False,
                     site_name=name,
                 )
-                self.stdout.write(f"  Created site: {hostname}")
+                self.stdout.write(f" Created site: {hostname}")
 
             # --- 2. Child Index Pages ---
             existing_children = set(
@@ -107,19 +107,19 @@ class Command(BaseCommand):
 
             if BlogIndexPage and "blog" not in existing_children:
                 home_page.add_child(instance=BlogIndexPage(title="Blog", slug="blog"))
-                self.stdout.write("  Created Blog index page")
+                self.stdout.write(" Created Blog index page")
 
             if ServiceIndexPage and "services" not in existing_children:
                 home_page.add_child(instance=ServiceIndexPage(title="Services", slug="services"))
-                self.stdout.write("  Created Services index page")
+                self.stdout.write(" Created Services index page")
 
             if "authors" not in existing_children:
                 home_page.add_child(instance=AuthorIndexPage(title="Authors", slug="authors"))
-                self.stdout.write("  Created Authors index page")
+                self.stdout.write(" Created Authors index page")
 
             if "resources" not in existing_children:
                 home_page.add_child(instance=ResourceIndexPage(title="Resources", slug="resources"))
-                self.stdout.write("  Created Resources index page")
+                self.stdout.write(" Created Resources index page")
 
             # --- 3. Site ↔ Website Bridge ---
             self._bridge_website(site, hostname)
@@ -130,7 +130,7 @@ class Command(BaseCommand):
             # --- 5. Editorial Workflow ---
             self._setup_workflow(site, workflow_type)
 
-            self.stdout.write(self.style.SUCCESS(f"  ✓ {name} setup complete"))
+            self.stdout.write(self.style.SUCCESS(f" {name} setup complete"))
 
         # Set default site
         if not Site.objects.filter(is_default_site=True).exists():
@@ -145,7 +145,7 @@ class Command(BaseCommand):
         self.stdout.write("Running health check...")
         self._run_health_check()
 
-        self.stdout.write(self.style.SUCCESS("\n✓ All tenants set up successfully"))
+        self.stdout.write(self.style.SUCCESS("\n All tenants set up successfully"))
 
     def _try_import(self, module_path, class_name):
         """Try to import a class, return None if the app isn't installed."""
@@ -155,7 +155,7 @@ class Command(BaseCommand):
             return getattr(module, class_name)
         except (ImportError, AttributeError):
             self.stdout.write(
-                self.style.WARNING(f"  {module_path}.{class_name} not available — skipping")
+                self.style.WARNING(f" {module_path}.{class_name} not available — skipping")
             )
             return None
 
@@ -174,24 +174,24 @@ class Command(BaseCommand):
                     if website.wagtail_site != site:
                         website.wagtail_site = site
                         website.save(update_fields=["wagtail_site"])
-                        self.stdout.write(f"  Bridged Website #{website.pk} ↔ Site #{site.pk}")
+                        self.stdout.write(f" Bridged Website #{website.pk} ↔ Site #{site.pk}")
                     else:
-                        self.stdout.write(f"  Bridge already exists: Website #{website.pk} ↔ Site #{site.pk}")
+                        self.stdout.write(f" Bridge already exists: Website #{website.pk} ↔ Site #{site.pk}")
                 else:
                     self.stdout.write(
                         self.style.WARNING(
-                            f"  Website model has no wagtail_site field — "
+                            f" Website model has no wagtail_site field — "
                             f"add OneToOneField to websites.Website"
                         )
                     )
             else:
                 self.stdout.write(
-                    self.style.WARNING(f"  No Website found matching '{hostname}' — bridge not created")
+                    self.style.WARNING(f" No Website found matching '{hostname}' — bridge not created")
                 )
         except ImportError:
-            self.stdout.write(self.style.WARNING("  websites app not found — bridge skipped"))
+            self.stdout.write(self.style.WARNING(" websites app not found — bridge skipped"))
         except Exception as exc:
-            self.stdout.write(self.style.WARNING(f"  Bridge error: {exc}"))
+            self.stdout.write(self.style.WARNING(f" Bridge error: {exc}"))
 
     def _setup_permissions(self, site):
         """Create per-tenant permission groups."""
@@ -200,9 +200,9 @@ class Command(BaseCommand):
 
             groups = TenantPermissionsService.setup_tenant_permissions(site)
             for role, group in groups.items():
-                self.stdout.write(f"  Permission group: {group.name}")
+                self.stdout.write(f" Permission group: {group.name}")
         except Exception as exc:
-            self.stdout.write(self.style.WARNING(f"  Permission setup error: {exc}"))
+            self.stdout.write(self.style.WARNING(f" Permission setup error: {exc}"))
 
     def _setup_workflow(self, site, workflow_type):
         """Create editorial workflow for the tenant."""
@@ -214,9 +214,9 @@ class Command(BaseCommand):
             else:
                 workflow = WorkflowService.setup_editorial_workflow(site)
 
-            self.stdout.write(f"  Workflow: {workflow.name}")
+            self.stdout.write(f" Workflow: {workflow.name}")
         except Exception as exc:
-            self.stdout.write(self.style.WARNING(f"  Workflow setup error: {exc}"))
+            self.stdout.write(self.style.WARNING(f" Workflow setup error: {exc}"))
 
     def _run_health_check(self):
         """Validate all bridges and permissions."""
@@ -226,8 +226,8 @@ class Command(BaseCommand):
             issues = validate_all_tenants_bridged()
             if issues:
                 for issue in issues:
-                    self.stdout.write(self.style.WARNING(f"  ⚠ {issue}"))
+                    self.stdout.write(self.style.WARNING(f" {issue}"))
             else:
-                self.stdout.write(self.style.SUCCESS("  All tenant bridges verified ✓"))
+                self.stdout.write(self.style.SUCCESS(" All tenant bridges verified "))
         except Exception as exc:
-            self.stdout.write(self.style.WARNING(f"  Health check error: {exc}"))
+            self.stdout.write(self.style.WARNING(f" Health check error: {exc}"))

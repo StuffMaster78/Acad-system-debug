@@ -4,9 +4,9 @@
 # Celery tasks for automated window lifecycle management.
 #
 # Schedule (set in celery beat):
-#   check_and_close_windows  — runs at 23:50 every night
-#   check_and_open_windows   — runs at 00:05 every night
-#   alert_pending_events     — runs at 09:00 every day
+# check_and_close_windows — runs at 23:50 every night
+# check_and_open_windows — runs at 00:05 every night
+# alert_pending_events — runs at 09:00 every day
 # =============================================================================
 
 from __future__ import annotations
@@ -56,8 +56,8 @@ def check_and_close_windows(self):
                 pending_count = _count_pending_events(window)
                 WindowService.close_window(
                     window,
-                    closed_by=None,             # system-initiated
-                    auto_confirm_pending=True,  # never exclude events at auto-close
+                    closed_by=None, # system-initiated
+                    auto_confirm_pending=True, # never exclude events at auto-close
                 )
                 logger.info(
                     "Auto-closed window %s | site %s | pending auto-confirmed: %s",
@@ -94,7 +94,7 @@ def check_and_open_windows(self):
     EventIntakeService.record() never raises NoOpenWindowError in
     normal operation.
     """
-    today       = date.today()
+    today = date.today()
     created_ids = []
     skipped_ids = []
 
@@ -147,7 +147,7 @@ def check_and_open_windows(self):
                 start_date=start_date,
                 end_date=end_date,
                 title=_generate_title(start_date, end_date, cycle_type),
-                created_by=None,    # system-initiated
+                created_by=None, # system-initiated
             )
             created_ids.append(website_id)
             logger.info(
@@ -197,10 +197,10 @@ def alert_pending_events():
             status=EventStatus.PENDING_CONFIRMATION,
         ).count()
         alerts.append({
-            "window_id":  window.pk,
+            "window_id": window.pk,
             "website_id": window.website.pk,
-            "count":      count,
-            "window":     str(window),
+            "count": count,
+            "window": str(window),
         })
         logger.warning(
             "Closed window %s has %s unresolved PENDING_CONFIRMATION events",
@@ -225,7 +225,7 @@ def _count_pending_events(window: PaymentWindow) -> int:
 
 def _compute_end_date(start_date: date, cycle_type: str) -> date:
     if cycle_type == WindowType.BIWEEKLY:
-        return start_date + timedelta(days=13)   # 14-day window
+        return start_date + timedelta(days=13) # 14-day window
     else:
         # Monthly: last day of the same month as start_date.
         import calendar

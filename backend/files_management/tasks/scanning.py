@@ -15,7 +15,7 @@ def scan_file_for_viruses(self, managed_file_id: int):
     """
     Scan a single file for viruses via ClamAV.
 
-    Called immediately after upload.  Retries on transient failure.
+    Called immediately after upload. Retries on transient failure.
     On infection: file is quarantined and admins are notified.
     """
     from files_management.models import ManagedFile

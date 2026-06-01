@@ -8,5 +8,5 @@ class SuperadminPagination(PageNumberPagination):
 
 class SuperadminLogCursorPagination(CursorPagination):
     """Optimized pagination for large log data."""
-    page_size = 15  # Adjust as needed
-    ordering = "-timestamp"  # Ensures newest logs are shown first
+    page_size = 15 # Adjust as needed
+    ordering = "-timestamp" # Ensures newest logs are shown first

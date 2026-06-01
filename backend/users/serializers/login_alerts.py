@@ -7,7 +7,7 @@ from users.models.login_alerts import LoginAlertPreference
 
 class LoginAlertPreferenceSerializer(serializers.ModelSerializer):
     """Serializer for login alert preferences."""
-    
+
     class Meta:
         model = LoginAlertPreference
         fields = [
@@ -24,7 +24,7 @@ class LoginAlertPreferenceSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'user', 'website', 'created_at', 'updated_at']
-    
+
     def create(self, validated_data):
         """Create preference for the current user and website."""
         request = self.context.get('request')
@@ -36,7 +36,7 @@ class LoginAlertPreferenceSerializer(serializers.ModelSerializer):
 
 class LoginAlertPreferenceUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating login alert preferences."""
-    
+
     class Meta:
         model = LoginAlertPreference
         fields = [

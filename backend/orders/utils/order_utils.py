@@ -26,12 +26,12 @@ def get_order_by_id(order_id, user=None, check_soft_deleted=True):
     """
     from users.models import User
     from orders.models.orders import Order
-    
+
     # Use the appropriate manager based on check_soft_deleted flag
     if check_soft_deleted:
-        queryset = Order.objects.all()  # OrderManager filters out soft-deleted by default
+        queryset = Order.objects.all() # OrderManager filters out soft-deleted by default
     else:
-        queryset = Order.all_objects.all()  # Access all orders including soft-deleted
+        queryset = Order.all_objects.all() # Access all orders including soft-deleted
 
     order = get_object_or_404(queryset, id=order_id)
 
@@ -54,12 +54,12 @@ def save_order(order, user=None, event=None, notes=None):
         notes (str, optional): Additional notes for the audit log.
     """
     order.updated_at = timezone.now()
-    
+
     # Check if status_changed_at field exists before including it
     update_fields = ["status", "updated_at"]
     if hasattr(order, 'status_changed_at'):
         update_fields.append("status_changed_at")
-    
+
     order.save(update_fields=update_fields)
 
     logger.info(f"Order #{order.id} saved. Status: {order.status}")

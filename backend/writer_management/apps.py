@@ -12,6 +12,6 @@ class WriterManagementConfig(AppConfig):
         Import order matters — models must be loaded before signals.
         """
         try:
-            import writer_management.signals.achievement_signals  # noqa: F401
+            import writer_management.signals.achievement_signals # noqa: F401
         except Exception:
             pass

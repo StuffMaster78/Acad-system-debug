@@ -18,7 +18,7 @@ class ExecutionResult:
     """
     workflow_id: str
     node_id: str
-    status: str  # approved | rejected | pending
+    status: str # approved | rejected | pending
     next_nodes: list[str]
 
 

@@ -20,7 +20,7 @@ class ProfileChangeRequest(models.Model):
         ('rejected', 'Rejected'),
         ('cancelled', 'Cancelled'),
     ]
-    
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -82,7 +82,7 @@ class ProfileChangeRequest(models.Model):
         blank=True,
         help_text=_("When the change was completed")
     )
-    
+
     class Meta:
         ordering = ['-created_at']
         indexes = [
@@ -92,7 +92,7 @@ class ProfileChangeRequest(models.Model):
         ]
         verbose_name = _("Profile Change Request")
         verbose_name_plural = _("Profile Change Requests")
-    
+
     def __str__(self):
         return f"Profile change request for {self.user.email} - {self.get_change_type_display()} ({self.status})"
 
@@ -106,7 +106,7 @@ class WriterAvatarUpload(models.Model):
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]
-    
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -147,7 +147,7 @@ class WriterAvatarUpload(models.Model):
         help_text=_("Reason for rejection")
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         ordering = ['-created_at']
         indexes = [
@@ -156,6 +156,6 @@ class WriterAvatarUpload(models.Model):
         ]
         verbose_name = _("Writer Avatar Upload")
         verbose_name_plural = _("Writer Avatar Uploads")
-    
+
     def __str__(self):
         return f"Avatar upload for {self.user.email} - {self.status}"

@@ -13,13 +13,13 @@ import string
 from websites.models.websites import Website
 try:
     # Re-export LoyaltyTransaction for tests importing from client_management.models
-    from loyalty_management.models import LoyaltyTransaction as LoyaltyTransaction  # noqa: F401
+    from loyalty_management.models import LoyaltyTransaction as LoyaltyTransaction # noqa: F401
 except Exception:
     pass
 # # Use apps.get_model() to access Website model lazily
 # def get_website_model():
-#     Website = apps.get_model('websites', 'Website')
-#     return Website
+# Website = apps.get_model('websites', 'Website')
+# return Website
 
 # Website = get_website_model()
 # # User = get_user_model()
@@ -28,14 +28,14 @@ from django.db import models as dj_models
 
 
 class ClientProfileQuerySet(dj_models.QuerySet):
-    def filter(self, *args, **kwargs):  # type: ignore[override]
+    def filter(self, *args, **kwargs): # type: ignore[override]
         if 'client' in kwargs:
             kwargs['user'] = kwargs.pop('client')
         return super().filter(*args, **kwargs)
 
 
 class ClientProfileManager(dj_models.Manager.from_queryset(ClientProfileQuerySet)):
-    def get(self, *args, **kwargs):  # type: ignore[override]
+    def get(self, *args, **kwargs): # type: ignore[override]
         if 'client' in kwargs:
             kwargs['user'] = kwargs.pop('client')
         return super().get(*args, **kwargs)
@@ -97,7 +97,7 @@ class ClientProfile(models.Model):
         help_text=_("Unique client registration ID (e.g., Client #12345).")
     )
     loyalty_points = models.PositiveIntegerField(
-        default=0, 
+        default=0,
         help_text=_("Total loyalty points accumulated by the client.")
     )
     tier = models.ForeignKey(
@@ -186,7 +186,7 @@ class ClientProfile(models.Model):
             client=self.user,
         )
         return wallet.available_balance
-    
+
     def get_wallet_transactions(self):
         """
         Retrieve wallet transactions for the client.
@@ -257,7 +257,7 @@ class ClientProfile(models.Model):
         Retrieve all orders associated with the client with related writer data.
         """
         return Order.objects.filter(client=self.user).select_related('writer').order_by('-created_at')
-    
+
 
     def get_client_badges(self):
         """
@@ -273,10 +273,10 @@ class ClientProfile(models.Model):
         """
         Retrieve the client's activity log (to be implemented in activity logging).
         """
-        from activity.models import ActivityLog  # Assuming you have an activity log app
+        from activity.models import ActivityLog # Assuming you have an activity log app
         return ActivityLog.objects.filter(user=self.user).order_by('-timestamp')
 
- 
+
     def suspend_account(self, admin):
         """
         Suspend the client account and log the action.
@@ -304,7 +304,7 @@ class ClientProfile(models.Model):
             user=admin,
             action=f"Deactivated client account: {self.user.username}"
         )
-    
+
 
     def activate_account(self, admin):
         """
@@ -346,7 +346,7 @@ class ClientProfile(models.Model):
             user=admin,
             action=f"Set temporary password for client: {self.user.username}"
         )
-    
+
     @property
     def calculate_loyalty_tier(self):
         """Retrieve the current loyalty tier from the loyalty_management app."""
@@ -379,10 +379,10 @@ class ClientProfile(models.Model):
         from loyalty_management.models import Milestone
         achieved_milestones = Milestone.objects.filter(
             target_value__lte=self.loyalty_points,
-            target_type='loyalty_points'  # Adjust for other milestone types if necessary
+            target_type='loyalty_points' # Adjust for other milestone types if necessary
         )
         return achieved_milestones
-    
+
 
 class SuspiciousLogin(models.Model):
     client = models.ForeignKey(
@@ -396,7 +396,7 @@ class SuspiciousLogin(models.Model):
 
     def __str__(self):
         return f"Suspicious login for {self.client.user.username} from {self.detected_country}"
-    
+
 class ClientActivityLog(models.Model):
     """
     Logs all client-related activities for audit purposes.
@@ -440,7 +440,7 @@ class TemporaryPassword(models.Model):
         return now() < self.expires_at
 
     def __str__(self):
-        return f"Temporary Password for {self.client.user.username} (Expires: {self.expires_at})"    
+        return f"Temporary Password for {self.client.user.username} (Expires: {self.expires_at})"
 
 
 class ProfileUpdateRequest(models.Model):
@@ -484,7 +484,7 @@ class ProfileUpdateRequest(models.Model):
 
     def __str__(self):
         return f"Profile Update Request: {self.client.user.username} ({self.status})"
-    
+
 
 class ClientAction(models.Model):
     """
@@ -496,7 +496,7 @@ class ClientAction(models.Model):
         ('activate', 'Activate'),
         ('deactivate', 'Deactivate'),
     ]
-    
+
     client = models.ForeignKey(
         'client_management.ClientProfile',
         on_delete=models.SET_NULL,
@@ -529,7 +529,7 @@ class ClientAction(models.Model):
 
     def __str__(self):
         return f"{self.get_action_display()} action on {self.client.user.username} by {self.performed_by.username}"
-    
+
     class Meta:
         verbose_name = "Client Action"
         verbose_name_plural = "Client Actions"

@@ -21,7 +21,7 @@ class EventMetricsService:
     @staticmethod
     def end(start_time: float) -> int:
         return int((time.time() - start_time) * 1000)
-    
+
     @classmethod
     def snapshot(cls) -> dict:
         """

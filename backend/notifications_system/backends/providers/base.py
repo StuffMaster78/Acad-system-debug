@@ -21,12 +21,12 @@ interface, different implementation.
 
 BaseEmailBackend is different from BaseDeliveryBackend:
 
-    BaseDeliveryBackend   channel-level abstraction
+    BaseDeliveryBackend channel-level abstraction
                           receives a Delivery instance
                           knows about users, websites, rendered content
                           used by the pipeline task
 
-    BaseEmailBackend      provider-level abstraction
+    BaseEmailBackend provider-level abstraction
                           receives pre-rendered strings only
                           knows nothing about users, websites, or models
                           used by EmailBackend and EmailService
@@ -55,34 +55,34 @@ class EmailSendResult:
     returns.
 
     Fields:
-        success:        True if the provider accepted the message
+        success: True if the provider accepted the message
                         for delivery. Does not mean the email was
                         received — only that the provider queued it.
 
-        message_id:     Provider's message ID for tracking.
+        message_id: Provider's message ID for tracking.
                         e.g. SendGrid X-Message-Id,
                              Mailgun id field,
                              SES MessageId.
                         Empty string if unavailable.
 
-        error_code:     Short machine-readable error code.
+        error_code: Short machine-readable error code.
                         Empty string on success.
 
                         Provider error codes:
-                            AUTH_ERROR          invalid API key
-                            RATE_LIMITED        provider rate limit hit
-                            INVALID_RECIPIENT   provider rejected recipient
-                            SEND_FAILED         provider returned error
-                            TIMEOUT             request timed out
-                            CONNECTION_ERROR    could not reach provider
+                            AUTH_ERROR invalid API key
+                            RATE_LIMITED provider rate limit hit
+                            INVALID_RECIPIENT provider rejected recipient
+                            SEND_FAILED provider returned error
+                            TIMEOUT request timed out
+                            CONNECTION_ERROR could not reach provider
 
-        error_message:  Human-readable error description.
+        error_message: Human-readable error description.
                         Empty string on success.
 
-        status_code:    HTTP status code from provider API.
+        status_code: HTTP status code from provider API.
                         0 if not applicable (e.g. SMTP).
 
-        meta:           Optional extra provider response data.
+        meta: Optional extra provider response data.
                         Not used by the pipeline — for debugging.
     """
     success: bool
@@ -145,21 +145,21 @@ class EmailMessage:
     BaseEmailBackend subclasses (which know only about sending).
 
     Fields:
-        to:             Recipient email address
-        subject:        Email subject line
-        body_html:      HTML body — primary content
-        body_text:      Plain text fallback
-        from_name:      Sender display name e.g. 'Writing Platform'
-        from_address:   Sender email address e.g. 'noreply@example.com'
-        reply_to:       Optional reply-to address
-        cc:             Optional CC addresses
-        bcc:            Optional BCC addresses
-        headers:        Optional custom email headers
-        attachments:    Optional attachments — list of dicts with
+        to: Recipient email address
+        subject: Email subject line
+        body_html: HTML body — primary content
+        body_text: Plain text fallback
+        from_name: Sender display name e.g. 'Writing Platform'
+        from_address: Sender email address e.g. 'noreply@example.com'
+        reply_to: Optional reply-to address
+        cc: Optional CC addresses
+        bcc: Optional BCC addresses
+        headers: Optional custom email headers
+        attachments: Optional attachments — list of dicts with
                         filename, content (bytes), content_type
-        tags:           Optional provider tags for tracking
+        tags: Optional provider tags for tracking
                         e.g. ['order-completed', 'transactional']
-        metadata:       Optional provider metadata dict
+        metadata: Optional provider metadata dict
     """
     to: str
     subject: str
@@ -260,11 +260,11 @@ class BaseEmailBackend(ABC):
             config: Dict of provider credentials and settings.
                     Contents depend on the provider:
 
-                    SendGrid:   {'api_key': 'SG.xxx'}
-                    Mailgun:    {'api_key': 'key-xxx', 'domain': 'mg.example.com'}
-                    SES:        {'aws_access_key_id': '...', 'aws_secret_access_key': '...', 'region_name': '...'}
-                    Gmail:      {'email': 'you@gmail.com', 'password': 'app-password'}
-                    Console:    {}
+                    SendGrid: {'api_key': 'SG.xxx'}
+                    Mailgun: {'api_key': 'key-xxx', 'domain': 'mg.example.com'}
+                    SES: {'aws_access_key_id': '...', 'aws_secret_access_key': '...', 'region_name': '...'}
+                    Gmail: {'email': 'you@gmail.com', 'password': 'app-password'}
+                    Console: {}
         """
         if not isinstance(config, dict):
             raise TypeError(
@@ -315,7 +315,7 @@ class BaseEmailBackend(ABC):
                         "SendGridBackend requires 'api_key' in config."
                     )
         """
-        pass  # Base implementation is a no-op — subclasses override
+        pass # Base implementation is a no-op — subclasses override
 
     def health_check(self) -> bool:
         """
@@ -328,7 +328,7 @@ class BaseEmailBackend(ABC):
             True if the provider is reachable and the credentials work.
             False if not. Never raises.
         """
-        return True  # Default — assume healthy unless overridden
+        return True # Default — assume healthy unless overridden
 
     def get_provider_info(self) -> Dict[str, Any]:
         """

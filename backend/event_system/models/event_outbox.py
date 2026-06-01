@@ -55,7 +55,7 @@ class EventOutbox(models.Model):
     )
 
     status = models.CharField(
-        max_length=30,  # EventStatus
+        max_length=30, # EventStatus
         choices=EventStatus.choices,
         default=EventStatus.PENDING,
         db_index=True,

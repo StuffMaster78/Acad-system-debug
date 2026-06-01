@@ -4,8 +4,8 @@ from writer_management.models.writer_performance import (
     WriterPerformanceSnapshot,
     WriterPerformanceMetrics,
 )
- 
- 
+
+
 class WriterPerformanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterPerformance
@@ -26,8 +26,8 @@ class WriterPerformanceSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = fields
- 
- 
+
+
 class WriterPerformanceSnapshotSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterPerformanceSnapshot
@@ -54,8 +54,8 @@ class WriterPerformanceSnapshotSerializer(serializers.ModelSerializer):
             "generated_at",
         ]
         read_only_fields = fields
- 
- 
+
+
 class WriterPerformanceMetricsSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterPerformanceMetrics

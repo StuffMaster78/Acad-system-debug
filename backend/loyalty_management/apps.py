@@ -6,4 +6,4 @@ class LoyaltyManagementConfig(AppConfig):
     name = 'loyalty_management'
 
     def ready(self):
-        import loyalty_management.signals  # Import signals here
+        import loyalty_management.signals # Import signals here

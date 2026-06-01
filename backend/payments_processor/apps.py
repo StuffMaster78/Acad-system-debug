@@ -9,6 +9,6 @@ class PaymentsConfig(AppConfig):
     def ready(self):
         # Import signals if/when you actually use them
         try:
-            import payments_processor.signals.handlers  # noqa
+            import payments_processor.signals.handlers # noqa
         except ImportError:
             pass

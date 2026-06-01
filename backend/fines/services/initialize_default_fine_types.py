@@ -12,10 +12,10 @@ from websites.models.websites import Website
 def initialize_default_fine_types(website=None):
     """
     Create default fine type configurations.
-    
+
     Args:
         website: Website instance (None = create global types)
-        
+
     Returns:
         List[FineTypeConfig]: Created fine type configs
     """
@@ -100,16 +100,16 @@ def initialize_default_fine_types(website=None):
             'fixed_amount': 15.00,
         },
     ]
-    
+
     created = []
-    
+
     for type_data in default_types:
         # Check if already exists
         existing = FineTypeConfig.objects.filter(
             code=type_data['code'],
             website=website
         ).first()
-        
+
         if not existing:
             # Prepare create data, excluding base_amount entirely (will be None by default)
             create_data = {}
@@ -117,13 +117,13 @@ def initialize_default_fine_types(website=None):
                 # Skip base_amount field entirely - it should be None for percentage types
                 if k != 'base_amount':
                     create_data[k] = v
-            
+
             config = FineTypeConfig.objects.create(
                 website=website,
                 active=True,
                 **create_data
             )
             created.append(config)
-    
+
     return created
 

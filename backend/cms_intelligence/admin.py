@@ -135,7 +135,7 @@ class FreshnessAlertAdmin(admin.ModelAdmin):
 
     severity_badge.short_description = "Severity"
 
-    @admin.action(description="✓ Acknowledge selected alerts")
+    @admin.action(description=" Acknowledge selected alerts")
     def acknowledge_alerts(self, request, queryset):
         from django.utils import timezone
 
@@ -144,7 +144,7 @@ class FreshnessAlertAdmin(admin.ModelAdmin):
             acknowledged_by=request.user,
         )
 
-    @admin.action(description="✕ Dismiss selected alerts")
+    @admin.action(description=" Dismiss selected alerts")
     def dismiss_alerts(self, request, queryset):
         from django.utils import timezone
 

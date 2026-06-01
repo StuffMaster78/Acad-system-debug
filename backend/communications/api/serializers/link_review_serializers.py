@@ -63,7 +63,7 @@ class CommunicationModerationFlagResolveSerializer(serializers.Serializer):
             resolved_by=request.user,
             resolution_note=str(data.get("resolution_note", "")),
         )
-    
+
 
 class CommunicationLinkReviewSerializer(serializers.ModelSerializer):
     """

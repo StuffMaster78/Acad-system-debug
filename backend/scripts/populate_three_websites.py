@@ -14,13 +14,13 @@ sites = ['https://site-a.local', 'https://site-b.local', 'https://site-c.local']
 for domain in sites:
     w = Website.objects.filter(domain=domain).first()
     if not w:
-        print(f"⚠️  Website {domain} not found, skipping...")
+        print(f"️ Website {domain} not found, skipping...")
         continue
-    
+
     print(f"\n{'='*70}")
     print(f"Populating: {w.name} ({domain})")
     print('='*70)
-    
+
     # Use the management command
     cmd = Command()
     cmd.handle(domain, skip_checks=True)

@@ -12,7 +12,7 @@ class OrderDraftSerializer(serializers.ModelSerializer):
     preferred_writer_email = serializers.CharField(source='preferred_writer.email', read_only=True)
     extra_services_names = serializers.SerializerMethodField()
     can_convert = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = OrderDraft
         fields = [
@@ -47,17 +47,17 @@ class OrderDraftSerializer(serializers.ModelSerializer):
             'id', 'client', 'website', 'created_at', 'updated_at',
             'converted_to_order', 'estimated_price'
         ]
-    
+
     def get_extra_services_names(self, obj):
         """Get names of extra services."""
         return [service.name for service in obj.extra_services.all()]
-    
+
     def get_can_convert(self, obj):
         """Check if draft can be converted to order."""
         return obj.converted_to_order is None and (
             obj.topic and obj.order_instructions and obj.number_of_pages
         )
-    
+
     def create(self, validated_data):
         """Create draft for the current user."""
         request = self.context.get('request')
@@ -69,7 +69,7 @@ class OrderDraftSerializer(serializers.ModelSerializer):
 
 class OrderDraftCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating order drafts."""
-    
+
     class Meta:
         model = OrderDraft
         fields = [
@@ -92,21 +92,21 @@ class OrderDraftCreateSerializer(serializers.ModelSerializer):
 class OrderDraftConvertSerializer(serializers.Serializer):
     """Serializer for converting draft to order."""
     calculate_price = serializers.BooleanField(default=True, help_text="Calculate price automatically")
-    
+
     def validate(self, attrs):
         """Validate that draft can be converted."""
         draft = self.context.get('draft')
         if not draft:
             raise serializers.ValidationError("Draft not found")
-        
+
         if draft.converted_to_order:
             raise serializers.ValidationError("Draft has already been converted")
-        
+
         if not draft.topic or not draft.order_instructions:
             raise serializers.ValidationError("Draft is incomplete. Please fill in topic and instructions.")
-        
+
         if not draft.number_of_pages:
             raise serializers.ValidationError("Number of pages is required")
-        
+
         return attrs
 

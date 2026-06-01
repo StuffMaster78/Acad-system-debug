@@ -49,7 +49,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
     )
     serializer_class = EditorProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter queryset based on user role."""
         user = self.request.user
@@ -58,7 +58,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
         elif user.role in ['admin', 'superadmin']:
             return self.queryset.all()
         return self.queryset.none()
-    
+
     @action(detail=False, methods=['get'])
     def my_profile(self, request):
         """Get current editor's profile."""
@@ -67,7 +67,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Only editors can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             profile = request.user.editor_profile
             serializer = self.get_serializer(profile)
@@ -77,7 +77,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-    
+
     @action(detail=False, methods=['get'])
     def dashboard_stats(self, request):
         """Get comprehensive dashboard statistics for current editor."""
@@ -86,7 +86,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Only editors can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -94,16 +94,16 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Get days parameter (default 30)
         days = int(request.query_params.get('days', 30))
-        
+
         # Use dashboard service
         from editor_management.services.dashboard_service import EditorDashboardService
         dashboard_data = EditorDashboardService.get_dashboard_data(profile, days=days)
-        
+
         return Response(dashboard_data)
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard/tasks')
     def dashboard_tasks(self, request):
         """Get recent and active tasks for editor dashboard."""
@@ -112,7 +112,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Only editors can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -120,23 +120,23 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Get query parameters
         limit = int(request.query_params.get('limit', 20))
         status_filter = request.query_params.get('status', None)
-        
+
         # Get tasks
         tasks = EditorTaskAssignment.objects.filter(
             assigned_editor=profile
         ).select_related('order', 'assigned_by').order_by('-assigned_at')
-        
+
         # Filter by status if provided
         if status_filter:
             tasks = tasks.filter(review_status=status_filter)
-        
+
         # Limit results
         tasks = tasks[:limit]
-        
+
         serializer = EditorTaskAssignmentSerializer(tasks, many=True)
         return Response({
             'tasks': serializer.data,
@@ -146,7 +146,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 review_status__in=['pending', 'in_review']
             ).count()
         })
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard/performance')
     def dashboard_performance(self, request):
         """Get performance analytics for editor dashboard."""
@@ -155,7 +155,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Only editors can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -163,27 +163,27 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         days = int(request.query_params.get('days', 30))
         date_from = now() - timedelta(days=days)
-        
+
         # Get performance data
         from editor_management.services.performance_calculation_service import (
             EditorPerformanceCalculationService
         )
-        
+
         # Calculate/update performance
         performance = EditorPerformanceCalculationService.calculate_performance(profile)
-        
+
         # Get performance stats
         stats = EditorPerformanceCalculationService.get_performance_stats(profile, days=days)
-        
+
         # Get performance trends
         tasks = EditorTaskAssignment.objects.filter(
             assigned_editor=profile,
             reviewed_at__gte=date_from
         )
-        
+
         # Calculate trends by week
         trends = tasks.annotate(
             week=TruncWeek('reviewed_at')
@@ -191,7 +191,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
             completed=Count('id', filter=Q(review_status='completed')),
             avg_quality=Avg('review_submission__quality_score')
         ).order_by('week')
-        
+
         return Response({
             'performance': {
                 'total_orders_reviewed': performance.total_orders_reviewed,
@@ -215,7 +215,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 for item in trends
             ]
         })
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard/analytics')
     def dashboard_analytics(self, request):
         """Get task analytics for editor dashboard."""
@@ -224,7 +224,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Only editors can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -232,45 +232,45 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         days = int(request.query_params.get('days', 30))
         date_from = now() - timedelta(days=days)
-        
+
         # Get all tasks
         all_tasks = EditorTaskAssignment.objects.filter(
             assigned_editor=profile,
             assigned_at__gte=date_from
         )
-        
+
         # Task breakdown by status
         status_breakdown = all_tasks.values('review_status').annotate(
             count=Count('id')
         )
-        
+
         # Task breakdown by assignment type
         assignment_breakdown = all_tasks.values('assignment_type').annotate(
             count=Count('id')
         )
-        
+
         # Tasks by week
         weekly_tasks = all_tasks.annotate(
             week=TruncWeek('assigned_at')
         ).values('week').annotate(
             count=Count('id')
         ).order_by('week')
-        
+
         # Urgent and overdue counts
         urgent_tasks = all_tasks.filter(
             review_status__in=['pending', 'in_review'],
             order__client_deadline__lte=now() + timedelta(days=7),
             order__client_deadline__gte=now()
         ).count()
-        
+
         overdue_tasks = all_tasks.filter(
             review_status__in=['pending', 'in_review'],
             order__client_deadline__lt=now()
         ).count()
-        
+
         return Response({
             'status_breakdown': {item['review_status']: item['count'] for item in status_breakdown},
             'assignment_breakdown': {item['assignment_type']: item['count'] for item in assignment_breakdown},
@@ -285,7 +285,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
             'overdue_tasks_count': overdue_tasks,
             'total_tasks': all_tasks.count(),
         })
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard/activity')
     def dashboard_activity(self, request):
         """Get recent activity for editor dashboard."""
@@ -294,7 +294,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Only editors can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -302,29 +302,29 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         days = int(request.query_params.get('days', 7))
         limit = int(request.query_params.get('limit', 20))
         date_from = now() - timedelta(days=days)
-        
+
         # Get recent activity logs
         recent_activity = EditorActionLog.objects.filter(
             editor=profile,
             timestamp__gte=date_from
         ).select_related('related_order').order_by('-timestamp')[:limit]
-        
+
         # Get recent reviews
         recent_reviews = EditorReviewSubmission.objects.filter(
             editor=profile,
             submitted_at__gte=date_from
         ).select_related('order', 'task_assignment').order_by('-submitted_at')[:limit]
-        
+
         # Get recent task assignments
         recent_assignments = EditorTaskAssignment.objects.filter(
             assigned_editor=profile,
             assigned_at__gte=date_from
         ).select_related('order', 'assigned_by').order_by('-assigned_at')[:limit]
-        
+
         return Response({
             'activity_logs': [
                 {
@@ -361,7 +361,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 for assignment in recent_assignments
             ]
         })
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard/workload')
     def dashboard_workload(self, request):
         """Get workload management information for editor dashboard."""
@@ -370,7 +370,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Only editors can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -378,30 +378,30 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Get current active tasks
         active_tasks = EditorTaskAssignment.objects.filter(
             assigned_editor=profile,
             review_status__in=['pending', 'in_review']
         ).select_related('order')
-        
+
         # Get max concurrent tasks from profile (if exists)
-        max_concurrent = getattr(profile, 'max_concurrent_tasks', 5)  # Default to 5
-        
+        max_concurrent = getattr(profile, 'max_concurrent_tasks', 5) # Default to 5
+
         # Calculate current workload
         current_count = active_tasks.count()
         capacity_percentage = (current_count / max_concurrent * 100) if max_concurrent > 0 else 0
-        
+
         # Get tasks by deadline
         urgent_tasks = active_tasks.filter(
             order__client_deadline__lte=now() + timedelta(days=1),
             order__client_deadline__gte=now()
         ).count()
-        
+
         overdue_tasks = active_tasks.filter(
             order__client_deadline__lt=now()
         ).count()
-        
+
         # Calculate estimated completion times
         tasks_with_deadlines = active_tasks.filter(order__client_deadline__isnull=False)
         estimated_hours = 0
@@ -409,11 +409,11 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
             if task.order.client_deadline:
                 hours_until_deadline = (task.order.client_deadline - now()).total_seconds() / 3600
                 estimated_hours += max(0, hours_until_deadline)
-        
+
         # Get recommended order limits
         can_take_more = current_count < max_concurrent
         recommended_limit = max(0, max_concurrent - current_count)
-        
+
         return Response({
             'current_workload': {
                 'active_tasks_count': current_count,
@@ -424,7 +424,7 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 'can_take_more': can_take_more,
             },
             'deadline_analysis': {
-                'urgent_tasks': urgent_tasks,  # Due within 24 hours
+                'urgent_tasks': urgent_tasks, # Due within 24 hours
                 'overdue_tasks': overdue_tasks,
                 'total_with_deadlines': tasks_with_deadlines.count(),
             },
@@ -453,7 +453,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter queryset based on user role."""
         user = self.request.user
-        
+
         if user.role == 'editor':
             profile = getattr(user, 'editor_profile', None)
             if not profile:
@@ -462,7 +462,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
         elif user.role in ['admin', 'superadmin']:
             return self.queryset.all()
         return self.queryset.none()
-    
+
     @action(detail=False, methods=['get'])
     def available_tasks(self, request):
         """Get available tasks that can be claimed with enhanced filtering."""
@@ -471,7 +471,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Only editors can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -479,25 +479,25 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Get query parameters for filtering
-        deadline_filter = request.query_params.get('deadline', None)  # 'urgent', 'upcoming', 'all'
+        deadline_filter = request.query_params.get('deadline', None) # 'urgent', 'upcoming', 'all'
         pages_min = request.query_params.get('pages_min', None)
         pages_max = request.query_params.get('pages_max', None)
         paper_type = request.query_params.get('paper_type', None)
         subject = request.query_params.get('subject', None)
-        sort_by = request.query_params.get('sort_by', 'deadline')  # 'deadline', 'pages', 'assigned_at'
+        sort_by = request.query_params.get('sort_by', 'deadline') # 'deadline', 'pages', 'assigned_at'
         limit = int(request.query_params.get('limit', 50))
-        
+
         # Base queryset
         available = self.queryset.filter(
-            Q(review_status='unclaimed') | 
+            Q(review_status='unclaimed') |
             (Q(review_status='pending') & Q(assigned_editor__isnull=True))
         ).filter(
             order__website=profile.website,
             order__status=OrderStatus.UNDER_EDITING.value
         ).select_related('order', 'order__client', 'order__writer')
-        
+
         # Filter by deadline
         if deadline_filter == 'urgent':
             # Due within 24 hours
@@ -514,21 +514,21 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
         elif deadline_filter == 'overdue':
             # Past deadline
             available = available.filter(order__client_deadline__lt=now())
-        
+
         # Filter by pages
         if pages_min:
             available = available.filter(order__pages__gte=int(pages_min))
         if pages_max:
             available = available.filter(order__pages__lte=int(pages_max))
-        
+
         # Filter by paper type
         if paper_type:
             available = available.filter(order__paper_type=paper_type)
-        
+
         # Filter by subject
         if subject:
             available = available.filter(order__subject=subject)
-        
+
         # Sort
         if sort_by == 'deadline':
             available = available.order_by('order__client_deadline')
@@ -538,21 +538,21 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
             available = available.order_by('-assigned_at')
         else:
             available = available.order_by('order__client_deadline')
-        
+
         # Limit results
         available = available[:limit]
-        
+
         serializer = self.get_serializer(available, many=True)
-        
+
         # Get summary stats
         total_available = self.queryset.filter(
-            Q(review_status='unclaimed') | 
+            Q(review_status='unclaimed') |
             (Q(review_status='pending') & Q(assigned_editor__isnull=True))
         ).filter(
             order__website=profile.website,
             order__status=OrderStatus.UNDER_EDITING.value
         ).count()
-        
+
         return Response({
             'tasks': serializer.data,
             'count': len(serializer.data),
@@ -566,7 +566,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 'sort_by': sort_by,
             }
         })
-    
+
     @action(detail=False, methods=['post'])
     def claim(self, request):
         """Claim an available order."""
@@ -575,10 +575,10 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Only editors can claim tasks."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         serializer = ClaimOrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -586,9 +586,9 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         order = get_object_or_404(Order, id=serializer.validated_data['order_id'])
-        
+
         try:
             assignment = EditorAssignmentService.claim_order(order, profile)
             serializer = self.get_serializer(assignment)
@@ -598,7 +598,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=True, methods=['post'])
     def start_review(self, request, pk=None):
         """Start reviewing a task."""
@@ -607,9 +607,9 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Only editors can start reviews."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         task = self.get_object()
-        
+
         try:
             profile = request.user.editor_profile
             EditorReviewService.start_review(task, profile)
@@ -620,7 +620,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=False, methods=['post'])
     def submit_review(self, request):
         """Submit a review for a task."""
@@ -629,10 +629,10 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Only editors can submit reviews."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         serializer = SubmitReviewSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -640,13 +640,13 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         task = get_object_or_404(
             EditorTaskAssignment,
             id=serializer.validated_data['task_id'],
             assigned_editor=profile
         )
-        
+
         try:
             review = EditorReviewService.submit_review(
                 task_assignment=task,
@@ -660,7 +660,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=False, methods=['post'])
     def complete_task(self, request):
         """Complete a task."""
@@ -669,10 +669,10 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Only editors can complete tasks."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         serializer = CompleteTaskSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -680,13 +680,13 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         task = get_object_or_404(
             EditorTaskAssignment,
             id=serializer.validated_data['task_id'],
             assigned_editor=profile
         )
-        
+
         try:
             EditorReviewService.complete_task(
                 task,
@@ -700,7 +700,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=False, methods=['post'])
     def reject_task(self, request):
         """Reject a task."""
@@ -709,10 +709,10 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Only editors can reject tasks."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         serializer = RejectTaskSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -720,13 +720,13 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         task = get_object_or_404(
             EditorTaskAssignment,
             id=serializer.validated_data['task_id'],
             assigned_editor=profile
         )
-        
+
         try:
             EditorReviewService.reject_task(
                 task,
@@ -740,7 +740,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=False, methods=['post'])
     def unclaim(self, request):
         """Unclaim a task."""
@@ -749,10 +749,10 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Only editors can unclaim tasks."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         serializer = UnclaimTaskSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -760,12 +760,12 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         task = get_object_or_404(
             EditorTaskAssignment,
             id=serializer.validated_data['task_id']
         )
-        
+
         try:
             EditorAssignmentService.unclaim_order(task, profile)
             serializer = self.get_serializer(task)
@@ -786,11 +786,11 @@ class EditorReviewSubmissionViewSet(viewsets.ReadOnlyModelViewSet):
     )
     serializer_class = EditorReviewSubmissionSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter queryset based on user role."""
         user = self.request.user
-        
+
         if user.role == 'editor':
             profile = getattr(user, 'editor_profile', None)
             if not profile:
@@ -820,7 +820,7 @@ class EditorPerformanceViewSet(viewsets.ReadOnlyModelViewSet):
         elif self.request.user.role in ['admin', 'superadmin']:
             return self.queryset.all()
         return self.queryset.none()
-    
+
     def list(self, request):
         """Get current editor's performance."""
         if request.user.role != 'editor':
@@ -828,7 +828,7 @@ class EditorPerformanceViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Only editors can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -836,7 +836,7 @@ class EditorPerformanceViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Calculate/update performance metrics
         from editor_management.services.performance_calculation_service import (
             EditorPerformanceCalculationService
@@ -844,7 +844,7 @@ class EditorPerformanceViewSet(viewsets.ReadOnlyModelViewSet):
         performance = EditorPerformanceCalculationService.calculate_performance(profile)
         serializer = self.get_serializer(performance)
         return Response(serializer.data)
-    
+
     @action(detail=False, methods=['get'])
     def detailed_stats(self, request):
         """Get detailed performance statistics."""
@@ -853,7 +853,7 @@ class EditorPerformanceViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Only editors can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             profile = request.user.editor_profile
         except EditorProfile.DoesNotExist:
@@ -861,14 +861,14 @@ class EditorPerformanceViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "Editor profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         days = int(request.query_params.get('days', 30))
-        
+
         from editor_management.services.performance_calculation_service import (
             EditorPerformanceCalculationService
         )
         stats = EditorPerformanceCalculationService.get_performance_stats(profile, days=days)
-        
+
         return Response(stats)
 
 
@@ -883,7 +883,7 @@ class EditorNotificationsViewSet(viewsets.ReadOnlyModelViewSet):
         return EditorNotification.objects.filter(
             editor=self.request.user.editor_profile
         ).select_related('related_order', 'related_task').order_by('-created_at')
-    
+
     @action(detail=False, methods=['post'])
     def mark_all_read(self, request):
         """Mark all notifications as read."""
@@ -892,7 +892,7 @@ class EditorNotificationsViewSet(viewsets.ReadOnlyModelViewSet):
             is_read=False
         ).update(is_read=True)
         return Response({"detail": "All notifications marked as read."})
-    
+
     @action(detail=True, methods=['post'])
     def mark_read(self, request, pk=None):
         """Mark a notification as read."""
@@ -908,21 +908,21 @@ class AdminEditorAssignmentViewSet(viewsets.ViewSet):
     Admin-only ViewSet for manually assigning orders to editors.
     """
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
-    
+
     @action(detail=False, methods=['post'])
     def assign(self, request):
         """Manually assign an order to an editor."""
         from .serializers import ManualAssignmentSerializer
-        
+
         serializer = ManualAssignmentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         order = get_object_or_404(Order, id=serializer.validated_data['order_id'])
         editor = get_object_or_404(
             EditorProfile,
             id=serializer.validated_data['editor_id']
         )
-        
+
         try:
             assignment = EditorAssignmentService.manually_assign_order(
                 order=order,
@@ -937,23 +937,23 @@ class AdminEditorAssignmentViewSet(viewsets.ViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=False, methods=['get'])
     def team_overview(self, request):
         """Get team overview for all editors in a website."""
         from websites.utils import get_current_website
         from editor_management.services.dashboard_service import EditorDashboardService
-        
+
         website = get_current_website(request)
         if not website:
             return Response(
                 {"detail": "Website context required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         overview = EditorDashboardService.get_team_overview(website)
         return Response(overview)
-    
+
     @action(detail=False, methods=['get'])
     def rankings(self, request):
         """Get editor performance rankings."""
@@ -961,17 +961,17 @@ class AdminEditorAssignmentViewSet(viewsets.ViewSet):
         from editor_management.services.performance_calculation_service import (
             EditorPerformanceCalculationService
         )
-        
+
         website = get_current_website(request)
         limit = int(request.query_params.get('limit', 10))
-        
+
         rankings = EditorPerformanceCalculationService.get_editor_rankings(
             website=website,
             limit=limit
         )
-        
+
         return Response(rankings)
-    
+
     @action(detail=False, methods=['post'])
     def recalculate_performance(self, request):
         """Trigger performance recalculation for all editors or specific editor."""
@@ -979,9 +979,9 @@ class AdminEditorAssignmentViewSet(viewsets.ViewSet):
         from editor_management.services.performance_calculation_service import (
             EditorPerformanceCalculationService
         )
-        
+
         editor_id = request.data.get('editor_id')
-        
+
         if editor_id:
             # Recalculate for specific editor
             editor = get_object_or_404(EditorProfile, id=editor_id)

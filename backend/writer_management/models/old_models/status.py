@@ -28,7 +28,7 @@ class WriterStatus(models.Model):
         help_text="Is the writer currently on probation?"
     )
     strikes = models.PositiveIntegerField(default=0)
-    
+
     active_strikes = models.PositiveIntegerField(default=0)
     last_strike_at = models.DateTimeField(null=True, blank=True)
     suspension_ends_at = models.DateTimeField(null=True, blank=True)

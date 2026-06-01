@@ -11,7 +11,7 @@ from django.core.validators import (
 
 
 class WriterLevelOptionConfig(models.Model):
-    """ 
+    """
     Represents different pricing options for writer levels.
     Each option can be a fixed price or a multiplier based on the pricing type.
     This allows for flexible pricing configurations per website.
@@ -97,11 +97,11 @@ class PricingConfiguration(models.Model):
         help_text=("Website-specific pricing configuration."),
     )
     base_price_per_page = models.DecimalField(
-        max_digits=10, decimal_places=2, 
+        max_digits=10, decimal_places=2,
         help_text="Base price per page (USD)."
     )
     base_price_per_slide = models.DecimalField(
-        max_digits=10, decimal_places=2, 
+        max_digits=10, decimal_places=2,
         help_text="Base price per slide (USD)."
     )
     technical_multiplier = models.DecimalField(
@@ -193,7 +193,7 @@ class AcademicLevelPricing(models.Model):
         related_name="website_for_academic_level_pricing",
         help_text=("Website this pricing configuration applies to."),
     )
-    academic_level = models.OneToOneField( 
+    academic_level = models.OneToOneField(
         AcademicLevel,
         on_delete=models.CASCADE,
         related_name="pricing_for_academic_level",
@@ -239,11 +239,11 @@ class AcademicLevelPricing(models.Model):
 
     def __str__(self):
         return f"{self.academic_level.name} (Multiplier: {self.multiplier})"
-    
+
 
 
 class DeadlineMultiplier(models.Model):
-    """ 
+    """
     Price multipliers based on deadline windows (e.g., 24h = 1.5x).
     """
     website = models.ForeignKey(
@@ -251,7 +251,7 @@ class DeadlineMultiplier(models.Model):
         on_delete=models.CASCADE,
         related_name="deadline_multipliers"
     )
-    label   = models.CharField(
+    label = models.CharField(
         max_length=100,
         help_text="Label for the deadline (e.g., '1 Hour', '1 Day', '2 Days')."
     )
@@ -269,7 +269,7 @@ class DeadlineMultiplier(models.Model):
 
     def __str__(self):
         return f"{self.hours}h => {self.multiplier}x ({self.website})"
-    
+
     def clean(self):
         """Validate the deadline multiplier configuration."""
         from order_pricing_core.services.deadline_multiplier_service import DeadlineMultiplierService
@@ -282,20 +282,20 @@ class DeadlineMultiplier(models.Model):
         if errors:
             from django.core.exceptions import ValidationError
             raise ValidationError(errors)
-    
+
     def save(self, *args, **kwargs):
         """Override save to run validation."""
         self.full_clean()
         super().save(*args, **kwargs)
-    
+
     def get_formatted_multiplier(self) -> str:
         """Return formatted multiplier string (e.g., '1.5x')."""
         return f"{self.multiplier}x"
-    
+
     def get_days(self) -> float:
         """Return hours converted to days."""
         return self.hours / 24.0
-    
+
     def is_urgent(self, threshold_hours: int = 24) -> bool:
         """Check if this deadline is considered urgent."""
         return self.hours <= threshold_hours

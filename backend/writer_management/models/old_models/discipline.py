@@ -130,7 +130,7 @@ class WriterSuspension(models.Model):
 
     def __str__(self):
         return f"Suspension: {self.writer.user.username} (Active: {self.is_active})"
-    
+
     class Meta:
         verbose_name = "Writer Suspension"
         verbose_name_plural = "Writer Suspensions"
@@ -241,7 +241,7 @@ class WriterBlacklistHistory(models.Model):
 
 class Probation(models.Model):
     """Tracks writers placed on probation."""
-    
+
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,

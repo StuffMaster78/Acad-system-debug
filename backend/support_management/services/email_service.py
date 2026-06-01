@@ -13,19 +13,19 @@ class EmailService:
     """
     Service for sending SLA-related emails.
     """
-    
+
     @staticmethod
     def send_sla_breach_email(user, sla):
         """
         Send email alert for SLA breach.
-        
+
         Args:
             user: User to send email to
             sla: OrderDisputeSLA instance
         """
         try:
-            subject = f"🚨 SLA BREACH ALERT: {sla.get_sla_type_display()}"
-            
+            subject = f" SLA BREACH ALERT: {sla.get_sla_type_display()}"
+
             # Build context
             context = {
                 'user': user,
@@ -37,7 +37,7 @@ class EmailService:
                 'expected_time': sla.expected_resolution_time,
                 'site_name': getattr(settings, 'SITE_NAME', 'Support System'),
             }
-            
+
             # Try to render email template
             try:
                 message = render_to_string('support_management/emails/sla_breach.html', context)
@@ -61,7 +61,7 @@ Thank you,
 Support Team
 """
                 message = message_plain
-            
+
             # Send email
             send_mail(
                 subject=subject,
@@ -71,26 +71,26 @@ Support Team
                 recipient_list=[user.email],
                 fail_silently=False,
             )
-            
+
             logger.info(f"Sent SLA breach email to {user.email} for SLA {sla.id}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error sending SLA breach email to {user.email}: {e}", exc_info=True)
             return False
-    
+
     @staticmethod
     def send_sla_warning_email(user, sla):
         """
         Send email warning for approaching SLA deadline.
-        
+
         Args:
             user: User to send email to
             sla: OrderDisputeSLA instance
         """
         try:
-            subject = f"⚠️ SLA WARNING: {sla.get_sla_type_display()} Approaching Deadline"
-            
+            subject = f"️ SLA WARNING: {sla.get_sla_type_display()} Approaching Deadline"
+
             # Build context
             context = {
                 'user': user,
@@ -102,7 +102,7 @@ Support Team
                 'expected_time': sla.expected_resolution_time,
                 'site_name': getattr(settings, 'SITE_NAME', 'Support System'),
             }
-            
+
             # Try to render email template
             try:
                 message = render_to_string('support_management/emails/sla_warning.html', context)
@@ -126,7 +126,7 @@ Thank you,
 Support Team
 """
                 message = message_plain
-            
+
             # Send email
             send_mail(
                 subject=subject,
@@ -136,10 +136,10 @@ Support Team
                 recipient_list=[user.email],
                 fail_silently=False,
             )
-            
+
             logger.info(f"Sent SLA warning email to {user.email} for SLA {sla.id}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error sending SLA warning email to {user.email}: {e}", exc_info=True)
             return False

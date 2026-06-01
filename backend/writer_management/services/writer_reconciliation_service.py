@@ -3,14 +3,14 @@ Detects and repairs data inconsistencies in writer_management.
 Run via management commands after data migrations or bulk imports.
 """
 import logging
- 
+
 from django.db.models import F
- 
+
 logger = logging.getLogger(__name__)
- 
- 
+
+
 class WriterReconciliationService:
- 
+
     @staticmethod
     def reconcile_discipline_state(writer) -> dict:
         """
@@ -22,17 +22,17 @@ class WriterReconciliationService:
         )
         WriterStatusService.recompute(writer)
         return {"status": "recomputed", "writer": writer.registration_id}
- 
+
     @staticmethod
     def reconcile_active_orders_count(writer) -> dict:
         """
         Recount active orders from the orders app and sync
         WriterCapacity.active_orders_count.
- 
+
         Called after manual order data corrections.
         """
         from writer_management.models.writer_capacity import WriterCapacity
- 
+
         try:
             from orders.models.orders import Order
             active_count = Order.objects.filter(
@@ -47,24 +47,24 @@ class WriterReconciliationService:
                 exc,
             )
             return {"status": "error", "writer": writer.registration_id}
- 
+
         updated = WriterCapacity.objects.filter(writer=writer).update(
             active_orders_count=active_count
         )
- 
+
         logger.info(
             "reconcile_active_orders_count: writer=%s count=%d updated=%d",
             writer.registration_id,
             active_count,
             updated,
         )
- 
+
         return {
             "status": "ok",
             "writer": writer.registration_id,
             "active_orders_count": active_count,
         }
- 
+
     @staticmethod
     def reconcile_performance(writer) -> dict:
         """
@@ -72,11 +72,11 @@ class WriterReconciliationService:
         Called after order data corrections.
         """
         from writer_management.models.writer_performance import WriterPerformance
- 
+
         try:
             from orders.models.orders import Order
             from django.db.models import Count, Sum, Q
- 
+
             stats = Order.objects.filter(
                 assigned_writer=writer,
             ).aggregate(
@@ -98,7 +98,7 @@ class WriterReconciliationService:
                 exc,
             )
             return {"status": "error", "writer": writer.registration_id}
- 
+
         WriterPerformance.objects.filter(writer=writer).update(
             total_orders=stats["total"] or 0,
             completed_orders=stats["completed"] or 0,
@@ -108,19 +108,19 @@ class WriterReconciliationService:
             on_time_deliveries=stats["on_time"] or 0,
             revision_count=stats["revisions"] or 0,
         )
- 
+
         logger.info(
             "reconcile_performance: writer=%s stats=%s",
             writer.registration_id,
             stats,
         )
- 
+
         return {
             "status": "ok",
             "writer": writer.registration_id,
             **{k: v or 0 for k, v in stats.items()},
         }
- 
+
     @staticmethod
     def reconcile_all_for_website(website) -> dict:
         """
@@ -128,12 +128,12 @@ class WriterReconciliationService:
         Use sparingly — expensive. Intended for post-migration runs.
         """
         from writer_management.models.writer_profile import WriterProfile
- 
+
         writers = WriterProfile.objects.filter(
             writer_level__website=website,
             is_deleted=False,
         )
- 
+
         results = {
             "total": 0,
             "discipline_recomputed": 0,
@@ -141,7 +141,7 @@ class WriterReconciliationService:
             "performance_reconciled": 0,
             "errors": 0,
         }
- 
+
         for writer in writers.iterator(chunk_size=50):
             results["total"] += 1
             try:
@@ -149,23 +149,23 @@ class WriterReconciliationService:
                 results["discipline_recomputed"] += 1
             except Exception:
                 results["errors"] += 1
- 
+
             try:
                 WriterReconciliationService.reconcile_active_orders_count(writer)
                 results["orders_reconciled"] += 1
             except Exception:
                 results["errors"] += 1
- 
+
             try:
                 WriterReconciliationService.reconcile_performance(writer)
                 results["performance_reconciled"] += 1
             except Exception:
                 results["errors"] += 1
- 
+
         logger.info(
             "reconcile_all_for_website: website=%s results=%s",
             website.pk,
             results,
         )
- 
+
         return results

@@ -12,11 +12,11 @@ import json
 def cache_dashboard_result(timeout=300, key_prefix='dashboard'):
     """
     Decorator to cache dashboard endpoint results.
-    
+
     Args:
         timeout: Cache timeout in seconds (default: 5 minutes)
         key_prefix: Prefix for cache key
-    
+
     Usage:
         @cache_dashboard_result(timeout=600, key_prefix='tip_dashboard')
         def dashboard(self, request):
@@ -32,24 +32,24 @@ def cache_dashboard_result(timeout=300, key_prefix='dashboard'):
                 'website_id': getattr(request.user, 'website_id', None) if hasattr(request.user, 'website_id') else None,
                 'query_params': dict(request.query_params),
             }
-            
+
             # Create cache key
             cache_key_data = json.dumps(cache_params, sort_keys=True)
             cache_key = f"{key_prefix}:{func.__name__}:{hashlib.md5(cache_key_data.encode()).hexdigest()}"
-            
+
             # Try to get from cache
             cached_result = cache.get(cache_key)
             if cached_result is not None:
                 from rest_framework.response import Response
                 return Response(cached_result)
-            
+
             # Execute function and cache result
             result = func(self, request, *args, **kwargs)
-            
+
             # Cache the response data
             if hasattr(result, 'data'):
                 cache.set(cache_key, result.data, timeout)
-            
+
             return result
         return wrapper
     return decorator
@@ -58,11 +58,11 @@ def cache_dashboard_result(timeout=300, key_prefix='dashboard'):
 def invalidate_dashboard_cache(key_prefix='dashboard', patterns=None):
     """
     Invalidate dashboard cache entries.
-    
+
     Args:
         key_prefix: Cache key prefix to invalidate
         patterns: List of additional patterns to match
-    
+
     Usage:
         invalidate_dashboard_cache('tip_dashboard')
     """
@@ -75,12 +75,12 @@ def invalidate_dashboard_cache(key_prefix='dashboard', patterns=None):
 def get_or_set_cache(key, callable_func, timeout=300):
     """
     Get value from cache or set it if not present.
-    
+
     Args:
         key: Cache key
         callable_func: Function to call if cache miss
         timeout: Cache timeout in seconds
-    
+
     Returns:
         Cached or computed value
     """

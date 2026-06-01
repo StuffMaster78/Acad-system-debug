@@ -112,7 +112,7 @@ class OrderStaffingStore:
             )
             .exists()
         )
-    
+
     @staticmethod
     def create_interest(
         *,

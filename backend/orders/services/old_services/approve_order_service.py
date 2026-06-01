@@ -19,7 +19,7 @@ class ApproveOrderService:
     def _award_referral_bonus(order):
         """
         Award referral bonus when order is approved.
-        A client only becomes eligible for referral rewards after ordering 
+        A client only becomes eligible for referral rewards after ordering
         and approving their first order to avoid abuse.
         """
         if order.status != 'approved':
@@ -28,19 +28,19 @@ class ApproveOrderService:
         try:
             from referrals.models import Referral
             from referrals.services.referral_service import ReferralService
-            
+
             # Get the client from the order
             order_client = getattr(order, 'client', None) or getattr(order, 'user', None)
             if not order_client:
                 return
-            
+
             # Find referral for this client
             referral = Referral.objects.filter(
                 referee=order_client,
                 website=order.website,
                 is_deleted=False
             ).first()
-            
+
             if not referral:
                 return
 
@@ -76,7 +76,7 @@ class ApproveOrderService:
         from orders.services.status_transition_service import VALID_TRANSITIONS
         current_status = order.status
         allowed_transitions = VALID_TRANSITIONS.get(current_status, [])
-        
+
         if 'approved' not in allowed_transitions:
             # Try to transition through intermediate states if needed
             if 'rated' in allowed_transitions and current_status != 'rated':
@@ -111,18 +111,18 @@ class ApproveOrderService:
         OrderTransitionHelper.transition_order(
             order,
             'approved',
-            user=None,  # System/automatic approval after review
+            user=None, # System/automatic approval after review
             reason="Order approved after review and rating",
             action="approve_order",
             is_automatic=True,
-            skip_payment_check=True,  # Payment already validated
+            skip_payment_check=True, # Payment already validated
             metadata={
                 "has_review": bool(order.review),
                 "has_rating": bool(order.rating),
             }
         )
-        
+
         # Award referral bonus when order is approved (first approved order only)
         self._award_referral_bonus(order)
-        
+
         return order

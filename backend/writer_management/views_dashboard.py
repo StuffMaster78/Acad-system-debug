@@ -34,7 +34,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             return request.user.writer_profile
         except WriterProfile.DoesNotExist:
             return None
-    
+
     def _is_within_days(self, date_string, days):
         """Helper to check if a date string is within N days."""
         if not date_string:
@@ -64,7 +64,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         return getattr(order, 'updated_at', None) or getattr(order, 'created_at', None)
 
     @action(detail=False, methods=['get'], url_path='payment-info')
-    @cache_view_result(timeout=300, key_prefix='writer_dashboard')  # 5 minute cache
+    @cache_view_result(timeout=300, key_prefix='writer_dashboard') # 5 minute cache
     def get_payment_info(self, request):
         """
         Get writer's payment information based on their level - with caching.
@@ -77,68 +77,68 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         if not profile.writer_level:
             return Response(
                 {"detail": "Writer level not set."},
                 status=404
             )
-        
+
         from writer_management.serializers import WriterPaymentViewSerializer
-        
+
         # Get level-based rates
         level = profile.writer_level
         data = {
             'cost_per_page': level.base_pay_per_page,
             'cost_per_slide': level.base_pay_per_slide,
-            'cost_per_class': getattr(level, 'base_pay_per_class', None),  # May not exist yet
+            'cost_per_class': getattr(level, 'base_pay_per_class', None), # May not exist yet
             'level_name': level.name,
             'earning_mode': level.earning_mode,
         }
-        
+
         # Calculate totals from orders, special orders
         serializer = WriterPaymentViewSerializer(profile, context={'request': request})
         serialized_data = serializer.data
-        
+
         # Calculate totals
         order_earnings_list = serialized_data.get('order_earnings', [])
         special_order_earnings_list = serialized_data.get('special_order_earnings', [])
-        class_bonuses_list = serialized_data.get('class_earnings', [])  # These are bonuses, not regular earnings
-        
+        class_bonuses_list = serialized_data.get('class_earnings', []) # These are bonuses, not regular earnings
+
         total_order_earnings = sum(Decimal(str(e['amount'])) for e in order_earnings_list)
         total_special_order_earnings = sum(Decimal(str(e.get('total', e.get('amount', 0)))) for e in special_order_earnings_list)
-        
+
         # Get bonuses and tips (excluding installments)
         from writer_management.models.payout import WriterPayment
         from special_orders.models import WriterBonus
-        
+
         payments = WriterPayment.objects.filter(
             writer=profile
         ).exclude(
             # Exclude payments related to installments
             description__icontains='installment'
         )
-        
+
         total_bonuses = payments.aggregate(Sum('bonuses'))['bonuses__sum'] or Decimal('0.00')
         total_tips = payments.aggregate(Sum('tips'))['tips__sum'] or Decimal('0.00')
-        
+
         # Add class bonuses (classes are paid as bonuses, not regular earnings)
         class_bonuses_total = sum(Decimal(str(e.get('amount', 0))) for e in class_bonuses_list)
         total_bonuses += class_bonuses_total
-        
+
         data.update({
             'order_earnings': order_earnings_list,
             'special_order_earnings': special_order_earnings_list,
-            'class_bonuses': class_bonuses_list,  # Classes shown as bonuses but contribute to total earnings
-            'total_earnings': total_order_earnings + total_special_order_earnings + class_bonuses_total,  # Classes contribute to total
-            'total_bonuses': total_bonuses,  # Includes class bonuses
+            'class_bonuses': class_bonuses_list, # Classes shown as bonuses but contribute to total earnings
+            'total_earnings': total_order_earnings + total_special_order_earnings + class_bonuses_total, # Classes contribute to total
+            'total_bonuses': total_bonuses, # Includes class bonuses
             'total_tips': total_tips,
         })
-        
+
         return Response(data)
-    
+
     @action(detail=False, methods=['get'], url_path='earnings')
-    @cache_view_result(timeout=300, key_prefix='writer_dashboard')  # 5 minute cache
+    @cache_view_result(timeout=300, key_prefix='writer_dashboard') # 5 minute cache
     def get_earnings(self, request):
         """Get earnings breakdown and trends - with caching."""
         profile = self.get_writer_profile(request)
@@ -147,10 +147,10 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
-        
+
         # Get writer's payments (excluding installments) - optimized with select_related
         payments = WriterPayment.objects.filter(
             writer=profile,
@@ -159,17 +159,17 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             # Exclude payments related to installments
             description__icontains='installment'
         ).select_related('writer', 'website').only('amount', 'payment_date', 'description')
-        
+
         # Earnings breakdown - single aggregation
         total_earnings = payments.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
         # Note: WriterPayment doesn't have a status field, so all payments are considered completed
         pending_payments = Decimal('0.00')
-        
+
         # Earnings by period - optimized with single query using conditional aggregation
         week_start = timezone.now() - timedelta(days=7)
         month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         year_start = timezone.now().replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        
+
         # Use conditional aggregation to get all period totals in one query
         period_totals = WriterPayment.objects.filter(
             writer=profile
@@ -199,7 +199,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         week_earnings = period_totals['week_total'] or Decimal('0.00')
         month_earnings = period_totals['month_total'] or Decimal('0.00')
         year_earnings = period_totals['year_total'] or Decimal('0.00')
-        
+
         # Earnings trends (daily)
         earnings_trend = payments.annotate(
             date=TruncDate('payment_date')
@@ -207,7 +207,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             total=Sum('amount'),
             count=Count('id')
         ).order_by('date')
-        
+
         # Earnings by order type - optimized with prefetch_related
         orders_with_payments = Order.objects.filter(
             assigned_writer=request.user,
@@ -215,17 +215,17 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         ).select_related('client', 'website').prefetch_related('payments').annotate(
             writer_payment=Sum('payments__amount', filter=Q(payments__status='completed'))
         )
-        
+
         # Average earnings per order
         avg_earnings_per_order = payments.aggregate(Avg('amount'))['amount__avg'] or Decimal('0.00')
-        
+
         # Payment history - optimized with select_related
         payment_history = WriterPayment.objects.filter(
             writer=profile
         ).select_related('writer', 'website').only(
             'id', 'amount', 'payment_date', 'description'
         ).order_by('-payment_date')[:20]
-        
+
         return Response({
             'total_earnings': float(total_earnings),
             'pending_payments': float(pending_payments),
@@ -245,16 +245,16 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {
                     'id': p.id,
                     'amount': float(p.amount),
-                    'status': getattr(p, 'status', 'Paid'),  # WriterPayment from payout doesn't have status
+                    'status': getattr(p, 'status', 'Paid'), # WriterPayment from payout doesn't have status
                     'created_at': p.payment_date.isoformat() if p.payment_date else None,
                     'description': p.description or '',
                 }
                 for p in payment_history
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='performance')
-    @cache_view_result(timeout=300, key_prefix='writer_dashboard')  # 5 minute cache
+    @cache_view_result(timeout=300, key_prefix='writer_dashboard') # 5 minute cache
     def get_performance(self, request):
         """Get performance analytics."""
         profile = self.get_writer_profile(request)
@@ -263,19 +263,19 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
-        
+
         # Get writer's orders - optimized with select_related to prevent N+1
         orders = Order.objects.filter(
             assigned_writer=request.user,
             created_at__gte=date_from
         ).select_related('client', 'website').only(
-            'id', 'status', 'created_at', 'submitted_at', 'client_deadline', 
+            'id', 'status', 'created_at', 'submitted_at', 'client_deadline',
             'writer_deadline', 'completed_at', 'updated_at'
         )
-        
+
         # Performance metrics - use single aggregation query
         status_breakdown = orders.aggregate(
             total=Count('id'),
@@ -285,7 +285,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         total_orders = status_breakdown['total']
         completed_orders = status_breakdown['completed']
         revised_orders = status_breakdown['revised']
-        
+
         # Check for on-time/late orders - optimized with annotation
         completed_orders_qs = orders.filter(status='completed').annotate(
             has_deadline=Case(
@@ -316,19 +316,19 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             on_time=Count('id', filter=Q(is_on_time=1))
         )['on_time'] or 0
         late_orders = completed_orders - on_time_orders
-        
+
         # Calculate rates
         completion_rate = (completed_orders / total_orders * 100) if total_orders > 0 else 0
         on_time_rate = (on_time_orders / completed_orders * 100) if completed_orders > 0 else 0
         revision_rate = (revised_orders / total_orders * 100) if total_orders > 0 else 0
-        
+
         # Quality scores - optimized with select_related
         reviews = WriterReview.objects.filter(
             writer=request.user,
             submitted_at__gte=date_from
         ).select_related('order', 'writer').only('rating', 'submitted_at')
         avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
-        
+
         # Performance trends
         performance_trend = orders.annotate(
             date=TruncDate('created_at')
@@ -336,7 +336,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             completed=Count('id', filter=Q(status='completed')),
             total=Count('id')
         ).order_by('date')
-        
+
         return Response({
             'total_orders': total_orders,
             'completed_orders': completed_orders,
@@ -356,9 +356,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 for item in performance_trend
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='queue')
-    @cache_view_result(timeout=120, key_prefix='writer_dashboard')  # 2 minute cache (orders change frequently)
+    @cache_view_result(timeout=120, key_prefix='writer_dashboard') # 2 minute cache (orders change frequently)
     def get_order_queue(self, request):
         """Get available orders and order requests - with caching."""
         try:
@@ -368,14 +368,14 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             )
             from writer_management.models.configs import WriterConfig
             from writer_management.utils import resolve_website_for_writer
-            
+
             profile = self.get_writer_profile(request)
             if not profile:
                 return Response(
                     {"detail": "Writer profile not found."},
                     status=404
                 )
-            
+
             # Get writer config to check if takes are enabled
             try:
                 website = resolve_website_for_writer(profile)
@@ -383,32 +383,32 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 takes_enabled = writer_config.takes_enabled
             except WriterConfig.DoesNotExist:
                 takes_enabled = False
-            
+
             available_orders = list(
                 OrderVisibilitySelector.visible_to_writer(
                     writer=request.user,
                 ).order_by('-created_at')[:50]
             )
-            
+
             order_requests = OrderInterest.objects.filter(
                 writer=request.user,
                 status__in=OrderVisibilitySelector.OPEN_INTEREST_STATUSES,
             ).select_related('order').order_by('-created_at')
-            
+
             # Get list of order IDs that this writer has already requested
             requested_order_ids = list(order_requests.values_list('order_id', flat=True))
-            
+
             # Get writer requests (from orders app) - lazy import to avoid circular dependency
             from orders.models.legacy_models.requests import WriterRequest
             writer_requests = WriterRequest.objects.filter(
                 requested_by_writer=request.user,
-                order__is_paid=True  # Only show requests for paid orders
+                order__is_paid=True # Only show requests for paid orders
             ).select_related('order').order_by('-created_at')
-            
+
             # Add writer request order IDs to requested list
             writer_requested_order_ids = list(writer_requests.values_list('order_id', flat=True))
             requested_order_ids.extend(writer_requested_order_ids)
-            
+
             # Get preferred orders (if client has preferred writers)
             # Only show PAID orders that are available and not assigned
             # Exclude orders where this writer has declined
@@ -566,20 +566,20 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 _serialize_order(order)
                 for order, _ in recommended_candidates[:10]
             ]
-            
+
             # Get level capacity information
             writer_level = getattr(profile, 'writer_level', None)
             max_orders = writer_level.max_orders if writer_level else 0
-            
+
             # Count active orders (in_progress, under_editing, revision_requested, on_hold)
             active_orders_count = Order.objects.filter(
                 assigned_writer=profile.user,
                 website=profile.website,
                 status__in=['in_progress', 'under_editing', 'revision_requested', 'on_hold']
             ).count()
-            
+
             remaining_slots = max(0, max_orders - active_orders_count)
-            
+
             # Get level details
             level_details = None
             if writer_level:
@@ -588,10 +588,10 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'name': writer_level.name,
                     'max_orders': writer_level.max_orders,
                 }
-            
+
             return Response({
             'takes_enabled': takes_enabled,
-            'requested_order_ids': requested_order_ids,  # Include requested order IDs for frontend
+            'requested_order_ids': requested_order_ids, # Include requested order IDs for frontend
             'available_orders': [
                 _serialize_order(o)
                 for o in available_orders
@@ -685,7 +685,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             ]
         )
         return Response(self._serialize_availability(profile))
-    
+
     @action(detail=False, methods=['get'], url_path='badges')
     def get_badges(self, request):
         """Get badges and achievements."""
@@ -695,32 +695,32 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Get writer's badges
         writer_badges = WriterBadge.objects.filter(
             writer=profile,
             revoked=False
         ).select_related('badge').order_by('-issued_at')
-        
+
         # Get all available badges for reference
         # Note: Badge model uses 'Website' (capital W) as the field name
         all_badges = Badge.objects.filter(
             is_active=True,
             Website=profile.website
         ).order_by('type', 'name')
-        
+
         # Get badge counts by type
         badge_counts = writer_badges.values('badge__type').annotate(
             count=Count('id')
         )
         badge_counts_dict = {item['badge__type']: item['count'] for item in badge_counts}
-        
+
         # Get recent badges
         recent_badges = writer_badges[:10]
-        
+
         # Get next milestones (simplified - would need proper milestone logic)
         milestones = []
-        
+
         return Response({
             'badges': [
                 {
@@ -761,7 +761,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             ],
             'milestones': milestones,
         })
-    
+
     @action(detail=False, methods=['get'], url_path='payments')
     def get_payments(self, request):
         """Get writer payments grouped by period (fortnightly/monthly) and upcoming payments."""
@@ -771,26 +771,26 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         from django.db.models.functions import TruncMonth, TruncWeek
         from calendar import monthrange
-        
+
         # Get historical payments from WriterPayment first
         historical_payments = WriterPayment.objects.filter(
             writer=profile
         ).order_by('-payment_date')
-        
+
         # Get all completed paid orders
         completed_paid_orders = Order.objects.filter(
             assigned_writer=request.user,
             status__in=['completed', 'approved'],
             is_paid=True
         ).select_related('client', 'website').order_by('-submitted_at', '-created_at', '-updated_at')
-        
+
         # Get completed orders that are paid but writer payment hasn't been processed yet (upcoming payments)
         # These are orders where client has paid, but WriterPayment record doesn't exist yet
         completed_paid_order_ids = list(completed_paid_orders.values_list('id', flat=True))
-        
+
         # Note: WriterPayment model doesn't have an 'order' field, so we can't directly link payments to orders
         # Instead, we'll check if there's a payment record in writer_compensation.WriterPayment
         # which does have an order field
@@ -798,7 +798,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         processed_order_ids = list(WriterPaymentWithOrder.objects.filter(
             writer=profile
         ).values_list('order_id', flat=True))
-        
+
         # Upcoming payments: completed paid orders that don't have a WriterPayment record yet
         upcoming_order_ids = [oid for oid in completed_paid_order_ids if oid not in processed_order_ids]
         upcoming_orders = (
@@ -808,7 +808,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             if upcoming_order_ids
             else Order.objects.none()
         )
-        
+
         # Group historical payments by month
         monthly_payments = historical_payments.annotate(
             month=TruncMonth('payment_date')
@@ -819,7 +819,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             total_fines=Sum('fines'),
             payment_count=Count('id')
         ).order_by('-month')
-        
+
         # Group historical payments by fortnight (2-week periods)
         # Fortnight periods: 1-14 and 15-end of month (for historical display only)
         fortnightly_payments = []
@@ -828,7 +828,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             payment_date = payment.payment_date.date() if payment.payment_date else None
             if not payment_date:
                 continue
-            
+
             # Calculate fortnight start (1st-14th or 15th-end of month)
             if payment_date.day <= 14:
                 fortnight_start = payment_date.replace(day=1)
@@ -836,13 +836,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 try:
                     fortnight_end = payment_date.replace(day=14)
                 except ValueError:
-                    fortnight_end = payment_date.replace(day=13)  # Fallback for months with < 14 days
+                    fortnight_end = payment_date.replace(day=13) # Fallback for months with < 14 days
             else:
                 fortnight_start = payment_date.replace(day=15)
                 # End is last day of month
                 last_day = monthrange(payment_date.year, payment_date.month)[1]
                 fortnight_end = payment_date.replace(day=last_day)
-            
+
             key = f"{fortnight_start.year}-{fortnight_start.month:02d}-{fortnight_start.day:02d}"
             if key not in payments_by_date:
                 payments_by_date[key] = {
@@ -854,13 +854,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'total_fines': Decimal('0.00'),
                     'payment_count': 0
                 }
-            
+
             payments_by_date[key]['total_amount'] += payment.amount or Decimal('0.00')
             payments_by_date[key]['total_bonuses'] += payment.bonuses or Decimal('0.00')
             payments_by_date[key]['total_tips'] += payment.tips or Decimal('0.00')
             payments_by_date[key]['total_fines'] += payment.fines or Decimal('0.00')
             payments_by_date[key]['payment_count'] += 1
-        
+
         # Convert Decimal to float for JSON serialization
         fortnightly_payments = sorted(
             [
@@ -878,7 +878,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             key=lambda x: x['period_start'],
             reverse=True
         )
-        
+
         # Calculate upcoming payment totals
         # For upcoming payments, we calculate writer's expected earnings based on writer level,
         # NOT the client total price (writers should never see client totals).
@@ -979,7 +979,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     "expected_payment_window_label": window["label"] if window else None,
                 }
             )
-        
+
         return Response({
             'historical_payments': {
                 'monthly': [
@@ -1014,7 +1014,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 for p in historical_payments[:20]
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='payment-status')
     def get_payment_status(self, request):
         """Get comprehensive payment status dashboard for writer."""
@@ -1024,32 +1024,32 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Get payments from writer_compensation
         from writer_compensation.models import WriterPayment, WriterPayoutRequest
-        
+
         all_payments = WriterPayment.objects.filter(
             writer=profile
         ).select_related('order', 'special_order', 'website')
-        
+
         # Payment status breakdown
         status_breakdown = all_payments.values('status').annotate(
             count=Count('id'),
             total_amount=Sum('amount')
         )
-        
+
         # Pending payments
         pending_payments = all_payments.filter(status='Pending')
         pending_amount = pending_payments.aggregate(
             total=Sum('amount')
         )['total'] or Decimal('0.00')
-        
+
         # Delayed payments
         delayed_payments = all_payments.filter(status='Delayed')
         delayed_amount = delayed_payments.aggregate(
             total=Sum('amount')
         )['total'] or Decimal('0.00')
-        
+
         # Paid payments (last 30 days)
         month_ago = timezone.now() - timedelta(days=30)
         recent_paid = all_payments.filter(
@@ -1059,7 +1059,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         recent_paid_amount = recent_paid.aggregate(
             total=Sum('amount')
         )['total'] or Decimal('0.00')
-        
+
         # Total earnings (all time)
         total_earnings = all_payments.filter(
             status='Paid'
@@ -1069,11 +1069,11 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             total_tips=Sum('tips'),
             total_fines=Sum('fines')
         )
-        
+
         # Payment trends (last 12 weeks)
         weeks_ago = timezone.now() - timedelta(weeks=12)
         from django.db.models.functions import TruncWeek
-        
+
         payment_trends = all_payments.filter(
             processed_at__gte=weeks_ago
         ).annotate(
@@ -1082,28 +1082,28 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             count=Count('id'),
             total_amount=Sum('amount')
         ).order_by('week', 'status')
-        
+
         # Payout requests
         payout_requests = WriterPayoutRequest.objects.filter(
             writer=profile
         ).order_by('-requested_at')
-        
+
         pending_payout_requests = payout_requests.filter(status='Pending')
         pending_payout_amount = pending_payout_requests.aggregate(
             total=Sum('amount_requested')
         )['total'] or Decimal('0.00')
-        
+
         # Payment method status (payout preferences)
         payout_preferences = profile.payout_preferences.filter(verified=True)
         has_verified_payout_method = payout_preferences.exists()
-        
+
         # Recent payment activity
         recent_payments = all_payments.order_by('-processed_at')[:10]
-        
+
         # Payment schedule info (if available)
         # This would typically come from writer config or website settings
-        payment_schedule = 'bi-weekly'  # Default, could be from config
-        
+        payment_schedule = 'bi-weekly' # Default, could be from config
+
         return Response({
             'summary': {
                 'total_earnings': float(total_earnings['total'] or 0),
@@ -1183,25 +1183,25 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 for p in recent_payments
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='level')
     def get_level(self, request):
         """Get writer level, earnings info, and progression requirements."""
         try:
             from writer_management.services.level_progression import WriterLevelProgressionService
             from writer_management.models.levels import WriterLevel
-            
+
             profile = self.get_writer_profile(request)
             if not profile:
                 return Response(
                     {"detail": "Writer profile not found."},
                     status=404
                 )
-            
+
             # Get current level
             current_level = profile.writer_level
             level_name = current_level.name if current_level else 'None'
-            
+
             # Get level details if exists
             level_info = None
             if current_level:
@@ -1226,13 +1226,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'technical_order_adjustment_per_page': float(current_level.technical_order_adjustment_per_page),
                     'technical_order_adjustment_per_slide': float(current_level.technical_order_adjustment_per_slide),
                 }
-            
+
             # Get next level requirements
             next_level_info = WriterLevelProgressionService.get_next_level_requirements(profile)
-            
+
             # Get current stats for progression
             stats = WriterLevelProgressionService._get_writer_stats(profile)
-            
+
             # Get performance snapshot for ranking
             latest_snapshot = None
             ranking_position = None
@@ -1240,7 +1240,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 latest_snapshot = WriterPerformanceSnapshot.objects.filter(
                     writer=profile
                 ).order_by('-generated_at').first()
-                
+
                 if latest_snapshot:
                     better_writers = WriterPerformanceSnapshot.objects.filter(
                         website=profile.website,
@@ -1252,7 +1252,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.warning(f"WriterPerformanceSnapshot table not available: {e}")
-            
+
             return Response({
                 'current_level': level_info,
                 'current_stats': {
@@ -1282,26 +1282,26 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 },
                 status=500
             )
-    
+
     @action(detail=False, methods=['get'], url_path='estimated-earnings')
     def get_estimated_earnings(self, request):
         """Get estimated earnings for an order based on writer's level."""
         from writer_management.services.earnings_calculator import WriterEarningsCalculator
         from decimal import Decimal
-        
+
         profile = self.get_writer_profile(request)
         if not profile:
             return Response(
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         if not profile.writer_level:
             return Response({
                 "detail": "Writer level not assigned.",
                 "estimated_earnings": 0.0,
             })
-        
+
         # Get parameters from query string
         pages = int(request.query_params.get('pages', 10))
         slides = int(request.query_params.get('slides', 0))
@@ -1309,11 +1309,11 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         order_cost = request.query_params.get('order_cost')
         is_urgent = request.query_params.get('is_urgent', 'false').lower() == 'true'
         is_technical = request.query_params.get('is_technical', 'false').lower() == 'true'
-        
+
         # Convert to Decimal if provided
         order_total_decimal = Decimal(str(order_total)) if order_total else None
         order_cost_decimal = Decimal(str(order_cost)) if order_cost else None
-        
+
         # Calculate estimated earnings
         breakdown = WriterEarningsCalculator.calculate_estimated_earnings(
             profile.writer_level,
@@ -1324,7 +1324,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             is_urgent=is_urgent,
             is_technical=is_technical
         )
-        
+
         return Response({
             'estimated_earnings': breakdown,
             'level_info': {
@@ -1332,7 +1332,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'earning_mode': profile.writer_level.earning_mode,
             }
         })
-    
+
     @action(detail=False, methods=['get'], url_path='calendar')
     def get_calendar(self, request):
         """Get writer's order deadlines in calendar format."""
@@ -1342,16 +1342,16 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Get date range (default to current month, can be extended)
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
-        
+
         if from_date:
             from_date = timezone.datetime.fromisoformat(from_date.replace('Z', '+00:00'))
         else:
             from_date = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        
+
         if to_date:
             to_date = timezone.datetime.fromisoformat(to_date.replace('Z', '+00:00'))
         else:
@@ -1359,13 +1359,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             next_month = from_date.replace(day=28) + timedelta(days=4)
             to_date = next_month - timedelta(days=next_month.day)
             to_date = to_date.replace(hour=23, minute=59, second=59)
-        
+
         # Get assigned orders with deadlines
         assigned_orders = Order.objects.filter(
             assigned_writer=request.user,
             status__in=['in_progress', 'on_hold', 'revision_requested'],
         ).select_related('client', 'type_of_work', 'paper_type')
-        
+
         # Build calendar data
         calendar_data = {}
         for order in assigned_orders:
@@ -1373,22 +1373,22 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             deadline = order.writer_deadline or order.client_deadline or getattr(order, 'deadline', None)
             if not deadline:
                 continue
-            
+
             # Only include if within date range
             if deadline < from_date or deadline > to_date:
                 continue
-            
+
             date_key = deadline.date().isoformat()
             if date_key not in calendar_data:
                 calendar_data[date_key] = []
-            
+
             # Calculate time remaining
             now = timezone.now()
             time_remaining = deadline - now
             hours_remaining = time_remaining.total_seconds() / 3600
             is_overdue = deadline < now
             is_urgent = hours_remaining <= 24 and hours_remaining > 0
-            
+
             calendar_data[date_key].append({
                 'id': order.id,
                 'topic': order.topic or 'No topic',
@@ -1401,11 +1401,11 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'hours_remaining': round(hours_remaining, 1) if not is_overdue else None,
                 'total_price': float(order.total_price) if order.total_price else 0,
             })
-        
+
         # Sort orders within each day by deadline
         for date_key in calendar_data:
             calendar_data[date_key].sort(key=lambda x: x['deadline'])
-        
+
         return Response({
             'from_date': from_date.isoformat(),
             'to_date': to_date.isoformat(),
@@ -1422,42 +1422,42 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 if order['is_urgent']
             ),
         })
-    
+
     @action(detail=False, methods=['get'], url_path='calendar/export')
     def export_calendar_ics(self, request):
         """Export writer's order deadlines as ICS (iCalendar) file."""
         from django.http import HttpResponse
         from datetime import timedelta
-        
+
         profile = self.get_writer_profile(request)
         if not profile:
             return Response(
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Get date range (default to next 3 months)
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
-        
+
         if from_date:
             from_date = timezone.datetime.fromisoformat(from_date.replace('Z', '+00:00'))
         else:
             from_date = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        
+
         if to_date:
             to_date = timezone.datetime.fromisoformat(to_date.replace('Z', '+00:00'))
         else:
             # Default to 3 months from now
             to_date = from_date + timedelta(days=90)
             to_date = to_date.replace(hour=23, minute=59, second=59)
-        
+
         # Get assigned orders with deadlines
         assigned_orders = Order.objects.filter(
             assigned_writer=request.user,
             status__in=['in_progress', 'on_hold', 'revision_requested'],
         ).select_related('client', 'type_of_work', 'paper_type', 'website')
-        
+
         # Generate ICS content
         ics_lines = [
             'BEGIN:VCALENDAR',
@@ -1466,22 +1466,22 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
         ]
-        
+
         now = timezone.now()
         for order in assigned_orders:
             # Use writer_deadline, client_deadline, or deadline (in that order)
             deadline = order.writer_deadline or order.client_deadline or getattr(order, 'deadline', None)
             if not deadline:
                 continue
-            
+
             # Only include if within date range
             if deadline < from_date or deadline > to_date:
                 continue
-            
+
             # Format dates for ICS (YYYYMMDDTHHMMSSZ)
             dtstart = deadline.strftime('%Y%m%dT%H%M%S')
             dtstamp = now.strftime('%Y%m%dT%H%M%S')
-            
+
             # Create event
             summary = f"Order #{order.id}: {order.topic or 'No topic'}"
             description_parts = [
@@ -1491,30 +1491,30 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 f"Pages: {self._get_order_pages(order)}",
                 f"Status: {order.status}",
             ]
-            
+
             if order.total_price:
                 description_parts.append(f"Price: ${order.total_price:,.2f}")
-            
+
             if hasattr(order, 'website') and order.website:
                 description_parts.append(f"Website: {order.website.name}")
-            
+
             description = '\\n'.join(description_parts)
-            
+
             # Calculate time remaining for urgency
             time_remaining = deadline - now
             hours_remaining = time_remaining.total_seconds() / 3600
             is_overdue = deadline < now
             is_urgent = hours_remaining <= 24 and hours_remaining > 0
-            
+
             # Set alarm/reminder (1 day before for urgent, 3 days for normal)
-            alarm_minutes = 1440 if is_urgent else 4320  # 1 day or 3 days before
-            
+            alarm_minutes = 1440 if is_urgent else 4320 # 1 day or 3 days before
+
             # Build event
             ics_lines.extend([
                 'BEGIN:VEVENT',
                 f'UID:order-{order.id}-{deadline.timestamp()}@writingsystem',
                 f'DTSTART:{dtstart}',
-                f'DTEND:{dtstart}',  # Single point in time event
+                f'DTEND:{dtstart}', # Single point in time event
                 f'DTSTAMP:{dtstamp}',
                 f'SUMMARY:{summary}',
                 f'DESCRIPTION:{description}',
@@ -1522,17 +1522,17 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 f'SEQUENCE:0',
                 f'PRIORITY:{"1" if is_urgent or is_overdue else "5"}',
             ])
-            
+
             # Add location if website exists
             if hasattr(order, 'website') and order.website:
                 ics_lines.append(f'LOCATION:{order.website.name}')
-            
+
             # Add URL to order
             website_domain = getattr(order.website, 'domain', '') if hasattr(order, 'website') and order.website else ''
             if website_domain:
                 order_url = f"{website_domain}/orders/{order.id}"
                 ics_lines.append(f'URL:{order_url}')
-            
+
             # Add alarm/reminder
             ics_lines.extend([
                 'BEGIN:VALARM',
@@ -1541,18 +1541,18 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 f'DESCRIPTION:Reminder: {summary}',
                 'END:VALARM',
             ])
-            
+
             ics_lines.append('END:VEVENT')
-        
+
         ics_lines.append('END:VCALENDAR')
-        
+
         # Create HTTP response with ICS content
         response = HttpResponse('\r\n'.join(ics_lines), content_type='text/calendar; charset=utf-8')
         filename = f'writer_calendar_{now.strftime("%Y%m%d")}.ics'
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
+
         return response
-    
+
     @action(detail=False, methods=['get'], url_path='workload-capacity')
     def get_workload_capacity(self, request):
         """Get comprehensive writer workload capacity indicator with recommendations."""
@@ -1562,38 +1562,38 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Get writer level to determine max orders
         writer_level = profile.writer_level
-        max_orders = writer_level.max_orders if writer_level else 10  # Default to 10
-        
+        max_orders = writer_level.max_orders if writer_level else 10 # Default to 10
+
         # Count current active orders
         active_orders = Order.objects.filter(
             assigned_writer=request.user,
             status__in=['in_progress', 'on_hold', 'revision_requested', 'submitted', 'under_editing', 'on_revision']
         )
-        
+
         current_count = active_orders.count()
         capacity_percentage = (current_count / max_orders * 100) if max_orders > 0 else 0
-        
+
         # Get orders by status breakdown
         status_breakdown = {}
         for status in ['in_progress', 'on_hold', 'revision_requested', 'submitted', 'under_editing', 'on_revision']:
             status_breakdown[status] = active_orders.filter(status=status).count()
-        
+
         # Calculate estimated completion time for current orders
         total_pages = sum(self._get_order_pages(o) for o in active_orders)
-        
+
         # Estimate: assume average writing speed (e.g., 2 pages per hour)
         estimated_hours = total_pages / 2 if total_pages > 0 else 0
-        
+
         # Get upcoming deadlines with urgency
         now = timezone.now()
         upcoming_deadlines = active_orders.filter(
             models.Q(writer_deadline__gte=now) |
             models.Q(client_deadline__gte=now)
         ).order_by('writer_deadline', 'client_deadline')[:10]
-        
+
         upcoming_deadlines_list = []
         urgent_count = 0
         for order in upcoming_deadlines:
@@ -1603,10 +1603,10 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 days_remaining = hours_remaining / 24
                 is_urgent = hours_remaining < 24
                 is_critical = hours_remaining < 12
-                
+
                 if is_urgent:
                     urgent_count += 1
-                
+
                 upcoming_deadlines_list.append({
                     'id': order.id,
                     'topic': order.topic or 'No topic',
@@ -1618,7 +1618,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'is_urgent': is_urgent,
                     'is_critical': is_critical,
                 })
-        
+
         # Availability status
         is_available = getattr(profile, 'is_available_for_auto_assignments', True)
         availability_status = 'available' if is_available else 'unavailable'
@@ -1628,7 +1628,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             availability_status = 'near_capacity'
         elif urgent_count > 0:
             availability_status = 'busy'
-        
+
         # Workload recommendations
         recommendations = []
         if current_count >= max_orders:
@@ -1643,34 +1643,34 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'message': f'You are near capacity ({current_count}/{max_orders} orders). You have {max_orders - current_count} slot(s) remaining.',
                 'priority': 'medium',
             })
-        
+
         if urgent_count > 0:
             recommendations.append({
                 'type': 'urgent',
                 'message': f'You have {urgent_count} order(s) with deadlines within 24 hours. Focus on completing these first.',
                 'priority': 'high',
             })
-        
-        if estimated_hours > 40:  # More than a week of work
+
+        if estimated_hours > 40: # More than a week of work
             recommendations.append({
                 'type': 'info',
                 'message': f'Your current workload is estimated at {round(estimated_hours, 1)} hours. Plan your schedule accordingly.',
                 'priority': 'medium',
             })
-        
+
         if not is_available and current_count < max_orders:
             recommendations.append({
                 'type': 'info',
                 'message': 'You have marked yourself as unavailable for auto-assignments. You can still manually request orders.',
                 'priority': 'low',
             })
-        
+
         # Calculate average pages per order
         avg_pages_per_order = total_pages / current_count if current_count > 0 else 0
-        
+
         # Estimate time to clear current workload
-        estimated_days_to_clear = round(estimated_hours / 8, 1) if estimated_hours > 0 else 0  # Assuming 8-hour workday
-        
+        estimated_days_to_clear = round(estimated_hours / 8, 1) if estimated_hours > 0 else 0 # Assuming 8-hour workday
+
         # Capacity health indicator
         if current_count >= max_orders:
             capacity_health = 'overloaded'
@@ -1682,7 +1682,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             capacity_health = 'comfortable'
         else:
             capacity_health = 'light'
-        
+
         return Response({
             'capacity': {
                 'current_orders': current_count,
@@ -1715,7 +1715,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'max_orders': max_orders,
             },
         })
-    
+
     @action(
         detail=False,
         methods=['get'],
@@ -1724,7 +1724,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
     def get_order_requests(self, request):
         """
         Get writer's order request status with real-time tracking.
-        
+
         Returns comprehensive request status including:
         - Order interests (OrderInterest)
         - Writer requests (WriterRequest for additional pages/slides)
@@ -1732,26 +1732,26 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         - Statistics and trends
         """
         from django.core.cache import cache
-        
+
         from orders.models import OrderInterest
         from orders.models.legacy_models.requests import WriterRequest
         from orders.selectors.order_visibility_selector import (
             OrderVisibilitySelector,
         )
-        
+
         profile = self.get_writer_profile(request)
         if not profile:
             return Response(
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Cache key for this writer's requests (30 second TTL)
         cache_key = f'writer_order_requests_{request.user.id}'
         cached_response = cache.get(cache_key)
         if cached_response is not None:
             return Response(cached_response)
-        
+
         order_requests = (
             OrderInterest.objects.filter(
                 writer=request.user,
@@ -1770,7 +1770,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             )
             .order_by('-created_at')[:50]
         )
-        
+
         # Also get WriterRequest (from orders app) - limit to recent
         writer_requests = (
             WriterRequest.objects.filter(
@@ -1783,12 +1783,12 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'order__id', 'order__topic', 'order__status', 'order__total_price',
                 'order__number_of_pages', 'order__number_of_slides'
             )
-            .order_by('-created_at')[:50]  # Limit to 50 most recent
+            .order_by('-created_at')[:50] # Limit to 50 most recent
         )
-        
+
         # Combine and format requests
         requests_list = []
-        
+
         # Process OrderInterest
         for req in order_requests:
             order = req.order
@@ -1819,12 +1819,12 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 ),
                 'reason': req.message or '',
             })
-        
+
         # Process WriterRequest
         for req in writer_requests:
             order = req.order
             status = getattr(req, 'status', 'pending')
-            
+
             requests_list.append({
                 'id': req.id,
                 'type': 'writer_request',
@@ -1854,13 +1854,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     req, 'has_counter_offer', False
                 ),
             })
-        
+
         # Sort by requested_at (most recent first)
         requests_list.sort(
             key=lambda x: x['requested_at'] or '',
             reverse=True
         )
-        
+
         # Calculate statistics
         total_requests = len(requests_list)
         pending_requests = len([
@@ -1875,7 +1875,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             r for r in requests_list
             if r['status'] in ['rejected', 'declined']
         ])
-        
+
         # Get recent activity (last 7 days)
         week_ago = timezone.now() - timedelta(days=7)
         recent_requests = [
@@ -1883,7 +1883,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             if r['requested_at'] and
             r['requested_at'] >= week_ago.isoformat()
         ]
-        
+
         response_data = {
             'requests': requests_list,
             'statistics': {
@@ -1895,12 +1895,12 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             },
             'last_updated': timezone.now().isoformat(),
         }
-        
+
         # Cache the response for 30 seconds
         cache.set(cache_key, response_data, 30)
-        
+
         return Response(response_data)
-    
+
     @action(detail=False, methods=['get'], url_path='summary')
     def get_dashboard_summary(self, request):
         """Get comprehensive dashboard summary including revisions, tips, fines, reviews, and level progress."""
@@ -1911,13 +1911,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     {"detail": "Writer profile not found."},
                     status=404
                 )
-            
+
             # Get revision requests (orders needing revision)
             revision_orders = Order.objects.filter(
                 assigned_writer=request.user,
                 status='revision_requested'
             ).select_related('client', 'type_of_work').order_by('-updated_at')[:10]
-            
+
             revision_requests = [
                 {
                     'id': o.id,
@@ -1930,7 +1930,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 }
                 for o in revision_orders
             ]
-            
+
             # Get tips summary
             tips_summary = WriterPayment.objects.filter(
                 writer=profile
@@ -1939,7 +1939,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 tips_count=Count('id', filter=Q(tips__gt=0)),
                 this_month_tips=Sum('tips', filter=Q(payment_date__month=timezone.now().month, payment_date__year=timezone.now().year)),
             )
-            
+
             # Get fines summary
             fines_summary = WriterPayment.objects.filter(
                 writer=profile
@@ -1947,9 +1947,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 total_fines=Sum('fines'),
                 fines_count=Count('id', filter=Q(fines__gt=0)),
                 this_month_fines=Sum('fines', filter=Q(payment_date__month=timezone.now().month, payment_date__year=timezone.now().year)),
-                unpaid_fines=Sum('fines', filter=Q(fines__gt=0)),  # Assuming fines are deducted from payments
+                unpaid_fines=Sum('fines', filter=Q(fines__gt=0)), # Assuming fines are deducted from payments
             )
-            
+
             # Get recent reviews
             # WriterReview has: writer, website, reviewer (not order or client)
             try:
@@ -1961,7 +1961,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 recent_reviews = WriterReview.objects.filter(
                     writer=request.user
                 ).select_related('reviewer', 'writer', 'website').order_by('-id')[:5]
-            
+
             recent_reviews_list = []
             for r in recent_reviews:
                 # Get created_at from various possible field names
@@ -1972,49 +1972,49 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     created_at = r.submitted_at.isoformat()
                 elif hasattr(r, 'date_created') and r.date_created:
                     created_at = r.date_created.isoformat()
-                
+
                 # WriterReview doesn't have order or client fields
                 # It has: writer, website, reviewer (the reviewer is typically the client)
                 recent_reviews_list.append({
                     'id': r.id,
-                    'order_id': None,  # WriterReview doesn't have an order field
+                    'order_id': None, # WriterReview doesn't have an order field
                     'rating': float(r.rating) if r.rating else None,
                     'comment': r.comment or '',
-                    'client_name': r.reviewer.username if r.reviewer else 'N/A',  # Reviewer is the client
+                    'client_name': r.reviewer.username if r.reviewer else 'N/A', # Reviewer is the client
                     'created_at': created_at,
-                    'order_topic': 'N/A',  # WriterReview doesn't have an order field
+                    'order_topic': 'N/A', # WriterReview doesn't have an order field
                 })
-            
+
             # Calculate average rating
             avg_rating = WriterReview.objects.filter(
                 writer=request.user
             ).aggregate(avg=Avg('rating'))['avg']
-            
+
             # Get level progress
             writer_level = profile.writer_level
             current_level_name = writer_level.name if writer_level else 'None'
-            
+
             # Get next level requirements (simplified - would need WriterLevelConfig)
             from writer_management.models.configs import WriterLevelConfig
             from writer_management.models.metrics import WriterPerformanceMetrics
-            
+
             next_level = None
             progress_to_next = None
-            
+
             try:
                 # Get current metrics
                 metrics = WriterPerformanceMetrics.objects.filter(writer=profile).first()
-                
+
                 if metrics and writer_level:
                     # Find next level
                     level_configs = WriterLevelConfig.objects.filter(
                         website=profile.website,
                         is_active=True
                     ).order_by('-priority')
-                    
+
                     current_config = None
                     next_config = None
-                    
+
                     for config in level_configs:
                         if config.name == current_level_name:
                             current_config = config
@@ -2023,12 +2023,12 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                             if idx > 0:
                                 next_config = list(level_configs)[idx - 1]
                             break
-                    
+
                     if next_config and metrics:
                         # Calculate progress
                         current_score = float(metrics.composite_score or 0)
                         required_score = float(next_config.min_score or 0)
-                        
+
                         if required_score > current_score:
                             progress = (current_score / required_score * 100) if required_score > 0 else 0
                             progress_to_next = {
@@ -2052,7 +2052,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 logger = logging.getLogger(__name__)
                 logger.warning(f"Error calculating level progress: {e}")
                 progress_to_next = None
-            
+
             return Response({
                 'revision_requests': {
                     'count': revision_orders.count(),
@@ -2091,7 +2091,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 },
                 status=500
             )
-    
+
     @action(
         detail=False,
         methods=['get'],
@@ -2100,7 +2100,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
     def get_earnings_breakdown(self, request):
         """
         Get detailed earnings breakdown by source.
-        
+
         Returns comprehensive breakdown including:
         - Regular orders earnings
         - Special orders earnings
@@ -2116,23 +2116,23 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Get date range from query params
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
-        
+
         # Import required models
         from writer_management.models.payout import WriterPayment
         from special_orders.models import WriterBonus, SpecialOrder
         from orders.models.orders import Order
-        
+
         # Get regular order earnings
         regular_orders = Order.objects.filter(
             assigned_writer=request.user,
             status__in=['completed', 'approved'],
             updated_at__gte=date_from
         ).select_related('type_of_work')
-        
+
         regular_earnings = Decimal('0.00')
         regular_orders_list = []
         for order in regular_orders:
@@ -2165,7 +2165,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                         )
                 else:
                     amount = Decimal('0.00')
-            
+
             regular_earnings += amount
             regular_orders_list.append({
                 'order_id': order.id,
@@ -2177,14 +2177,14 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     if order.updated_at else None
                 ),
             })
-        
+
         # Get special order earnings
         special_orders = SpecialOrder.objects.filter(
             assigned_writer=request.user,
             status__in=['completed', 'approved'],
             updated_at__gte=date_from
         )
-        
+
         special_earnings = Decimal('0.00')
         special_orders_list = []
         for so in special_orders:
@@ -2198,7 +2198,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 )
             else:
                 amount = Decimal('0.00')
-            
+
             special_earnings += amount
             special_orders_list.append({
                 'order_id': so.id,
@@ -2210,14 +2210,14 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     if so.updated_at else None
                 ),
             })
-        
+
         # Get class bonuses
         class_bonuses = WriterBonus.objects.filter(
             writer=request.user,
             category='class_payment',
             granted_at__gte=date_from
         )
-        
+
         class_earnings = (
             class_bonuses.aggregate(Sum('amount'))['amount__sum']
             or Decimal('0.00')
@@ -2235,24 +2235,24 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             }
             for cb in class_bonuses
         ]
-        
+
         # Get tips
         tips_payments = WriterPayment.objects.filter(
             writer=profile,
             payment_date__gte=date_from
         ).exclude(description__icontains='installment')
-        
+
         tips_total = (
             tips_payments.aggregate(Sum('tips'))['tips__sum']
             or Decimal('0.00')
         )
-        
+
         # Get other bonuses (excluding class bonuses)
         bonuses_total = (
             tips_payments.aggregate(Sum('bonuses'))['bonuses__sum']
             or Decimal('0.00')
         )
-        
+
         # Calculate totals
         total_earnings = (
             regular_earnings +
@@ -2261,51 +2261,51 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             tips_total +
             bonuses_total
         )
-        
+
         # Time period breakdown
         week_start = timezone.now() - timedelta(days=7)
         month_start = timezone.now().replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
-        
+
         # Weekly breakdown
         week_regular = Order.objects.filter(
             assigned_writer=request.user,
             status__in=['completed', 'approved'],
             updated_at__gte=week_start
         ).count()
-        
+
         week_special = SpecialOrder.objects.filter(
             assigned_writer=request.user,
             status__in=['completed', 'approved'],
             updated_at__gte=week_start
         ).count()
-        
+
         week_class = WriterBonus.objects.filter(
             writer=request.user,
             category='class_payment',
             granted_at__gte=week_start
         ).count()
-        
+
         # Monthly breakdown
         month_regular = Order.objects.filter(
             assigned_writer=request.user,
             status__in=['completed', 'approved'],
             updated_at__gte=month_start
         ).count()
-        
+
         month_special = SpecialOrder.objects.filter(
             assigned_writer=request.user,
             status__in=['completed', 'approved'],
             updated_at__gte=month_start
         ).count()
-        
+
         month_class = WriterBonus.objects.filter(
             writer=request.user,
             category='class_payment',
             granted_at__gte=month_start
         ).count()
-        
+
         return Response({
             'summary': {
                 'total_earnings': float(total_earnings),
@@ -2371,7 +2371,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'days': days,
             },
         })
-    
+
     @action(
         detail=False,
         methods=['get'],
@@ -2380,40 +2380,40 @@ class WriterDashboardViewSet(viewsets.ViewSet):
     def export_earnings(self, request):
         """
         Export earnings history to CSV format.
-        
+
         Returns CSV file with all earnings for tax purposes.
         Includes: date, type, amount, description, order_id
         """
         from django.http import HttpResponse
         import csv
         from io import StringIO
-        
+
         profile = self.get_writer_profile(request)
         if not profile:
             return Response(
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Get date range from query params
         days = int(request.query_params.get('days', 365))
         date_from = timezone.now() - timedelta(days=days)
         format_type = request.query_params.get('format', 'csv')
-        
+
         # Import required models
         from writer_management.models.payout import WriterPayment
         from special_orders.models import WriterBonus, SpecialOrder
         from orders.models.orders import Order
-        
+
         # Collect all earnings records
         earnings_records = []
-        
+
         # Regular order payments
         payments = WriterPayment.objects.filter(
             writer=profile,
             payment_date__gte=date_from
         ).exclude(description__icontains='installment')
-        
+
         for payment in payments:
             earnings_records.append({
                 'date': payment.payment_date,
@@ -2426,7 +2426,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     else None
                 ),
             })
-            
+
             # Add tips and bonuses as separate records
             if payment.tips and payment.tips > 0:
                 earnings_records.append({
@@ -2440,7 +2440,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                         else None
                     ),
                 })
-            
+
             if payment.bonuses and payment.bonuses > 0:
                 earnings_records.append({
                     'date': payment.payment_date,
@@ -2453,14 +2453,14 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                         else None
                     ),
                 })
-        
+
         # Class bonuses
         class_bonuses = WriterBonus.objects.filter(
             writer=request.user,
             category='class_payment',
             granted_at__gte=date_from
         )
-        
+
         for bonus in class_bonuses:
             earnings_records.append({
                 'date': bonus.granted_at,
@@ -2474,10 +2474,10 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     if bonus.special_order else None
                 ),
             })
-        
+
         # Sort by date
         earnings_records.sort(key=lambda x: x['date'])
-        
+
         # Generate CSV
         if format_type == 'csv':
             response = HttpResponse(content_type='text/csv')
@@ -2489,7 +2489,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             response['Content-Disposition'] = (
                 f'attachment; filename="{filename}"'
             )
-            
+
             writer = csv.writer(response)
             writer.writerow([
                 'Date',
@@ -2498,7 +2498,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'Description',
                 'Order ID',
             ])
-            
+
             total = Decimal('0.00')
             for record in earnings_records:
                 writer.writerow([
@@ -2509,11 +2509,11 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     record['order_id'] or '',
                 ])
                 total += Decimal(str(record['amount']))
-            
+
             # Add summary row
             writer.writerow([])
             writer.writerow(['Total', '', f"{total:.2f}", '', ''])
-            
+
             return response
         else:
             # Return JSON format
@@ -2536,7 +2536,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'to': timezone.now().isoformat(),
                 },
             })
-    
+
     @action(
         detail=False,
         methods=['get', 'post', 'patch'],
@@ -2545,7 +2545,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
     def order_priority(self, request, order_id=None):
         """
         Get or set priority for a specific order.
-        
+
         GET: Retrieve priority for an order
         POST/PATCH: Set or update priority
         """
@@ -2553,14 +2553,14 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             WriterOrderPriority
         )
         from orders.models.orders import Order
-        
+
         profile = self.get_writer_profile(request)
         if not profile:
             return Response(
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Verify order exists and is assigned to writer
         try:
             order = Order.objects.get(id=order_id)
@@ -2569,13 +2569,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Order not found."},
                 status=404
             )
-        
+
         if order.assigned_writer != request.user:
             return Response(
                 {"detail": "Order not assigned to you."},
                 status=403
             )
-        
+
         if request.method == 'GET':
             # Get existing priority
             try:
@@ -2604,17 +2604,17 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'created_at': None,
                     'updated_at': None,
                 })
-        
+
         # POST/PATCH: Set or update priority
         priority = request.data.get('priority', 'medium')
         notes = request.data.get('notes', '')
-        
+
         if priority not in ['high', 'medium', 'low']:
             return Response(
                 {"detail": "Priority must be high, medium, or low."},
                 status=400
             )
-        
+
         priority_obj, created = (
             WriterOrderPriority.objects.update_or_create(
                 writer=request.user,
@@ -2625,7 +2625,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 }
             )
         )
-        
+
         return Response({
             'order_id': order.id,
             'priority': priority_obj.priority,
@@ -2640,7 +2640,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             ),
             'created': created,
         }, status=201 if created else 200)
-    
+
     @action(
         detail=False,
         methods=['get'],
@@ -2649,32 +2649,32 @@ class WriterDashboardViewSet(viewsets.ViewSet):
     def get_order_priorities(self, request):
         """
         Get all priorities for writer's orders.
-        
+
         Returns a map of order_id -> priority for quick lookup.
         """
         from writer_management.models.order_priority import (
             WriterOrderPriority
         )
         from orders.models.orders import Order
-        
+
         profile = self.get_writer_profile(request)
         if not profile:
             return Response(
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Get all orders assigned to writer
         orders = Order.objects.filter(
             assigned_writer=request.user
         ).values_list('id', flat=True)
-        
+
         # Get priorities
         priorities = WriterOrderPriority.objects.filter(
             writer=request.user,
             order_id__in=orders
         ).select_related('order')
-        
+
         priority_map = {}
         for p in priorities:
             priority_map[p.order_id] = {
@@ -2685,7 +2685,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     if p.updated_at else None
                 ),
             }
-        
+
         # Add default 'medium' for orders without priority
         for order_id in orders:
             if order_id not in priority_map:
@@ -2694,7 +2694,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'notes': None,
                     'updated_at': None,
                 }
-        
+
         return Response({
             'priorities': priority_map,
             'total_orders': len(orders),
@@ -2703,7 +2703,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 if p['priority'] != 'medium'
             ]),
         })
-    
+
     @action(detail=False, methods=['get'], url_path='communications')
     def get_communications(self, request):
         """Get writer's communication threads and unread messages summary."""
@@ -2713,27 +2713,27 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=404
             )
-        
+
         # Get all threads where writer is involved (via assigned orders or as participant)
         writer_orders = Order.objects.filter(assigned_writer=request.user)
-        
+
         # Get threads for writer's orders
         order_threads = CommunicationThread.objects.filter(
             order__in=writer_orders
         ).select_related('order', 'order__client').prefetch_related('participants', 'messages')
-        
+
         # Get threads where writer is a participant
         participant_threads = CommunicationThread.objects.filter(
             participants=request.user
         ).select_related('order', 'order__client').prefetch_related('participants', 'messages')
-        
+
         # Combine and get unique threads
         all_threads = (order_threads | participant_threads).distinct()
-        
+
         # Get unread message count per thread
         threads_summary = []
         total_unread = 0
-        
+
         for thread in all_threads:
             # Count unread messages for this writer
             unread_count = CommunicationMessage.objects.filter(
@@ -2742,19 +2742,19 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 is_read=False,
                 is_hidden=False
             ).count()
-            
+
             total_unread += unread_count
-            
+
             # Get last message
             last_message = CommunicationMessage.objects.filter(
                 thread=thread,
                 is_hidden=False
             ).order_by('-sent_at').first()
-            
+
             # Get other participants (excluding current writer)
             other_participants = thread.participants.exclude(id=request.user.id)
             client = thread.order.client if thread.order else None
-            
+
             threads_summary.append({
                 'id': thread.id,
                 'order_id': thread.order.id if thread.order else None,
@@ -2777,13 +2777,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'created_at': thread.created_at.isoformat() if hasattr(thread, 'created_at') and thread.created_at else None,
                 'updated_at': thread.updated_at.isoformat() if hasattr(thread, 'updated_at') and thread.updated_at else None,
             })
-        
+
         # Sort by last message time (most recent first)
         threads_summary.sort(
             key=lambda x: x['last_message']['created_at'] if x['last_message'] and x['last_message']['created_at'] else '',
             reverse=True
         )
-        
+
         # Get threads by client
         threads_by_client = {}
         for thread_data in threads_summary:
@@ -2798,7 +2798,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     }
                 threads_by_client[client_id]['threads'].append(thread_data)
                 threads_by_client[client_id]['unread_count'] += thread_data['unread_count']
-        
+
         # Get active conversations (threads with unread messages or recent activity)
         from datetime import datetime
         active_threads = []
@@ -2819,18 +2819,18 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     pass
             if is_active:
                 active_threads.append(t)
-        
+
         return Response({
             'total_threads': len(threads_summary),
             'total_unread': total_unread,
             'active_conversations': len(active_threads),
-            'threads': threads_summary[:50],  # Limit to 50 most recent
+            'threads': threads_summary[:50], # Limit to 50 most recent
             'threads_by_client': list(threads_by_client.values()),
-            'active_threads': active_threads[:20],  # Top 20 active
+            'active_threads': active_threads[:20], # Top 20 active
             'summary': {
                 'threads_with_unread': len([t for t in threads_summary if t['unread_count'] > 0]),
                 'threads_this_week': len([
-                    t for t in threads_summary 
+                    t for t in threads_summary
                     if t['last_message'] and t['last_message']['created_at'] and
                     self._is_within_days(t['last_message']['created_at'], 7)
                 ]),

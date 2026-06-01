@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from django.utils.timezone import now  
+from django.utils.timezone import now
 
 from orders.models.orders import Order
 from orders.models.legacy_models.order_disputes import Dispute, DisputeWriterResponse
@@ -29,22 +29,22 @@ class OrderListSerializer(serializers.ModelSerializer):
     paper_type_name = serializers.CharField(source='paper_type.name', read_only=True, allow_null=True)
     academic_level_name = serializers.CharField(source='academic_level.name', read_only=True, allow_null=True)
     subject_name = serializers.CharField(source='subject.name', read_only=True, allow_null=True)
-    
+
     class Meta:
         model = Order
         fields = [
             'id', 'topic', 'paper_type', 'paper_type_name', 'academic_level', 'academic_level_name',
-            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages', 
-            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'writer_deadline', 
-            'client', 'client_username', 'assigned_writer', 'writer_username', 
-            'preferred_writer', 'total_price', 'writer_compensation', 
-            'subject', 'subject_name', 'discount_code_used', 'is_paid', 
-            'status', 'flags', 'created_at', 'updated_at', 
+            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages',
+            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'writer_deadline',
+            'client', 'client_username', 'assigned_writer', 'writer_username',
+            'preferred_writer', 'total_price', 'writer_compensation',
+            'subject', 'subject_name', 'discount_code_used', 'is_paid',
+            'status', 'flags', 'created_at', 'updated_at',
             'is_special_order', 'is_follow_up', 'is_urgent', 'website'
         ]
         read_only_fields = [
-            'id', 'client_username', 'writer_username', 'total_price', 
-            'writer_compensation', 'is_paid', 'created_at', 'updated_at', 
+            'id', 'client_username', 'writer_username', 'total_price',
+            'writer_compensation', 'is_paid', 'created_at', 'updated_at',
             'flags', 'writer_deadline'
         ]
 
@@ -71,25 +71,25 @@ class OrderSerializer(serializers.ModelSerializer):
     revision_eligibility = serializers.SerializerMethodField(read_only=True)
     # Style reference files uploaded by client
     style_reference_files = serializers.SerializerMethodField(read_only=True)
-    
+
     class Meta:
         model = Order
         fields = [
-            'id', 'topic', 'order_instructions', 'paper_type', 'academic_level', 
-            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages', 
-            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'writer_deadline', 
-            'client', 'client_username', 'client_email', 'client_registration_id', 'assigned_writer', 'writer_username', 
-            'preferred_writer', 'total_price', 'writer_compensation', 
-            'extra_services', 'subject', 'subject_is_technical', 'discount_code_used', 'is_paid', 
-            'status', 'flags', 'created_at', 'updated_at', 
+            'id', 'topic', 'order_instructions', 'paper_type', 'academic_level',
+            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages',
+            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'writer_deadline',
+            'client', 'client_username', 'client_email', 'client_registration_id', 'assigned_writer', 'writer_username',
+            'preferred_writer', 'total_price', 'writer_compensation',
+            'extra_services', 'subject', 'subject_is_technical', 'discount_code_used', 'is_paid',
+            'status', 'flags', 'created_at', 'updated_at',
             'created_by_admin', 'is_special_order', 'is_follow_up',
             'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent',
             'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',
             'allow_unpaid_access', 'writer_deadline_percentage', 'revision_eligibility', 'style_reference_files'
         ]
         read_only_fields = [
-            'id', 'client_username', 'writer_username', 'total_price', 
-            'writer_compensation', 'is_paid', 'created_at', 'updated_at', 
+            'id', 'client_username', 'writer_username', 'total_price',
+            'writer_compensation', 'is_paid', 'created_at', 'updated_at',
             'flags', 'writer_deadline', 'editing_skip_reason'
         ]
 
@@ -107,7 +107,7 @@ class OrderSerializer(serializers.ModelSerializer):
             bool(getattr(obj, 'external_contact_name', None)) or
             bool(getattr(obj, 'external_contact_email', None))
         )
-    
+
     def get_fake_client_id(self, obj):
         """
         Returns a fake client ID for writers viewing unattributed orders.
@@ -117,31 +117,31 @@ class OrderSerializer(serializers.ModelSerializer):
             bool(getattr(obj, 'external_contact_name', None)) or
             bool(getattr(obj, 'external_contact_email', None))
         )
-        
+
         if is_unattributed:
             # Generate a consistent fake ID based on order ID
             # This ensures the same fake ID is shown for the same order
             return f"EXT-{obj.id:06d}"
         return None
-    
+
     def get_client_email(self, obj):
         """Get client email (admin/superadmin only, filtered in to_representation)"""
         if obj.client:
             return obj.client.email
         return None
-    
+
     def get_client_registration_id(self, obj):
         """Get client registration ID"""
         if obj.client and hasattr(obj.client, 'client_profile'):
             return obj.client.client_profile.registration_id
         return None
-    
+
     def get_subject_is_technical(self, obj):
         """Get whether subject is technical"""
         if obj.subject:
             return getattr(obj.subject, 'is_technical', False)
         return None
-    
+
     def get_writer_deadline_percentage(self, obj):
         """Get writer deadline percentage config"""
         if obj.writer_deadline_percentage:
@@ -198,7 +198,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "free_revision_until": free_until.isoformat(),
             "days_left": days_left,
         }
-    
+
     def get_style_reference_files(self, obj):
         """Get style reference files for this order."""
         try:
@@ -229,12 +229,12 @@ class OrderSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         role = getattr(getattr(request, 'user', None), 'role', None)
         user = getattr(request, 'user', None)
-        
+
         is_unattributed = instance.client_id is None and (
             bool(getattr(instance, 'external_contact_name', None)) or
             bool(getattr(instance, 'external_contact_email', None))
         )
-        
+
         # Role-based field visibility
         if role not in ['admin', 'superadmin', 'support']:
             data.pop('external_contact_name', None)
@@ -248,7 +248,7 @@ class OrderSerializer(serializers.ModelSerializer):
             # keep allow_unpaid_access visible only if owner/admin
             if role not in ['admin', 'superadmin'] and user != instance.client:
                 data.pop('allow_unpaid_access', None)
-        
+
         # For writers viewing unattributed orders, show fake client ID instead of null
         if role == 'writer' and is_unattributed and not data.get('client'):
             # Keep fake_client_id visible to writers
@@ -261,9 +261,9 @@ class OrderSerializer(serializers.ModelSerializer):
             # Hide fake_client_id from non-admin roles (except writers who need it)
             if role != 'writer':
                 data.pop('fake_client_id', None)
-        
+
         return data
-    
+
     def perform_create(self, serializer):
         is_follow_up = self.request.data.get('is_follow_up', False)
         previous_order_id = self.request.data.get('previous_order')
@@ -284,9 +284,9 @@ class OrderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'topic', 'order_instructions', 'paper_type', 'academic_level', 
-            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages', 
-            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'extra_services', 
+            'topic', 'order_instructions', 'paper_type', 'academic_level',
+            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages',
+            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'extra_services',
             'discount_code_used', 'client', 'preferred_writer'
         ]
 
@@ -301,13 +301,13 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         if value and not value.is_active:
             raise serializers.ValidationError("The preferred writer is not available.")
         return value
-    
+
 
 class OrderActionSerializer(serializers.Serializer):
     action = serializers.CharField(required=True)
     order_id = serializers.IntegerField(required=True)
     params = serializers.DictField(required=False, default=dict)
-    
+
     # You can also add custom validation logic here if needed
     def validate_action(self, value):
         """
@@ -330,8 +330,8 @@ class DisputeSerializer(serializers.ModelSerializer):
     Serializer for the Dispute model.
     """
     order_id = serializers.PrimaryKeyRelatedField(
-        source='order', 
-        queryset=Order.objects.all(),  
+        source='order',
+        queryset=Order.objects.all(),
         help_text='The ID of the order associated with this dispute.'
     )
     order_topic = serializers.CharField(
@@ -340,7 +340,7 @@ class DisputeSerializer(serializers.ModelSerializer):
         help_text='The topic of the disputed order.'
     )
     raised_by_username = serializers.CharField(
-        source='raised_by.username',  
+        source='raised_by.username',
         read_only=True,
         help_text='The username of the user who raised this dispute.'
     )
@@ -464,7 +464,7 @@ class ResolveReassignmentSerializer(serializers.Serializer):
                 )
 
         return data
-    
+
 
 class PreferredWriterResponseSerializer(serializers.Serializer):
     response = serializers.ChoiceField(choices=["accepted", "declined"])
@@ -501,8 +501,8 @@ class DisputeWriterResponseSerializer(serializers.ModelSerializer):
         """
         Handle creating the DisputeWriterResponse and updating the dispute status.
         """
-        dispute = self.context['dispute']  # Assuming the dispute is passed in the context
-        writer = self.context['request'].user  # Writer responding to the dispute
+        dispute = self.context['dispute'] # Assuming the dispute is passed in the context
+        writer = self.context['request'].user # Writer responding to the dispute
 
         # Create the dispute writer response
         dispute_writer_response = DisputeWriterResponse.objects.create(
@@ -573,7 +573,7 @@ class WriterRequestSerializer(serializers.ModelSerializer):
                 setattr(instance, field, validated_data[field])
         instance.save()
         return instance
-    
+
     def get_payment_pending(self, obj):
         return obj.requires_payment and not obj.is_paid
 
@@ -624,7 +624,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
 
 class OrderMinimalSerializer(serializers.ModelSerializer):
-    """ 
+    """
     A minimal serializer for Order, used in webhooks and events.
     This serializer includes only essential fields to reduce payload size.
     """
@@ -658,7 +658,7 @@ class WriterRequestActionSerializer(serializers.Serializer):
             pass
 
         return attrs
-    
+
 
 class OrderPricingSnapshotSerializer(serializers.ModelSerializer):
     class Meta:
@@ -680,7 +680,7 @@ class WriterRequestPreviewSerializer(serializers.Serializer):
         if request_type == WriterRequest.RequestType.SLIDES and not data.get("additional_slides"):
             raise serializers.ValidationError("additional_slides is required.")
         return data
-    
+
 
 class WriterReassignmentLogSerializer(serializers.ModelSerializer):
     order_id = serializers.IntegerField(source="order.id", read_only=True)
@@ -696,7 +696,7 @@ class WriterReassignmentLogSerializer(serializers.ModelSerializer):
     reassigned_by_username = serializers.CharField(
         source="reassigned_by.username", read_only=True
     )
-    
+
 
     class Meta:
         model = WriterReassignmentLog
@@ -710,7 +710,7 @@ class WriterReassignmentLogSerializer(serializers.ModelSerializer):
             "reason",
             "created_at",
         ]
-    
+
     class OrderDeleteSerializer(serializers.Serializer):
         reason = serializers.CharField(
             max_length=255, required=False, allow_blank=True

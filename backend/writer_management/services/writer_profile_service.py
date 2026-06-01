@@ -9,10 +9,10 @@ This service answers one question per method:
     "What needs to happen to the WriterProfile for this action?"
 
 It does NOT:
-    - Create AccountProfile   → accounts.AccountCreationService
-    - Assign roles            → accounts.AccountRoleService
-    - Grant portal access     → accounts.PortalAccessService
-    - Grant tenant access     → accounts.TenantAccessService
+    - Create AccountProfile → accounts.AccountCreationService
+    - Assign roles → accounts.AccountRoleService
+    - Grant portal access → accounts.PortalAccessService
+    - Grant tenant access → accounts.TenantAccessService
     - Track onboarding session → accounts.OnboardingService
 
 It DOES:
@@ -25,17 +25,17 @@ It DOES:
 
 ONBOARDING STATUS OWNERSHIP
 ----------------------------
-AccountProfile.onboarding_status  → accounts app (platform setup)
-WriterProfile.onboarding_status   → this service (writer domain)
+AccountProfile.onboarding_status → accounts app (platform setup)
+WriterProfile.onboarding_status → this service (writer domain)
 
 These are separate concerns. Do not read one to set the other.
 
 CALLED BY
 ---------
-WriterApplicationService.approve()    → create_for_approved_application()
-Admin API                             → update_profile(), soft_delete()
-Writer API                            → update_own_profile()
-Onboarding pipeline                   → advance_onboarding_status()
+WriterApplicationService.approve() → create_for_approved_application()
+Admin API → update_profile(), soft_delete()
+Writer API → update_own_profile()
+Onboarding pipeline → advance_onboarding_status()
 """
 
 import logging
@@ -95,8 +95,8 @@ class WriterProfileService:
 
         Args:
             account_profile: AccountProfile (fully platform-onboarded).
-            application:     Approved WriterApplication (source data).
-            initial_level:   Optional WriterLevel. Null until admin assigns.
+            application: Approved WriterApplication (source data).
+            initial_level: Optional WriterLevel. Null until admin assigns.
 
         Returns:
             WriterProfile with onboarding_status=IN_PROGRESS.
@@ -167,10 +167,10 @@ class WriterProfileService:
         Creates a WriterProfileUpdateLog entry for every change.
 
         Args:
-            writer:     WriterProfile to update.
+            writer: WriterProfile to update.
             updated_by: User making the change.
-            is_admin:   True if the caller is an admin.
-            **fields:   Fields to update with new values.
+            is_admin: True if the caller is an admin.
+            **fields: Fields to update with new values.
 
         Returns:
             Updated WriterProfile.
@@ -251,10 +251,10 @@ class WriterProfileService:
             REJECTED → IN_PROGRESS (writer corrects and resubmits)
 
         Args:
-            writer:      WriterProfile to advance.
-            new_status:  Target WriterOnboardingStatus value.
+            writer: WriterProfile to advance.
+            new_status: Target WriterOnboardingStatus value.
             advanced_by: User performing the advancement.
-            notes:       Optional reason for this transition.
+            notes: Optional reason for this transition.
 
         Returns:
             Updated WriterProfile.
@@ -279,7 +279,7 @@ class WriterProfileService:
             },
         }
 
-        current = writer.onboarding_status  # str from CharField
+        current = writer.onboarding_status # str from CharField
         allowed_next = valid_transitions.get(current, set())
 
         if new_status not in allowed_next:
@@ -356,8 +356,8 @@ class WriterProfileService:
         Update verification status. Sets is_verified from status.
 
         Args:
-            writer:      WriterProfile to update.
-            new_status:  WriterVerificationStatus value.
+            writer: WriterProfile to update.
+            new_status: WriterVerificationStatus value.
             verified_by: Admin User performing the update.
 
         Returns:
@@ -409,9 +409,9 @@ class WriterProfileService:
         Historical data (orders, payments, ratings) is preserved.
 
         Args:
-            writer:     WriterProfile to delete.
+            writer: WriterProfile to delete.
             deleted_by: Admin User performing the deletion.
-            reason:     Optional reason for the deletion.
+            reason: Optional reason for the deletion.
 
         Raises:
             ValueError: If already deleted.
@@ -463,9 +463,9 @@ class WriterProfileService:
         verifying the writer is ready to receive orders.
 
         Args:
-            writer:      WriterProfile to restore.
+            writer: WriterProfile to restore.
             restored_by: Admin User performing the restore.
-            reason:      Required — why the profile is being restored.
+            reason: Required — why the profile is being restored.
 
         Raises:
             ValueError: If not deleted, or reason is blank.
@@ -516,8 +516,8 @@ class WriterProfileService:
         For subsequent level changes use LevelProgressionService.
 
         Args:
-            writer:      WriterProfile with writer_level=None.
-            level:       WriterLevel to assign.
+            writer: WriterProfile with writer_level=None.
+            level: WriterLevel to assign.
             assigned_by: Admin User.
 
         Raises:
@@ -668,9 +668,9 @@ class WriterProfileService:
             from writer_management.models.logs import WriterProfileUpdateLog
 
             # website = (
-            #     writer.writer_level.website
-            #     if writer.writer_level
-            #     else None
+            # writer.writer_level.website
+            # if writer.writer_level
+            # else None
             # )
             website = getattr(writer.writer_level, "website", None)
             if website is None:

@@ -70,26 +70,26 @@ class StripePaymentProvider(BasePaymentProvider):
     Stripe payment provider — Checkout Sessions API.
 
     Flow:
-        create_payment  → stripe.checkout.Session.create()
+        create_payment → stripe.checkout.Session.create()
                           Returns a hosted payment URL.
                           Session ID stored as provider_reference.
 
-        verify_webhook  → stripe.Webhook.construct_event()
+        verify_webhook → stripe.Webhook.construct_event()
                           Uses raw body bytes + Stripe-Signature header.
                           Raw bytes passed via headers["_raw_body"].
 
-        parse_webhook   → Normalises the Stripe event into ProviderWebhookEvent.
+        parse_webhook → Normalises the Stripe event into ProviderWebhookEvent.
 
-        refund_payment  → stripe.Refund.create()
+        refund_payment → stripe.Refund.create()
 
-        verify_payment  → stripe.checkout.Session.retrieve() or
+        verify_payment → stripe.checkout.Session.retrieve() or
                           stripe.PaymentIntent.retrieve()
 
     Settings required:
-        STRIPE_SECRET_KEY       sk_live_... or sk_test_...
-        STRIPE_WEBHOOK_SECRET   whsec_...  (for webhook verification)
-        STRIPE_PUBLISHABLE_KEY  pk_live_... or pk_test_... (returned to client)
-        FRONTEND_URL            Base URL for success/cancel redirect pages
+        STRIPE_SECRET_KEY sk_live_... or sk_test_...
+        STRIPE_WEBHOOK_SECRET whsec_... (for webhook verification)
+        STRIPE_PUBLISHABLE_KEY pk_live_... or pk_test_... (returned to client)
+        FRONTEND_URL Base URL for success/cancel redirect pages
     """
 
     provider_name = "stripe"
@@ -361,7 +361,7 @@ class StripePaymentProvider(BasePaymentProvider):
         try:
             if provider_reference.startswith("cs_"):
                 obj = stripe.checkout.Session.retrieve(provider_reference)
-                payment_status = obj.payment_status  # "paid" | "unpaid" | "no_payment_required"
+                payment_status = obj.payment_status # "paid" | "unpaid" | "no_payment_required"
                 amount_total = obj.amount_total
                 pi_id = obj.payment_intent or ""
                 status = "success" if payment_status == "paid" else "pending"
@@ -369,7 +369,7 @@ class StripePaymentProvider(BasePaymentProvider):
                 obj = stripe.PaymentIntent.retrieve(provider_reference)
                 pi_id = obj.id
                 amount_total = obj.amount
-                stripe_status = obj.status  # "succeeded" | "canceled" | "processing" etc.
+                stripe_status = obj.status # "succeeded" | "canceled" | "processing" etc.
                 status = "success" if stripe_status == "succeeded" else (
                     "failed" if stripe_status in ("canceled", "requires_payment_method") else "pending"
                 )

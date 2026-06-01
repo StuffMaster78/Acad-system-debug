@@ -78,12 +78,12 @@ class DisputeService:
         )
 
         # send_dispute_notification(
-        #     dispute,
-        #     subject="New Dispute Raised",
-        #     message=(
-        #         f"A dispute has been raised for Order #{order.id}. "
-        #         "Admin attention required."
-        #     ),
+        # dispute,
+        # subject="New Dispute Raised",
+        # message=(
+        # f"A dispute has been raised for Order #{order.id}. "
+        # "Admin attention required."
+        # ),
         # )
 
         return dispute
@@ -113,7 +113,7 @@ class DisputeService:
         self.dispute.status = new_status
         self.dispute.last_updated_by = updated_by
         self.dispute.last_updated_at = timezone.now()
-        
+
         if note:
             self.dispute.internal_note = note
 
@@ -124,9 +124,9 @@ class DisputeService:
         # Order status should remain 'disputed' until dispute is resolved
 
         # send_dispute_notification(
-        #     self.dispute,
-        #     subject=f"Dispute status updated to {new_status.upper()}",
-        #     message=note or f"The dispute was updated by {updated_by.email}."
+        # self.dispute,
+        # subject=f"Dispute status updated to {new_status.upper()}",
+        # message=note or f"The dispute was updated by {updated_by.email}."
         # )
 
     @transaction.atomic
@@ -154,10 +154,10 @@ class DisputeService:
 
         if self.dispute.status == DisputeStatus.RESOLVED.value:
             raise ValidationError("Dispute is already resolved.")
-        
+
         if resolution_outcome not in ResolutionOutcome.__dict__.values():
             raise ValidationError("Invalid resolution outcome.")
-    
+
         if resolution_outcome == ResolutionOutcome.WRITER_WINS:
             """
             When the writer wins a dispute, the order should be considered
@@ -260,24 +260,24 @@ class DisputeService:
         self.order.save()
 
         # send_dispute_notification(
-        #     self.dispute,
-        #     subject="Dispute Resolved",
-        #     message=(
-        #         f"Dispute for Order #{self.order.id} resolved: "
-        #         f"{resolution_outcome.replace('_', ' ').title()}."
-        #     ),
-        #     website=website
+        # self.dispute,
+        # subject="Dispute Resolved",
+        # message=(
+        # f"Dispute for Order #{self.order.id} resolved: "
+        # f"{resolution_outcome.replace('_', ' ').title()}."
+        # ),
+        # website=website
         # )
 
         # log_dispute_resolution(
-        #     dispute=self.dispute,
-        #     order=self.order,
-        #     resolved_by=resolved_by,
-        #     website=website
+        # dispute=self.dispute,
+        # order=self.order,
+        # resolved_by=resolved_by,
+        # website=website
         # )
 
         return self.dispute
-    
+
     @staticmethod
     def escalate_dispute(dispute: Dispute, escalated_by: User) -> None:
         """

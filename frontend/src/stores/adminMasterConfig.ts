@@ -40,8 +40,8 @@ function buildPreviewValues(): Record<string, ConfigRuntimeValue> {
 function buildPreviewAudit(sectionKey: string): AuditEntry[] {
   const now = Date.now();
   return [
-    { id: 1, key: "deadline_min_hours", label: "Minimum deadline (hours)", section: sectionKey, oldValue: 6,  newValue: 8,  changedBy: "Eva Admin",  changedAt: new Date(now - 3600000 * 2).toISOString(),  website: null },
-    { id: 2, key: "deadline_min_hours", label: "Minimum deadline (hours)", section: sectionKey, oldValue: 12, newValue: 6,  changedBy: "Super Admin", changedAt: new Date(now - 86400000 * 3).toISOString(), website: null },
+    { id: 1, key: "deadline_min_hours", label: "Minimum deadline (hours)", section: sectionKey, oldValue: 6, newValue: 8, changedBy: "Eva Admin", changedAt: new Date(now - 3600000 * 2).toISOString(), website: null },
+    { id: 2, key: "deadline_min_hours", label: "Minimum deadline (hours)", section: sectionKey, oldValue: 12, newValue: 6, changedBy: "Super Admin", changedAt: new Date(now - 86400000 * 3).toISOString(), website: null },
     { id: 3, key: "order_auto_complete_days", label: "Auto-complete after (days)", section: sectionKey, oldValue: 3, newValue: 5, changedBy: "Eva Admin", changedAt: new Date(now - 86400000 * 7).toISOString(), website: "WritePro" },
   ];
 }

@@ -10,13 +10,13 @@ export type DocType =
   | "copyright_policy";
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
-  terms_of_service:      "Terms of Service",
-  privacy_policy:        "Privacy Policy",
-  refund_policy:         "Refund Policy",
-  cookie_policy:         "Cookie Policy",
+  terms_of_service: "Terms of Service",
+  privacy_policy: "Privacy Policy",
+  refund_policy: "Refund Policy",
+  cookie_policy: "Cookie Policy",
   acceptable_use_policy: "Acceptable Use Policy",
-  writer_agreement:      "Writer Agreement",
-  copyright_policy:      "Copyright Policy",
+  writer_agreement: "Writer Agreement",
+  copyright_policy: "Copyright Policy",
 };
 
 export const ALL_DOC_TYPES: DocType[] = Object.keys(DOC_TYPE_LABELS) as DocType[];

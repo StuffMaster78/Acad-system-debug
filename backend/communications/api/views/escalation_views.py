@@ -28,8 +28,8 @@ class CommunicationEscalationViewSet(ReadOnlyModelViewSet):
         CanEscalateCommunicationThread,
     ]
     pagination_class = CommunicationDefaultPagePagination
-    
-    def get_queryset(self):  # type: ignore[override]
+
+    def get_queryset(self): # type: ignore[override]
         """
         Return escalations visible to staff operators.
         """

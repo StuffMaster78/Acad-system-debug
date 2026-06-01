@@ -168,7 +168,7 @@ class OrderAdjustmentTaskTests(SimpleTestCase):
             order_adjustment_tasks.send_pending_adjustment_funding_reminders,
         )
         result = task.run()
-    
+
         self.assertEqual(
             result,
             {

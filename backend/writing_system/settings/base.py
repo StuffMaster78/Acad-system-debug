@@ -431,7 +431,7 @@ CELERY_IMPORTS = [
     "files_management.tasks.cleanup",
 ]
 
-from celery.schedules import crontab  # noqa: E402
+from celery.schedules import crontab # noqa: E402
 
 CELERY_BEAT_SCHEDULE = {
 
@@ -440,11 +440,11 @@ CELERY_BEAT_SCHEDULE = {
     # ----------------------------------------------------------------
     "files.recalculate_all_quotas": {
         "task": "files_management.tasks.quotas.recalculate_all_quotas",
-        "schedule": crontab(hour=1, minute=0),         # nightly 01:00
+        "schedule": crontab(hour=1, minute=0), # nightly 01:00
     },
     "files.cleanup_expired_files": {
         "task": "files_management.tasks.cleanup.cleanup_expired_files",
-        "schedule": crontab(hour=2, minute=0),         # nightly 02:00
+        "schedule": crontab(hour=2, minute=0), # nightly 02:00
     },
 
     # ----------------------------------------------------------------
@@ -452,23 +452,23 @@ CELERY_BEAT_SCHEDULE = {
     # ----------------------------------------------------------------
     "notifications.process_due_digests": {
         "task": "notifications_system.tasks.digest.process_due_digests",
-        "schedule": crontab(minute=0),                 # every hour
+        "schedule": crontab(minute=0), # every hour
     },
     "notifications.requeue_pending_outbox": {
         "task": "notifications_system.tasks.maintenance.requeue_pending_outbox",
-        "schedule": 300,                               # every 5 min (seconds)
+        "schedule": 300, # every 5 min (seconds)
     },
     "notifications.cleanup_processed_outbox": {
         "task": "notifications_system.tasks.maintenance.cleanup_processed_outbox",
-        "schedule": crontab(hour=3, minute=0, day_of_week=0),  # weekly Sunday 03:00
+        "schedule": crontab(hour=3, minute=0, day_of_week=0), # weekly Sunday 03:00
     },
     "notifications.rebuild_unread_counts": {
         "task": "notifications_system.tasks.maintenance.rebuild_unread_counts",
-        "schedule": crontab(hour=4, minute=0),         # nightly 04:00
+        "schedule": crontab(hour=4, minute=0), # nightly 04:00
     },
     "notifications.clear_stale_digests": {
         "task": "notifications_system.tasks.maintenance.clear_stale_digests",
-        "schedule": crontab(hour=3, minute=30, day_of_week=0),  # weekly Sunday 03:30
+        "schedule": crontab(hour=3, minute=30, day_of_week=0), # weekly Sunday 03:30
     },
 
     # ----------------------------------------------------------------
@@ -476,19 +476,19 @@ CELERY_BEAT_SCHEDULE = {
     # ----------------------------------------------------------------
     "auth.cleanup_expired_impersonation_tokens": {
         "task": "authentication.tasks.cleanup_expired_impersonation_tokens_task",
-        "schedule": crontab(minute=0),                 # every hour
+        "schedule": crontab(minute=0), # every hour
     },
     "auth.cleanup_expired_otps": {
         "task": "authentication.tasks.cleanup_expired_otps_task",
-        "schedule": crontab(minute=30),                # every hour at :30
+        "schedule": crontab(minute=30), # every hour at :30
     },
     "auth.cleanup_expired_password_reset_requests": {
         "task": "authentication.tasks.cleanup_expired_password_reset_requests_task",
-        "schedule": crontab(hour=0, minute=15),        # nightly 00:15
+        "schedule": crontab(hour=0, minute=15), # nightly 00:15
     },
     "auth.cleanup_expired_registration_tokens": {
         "task": "authentication.tasks.cleanup_expired_registration_tokens_task",
-        "schedule": crontab(hour=0, minute=30),        # nightly 00:30
+        "schedule": crontab(hour=0, minute=30), # nightly 00:30
     },
 
     # ----------------------------------------------------------------
@@ -496,11 +496,11 @@ CELERY_BEAT_SCHEDULE = {
     # ----------------------------------------------------------------
     "orders.release_stale_preferred_orders": {
         "task": "orders.tasks.release_stale_preferred_orders",
-        "schedule": crontab(minute="*/15"),            # every 15 min
+        "schedule": crontab(minute="*/15"), # every 15 min
     },
     "orders.archive_approved_orders": {
         "task": "orders.tasks.archive_approved_orders",
-        "schedule": crontab(hour=1, minute=30),        # nightly 01:30
+        "schedule": crontab(hour=1, minute=30), # nightly 01:30
     },
 
     # ----------------------------------------------------------------
@@ -508,11 +508,11 @@ CELERY_BEAT_SCHEDULE = {
     # ----------------------------------------------------------------
     "payments.resolve_stale_pending": {
         "task": "payments_processor.tasks.payment_cleanup_tasks.resolve_stale_pending_payments_task",
-        "schedule": crontab(minute="*/30"),            # every 30 min
+        "schedule": crontab(minute="*/30"), # every 30 min
     },
     "payments.expire_elapsed_intents": {
         "task": "payments_processor.tasks.payment_cleanup_tasks.expire_elapsed_payment_intents_task",
-        "schedule": crontab(minute="*/30"),            # every 30 min
+        "schedule": crontab(minute="*/30"), # every 30 min
     },
 
     # ----------------------------------------------------------------
@@ -520,7 +520,7 @@ CELERY_BEAT_SCHEDULE = {
     # ----------------------------------------------------------------
     "wallets.expire_active_holds": {
         "task": "wallets.tasks.expire_active_holds",
-        "schedule": 300,                               # every 5 min
+        "schedule": 300, # every 5 min
     },
 
     # ----------------------------------------------------------------
@@ -528,7 +528,7 @@ CELERY_BEAT_SCHEDULE = {
     # ----------------------------------------------------------------
     "discounts.activate_and_expire_campaigns": {
         "task": "discounts.activate_and_expire_campaigns",
-        "schedule": crontab(minute="*/30"),            # every 30 min
+        "schedule": crontab(minute="*/30"), # every 30 min
     },
 
     # ----------------------------------------------------------------
@@ -536,19 +536,19 @@ CELERY_BEAT_SCHEDULE = {
     # ----------------------------------------------------------------
     "support.check_sla_breaches": {
         "task": "support_management.tasks.check_sla_breaches",
-        "schedule": 300,                               # every 5 min
+        "schedule": 300, # every 5 min
     },
     "support.refresh_dashboards": {
         "task": "support_management.tasks.refresh_all_support_dashboards",
-        "schedule": crontab(minute="*/15"),            # every 15 min
+        "schedule": crontab(minute="*/15"), # every 15 min
     },
     "support.auto_reassign": {
         "task": "support_management.tasks.auto_reassign_unresolved_tasks",
-        "schedule": crontab(minute="*/30"),            # every 30 min
+        "schedule": crontab(minute="*/30"), # every 30 min
     },
     "support.update_workload_trackers": {
         "task": "support_management.tasks.update_support_workload_trackers",
-        "schedule": crontab(minute="*/10"),            # every 10 min
+        "schedule": crontab(minute="*/10"), # every 10 min
     },
 
     # ----------------------------------------------------------------
@@ -556,7 +556,7 @@ CELERY_BEAT_SCHEDULE = {
     # ----------------------------------------------------------------
     "activity.cleanup_dismissed_feed_states": {
         "task": "activity.tasks.cleanup_tasks.cleanup_dismissed_feed_states",
-        "schedule": crontab(hour=5, minute=0, day_of_week=0),  # weekly Sunday 05:00
+        "schedule": crontab(hour=5, minute=0, day_of_week=0), # weekly Sunday 05:00
     },
 
     # ----------------------------------------------------------------
@@ -588,18 +588,18 @@ CELERY_BEAT_SCHEDULE = {
     # ----------------------------------------------------------------
     "referrals.expire_stale_invitations": {
         "task": "referrals.tasks.expire_stale_referral_invitations",
-        "schedule": crontab(hour=6, minute=30),        # nightly 06:30
+        "schedule": crontab(hour=6, minute=30), # nightly 06:30
     },
 
     # Reputation system
     # ----------------------------------------------------------------
     "reputation.snapshot_update": {
         "task": "reputation_system.tasks.snapshot_tasks.update_snapshot_task",
-        "schedule": crontab(hour=3, minute=0),          # nightly 03:00
+        "schedule": crontab(hour=3, minute=0), # nightly 03:00
     },
     "reputation.emit_events": {
         "task": "reputation_system.tasks.events_tasks.emit_reputation_recalculated_event",
-        "schedule": crontab(hour=3, minute=30),         # after snapshot
+        "schedule": crontab(hour=3, minute=30), # after snapshot
     },
 }
 
@@ -781,7 +781,7 @@ CORS_ALLOWED_ORIGINS = env_list(
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False
 
-from corsheaders.defaults import default_headers  # noqa: E402
+from corsheaders.defaults import default_headers # noqa: E402
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "X-Device-Fingerprint",

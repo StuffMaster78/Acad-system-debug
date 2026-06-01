@@ -15,7 +15,7 @@ class OrderActionView(views.APIView):
     """
     Handles transitions on an order using the action dispatcher.
     Now with state-aware action system that automatically triggers transitions.
-    
+
     Enhanced with:
     - Better error messages
     - Reason/notes support for audit trail
@@ -86,14 +86,14 @@ class OrderActionView(views.APIView):
             )
 
         action_service = OrderActionService(user=request.user)
-        
+
         # Check if action is available
         can_perform, reason = action_service.can_perform_action(order, action)
         if not can_perform:
             # Get available actions for better error message
             available_actions = action_service.get_available_actions(order)
             available_action_names = [a["action"] for a in available_actions]
-            
+
             return Response(
                 {
                     "status": "error",
@@ -109,7 +109,7 @@ class OrderActionView(views.APIView):
 
         params = request.data.copy()
         params.pop("action", None)
-        reason = params.pop("reason", None) or params.pop("notes", None)  # Support both fields
+        reason = params.pop("reason", None) or params.pop("notes", None) # Support both fields
 
         try:
             with transaction.atomic():
@@ -120,10 +120,10 @@ class OrderActionView(views.APIView):
                     reason=reason,
                     **params
                 )
-                
+
                 # Refresh from database to get latest state
                 updated_order.refresh_from_db()
-                
+
                 # Determine user-friendly action label
                 available_actions = action_service.get_available_actions(order)
                 action_config = next(
@@ -131,14 +131,14 @@ class OrderActionView(views.APIView):
                     None
                 )
                 action_label = action_config.get("label", action.replace("_", " ").title()) if action_config else action.replace("_", " ").title()
-                
+
                 # Build success message
                 status_changed = order.status != updated_order.status
                 if status_changed:
                     message = f"Order #{order.pk} {action_label.lower()}d successfully. Status changed from '{order.status}' to '{updated_order.status}'."
                 else:
                     message = f"Order #{order.pk} {action_label.lower()}d successfully."
-                
+
                 return Response(
                     {
                         "status": "success",
@@ -150,7 +150,7 @@ class OrderActionView(views.APIView):
                         "new_status": updated_order.status,
                         "status_changed": status_changed,
                         "order": OrderSerializer(updated_order, context={"request": request}).data,
-                        "reason": reason  # Echo back reason for confirmation
+                        "reason": reason # Echo back reason for confirmation
                     },
                     status=status.HTTP_200_OK
                 )
@@ -168,22 +168,22 @@ class OrderActionView(views.APIView):
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Error executing order action {action} on order {pk}: {str(e)}", exc_info=True)
-            
+
             return Response(
                 {
                     "status": "error",
                     "detail": "An unexpected error occurred while processing your request.",
-                    "error": str(e) if request.user.role in ["admin", "superadmin"] else None,  # Only show details to admins
+                    "error": str(e) if request.user.role in ["admin", "superadmin"] else None, # Only show details to admins
                     "order_id": order.pk,
                     "action": action
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     def get(self, request, pk: int):
         """
         Get available actions for an order based on its current state.
-        
+
         Returns:
             Response: List of available actions with metadata
         """
@@ -198,10 +198,10 @@ class OrderActionView(views.APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         action_service = OrderActionService(user=request.user)
         available_actions = action_service.get_available_actions(order)
-        
+
         return Response(
             {
                 "status": "success",

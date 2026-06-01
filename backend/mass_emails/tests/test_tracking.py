@@ -18,7 +18,7 @@ class TestEmailTrackingEndpoints:
             username="client1", email="client1@example.com", password="pass"
         )
         self.campaign = EmailCampaign.objects.create(
-            title="Spring Sale", subject="🌼 50% Off!", body="<p>Hello</p>",
+            title="Spring Sale", subject=" 50% Off!", body="<p>Hello</p>",
             email_type="promos", created_by=self.user
         )
         self.recipient = EmailRecipient.objects.create(

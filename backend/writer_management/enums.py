@@ -94,21 +94,21 @@ class WriterVerificationStatus(models.TextChoices):
 class WriterOnboardingStatus(models.TextChoices):
     """
     Writer-domain onboarding progress. Stored on WriterProfile.
- 
+
     Separate from accounts.OnboardingStatus which tracks
     platform-level setup (role, portal, tenant access).
- 
+
     These states track writer-specific requirements:
     document submission, qualification review, level assignment.
- 
+
     Transitions (enforced by WriterProfileService):
-        NOT_STARTED       → IN_PROGRESS         (profile created)
-        IN_PROGRESS       → DOCUMENTS_PENDING   (writer submits docs)
-        DOCUMENTS_PENDING → REVIEW_PENDING      (admin accepts docs)
-        DOCUMENTS_PENDING → REJECTED            (admin rejects docs)
-        REVIEW_PENDING    → COMPLETED           (admin final approval)
-        REVIEW_PENDING    → REJECTED            (admin rejects at final review)
-        REJECTED          → IN_PROGRESS         (writer corrects and resubmits)
+        NOT_STARTED → IN_PROGRESS (profile created)
+        IN_PROGRESS → DOCUMENTS_PENDING (writer submits docs)
+        DOCUMENTS_PENDING → REVIEW_PENDING (admin accepts docs)
+        DOCUMENTS_PENDING → REJECTED (admin rejects docs)
+        REVIEW_PENDING → COMPLETED (admin final approval)
+        REVIEW_PENDING → REJECTED (admin rejects at final review)
+        REJECTED → IN_PROGRESS (writer corrects and resubmits)
     """
 
     NOT_STARTED = "not_started", "Not Started"
@@ -152,7 +152,7 @@ class DisciplineChangeType(models.TextChoices):
 class LevelChangeType(models.TextChoices):
     """
     Nature of a writer level change. Stored on WriterLevelChangeLog.
-    """  
+    """
     PROMOTION = "promotion", "Promotion"
     DEMOTION = "demotion", "Demotion"
     MANUAL = "manual", "Manual Override"

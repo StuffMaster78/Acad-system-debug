@@ -16,7 +16,7 @@ class FineManagementService:
     """
     Service for admin fine management operations.
     """
-    
+
     @staticmethod
     def issue_custom_fine(
         order: Order,
@@ -28,7 +28,7 @@ class FineManagementService:
     ) -> Fine:
         """
         Issue a fine with optional custom amount override.
-        
+
         Args:
             order: Order to fine
             fine_type_code: Fine type code (must exist in FineTypeConfig)
@@ -36,7 +36,7 @@ class FineManagementService:
             issued_by: Admin issuing fine
             amount: Custom amount (overrides config if provided)
             use_config: If True, uses FineTypeConfig; if False, uses amount directly
-            
+
         Returns:
             Fine: Created fine instance
         """
@@ -53,7 +53,7 @@ class FineManagementService:
             # Direct fine creation (legacy/bypass config)
             if not amount:
                 raise ValidationError("Amount required when use_config=False")
-            
+
             return FineTypeService.issue_fine(
                 order=order,
                 fine_type_code=fine_type_code,
@@ -61,20 +61,20 @@ class FineManagementService:
                 issued_by=issued_by,
                 custom_amount=amount
             )
-    
+
     @staticmethod
     def get_available_fine_types(website=None):
         """
         Get all available fine types for a website.
-        
+
         Args:
             website: Website instance (optional)
-            
+
         Returns:
             QuerySet: FineTypeConfig instances
         """
         queryset = FineTypeConfig.objects.filter(active=True)
-        
+
         if website:
             # Get website-specific and global types
             return queryset.filter(

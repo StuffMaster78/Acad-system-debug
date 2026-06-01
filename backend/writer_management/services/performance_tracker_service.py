@@ -17,15 +17,15 @@ SINGLE RESPONSIBILITY: Update WriterPerformance after lifecycle events.
 
 ENTRY POINTS
 ------------
-- order_assigned(writer, order)       — pending_orders += 1
-- order_completed(writer, order)      — completed_orders += 1, pending_orders -= 1
-- order_cancelled(writer, order)      — cancelled_orders += 1, pending_orders -= 1
+- order_assigned(writer, order) — pending_orders += 1
+- order_completed(writer, order) — completed_orders += 1, pending_orders -= 1
+- order_cancelled(writer, order) — cancelled_orders += 1, pending_orders -= 1
 - order_delivered_late(writer, order) — late_deliveries += 1
-- order_delivered_on_time(writer)     — on_time_deliveries += 1
-- order_disputed(writer, order)       — disputed_orders += 1
-- revision_requested(writer, order)   — revision_count += 1
-- rating_received(writer, rating)     — updates average_rating (Welford's)
-- sync_financials(writer, ...)        — sets earnings/tips/bonuses/fines (replace, not increment)
+- order_delivered_on_time(writer) — on_time_deliveries += 1
+- order_disputed(writer, order) — disputed_orders += 1
+- revision_requested(writer, order) — revision_count += 1
+- rating_received(writer, rating) — updates average_rating (Welford's)
+- sync_financials(writer, ...) — sets earnings/tips/bonuses/fines (replace, not increment)
 
 ALGORITHM: Welford's Online Mean
 ---------------------------------
@@ -178,7 +178,7 @@ class PerformanceTrackerService:
 
         Args:
             writer_profile: WriterProfile instance.
-            rating_value:   Integer 1–5.
+            rating_value: Integer 1–5.
         """
         from writer_management.models.writer_performance import WriterPerformance
 
@@ -239,9 +239,9 @@ class PerformanceTrackerService:
         Args:
             writer_profile: WriterProfile instance.
             total_earnings: Gross lifetime earnings from writer_compensation.
-            total_tips:     Lifetime tips from tips app.
-            total_bonuses:  Lifetime bonuses.
-            total_fines:    Lifetime fines/penalties.
+            total_tips: Lifetime tips from tips app.
+            total_bonuses: Lifetime bonuses.
+            total_fines: Lifetime fines/penalties.
         """
         from writer_management.models.writer_performance import WriterPerformance
 

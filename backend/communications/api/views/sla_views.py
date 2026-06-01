@@ -22,7 +22,7 @@ class CommunicationThreadSLAViewSet(ReadOnlyModelViewSet):
     ]
     pagination_class = CommunicationDefaultPagePagination
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         """
         Return SLA records for staff operators.
         """

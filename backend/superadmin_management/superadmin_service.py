@@ -13,7 +13,7 @@ DESIGN RULES
 
 3. Every action writes a SuperadminLog entry AND calls AuditService.record().
    SuperadminLog = governance dashboard.
-   AuditService  = compliance / legal hold.
+   AuditService = compliance / legal hold.
 
 4. Notifications use NotificationService.notify() or notify_role().
    Never send_mail() directly.
@@ -70,10 +70,10 @@ class SuperadminService:
 
         Args:
             superadmin: Superadmin User performing the action.
-            username:   New user's username.
-            email:      New user's email.
-            role:       One of admin/support/editor/writer/client.
-            website:    Optional website assignment.
+            username: New user's username.
+            email: New user's email.
+            role: One of admin/support/editor/writer/client.
+            website: Optional website assignment.
             phone_number: Optional contact number.
 
         Returns:
@@ -121,9 +121,9 @@ class SuperadminService:
             user=user,
             website=website,
             context={
-                "username":       username,
-                "role":           role,
-                "temp_password":  temp_password,
+                "username": username,
+                "role": role,
+                "temp_password": temp_password,
             },
         )
 
@@ -214,11 +214,11 @@ class SuperadminService:
         For all other roles: sets User.is_suspended = True directly.
 
         Args:
-            superadmin:     Superadmin User.
-            user:           User to suspend.
-            reason:         Suspension reason.
-            website:        Optional website context.
-            duration_days:  Optional duration. None = indefinite.
+            superadmin: Superadmin User.
+            user: User to suspend.
+            reason: Suspension reason.
+            website: Optional website context.
+            duration_days: Optional duration. None = indefinite.
         """
         role = getattr(user, "role", None)
 
@@ -333,12 +333,12 @@ class SuperadminService:
         so WriterDisciplineState is updated and the writer cannot take orders.
 
         Args:
-            superadmin:  Superadmin User.
-            reason:      Reason for blacklisting.
-            website:     Optional website scope. None = platform-wide.
-            user:        User to blacklist (optional).
-            email:       Email to blacklist (optional).
-            ip_address:  IP to blacklist (optional).
+            superadmin: Superadmin User.
+            reason: Reason for blacklisting.
+            website: Optional website scope. None = platform-wide.
+            user: User to blacklist (optional).
+            email: Email to blacklist (optional).
+            ip_address: IP to blacklist (optional).
 
         Raises:
             ValueError: If none of user, email, ip_address provided.
@@ -389,10 +389,10 @@ class SuperadminService:
             obj=entry,
             website=website,
             metadata={
-                "reason":      reason,
+                "reason": reason,
                 "target_user": getattr(user, "pk", None),
-                "email":       email,
-                "ip_address":  ip_address,
+                "email": email,
+                "ip_address": ip_address,
             },
             severity="critical",
         )
@@ -468,8 +468,8 @@ class SuperadminService:
         Approve an appeal. Routes to the correct domain service
         based on the appellant's role.
 
-        Writers  → writer_management.DisciplineService
-        Others   → User flags directly
+        Writers → writer_management.DisciplineService
+        Others → User flags directly
         """
         if appeal.status != Appeal.Status.PENDING:
             raise ValueError(
@@ -516,8 +516,8 @@ class SuperadminService:
             obj=appeal,
             website=appeal.website,
             metadata={
-                "appeal_type":  appeal.appeal_type,
-                "user_role":    role,
+                "appeal_type": appeal.appeal_type,
+                "user_role": role,
                 "review_notes": review_notes,
             },
         )
@@ -527,7 +527,7 @@ class SuperadminService:
             user=appeal.user,
             website=appeal.website,
             context={
-                "username":    appeal.user.username,
+                "username": appeal.user.username,
                 "appeal_type": appeal.appeal_type,
             },
         )
@@ -585,7 +585,7 @@ class SuperadminService:
             obj=appeal,
             website=appeal.website,
             metadata={
-                "appeal_type":  appeal.appeal_type,
+                "appeal_type": appeal.appeal_type,
                 "review_notes": review_notes,
             },
         )
@@ -595,8 +595,8 @@ class SuperadminService:
             user=appeal.user,
             website=appeal.website,
             context={
-                "username":     appeal.user.username,
-                "appeal_type":  appeal.appeal_type,
+                "username": appeal.user.username,
+                "appeal_type": appeal.appeal_type,
                 "review_notes": review_notes,
             },
         )

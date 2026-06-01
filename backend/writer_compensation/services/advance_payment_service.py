@@ -80,8 +80,8 @@ class AdvancePaymentService:
         Returns the updated ExposureLedger.
 
         Raises:
-            ZeroAmountError  — amount is zero
-            ValueError       — amount exceeds risk capacity
+            ZeroAmountError — amount is zero
+            ValueError — amount exceeds risk capacity
         """
         if amount <= Decimal("0.00"):
             raise ZeroAmountError("Advance amount must be greater than zero.")
@@ -165,7 +165,7 @@ class AdvancePaymentService:
 
         Raises:
             ZeroAmountError — amount is zero
-            ValueError      — amount exceeds outstanding advance balance
+            ValueError — amount exceeds outstanding advance balance
         """
         if amount <= Decimal("0.00"):
             raise ZeroAmountError("Recovery amount must be greater than zero.")
@@ -221,7 +221,7 @@ class AdvancePaymentService:
             website=website,
             writer=writer,
             event_type=EventType.ADVANCE_RECOVERY,
-            amount=-amount,                     # negative — deduction from payout
+            amount=-amount, # negative — deduction from payout
             source_type="advance_request",
             source_id=advance_request.pk,
             title=f"Advance recovery — ${amount}",

@@ -97,7 +97,7 @@ class AuditQueryPolicy:
     ) -> QuerySet[AuditDeadLetter]:
 
         return AuditQueryService.dlq_high_risk()
-    
+
     def user_visible_events(self, qs):
         return self._apply_sensitivity(qs)
 
@@ -111,7 +111,7 @@ class AuditQueryPolicy:
             return True
 
         return bool(
-            self.user.has_perm(  # type: ignore[attr-defined]
+            self.user.has_perm( # type: ignore[attr-defined]
                 "audit_logging.view_sensitive_audit_logs"
             )
         )

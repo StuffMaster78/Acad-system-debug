@@ -60,7 +60,7 @@ class Command(BaseCommand):
         if action == "close":
             self.stdout.write("Running window close task...")
 
-            result = check_and_close_windows.delay()  # type: ignore[attr-defined]
+            result = check_and_close_windows.delay() # type: ignore[attr-defined]
 
             self.stdout.write(
                 self.style.SUCCESS(f"Done: {result}")
@@ -70,7 +70,7 @@ class Command(BaseCommand):
         if action == "open":
             self.stdout.write("Running window open task...")
 
-            result = check_and_open_windows.delay()  # type: ignore[attr-defined]
+            result = check_and_open_windows.delay() # type: ignore[attr-defined]
 
             self.stdout.write(
                 self.style.SUCCESS(f"Done: {result}")
@@ -117,7 +117,7 @@ class Command(BaseCommand):
             )
 
             self.stdout.write(
-                f"  [{style(window.status)}] "
+                f" [{style(window.status)}] "
                 f"{window.start_date} → {window.end_date} "
                 f"(id: {window.pk})"
             )

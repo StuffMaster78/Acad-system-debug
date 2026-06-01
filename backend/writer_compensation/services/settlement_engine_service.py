@@ -27,7 +27,7 @@ try:
         materialize_exposure_from_settlement,
     )
 except ImportError:
-    materialize_exposure_from_settlement = None  # type: ignore
+    materialize_exposure_from_settlement = None # type: ignore
 
 
 class SettlementEngineService:
@@ -36,8 +36,8 @@ class SettlementEngineService:
 
     Core invariants:
         CompensationEvent = truth
-        SettlementPeriod  = snapshot
-        SettlementItem    = breakdown
+        SettlementPeriod = snapshot
+        SettlementItem = breakdown
     """
 
     @staticmethod
@@ -62,29 +62,29 @@ class SettlementEngineService:
         Now filters on payment_window FK directly — the FK is the canonical truth.
         """
         return CompensationEvent.objects.filter(
-            payment_window=period.payment_window,           # FIX: was created_at__range
+            payment_window=period.payment_window, # FIX: was created_at__range
             settlement_period__isnull=True,
-            status=EventStatus.MATURED,                     # FIX: was FinancialEventStatus.MATURED
+            status=EventStatus.MATURED, # FIX: was FinancialEventStatus.MATURED
         )
 
     @staticmethod
     def build_settlement_snapshot(*, period: SettlementPeriod) -> SettlementPeriod:
         qs = SettlementEngineService.compute_financial_events(period=period)
 
-        gross       = Decimal("0.00")
-        tips        = Decimal("0.00")
-        bonuses     = Decimal("0.00")
+        gross = Decimal("0.00")
+        tips = Decimal("0.00")
+        bonuses = Decimal("0.00")
         adjustments = Decimal("0.00")
-        fines       = Decimal("0.00")
-        deductions  = Decimal("0.00")
-        advances    = Decimal("0.00")
-        reversals   = Decimal("0.00")
-        count       = 0
+        fines = Decimal("0.00")
+        deductions = Decimal("0.00")
+        advances = Decimal("0.00")
+        reversals = Decimal("0.00")
+        count = 0
 
         for event in qs.iterator():
-            count  += 1
-            amount  = event.amount
-            t       = event.event_type
+            count += 1
+            amount = event.amount
+            t = event.event_type
 
             # FIX: all EventType refs now from unified compensation_enums
             if t in {
@@ -127,28 +127,28 @@ class SettlementEngineService:
             + tips
             + bonuses
             + adjustments
-            - abs(fines)        # fines stored as negative; force deduction
-            - abs(deductions)   # same
-            + advances          # signed: positive advance, negative recovery
-            + reversals         # already negative amounts
+            - abs(fines) # fines stored as negative; force deduction
+            - abs(deductions) # same
+            + advances # signed: positive advance, negative recovery
+            + reversals # already negative amounts
         )
 
-        period.gross_earnings          = gross
-        period.total_tips              = tips
-        period.total_bonuses           = bonuses
-        period.total_adjustments       = adjustments
-        period.total_fines             = fines
-        period.total_deductions        = deductions
-        period.total_advances          = advances
-        period.total_reversals         = reversals
-        period.net_payable             = net
-        period.total_financial_events  = count
+        period.gross_earnings = gross
+        period.total_tips = tips
+        period.total_bonuses = bonuses
+        period.total_adjustments = adjustments
+        period.total_fines = fines
+        period.total_deductions = deductions
+        period.total_advances = advances
+        period.total_reversals = reversals
+        period.net_payable = net
+        period.total_financial_events = count
 
         period.save()
         return period
 
     @staticmethod
-    @transaction.atomic                                     # FIX: was missing
+    @transaction.atomic # FIX: was missing
     def finalize_settlement_period(
         *,
         period: SettlementPeriod,
@@ -164,19 +164,19 @@ class SettlementEngineService:
         """
         now = timezone.now()
 
-        period.is_locked    = True
-        period.locked_at    = now
+        period.is_locked = True
+        period.locked_at = now
         period.finalized_at = now
-        period.status       = SettlementStatus.COMPLETED   # FIX: was raw string
+        period.status = SettlementStatus.COMPLETED # FIX: was raw string
         period.save()
 
         # Stamp all matured events in this window as included in settlement.
         CompensationEvent.objects.filter(
             website=period.website,
             writer=period.writer,
-            payment_window=period.payment_window,           # FIX: was no window filter
+            payment_window=period.payment_window, # FIX: was no window filter
             settlement_period__isnull=True,
-            status=EventStatus.MATURED,                     # FIX: was FinancialEventStatus
+            status=EventStatus.MATURED, # FIX: was FinancialEventStatus
         ).update(
             settlement_period=period,
             status=EventStatus.INCLUDED_IN_SETTLEMENT,

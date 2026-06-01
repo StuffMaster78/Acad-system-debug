@@ -26,9 +26,9 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
 
 
 class NotificationEventPreferenceSerializer(serializers.ModelSerializer):
-    event_key      = serializers.CharField(source='event.event_key', read_only=True)
-    event_label    = serializers.CharField(source='event.label',     read_only=True)
-    event_category = serializers.CharField(source='event.category',  read_only=True)
+    event_key = serializers.CharField(source='event.event_key', read_only=True)
+    event_label = serializers.CharField(source='event.label', read_only=True)
+    event_category = serializers.CharField(source='event.category', read_only=True)
 
     class Meta:
         model = NotificationEventPreference
@@ -46,7 +46,7 @@ class NotificationEventPreferenceSerializer(serializers.ModelSerializer):
 
 
 class NotificationPreferenceProfileSerializer(serializers.ModelSerializer):
-    website_name   = serializers.CharField(source='website.name', read_only=True)
+    website_name = serializers.CharField(source='website.name', read_only=True)
     assigned_count = serializers.SerializerMethodField()
 
     class Meta:

@@ -225,7 +225,7 @@ onMounted(refresh);
               <td class="px-3 py-2">
                 <StatusPill :label="acc.status" :tone="statusTone(acc.status)" />
               </td>
-              <td class="px-3 py-2 text-center text-xs text-graphite">{{ acc.is_system_account ? "✓" : "—" }}</td>
+              <td class="px-3 py-2 text-center text-xs text-graphite">{{ acc.is_system_account ? "" : "—" }}</td>
             </tr>
           </tbody>
         </table>

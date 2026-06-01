@@ -12,7 +12,7 @@ def custom_exception_handler(exc, context):
     if isinstance(exc, Throttled):
         scope = getattr(context['request'], 'throttled_scope', 'default')
         wait_time = int(exc.wait) if exc.wait else 0
-        
+
         custom_messages = {
             'user': f"Too many requests. Please wait {wait_time} seconds.",
             'anon': f"You're hitting this too hard. Try again in {wait_time} seconds.",

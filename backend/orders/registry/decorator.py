@@ -11,7 +11,7 @@ _lock = threading.RLock()
 # Avoid importing BaseOrderAction at runtime to prevent circular imports.
 # (Actions import BaseOrderAction + this decorator; base.py does NOT import this file.)
 if TYPE_CHECKING:
-    from orders.actions.base import BaseOrderAction  # only for type hints
+    from orders.actions.base import BaseOrderAction # only for type hints
 
 _registry: Dict[str, "Type[BaseOrderAction]"] = {}
 

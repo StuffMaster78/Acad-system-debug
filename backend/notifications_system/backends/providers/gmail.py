@@ -27,11 +27,11 @@ class GmailBackend(BaseEmailBackend):
     For development and testing only.
 
     Required config:
-        email:    your Gmail address
+        email: your Gmail address
         password: your Gmail App Password (not your login password)
 
     Optional config:
-        port:     SMTP port (default 587)
+        port: SMTP port (default 587)
     """
 
     def send(

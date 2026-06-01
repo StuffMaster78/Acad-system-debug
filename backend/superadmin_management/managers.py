@@ -237,19 +237,19 @@ class SuperadminManager:
         )
 
         return {"message": f"Blacklist entry removed for {blacklist_entry.user.username if blacklist_entry.user else blacklist_entry.email or blacklist_entry.ip_address}."}
-      
+
     @staticmethod
     def notify_admins(title, message):
         """Sends an in-app notification to all Superadmins."""
         from websites.models.websites import Website
-        
+
         admins = User.objects.filter(superadmin_profile__isnull=False)
         # Get default website
         website = Website.objects.filter(is_active=True).first()
-        
+
         if not website:
-            return  # Cannot create notifications without a website
-        
+            return # Cannot create notifications without a website
+
         for admin in admins:
             # Use admin's website if available, otherwise use default
             notification_website = getattr(admin, 'website', None) or website

@@ -74,7 +74,7 @@ class MFAVerifyDeviceSerializer(serializers.Serializer):
     device_id = serializers.IntegerField()
     code = serializers.CharField()
 
-    
+
 class MFAVerifyDeviceResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     device_id = serializers.IntegerField()

@@ -19,12 +19,12 @@ def get_website_sender_email(website=None):
     default_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
     if default_email:
         return default_email
-    
+
     # Production
     # if not default_email:
-    #     logger.warning("DEFAULT_FROM_EMAIL is not set. Email may fail or be flagged.")
-    #     default_email = "dev-null@localhost.localdomain"  # not fake, but clearly not production
-    
+    # logger.warning("DEFAULT_FROM_EMAIL is not set. Email may fail or be flagged.")
+    # default_email = "dev-null@localhost.localdomain" # not fake, but clearly not production
+
     raise ValueError(
         "No sender email could be determined. Set no_reply_email on the Website in settings."
         )

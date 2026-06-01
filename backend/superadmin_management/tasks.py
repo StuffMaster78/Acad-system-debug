@@ -41,7 +41,7 @@ def check_probation_expiry():
     return f"Processed {count} expired probations."
 
 
-### 🔹 2️⃣ Task: Email Sending with Retry Mechanism
+### Task: Email Sending with Retry Mechanism
 @shared_task(bind=True, max_retries=3)
 def send_email_task(self, subject, message, recipient_list):
     """Retries sending emails up to 3 times if it fails."""
@@ -54,14 +54,14 @@ def send_email_task(self, subject, message, recipient_list):
             message=message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=recipient_list,
-            fail_silently=False,  # Fail explicitly to trigger retry
+            fail_silently=False, # Fail explicitly to trigger retry
         )
 
         logger.info(f"Email successfully sent to {recipient_list}")
 
     except (SMTPException, ConnectionError) as e:
         logger.error(f"Email failed due to network issue: {e}")
-        raise self.retry(exc=e, countdown=60)  # Retry after 60 seconds
+        raise self.retry(exc=e, countdown=60) # Retry after 60 seconds
 
     except Exception as e:
         logger.error(f"Email failed permanently: {e}")

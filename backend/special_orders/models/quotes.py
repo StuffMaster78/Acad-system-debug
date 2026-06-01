@@ -63,7 +63,7 @@ class SpecialOrderQuote(TimeStampedModel):
         related_name="created_special_order_quotes",
     )
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "status"]),
@@ -111,7 +111,7 @@ class SpecialOrderQuoteLine(TimeStampedModel):
         validators=[MinValueValidator(Decimal("0.00"))],
     )
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("id",)
 
     def __str__(self) -> str:

@@ -61,20 +61,20 @@ class Command(BaseCommand):
         )
         verb = "Created" if created else "Updated"
         self.stdout.write(self.style.SUCCESS(
-            f"  {verb} profile — $14/page · $12/slide · $18/diagram"
+            f" {verb} profile — $14/page · $12/slide · $18/diagram"
         ))
 
         # ── Academic level multipliers ─────────────────────────────────────────
         self._section("ACADEMIC LEVEL RATES")
         academic_levels = [
-            ("high_school",    "High School",       Decimal("1.0000"), 1),
-            ("college",        "College",           Decimal("1.1000"), 2),
-            ("undergrad",      "Undergraduate",     Decimal("1.2000"), 3),
-            ("bachelors",      "Bachelor's",        Decimal("1.2500"), 4),
-            ("masters",        "Master's",          Decimal("1.5000"), 5),
-            ("graduate",       "Graduate",          Decimal("1.4000"), 6),
-            ("phd",            "PhD / Doctorate",   Decimal("1.8000"), 7),
-            ("professional",   "Professional",      Decimal("1.6000"), 8),
+            ("high_school", "High School", Decimal("1.0000"), 1),
+            ("college", "College", Decimal("1.1000"), 2),
+            ("undergrad", "Undergraduate", Decimal("1.2000"), 3),
+            ("bachelors", "Bachelor's", Decimal("1.2500"), 4),
+            ("masters", "Master's", Decimal("1.5000"), 5),
+            ("graduate", "Graduate", Decimal("1.4000"), 6),
+            ("phd", "PhD / Doctorate", Decimal("1.8000"), 7),
+            ("professional", "Professional", Decimal("1.6000"), 8),
         ]
         for code, label, multiplier, sort_order in academic_levels:
             _, created = AcademicLevelRate.objects.update_or_create(
@@ -82,29 +82,29 @@ class Command(BaseCommand):
                 defaults=dict(label=label, multiplier=multiplier, sort_order=sort_order),
             )
             self.stdout.write(self.style.SUCCESS(
-                f"  {'✅' if created else '↻ '} {label} × {multiplier}"
+                f" {'' if created else '↻ '} {label} × {multiplier}"
             ))
 
         # ── Deadline tiers ─────────────────────────────────────────────────────
         self._section("DEADLINE TIERS")
         deadline_tiers = [
-            ("3 Hours",   3,    Decimal("3.0000"), 1),
-            ("6 Hours",   6,    Decimal("2.5000"), 2),
-            ("12 Hours",  12,   Decimal("2.0000"), 3),
-            ("24 Hours",  24,   Decimal("1.7000"), 4),
-            ("2 Days",    48,   Decimal("1.4000"), 5),
-            ("3 Days",    72,   Decimal("1.2000"), 6),
-            ("5 Days",    120,  Decimal("1.1000"), 7),
-            ("7 Days",    168,  Decimal("1.0000"), 8),
-            ("10 Days",   240,  Decimal("0.9500"), 9),
-            ("14 Days",   336,  Decimal("0.9000"), 10),
-            ("20 Days",   480,  Decimal("0.8500"), 11),
-            ("30 Days",   720,  Decimal("0.8000"), 12),
+            ("3 Hours", 3, Decimal("3.0000"), 1),
+            ("6 Hours", 6, Decimal("2.5000"), 2),
+            ("12 Hours", 12, Decimal("2.0000"), 3),
+            ("24 Hours", 24, Decimal("1.7000"), 4),
+            ("2 Days", 48, Decimal("1.4000"), 5),
+            ("3 Days", 72, Decimal("1.2000"), 6),
+            ("5 Days", 120, Decimal("1.1000"), 7),
+            ("7 Days", 168, Decimal("1.0000"), 8),
+            ("10 Days", 240, Decimal("0.9500"), 9),
+            ("14 Days", 336, Decimal("0.9000"), 10),
+            ("20 Days", 480, Decimal("0.8500"), 11),
+            ("30 Days", 720, Decimal("0.8000"), 12),
         ]
         # Clear existing deadline rates for a clean seed
         deleted, _ = DeadlineRate.objects.filter(website=website).delete()
         if deleted:
-            self.stdout.write(f"  Cleared {deleted} existing deadline tiers")
+            self.stdout.write(f" Cleared {deleted} existing deadline tiers")
         for label, max_hours, multiplier, sort_order in deadline_tiers:
             DeadlineRate.objects.create(
                 website=website,
@@ -113,24 +113,24 @@ class Command(BaseCommand):
                 multiplier=multiplier,
                 sort_order=sort_order,
             )
-            self.stdout.write(self.style.SUCCESS(f"  ✅ {label} (≤{max_hours}h) × {multiplier}"))
+            self.stdout.write(self.style.SUCCESS(f" {label} (≤{max_hours}h) × {multiplier}"))
 
         # ── Paper type rates ───────────────────────────────────────────────────
         self._section("PAPER TYPE RATES (sample groups)")
         paper_type_rates = [
-            ("essay",           "Essay",                    Decimal("1.0000"), 1),
-            ("research_paper",  "Research Paper",           Decimal("1.1000"), 2),
-            ("thesis",          "Thesis / Dissertation",    Decimal("1.4000"), 3),
-            ("case_study",      "Case Study",               Decimal("1.1000"), 4),
-            ("lab_report",      "Lab Report",               Decimal("1.2000"), 5),
-            ("presentation",    "Presentation / Slides",    Decimal("1.0000"), 6),
-            ("business",        "Business Writing",         Decimal("1.0000"), 7),
-            ("creative",        "Creative Writing",         Decimal("0.9000"), 8),
-            ("nursing",         "Nursing / Clinical",       Decimal("1.2000"), 9),
-            ("legal",           "Legal Writing",            Decimal("1.5000"), 10),
-            ("technical",       "Technical / Engineering",  Decimal("1.3000"), 11),
-            ("editing",         "Editing / Proofreading",   Decimal("0.7000"), 12),
-            ("coding",          "Coding / Programming",     Decimal("1.6000"), 13),
+            ("essay", "Essay", Decimal("1.0000"), 1),
+            ("research_paper", "Research Paper", Decimal("1.1000"), 2),
+            ("thesis", "Thesis / Dissertation", Decimal("1.4000"), 3),
+            ("case_study", "Case Study", Decimal("1.1000"), 4),
+            ("lab_report", "Lab Report", Decimal("1.2000"), 5),
+            ("presentation", "Presentation / Slides", Decimal("1.0000"), 6),
+            ("business", "Business Writing", Decimal("1.0000"), 7),
+            ("creative", "Creative Writing", Decimal("0.9000"), 8),
+            ("nursing", "Nursing / Clinical", Decimal("1.2000"), 9),
+            ("legal", "Legal Writing", Decimal("1.5000"), 10),
+            ("technical", "Technical / Engineering", Decimal("1.3000"), 11),
+            ("editing", "Editing / Proofreading", Decimal("0.7000"), 12),
+            ("coding", "Coding / Programming", Decimal("1.6000"), 13),
         ]
         for code, label, multiplier, sort_order in paper_type_rates:
             _, created = PaperTypeRate.objects.update_or_create(
@@ -138,22 +138,22 @@ class Command(BaseCommand):
                 defaults=dict(label=label, multiplier=multiplier, sort_order=sort_order),
             )
             self.stdout.write(self.style.SUCCESS(
-                f"  {'✅' if created else '↻ '} {label} × {multiplier}"
+                f" {'' if created else '↻ '} {label} × {multiplier}"
             ))
 
         # ── Work type rates ────────────────────────────────────────────────────
         self._section("WORK TYPE RATES")
         work_type_rates = [
-            ("writing",        "Writing",        Decimal("1.0000"), 1),
-            ("editing",        "Editing",        Decimal("0.6000"), 2),
-            ("proofreading",   "Proofreading",   Decimal("0.5000"), 3),
-            ("rewriting",      "Rewriting",      Decimal("0.8000"), 4),
-            ("paraphrasing",   "Paraphrasing",   Decimal("0.7000"), 5),
-            ("research",       "Research",       Decimal("1.0000"), 6),
-            ("data_analysis",  "Data Analysis",  Decimal("1.3000"), 7),
-            ("programming",    "Programming",    Decimal("1.6000"), 8),
-            ("formatting",     "Formatting",     Decimal("0.4000"), 9),
-            ("translation",    "Translation",    Decimal("1.1000"), 10),
+            ("writing", "Writing", Decimal("1.0000"), 1),
+            ("editing", "Editing", Decimal("0.6000"), 2),
+            ("proofreading", "Proofreading", Decimal("0.5000"), 3),
+            ("rewriting", "Rewriting", Decimal("0.8000"), 4),
+            ("paraphrasing", "Paraphrasing", Decimal("0.7000"), 5),
+            ("research", "Research", Decimal("1.0000"), 6),
+            ("data_analysis", "Data Analysis", Decimal("1.3000"), 7),
+            ("programming", "Programming", Decimal("1.6000"), 8),
+            ("formatting", "Formatting", Decimal("0.4000"), 9),
+            ("translation", "Translation", Decimal("1.1000"), 10),
         ]
         for code, label, multiplier, sort_order in work_type_rates:
             _, created = WorkTypeRate.objects.update_or_create(
@@ -161,16 +161,16 @@ class Command(BaseCommand):
                 defaults=dict(label=label, multiplier=multiplier, sort_order=sort_order),
             )
             self.stdout.write(self.style.SUCCESS(
-                f"  {'✅' if created else '↻ '} {label} × {multiplier}"
+                f" {'' if created else '↻ '} {label} × {multiplier}"
             ))
 
         # ── Writer level rates (flat fee upsells) ─────────────────────────────
         self._section("WRITER LEVEL RATES")
         writer_levels = [
-            ("standard",   "Standard Writer",   Decimal("0.00"),  True,  1),
-            ("advanced",   "Advanced Writer",   Decimal("5.00"),  True,  2),
-            ("top",        "Top Writer",        Decimal("10.00"), True,  3),
-            ("expert",     "Expert Writer",     Decimal("15.00"), True,  4),
+            ("standard", "Standard Writer", Decimal("0.00"), True, 1),
+            ("advanced", "Advanced Writer", Decimal("5.00"), True, 2),
+            ("top", "Top Writer", Decimal("10.00"), True, 3),
+            ("expert", "Expert Writer", Decimal("15.00"), True, 4),
         ]
         for code, label, amount, is_flat_fee, sort_order in writer_levels:
             _, created = WriterLevelRate.objects.update_or_create(
@@ -179,19 +179,19 @@ class Command(BaseCommand):
             )
             fee_str = f"+${amount}/page" if not is_flat_fee else f"+${amount} flat"
             self.stdout.write(self.style.SUCCESS(
-                f"  {'✅' if created else '↻ '} {label} ({fee_str})"
+                f" {'' if created else '↻ '} {label} ({fee_str})"
             ))
 
         # ── Subject categories ─────────────────────────────────────────────────
         self._section("SUBJECT CATEGORIES")
         subject_categories = [
-            ("humanities",    "Humanities",           Decimal("1.0000"), 1),
-            ("social_sci",    "Social Sciences",      Decimal("1.0000"), 2),
-            ("business",      "Business",             Decimal("1.0000"), 3),
-            ("stem",          "STEM",                 Decimal("1.2000"), 4),
-            ("nursing",       "Nursing & Health",     Decimal("1.1000"), 5),
-            ("law",           "Law",                  Decimal("1.3000"), 6),
-            ("technology",    "Technology & CS",      Decimal("1.4000"), 7),
+            ("humanities", "Humanities", Decimal("1.0000"), 1),
+            ("social_sci", "Social Sciences", Decimal("1.0000"), 2),
+            ("business", "Business", Decimal("1.0000"), 3),
+            ("stem", "STEM", Decimal("1.2000"), 4),
+            ("nursing", "Nursing & Health", Decimal("1.1000"), 5),
+            ("law", "Law", Decimal("1.3000"), 6),
+            ("technology", "Technology & CS", Decimal("1.4000"), 7),
         ]
         for code, label, multiplier, sort_order in subject_categories:
             _, created = SubjectCategory.objects.update_or_create(
@@ -199,14 +199,14 @@ class Command(BaseCommand):
                 defaults=dict(label=label, multiplier=multiplier, sort_order=sort_order),
             )
             self.stdout.write(self.style.SUCCESS(
-                f"  {'✅' if created else '↻ '} {label} × {multiplier}"
+                f" {'' if created else '↻ '} {label} × {multiplier}"
             ))
 
         # ── Analysis level rates ───────────────────────────────────────────────
         self._section("ANALYSIS LEVEL RATES")
         analysis_levels = [
-            ("none",     Decimal("1.0000")),
-            ("basic",    Decimal("1.2000")),
+            ("none", Decimal("1.0000")),
+            ("basic", Decimal("1.2000")),
             ("advanced", Decimal("1.5000")),
         ]
         for level, multiplier in analysis_levels:
@@ -215,15 +215,15 @@ class Command(BaseCommand):
                 defaults=dict(multiplier=multiplier),
             )
             self.stdout.write(self.style.SUCCESS(
-                f"  {'✅' if created else '↻ '} {level.capitalize()} analysis × {multiplier}"
+                f" {'' if created else '↻ '} {level.capitalize()} analysis × {multiplier}"
             ))
 
         # ── Diagram complexity rates ───────────────────────────────────────────
         self._section("DIAGRAM COMPLEXITY RATES")
         diagram_complexities = [
-            ("simple",   Decimal("1.0000")),
+            ("simple", Decimal("1.0000")),
             ("moderate", Decimal("1.3000")),
-            ("complex",  Decimal("1.7000")),
+            ("complex", Decimal("1.7000")),
         ]
         for complexity, multiplier in diagram_complexities:
             _, created = DiagramComplexityRate.objects.update_or_create(
@@ -231,7 +231,7 @@ class Command(BaseCommand):
                 defaults=dict(multiplier=multiplier),
             )
             self.stdout.write(self.style.SUCCESS(
-                f"  {'✅' if created else '↻ '} {complexity.capitalize()} diagram × {multiplier}"
+                f" {'' if created else '↻ '} {complexity.capitalize()} diagram × {multiplier}"
             ))
 
         # ── Paper type rates from order_configs ────────────────────────────────
@@ -253,7 +253,7 @@ class Command(BaseCommand):
             else:
                 pt_updated += 1
         self.stdout.write(self.style.SUCCESS(
-            f"  ✅ {pt_created} created, {pt_updated} updated across {PaperType.objects.filter(website=website).count()} paper types"
+            f" {pt_created} created, {pt_updated} updated across {PaperType.objects.filter(website=website).count()} paper types"
         ))
 
         # ── Subject rates from order_configs ───────────────────────────────────
@@ -263,7 +263,7 @@ class Command(BaseCommand):
         cat_map = {c.code: c for c in SubjectCategory.objects.filter(website=website)}
         default_cat = cat_map.get("humanities")
         if not default_cat:
-            self.stdout.write(self.style.WARNING("  ⚠ No subject categories found — run seed without --skip-categories first"))
+            self.stdout.write(self.style.WARNING(" No subject categories found — run seed without --skip-categories first"))
         else:
             sr_created = sr_updated = 0
             for subj in Subject.objects.filter(website=website):
@@ -278,24 +278,24 @@ class Command(BaseCommand):
                 else:
                     sr_updated += 1
             self.stdout.write(self.style.SUCCESS(
-                f"  ✅ {sr_created} created, {sr_updated} updated across {Subject.objects.filter(website=website).count()} subjects"
+                f" {sr_created} created, {sr_updated} updated across {Subject.objects.filter(website=website).count()} subjects"
             ))
 
         # ── Summary ────────────────────────────────────────────────────────────
         self.stdout.write("\n" + "=" * 60)
         self.stdout.write(self.style.SUCCESS("SUMMARY"))
         self.stdout.write("=" * 60)
-        self.stdout.write(f"  Pricing profile   : 1")
-        self.stdout.write(f"  Academic levels   : {AcademicLevelRate.objects.filter(website=website).count()}")
-        self.stdout.write(f"  Deadline tiers    : {DeadlineRate.objects.filter(website=website).count()}")
-        self.stdout.write(f"  Paper type rates  : {PaperTypeRate.objects.filter(website=website).count()}")
-        self.stdout.write(f"  Work type rates   : {WorkTypeRate.objects.filter(website=website).count()}")
-        self.stdout.write(f"  Writer levels     : {WriterLevelRate.objects.filter(website=website).count()}")
-        self.stdout.write(f"  Subject categories: {SubjectCategory.objects.filter(website=website).count()}")
-        self.stdout.write(f"  Subject rates     : {SubjectRate.objects.filter(website=website).count()}")
-        self.stdout.write(f"  Analysis levels   : {AnalysisLevelRate.objects.filter(website=website).count()}")
-        self.stdout.write(f"  Diagram complexity: {DiagramComplexityRate.objects.filter(website=website).count()}")
-        self.stdout.write(self.style.SUCCESS("\n✅ Pricing defaults seeded successfully!\n"))
+        self.stdout.write(f" Pricing profile : 1")
+        self.stdout.write(f" Academic levels : {AcademicLevelRate.objects.filter(website=website).count()}")
+        self.stdout.write(f" Deadline tiers : {DeadlineRate.objects.filter(website=website).count()}")
+        self.stdout.write(f" Paper type rates : {PaperTypeRate.objects.filter(website=website).count()}")
+        self.stdout.write(f" Work type rates : {WorkTypeRate.objects.filter(website=website).count()}")
+        self.stdout.write(f" Writer levels : {WriterLevelRate.objects.filter(website=website).count()}")
+        self.stdout.write(f" Subject categories: {SubjectCategory.objects.filter(website=website).count()}")
+        self.stdout.write(f" Subject rates : {SubjectRate.objects.filter(website=website).count()}")
+        self.stdout.write(f" Analysis levels : {AnalysisLevelRate.objects.filter(website=website).count()}")
+        self.stdout.write(f" Diagram complexity: {DiagramComplexityRate.objects.filter(website=website).count()}")
+        self.stdout.write(self.style.SUCCESS("\n Pricing defaults seeded successfully!\n"))
 
     def _paper_type_multiplier(self, name: str) -> Decimal:
         n = name.lower()
@@ -368,5 +368,5 @@ class Command(BaseCommand):
 
     def _section(self, title):
         self.stdout.write(f"\n{'─' * 60}")
-        self.stdout.write(f"  {title}")
+        self.stdout.write(f" {title}")
         self.stdout.write(f"{'─' * 60}")

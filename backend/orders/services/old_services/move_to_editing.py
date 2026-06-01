@@ -37,9 +37,9 @@ class MoveOrderToEditingService:
 
         # Check if order should undergo editing
         should_edit, reason = EditingDecisionService.should_undergo_editing(order)
-        
+
         from orders.services.transition_helper import OrderTransitionHelper
-        
+
         if not should_edit:
             # Skip editing - move directly to reviewed/completed status
             order.editing_skip_reason = reason
@@ -59,7 +59,7 @@ class MoveOrderToEditingService:
             return order
 
         # Order should undergo editing
-        order.editing_skip_reason = None  # Clear any previous skip reason
+        order.editing_skip_reason = None # Clear any previous skip reason
         OrderTransitionHelper.transition_order(
             order=order,
             target_status=OrderStatus.UNDER_EDITING.value,

@@ -31,26 +31,26 @@ class AdminProfile(models.Model):
     )
 
     # Capabilities
-    can_manage_users     = models.BooleanField(default=True)
-    can_suspend_users    = models.BooleanField(default=True)
+    can_manage_users = models.BooleanField(default=True)
+    can_suspend_users = models.BooleanField(default=True)
     can_put_on_probation = models.BooleanField(default=True)
-    can_handle_orders    = models.BooleanField(default=True)
+    can_handle_orders = models.BooleanField(default=True)
     can_resolve_disputes = models.BooleanField(default=True)
-    can_manage_payouts   = models.BooleanField(default=True)
+    can_manage_payouts = models.BooleanField(default=True)
     can_manage_financials = models.BooleanField(default=True)
-    can_manage_tickets   = models.BooleanField(default=True)
-    can_view_reports     = models.BooleanField(default=True)
-    can_blacklist_users  = models.BooleanField(
+    can_manage_tickets = models.BooleanField(default=True)
+    can_view_reports = models.BooleanField(default=True)
+    can_blacklist_users = models.BooleanField(
         default=False,
         help_text="Superadmin-granted only.",
     )
-    can_manage_writers   = models.BooleanField(default=False)
-    can_manage_clients   = models.BooleanField(default=False)
-    can_manage_editors   = models.BooleanField(default=False)
+    can_manage_writers = models.BooleanField(default=False)
+    can_manage_clients = models.BooleanField(default=False)
+    can_manage_editors = models.BooleanField(default=False)
 
     is_active = models.BooleanField(default=True)
 
-    last_login  = models.DateTimeField(null=True, blank=True)
+    last_login = models.DateTimeField(null=True, blank=True)
     last_action = models.CharField(max_length=255, blank=True, null=True)
     action_count = models.IntegerField(default=0)
 
@@ -118,7 +118,7 @@ class AdminPromotionRequest(models.Model):
     """Promotion request from admin to superadmin."""
 
     class Status(models.TextChoices):
-        PENDING  = "pending",  "Pending"
+        PENDING = "pending", "Pending"
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
 

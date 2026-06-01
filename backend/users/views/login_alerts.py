@@ -19,27 +19,27 @@ class LoginAlertPreferenceViewSet(viewsets.ModelViewSet):
     """
     permission_classes = [IsAuthenticated]
     serializer_class = LoginAlertPreferenceSerializer
-    
+
     def get_queryset(self):
         """Get preferences for current user."""
         return LoginAlertPreference.objects.filter(
             user=self.request.user,
             website=self.request.user.website
         )
-    
+
     def get_serializer_class(self):
         """Return appropriate serializer based on action."""
         if self.action in ['update', 'partial_update']:
             return LoginAlertPreferenceUpdateSerializer
         return LoginAlertPreferenceSerializer
-    
+
     def perform_create(self, serializer):
         """Create preference for current user."""
         serializer.save(
             user=self.request.user,
             website=self.request.user.website
         )
-    
+
     @action(detail=False, methods=['get'])
     def my_preferences(self, request):
         """Get current user's login alert preferences."""

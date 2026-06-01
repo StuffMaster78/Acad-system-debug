@@ -211,7 +211,7 @@ class BlogPostPage(Page):
     ]
 
     # --- Subpage rules ---
-    subpage_types = []  # Blog posts have no children
+    subpage_types = [] # Blog posts have no children
     parent_page_types = ["cms_blog.BlogIndexPage"]
 
     # --- Search indexing ---

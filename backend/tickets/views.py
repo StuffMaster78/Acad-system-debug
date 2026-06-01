@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from django.db.models import Avg, Count, F, Q
 from django.conf import settings
 from .models import (
-    Ticket, TicketMessage, TicketLog, 
+    Ticket, TicketMessage, TicketLog,
     TicketStatistics, TicketAttachment
 )
 from .serializers import (
@@ -14,7 +14,7 @@ from .serializers import (
     TicketLogSerializer, TicketStatisticsSerializer,
     TicketAttachmentSerializer
 )
-from .permissions import IsAdminOrSupportForAttachment 
+from .permissions import IsAdminOrSupportForAttachment
 from notifications_system.services.notification_service import NotificationService
 from django.utils import timezone
 from rest_framework import viewsets, filters, status
@@ -141,30 +141,30 @@ class TicketViewSet(viewsets.ModelViewSet):
                 extra_data={"ticket_id": ticket.id}
             )
         return Response({'status': 'Ticket assigned'}, status=status.HTTP_200_OK)
-    
+
     @action(detail=True, methods=['post'])
     def close(self, request, pk=None):
         """Close a ticket. Only admins, superadmins, support, and editors can close tickets."""
         ticket = self.get_object()
         user = request.user
         user_role = getattr(user, 'role', None)
-        
+
         # Check permissions
         if user_role not in ['admin', 'superadmin', 'support', 'editor']:
             return Response(
                 {'error': 'Only administrators, support staff, and editors can close tickets.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         # Get optional reason/notes
         reason = request.data.get('reason', '')
-        
+
         # Update ticket status
         old_status = ticket.status
         ticket.status = 'closed'
         ticket.resolution_time = timezone.now()
         ticket.save()
-        
+
         # Create log entry
         action_text = f"Ticket closed by {user.username or user.email}"
         if reason:
@@ -174,7 +174,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             action=action_text,
             performed_by=user
         )
-        
+
         # Notify ticket creator if they exist and aren't the one closing it
         if ticket.created_by and ticket.created_by != user:
             try:
@@ -199,39 +199,39 @@ class TicketViewSet(viewsets.ModelViewSet):
                 )
             except Exception as e:
                 log.exception(f"Failed to send ticket closed notification: {e}")
-        
+
         return Response({
             'status': 'Ticket closed',
             'ticket': TicketSerializer(ticket).data,
             'old_status': old_status,
             'new_status': ticket.status
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=True, methods=['post'])
     def reopen(self, request, pk=None):
         """Reopen a closed ticket. Only admins, superadmins, support, and editors can reopen tickets."""
         ticket = self.get_object()
         user = request.user
         user_role = getattr(user, 'role', None)
-        
+
         # Check permissions
         if user_role not in ['admin', 'superadmin', 'support', 'editor']:
             return Response(
                 {'error': 'Only administrators, support staff, and editors can reopen tickets.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         # Check if ticket is closed
         if ticket.status != 'closed':
             return Response(
                 {'error': f'Cannot reopen ticket with status "{ticket.status}". Only closed tickets can be reopened.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Get optional reason/notes and target status
         reason = request.data.get('reason', '')
-        target_status = request.data.get('status', 'open')  # Default to 'open', can be 'in_progress'
-        
+        target_status = request.data.get('status', 'open') # Default to 'open', can be 'in_progress'
+
         # Validate target status
         valid_statuses = ['open', 'in_progress']
         if target_status not in valid_statuses:
@@ -239,13 +239,13 @@ class TicketViewSet(viewsets.ModelViewSet):
                 {'error': f'Invalid status "{target_status}". Must be one of: {", ".join(valid_statuses)}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Update ticket status
         old_status = ticket.status
         ticket.status = target_status
-        ticket.resolution_time = None  # Clear resolution time
+        ticket.resolution_time = None # Clear resolution time
         ticket.save()
-        
+
         # Create log entry
         action_text = f"Ticket reopened by {user.username or user.email} (status: {target_status})"
         if reason:
@@ -255,7 +255,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             action=action_text,
             performed_by=user
         )
-        
+
         # Notify ticket creator if they exist
         if ticket.created_by:
             try:
@@ -280,14 +280,14 @@ class TicketViewSet(viewsets.ModelViewSet):
                 )
             except Exception as e:
                 log.exception(f"Failed to send ticket reopened notification: {e}")
-        
+
         return Response({
             'status': 'Ticket reopened',
             'ticket': TicketSerializer(ticket).data,
             'old_status': old_status,
             'new_status': ticket.status
         }, status=status.HTTP_200_OK)
-    
+
     def perform_update(self, serializer):
         """
         On close -> notify the ticket creator (not the closer).
@@ -430,11 +430,11 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
             try:
                     NotificationService.send_notification(
                         event_key="communications.ticket_attachment_added",
-                        website=getattr(attachment.ticket.website, "id", None),  # tenant-safe
+                        website=getattr(attachment.ticket.website, "id", None), # tenant-safe
                         actor={"type": "user", "id": self.request.user.id},
                         subject={"type": "ticket", "id": attachment.ticket.id},
-                        user_ids=[assigned_to.id],  # explicit recipient
-                        channels=["in_app", "email"],  # hint; prefs still apply
+                        user_ids=[assigned_to.id], # explicit recipient
+                        channels=["in_app", "email"], # hint; prefs still apply
                         payload={
                             "ticket_id": attachment.ticket.id,
                             "ticket_title": attachment.ticket.title,
@@ -446,7 +446,7 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
                             f"ticket.attachment_added:"
                             f"{attachment.ticket.id}:{attachment.id}:{assigned_to.id}"
                         ),
-                        async_send=True,  # Celery if configured
+                        async_send=True, # Celery if configured
                     )
             except Exception as exc:
                 log.exception("Attachment notify failed: %s", exc)
@@ -455,7 +455,7 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
         if self.action == 'retrieve':
             return [IsAdminOrSupportForAttachment()]
         return super().get_permissions()
-    
+
     def get_queryset(self):
         """
         Filter attachments based on user role.
@@ -493,7 +493,7 @@ class TicketStatisticsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = TicketStatistics.objects.all().order_by("-created_at")
     serializer_class = TicketStatisticsSerializer
 
-    @method_decorator(cache_page(60))  # cache for 60s; tweak as needed
+    @method_decorator(cache_page(60)) # cache for 60s; tweak as needed
     @action(detail=False, methods=["get"], url_path="generate")
     def generate_statistics(self, request):
         """

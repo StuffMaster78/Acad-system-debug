@@ -142,7 +142,7 @@ class PricingQuoteInput(models.Model):
         Return a readable representation.
         """
         return f"Input for {self.quote.pk}"
-    
+
 class PricingQuoteLine(models.Model):
     """
     Stores internal quote breakdown lines.

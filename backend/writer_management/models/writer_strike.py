@@ -43,9 +43,9 @@ Lifetime count includes all non-voided strikes, regardless of age.
 
 DIFFERENCE FROM WARNINGS IN THRESHOLD LOGIC
 --------------------------------------------
-    Warnings  → count ACTIVE (non-expired, non-voided) warnings
+    Warnings → count ACTIVE (non-expired, non-voided) warnings
                  A warning from 6 months ago that expired does NOT count
-    Strikes   → count LIFETIME non-voided strikes
+    Strikes → count LIFETIME non-voided strikes
                  A strike from 2 years ago STILL counts
 
 This is intentional. A writer who plagiarised 2 years ago and
@@ -55,8 +55,8 @@ and time cannot excuse.
 OWNERSHIP
 ---------
 Created by: DisciplineService.issue_strike()
-Voided by:  DisciplineService.void_strike()
-Read by:    WriterStatusService.recompute()
+Voided by: DisciplineService.void_strike()
+Read by: WriterStatusService.recompute()
             DisciplineService._evaluate_strike_thresholds()
 """
 
@@ -94,13 +94,13 @@ class WriterStrike(models.Model):
     category = models.CharField(
         max_length=30,
         choices=[
-            ("plagiarism",          "Plagiarism"),
-            ("off_platform",        "Off-Platform Solicitation"),
+            ("plagiarism", "Plagiarism"),
+            ("off_platform", "Off-Platform Solicitation"),
             ("academic_misconduct", "Academic Misconduct"),
-            ("abusive_behaviour",   "Abusive Behaviour"),
-            ("identity_fraud",      "Identity Fraud / Account Sharing"),
-            ("repeated_violation",  "Repeated Serious Violation"),
-            ("other",               "Other"),
+            ("abusive_behaviour", "Abusive Behaviour"),
+            ("identity_fraud", "Identity Fraud / Account Sharing"),
+            ("repeated_violation", "Repeated Serious Violation"),
+            ("other", "Other"),
         ],
         default="other",
         db_index=True,
@@ -135,10 +135,10 @@ class WriterStrike(models.Model):
     # confirmed — similarity was to writer's own previously submitted work.
     #
     # Voided strikes:
-    #   - Do NOT count toward any threshold
-    #   - Are NOT deleted
-    #   - Remain visible in admin audit log
-    #   - Are shown with "voided" status
+    # - Do NOT count toward any threshold
+    # - Are NOT deleted
+    # - Remain visible in admin audit log
+    # - Are shown with "voided" status
     # ----------------------------------------------------------------
 
     is_voided = models.BooleanField(

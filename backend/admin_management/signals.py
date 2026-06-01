@@ -52,11 +52,11 @@ def on_blacklist_update(sender, instance, **kwargs):
 
     old_blacklist = BlacklistedUser.objects.get(pk=instance.pk)
     if old_blacklist.email != instance.email:
-        raise ValueError("Email cannot be changed for a blacklisted user.") 
+        raise ValueError("Email cannot be changed for a blacklisted user.")
     if old_blacklist.website != instance.website:
         raise ValueError("Website cannot be changed for a blacklisted user.")
     if old_blacklist.blacklisted_by != instance.blacklisted_by:
-        raise ValueError("Blacklisted by cannot be changed for a blacklisted user.") 
+        raise ValueError("Blacklisted by cannot be changed for a blacklisted user.")
 @receiver(pre_save, sender=BlacklistedUser)
 def on_blacklist_pre_save(sender, instance, **kwargs):
     if not instance.pk:
@@ -69,7 +69,7 @@ def on_blacklist_pre_save(sender, instance, **kwargs):
         raise ValueError("Website cannot be changed for a blacklisted user.")
     if old_blacklist.blacklisted_by != instance.blacklisted_by:
         raise ValueError("Blacklisted by cannot be changed for a blacklisted user.")
-    
+
 @receiver(post_save, sender=BlacklistedUser)
 def on_blacklist_created(sender, instance, created, **kwargs):
     if created:

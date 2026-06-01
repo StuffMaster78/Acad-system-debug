@@ -16,14 +16,14 @@ read WriterDisciplineState instead.
 
 MODELS
 ------
-WriterDisciplineConfig   — site-level thresholds (max strikes, auto days)
-WriterStrike             — individual strike event (append-only)
-WriterSuspension         — suspension period record
-WriterSuspensionHistory  — audit log of suspension changes
-WriterBlacklist          — blacklist record
-WriterBlacklistHistory   — audit log of blacklist changes
-WriterProbation          — probation period record
-WriterPenalty            — financial penalty tied to an order
+WriterDisciplineConfig — site-level thresholds (max strikes, auto days)
+WriterStrike — individual strike event (append-only)
+WriterSuspension — suspension period record
+WriterSuspensionHistory — audit log of suspension changes
+WriterBlacklist — blacklist record
+WriterBlacklistHistory — audit log of blacklist changes
+WriterProbation — probation period record
+WriterPenalty — financial penalty tied to an order
 
 WHAT WAS REMOVED
 ----------------
@@ -403,12 +403,12 @@ class WriterPenalty(models.Model):
     """
 
     class PenaltyReason(models.TextChoices):
-        LATE_SUBMISSION  = "late_submission",  "Late Submission"
-        PLAGIARISM       = "plagiarism",        "Plagiarism"
-        MISSED_DEADLINE  = "missed_deadline",   "Missed Deadline"
-        CLIENT_COMPLAINT = "client_complaint",  "Client Complaint"
-        POLICY_VIOLATION = "policy_violation",  "Policy Violation"
-        OTHER            = "other",             "Other"
+        LATE_SUBMISSION = "late_submission", "Late Submission"
+        PLAGIARISM = "plagiarism", "Plagiarism"
+        MISSED_DEADLINE = "missed_deadline", "Missed Deadline"
+        CLIENT_COMPLAINT = "client_complaint", "Client Complaint"
+        POLICY_VIOLATION = "policy_violation", "Policy Violation"
+        OTHER = "other", "Other"
 
     website = models.ForeignKey(
         "websites.Website",

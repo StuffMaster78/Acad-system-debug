@@ -17,14 +17,14 @@ class MessageReminderViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = MessageReminderSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter queryset based on user role."""
         user = self.request.user
         queryset = MessageReminder.objects.select_related(
             'order', 'user', 'message'
         )
-        
+
         if user.role in ['writer', 'client']:
             # Users can only see their own reminders
             queryset = queryset.filter(user=user)
@@ -33,39 +33,39 @@ class MessageReminderViewSet(viewsets.ReadOnlyModelViewSet):
             pass
         else:
             queryset = queryset.none()
-        
+
         return queryset.filter(is_resolved=False).order_by('-created_at')
-    
+
     @action(detail=True, methods=['post'], url_path='mark-read')
     def mark_read(self, request, pk=None):
         """Mark message as read."""
         reminder = self.get_object()
-        
+
         if reminder.user != request.user and not request.user.is_staff:
             return Response(
                 {'error': 'Permission denied'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         reminder.mark_as_read()
         serializer = self.get_serializer(reminder)
         return Response(serializer.data)
-    
+
     @action(detail=True, methods=['post'], url_path='mark-responded')
     def mark_responded(self, request, pk=None):
         """Mark message as responded."""
         reminder = self.get_object()
-        
+
         if reminder.user != request.user and not request.user.is_staff:
             return Response(
                 {'error': 'Permission denied'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         reminder.mark_as_responded()
         serializer = self.get_serializer(reminder)
         return Response(serializer.data)
-    
+
     @action(detail=False, methods=['get'], url_path='my-reminders')
     def my_reminders(self, request):
         """Get current user's active reminders."""

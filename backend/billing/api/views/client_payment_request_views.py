@@ -29,7 +29,7 @@ class ClientPaymentRequestListView(APIView):
         permissions.IsAuthenticated,
         CanViewOwnPayments,
     ]
-    
+
 
     def get(self, request: Request) -> Response:
         """

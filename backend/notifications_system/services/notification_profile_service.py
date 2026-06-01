@@ -140,9 +140,9 @@ class NotificationProfileService:
         Updates the user's NotificationPreference and per-event preferences.
 
         Args:
-            profile:           Profile to apply
-            user:              User to apply to
-            website:           Website context — uses profile.website if not given
+            profile: Profile to apply
+            user: User to apply to
+            website: Website context — uses profile.website if not given
             override_existing: If False, skips events with existing preferences
 
         Returns:
@@ -255,11 +255,11 @@ class NotificationProfileService:
                 failed += 1
                 logger.error(
                     "apply_profile_to_users failed for user=%s: %s",
-                    user.id,  # type: ignore[attr-defined]
+                    user.id, # type: ignore[attr-defined]
                     exc,
                 )
                 results.append({
-                    'user_id': user.id,  # type: ignore[attr-defined]
+                    'user_id': user.id, # type: ignore[attr-defined]
                     'error': str(exc),
                 })
 

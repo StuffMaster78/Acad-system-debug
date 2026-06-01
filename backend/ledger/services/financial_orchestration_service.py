@@ -602,7 +602,7 @@ class FinancialOrchestrationService:
                 writer_reference=writer_reference,
                 writer_id=writer_id,
             )
-            
+
         external_refund_entry = (
             PaymentProcessorLedgerService.post_external_refund(
                 website=website,

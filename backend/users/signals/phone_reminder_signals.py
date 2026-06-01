@@ -22,16 +22,16 @@ def check_phone_reminder_on_order_update(sender, instance, created, **kwargs):
     # Only check for clients
     if not instance.client or instance.client.role not in ['client', 'customer']:
         return
-    
+
     # Only check for active order statuses
     active_statuses = [
-        'pending', 'in_progress', 'submitted', 'reviewed', 
+        'pending', 'in_progress', 'submitted', 'reviewed',
         'rated', 'revision_requested', 'on_revision', 'revised'
     ]
-    
+
     if instance.status not in active_statuses:
         return
-    
+
     # Check if reminder is needed
     phone_service = PhoneReminderService(instance.client)
     try:
@@ -44,12 +44,12 @@ def check_phone_reminder_on_order_update(sender, instance, created, **kwargs):
             exc,
         )
         return
-    
+
     # Send reminder notification (only once per order to avoid spam)
     # The notification system handles deduplication
     try:
         PhoneReminderService.send_reminder_notification(
-            instance.client, 
+            instance.client,
             instance.website,
             order=instance
         )

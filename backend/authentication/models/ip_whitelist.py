@@ -42,7 +42,7 @@ class IPWhitelist(models.Model):
         default=True,
         help_text=_("Whether this whitelist entry is active")
     )
-    
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -55,7 +55,7 @@ class IPWhitelist(models.Model):
             models.Index(fields=["ip_address"]),
         ]
 
-    
+
     def __str__(self):
         label = f" ({self.label})" if self.label else ""
         return f"IP whitelist for {self.user.email}: {self.ip_address}{label}"
@@ -87,7 +87,7 @@ class UserIPWhitelistSettings(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -95,7 +95,7 @@ class UserIPWhitelistSettings(models.Model):
                 name="unique_ip_whitelist_settings_per_user_per_website",
             ),
         ]
-    
+
     def __str__(self):
         status = "Enabled" if self.is_enabled else "Disabled"
         return f"IP whitelist settings for {self.user.email} - {status}"

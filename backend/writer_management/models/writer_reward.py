@@ -35,8 +35,8 @@ Examples for an academic writing marketplace:
 EVALUATION PERIOD
 -----------------
 WriterRewardCriteria has an evaluation_period field:
-    "weekly"   — evaluated against WriterPerformanceMetrics
-    "monthly"  — evaluated against WriterPerformanceSnapshot
+    "weekly" — evaluated against WriterPerformanceMetrics
+    "monthly" — evaluated against WriterPerformanceSnapshot
     "lifetime" — evaluated against WriterPerformance (lifetime totals)
 
 FINANCIAL DISBURSEMENT
@@ -80,14 +80,14 @@ class WriterRewardCriteria(models.Model):
 
     EVALUATION PERIOD
     -----------------
-    weekly   → WriterPerformanceMetrics (current week's row)
-    monthly  → WriterPerformanceSnapshot (current month's row)
+    weekly → WriterPerformanceMetrics (current week's row)
+    monthly → WriterPerformanceSnapshot (current month's row)
     lifetime → WriterPerformance (lifetime totals)
     """
 
     class EvaluationPeriod(models.TextChoices):
-        WEEKLY   = "weekly",   "Weekly"
-        MONTHLY  = "monthly",  "Monthly"
+        WEEKLY = "weekly", "Weekly"
+        MONTHLY = "monthly", "Monthly"
         LIFETIME = "lifetime", "Lifetime"
 
     website = models.ForeignKey(

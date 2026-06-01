@@ -2,10 +2,10 @@ from rest_framework.permissions import BasePermission
 
 class IsAdmin(BasePermission):
     """Allows access to both Admins and Superadmins."""
-    
+
     def has_permission(self, request, view):
         return (
-            request.user.is_authenticated and 
+            request.user.is_authenticated and
             request.user.role in ["admin", "superadmin"]
         )
 
@@ -15,7 +15,7 @@ class IsSuperAdmin(BasePermission):
 
     def has_permission(self, request, view):
         return (
-            request.user.is_authenticated and 
+            request.user.is_authenticated and
             request.user.role == "superadmin"
         )
 
@@ -25,8 +25,8 @@ class CanManageUsers(BasePermission):
 
     def has_permission(self, request, view):
         return (
-            request.user.is_authenticated and 
-            request.user.role in ["admin", "superadmin"] and 
+            request.user.is_authenticated and
+            request.user.role in ["admin", "superadmin"] and
             request.user.admin_profile.can_manage_users
         )
 
@@ -36,8 +36,8 @@ class CanManageOrders(BasePermission):
 
     def has_permission(self, request, view):
         return (
-            request.user.is_authenticated and 
-            request.user.role in ["admin", "superadmin"] and 
+            request.user.is_authenticated and
+            request.user.role in ["admin", "superadmin"] and
             request.user.admin_profile.can_handle_orders
         )
 
@@ -47,8 +47,8 @@ class CanManagePayouts(BasePermission):
 
     def has_permission(self, request, view):
         return (
-            request.user.is_authenticated and 
-            request.user.role in ["admin", "superadmin"] and 
+            request.user.is_authenticated and
+            request.user.role in ["admin", "superadmin"] and
             request.user.admin_profile.can_manage_payouts
         )
 
@@ -58,8 +58,8 @@ class CanResolveDisputes(BasePermission):
 
     def has_permission(self, request, view):
         return (
-            request.user.is_authenticated and 
-            request.user.role in ["admin", "superadmin"] and 
+            request.user.is_authenticated and
+            request.user.role in ["admin", "superadmin"] and
             request.user.admin_profile.can_resolve_disputes
         )
 
@@ -69,7 +69,7 @@ class CanBlacklistUsers(BasePermission):
 
     def has_permission(self, request, view):
         return (
-            request.user.is_authenticated and 
+            request.user.is_authenticated and
             request.user.role == "superadmin"
         )
 
@@ -79,7 +79,7 @@ class CanManageProbation(BasePermission):
 
     def has_permission(self, request, view):
         return (
-            request.user.is_authenticated and 
-            request.user.role in ["admin", "superadmin"] and 
+            request.user.is_authenticated and
+            request.user.role in ["admin", "superadmin"] and
             request.user.admin_profile.can_suspend_users
         )

@@ -24,21 +24,21 @@ Dependency order (rough):
 # ----------------------------------------------------------------
 # LEVEL
 # ----------------------------------------------------------------
-from writer_management.models.writer_level import WriterLevel  # noqa: F401
-from writer_management.models.writer_level_settings import (  # noqa: F401
+from writer_management.models.writer_level import WriterLevel # noqa: F401
+from writer_management.models.writer_level_settings import ( # noqa: F401
     WriterLevelSettings,
 )
-from writer_management.models.writer_level_criteria import (  # noqa: F401
+from writer_management.models.writer_level_criteria import ( # noqa: F401
     WriterLevelCriteria,
 )
-from writer_management.models.writer_level_history import (  # noqa: F401
+from writer_management.models.writer_level_history import ( # noqa: F401
     WriterLevelChangeLog,
 )
 
 # ----------------------------------------------------------------
 # PROFILE (core identity anchor)
 # ----------------------------------------------------------------
-from writer_management.models.writer_profile import (  # noqa: F401
+from writer_management.models.writer_profile import ( # noqa: F401
     WriterProfile,
     WriterOnboardingStatus,
     WriterVerificationStatus,
@@ -48,12 +48,12 @@ from writer_management.models.writer_profile import (  # noqa: F401
 # RUNTIME STATE
 # (all OneToOne on WriterProfile — created by signal on profile save)
 # ----------------------------------------------------------------
-from writer_management.models.writer_status import WriterStatus  # noqa: F401
-from writer_management.models.writer_discipline_state import (  # noqa: F401
+from writer_management.models.writer_status import WriterStatus # noqa: F401
+from writer_management.models.writer_discipline_state import ( # noqa: F401
     WriterDisciplineState,
 )
-from writer_management.models.writer_capacity import WriterCapacity  # noqa: F401
-from writer_management.models.writer_availability import (  # noqa: F401
+from writer_management.models.writer_capacity import WriterCapacity # noqa: F401
+from writer_management.models.writer_availability import ( # noqa: F401
     WriterAvailabilityWindow,
     WriterAvailabilityPreference,
     UnavailabilityReason,
@@ -62,7 +62,7 @@ from writer_management.models.writer_availability import (  # noqa: F401
 # ----------------------------------------------------------------
 # DISCIPLINE SOURCE RECORDS
 # ----------------------------------------------------------------
-from writer_management.models.writer_discipline import (  # noqa: F401
+from writer_management.models.writer_discipline import ( # noqa: F401
     WriterDisciplineConfig,
     WriterSuspension,
     WriterSuspensionHistory,
@@ -71,13 +71,13 @@ from writer_management.models.writer_discipline import (  # noqa: F401
     WriterProbation,
     WriterPenalty,
 )
-from writer_management.models.writer_warning import WriterWarning  # noqa: F401
-from writer_management.models.writer_strike import WriterStrike  # noqa: F401
+from writer_management.models.writer_warning import WriterWarning # noqa: F401
+from writer_management.models.writer_strike import WriterStrike # noqa: F401
 
 # ----------------------------------------------------------------
 # CONFIGURATION
 # ----------------------------------------------------------------
-from writer_management.models.configs import (  # noqa: F401
+from writer_management.models.configs import ( # noqa: F401
     WriterConfig,
     WriterConfigHistory,
     WriterWarningEscalationConfig,
@@ -86,7 +86,7 @@ from writer_management.models.configs import (  # noqa: F401
 # ----------------------------------------------------------------
 # PERFORMANCE
 # ----------------------------------------------------------------
-from writer_management.models.writer_performance import (  # noqa: F401
+from writer_management.models.writer_performance import ( # noqa: F401
     WriterPerformance,
     WriterPerformanceSnapshot,
     WriterPerformanceMetrics,
@@ -95,7 +95,7 @@ from writer_management.models.writer_performance import (  # noqa: F401
 # ----------------------------------------------------------------
 # REWARDS
 # ----------------------------------------------------------------
-from writer_management.models.writer_reward import (  # noqa: F401
+from writer_management.models.writer_reward import ( # noqa: F401
     WriterReward,
     WriterRewardCriteria,
 )
@@ -103,7 +103,7 @@ from writer_management.models.writer_reward import (  # noqa: F401
 # ----------------------------------------------------------------
 # RESOURCES
 # ----------------------------------------------------------------
-from writer_management.models.resources import (  # noqa: F401
+from writer_management.models.resources import ( # noqa: F401
     WriterResourceCategory,
     WriterResource,
     WriterResourceView,
@@ -112,14 +112,14 @@ from writer_management.models.resources import (  # noqa: F401
 # ----------------------------------------------------------------
 # PEN NAME
 # ----------------------------------------------------------------
-from writer_management.models.pen_name import (  # noqa: F401
+from writer_management.models.pen_name import ( # noqa: F401
     WriterPenNameChangeRequest,
 )
 
 # ----------------------------------------------------------------
 # LOGS
 # ----------------------------------------------------------------
-from writer_management.models.logs import (  # noqa: F401
+from writer_management.models.logs import ( # noqa: F401
     WriterActionLog,
     WriterActivityLog,
     WriterActivityTracking,
@@ -131,19 +131,19 @@ from writer_management.models.logs import (  # noqa: F401
 # ----------------------------------------------------------------
 # INTERNAL NOTES
 # ----------------------------------------------------------------
-from writer_management.models.writer_note import WriterNote  # noqa: F401
+from writer_management.models.writer_note import WriterNote # noqa: F401
 
 # ----------------------------------------------------------------
 # APPLICATION (pre-onboarding)
 # ----------------------------------------------------------------
-from writer_management.models.writer_application import (  # noqa: F401
+from writer_management.models.writer_application import ( # noqa: F401
     WriterApplication,
 )
 
 # ----------------------------------------------------------------
 # NOTE: WriterStrike exists in two places during migration:
-#   discipline.py  — the old location (being retired)
-#   writer_strike.py — the new canonical location
+# discipline.py — the old location (being retired)
+# writer_strike.py — the new canonical location
 # Once discipline.py's WriterStrike is fully removed, drop the
 # _WriterStrikeFromDiscipline alias above.
 # ----------------------------------------------------------------

@@ -39,8 +39,8 @@ class RevisionListSerializer(serializers.ModelSerializer):
 
 class RevisionRequestView(GenericAPIView):
     """
-    GET  orders/<id>/revisions/  — list all revision requests for an order
-    POST orders/<id>/revisions/  — create a new revision request
+    GET orders/<id>/revisions/ — list all revision requests for an order
+    POST orders/<id>/revisions/ — create a new revision request
     """
 
     serializer_class = RevisionRequestSerializer

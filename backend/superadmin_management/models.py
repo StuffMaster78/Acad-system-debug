@@ -5,22 +5,22 @@ Platform governance models.
 
 OWNERSHIP
 ---------
-SuperadminProfile   — permission store for superadmin users
-SuperadminLog       — high-fidelity audit of all superadmin actions
-Appeal              — escalation gateway for all user roles
-Blacklist           — email/IP/user platform blacklist
+SuperadminProfile — permission store for superadmin users
+SuperadminLog — high-fidelity audit of all superadmin actions
+Appeal — escalation gateway for all user roles
+Blacklist — email/IP/user platform blacklist
 
 EXPLICITLY NOT OWNED HERE
 --------------------------
 Writer discipline (suspend/blacklist/probation) → writer_management
-Client suspension                               → client_management
-Editor suspension                               → editor_management
-Order management                                → orders app
-Payment overrides                               → writer_compensation
+Client suspension → client_management
+Editor suspension → editor_management
+Order management → orders app
+Payment overrides → writer_compensation
 
 DEPRECATION NOTES
 -----------------
-Probation   — removed. For writers use writer_management.WriterProbation.
+Probation — removed. For writers use writer_management.WriterProbation.
               For non-writers use User.is_on_probation flag directly.
 UserActionLog — removed. Consolidated into SuperadminLog.
               SuperadminLog already captures all superadmin actions with
@@ -48,16 +48,16 @@ class SuperadminProfile(models.Model):
         related_name="superadmin_profile",
     )
 
-    can_manage_users     = models.BooleanField(default=True)
-    can_manage_payments  = models.BooleanField(default=True)
-    can_view_reports     = models.BooleanField(default=True)
-    can_modify_settings  = models.BooleanField(default=True)
-    can_promote_users    = models.BooleanField(default=True)
-    can_suspend_users    = models.BooleanField(default=True)
-    can_blacklist_users  = models.BooleanField(default=True)
+    can_manage_users = models.BooleanField(default=True)
+    can_manage_payments = models.BooleanField(default=True)
+    can_view_reports = models.BooleanField(default=True)
+    can_modify_settings = models.BooleanField(default=True)
+    can_promote_users = models.BooleanField(default=True)
+    can_suspend_users = models.BooleanField(default=True)
+    can_blacklist_users = models.BooleanField(default=True)
     can_resolve_disputes = models.BooleanField(default=True)
     can_override_payments = models.BooleanField(default=True)
-    can_track_admins     = models.BooleanField(default=True)
+    can_track_admins = models.BooleanField(default=True)
     can_impersonate_users = models.BooleanField(
         default=False,
         help_text="Can use security app impersonation. Requires separate approval.",
@@ -91,22 +91,22 @@ class SuperadminLog(models.Model):
     """
 
     class ActionType(models.TextChoices):
-        USER_MANAGE        = "user_manage",        "User Management"
-        PAYMENT            = "payment",            "Payment Override"
-        REPORT_ACCESS      = "report_access",      "Report Access"
-        SETTINGS_CHANGE    = "settings_change",    "Settings Modification"
-        PROMOTION          = "promotion",          "User Promotion / Demotion"
-        SUSPENSION         = "suspension",         "User Suspension"
-        REACTIVATION       = "reactivation",       "User Reactivation"
-        PROBATION          = "probation",          "User Probation"
-        BLACKLIST          = "blacklist",          "User Blacklisting"
-        BLACKLIST_LIFTED   = "blacklist_lifted",   "Blacklist Lifted"
+        USER_MANAGE = "user_manage", "User Management"
+        PAYMENT = "payment", "Payment Override"
+        REPORT_ACCESS = "report_access", "Report Access"
+        SETTINGS_CHANGE = "settings_change", "Settings Modification"
+        PROMOTION = "promotion", "User Promotion / Demotion"
+        SUSPENSION = "suspension", "User Suspension"
+        REACTIVATION = "reactivation", "User Reactivation"
+        PROBATION = "probation", "User Probation"
+        BLACKLIST = "blacklist", "User Blacklisting"
+        BLACKLIST_LIFTED = "blacklist_lifted", "Blacklist Lifted"
         DISPUTE_RESOLUTION = "dispute_resolution", "Dispute Resolution"
-        APPEAL_APPROVED    = "appeal_approved",    "Appeal Approved"
-        APPEAL_REJECTED    = "appeal_rejected",    "Appeal Rejected"
-        ADMIN_TRACKING     = "admin_tracking",     "Admin Tracking"
-        OVERRIDE           = "override",           "System Override"
-        IMPERSONATION      = "impersonation",      "User Impersonation"
+        APPEAL_APPROVED = "appeal_approved", "Appeal Approved"
+        APPEAL_REJECTED = "appeal_rejected", "Appeal Rejected"
+        ADMIN_TRACKING = "admin_tracking", "Admin Tracking"
+        OVERRIDE = "override", "System Override"
+        IMPERSONATION = "impersonation", "User Impersonation"
 
     superadmin = models.ForeignKey(
         User,
@@ -163,17 +163,17 @@ class Appeal(models.Model):
     SuperadminService.approve_appeal() routes the approval to the
     correct domain service based on the user's role.
 
-    Writers  → writer_management.DisciplineService
-    Others   → User flags directly
+    Writers → writer_management.DisciplineService
+    Others → User flags directly
     """
 
     class AppealType(models.TextChoices):
-        PROBATION  = "probation",  "Probation"
-        BLACKLIST  = "blacklist",  "Blacklist"
+        PROBATION = "probation", "Probation"
+        BLACKLIST = "blacklist", "Blacklist"
         SUSPENSION = "suspension", "Suspension"
 
     class Status(models.TextChoices):
-        PENDING  = "pending",  "Pending"
+        PENDING = "pending", "Pending"
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
 
@@ -256,9 +256,9 @@ class Blacklist(models.Model):
     WriterDisciplineState.
 
     This model covers:
-        email   — blocks registration and login with this email
-        ip      — blocks all requests from this IP
-        user    — blocks non-writer user accounts (clients, editors, support)
+        email — blocks registration and login with this email
+        ip — blocks all requests from this IP
+        user — blocks non-writer user accounts (clients, editors, support)
 
     For writer users, this model ALSO creates a record so that
     email/IP lookups work platform-wide. The canonical discipline
@@ -266,9 +266,9 @@ class Blacklist(models.Model):
     """
 
     class BlacklistType(models.TextChoices):
-        USER  = "user",  "User Account"
+        USER = "user", "User Account"
         EMAIL = "email", "Email Address"
-        IP    = "ip",    "IP Address"
+        IP = "ip", "IP Address"
 
     blacklist_type = models.CharField(
         max_length=10,

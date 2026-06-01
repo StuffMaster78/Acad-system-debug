@@ -18,7 +18,7 @@ Never called directly from views or signals.
 
 PERIOD CONVENTIONS
 ------------------
-weekly:  Monday 00:00 → Sunday 23:59 UTC
+weekly: Monday 00:00 → Sunday 23:59 UTC
 monthly: First day of month 00:00 → Last day 23:59 UTC
 
 All datetime comparisons use UTC. Writer timezone is not
@@ -27,9 +27,9 @@ relevant for period boundaries.
 DATA SOURCES
 ------------
 This service reads from:
-    orders.Order         — completed, cancelled, disputed, late counts
-    reviews_system       — ratings for the period
-    writer_compensation  — earnings for the period
+    orders.Order — completed, cancelled, disputed, late counts
+    reviews_system — ratings for the period
+    writer_compensation — earnings for the period
 
 It writes to:
     WriterPerformanceSnapshot
@@ -71,16 +71,16 @@ class WriterMetricsSnapshotService:
 
         Args:
             writer_profile: WriterProfile instance.
-            website:        Website instance.
-            period_start:   First day of the period (inclusive).
-            period_end:     Last day of the period (inclusive).
+            website: Website instance.
+            period_start: First day of the period (inclusive).
+            period_end: Last day of the period (inclusive).
 
         Returns:
             WriterPerformanceSnapshot — processed (composite_score set).
         """
         # Convert date boundaries to datetime for ORM queries
         start_dt = make_aware(datetime.combine(period_start, datetime.min.time()))
-        end_dt   = make_aware(datetime.combine(period_end,   datetime.max.time()))
+        end_dt = make_aware(datetime.combine(period_end, datetime.max.time()))
 
         # Gather raw counts from orders
         counts = WriterMetricsSnapshotService._gather_order_counts(
@@ -113,29 +113,29 @@ class WriterMetricsSnapshotService:
             period_end=period_end,
             defaults={
                 # Volume
-                "total_orders":      counts["total"],
-                "completed_orders":  counts["completed"],
-                "cancelled_orders":  counts["cancelled"],
-                "late_orders":       counts["late"],
-                "revised_orders":    counts["revised"],
-                "disputed_orders":   counts["disputed"],
-                "hvo_orders":        counts["hvo"],
-                "total_pages":       counts["pages"],
-                "preferred_orders":  counts["preferred"],
+                "total_orders": counts["total"],
+                "completed_orders": counts["completed"],
+                "cancelled_orders": counts["cancelled"],
+                "late_orders": counts["late"],
+                "revised_orders": counts["revised"],
+                "disputed_orders": counts["disputed"],
+                "hvo_orders": counts["hvo"],
+                "total_pages": counts["pages"],
+                "preferred_orders": counts["preferred"],
                 # Rates (proportions)
-                "completion_rate":   rates["completion"],
-                "lateness_rate":     rates["lateness"],
-                "revision_rate":     rates["revision"],
-                "dispute_rate":      rates["dispute"],
+                "completion_rate": rates["completion"],
+                "lateness_rate": rates["lateness"],
+                "revision_rate": rates["revision"],
+                "dispute_rate": rates["dispute"],
                 "cancellation_rate": rates["cancellation"],
                 "preferred_order_rate": rates["preferred"],
                 "average_turnaround_hours": avg_turnaround,
                 # Financials
-                "amount_paid":          financials["earnings"],
-                "bonuses":              financials["bonuses"],
-                "tips":                 financials["tips"],
-                "client_revenue":       financials["client_revenue"],
-                "profit_contribution":  financials["profit"],
+                "amount_paid": financials["earnings"],
+                "bonuses": financials["bonuses"],
+                "tips": financials["tips"],
+                "client_revenue": financials["client_revenue"],
+                "profit_contribution": financials["profit"],
                 # Rating
                 "average_rating": avg_rating,
                 # Reset processing state on update
@@ -180,24 +180,24 @@ class WriterMetricsSnapshotService:
                 completed_at__range=(start_dt, end_dt),
             )
 
-            total     = completed.count() + base_qs.filter(
+            total = completed.count() + base_qs.filter(
                 status="cancelled",
                 cancelled_at__range=(start_dt, end_dt),
             ).count()
 
-            completed_count   = completed.count()
-            cancelled_count   = base_qs.filter(
+            completed_count = completed.count()
+            cancelled_count = base_qs.filter(
                 status="cancelled",
                 cancelled_at__range=(start_dt, end_dt),
             ).count()
-            late_count        = completed.filter(is_late=True).count()
-            revised_count     = completed.filter(revision_count__gt=0).count()
-            disputed_count    = completed.filter(is_disputed=True).count()
-            hvo_count         = completed.filter(is_high_value=True).count()
-            pages             = completed.aggregate(
+            late_count = completed.filter(is_late=True).count()
+            revised_count = completed.filter(revision_count__gt=0).count()
+            disputed_count = completed.filter(is_disputed=True).count()
+            hvo_count = completed.filter(is_high_value=True).count()
+            pages = completed.aggregate(
                 total=models.Sum("number_of_pages")
             )["total"] or 0
-            preferred_count   = completed.filter(
+            preferred_count = completed.filter(
                 subject__in=writer_profile.capacity.preferred_subjects.all()
             ).count() if hasattr(writer_profile, "capacity") else 0
 
@@ -215,14 +215,14 @@ class WriterMetricsSnapshotService:
             }
 
         return {
-            "total":     total,
+            "total": total,
             "completed": completed_count,
             "cancelled": cancelled_count,
-            "late":      late_count,
-            "revised":   revised_count,
-            "disputed":  disputed_count,
-            "hvo":       hvo_count,
-            "pages":     pages,
+            "late": late_count,
+            "revised": revised_count,
+            "disputed": disputed_count,
+            "hvo": hvo_count,
+            "pages": pages,
             "preferred": preferred_count,
         }
 
@@ -253,10 +253,10 @@ class WriterMetricsSnapshotService:
             )
         return {
             "earnings": Decimal("0.00"),
-            "bonuses":  Decimal("0.00"),
-            "tips":     Decimal("0.00"),
+            "bonuses": Decimal("0.00"),
+            "tips": Decimal("0.00"),
             "client_revenue": Decimal("0.00"),
-            "profit":   Decimal("0.00"),
+            "profit": Decimal("0.00"),
         }
 
     @staticmethod
@@ -265,7 +265,7 @@ class WriterMetricsSnapshotService:
     ) -> Decimal | None:
         """Average rating from reviews_system for the period."""
         try:
-            from reviews_system.models.writer_review import WriterRating 
+            from reviews_system.models.writer_review import WriterRating
             from django.db.models import Avg
 
             result = WriterRating.objects.filter(
@@ -333,13 +333,13 @@ class WriterMetricsSnapshotService:
         Compute proportion rates from raw counts.
         All outputs are Decimal in range 0.0000–1.0000.
         """
-        completed   = Decimal(str(counts["completed"]))
-        total       = Decimal(str(counts["total"]))
-        late        = Decimal(str(counts["late"]))
-        revised     = Decimal(str(counts["revised"]))
-        disputed    = Decimal(str(counts["disputed"]))
-        cancelled   = Decimal(str(counts["cancelled"]))
-        preferred   = Decimal(str(counts["preferred"]))
+        completed = Decimal(str(counts["completed"]))
+        total = Decimal(str(counts["total"]))
+        late = Decimal(str(counts["late"]))
+        revised = Decimal(str(counts["revised"]))
+        disputed = Decimal(str(counts["disputed"]))
+        cancelled = Decimal(str(counts["cancelled"]))
+        preferred = Decimal(str(counts["preferred"]))
 
         def safe_rate(numerator, denominator) -> Decimal:
             if denominator == 0:
@@ -349,10 +349,10 @@ class WriterMetricsSnapshotService:
             )
 
         return {
-            "completion":   safe_rate(completed, total),
-            "lateness":     safe_rate(late,      completed),
-            "revision":     safe_rate(revised,   completed),
-            "dispute":      safe_rate(disputed,  completed),
+            "completion": safe_rate(completed, total),
+            "lateness": safe_rate(late, completed),
+            "revision": safe_rate(revised, completed),
+            "dispute": safe_rate(disputed, completed),
             "cancellation": safe_rate(cancelled, total),
-            "preferred":    safe_rate(preferred, completed),
+            "preferred": safe_rate(preferred, completed),
         }

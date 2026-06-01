@@ -34,7 +34,7 @@ class WriterMessageThread(models.Model):
 
     def __str__(self):
         return f"Message Thread for Order {self.order.id} - {self.writer.user.username} & {self.participant.username}"
-    
+
 class WriterMessage(models.Model):
     """
     Messages exchanged between a writer and a client/admin in an order thread.
@@ -89,7 +89,7 @@ class WriterMessageModeration(models.Model):
         help_text="Has the admin reviewed this message?"
     )
     action_taken = models.CharField(
-        max_length=50, 
+        max_length=50,
         choices=[
             ("Delete", "Delete"),
             ("Warn Writer", "Warn Writer"),

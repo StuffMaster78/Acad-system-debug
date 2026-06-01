@@ -22,7 +22,7 @@ class DashboardCardConfig(models.Model):
         ('indigo', 'Indigo'),
         ('teal', 'Teal'),
     )
-    
+
     # Card identification
     card_key = models.CharField(
         max_length=100,
@@ -37,11 +37,11 @@ class DashboardCardConfig(models.Model):
         blank=True,
         help_text="Card description or help text"
     )
-    
+
     # Visual configuration
     icon = models.CharField(
         max_length=50,
-        default="📊",
+        default="",
         help_text="Emoji or icon identifier"
     )
     color = models.CharField(
@@ -50,7 +50,7 @@ class DashboardCardConfig(models.Model):
         default='blue',
         help_text="Card color theme"
     )
-    
+
     # Data configuration
     data_source = models.CharField(
         max_length=200,
@@ -67,7 +67,7 @@ class DashboardCardConfig(models.Model):
         default='number',
         help_text="Type of data to display"
     )
-    
+
     # Role and access control
     allowed_roles = models.JSONField(
         default=list,
@@ -82,7 +82,7 @@ class DashboardCardConfig(models.Model):
         related_name='dashboard_cards',
         help_text="Website-specific card (null = all websites)"
     )
-    
+
     # Display configuration
     position = models.PositiveIntegerField(
         default=0,
@@ -97,17 +97,17 @@ class DashboardCardConfig(models.Model):
         blank=True,
         help_text="Badge text to show in card footer (e.g., 'All time', 'Last 30 days')"
     )
-    
+
     # Additional configuration
     config = models.JSONField(
         default=dict,
         blank=True,
         help_text="Additional configuration (formatting options, calculations, etc.)"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = "Dashboard Card Configuration"
         verbose_name_plural = "Dashboard Card Configurations"
@@ -116,7 +116,7 @@ class DashboardCardConfig(models.Model):
             models.Index(fields=['card_key', 'is_active']),
             models.Index(fields=['website', 'is_active']),
         ]
-    
+
     def __str__(self):
         return f"{self.title} ({self.card_key})"
 
@@ -133,7 +133,7 @@ class DashboardFontConfig(models.Model):
         related_name='dashboard_fonts',
         help_text="Website-specific font config (null = default for all)"
     )
-    
+
     font_family = models.CharField(
         max_length=100,
         default="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -143,7 +143,7 @@ class DashboardFontConfig(models.Model):
         blank=True,
         help_text="URL to load font from (e.g., Google Fonts)"
     )
-    
+
     # Typography scales
     base_font_size = models.CharField(
         max_length=20,
@@ -160,15 +160,15 @@ class DashboardFontConfig(models.Model):
         default="13px",
         help_text="Card label font size"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = "Dashboard Font Configuration"
         verbose_name_plural = "Dashboard Font Configurations"
         unique_together = ['website']
-    
+
     def __str__(self):
         return f"Font Config: {self.font_family} ({self.website.name if self.website else 'Default'})"
 

@@ -9,7 +9,7 @@ Celery beat schedule::
 
     "pull-ga4-data": {
         "task": "cms_intelligence.tasks.ga4_ingestion.pull_ga4_data",
-        "schedule": crontab(hour=3, minute=30),  # 03:30 UTC daily
+        "schedule": crontab(hour=3, minute=30), # 03:30 UTC daily
     }
 """
 
@@ -21,7 +21,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-BACKFILL_DAYS = 3  # GA4 data arrives faster than GSC
+BACKFILL_DAYS = 3 # GA4 data arrives faster than GSC
 
 
 @shared_task
@@ -106,7 +106,7 @@ def _pull_ga4_for_site(site, seo_settings) -> dict:
 
     for days_ago in range(BACKFILL_DAYS, 0, -1):
         pull_date = today - timedelta(days=days_ago)
-        date_str = pull_date.isoformat().replace("-", "")  # GA4 uses YYYYMMDD
+        date_str = pull_date.isoformat().replace("-", "") # GA4 uses YYYYMMDD
 
         try:
             request = RunReportRequest(

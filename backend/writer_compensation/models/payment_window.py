@@ -23,12 +23,12 @@ class PaymentWindow(models.Model):
     Every CompensationEvent belongs to exactly one window.
 
     Lifecycle (one-way, never reversed):
-        UPCOMING   -> created ahead of time; not yet accepting events
-        OPEN       -> events are collected; writers work normally
-        CLOSED     -> period ended; batch and items created; no new events assigned
+        UPCOMING -> created ahead of time; not yet accepting events
+        OPEN -> events are collected; writers work normally
+        CLOSED -> period ended; batch and items created; no new events assigned
         PROCESSING -> admin clicked "Process payments"; writers see status message;
                      all events locked
-        DONE       -> admin finished; held items remain open indefinitely
+        DONE -> admin finished; held items remain open indefinitely
 
     Examples:
         • Monthly
@@ -177,7 +177,7 @@ class PaymentWindow(models.Model):
             f"({self.start_date} -> {self.end_date})"
             f" [{self.status}]"
         )
-    
+
      # Status shorthand properties
 
     @property
@@ -200,7 +200,7 @@ class PaymentWindow(models.Model):
     @property
     def is_done(self) -> bool:
         return self.status == WindowStatus.DONE
- 
+
     @property
     def is_locked(self) -> bool:
         """
@@ -214,7 +214,7 @@ class PaymentWindow(models.Model):
             WindowStatus.PROCESSING,
             WindowStatus.DONE,
         }
- 
+
     @property
     def accepts_events(self) -> bool:
         """True only while the window is OPEN and not explicitly locked."""

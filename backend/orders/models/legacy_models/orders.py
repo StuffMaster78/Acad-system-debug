@@ -28,18 +28,18 @@ from django.contrib.postgres.fields import ArrayField
 from django.utils.timezone import now
 from django.utils.text import slugify
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 class OrderManager(models.Manager):
     """Custom manager that excludes soft-deleted orders by default."""
     def get_queryset(self):
         return super().get_queryset().filter(is_deleted=False)
-    
+
     def with_deleted(self):
         """Return queryset including soft-deleted orders."""
         return super().get_queryset()
-    
+
     def deleted_only(self):
         """Return queryset with only soft-deleted orders."""
         return super().get_queryset().filter(is_deleted=True)
@@ -86,7 +86,7 @@ class Order(models.Model):
         help_text="Preferred writer for this order."
     )
     topic = models.CharField(
-        max_length=255, 
+        max_length=255,
         help_text=(
             "The topic or title of the order."
         )
@@ -107,7 +107,7 @@ class Order(models.Model):
         null=True,
         blank=True,
         help_text="Discount code applied to the order."
-    )   
+    )
     writer_level = models.ForeignKey(
         'pricing_configs.WriterLevelOptionConfig',
         on_delete=models.SET_NULL,
@@ -181,7 +181,7 @@ class Order(models.Model):
         help_text="Additional services requested."
     )
     status = models.CharField(
-        max_length=30,  # Increased to accommodate 'pending_writer_assignment' (25 chars)
+        max_length=30, # Increased to accommodate 'pending_writer_assignment' (25 chars)
         choices=[(status.value, status.name) for status in OrderStatus],
         default=OrderStatus.CREATED.value,
         help_text="Current status of the order."
@@ -253,7 +253,7 @@ class Order(models.Model):
         default=False,
         help_text="Indicates if this is a special order."
     )
-    is_public = models.BooleanField(default=False)  # Open to any writer if true
+    is_public = models.BooleanField(default=False) # Open to any writer if true
     reassignment_requested = models.BooleanField(default=False)
     order_instructions = models.TextField(
         help_text=(
@@ -277,7 +277,7 @@ class Order(models.Model):
     )
     reassigned_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="Date and time when the order was created."
     )
     updated_at = models.DateTimeField(
@@ -307,7 +307,7 @@ class Order(models.Model):
         default=False,
         help_text="If True, allows access to this order even if unpaid. Admin can override default unpaid access restrictions."
     )
-    
+
     # Soft delete fields
     is_deleted = models.BooleanField(
         default=False,
@@ -373,7 +373,7 @@ class Order(models.Model):
         else:
             raise ValueError("status_enum must be an OrderStatus enum instance")
 
-        
+
     def save(self, *args, **kwargs):
             """
             Trigger price recalculation whenever the order is saved.
@@ -430,15 +430,15 @@ class Order(models.Model):
 
         if discount.discount_type == 'percentage':
             discount_amount = (self.total_price * discount.value) / Decimal(100)
-        else:  # Fixed amount
+        else: # Fixed amount
             discount_amount = discount.value
 
         new_total_price = self.total_price - discount_amount + self.additional_cost
-        
+
         # Ensure new total price isn't negative
         if new_total_price < 0:
             raise ValidationError("Order total cannot be negative.")
-        
+
     def update_status(self, new_status):
         """Update order status."""
         self.status = new_status
@@ -459,7 +459,7 @@ class Order(models.Model):
         self.deadline = new_deadline
         self.save()
 
-        # Log the deadline change 
+        # Log the deadline change
         DeadlineChangeLog.objects.create(
             order=self,
             old_deadline=old_deadline,
@@ -477,7 +477,7 @@ class Order(models.Model):
                 self.is_paid = False
 
             self.save()
-    
+
     def mark_paid(self):
         """
         Mark order as paid and transition to in_progress.
@@ -499,7 +499,7 @@ class Order(models.Model):
                 f"Attempted to mark order {self.id} as paid from status {self.status}"
             )
 
-    
+
     def add_pages(self, additional_pages: int):
         """
         Add extra pages to the existing order, recalculate the price for the new pages.
@@ -514,7 +514,7 @@ class Order(models.Model):
         if not pricing_config:
             raise ValueError(f"No PricingConfiguration found for website {self.website}")
         new_page_price = additional_pages * pricing_config.base_price_per_page
-        self.total_price = base_price + new_page_price  # Update the total cost
+        self.total_price = base_price + new_page_price # Update the total cost
         self.save()
 
     def add_slides(self, additional_slides: int):
@@ -537,7 +537,7 @@ class Order(models.Model):
             base_price -= discount_amount
 
         # Update the total cost with the new slide price
-        self.total_price = base_price + new_slide_price  # Update the total cost
+        self.total_price = base_price + new_slide_price # Update the total cost
         self.save()
 
     def add_extra_service(self, service):
@@ -546,7 +546,7 @@ class Order(models.Model):
         """
         self.extra_services.add(service)
         calculator = PricingCalculatorService(self)
-        self.total_price = calculator.calculate_total_price()  # Recalculate price with new service
+        self.total_price = calculator.calculate_total_price() # Recalculate price with new service
         self.save()
 
     def change_deadline(self, new_deadline):
@@ -556,7 +556,7 @@ class Order(models.Model):
         pricing_config = PricingConfiguration.objects.filter(
             website=self.website
         ).first()
-        
+
         if not pricing_config:
             raise ValueError(f"No PricingConfiguration found for website {self.website}")
         old_deadline = self.deadline
@@ -567,7 +567,7 @@ class Order(models.Model):
             self.total_price += pricing_config.convenience_fee
 
         calculator = PricingCalculatorService(self)
-        self.total_price = calculator.calculate_total_price()  # Recalculate after changing deadline
+        self.total_price = calculator.calculate_total_price() # Recalculate after changing deadline
         self.save()
 
     @property
@@ -601,10 +601,10 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.pk} - {self.topic} ({self.status})"
-    
+
     # Custom managers
     objects = OrderManager()
-    all_objects = models.Manager()  # Access all orders including soft-deleted
+    all_objects = models.Manager() # Access all orders including soft-deleted
 
     class Meta:
         ordering = ['-created_at']

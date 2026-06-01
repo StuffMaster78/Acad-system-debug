@@ -33,11 +33,11 @@ const brandMenuRoot = ref<HTMLElement | null>(null);
 const openGroups = ref<Set<string>>(new Set());
 
 const roleLabel: Record<UserRole, string> = {
-  client:     "Client portal",
-  writer:     "Writer workspace",
-  editor:     "Editor workspace",
-  support:    "Support desk",
-  admin:      "Admin console",
+  client: "Client portal",
+  writer: "Writer workspace",
+  editor: "Editor workspace",
+  support: "Support desk",
+  admin: "Admin console",
   superadmin: "Superadmin",
 };
 

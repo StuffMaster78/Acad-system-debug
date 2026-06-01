@@ -22,13 +22,13 @@ class NotificationsSystemConfig(AppConfig):
             return
 
         try:
-            import redis  # noqa: F401
+            import redis # noqa: F401
         except Exception:
             logger.warning("Redis client not available (acceptable in dev).")
 
         try:
-            from . import checks  # noqa: F401
-            from . import signals  # noqa: F401
+            from . import checks # noqa: F401
+            from . import signals # noqa: F401
         except Exception as exc:
             logger.warning(
                 "Signals/checks load failed: %s",
@@ -37,7 +37,7 @@ class NotificationsSystemConfig(AppConfig):
             )
 
         try:
-            from . import tasks  # noqa: F401
+            from . import tasks # noqa: F401
         except Exception as exc:
             logger.warning(
                 "Failed to import notification tasks module: %s",

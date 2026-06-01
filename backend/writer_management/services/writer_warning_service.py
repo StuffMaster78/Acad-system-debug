@@ -6,10 +6,10 @@ Issues and manages writer warnings.
 RESPONSIBILITY
 --------------
 This service owns the warning lifecycle:
-    issue_warning()     — create a warning, notify, check thresholds
-    revoke_warning()    — void a warning issued in error
-    void_warning()      — alias for revoke_warning (same operation)
-    get_active_count()  — count active warnings for a writer
+    issue_warning() — create a warning, notify, check thresholds
+    revoke_warning() — void a warning issued in error
+    void_warning() — alias for revoke_warning (same operation)
+    get_active_count() — count active warnings for a writer
 
 ESCALATION
 ----------
@@ -28,7 +28,7 @@ All resolution goes through _resolve_website() and _resolve_user()
 which navigate the correct chain:
     website → writer.writer_level.website
               or writer.account_profile.website
-    user    → writer.account_profile.user
+    user → writer.account_profile.user
 """
 
 import logging
@@ -66,11 +66,11 @@ class WriterWarningService:
         evaluates escalation thresholds, rebuilds discipline state.
 
         Args:
-            writer:      WriterProfile receiving the warning.
-            reason:      Full description of the behaviour.
+            writer: WriterProfile receiving the warning.
+            reason: Full description of the behaviour.
                          Include order number and policy reference.
-            category:    WriterWarning.category choice value.
-            issued_by:   Admin User. None = system-triggered.
+            category: WriterWarning.category choice value.
+            issued_by: Admin User. None = system-triggered.
             expires_days: Override expiry duration in days.
                           Defaults to WriterWarningEscalationConfig value.
 
@@ -148,9 +148,9 @@ class WriterWarningService:
         all threshold counts. The void is permanent.
 
         Args:
-            warning:   WriterWarning to void.
+            warning: WriterWarning to void.
             voided_by: Admin User performing the void.
-            reason:    Why the warning is being voided. Required.
+            reason: Why the warning is being voided. Required.
 
         Returns:
             Updated warning instance.

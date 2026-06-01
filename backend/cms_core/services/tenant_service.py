@@ -2,14 +2,14 @@
 Tenant Service — The Site ↔ Website Bridge
 =============================================
 
-THE single source of truth for resolving tenants.  Every app that needs
-to know "which tenant am I working in?" calls these functions.  No app
+THE single source of truth for resolving tenants. Every app that needs
+to know "which tenant am I working in?" calls these functions. No app
 should independently query Website or Site — use this bridge.
 
 Two models represent a tenant:
-    • ``wagtailcore.Site`` — Wagtail's concept.  Owns the page tree,
+    • ``wagtailcore.Site`` — Wagtail's concept. Owns the page tree,
       handles URL routing, scopes admin permissions.
-    • ``websites.Website`` — Your business model.  Owns branding,
+    • ``websites.Website`` — Your business model. Owns branding,
       pricing, analytics IDs, and references from orders/writers/clients.
 
 They are linked via ``Website.wagtail_site = OneToOneField(Site)``.
@@ -42,7 +42,7 @@ def get_website_for_site(site: Site):
     Raises DoesNotExist if the bridge is broken.
     """
     try:
-        return site.website_config  # reverse of Website.wagtail_site
+        return site.website_config # reverse of Website.wagtail_site
     except Exception:
         # Try forward lookup if the related_name differs in your codebase
         from django.apps import apps
@@ -52,7 +52,7 @@ def get_website_for_site(site: Site):
             return Website.objects.get(wagtail_site=site)
         except Website.DoesNotExist:
             logger.error(
-                "No Website linked to Wagtail Site '%s' (id=%s).  "
+                "No Website linked to Wagtail Site '%s' (id=%s). "
                 "Run `python manage.py setup_tenants` to fix.",
                 site.site_name,
                 site.pk,
@@ -76,7 +76,7 @@ def get_site_for_website(website) -> Site:
             site = Site.objects.get(hostname=hostname)
         except Site.DoesNotExist:
             raise ValueError(
-                f"No Wagtail Site linked to Website '{website}' (id={website.pk}).  "
+                f"No Wagtail Site linked to Website '{website}' (id={website.pk}). "
                 f"Run `python manage.py setup_tenants` to fix."
             )
     return site
@@ -124,7 +124,7 @@ def get_current_website(request: HttpRequest):
 
 def get_current_tenant(request: HttpRequest) -> dict:
     """
-    Return both Site and Website in one call.  Useful when you need
+    Return both Site and Website in one call. Useful when you need
     both (e.g., to pass ``site`` to a Wagtail queryset AND ``website``
     to a business-domain queryset).
     """

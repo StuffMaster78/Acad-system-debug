@@ -80,7 +80,7 @@ class CanReviewReassignment(BaseReassignmentTenantPermission):
         request: Request,
         view: APIView,
         obj: Any,
-    ):  
+    ):
         return self._same_tenant(request, obj)
 
 
@@ -97,7 +97,7 @@ class CanCancelReassignment(BaseReassignmentTenantPermission):
         request: Request,
         view: APIView,
         obj: Any,
-    ):  # type: ignore[override]
+    ): # type: ignore[override]
         if not self._same_tenant(request, obj):
             return False
 

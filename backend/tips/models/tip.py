@@ -254,10 +254,10 @@ class Tip(models.Model):
 
     # @property
     # def is_settled(self) -> bool:
-    #     """
-    #     Determine whether the tip completed successfully.
-    #     """
-    #     return self.status == TipStatus.SUCCEEDED
+    # """
+    # Determine whether the tip completed successfully.
+    # """
+    # return self.status == TipStatus.SUCCEEDED
 
     @property
     def is_failed(self) -> bool:

@@ -52,7 +52,7 @@ class ActivityFeedStateService:
         state.save(update_fields=["is_read", "read_at"])
 
         return state
-    
+
     @staticmethod
     @transaction.atomic
     def bulk_mark_read(
@@ -126,7 +126,7 @@ class ActivityFeedStateService:
         state.save(update_fields=["is_dismissed", "dismissed_at"])
 
         return state
-    
+
     @staticmethod
     @transaction.atomic
     def restore(

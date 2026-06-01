@@ -6,33 +6,33 @@ from client_management.models import BlacklistedEmail
 @admin.register(ClientProfile)
 class ClientProfileAdmin(admin.ModelAdmin):
     list_display = (
-        "user", 
-        "registration_id", 
-        "website", 
-        "country", 
-        "timezone", 
-        "ip_address", 
-        "loyalty_points", 
-        "tier", 
-        "is_active", 
-        "is_suspended", 
+        "user",
+        "registration_id",
+        "website",
+        "country",
+        "timezone",
+        "ip_address",
+        "loyalty_points",
+        "tier",
+        "is_active",
+        "is_suspended",
         "location_verified",
-        "get_milestones_display",  # Display milestones for the client
-        "get_loyalty_transactions_display",  # Display loyalty transactions for the client
+        "get_milestones_display", # Display milestones for the client
+        "get_loyalty_transactions_display", # Display loyalty transactions for the client
         "display_client_badges"
     )
     list_filter = (
-        "location_verified", 
-        "is_active", 
-        "is_suspended", 
-        "country", 
+        "location_verified",
+        "is_active",
+        "is_suspended",
+        "country",
         "website"
     )
     search_fields = (
-        "user__username", 
-        "registration_id", 
-        "ip_address", 
-        "country", 
+        "user__username",
+        "registration_id",
+        "ip_address",
+        "country",
         "website__name"
     )
 
@@ -45,7 +45,7 @@ class ClientProfileAdmin(admin.ModelAdmin):
         if not milestones.exists():
             return "No milestones achieved"
         return "\n".join([f"{milestone.name}: {milestone.description}" for milestone in milestones])
-    
+
     get_milestones_display.short_description = "Achieved Milestones"
 
     # Custom method to display loyalty transactions in the admin
@@ -58,9 +58,9 @@ class ClientProfileAdmin(admin.ModelAdmin):
         if not transactions.exists():
             return "No transactions"
         return "\n".join([f"Transaction {transaction.id}: {transaction.points} points ({transaction.transaction_type})" for transaction in transactions])
-    
+
     get_loyalty_transactions_display.short_description = "Loyalty Transactions"
-    
+
     # A Custom method to fetch and display client badges in the admin
     def display_client_badges(self, obj):
         return ", ".join([badge.badge_name for badge in obj.get_client_badges()])

@@ -55,10 +55,10 @@ class TicketAssignmentService:
         automatically using SmartReassignmentService.
 
         Args:
-            ticket:      Ticket instance to assign.
+            ticket: Ticket instance to assign.
             assigned_by: Staff member performing the assignment.
-            agent:       Optional explicit agent user to assign to.
-            reason:      Optional reason (recorded in activity log).
+            agent: Optional explicit agent user to assign to.
+            reason: Optional reason (recorded in activity log).
 
         Returns:
             Updated ticket instance.
@@ -105,10 +105,10 @@ class TicketAssignmentService:
         Reassign a ticket from its current agent to a different one.
 
         Args:
-            ticket:        Ticket to reassign.
-            new_agent:     New agent user.
+            ticket: Ticket to reassign.
+            new_agent: New agent user.
             reassigned_by: Staff member performing the reassignment.
-            reason:        Required reason for the reassignment.
+            reason: Required reason for the reassignment.
 
         Returns:
             Updated ticket instance.

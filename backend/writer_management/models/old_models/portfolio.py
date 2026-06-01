@@ -18,7 +18,7 @@ class WriterPortfolio(models.Model):
         ('clients_only', 'Clients Only'),
         ('public', 'Public'),
     ]
-    
+
     writer = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -30,7 +30,7 @@ class WriterPortfolio(models.Model):
         on_delete=models.CASCADE,
         related_name='writer_portfolios'
     )
-    
+
     # Portfolio settings
     is_enabled = models.BooleanField(
         default=False,
@@ -42,7 +42,7 @@ class WriterPortfolio(models.Model):
         default='clients_only',
         help_text="Who can view this portfolio"
     )
-    
+
     # Portfolio content
     bio = models.TextField(
         blank=True,
@@ -68,7 +68,7 @@ class WriterPortfolio(models.Model):
         blank=True,
         help_text="List of certifications: [{'name': '...', 'issuer': '...', 'year': 2020}]"
     )
-    
+
     # Sample work
     sample_works = models.ManyToManyField(
         'writer_management.PortfolioSample',
@@ -76,7 +76,7 @@ class WriterPortfolio(models.Model):
         related_name='portfolios',
         help_text="Sample work pieces"
     )
-    
+
     # Statistics (auto-calculated)
     total_orders_completed = models.PositiveIntegerField(
         default=0,
@@ -94,7 +94,7 @@ class WriterPortfolio(models.Model):
         default=0.00,
         help_text="Percentage of orders delivered on time"
     )
-    
+
     # Privacy settings
     show_contact_info = models.BooleanField(
         default=False,
@@ -108,10 +108,10 @@ class WriterPortfolio(models.Model):
         default=False,
         help_text="Whether to show earnings information"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         unique_together = ('writer', 'website')
         indexes = [
@@ -120,42 +120,42 @@ class WriterPortfolio(models.Model):
         ]
         verbose_name = "Writer Portfolio"
         verbose_name_plural = "Writer Portfolios"
-    
+
     def __str__(self):
         return f"Portfolio for {self.writer.email}"
-    
+
     def can_view(self, user):
         """Check if a user can view this portfolio."""
         if not self.is_enabled:
             return False
-        
+
         if self.visibility == 'private':
             return user == self.writer
-        
+
         if self.visibility == 'clients_only':
             return user.role == 'client' or user == self.writer
-        
-        return True  # public
-    
+
+        return True # public
+
     def update_statistics(self):
         """Update portfolio statistics from orders and feedback."""
         from orders.models.orders import Order
         from writer_management.models.feedback import FeedbackHistory
-        
+
         # Total orders completed
         self.total_orders_completed = Order.objects.filter(
             writer=self.writer,
             website=self.website,
             status='completed'
         ).count()
-        
+
         # Average rating
         try:
             history = FeedbackHistory.objects.get(user=self.writer, website=self.website)
             self.average_rating = history.average_rating or 0
         except FeedbackHistory.DoesNotExist:
             self.average_rating = 0
-        
+
         # On-time delivery rate
         from django.db.models import F
         completed_orders = Order.objects.filter(
@@ -164,7 +164,7 @@ class WriterPortfolio(models.Model):
             status='completed',
             submitted_at__isnull=False
         )
-        
+
         if completed_orders.exists():
             from django.db.models.functions import Coalesce
             # Use writer_deadline if available, otherwise fall back to client_deadline
@@ -174,7 +174,7 @@ class WriterPortfolio(models.Model):
             self.on_time_delivery_rate = (on_time / completed_orders.count()) * 100
         else:
             self.on_time_delivery_rate = 0
-        
+
         self.save(update_fields=[
             'total_orders_completed',
             'average_rating',
@@ -197,7 +197,7 @@ class PortfolioSample(models.Model):
         related_name='portfolio_samples',
         limit_choices_to={'role': 'writer'}
     )
-    
+
     # Sample information
     title = models.CharField(
         max_length=255,
@@ -207,7 +207,7 @@ class PortfolioSample(models.Model):
         blank=True,
         help_text="Description of the sample"
     )
-    
+
     # Source order (if from actual order)
     source_order = models.ForeignKey(
         'orders.Order',
@@ -217,7 +217,7 @@ class PortfolioSample(models.Model):
         related_name='portfolio_samples',
         help_text="The order this sample came from (if applicable)"
     )
-    
+
     # File/content
     file = models.FileField(
         upload_to='portfolio_samples/',
@@ -229,7 +229,7 @@ class PortfolioSample(models.Model):
         blank=True,
         help_text="Text preview of the sample"
     )
-    
+
     # Metadata
     subject = models.ForeignKey(
         'order_configs.Subject',
@@ -243,7 +243,7 @@ class PortfolioSample(models.Model):
         null=True,
         blank=True
     )
-    
+
     # Privacy
     is_anonymized = models.BooleanField(
         default=True,
@@ -253,10 +253,10 @@ class PortfolioSample(models.Model):
         default=False,
         help_text="Whether this is a featured sample"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['-is_featured', '-created_at']
         indexes = [
@@ -265,7 +265,7 @@ class PortfolioSample(models.Model):
         ]
         verbose_name = "Portfolio Sample"
         verbose_name_plural = "Portfolio Samples"
-    
+
     def __str__(self):
         return f"Sample: {self.title} - {self.writer.email}"
 

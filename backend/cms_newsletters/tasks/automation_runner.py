@@ -9,7 +9,7 @@ Celery beat::
 
     "run-automation-sequences": {
         "task": "cms_newsletters.tasks.automation_runner.run_automation_sequences",
-        "schedule": 3600,  # every hour
+        "schedule": 3600, # every hour
     }
 """
 

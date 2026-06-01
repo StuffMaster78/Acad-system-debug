@@ -85,7 +85,7 @@ class Reminder(BillingBaseModel):
         invoice = self.invoice
         if invoice is not None:
             return f"Reminder for invoice {invoice.reference}"
-        
+
         payment_request = self.payment_request
         if payment_request is not None:
             return (

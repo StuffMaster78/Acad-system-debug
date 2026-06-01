@@ -15,7 +15,7 @@ class OrderDeadlineService:
         old_deadline = getattr(order, "client_deadline", None)
 
         if old_deadline == new_deadline:
-            return order  # no-op
+            return order # no-op
 
         # Write to canonical field used by the model
         if hasattr(order, "client_deadline"):

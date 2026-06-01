@@ -94,7 +94,7 @@ def compute_engagement_summaries():
         # Weighted formula: views (30%) + time (20%) + scroll (20%) +
         # reactions (15%) + shares (15%)
         view_score = min(total_views / 100, 1.0) * 30
-        time_score = min(avg_time / 300, 1.0) * 20  # 5 min = max
+        time_score = min(avg_time / 300, 1.0) * 20 # 5 min = max
         scroll_score = (avg_scroll / 100) * 20
         reaction_score = min(total_reactions / 50, 1.0) * 15
         share_score = min(total_shares / 20, 1.0) * 15

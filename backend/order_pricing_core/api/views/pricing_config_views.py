@@ -103,7 +103,7 @@ from order_pricing_core.validators.pricing_dimension_validators import (
     validate_subject_rate,
 )
 
-    
+
 class WebsitePricingProfileView(APIView):
     """
     Retrieve or update the active pricing profile.

@@ -19,24 +19,24 @@ User = get_user_model()
 
 class EnhancedAnalyticsService:
     """Service for enhanced analytics and insights."""
-    
+
     @staticmethod
     def get_performance_insights(days=30):
         """
         Get performance insights and trends.
-        
+
         Args:
             days: Number of days to analyze (default: 30)
-            
+
         Returns:
             dict: Performance insights including trends, predictions, and recommendations
         """
         end_date = timezone.now()
         start_date = end_date - timedelta(days=days)
-        
+
         # Order completion trends
         orders = Order.objects.filter(created_at__gte=start_date)
-        
+
         # Daily order trends
         daily_trends = orders.annotate(
             day=TruncDay('created_at')
@@ -45,14 +45,14 @@ class EnhancedAnalyticsService:
             completed=Count('id', filter=Q(status__in=['completed', 'reviewed'])),
             revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField())
         ).order_by('day')
-        
+
         # Average order completion time (simplified)
         completed_orders = orders.filter(
             status__in=['completed', 'reviewed'],
             created_at__isnull=False,
             updated_at__isnull=False
         )
-        
+
         # Writer performance metrics
         # Use calculated_earnings instead of total_earnings to avoid conflict with model field
         writer_performance = WriterProfile.objects.annotate(
@@ -65,7 +65,7 @@ class EnhancedAnalyticsService:
                 user__orders_as_writer__created_at__gte=start_date
             ), output_field=DecimalField())
         ).filter(completed_count__gt=0).order_by('-completed_count')[:10]
-        
+
         # Client retention metrics
         client_metrics = User.objects.filter(
             role='client',
@@ -77,14 +77,14 @@ class EnhancedAnalyticsService:
             ), output_field=DecimalField()),
             repeat_orders=Count('orders_as_client', filter=Q(
                 orders_as_client__created_at__gte=start_date
-            )) - 1  # Subtract 1 to get repeat count
+            )) - 1 # Subtract 1 to get repeat count
         ).filter(order_count__gt=0)
-        
+
         # Calculate retention rate (clients with 2+ orders)
         total_clients = client_metrics.count()
         repeat_clients = client_metrics.filter(repeat_orders__gt=0).count()
         retention_rate = (repeat_clients / total_clients * 100) if total_clients > 0 else 0
-        
+
         # Revenue trends
         revenue_trends = orders.filter(
             is_paid=True
@@ -94,7 +94,7 @@ class EnhancedAnalyticsService:
             revenue=Sum('total_price', output_field=DecimalField()),
             count=Count('id')
         ).order_by('day')
-        
+
         # Predictions (simple linear trend)
         if len(revenue_trends) >= 7:
             recent_revenue = [float(item['revenue'] or 0) for item in revenue_trends[-7:]]
@@ -102,7 +102,7 @@ class EnhancedAnalyticsService:
             predicted_next_week = avg_recent * 7
         else:
             predicted_next_week = 0
-        
+
         return {
             'period_days': days,
             'start_date': start_date.isoformat(),
@@ -155,17 +155,17 @@ class EnhancedAnalyticsService:
                 daily_trends, revenue_trends, retention_rate, total_clients
             )
         }
-    
+
     @staticmethod
     def _generate_insights(daily_trends, revenue_trends, retention_rate, total_clients):
         """Generate actionable insights from metrics."""
         insights = []
-        
+
         # Trend analysis
         if len(daily_trends) >= 7:
             recent_avg = sum(item['total_orders'] for item in daily_trends[-7:]) / 7
             earlier_avg = sum(item['total_orders'] for item in daily_trends[:7]) / 7 if len(daily_trends) >= 14 else recent_avg
-            
+
             if recent_avg > earlier_avg * 1.1:
                 insights.append({
                     'type': 'positive',
@@ -180,7 +180,7 @@ class EnhancedAnalyticsService:
                     'message': f'Order volume has decreased by {round((1 - recent_avg / earlier_avg) * 100, 1)}% compared to earlier period.',
                     'action': 'Review marketing efforts and client engagement strategies.'
                 })
-        
+
         # Retention insights
         if retention_rate < 30:
             insights.append({
@@ -196,12 +196,12 @@ class EnhancedAnalyticsService:
                 'message': f'{round(retention_rate, 1)}% of clients are repeat customers.',
                 'action': 'Maintain current quality standards and consider loyalty programs.'
             })
-        
+
         # Revenue insights
         if len(revenue_trends) >= 7:
             recent_revenue = sum(float(item['revenue'] or 0) for item in revenue_trends[-7:])
             earlier_revenue = sum(float(item['revenue'] or 0) for item in revenue_trends[:7]) if len(revenue_trends) >= 14 else recent_revenue
-            
+
             if recent_revenue > earlier_revenue * 1.15:
                 insights.append({
                     'type': 'positive',
@@ -209,18 +209,18 @@ class EnhancedAnalyticsService:
                     'message': 'Revenue has shown significant growth in recent days.',
                     'action': 'Continue current strategies and monitor for scaling opportunities.'
                 })
-        
+
         return insights
-    
+
     @staticmethod
     def get_comparative_analytics(period1_days=30, period2_days=30):
         """
         Compare two time periods.
-        
+
         Args:
             period1_days: Days for first period (default: 30)
             period2_days: Days for second period (default: 30)
-            
+
         Returns:
             dict: Comparative analytics
         """
@@ -229,7 +229,7 @@ class EnhancedAnalyticsService:
         period1_start = now - timedelta(days=period1_days)
         period2_end = period1_start
         period2_start = period2_end - timedelta(days=period2_days)
-        
+
         def get_period_metrics(start, end):
             orders = Order.objects.filter(created_at__gte=start, created_at__lt=end)
             return {
@@ -244,10 +244,10 @@ class EnhancedAnalyticsService:
                     date_joined__lt=end
                 ).count()
             }
-        
+
         period1 = get_period_metrics(period1_start, period1_end)
         period2 = get_period_metrics(period2_start, period2_end)
-        
+
         def calculate_change(current, previous):
             if previous == 0:
                 return {'percent': 0, 'absolute': current}
@@ -255,7 +255,7 @@ class EnhancedAnalyticsService:
                 'percent': round(((current - previous) / previous) * 100, 2),
                 'absolute': round(current - previous, 2)
             }
-        
+
         return {
             'period1': {
                 'start': period1_start.isoformat(),

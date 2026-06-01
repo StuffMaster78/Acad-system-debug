@@ -19,10 +19,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         overwrite = options.get('overwrite', False)
-        
+
         # Organize subjects by category
         all_subjects = [{'name': name, 'is_technical': is_tech} for name, is_tech in COMPREHENSIVE_SUBJECTS]
-        
+
         # Categorize subjects
         humanities_keywords = ['english', 'literature', 'history', 'philosophy', 'religion', 'art', 'music', 'theater', 'film', 'linguistics', 'language', 'spanish', 'french', 'german', 'italian', 'portuguese', 'russian', 'chinese', 'japanese', 'korean', 'arabic', 'latin', 'greek', 'classical', 'poetry', 'drama', 'shakespeare', 'creative writing']
         social_sciences_keywords = ['psychology', 'sociology', 'anthropology', 'political', 'economics', 'geography', 'criminal', 'law', 'criminology', 'social work', 'public administration', 'international relations', 'urban studies', 'gender', 'ethnic', 'african american', 'asian american', 'latin american', 'middle eastern']
@@ -37,7 +37,7 @@ class Command(BaseCommand):
         architecture_keywords = ['architecture', 'urban planning', 'landscape', 'interior design', 'graphic design', 'web design', 'industrial design', 'fashion design']
         agriculture_keywords = ['agriculture', 'agricultural', 'agronomy', 'animal science', 'plant science', 'forestry', 'environmental', 'sustainability', 'renewable energy', 'climate', 'conservation']
         military_keywords = ['military', 'security', 'homeland', 'intelligence', 'forensics', 'criminal investigation']
-        
+
         templates = [
             {
                 'name': 'General (All Subjects)',
@@ -130,15 +130,15 @@ class Command(BaseCommand):
                 'subjects': [s for s in all_subjects if any(kw in s['name'].lower() for kw in military_keywords)]
             },
         ]
-        
+
         created_count = 0
         updated_count = 0
         skipped_count = 0
-        
+
         for template_data in templates:
             name = template_data['name']
             category = template_data['category']
-            
+
             if overwrite:
                 SubjectTemplate.objects.filter(name=name, category=category).delete()
                 template, created = SubjectTemplate.objects.get_or_create(
@@ -148,10 +148,10 @@ class Command(BaseCommand):
                 )
                 if created:
                     created_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'✅ Created template: {name} ({len(template_data["subjects"])} subjects)'))
+                    self.stdout.write(self.style.SUCCESS(f' Created template: {name} ({len(template_data["subjects"])} subjects)'))
                 else:
                     updated_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'🔄 Updated template: {name} ({len(template_data["subjects"])} subjects)'))
+                    self.stdout.write(self.style.SUCCESS(f' Updated template: {name} ({len(template_data["subjects"])} subjects)'))
             else:
                 template, created = SubjectTemplate.objects.get_or_create(
                     name=name,
@@ -160,11 +160,11 @@ class Command(BaseCommand):
                 )
                 if created:
                     created_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'✅ Created template: {name} ({len(template_data["subjects"])} subjects)'))
+                    self.stdout.write(self.style.SUCCESS(f' Created template: {name} ({len(template_data["subjects"])} subjects)'))
                 else:
                     skipped_count += 1
-                    self.stdout.write(self.style.WARNING(f'⏭️  Skipped existing template: {name}'))
-        
+                    self.stdout.write(self.style.WARNING(f'⏭️ Skipped existing template: {name}'))
+
         self.stdout.write(self.style.SUCCESS(
-            f'\n📊 Summary: {created_count} created, {updated_count} updated, {skipped_count} skipped'
+            f'\n Summary: {created_count} created, {updated_count} updated, {skipped_count} skipped'
         ))

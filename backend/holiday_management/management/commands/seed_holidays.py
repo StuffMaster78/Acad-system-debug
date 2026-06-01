@@ -14,19 +14,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write('Seeding holidays and special days...')
-        
+
         # Get or create a superadmin user for created_by
         admin = User.objects.filter(role='superadmin').first()
         if not admin:
             admin = User.objects.filter(role='admin').first()
-        
+
         # US Holidays
         us_holidays = [
             {
                 'name': 'Thanksgiving Day',
                 'description': 'Thanksgiving Day in the United States',
                 'event_type': 'holiday',
-                'date': timezone.datetime(2024, 11, 28).date(),  # 4th Thursday of November
+                'date': timezone.datetime(2024, 11, 28).date(), # 4th Thursday of November
                 'is_annual': True,
                 'is_international': False,
                 'countries': ['US'],
@@ -152,7 +152,7 @@ class Command(BaseCommand):
                 'discount_valid_days': 3,
             },
         ]
-        
+
         created_count = 0
         for holiday_data in us_holidays:
             countries = holiday_data.pop('countries', [])
@@ -174,7 +174,7 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.WARNING(f'Already exists: {holiday.name}')
                 )
-        
+
         self.stdout.write(
             self.style.SUCCESS(f'\nSeeded {created_count} new holidays!')
         )

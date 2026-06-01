@@ -19,7 +19,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
     ViewSet for getting writer details for assignment decisions.
     """
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='available-writers')
     def available_writers(self, request):
         """
@@ -29,21 +29,21 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
         """
         order_id = request.query_params.get('order_id')
         order = None
-        
+
         if order_id:
             try:
                 order = Order.objects.select_related(
                     'client', 'assigned_writer', 'website',
                     'paper_type', 'academic_level', 'subject', 'type_of_work'
                 ).get(id=order_id)
-                
+
                 # Check if order is paid and available for assignment
                 if not order.is_paid:
                     return Response(
                         {"detail": "Only paid orders can be assigned to writers."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-                
+
                 if order.status != 'available':
                     return Response(
                         {"detail": f"Order must be in 'available' status to be assigned. Current status: {order.status}"},
@@ -54,7 +54,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                     {"detail": "Order not found."},
                     status=status.HTTP_404_NOT_FOUND
                 )
-        
+
         # Get all active writers
         writers = User.objects.filter(
             role='writer',
@@ -62,7 +62,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
         ).select_related('writer_profile').prefetch_related(
             'orders_as_writer'
         )
-        
+
         # Get writer workload and details
         writer_list = []
         for writer in writers:
@@ -70,19 +70,19 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                 profile = writer.writer_profile
             except WriterProfile.DoesNotExist:
                 continue
-            
+
             # Get current orders in progress
             active_orders = Order.objects.filter(
                 assigned_writer=writer,
                 status__in=['in_progress', 'revision_requested', 'revision_in_progress', 'on_revision']
             ).select_related('client', 'paper_type', 'academic_level', 'subject', 'type_of_work')
-            
+
             # Get completed orders count (for rating calculation)
             completed_orders = Order.objects.filter(
                 assigned_writer=writer,
                 status='completed'
             ).count()
-            
+
             # Get average rating from reviews
             from reviews_system.models.order_review import OrderReview
             avg_rating_result = OrderReview.objects.filter(
@@ -90,10 +90,10 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                 order__status='completed'
             ).aggregate(avg_rating=Avg('rating'))
             avg_rating = avg_rating_result['avg_rating'] or 0
-            
+
             # Get writer level info and max orders limit
             writer_level = None
-            max_orders = 5  # Default limit
+            max_orders = 5 # Default limit
             if profile.writer_level:
                 writer_level = {
                     'id': profile.writer_level.id,
@@ -102,10 +102,10 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                     'max_orders': profile.writer_level.max_orders or 5,
                 }
                 max_orders = profile.writer_level.max_orders or 5
-            
+
             # Format active orders for display
             active_orders_list = []
-            for o in active_orders[:10]:  # Limit to 10 most recent
+            for o in active_orders[:10]: # Limit to 10 most recent
                 active_orders_list.append({
                     'id': o.id,
                     'topic': o.topic[:50] + '...' if len(o.topic) > 50 else o.topic,
@@ -115,15 +115,15 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                     'paper_type': o.paper_type.name if o.paper_type else None,
                     'academic_level': o.academic_level.name if o.academic_level else None,
                 })
-            
+
             active_count = active_orders.count()
-            capacity = max_orders - active_count  # Available slots
-            
+            capacity = max_orders - active_count # Available slots
+
             writer_data = {
                 'id': writer.id,
                 'username': writer.username,
                 'email': writer.email,
-                'writer_id': f"WRTR{writer.id:06d}",  # Formatted ID
+                'writer_id': f"WRTR{writer.id:06d}", # Formatted ID
                 'profile': {
                     'id': profile.id,
                     'rating': float(profile.average_rating) if profile.average_rating else 0,
@@ -135,7 +135,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                 'workload': {
                     'active_orders_count': active_count,
                     'max_orders': max_orders,
-                    'capacity': capacity,  # Available slots (max - active)
+                    'capacity': capacity, # Available slots (max - active)
                     'active_orders': active_orders_list,
                     'avg_rating': round(avg_rating, 2),
                 },
@@ -144,9 +144,9 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                     'on_time_completion_rate': getattr(profile, 'on_time_completion_rate', 0),
                 }
             }
-            
+
             writer_list.append(writer_data)
-        
+
         # Sort writers by:
         # 1. Capacity (available slots) - higher capacity first
         # 2. Writer level (higher level first) - if level exists
@@ -154,25 +154,25 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
         # 4. Rating (higher rating first) - as tiebreaker
         writer_list.sort(
             key=lambda w: (
-                -w['workload']['capacity'],  # Higher capacity first (more available slots)
-                -(w['profile']['writer_level']['level'] if w['profile']['writer_level'] else 0),  # Higher level first
-                w['workload']['active_orders_count'],  # Lower workload first
-                -w['profile']['rating'],  # Higher rating first (tiebreaker)
+                -w['workload']['capacity'], # Higher capacity first (more available slots)
+                -(w['profile']['writer_level']['level'] if w['profile']['writer_level'] else 0), # Higher level first
+                w['workload']['active_orders_count'], # Lower workload first
+                -w['profile']['rating'], # Higher rating first (tiebreaker)
             )
         )
-        
+
         return Response({
             'writers': writer_list,
             'order': {
                 'id': order.id,
-                'order_id': f"#{order.id:07d}",  # Formatted order ID
+                'order_id': f"#{order.id:07d}", # Formatted order ID
                 'topic': order.topic,
                 'paper_type': order.paper_type.name if order.paper_type else None,
                 'academic_level': order.academic_level.name if order.academic_level else None,
                 'pages': getattr(order, 'number_of_pages', getattr(order, 'pages', 0)),
             } if order else None
         })
-    
+
     @action(detail=True, methods=['get'], url_path='workload')
     def writer_workload(self, request, pk=None):
         """
@@ -185,7 +185,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                 {"detail": "Writer not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         try:
             profile = writer.writer_profile
         except WriterProfile.DoesNotExist:
@@ -193,7 +193,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                 {"detail": "Writer profile not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Get all active orders with details
         active_orders = Order.objects.filter(
             assigned_writer=writer,
@@ -201,7 +201,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
         ).select_related(
             'client', 'paper_type', 'academic_level', 'subject', 'type_of_work', 'website'
         ).order_by('-created_at')
-        
+
         from orders.selectors.order_visibility_selector import (
             OrderVisibilitySelector,
         )
@@ -211,13 +211,13 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                 writer=writer,
             )
         )
-        
+
         # Get recent completed orders
         recent_completed = Order.objects.filter(
             assigned_writer=writer,
             status='completed'
         ).select_related('client', 'paper_type').order_by('-submitted_at')[:5]
-        
+
         return Response({
             'writer': {
                 'id': writer.id,

@@ -23,5 +23,5 @@ class OrderPricingSnapshotService:
         required_keys = ["base_price", "final_total"]
         if not pricing_data or not all(k in pricing_data for k in required_keys):
             raise ValueError("Incomplete pricing breakdown.")
-        
+
         return OrderPricingSnapshotService.save_snapshot(order, pricing_data)

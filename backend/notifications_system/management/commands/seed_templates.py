@@ -961,7 +961,7 @@ class Command(BaseCommand):
             if not event:
                 self.stdout.write(
                     self.style.WARNING(
-                        f"  SKIP  {event_key} - event not found in DB. "
+                        f" SKIP {event_key} - event not found in DB. "
                         f"Run seed_events first."
                     )
                 )
@@ -973,7 +973,7 @@ class Command(BaseCommand):
                 existing = NotificationTemplate.objects.filter(
                     event=event,
                     channel=channel,
-                    website__isnull=True,  # global only
+                    website__isnull=True, # global only
                     locale='en',
                 ).order_by('-version').first()
 
@@ -984,7 +984,7 @@ class Command(BaseCommand):
                 if dry_run:
                     action = 'UPDATE' if existing else 'CREATE'
                     self.stdout.write(
-                        f"  {action}  {event_key} / {channel}"
+                        f" {action} {event_key} / {channel}"
                     )
                     continue
 

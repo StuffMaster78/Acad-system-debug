@@ -25,14 +25,14 @@ const scrollEl = ref<HTMLElement | null>(null);
 
 // ── Role style map ─────────────────────────────────────────────────────────────
 const ROLE_STYLE: Record<string, { border: string; badge: string; activeBadge: string; label: string }> = {
-  client:     { border: "border-l-blue-400",    badge: "bg-blue-100 text-blue-800",       activeBadge: "bg-blue-500 text-white",    label: "Client" },
-  writer:     { border: "border-l-emerald-400", badge: "bg-emerald-100 text-emerald-800", activeBadge: "bg-emerald-600 text-white", label: "Writer" },
-  support:    { border: "border-l-amber-400",   badge: "bg-amber-100 text-amber-800",     activeBadge: "bg-amber-500 text-white",   label: "Support" },
-  admin:      { border: "border-l-violet-400",  badge: "bg-violet-100 text-violet-800",   activeBadge: "bg-violet-600 text-white",  label: "Admin" },
-  editor:     { border: "border-l-cyan-400",    badge: "bg-cyan-100 text-cyan-800",       activeBadge: "bg-cyan-600 text-white",    label: "Editor" },
-  superadmin: { border: "border-l-rose-400",    badge: "bg-rose-100 text-rose-800",       activeBadge: "bg-rose-600 text-white",    label: "Superadmin" },
-  internal:   { border: "border-l-slate-400",   badge: "bg-slate-100 text-slate-600",     activeBadge: "bg-slate-600 text-white",   label: "Staff note" },
-  system:     { border: "border-l-slate-300",   badge: "bg-slate-100 text-slate-500",     activeBadge: "bg-slate-400 text-white",   label: "System" },
+  client: { border: "border-l-blue-400", badge: "bg-blue-100 text-blue-800", activeBadge: "bg-blue-500 text-white", label: "Client" },
+  writer: { border: "border-l-emerald-400", badge: "bg-emerald-100 text-emerald-800", activeBadge: "bg-emerald-600 text-white", label: "Writer" },
+  support: { border: "border-l-amber-400", badge: "bg-amber-100 text-amber-800", activeBadge: "bg-amber-500 text-white", label: "Support" },
+  admin: { border: "border-l-violet-400", badge: "bg-violet-100 text-violet-800", activeBadge: "bg-violet-600 text-white", label: "Admin" },
+  editor: { border: "border-l-cyan-400", badge: "bg-cyan-100 text-cyan-800", activeBadge: "bg-cyan-600 text-white", label: "Editor" },
+  superadmin: { border: "border-l-rose-400", badge: "bg-rose-100 text-rose-800", activeBadge: "bg-rose-600 text-white", label: "Superadmin" },
+  internal: { border: "border-l-slate-400", badge: "bg-slate-100 text-slate-600", activeBadge: "bg-slate-600 text-white", label: "Staff note" },
+  system: { border: "border-l-slate-300", badge: "bg-slate-100 text-slate-500", activeBadge: "bg-slate-400 text-white", label: "System" },
 };
 
 function roleStyle(role: string) {
@@ -41,11 +41,11 @@ function roleStyle(role: string) {
 
 // ── Thread metadata helpers ────────────────────────────────────────────────────
 const KIND_LABEL: Record<string, string> = {
-  client_writer:  "Client ↔ Writer",
+  client_writer: "Client ↔ Writer",
   client_support: "Client ↔ Support",
-  revision:       "Revision",
-  dispute:        "Dispute",
-  internal:       "Internal",
+  revision: "Revision",
+  dispute: "Dispute",
+  internal: "Internal",
 };
 
 function kindLabel(kind: string) {
@@ -53,11 +53,11 @@ function kindLabel(kind: string) {
 }
 
 const KIND_PARTICIPANTS: Record<string, string[]> = {
-  client_writer:  ["client", "writer"],
+  client_writer: ["client", "writer"],
   client_support: ["client", "support"],
-  revision:       ["client", "writer", "editor"],
-  dispute:        ["client", "support", "admin"],
-  internal:       ["admin", "support"],
+  revision: ["client", "writer", "editor"],
+  dispute: ["client", "support", "admin"],
+  internal: ["admin", "support"],
 };
 
 function participantsFromKind(kind: string): string[] {
@@ -183,11 +183,11 @@ const startingThread = ref(false);
 const selectedKind = ref<CommunicationThreadKind>("client_support");
 
 const ALLOWED_KINDS: Record<string, CommunicationThreadKind[]> = {
-  client:     ["client_support", "client_writer"],
-  writer:     ["client_writer", "client_support"],
-  support:    ["client_support", "internal"],
-  editor:     ["revision", "client_support", "internal"],
-  admin:      ["client_support", "client_writer", "revision", "dispute", "internal"],
+  client: ["client_support", "client_writer"],
+  writer: ["client_writer", "client_support"],
+  support: ["client_support", "internal"],
+  editor: ["revision", "client_support", "internal"],
+  admin: ["client_support", "client_writer", "revision", "dispute", "internal"],
   superadmin: ["client_support", "client_writer", "revision", "dispute", "internal"],
 };
 

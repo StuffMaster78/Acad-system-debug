@@ -164,7 +164,7 @@ class PaymentIntent(models.Model):
                     name="ppi_amount_refunded_gte_zero",
                 ),
             ]
-        
+
     def clean(self) -> None:
         super().clean()
 

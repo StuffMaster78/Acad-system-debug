@@ -17,7 +17,7 @@ class DiscountSuggestionService:
     """
     Provides top discount suggestions for a given website and user context.
     """
-    
+
     @staticmethod
     def get_suggestions(
         website,
@@ -30,7 +30,7 @@ class DiscountSuggestionService:
 
         Args:
             website: Website instance the discounts belong to.
-            client_email (str, optional): If provided, filter personalized 
+            client_email (str, optional): If provided, filter personalized
                 discounts for the email.
             limit (int): Max number of discounts to return (default: 3).
             cache_timeout (int): Cache duration in seconds (default: 300).
@@ -104,7 +104,7 @@ class DiscountSuggestionService:
             str: Contextual hint message for the discount.
         """
         if discount.seasonal_event:
-            return f"🎉 Limited time for {discount.seasonal_event.name}!"
+            return f" Limited time for {discount.seasonal_event.name}!"
         if discount.percentage:
             return f"Save {discount.percentage}% now!"
         if discount.flat_amount:

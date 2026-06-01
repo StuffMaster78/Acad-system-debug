@@ -45,13 +45,13 @@ class OrderAssignmentService:
             actor = self.actor
             # Check if user is staff (Django admin) or has admin/support role
             is_admin_or_support = (
-                getattr(actor, 'is_staff', False) or 
+                getattr(actor, 'is_staff', False) or
                 getattr(actor, 'role', None) in ['admin', 'superadmin', 'support']
             )
-        
+
         # Check if order is already assigned
         old_writer = self.order.assigned_writer
-        
+
         # Allow reassignment if actor is admin/support (they can override and reassign)
         if old_writer and not is_admin_or_support:
             raise ValidationError(
@@ -79,19 +79,19 @@ class OrderAssignmentService:
             raise PermissionDenied(
                 "Writer level too low for this order."
             )
-        
+
         # Check workload limits (max orders) - admins and support can override
         is_admin_override = is_admin_or_support
-        
+
         if not is_admin_override:
             # Only check workload limits if not admin override
             try:
                 writer_profile = writer.writer_profile
                 writer_level = writer_profile.writer_level
-                
+
                 if writer_level:
                     max_allowed_orders = writer_level.max_orders
-                    
+
                     # Count active assignments (in_progress, on_hold, revision_requested, under_editing)
                     active_assignments = Order.objects.filter(
                         assigned_writer=writer,
@@ -102,7 +102,7 @@ class OrderAssignmentService:
                             OrderStatus.UNDER_EDITING.value,
                         ]
                     ).count()
-                    
+
                     if active_assignments >= max_allowed_orders:
                         raise ValidationError(
                             f"Writer has reached their maximum order limit ({max_allowed_orders} active orders). "
@@ -114,10 +114,10 @@ class OrderAssignmentService:
                     raise ValidationError(
                         "Writer profile or level not found. Admin can override this restriction."
                     )
-        
+
         # Determine if this is a reassignment
         is_reassignment = bool(old_writer and old_writer != writer)
-        
+
         # If reassigning, handle the old assignment acceptance record
         if is_reassignment:
             from orders.models.legacy_models.writer_acceptance import WriterAssignmentAcceptance
@@ -132,24 +132,24 @@ class OrderAssignmentService:
                 old_acceptance.responded_at = timezone.now()
                 old_acceptance.save()
             except WriterAssignmentAcceptance.DoesNotExist:
-                pass  # No pending acceptance to update
+                pass # No pending acceptance to update
 
         self.order.assigned_writer = writer
-        
+
         # Set writer payment amount if provided by admin
         if writer_payment_amount is not None:
             self.order.writer_compensation = writer_payment_amount
-        
+
         self.order.save()
-        
+
         # Determine target status based on current status
         # If order is already in_progress or other active states, use 'reassigned'
         # Otherwise, use 'pending_writer_assignment' to allow writer acceptance
         from orders.services.status_transition_service import VALID_TRANSITIONS
-        
+
         current_status = self.order.status
         target_status = "pending_writer_assignment"
-        
+
         # If this is a reassignment from an active work state, use 'reassigned'
         if is_reassignment or current_status in ['in_progress', 'submitted', 'under_editing', 'revision_in_progress']:
             # Check if 'reassigned' is a valid transition from current status
@@ -167,7 +167,7 @@ class OrderAssignmentService:
                         f"Cannot reassign writer. Order in status '{current_status}' "
                         f"does not allow reassignment. Please put order on hold first."
                     )
-        
+
         # Use unified transition helper
         from orders.services.transition_helper import OrderTransitionHelper
         OrderTransitionHelper.transition_order(
@@ -177,19 +177,19 @@ class OrderAssignmentService:
             reason=reason,
             action="assign_writer",
             is_automatic=False,
-            skip_payment_check=is_admin_or_support,  # Admins can override payment check
+            skip_payment_check=is_admin_or_support, # Admins can override payment check
             metadata={
                 "writer_id": writer.id,
                 "writer_payment_amount": str(writer_payment_amount) if writer_payment_amount else None,
                 "is_reassignment": is_reassignment,
             }
         )
-        
+
         # Create or update assignment acceptance record
         # Only create acceptance record if we're going to pending_writer_assignment
         # For reassigned orders, we still create the record so writer can accept
         from orders.models.legacy_models.writer_acceptance import WriterAssignmentAcceptance
-        
+
         # If reassigning, mark old acceptance as rejected
         if is_reassignment:
             try:
@@ -202,8 +202,8 @@ class OrderAssignmentService:
                 old_acceptance.responded_at = timezone.now()
                 old_acceptance.save()
             except WriterAssignmentAcceptance.DoesNotExist:
-                pass  # No pending acceptance to update
-        
+                pass # No pending acceptance to update
+
         # Create or update assignment acceptance record
         acceptance, created = WriterAssignmentAcceptance.objects.get_or_create(
             order=self.order,
@@ -215,7 +215,7 @@ class OrderAssignmentService:
                 'reason': reason
             }
         )
-        
+
         # If it already existed (reassignment), update it
         if not created:
             acceptance.writer = writer
@@ -259,7 +259,7 @@ class OrderAssignmentService:
         writer = self.order.assigned_writer
         self.order.assigned_writer = None
         self.order.save()
-        
+
         # Use unified transition helper to move to available
         from orders.services.transition_helper import OrderTransitionHelper
         OrderTransitionHelper.transition_order(
@@ -301,7 +301,7 @@ class OrderAssignmentService:
             pass
 
         return self.order
-    
+
 
     def _notify_assignment(self, writer):
         return

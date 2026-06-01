@@ -13,10 +13,10 @@ from orders.api.permissions.reassignment_permissions import (
     CanRequestReassignment,
     CanReviewReassignment,
 )
-from orders.api.serializers.reassignments.reassignment_approve_assign_serializer import (  # noqa: E501
+from orders.api.serializers.reassignments.reassignment_approve_assign_serializer import ( # noqa: E501
     ReassignmentApproveAssignSerializer,
 )
-from orders.api.serializers.reassignments.reassignment_approve_pool_serializer import (  # noqa: E501
+from orders.api.serializers.reassignments.reassignment_approve_pool_serializer import ( # noqa: E501
     ReassignmentApprovePoolSerializer,
 )
 from orders.api.serializers.reassignments.reassignment_cancel_serializer import (
@@ -25,7 +25,7 @@ from orders.api.serializers.reassignments.reassignment_cancel_serializer import 
 from orders.api.serializers.reassignments.reassignment_reject_serializer import (
     ReassignmentRejectSerializer,
 )
-from orders.api.serializers.reassignments.reassignment_request_serializer import (  # noqa: E501
+from orders.api.serializers.reassignments.reassignment_request_serializer import ( # noqa: E501
     ReassignmentRequestSerializer,
 )
 from orders.models.orders import Order

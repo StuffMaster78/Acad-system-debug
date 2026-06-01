@@ -35,7 +35,7 @@ class OrdersConfig(AppConfig):
         # Optional: list registered actions if helper is available.
         keys = []
         try:
-            from orders.registry.decorator import (  # type: ignore
+            from orders.registry.decorator import ( # type: ignore
                 get_all_registered_actions,
             )
             keys = sorted(get_all_registered_actions().keys())

@@ -227,7 +227,7 @@ class MFADeviceService:
             is_verified=True,
             is_active=True,
         )
-    
+
     @staticmethod
     @transaction.atomic
     def verify_totp_device(

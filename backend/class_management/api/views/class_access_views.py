@@ -50,7 +50,7 @@ class ClassAccessViewSet(viewsets.GenericViewSet):
     def get_website(self):
         """Returns the website """
         return getattr(cast(Any, self.request), "website")
-    
+
     def get_access_detail(self, *, class_order):
         """
         Return class access detail or raise validation error.
@@ -65,7 +65,7 @@ class ClassAccessViewSet(viewsets.GenericViewSet):
             )
 
         return access_detail
-    
+
 
     def get_class_order(self):
         class_order = ClassOrderSelector.get_for_website(

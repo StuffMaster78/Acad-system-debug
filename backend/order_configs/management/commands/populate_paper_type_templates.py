@@ -19,10 +19,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         overwrite = options.get('overwrite', False)
-        
+
         # Organize paper types by category
         all_paper_types = COMPREHENSIVE_PAPER_TYPES
-        
+
         # Categorize paper types
         high_school_keywords = ['book report', 'book review', 'book summary', 'reading response', 'journal entry', 'diary entry', 'letter writing', 'five paragraph essay', 'short answer', 'fill in the blank', 'multiple choice', 'true/false', 'worksheet', 'homework', 'classwork']
         undergraduate_keywords = ['essay', 'research paper', 'term paper', 'case study', 'lab report', 'presentation', 'coursework', 'assignment', 'report', 'article review', 'literature review', 'annotated bibliography', 'summary', 'outline', 'discussion post', 'response paper']
@@ -32,7 +32,7 @@ class Command(BaseCommand):
         technical_keywords = ['technical', 'engineering', 'programming', 'coding', 'code', 'algorithm', 'system design', 'database design', 'software design', 'api documentation', 'code documentation', 'technical specification', 'user manual', 'technical manual', 'test plan', 'test report']
         business_keywords = ['business', 'marketing', 'finance', 'accounting', 'management', 'strategic', 'operations', 'project management', 'supply chain', 'human resources', 'leadership', 'organizational behavior']
         law_keywords = ['legal', 'brief', 'case brief', 'legal memorandum', 'legal opinion', 'contract', 'court', 'motion', 'legal argument', 'legal research']
-        
+
         templates = [
             {
                 'name': 'General (All Paper Types)',
@@ -83,15 +83,15 @@ class Command(BaseCommand):
                 'paper_types': [pt for pt in all_paper_types if any(kw in pt.lower() for kw in law_keywords)]
             },
         ]
-        
+
         created_count = 0
         updated_count = 0
         skipped_count = 0
-        
+
         for template_data in templates:
             name = template_data['name']
             category = template_data['category']
-            
+
             if overwrite:
                 PaperTypeTemplate.objects.filter(name=name, category=category).delete()
                 template, created = PaperTypeTemplate.objects.get_or_create(
@@ -101,10 +101,10 @@ class Command(BaseCommand):
                 )
                 if created:
                     created_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'✅ Created template: {name} ({len(template_data["paper_types"])} paper types)'))
+                    self.stdout.write(self.style.SUCCESS(f' Created template: {name} ({len(template_data["paper_types"])} paper types)'))
                 else:
                     updated_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'🔄 Updated template: {name} ({len(template_data["paper_types"])} paper types)'))
+                    self.stdout.write(self.style.SUCCESS(f' Updated template: {name} ({len(template_data["paper_types"])} paper types)'))
             else:
                 template, created = PaperTypeTemplate.objects.get_or_create(
                     name=name,
@@ -113,12 +113,12 @@ class Command(BaseCommand):
                 )
                 if created:
                     created_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'✅ Created template: {name} ({len(template_data["paper_types"])} paper types)'))
+                    self.stdout.write(self.style.SUCCESS(f' Created template: {name} ({len(template_data["paper_types"])} paper types)'))
                 else:
                     skipped_count += 1
-                    self.stdout.write(self.style.WARNING(f'⏭️  Skipped existing template: {name}'))
-        
+                    self.stdout.write(self.style.WARNING(f'⏭️ Skipped existing template: {name}'))
+
         self.stdout.write(self.style.SUCCESS(
-            f'\n📊 Summary: {created_count} created, {updated_count} updated, {skipped_count} skipped'
+            f'\n Summary: {created_count} created, {updated_count} updated, {skipped_count} skipped'
         ))
 

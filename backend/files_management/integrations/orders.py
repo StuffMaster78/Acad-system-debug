@@ -141,10 +141,10 @@ class OrderFileIntegrationService:
         scan has passed before flipping the submitted flag.
 
         Args:
-            attachment:    The ORDER_FINAL attachment to submit.
-            submitted_by:  Actor pressing Submit Final.
-            on_behalf_of:  Writer being represented by staff, if any.
-            reason:        Required when on_behalf_of is set.
+            attachment: The ORDER_FINAL attachment to submit.
+            submitted_by: Actor pressing Submit Final.
+            on_behalf_of: Writer being represented by staff, if any.
+            reason: Required when on_behalf_of is set.
 
         Returns:
             Updated FileAttachment with is_submitted=True.

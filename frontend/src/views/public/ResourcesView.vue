@@ -65,7 +65,7 @@
             <span v-if="r.file_format" class="uppercase">{{ r.file_format }}</span>
             <span v-if="r.academic_level">{{ r.academic_level }}</span>
             <span v-if="r.average_rating" class="ml-auto flex items-center gap-1 text-saffron">
-              ★ {{ r.average_rating.toFixed(1) }}
+               {{ r.average_rating.toFixed(1) }}
               <span class="text-graphite">({{ r.rating_count }})</span>
             </span>
           </div>
@@ -89,15 +89,15 @@ useMeta({
 });
 
 const FILTERS = [
-  { label: "All",            value: null as string | null },
-  { label: "Templates",      value: "template" },
-  { label: "Sample essays",  value: "sample_essay" },
-  { label: "Guides",         value: "guide" },
-  { label: "Outlines",       value: "outline" },
+  { label: "All", value: null as string | null },
+  { label: "Templates", value: "template" },
+  { label: "Sample essays", value: "sample_essay" },
+  { label: "Guides", value: "guide" },
+  { label: "Outlines", value: "outline" },
 ];
 
-const isLoading   = ref(true);
-const resources   = ref<AttachmentSummary[]>([]);
+const isLoading = ref(true);
+const resources = ref<AttachmentSummary[]>([]);
 const activeFilter = ref<string | null>(null);
 
 async function load() {
@@ -112,16 +112,16 @@ async function load() {
 }
 
 function gateBadgeClass(gate: string): string {
-  if (gate === "free")    return "bg-emerald-100 text-emerald-700";
-  if (gate === "email")   return "bg-amber-100 text-amber-700";
+  if (gate === "free") return "bg-emerald-100 text-emerald-700";
+  if (gate === "email") return "bg-amber-100 text-amber-700";
   if (gate === "account") return "bg-blue-100 text-blue-700";
   return "bg-rose-100 text-rose-700";
 }
 
 function gateLabel(gate: string): string {
-  if (gate === "free")     return "Free";
-  if (gate === "email")    return "Email required";
-  if (gate === "account")  return "Sign in";
+  if (gate === "free") return "Free";
+  if (gate === "email") return "Email required";
+  if (gate === "account") return "Sign in";
   if (gate === "customer") return "Customers only";
   return `Paid`;
 }

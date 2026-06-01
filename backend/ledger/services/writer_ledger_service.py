@@ -346,7 +346,7 @@ class WriterLedgerService:
                 },
             ),
         )
-    
+
 
 
     @staticmethod

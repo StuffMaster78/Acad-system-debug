@@ -43,7 +43,7 @@ class EngagementTrackingService:
             from django.core.cache import cache
             Announcement.objects.filter(id=announcement.id).update(view_count=F('view_count') + 1)
             announcement.refresh_from_db()
-            
+
             # Invalidate cache for unread count
             website = getattr(user, 'website', None)
             cache_key = f'announcement_unread_count_{user.id}_{website.id if website else "all"}'
@@ -116,7 +116,7 @@ class EngagementTrackingService:
 
         # Cache key based on user and website
         cache_key = f'announcement_unread_count_{user.id}_{website.id if website else "all"}'
-        
+
         # Try to get from cache (30 second TTL for faster updates, but still reduces DB load)
         cached_count = cache.get(cache_key)
         if cached_count is not None:
@@ -157,7 +157,7 @@ class EngagementTrackingService:
             user=user,
             announcement=OuterRef('pk')
         ).only('id')
-        
+
         # Count unread (announcements that don't have a view for this user)
         # Use .count() with optimized query - this is already efficient
         unread_count = queryset.exclude(

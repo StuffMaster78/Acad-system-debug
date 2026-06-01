@@ -121,18 +121,18 @@ class CanTransitionToFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         from orders.services.status_transition_service import VALID_TRANSITIONS
-        
+
         if not self.value():
             return queryset
-        
+
         target_status = self.value()
-        
+
         # Find all statuses that can transition to target_status
         can_transition_statuses = []
         for from_status, allowed_transitions in VALID_TRANSITIONS.items():
             if target_status in allowed_transitions:
                 can_transition_statuses.append(from_status)
-        
+
         if can_transition_statuses:
             return queryset.filter(status__in=can_transition_statuses)
         return queryset.none()
@@ -157,10 +157,10 @@ class RecentlyTransitionedFilter(admin.SimpleListFilter):
         from django.utils import timezone
         from datetime import timedelta
         from orders.models.orders import OrderTransitionLog
-        
+
         if not self.value():
             return queryset
-        
+
         # Parse time period
         period_map = {
             '1h': timedelta(hours=1),
@@ -168,14 +168,14 @@ class RecentlyTransitionedFilter(admin.SimpleListFilter):
             '24h': timedelta(hours=24),
             '7d': timedelta(days=7),
         }
-        
+
         cutoff = timezone.now() - period_map.get(self.value(), timedelta(hours=24))
-        
+
         # Get order IDs that have recent transitions
         recent_order_ids = OrderTransitionLog.objects.filter(
             timestamp__gte=cutoff
         ).values_list('order_id', flat=True).distinct()
-        
+
         return queryset.filter(id__in=recent_order_ids)
 
 
@@ -199,7 +199,7 @@ class NeedsAttentionFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         from django.utils import timezone
         from datetime import timedelta
-        
+
         if self.value() == 'overdue':
             now = timezone.now()
             return queryset.filter(
@@ -245,7 +245,7 @@ class NeedsAttentionFilter(admin.SimpleListFilter):
             return queryset.filter(status=OrderStatus.ON_HOLD.value)
         elif self.value() == 'disputed':
             return queryset.filter(status=OrderStatus.DISPUTED.value)
-        
+
         return queryset
 
 
@@ -267,12 +267,12 @@ class TransitionCountFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         from orders.models.orders import OrderTransitionLog
         from django.db.models import Count
-        
+
         # Annotate queryset with transition count
         queryset = queryset.annotate(
             transition_count=Count('order_transition_logs')
         )
-        
+
         if self.value() == 'none':
             return queryset.filter(transition_count=0)
         elif self.value() == 'few':
@@ -281,6 +281,6 @@ class TransitionCountFilter(admin.SimpleListFilter):
             return queryset.filter(transition_count__gte=4, transition_count__lte=10)
         elif self.value() == 'excessive':
             return queryset.filter(transition_count__gt=10)
-        
+
         return queryset
 

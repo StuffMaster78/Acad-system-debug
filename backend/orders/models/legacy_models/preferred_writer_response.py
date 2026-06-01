@@ -15,12 +15,12 @@ from django.contrib.postgres.fields import ArrayField
 from django.utils.timezone import now
 from django.utils.text import slugify
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 # # Use apps.get_model() to access Website model lazily
 # def get_website_model():
-#     Website = apps.get_model('websites', 'Website')
-#     return Website
+# Website = apps.get_model('websites', 'Website')
+# return Website
 
 # Website = get_website_model()
 
@@ -35,7 +35,7 @@ class PreferredWriterResponse(models.Model):
         'websites.Website',
         on_delete=models.CASCADE,
         related_name='preferred_writer_decline_response'
-    ) 
+    )
     order = models.OneToOneField(Order, on_delete=models.CASCADE)
     writer = models.ForeignKey(
         'users.User',

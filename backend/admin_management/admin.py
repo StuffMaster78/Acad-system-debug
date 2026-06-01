@@ -11,6 +11,6 @@ class AdminProfileAdmin(admin.ModelAdmin):
 
 # @admin.register(AdminActivityLog)
 # class AdminLogAdmin(admin.ModelAdmin):
-#     list_display = ("admin", "action", "target_user", "order", "timestamp")
-#     search_fields = ("admin__username", "action", "target_user__username")
-#     list_filter = ("timestamp",)
+# list_display = ("admin", "action", "target_user", "order", "timestamp")
+# search_fields = ("admin__username", "action", "target_user__username")
+# list_filter = ("timestamp",)

@@ -22,7 +22,7 @@ class UnpaidOrderMessageListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     queryset = UnpaidOrderMessage.objects.none()
 
-    def get_queryset(self):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def get_queryset(self): # pyright: ignore[reportIncompatibleMethodOverride]
         """
         Restrict reminder messages to the current user's website.
         """
@@ -56,7 +56,7 @@ class UnpaidOrderMessageRetrieveUpdateDestroyView(
     permission_classes = (IsAuthenticated,)
     queryset = UnpaidOrderMessage.objects.none()
 
-    def get_queryset(self):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def get_queryset(self): # pyright: ignore[reportIncompatibleMethodOverride]
         """
         Restrict access to reminder messages within the user's website.
         """

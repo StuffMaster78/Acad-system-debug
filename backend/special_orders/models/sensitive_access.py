@@ -54,7 +54,7 @@ class SpecialOrderInstitutionProfile(TimeStampedModel):
 
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("institution_name",)
         indexes = [
             models.Index(fields=["website", "institution_name"]),
@@ -129,7 +129,7 @@ class SpecialOrderPlatformAccessVault(TimeStampedModel):
 
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "special_order"]),
@@ -182,7 +182,7 @@ class SpecialOrderExternalLink(TimeStampedModel):
         related_name="created_special_order_external_links",
     )
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("label",)
         indexes = [
             models.Index(fields=["website", "special_order"]),
@@ -247,7 +247,7 @@ class SpecialOrderAccessGrant(TimeStampedModel):
         related_name="revoked_special_order_sensitive_access",
     )
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "special_order"]),
@@ -308,7 +308,7 @@ class SpecialOrderAccessLog(TimeStampedModel):
     user_agent = models.TextField(blank=True)
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "special_order"]),
@@ -389,7 +389,7 @@ class SpecialOrderTwoFactorRequest(TimeStampedModel):
     )
     metadata = models.JSONField(default=dict, blank=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "special_order"]),

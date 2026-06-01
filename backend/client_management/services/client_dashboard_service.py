@@ -22,12 +22,12 @@ class ClientDashboardService:
         Return the full dashboard snapshot.
 
         Sections:
-            profile       — identity, tier, points, account status
-            orders        — counts by lifecycle state + active list
-            wallet        — balance
-            loyalty       — tier progress summary
+            profile — identity, tier, points, account status
+            orders — counts by lifecycle state + active list
+            wallet — balance
+            loyalty — tier progress summary
             recent_activity — last 10 activity log entries
-            alerts        — unread suspicious logins + account flags
+            alerts — unread suspicious logins + account flags
         """
         return {
             "profile": self._profile_section(),

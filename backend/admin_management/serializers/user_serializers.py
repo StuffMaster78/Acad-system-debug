@@ -72,7 +72,7 @@ class UserSerializer(serializers.ModelSerializer):
     is_suspended = serializers.SerializerMethodField()
     is_blacklisted = serializers.SerializerMethodField()
     is_on_probation = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = User
         fields = [
@@ -81,7 +81,7 @@ class UserSerializer(serializers.ModelSerializer):
             'is_on_probation', 'date_joined', 'last_login', 'website',
         ]
         read_only_fields = ['id', 'date_joined', 'last_login', 'phone_number']
-    
+
     def get_website(self, obj):
         """Get website information"""
         try:
@@ -96,13 +96,13 @@ class UserSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
-    
+
     def get_full_name(self, obj):
         try:
             return obj.get_full_name() or obj.username or ''
         except Exception:
             return obj.username or ''
-    
+
     def get_phone_number(self, obj):
         """Get phone number from user profile."""
         try:
@@ -112,7 +112,7 @@ class UserSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
-    
+
     def get_role_display(self, obj):
         """Get human-readable role name."""
         try:
@@ -137,7 +137,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_is_on_probation(self, obj):
         return _is_on_probation(obj)
-    
+
     def to_representation(self, instance):
         """Override to ensure all fields are properly serialized."""
         data = super().to_representation(instance)
@@ -189,14 +189,14 @@ class UserDetailSerializer(serializers.ModelSerializer):
     probation_reason = serializers.SerializerMethodField()
     probation_start_date = serializers.SerializerMethodField()
     probation_end_date = serializers.SerializerMethodField()
-    
+
     # Profile information
     writer_profile = serializers.SerializerMethodField()
     client_profile = serializers.SerializerMethodField()
     editor_profile = serializers.SerializerMethodField()
     support_profile = serializers.SerializerMethodField()
     admin_profile = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = User
         fields = [
@@ -214,10 +214,10 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'writer_profile', 'client_profile', 'editor_profile', 'support_profile', 'admin_profile',
             'phone_number',
         ]
-    
+
     def get_full_name(self, obj):
         return obj.get_full_name() or obj.username
-    
+
     def get_role_display(self, obj):
         """Get human-readable role name."""
         role = obj.role or ''
@@ -230,13 +230,13 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'superadmin': 'Superadmin',
         }
         return role_map.get(role, role.title())
-    
+
     def get_website_name(self, obj):
         """Get website name safely."""
         if obj.website:
             return obj.website.name
         return None
-    
+
     def get_phone_number(self, obj):
         """Get phone number from user profile."""
         try:
@@ -275,7 +275,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     def get_probation_end_date(self, obj):
         discipline = _writer_discipline(obj)
         return getattr(discipline, "probation_ends_at", None) or getattr(obj, "probation_end_date", None)
-    
+
     def get_writer_profile(self, obj):
         try:
             if hasattr(obj, 'writer_profile') and obj.writer_profile:
@@ -287,7 +287,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
-    
+
     def get_client_profile(self, obj):
         try:
             if hasattr(obj, 'client_profile') and obj.client_profile:
@@ -298,7 +298,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
-    
+
     def get_editor_profile(self, obj):
         try:
             if hasattr(obj, 'editor_profile') and obj.editor_profile:
@@ -306,7 +306,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
-    
+
     def get_support_profile(self, obj):
         try:
             if hasattr(obj, 'support_profile') and obj.support_profile:
@@ -314,7 +314,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
-    
+
     def get_admin_profile(self, obj):
         try:
             if hasattr(obj, 'admin_profile') and obj.admin_profile:
@@ -332,7 +332,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     role = serializers.ChoiceField(choices=['client', 'writer', 'editor', 'support', 'admin'], required=True)
     phone_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    
+
     class Meta:
         model = User
         fields = [
@@ -345,24 +345,24 @@ class CreateUserSerializer(serializers.ModelSerializer):
             'password': {'required': True},
             'role': {'required': True},
         }
-    
+
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
-    
+
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("A user with this username already exists.")
         return value
-    
+
     def create(self, validated_data):
         phone_number = validated_data.pop('phone_number', None)
         password = validated_data.pop('password')
         user = User.objects.create_user(**validated_data)
         user.set_password(password)
         user.save()
-        
+
         # Create or update user profile with phone number
         if phone_number:
             from users.models import UserProfile
@@ -373,7 +373,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
             if not profile.phone_number:
                 profile.phone_number = phone_number
                 profile.save()
-        
+
         return user
 
 
@@ -385,7 +385,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=False
     )
-    
+
     class Meta:
         model = User
         fields = [
@@ -393,29 +393,29 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'phone_number', 'is_active', 'website', 'role',
         ]
         read_only_fields = ['id']
-    
+
     def validate_email(self, value):
         # Allow updating to same email
         user = self.instance
         if User.objects.filter(email=value).exclude(id=user.id).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
-    
+
     def validate_username(self, value):
         # Allow updating to same username
         user = self.instance
         if User.objects.filter(username=value).exclude(id=user.id).exists():
             raise serializers.ValidationError("A user with this username already exists.")
         return value
-    
+
     def update(self, instance, validated_data):
         phone_number = validated_data.pop('phone_number', None)
-        
+
         # Update user fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        
+
         # Update phone number in profile
         if phone_number is not None:
             from users.models import UserProfile
@@ -425,5 +425,5 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             )
             profile.phone_number = phone_number if phone_number else None
             profile.save()
-        
+
         return instance

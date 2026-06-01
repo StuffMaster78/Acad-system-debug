@@ -31,18 +31,18 @@ def django_db_setup(django_db_setup, django_db_blocker):
     import os
     from django.conf import settings
     from django.db import connection
-    
+
     with django_db_blocker.unblock():
         # Ensure migrations are run first
         from django.core.management import call_command
-        
+
         # Run migrations on test database
         try:
             call_command('migrate', verbosity=0, interactive=False, run_syncdb=False)
         except Exception as e:
             # If migrations fail, try to continue anyway
             print(f"Migration warning: {e}")
-        
+
         # Fix corrupted content types IMMEDIATELY after migrations
         # This must happen before any model operations
         try:
@@ -50,8 +50,8 @@ def django_db_setup(django_db_setup, django_db_blocker):
             with connection.cursor() as cursor:
                 # Delete content types with null names (corrupted during migrations)
                 cursor.execute("""
-                    DELETE FROM django_content_type 
-                    WHERE name IS NULL 
+                    DELETE FROM django_content_type
+                    WHERE name IS NULL
                     OR name = ''
                     OR (app_label = 'migrations' AND model = 'migration')
                 """)
@@ -59,12 +59,12 @@ def django_db_setup(django_db_setup, django_db_blocker):
             # Table might not exist yet, continue
             if 'does not exist' not in str(e).lower() and 'relation' not in str(e).lower():
                 print(f"Content type cleanup: {e}")
-        
+
         # Now ensure proper content types exist for all apps
         try:
             from django.contrib.contenttypes.management import create_contenttypes
             from django.apps import apps
-            
+
             for app_config in apps.get_app_configs():
                 try:
                     # Skip migrations app (it has no real models and causes corruption)
@@ -81,7 +81,7 @@ def django_db_setup(django_db_setup, django_db_blocker):
         except Exception as e:
             # Content types might already exist, continue
             print(f"Content types setup: {e}")
-        
+
         # Create default website if it doesn't exist
         try:
             Website.objects.get_or_create(
@@ -117,36 +117,36 @@ def db_with_website(db):
 
 # @pytest.fixture
 # def website(db):
-#     """Create a test website."""
-#     return Website.objects.get_or_create(
-#         domain="test.local",
-#         defaults={
-#             "name": "Test Website",
-#             "slug": "test",
-#             "is_active": True
-#         }
-#     )[0]
+# """Create a test website."""
+# return Website.objects.get_or_create(
+# domain="test.local",
+# defaults={
+# "name": "Test Website",
+# "slug": "test",
+# "is_active": True
+# }
+# )[0]
 
 
 @pytest.fixture
 def mock_request_session():
     """Create a mock session object with all required methods."""
     from unittest.mock import MagicMock
-    
+
     session = MagicMock()
     session.session_key = 'test-session-key-12345'
     session._session = {}
-    
+
     # Make session dict-like for get/set operations
     def session_get(key, default=None):
         return session._session.get(key, default)
-    
+
     def session_set(key, value):
         session._session[key] = value
-    
+
     def session_pop(key, default=None):
         return session._session.pop(key, default)
-    
+
     session.get = session_get
     session.__getitem__ = lambda self, key: session._session[key]
     session.__setitem__ = lambda self, key, value: session_set(key, value)
@@ -156,7 +156,7 @@ def mock_request_session():
     session.save = MagicMock()
     session.set_expiry = MagicMock()
     session.modified = False
-    
+
     return session
 
 
@@ -164,14 +164,14 @@ def mock_request_session():
 def mock_request(mock_request_session):
     """Create a mock request object with proper session."""
     from unittest.mock import MagicMock
-    
+
     request = MagicMock()
     request.data = {}
     request.headers = {'User-Agent': 'Test Agent'}
     request.session = mock_request_session
     request.get_host = MagicMock(return_value='test.local')
     request.META = {'REMOTE_ADDR': '127.0.0.1'}
-    
+
     return request
 
 
@@ -190,28 +190,28 @@ def client_user(website):
 
 # @pytest.fixture
 # def writer_user(website):
-#     """Create a test writer user."""
-#     return User.objects.create_user(
-#         username="test_writer",
-#         email="writer@test.com",
-#         password="testpass123",
-#         role="writer",
-#         website=website,
-#         is_active=True
-#     )
+# """Create a test writer user."""
+# return User.objects.create_user(
+# username="test_writer",
+# email="writer@test.com",
+# password="testpass123",
+# role="writer",
+# website=website,
+# is_active=True
+# )
 
 
 # @pytest.fixture
 # def editor_user(website):
-#     """Create a test editor user."""
-#     return User.objects.create_user(
-#         username="test_editor",
-#         email="editor@test.com",
-#         password="testpass123",
-#         role="editor",
-#         website=website,
-#         is_active=True
-#     )
+# """Create a test editor user."""
+# return User.objects.create_user(
+# username="test_editor",
+# email="editor@test.com",
+# password="testpass123",
+# role="editor",
+# website=website,
+# is_active=True
+# )
 
 
 @pytest.fixture
@@ -229,16 +229,16 @@ def support_user(website):
 
 # @pytest.fixture
 # def admin_user(website):
-#     """Create a test admin user."""
-#     return User.objects.create_user(
-#         username="test_admin",
-#         email="admin@test.com",
-#         password="testpass123",
-#         role="admin",
-#         website=website,
-#         is_active=True,
-#         is_staff=True
-#     )
+# """Create a test admin user."""
+# return User.objects.create_user(
+# username="test_admin",
+# email="admin@test.com",
+# password="testpass123",
+# role="admin",
+# website=website,
+# is_active=True,
+# is_staff=True
+# )
 
 
 @pytest.fixture
@@ -429,7 +429,7 @@ def client_wallet(client_user, website):
 def discount(website):
     """Create a test discount."""
     from discounts.models import Discount
-    
+
     return Discount.objects.create(
         website=website,
         code='TEST10',
@@ -443,7 +443,7 @@ def discount(website):
 def writer_profile(writer_user, website):
     """Create a test writer profile."""
     from writer_management.models import WriterProfile
-    
+
     profile, _ = WriterProfile.objects.get_or_create(
         user=writer_user,
         website=website,
@@ -490,7 +490,7 @@ def other_client_order(other_client, website):
     from orders.models.orders import Order
     from datetime import timedelta
     from django.utils import timezone
-    
+
     return Order.objects.create(
         client=other_client,
         website=website,

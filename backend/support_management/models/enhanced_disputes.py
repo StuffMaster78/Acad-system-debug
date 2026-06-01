@@ -19,14 +19,14 @@ class OrderDispute(models.Model):
         ('escalated', 'Escalated'),
         ('closed', 'Closed'),
     ]
-    
+
     PRIORITY_CHOICES = [
         ('low', 'Low'),
         ('medium', 'Medium'),
         ('high', 'High'),
         ('urgent', 'Urgent'),
     ]
-    
+
     website = models.ForeignKey(
         'websites.Website',
         on_delete=models.CASCADE,
@@ -37,7 +37,7 @@ class OrderDispute(models.Model):
         on_delete=models.CASCADE,
         related_name='enhanced_disputes'
     )
-    
+
     # Dispute details
     title = models.CharField(
         max_length=255,
@@ -46,7 +46,7 @@ class OrderDispute(models.Model):
     description = models.TextField(
         help_text="Detailed description of the dispute"
     )
-    
+
     # Parties
     raised_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -60,7 +60,7 @@ class OrderDispute(models.Model):
         related_name='disputes_against',
         help_text="The other party in the dispute"
     )
-    
+
     # Status and priority
     status = models.CharField(
         max_length=20,
@@ -72,7 +72,7 @@ class OrderDispute(models.Model):
         choices=PRIORITY_CHOICES,
         default='medium'
     )
-    
+
     # Assignment
     assigned_to = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -82,7 +82,7 @@ class OrderDispute(models.Model):
         related_name='disputes_assigned',
         limit_choices_to={'role__in': ['support', 'admin', 'superadmin']}
     )
-    
+
     # Resolution
     resolution_notes = models.TextField(
         blank=True,
@@ -105,7 +105,7 @@ class OrderDispute(models.Model):
         blank=True,
         help_text="Outcome: 'client_wins', 'writer_wins', 'partial_refund', etc."
     )
-    
+
     # Escalation
     escalated_at = models.DateTimeField(
         null=True,
@@ -123,10 +123,10 @@ class OrderDispute(models.Model):
         blank=True,
         help_text="Reason for escalation"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['-priority', '-created_at']
         indexes = [
@@ -137,10 +137,10 @@ class OrderDispute(models.Model):
         ]
         verbose_name = "Order Dispute"
         verbose_name_plural = "Order Disputes"
-    
+
     def __str__(self):
         return f"Dispute #{self.id} - Order #{self.order.id} - {self.status}"
-    
+
     def escalate(self, escalated_to, reason=''):
         """Escalate dispute to admin/superadmin."""
         self.status = 'escalated'
@@ -148,7 +148,7 @@ class OrderDispute(models.Model):
         self.escalated_to = escalated_to
         self.escalation_reason = reason
         self.save(update_fields=['status', 'escalated_at', 'escalated_to', 'escalation_reason', 'updated_at'])
-    
+
     def resolve(self, resolved_by, resolution_notes, outcome):
         """Resolve dispute."""
         self.status = 'resolved'
@@ -157,7 +157,7 @@ class OrderDispute(models.Model):
         self.resolution_notes = resolution_notes
         self.resolution_outcome = outcome
         self.save(update_fields=['status', 'resolved_at', 'resolved_by', 'resolution_notes', 'resolution_outcome', 'updated_at'])
-    
+
     def close(self):
         """Close dispute (final state)."""
         self.status = 'closed'
@@ -184,9 +184,9 @@ class DisputeMessage(models.Model):
         help_text="Internal note (not visible to other party)"
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         ordering = ['created_at']
-    
+
     def __str__(self):
         return f"Message in Dispute #{self.dispute.id} from {self.sender.email}"

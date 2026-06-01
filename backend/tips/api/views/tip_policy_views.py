@@ -22,7 +22,7 @@ class TipPolicyUpdateAPIView(APIView):
         serializer.save()
 
         return Response(serializer.data)
-    
+
 
 class TipPolicyAPIView(APIView):
 

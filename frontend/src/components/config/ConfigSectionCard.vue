@@ -22,16 +22,16 @@ const isReadonly = computed(() => !scopeAllows(auth.role ?? "support", props.sec
 
 const scopeColors: Record<string, string> = {
   superadmin: "bg-rose-50 text-rose-700",
-  admin:      "bg-amber-50 text-amber-700",
-  editor:     "bg-sky-50 text-sky-700",
-  support:    "bg-slate-100 text-graphite",
+  admin: "bg-amber-50 text-amber-700",
+  editor: "bg-sky-50 text-sky-700",
+  support: "bg-slate-100 text-graphite",
 };
 
 const scopeLabel: Record<string, string> = {
   superadmin: "Superadmin only",
-  admin:      "Admin",
-  editor:     "Editor",
-  support:    "Support",
+  admin: "Admin",
+  editor: "Editor",
+  support: "Support",
 };
 
 const showResetConfirm = ref(false);

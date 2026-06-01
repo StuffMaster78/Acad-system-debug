@@ -379,7 +379,7 @@ class InvoiceOrchestrationService:
                 has_prior_paid_purchase=has_prior_paid_purchase,
             )
         )
-            
+
         create_result = PaymentIntentService.create_intent(
             client=invoice.client,
             provider=provider,
@@ -596,7 +596,7 @@ class InvoiceOrchestrationService:
 
         settlement_result = payment_application_result["settlement_result"]
         fully_settled = settlement_result["fully_settled"]
-        
+
 
         if fully_settled:
             updated_invoice = InvoiceService.mark_paid(invoice=invoice)

@@ -75,15 +75,15 @@ class OutboxService:
         If the transaction rolls back, the outbox row rolls back too.
 
         Args:
-            event_key:    Event key e.g. 'order.completed'
-            recipient:    User instance receiving the notification
-            website:      Website instance for tenancy scoping
-            context:      Template variables dict
-            channels:     Resolved delivery channels
-            priority:     NotificationPriority value
-            is_critical:  Bypasses mute and DND in dispatcher
-            is_silent:    Store record only — no delivery
-            is_digest:    Group into digest batch
+            event_key: Event key e.g. 'order.completed'
+            recipient: User instance receiving the notification
+            website: Website instance for tenancy scoping
+            context: Template variables dict
+            channels: Resolved delivery channels
+            priority: NotificationPriority value
+            is_critical: Bypasses mute and DND in dispatcher
+            is_silent: Store record only — no delivery
+            is_digest: Group into digest batch
             digest_group: Digest group key
             triggered_by: User who caused the event — None means system
 
@@ -262,7 +262,7 @@ class OutboxService:
 
         try:
             from notifications_system.tasks.send import process_outbox_entry
-            process_outbox_entry.delay(outbox_id)  # type: ignore[attr-defined]
+            process_outbox_entry.delay(outbox_id) # type: ignore[attr-defined]
             logger.debug(
                 "OutboxService._queue_task(): queued task for outbox=%s.",
                 outbox_id,

@@ -7,21 +7,21 @@ class HasRolePermission(BasePermission):
 
     required_roles: list[str] = []
 
-    def has_permission(self, request, view):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def has_permission(self, request, view): # pyright: ignore[reportIncompatibleMethodOverride]
         user = request.user
         website = getattr(request, "website", None)
 
         if not user or not user.is_authenticated:
             return False
-        
+
         if not website:
             return False
-        
+
         account_profile = getattr(request, "account_profile", None)
 
         if not account_profile:
             return False
-        
+
         return any(
             AccountRoleSelector.has_role(
                 account_profile=account_profile,
@@ -29,7 +29,7 @@ class HasRolePermission(BasePermission):
             )
             for role in self.required_roles
         )
-    
+
 
 # Specialized Roles
 

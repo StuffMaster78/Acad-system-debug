@@ -71,7 +71,7 @@ class SeoPage(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     # Soft delete
     is_deleted = models.BooleanField(
         default=False,
@@ -83,7 +83,7 @@ class SeoPage(models.Model):
         blank=True,
         help_text="Timestamp for soft deletion"
     )
-    
+
     class Meta:
         unique_together = ['website', 'slug']
         indexes = [
@@ -91,10 +91,10 @@ class SeoPage(models.Model):
             models.Index(fields=['website', 'is_published', 'publish_date']),
         ]
         ordering = ['-publish_date', '-created_at']
-    
+
     def __str__(self):
         return f"{self.website.name}: {self.title}"
-    
+
     def get_meta_title(self):
         """Returns meta_title if set, otherwise title."""
         return self.meta_title or self.title

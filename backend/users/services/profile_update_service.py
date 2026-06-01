@@ -347,7 +347,7 @@ class ProfileUpdateService:
         request_obj.status = ProfileUpdateRequestStatus.APPLIED
         actor = request_obj.reviewed_by or request_obj.user
         request_obj.applied_at = timezone.now()
-        
+
         request_obj.save(
             update_fields=[
                 "status",

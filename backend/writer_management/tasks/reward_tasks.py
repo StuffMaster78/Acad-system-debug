@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
     name="writer_management.tasks.reward_tasks.evaluate_weekly_rewards",
     bind=True,
     max_retries=2,
-    default_retry_delay=300,  # 5 minutes
+    default_retry_delay=300, # 5 minutes
 )
 def evaluate_weekly_rewards(self):
     """
@@ -99,7 +99,7 @@ def evaluate_weekly_rewards(self):
     name="writer_management.tasks.reward_tasks.evaluate_monthly_rewards",
     bind=True,
     max_retries=2,
-    default_retry_delay=600,  # 10 minutes
+    default_retry_delay=600, # 10 minutes
 )
 def evaluate_monthly_rewards(self):
     """
@@ -206,7 +206,7 @@ def evaluate_lifetime_rewards(self):
     except Exception as exc:
         logger.exception("evaluate_lifetime_rewards failed: %s", exc)
         raise self.retry(exc=exc)
-    
+
 
 
 # from __future__ import annotations
@@ -216,53 +216,53 @@ def evaluate_lifetime_rewards(self):
 # from celery import shared_task
 
 # from writer_compensation.services.reward_evaluation_orchestrator import (
-#     RewardEvaluationOrchestrator,
+# RewardEvaluationOrchestrator,
 # )
 
 # logger = logging.getLogger(__name__)
 
 
 # @shared_task(
-#     bind=True,
-#     autoretry_for=(Exception,),
-#     retry_backoff=True,
-#     retry_jitter=True,
-#     max_retries=3,
+# bind=True,
+# autoretry_for=(Exception,),
+# retry_backoff=True,
+# retry_jitter=True,
+# max_retries=3,
 # )
 # def run_weekly_rewards_task(self) -> None:
-#     """
-#     Execute weekly reward cycle.
-#     """
+# """
+# Execute weekly reward cycle.
+# """
 
-#     logger.info(
-#         "Starting weekly reward evaluation task.",
-#     )
+# logger.info(
+# "Starting weekly reward evaluation task.",
+# )
 
-#     RewardEvaluationOrchestrator.run_weekly_rewards()
+# RewardEvaluationOrchestrator.run_weekly_rewards()
 
-#     logger.info(
-#         "Completed weekly reward evaluation task.",
-#     )
+# logger.info(
+# "Completed weekly reward evaluation task.",
+# )
 
 
 # @shared_task(
-#     bind=True,
-#     autoretry_for=(Exception,),
-#     retry_backoff=True,
-#     retry_jitter=True,
-#     max_retries=3,
+# bind=True,
+# autoretry_for=(Exception,),
+# retry_backoff=True,
+# retry_jitter=True,
+# max_retries=3,
 # )
 # def run_monthly_rewards_task(self) -> None:
-#     """
-#     Execute monthly reward cycle.
-#     """
+# """
+# Execute monthly reward cycle.
+# """
 
-#     logger.info(
-#         "Starting monthly reward evaluation task.",
-#     )
+# logger.info(
+# "Starting monthly reward evaluation task.",
+# )
 
-#     RewardEvaluationOrchestrator.run_monthly_rewards()
+# RewardEvaluationOrchestrator.run_monthly_rewards()
 
-#     logger.info(
-#         "Completed monthly reward evaluation task.",
-#     )
+# logger.info(
+# "Completed monthly reward evaluation task.",
+# )

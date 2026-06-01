@@ -54,7 +54,7 @@ class PerformanceAggregatorService:
         Run the full weekly performance pipeline for a website.
 
         Args:
-            website:    Website instance.
+            website: Website instance.
             week_start: Monday of the week to process.
 
         Returns:
@@ -99,10 +99,10 @@ class PerformanceAggregatorService:
 
         summary = {
             "week_start": str(week_start),
-            "week_end":   str(week_end),
-            "total":      total,
-            "processed":  processed,
-            "failed":     failed,
+            "week_end": str(week_end),
+            "total": total,
+            "processed": processed,
+            "failed": failed,
         }
         logger.info("PerformanceAggregator.run_weekly complete: %s", summary)
         return summary
@@ -123,9 +123,9 @@ class PerformanceAggregatorService:
 
         Args:
             writer_profile: WriterProfile instance.
-            website:        Website instance.
-            week_start:     Monday of the week.
-            week_end:       Sunday of the week. Computed if not provided.
+            website: Website instance.
+            week_start: Monday of the week.
+            week_end: Sunday of the week. Computed if not provided.
         """
         if week_end is None:
             week_end = week_start + timedelta(days=6)
@@ -172,26 +172,26 @@ class PerformanceAggregatorService:
             website=website,
             week_start=week_start,
             defaults={
-                "week_end":                     week_end,
-                "avg_rating":                   snapshot.average_rating or Decimal("0.00"),
-                "revision_rate":                pct(snapshot.revision_rate),
-                "dispute_rate":                 pct(snapshot.dispute_rate),
-                "lateness_rate":                pct(snapshot.lateness_rate),
-                "cancellation_rate":            pct(snapshot.cancellation_rate),
+                "week_end": week_end,
+                "avg_rating": snapshot.average_rating or Decimal("0.00"),
+                "revision_rate": pct(snapshot.revision_rate),
+                "dispute_rate": pct(snapshot.dispute_rate),
+                "lateness_rate": pct(snapshot.lateness_rate),
+                "cancellation_rate": pct(snapshot.cancellation_rate),
                 "acceptance_to_completion_ratio": pct(snapshot.completion_rate),
-                "preferred_order_rate":         pct(snapshot.preferred_order_rate),
-                "avg_turnaround_time":          None,  # DurationField — set separately
-                "total_orders_completed":       snapshot.completed_orders,
-                "total_pages_completed":        snapshot.total_pages,
-                "hvo_orders_completed":         snapshot.hvo_orders,
-                "total_earnings":               snapshot.amount_paid,
-                "total_tips":                   snapshot.tips,
-                "total_bonuses":                snapshot.bonuses,
-                "total_fines":                  Decimal("0.00"),
-                "total_profit_contribution":    snapshot.profit_contribution,
-                "composite_score":              snapshot.composite_score or Decimal("0.00"),
+                "preferred_order_rate": pct(snapshot.preferred_order_rate),
+                "avg_turnaround_time": None, # DurationField — set separately
+                "total_orders_completed": snapshot.completed_orders,
+                "total_pages_completed": snapshot.total_pages,
+                "hvo_orders_completed": snapshot.hvo_orders,
+                "total_earnings": snapshot.amount_paid,
+                "total_tips": snapshot.tips,
+                "total_bonuses": snapshot.bonuses,
+                "total_fines": Decimal("0.00"),
+                "total_profit_contribution": snapshot.profit_contribution,
+                "composite_score": snapshot.composite_score or Decimal("0.00"),
                 # percentile_rank written in Step 2 of run_weekly
-                "percentile_rank":              Decimal("0.00"),
+                "percentile_rank": Decimal("0.00"),
             },
         )
 

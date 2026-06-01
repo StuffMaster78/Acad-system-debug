@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
- 
+
 from writer_management.api.permissions import IsAdminUser, IsAdminOrWriterOwner
 from writer_management.api.filters.writer_filters import (
     WriterWarningFilter,
@@ -36,23 +36,23 @@ from writer_management.models.writer_strike import WriterStrike
 from writer_management.models.writer_discipline import (
     WriterSuspension, WriterBlacklist, WriterProbation, WriterPenalty,
 )
- 
- 
+
+
 def _get_writer_or_404(registration_id):
     try:
         return WriterProfileService.get_by_registration_id(registration_id)
     except Exception:
         return None
- 
- 
+
+
 # ----------------------------------------------------------------
 # DISCIPLINE STATE
 # ----------------------------------------------------------------
- 
+
 class WriterDisciplineStateView(APIView):
     """GET /api/writer-management/writers/<rid>/discipline/"""
     permission_classes = [IsAdminUser]
- 
+
     def get(self, request, registration_id):
         writer = _get_writer_or_404(registration_id)
         if writer is None:
@@ -68,31 +68,31 @@ class WriterDisciplineStateView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         return Response(WriterDisciplineStateSerializer(state).data)
- 
- 
+
+
 # ----------------------------------------------------------------
 # WARNINGS
 # ----------------------------------------------------------------
- 
+
 class WriterWarningListView(ListAPIView):
     """GET /api/writer-management/writers/<rid>/warnings/"""
     permission_classes = [IsAdminOrWriterOwner]
     serializer_class = WriterWarningSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = WriterWarningFilter
- 
+
     def get_queryset(self):
         rid = self.kwargs["registration_id"]
         writer = _get_writer_or_404(rid)
         if writer is None:
             return WriterWarning.objects.none()
         return writer.warnings.select_related("issued_by").order_by("-created_at")
- 
- 
+
+
 class IssueWarningView(APIView):
     """POST /api/writer-management/writers/<rid>/warnings/issue/"""
     permission_classes = [IsAdminUser]
- 
+
     def post(self, request, registration_id):
         writer = _get_writer_or_404(registration_id)
         if writer is None:
@@ -111,12 +111,12 @@ class IssueWarningView(APIView):
             WriterWarningSerializer(warning).data,
             status=status.HTTP_201_CREATED,
         )
- 
- 
+
+
 class VoidWarningView(APIView):
     """POST /api/writer-management/warnings/<pk>/void/"""
     permission_classes = [IsAdminUser]
- 
+
     def post(self, request, pk):
         try:
             warning = WriterWarning.objects.get(pk=pk)
@@ -133,31 +133,31 @@ class VoidWarningView(APIView):
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
         return Response({"detail": "Warning voided."})
- 
- 
+
+
 # ----------------------------------------------------------------
 # STRIKES
 # ----------------------------------------------------------------
- 
+
 class WriterStrikeListView(ListAPIView):
     """GET /api/writer-management/writers/<rid>/strikes/"""
     permission_classes = [IsAdminUser]
     serializer_class = WriterStrikeSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = WriterStrikeFilter
- 
+
     def get_queryset(self):
         rid = self.kwargs["registration_id"]
         writer = _get_writer_or_404(rid)
         if writer is None:
             return WriterStrike.objects.none()
         return writer.strikes.select_related("issued_by").order_by("-issued_at")
- 
- 
+
+
 class IssueStrikeView(APIView):
     """POST /api/writer-management/writers/<rid>/strikes/issue/"""
     permission_classes = [IsAdminUser]
- 
+
     def post(self, request, registration_id):
         writer = _get_writer_or_404(registration_id)
         if writer is None:
@@ -174,12 +174,12 @@ class IssueStrikeView(APIView):
             WriterStrikeSerializer(strike).data,
             status=status.HTTP_201_CREATED,
         )
- 
- 
+
+
 class VoidStrikeView(APIView):
     """POST /api/writer-management/strikes/<pk>/void/"""
     permission_classes = [IsAdminUser]
- 
+
     def post(self, request, pk):
         try:
             strike = WriterStrike.objects.get(pk=pk)
@@ -199,16 +199,16 @@ class VoidStrikeView(APIView):
         from writer_management.services.status_service import WriterStatusService
         WriterStatusService.recompute(strike.writer)
         return Response({"detail": "Strike voided."})
- 
- 
+
+
 # ----------------------------------------------------------------
 # SUSPENSION
 # ----------------------------------------------------------------
- 
+
 class SuspendWriterView(APIView):
     """POST /api/writer-management/writers/<rid>/suspend/"""
     permission_classes = [IsAdminUser]
- 
+
     def post(self, request, registration_id):
         writer = _get_writer_or_404(registration_id)
         if writer is None:
@@ -229,12 +229,12 @@ class SuspendWriterView(APIView):
             WriterSuspensionSerializer(suspension).data,
             status=status.HTTP_201_CREATED,
         )
- 
- 
+
+
 class LiftSuspensionView(APIView):
     """POST /api/writer-management/writers/<rid>/lift-suspension/"""
     permission_classes = [IsAdminUser]
- 
+
     def post(self, request, registration_id):
         writer = _get_writer_or_404(registration_id)
         if writer is None:
@@ -250,16 +250,16 @@ class LiftSuspensionView(APIView):
         except Exception as exc:
             return Response({"detail": str(exc)}, status=400)
         return Response({"detail": "Suspension lifted."})
- 
- 
+
+
 # ----------------------------------------------------------------
 # BLACKLIST
 # ----------------------------------------------------------------
- 
+
 class BlacklistWriterView(APIView):
     """POST /api/writer-management/writers/<rid>/blacklist/"""
     permission_classes = [IsAdminUser]
- 
+
     def post(self, request, registration_id):
         writer = _get_writer_or_404(registration_id)
         if writer is None:
@@ -278,12 +278,12 @@ class BlacklistWriterView(APIView):
             WriterBlacklistSerializer(entry).data,
             status=status.HTTP_201_CREATED,
         )
- 
- 
+
+
 class LiftBlacklistView(APIView):
     """POST /api/writer-management/writers/<rid>/lift-blacklist/"""
     permission_classes = [IsAdminUser]
- 
+
     def post(self, request, registration_id):
         writer = _get_writer_or_404(registration_id)
         if writer is None:
@@ -299,16 +299,16 @@ class LiftBlacklistView(APIView):
         except Exception as exc:
             return Response({"detail": str(exc)}, status=400)
         return Response({"detail": "Blacklist lifted."})
- 
- 
+
+
 # ----------------------------------------------------------------
 # PROBATION
 # ----------------------------------------------------------------
- 
+
 class PlaceProbationView(APIView):
     """POST /api/writer-management/writers/<rid>/probation/"""
     permission_classes = [IsAdminUser]
- 
+
     def post(self, request, registration_id):
         writer = _get_writer_or_404(registration_id)
         if writer is None:
@@ -326,16 +326,16 @@ class PlaceProbationView(APIView):
             WriterProbationSerializer(probation).data,
             status=status.HTTP_201_CREATED,
         )
- 
- 
+
+
 # ----------------------------------------------------------------
 # PENALTY
 # ----------------------------------------------------------------
- 
+
 class ApplyPenaltyView(APIView):
     """POST /api/writer-management/writers/<rid>/penalties/"""
     permission_classes = [IsAdminUser]
- 
+
     def post(self, request, registration_id):
         writer = _get_writer_or_404(registration_id)
         if writer is None:

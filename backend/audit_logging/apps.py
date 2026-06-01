@@ -15,6 +15,6 @@ class AuditLoggingConfig(AppConfig):
         """
 
         try:
-            import audit_logging.signals.model_signals  # noqa: F401
+            import audit_logging.signals.model_signals # noqa: F401
         except Exception:
             pass

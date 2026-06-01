@@ -2,7 +2,7 @@
 StorageService — unified interface to DigitalOcean Spaces.
 
 Every file upload, download, deletion, and signed-URL generation in the
-entire system goes through this class.  Other apps NEVER touch boto3
+entire system goes through this class. Other apps NEVER touch boto3
 directly.
 
 Usage:
@@ -244,14 +244,14 @@ class StorageService:
             derivative_task.delay(managed_file.pk)
 
         # if not skip_scan:
-        #     scan_file_for_viruses.delay(managed_file.pk)
+        # scan_file_for_viruses.delay(managed_file.pk)
         # else:
-        #     managed_file.scan_status = FileScanStatus.SKIPPED
-        #     managed_file.lifecycle_status = FileLifecycleStatus.ACTIVE
-        #     managed_file.save(update_fields=["scan_status", "lifecycle_status"])
+        # managed_file.scan_status = FileScanStatus.SKIPPED
+        # managed_file.lifecycle_status = FileLifecycleStatus.ACTIVE
+        # managed_file.save(update_fields=["scan_status", "lifecycle_status"])
 
         # if not skip_derivatives:
-        #     generate_derivatives.delay(managed_file.pk)
+        # generate_derivatives.delay(managed_file.pk)
 
         logger.info(
             "Uploaded %s → %s (%s, %s bytes)",

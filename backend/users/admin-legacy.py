@@ -124,7 +124,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
-    # 🧠 Deletion info methods
+    # Deletion info methods
     def grace_period_days(self, obj):
         if obj.is_deletion_requested and obj.deletion_requested_at:
             return (timezone.now() - obj.deletion_requested_at).days
@@ -146,9 +146,9 @@ class CustomUserAdmin(UserAdmin):
         Allow Superadmin to edit all users, but restrict lower roles.
         """
         if request.user.role == 'superadmin':
-            return True  # Superadmin can edit all users
+            return True # Superadmin can edit all users
         if obj and obj.role == 'superadmin':
-            return False  # Other roles cannot edit Superadmin
+            return False # Other roles cannot edit Superadmin
         return super().has_change_permission(request, obj)
 
     def has_delete_permission(self, request, obj=None):
@@ -157,8 +157,8 @@ class CustomUserAdmin(UserAdmin):
         """
         if request.user.role == 'superadmin':
             if obj and obj == request.user:
-                return False  # Superadmin cannot delete themselves
-            return True  # Can delete other users
+                return False # Superadmin cannot delete themselves
+            return True # Can delete other users
         return super().has_delete_permission(request, obj)
 
     def has_add_permission(self, request):
@@ -166,19 +166,19 @@ class CustomUserAdmin(UserAdmin):
         Allow Superadmin to add new users.
         """
         return request.user.role == 'superadmin' or super().has_add_permission(request)
-    
+
     def has_change_permission(self, request, obj=None):
         if request.user.role == 'superadmin':
             return True
         if obj and obj.role == 'superadmin':
-            return False  # Prevent non-superadmins from editing superadmins
+            return False # Prevent non-superadmins from editing superadmins
         return super().has_change_permission(request, obj)
 
     def has_delete_permission(self, request, obj=None):
         if request.user.role == 'superadmin':
             if obj and obj == request.user:
-                return False  # Superadmin cannot delete themselves
-            return True  # Superadmin can delete other users
+                return False # Superadmin cannot delete themselves
+            return True # Superadmin can delete other users
         return super().has_delete_permission(request, obj)
 
     def profile_picture_preview(self, obj):
@@ -250,11 +250,11 @@ class CustomUserAdmin(UserAdmin):
                 obj.website = Website.objects.filter(
                     domain__icontains=host, is_active=True
                 ).first()
-            
+
             # Fallback to first active website
             if not obj.website:
                 obj.website = Website.objects.filter(is_active=True).first()
-            
+
             # If still no website, create a default one
             if not obj.website:
                 obj.website, created = Website.objects.get_or_create(
@@ -277,7 +277,7 @@ class CustomUserAdmin(UserAdmin):
                         f"Assigned existing default website '{obj.website.name}' to this user.",
                         level="info"
                     )
-        
+
         if change:
             if request.user == obj and obj.role != 'superadmin':
                 self.message_user(request, "Superadmin cannot demote themselves!", level="error")
@@ -285,11 +285,11 @@ class CustomUserAdmin(UserAdmin):
 
             if 'password' in form.cleaned_data:
                 password = form.cleaned_data['password']
-                if password and not password.startswith('pbkdf2_sha256$'):  # Avoid double-hashing
+                if password and not password.startswith('pbkdf2_sha256$'): # Avoid double-hashing
                     obj.set_password(password)
         if obj.is_deletion_requested and not obj.deletion_requested_at:
                 obj.deletion_requested_at = timezone.now()
-        
+
         # Save the model (website is already assigned above if needed)
         super().save_model(request, obj, form, change)
 

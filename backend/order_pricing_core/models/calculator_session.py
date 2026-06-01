@@ -29,12 +29,12 @@ class PricingCalculatorSession(models.Model):
         blank=True,
         help_text="User if logged in, null for anonymous"
     )
-    
+
     # Order details used for calculation
     order_data = models.JSONField(
         help_text="Order details (paper_type, pages, deadline, etc.)"
     )
-    
+
     # Calculated pricing
     calculated_price = models.DecimalField(
         max_digits=10,
@@ -68,7 +68,7 @@ class PricingCalculatorSession(models.Model):
         decimal_places=2,
         help_text="Final price after discounts"
     )
-    
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(
@@ -83,36 +83,36 @@ class PricingCalculatorSession(models.Model):
         blank=True,
         help_text="Order ID if converted"
     )
-    
+
     class Meta:
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['session_key', 'expires_at']),
             models.Index(fields=['user', 'converted_to_order']),
         ]
-    
+
     def __str__(self):
         user_label = self.user.username if self.user else self.session_key
         return f"Pricing Session - {user_label} - ${self.final_price}"
-    
+
     def save(self, *args, **kwargs):
         """Set expiration date if not set."""
         if not self.expires_at:
             self.expires_at = timezone.now() + timedelta(hours=24)
         super().save(*args, **kwargs)
-    
+
     @property
     def is_expired(self):
         """Check if session has expired."""
         return timezone.now() > self.expires_at
-    
+
     def mark_as_converted(self, order_id):
         """Mark this session as converted to an order."""
         from django.utils import timezone
         self.converted_to_order = True
         self.order_id = order_id
         self.save(update_fields=['converted_to_order', 'order_id'])
-    
+
     @classmethod
     def create_session(cls, session_key, order_data, pricing_result, user=None, discount_code=None):
         """Create a new pricing session."""
@@ -129,7 +129,7 @@ class PricingCalculatorSession(models.Model):
             expires_at=timezone.now() + timedelta(hours=24)
         )
         return session
-    
+
     @classmethod
     def get_active_session(cls, session_key, user=None):
         """Get active (non-expired, non-converted) session."""
@@ -137,14 +137,14 @@ class PricingCalculatorSession(models.Model):
             expires_at__gt=timezone.now(),
             converted_to_order=False
         )
-        
+
         if user:
             query = query.filter(user=user)
         else:
             query = query.filter(session_key=session_key)
-        
+
         return query.order_by('-created_at').first()
-    
+
     @classmethod
     def cleanup_expired(cls):
         """Delete expired sessions (run as periodic task)."""

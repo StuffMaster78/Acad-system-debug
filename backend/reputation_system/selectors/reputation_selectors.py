@@ -51,7 +51,7 @@ class ReputationSelectors:
             website_id=website_id,
         )
         return obj
-    
+
     @staticmethod
     def distinct_target_ids(target_type: str):
         return (

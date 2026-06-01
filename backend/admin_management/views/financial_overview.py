@@ -28,7 +28,7 @@ class FinancialOverviewViewSet(ViewSet):
     Financial overview endpoints for admin dashboard.
     """
     permission_classes = [IsAuthenticated]
-    
+
     @action(detail=False, methods=['get'])
     def overview(self, request):
         """
@@ -41,26 +41,26 @@ class FinancialOverviewViewSet(ViewSet):
         # Check admin access
         if not (request.user.is_staff or request.user.role in ['admin', 'superadmin']):
             return Response({"error": "Unauthorized"}, status=403)
-        
+
         # Get date range filters
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
         website_id = request.query_params.get('website_id')
-        
+
         # Build base querysets
         orders_qs = Order.objects.filter(is_paid=True)
         special_payment_qs = SpecialOrderPaymentApplication.objects.filter(
             status=PaymentApplicationStatus.APPLIED,
         )
         writer_payments_qs = PayoutRecord.objects.filter(status=PayoutRecordStatus.PAID)
-        
+
         if website_id:
             orders_qs = orders_qs.filter(website_id=website_id)
             special_payment_qs = special_payment_qs.filter(
                 website_id=website_id,
             )
             writer_payments_qs = writer_payments_qs.filter(website_id=website_id)
-        
+
         if date_from:
             orders_qs = orders_qs.filter(updated_at__gte=date_from)
             special_payment_qs = special_payment_qs.filter(applied_at__gte=date_from)
@@ -76,12 +76,12 @@ class FinancialOverviewViewSet(ViewSet):
         total_order_revenue = orders_qs.aggregate(
             total=Sum('total_price')
         )['total'] or Decimal('0.00')
-        
+
         # Special Orders
         special_order_revenue = special_payment_qs.aggregate(
             total=Sum('amount')
         )['total'] or Decimal('0.00')
-        
+
         # Class Bundles - sum from installments that are paid
         paid_installments = ClassInstallment.objects.filter(is_paid=True)
         if website_id:
@@ -93,15 +93,15 @@ class FinancialOverviewViewSet(ViewSet):
         class_revenue = paid_installments.aggregate(
             total=Sum('amount')
         )['total'] or Decimal('0.00')
-        
+
         # Total Revenue
         total_revenue = total_order_revenue + special_order_revenue + class_revenue
-        
+
         # Calculate Expenses (Writer Payments)
         total_writer_payments = writer_payments_qs.aggregate(
             total=Sum('amount')
         )['total'] or Decimal('0.00')
-        
+
         # Calculate Tips (these are expenses as they're paid to writers)
         tips_qs = Tip.objects.filter(payment_status='completed')
         if website_id:
@@ -110,24 +110,24 @@ class FinancialOverviewViewSet(ViewSet):
             tips_qs = tips_qs.filter(sent_at__gte=date_from)
         if date_to:
             tips_qs = tips_qs.filter(sent_at__lte=date_to)
-        
+
         total_tips_paid = tips_qs.aggregate(
             total=Sum('writer_earning')
         )['total'] or Decimal('0.00')
-        
+
         # Total Expenses
         total_expenses = total_writer_payments + total_tips_paid
-        
+
         # Net Revenue
         net_revenue = total_revenue - total_expenses
-        
+
         # Get period breakdown (last 12 months)
         now = timezone.now()
         period_breakdown = []
         for i in range(12):
             month_start = (now - timedelta(days=30 * i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
-            
+
             month_orders = PaymentIntent.objects.filter(
                 status='succeeded',
                 purpose=PaymentIntentPurpose.ORDER,
@@ -137,7 +137,7 @@ class FinancialOverviewViewSet(ViewSet):
             if website_id:
                 month_orders = month_orders.filter(website_id=website_id)
             month_order_revenue = month_orders.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            
+
             month_special_revenue = (
                 SpecialOrderPaymentApplication.objects.filter(
                     status=PaymentApplicationStatus.APPLIED,
@@ -158,21 +158,21 @@ class FinancialOverviewViewSet(ViewSet):
                     .aggregate(total=Sum('amount'))['total']
                     or Decimal('0.00')
                 )
-            
+
             month_classes = ClassInstallment.objects.filter(
                 is_paid=True,
                 paid_at__gte=month_start,
                 paid_at__lte=month_end
             )
             month_class_revenue = month_classes.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            
+
             month_writer_payments = PayoutRecord.objects.filter(
                 status=PayoutRecordStatus.PAID,
                 paid_at__gte=month_start,
                 paid_at__lte=month_end
             )
             month_expenses = month_writer_payments.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-            
+
             period_breakdown.append({
                 'period': month_start.strftime('%Y-%m'),
                 'month': month_start.strftime('%B %Y'),
@@ -190,7 +190,7 @@ class FinancialOverviewViewSet(ViewSet):
                     (month_order_revenue + month_special_revenue + month_class_revenue) - month_expenses
                 ),
             })
-        
+
         return Response({
             'summary': {
                 'total_revenue': float(total_revenue),
@@ -214,7 +214,7 @@ class FinancialOverviewViewSet(ViewSet):
                 'website_id': website_id,
             }
         })
-    
+
     @action(detail=False, methods=['get'], url_path='all-payments')
     def all_payments(self, request):
         """
@@ -222,13 +222,13 @@ class FinancialOverviewViewSet(ViewSet):
         """
         if not (request.user.is_staff or request.user.role in ['admin', 'superadmin']):
             return Response({"error": "Unauthorized"}, status=403)
-        
+
         website_id = request.query_params.get('website_id')
         writer_id = request.query_params.get('writer_id')
         status_filter = request.query_params.get('status')
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
-        
+
         payments_qs = PayoutRecord.objects.select_related(
             'writer',
             'writer__account_profile',
@@ -237,7 +237,7 @@ class FinancialOverviewViewSet(ViewSet):
             'batch__payment_window',
             'website'
         )
-        
+
         if website_id:
             payments_qs = payments_qs.filter(website_id=website_id)
         if writer_id:
@@ -251,23 +251,23 @@ class FinancialOverviewViewSet(ViewSet):
             payments_qs = payments_qs.filter(paid_at__gte=date_from)
         if date_to:
             payments_qs = payments_qs.filter(paid_at__lte=date_to)
-        
+
         payments_data = []
         for payment in payments_qs.order_by('-paid_at', '-id'):
             writer_profile = payment.writer
             writer_user = getattr(writer_profile, "user", None)
             if not writer_user:
                 continue
-                
+
             order_count = 0
-            
+
             # Calculate tips and fines if available
             tips_total = Decimal('0.00')
             fines_total = Decimal('0.00')
-            
+
             try:
                 from writer_management.models.tipping import Tip
-                
+
                 if payment.batch:
                     window = payment.batch.payment_window
                     period_start = window.start_date
@@ -279,7 +279,7 @@ class FinancialOverviewViewSet(ViewSet):
                         sent_at__lt=period_end
                     )
                     tips_total = sum(tip.writer_earning for tip in tips)
-                
+
                     fines_entries = WalletEntry.objects.filter(
                         wallet__owner_user=writer_user,
                         wallet__website=payment.website,
@@ -290,7 +290,7 @@ class FinancialOverviewViewSet(ViewSet):
                     fines_total = sum(abs(entry.amount) for entry in fines_entries)
             except Exception:
                 pass
-            
+
             # Calculate client total and platform margin for this payment
             client_total = Decimal('0.00')
             try:
@@ -308,7 +308,7 @@ class FinancialOverviewViewSet(ViewSet):
                 client_total = Decimal('0.00')
 
             platform_margin = client_total - (payment.total_amount or Decimal('0.00')) - tips_total
-            
+
             payments_data.append({
                 'id': payment.id,
                 'payment_id': payment.external_reference or f"payout-{payment.id}",
@@ -331,7 +331,7 @@ class FinancialOverviewViewSet(ViewSet):
                 'reference': payment.external_reference or f"payout-{payment.id}",
                 'batch_reference': f"batch-{payment.batch_id}" if payment.batch_id else None,
             })
-        
+
         return Response({
             'payments': payments_data,
             'total': len(payments_data),

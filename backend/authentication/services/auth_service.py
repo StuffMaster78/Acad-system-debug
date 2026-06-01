@@ -96,7 +96,7 @@ class AuthenticationService:
         )
 
         return bool(risk_result["is_high_risk"])
-    
+
     @classmethod
     def _get_login_risk_context(
         cls,
@@ -161,7 +161,7 @@ class AuthenticationService:
             "score": float(risk_result["score"]),
             "is_high_risk": bool(risk_result["is_high_risk"]),
         }
-    
+
     @classmethod
     def _is_trusted_device_for_request(
         cls,
@@ -214,7 +214,7 @@ class AuthenticationService:
             return False
 
         return bool(fingerprint.is_trusted)
-    
+
     @staticmethod
     def _extract_fingerprint_data(
         request,
@@ -396,7 +396,7 @@ class AuthenticationService:
                 )
 
             raise ValidationError("Invalid email or password.")
-        
+
         suspension_service = AccountSuspensionService(
             user=candidate_user,
             website=website,
@@ -598,7 +598,7 @@ class AuthenticationService:
                 "role": getattr(user, "role", None),
             },
         }
-    
+
     @classmethod
     def _handle_device_fingerprint(
         cls,

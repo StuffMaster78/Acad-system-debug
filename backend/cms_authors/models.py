@@ -217,7 +217,7 @@ class AuthorPage(Page):
         FieldPanel("author"),
     ]
 
-    subpage_types = []  # Author pages have no children
+    subpage_types = [] # Author pages have no children
     parent_page_types = ["cms_core.AuthorIndexPage"]
 
     api_fields = [

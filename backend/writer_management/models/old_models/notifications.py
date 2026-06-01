@@ -71,7 +71,7 @@ class WebhookSettings(models.Model):
 
     def __str__(self):
         return f"{self.user} – {self.platform} webhook"
-    
+
 
 class WriterOrderRequestNotification(models.Model):
     """
@@ -86,7 +86,7 @@ class WriterOrderRequestNotification(models.Model):
         related_name="order_request_notifications"
     )
     notification_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the notification was sent."
     )
     message = models.TextField(
@@ -95,7 +95,7 @@ class WriterOrderRequestNotification(models.Model):
 
     def __str__(self):
         return f"Notification: {self.writer.user.username} - Request {self.request.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Request Notification"
         verbose_name_plural = "Writer Order Request Notifications"
@@ -115,7 +115,7 @@ class WriterOrderTakeNotification(models.Model):
         related_name="order_take_notifications"
     )
     notification_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the notification was sent."
     )
     message = models.TextField(
@@ -124,7 +124,7 @@ class WriterOrderTakeNotification(models.Model):
 
     def __str__(self):
         return f"Notification: {self.writer.user.username} - Take {self.take.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Take Notification"
         verbose_name_plural = "Writer Order Take Notifications"
@@ -143,7 +143,7 @@ class WriterOrderRequestNotification(models.Model):
         related_name="order_request_notifications"
     )
     notification_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the notification was sent."
     )
     message = models.TextField(
@@ -152,7 +152,7 @@ class WriterOrderRequestNotification(models.Model):
 
     def __str__(self):
         return f"Notification: {self.writer.user.username} - Request {self.request.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Request Notification"
         verbose_name_plural = "Writer Order Request Notifications"
@@ -172,7 +172,7 @@ class WriterOrderTakeNotification(models.Model):
         related_name="order_take_notifications"
     )
     notification_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the notification was sent."
     )
     message = models.TextField(
@@ -181,7 +181,7 @@ class WriterOrderTakeNotification(models.Model):
 
     def __str__(self):
         return f"Notification: {self.writer.user.username} - Take {self.take.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Take Notification"
         verbose_name_plural = "Writer Order Take Notifications"
@@ -201,7 +201,7 @@ class WriterOrderHoldNotification(models.Model):
         related_name="order_hold_notifications"
     )
     notification_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the notification was sent."
     )
     message = models.TextField(
@@ -210,7 +210,7 @@ class WriterOrderHoldNotification(models.Model):
 
     def __str__(self):
         return f"Notification: {self.writer.user.username} - Hold Request {self.hold_request.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Hold Notification"
         verbose_name_plural = "Writer Order Hold Notifications"
@@ -230,7 +230,7 @@ class WriterReassignmentNotification(models.Model):
         related_name="reassignment_notifications"
     )
     notification_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the notification was sent."
     )
     message = models.TextField(
@@ -239,7 +239,7 @@ class WriterReassignmentNotification(models.Model):
 
     def __str__(self):
         return f"Notification: {self.writer.user.username} - Reassignment Request {self.reassignment_request.id}"
-    
+
     class Meta:
         verbose_name = "Writer Reassignment Notification"
         verbose_name_plural = "Writer Reassignment Notifications"

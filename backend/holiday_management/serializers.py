@@ -32,10 +32,10 @@ class SpecialDaySerializer(serializers.ModelSerializer):
         from django.utils import timezone
         today = timezone.now().date()
         event_date = obj.get_date_for_year()
-        
+
         if obj.is_annual and event_date < today:
             event_date = obj.get_date_for_year(today.year + 1)
-        
+
         return (event_date - today).days
 
     def get_is_upcoming(self, obj):
@@ -70,7 +70,7 @@ class SpecialDayCreateSerializer(serializers.ModelSerializer):
             validated_data['countries'] = validated_countries
         else:
             validated_data['countries'] = []
-        
+
         special_day = SpecialDay.objects.create(**validated_data)
         return special_day
 

@@ -18,7 +18,7 @@ WHERE IT LIVES
 --------------
 writer_compensation — not writer_management, not orders.
 
-orders        → what work was done (pages, deadline, status)
+orders → what work was done (pages, deadline, status)
 writer_management → what rates exist per level (WriterLevelSettings)
 writer_compensation → what this writer was paid (this model + WriterPayment)
 
@@ -54,8 +54,8 @@ class RateCardSnapshot(models.Model):
     — those rows can be edited freely without affecting this record.
 
     This model has two FKs:
-        writer  → writer_management.WriterProfile
-        order   → orders.Order
+        writer → writer_management.WriterProfile
+        order → orders.Order
 
     Neither writer_management nor orders imports from writer_compensation,
     so this placement introduces no circular dependency.

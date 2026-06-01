@@ -40,7 +40,7 @@ class WriterAutoRanking(models.Model):
 
     def __str__(self):
         return f"Auto-Ranking: {self.writer.user.username} (Promoted: {self.promoted}, Demoted: {self.demoted})"
-    
+
 class WriterRankingHistory(models.Model):
     """
     Tracks changes in writer rankings over time.
@@ -69,7 +69,7 @@ class WriterRankingHistory(models.Model):
 
     def __str__(self):
         return f"Ranking Change: {self.writer.user.username} from {self.previous_level} to {self.new_level}"
-    
+
 
     class Meta:
         verbose_name = "Writer Ranking History"
@@ -103,7 +103,7 @@ class WriterRankingCriteria(models.Model):
 
     def __str__(self):
         return f"Ranking Criteria: {self.level_name} (Min Orders: {self.min_orders_completed}, Min Rating: {self.min_rating})"
-    
+
     class Meta:
         verbose_name = "Writer Ranking Criteria"
         verbose_name_plural = "Writer Ranking Criteria"
@@ -138,7 +138,7 @@ class WriterRanking(models.Model):
 
     def __str__(self):
         return f"Ranking: {self.writer.user.username} - Level: {self.level} (Rating: {self.rating})"
-    
+
     class Meta:
         verbose_name = "Writer Ranking"
         verbose_name_plural = "Writer Rankings"
@@ -177,7 +177,7 @@ class WriterRankingLog(models.Model):
 
     def __str__(self):
         return f"Ranking Log: {self.writer.user.username} from {self.previous_level} to {self.new_level}"
-    
+
     class Meta:
         verbose_name = "Writer Ranking Log"
         verbose_name_plural = "Writer Ranking Logs"
@@ -209,7 +209,7 @@ class WriterRankingAdminReview(models.Model):
 
     def __str__(self):
         return f"Admin Review: {self.writer.user.username} - {self.review_date}"
-    
+
     class Meta:
         verbose_name = "Writer Ranking Admin Review"
         verbose_name_plural = "Writer Ranking Admin Reviews"
@@ -237,7 +237,7 @@ class WriterRankingNotification(models.Model):
 
     def __str__(self):
         return f"Notification: {self.writer.user.username} - {self.sent_at} (Read: {self.read})"
-    
+
     class Meta:
         verbose_name = "Writer Ranking Notification"
         verbose_name_plural = "Writer Ranking Notifications"
@@ -270,7 +270,7 @@ class WriterRankingCriteriaAdmin(models.Model):
 
     def __str__(self):
         return f"Admin Criteria: {self.level_name} (Min Orders: {self.min_orders_completed}, Min Rating: {self.min_rating})"
-    
+
     class Meta:
         verbose_name = "Writer Ranking Criteria Admin"
         verbose_name_plural = "Writer Ranking Criteria Admins"

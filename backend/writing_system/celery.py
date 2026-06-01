@@ -4,30 +4,30 @@ import os, json
 
 # --- Try real Celery; otherwise fall back to a safe shim ---------------------
 try:
-    from celery import Celery  # type: ignore
-    from celery.schedules import crontab  # type: ignore
+    from celery import Celery # type: ignore
+    from celery.schedules import crontab # type: ignore
     CELERY_AVAILABLE = True
 except Exception:
     CELERY_AVAILABLE = False
 
     # tiny crontab stub so your schedule dict compiles
-    def crontab(*args, **kwargs):  # type: ignore
+    def crontab(*args, **kwargs): # type: ignore
         return None
 
     # signal stub
     class _Signal:
-        def connect(self, f):  # decorator-style .connect
+        def connect(self, f): # decorator-style .connect
             return f
 
     # no-op Celery shim with the handful of APIs you use
-    class Celery:  # type: ignore
+    class Celery: # type: ignore
         def __init__(self, *a, **k):
             class _Conf:
                 beat_schedule = {}
             self.conf = _Conf()
             self.on_after_configure = _Signal()
 
-        def config_from_object(self, *a, **k):  # real Celery API
+        def config_from_object(self, *a, **k): # real Celery API
             return None
 
         def update_config(self, **k):
@@ -36,7 +36,7 @@ except Exception:
                 setattr(self.conf, k_, v_)
             return None
 
-        def autodiscover_tasks(self, *a, **k):  # real Celery API
+        def autodiscover_tasks(self, *a, **k): # real Celery API
             return None
 
         def task(self, *dargs, **dkwargs):
@@ -64,10 +64,10 @@ _config = {
 }
 try:
     # real Celery has app.conf.update
-    app.conf.update(**_config)  # type: ignore[attr-defined]
+    app.conf.update(**_config) # type: ignore[attr-defined]
 except Exception:
     # shim exposes update_config
-    app.update_config(**_config)  # type: ignore[attr-defined]
+    app.update_config(**_config) # type: ignore[attr-defined]
 
 # Try to pull Django settings namespace if Celery is present
 if CELERY_AVAILABLE:
@@ -81,7 +81,7 @@ if CELERY_AVAILABLE:
 # autodiscover_tasks() only loads tasks/__init__.py, not sub-modules.
 # Sub-module registration is handled via CELERY_IMPORTS in Django settings
 # (see settings/base.py), which Celery processes at worker startup AFTER
-# Django apps are fully loaded.  Do NOT import sub-modules here — this code
+# Django apps are fully loaded. Do NOT import sub-modules here — this code
 # runs before Django setup and would leave broken stubs in sys.modules,
 # preventing the CELERY_IMPORTS mechanism from re-importing them.
 if CELERY_AVAILABLE:
@@ -93,14 +93,14 @@ def debug_task(self):
 
 # ---------- Static Beat Schedule (safe even with shim) ----------
 # Using crontab() stub returns None when Celery isn't installed; harmless.
-app.conf.beat_schedule = {  # type: ignore[attr-defined]
+app.conf.beat_schedule = { # type: ignore[attr-defined]
     "send-scheduled-announcements": {
         "task": "announcements.tasks.send_scheduled_announcements",
-        "schedule": crontab(minute="*/5"),  # Every 5 minutes
+        "schedule": crontab(minute="*/5"), # Every 5 minutes
     },
     "expire-announcements": {
         "task": "announcements.tasks.expire_announcements",
-        "schedule": crontab(minute=0, hour=0),  # Daily at midnight
+        "schedule": crontab(minute=0, hour=0), # Daily at midnight
     },
     "deactivate-expired-discounts": {
         "task": "discounts.tasks.deactivate_expired_discounts",
@@ -193,56 +193,56 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
     },
     "send-progress-reminders": {
         "task": "orders.tasks.progress_reminders.send_progress_reminders",
-        "schedule": crontab(minute="*/60"),  # Every hour
+        "schedule": crontab(minute="*/60"), # Every hour
     },
     "send-writer-engagement-reminders": {
         "task": "orders.tasks.reminder_tasks.send_writer_engagement_reminders",
-        "schedule": crontab(minute=0, hour=9),  # Daily at 9 AM
+        "schedule": crontab(minute=0, hour=9), # Daily at 9 AM
     },
     "send-message-reminders": {
         "task": "orders.tasks.reminder_tasks.send_message_reminders",
-        "schedule": crontab(minute="*/60"),  # Every hour
+        "schedule": crontab(minute="*/60"), # Every hour
     },
     "send-review-reminders": {
         "task": "orders.tasks.reminder_tasks.send_review_reminders",
-        "schedule": crontab(minute=0, hour=10),  # Daily at 10 AM
+        "schedule": crontab(minute=0, hour=10), # Daily at 10 AM
     },
     "create-review-reminders-for-completed-orders": {
         "task": "orders.tasks.reminder_tasks.create_review_reminders_for_completed_orders",
-        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+        "schedule": crontab(minute="*/30"), # Every 30 minutes
     },
     # Support Management Tasks
     "refresh-support-dashboards": {
         "task": "support_management.tasks.refresh_all_support_dashboards",
-        "schedule": crontab(minute="*/15"),  # Every 15 minutes
+        "schedule": crontab(minute="*/15"), # Every 15 minutes
     },
     "check-sla-breaches": {
         "task": "support_management.tasks.check_sla_breaches",
-        "schedule": crontab(minute="*/5"),  # Every 5 minutes
+        "schedule": crontab(minute="*/5"), # Every 5 minutes
     },
     "send-sla-breach-alerts": {
         "task": "support_management.tasks.send_sla_breach_alerts",
-        "schedule": crontab(minute="*/15"),  # Every 15 minutes
+        "schedule": crontab(minute="*/15"), # Every 15 minutes
     },
     "auto-reassign-unresolved-tasks": {
         "task": "support_management.tasks.auto_reassign_unresolved_tasks",
-        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+        "schedule": crontab(minute="*/30"), # Every 30 minutes
     },
     "auto-reassign-breached-slas": {
         "task": "support_management.tasks.auto_reassign_breached_slas",
-        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+        "schedule": crontab(minute="*/30"), # Every 30 minutes
     },
     "balance-support-workload": {
         "task": "support_management.tasks.balance_support_workload",
-        "schedule": crontab(minute=0),  # Every hour
+        "schedule": crontab(minute=0), # Every hour
     },
     "update-support-workload-trackers": {
         "task": "support_management.tasks.update_support_workload_trackers",
-        "schedule": crontab(minute="*/10"),  # Every 10 minutes
+        "schedule": crontab(minute="*/10"), # Every 10 minutes
     },
     "calculate-support-performance-metrics": {
         "task": "support_management.tasks.calculate_support_performance_metrics",
-        "schedule": crontab(minute=0, hour=2),  # Daily at 2 AM
+        "schedule": crontab(minute=0, hour=2), # Daily at 2 AM
     },
     "orders-send-writer-acknowledgement-reminders-every-30-minutes": {
             "task": "orders.tasks.order_monitoring_tasks.send_writer_acknowledgement_reminders",
@@ -259,7 +259,7 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
         "task": "writer_compensation.tasks.check_and_close_windows",
         "schedule": crontab(hour=23, minute=50),
     },
- 
+
     # Open new windows at 00:05 every night.
     # Runs just after midnight so the new window's start_date == today.
     # Five minute gap after close ensures close task finishes first.
@@ -267,7 +267,7 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
         "task": "writer_compensation.tasks.check_and_open_windows",
         "schedule": crontab(hour=0, minute=5),
     },
- 
+
     # Alert admin at 09:00 every morning about any pending events
     # sitting in closed windows that need post-close adjustments.
     "compensation-alert-pending-events-daily": {
@@ -360,14 +360,14 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
 }
 
 # ---------- Dynamic schedule via django-celery-beat (guarded) ---------------
-@app.on_after_configure.connect  # works with real Celery; is a no-op on shim
+@app.on_after_configure.connect # works with real Celery; is a no-op on shim
 def setup_periodic_tasks(sender=None, **kwargs):
     if not CELERY_AVAILABLE:
-        return  # silently skip when Celery (or beat) isn’t installed
+        return # silently skip when Celery (or beat) isn’t installed
     try:
-        from django_celery_beat.models import PeriodicTask, IntervalSchedule, CrontabSchedule  # type: ignore
+        from django_celery_beat.models import PeriodicTask, IntervalSchedule, CrontabSchedule # type: ignore
     except Exception:
-        return  # beat not installed; skip dynamically registered tasks
+        return # beat not installed; skip dynamically registered tasks
 
     periodic_tasks = []
 

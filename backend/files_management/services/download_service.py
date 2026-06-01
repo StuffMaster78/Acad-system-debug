@@ -188,7 +188,7 @@ class DownloadService:
             )
 
         # 3. Automation enrollment
-        if created:  # Only enroll on first capture
+        if created: # Only enroll on first capture
             cls._enroll_in_automation(attachment, email)
 
         # 4. Track download

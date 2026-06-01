@@ -85,7 +85,7 @@ class FileVersionService:
 
         attachment_for_update = cast(Any, attachment)
         attachment_for_update.managed_file_id = new_file.pk
-        
+
         attachment.full_clean()
         attachment.save(
             update_fields=[

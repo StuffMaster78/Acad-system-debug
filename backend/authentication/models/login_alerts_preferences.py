@@ -21,7 +21,7 @@ class LoginAlertPreference(models.Model):
         on_delete=models.CASCADE,
         related_name='login_alert_preferences'
     )
-    
+
     # Alert toggles
     notify_new_login = models.BooleanField(
         default=True,
@@ -35,7 +35,7 @@ class LoginAlertPreference(models.Model):
         default=True,
         help_text="Notify when login from a new location"
     )
-    
+
     # Channel preferences
     email_enabled = models.BooleanField(
         default=True,
@@ -49,10 +49,10 @@ class LoginAlertPreference(models.Model):
         default=True,
         help_text="Receive alerts in-app"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         unique_together = ('user', 'website')
         verbose_name = "Login Alert Preference"
@@ -60,7 +60,7 @@ class LoginAlertPreference(models.Model):
         indexes = [
             models.Index(fields=['user', 'website']),
         ]
-    
+
     def __str__(self):
         return f"Login Alerts for {self.user.email} on {self.website.domain}"
 

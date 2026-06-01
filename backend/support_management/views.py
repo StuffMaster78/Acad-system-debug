@@ -30,7 +30,7 @@ from .permissions import (
     CanManageWriterPerformance, CanEscalateIssues, CanAccessSupportDashboard
 )
 
-# 🚀 **1️⃣ Support Profile ViewSet**
+# ** Support Profile ViewSet**
 
 
 class SupportProfileViewSet(viewsets.ModelViewSet):
@@ -47,7 +47,7 @@ class SupportProfileViewSet(viewsets.ModelViewSet):
         return super().get_queryset()
 
 
-# 🚀 **2️⃣ Support Notifications ViewSet**
+# ** Support Notifications ViewSet**
 class SupportNotificationViewSet(viewsets.ModelViewSet):
     queryset = SupportNotification.objects.order_by("-created_at", "-id")
     serializer_class = SupportNotificationSerializer
@@ -67,7 +67,7 @@ class SupportNotificationViewSet(viewsets.ModelViewSet):
             {"message": "Notifications marked as read."}, status=status.HTTP_200_OK)
 
 
-# 🚀 **3️⃣ Support Order Management ViewSet**
+# ** Support Order Management ViewSet**
 class SupportOrderManagementViewSet(viewsets.ModelViewSet):
     queryset = SupportOrderManagement.objects.all()
     serializer_class = SupportOrderManagementSerializer
@@ -82,7 +82,7 @@ class SupportOrderManagementViewSet(viewsets.ModelViewSet):
             {"message": "Order restored to progress."}, status=status.HTTP_200_OK)
 
 
-# 🚀 **4️⃣ Support Messages ViewSet**
+# ** Support Messages ViewSet**
 class SupportMessageViewSet(viewsets.ModelViewSet):
     queryset = SupportMessage.objects.all()
     serializer_class = SupportMessageSerializer
@@ -102,7 +102,7 @@ class SupportMessageViewSet(viewsets.ModelViewSet):
             {"message": "Message flagged for review."}, status=status.HTTP_200_OK)
 
 
-# 🚀 **5️⃣ Escalation Log ViewSet**
+# ** Escalation Log ViewSet**
 class EscalationLogViewSet(viewsets.ModelViewSet):
     queryset = EscalationLog.objects.all()
     serializer_class = EscalationLogSerializer
@@ -120,14 +120,14 @@ class EscalationLogViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_403_FORBIDDEN)
 
 
-# 🚀 **6️⃣ Support Workload Tracker ViewSet**
+# ** Support Workload Tracker ViewSet**
 class SupportWorkloadTrackerViewSet(viewsets.ModelViewSet):
     queryset = SupportWorkloadTracker.objects.all()
     serializer_class = SupportWorkloadTrackerSerializer
     permission_classes = [IsAdminOrSuperAdmin]
 
 
-# 🚀 **7️⃣ Payment Issue Log ViewSet**
+# ** Payment Issue Log ViewSet**
 class PaymentIssueLogViewSet(viewsets.ModelViewSet):
     queryset = PaymentIssueLog.objects.all()
     serializer_class = PaymentIssueLogSerializer
@@ -142,14 +142,14 @@ class PaymentIssueLogViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_200_OK)
 
 
-# 🚀 **8️⃣ FAQ Management ViewSet**
+# ** FAQ Management ViewSet**
 class FAQManagementViewSet(viewsets.ModelViewSet):
     queryset = FAQManagement.objects.all()
     serializer_class = FAQManagementSerializer
     permission_classes = [IsSupportAgent]
 
 
-# 🚀 **9️⃣ Support Dashboard ViewSet**
+# ** Support Dashboard ViewSet**
 class SupportDashboardViewSet(viewsets.ModelViewSet):
     queryset = SupportDashboard.objects.order_by("id")
     serializer_class = SupportDashboardSerializer
@@ -330,7 +330,7 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 sender=request.user).order_by('created_at').first()
             if first_message and ticket.created_at:
                 response_time = (
-                    first_message.created_at - ticket.created_at).total_seconds() / 3600  # hours
+                    first_message.created_at - ticket.created_at).total_seconds() / 3600 # hours
                 response_times.append(response_time)
 
         avg_response_time = sum(response_times) / \

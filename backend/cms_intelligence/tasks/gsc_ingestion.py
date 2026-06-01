@@ -15,7 +15,7 @@ Celery beat schedule::
 
     "pull-gsc-data": {
         "task": "cms_intelligence.tasks.gsc_ingestion.pull_gsc_data",
-        "schedule": crontab(hour=3, minute=0),  # 03:00 UTC daily
+        "schedule": crontab(hour=3, minute=0), # 03:00 UTC daily
     }
 """
 

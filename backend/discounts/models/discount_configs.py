@@ -68,26 +68,26 @@ class DiscountConfig(models.Model):
     )
 
     created_by = models.ForeignKey(
-        "users.User", 
-        null=True, 
-        blank=True, 
-        on_delete=models.SET_NULL, 
+        "users.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         help_text="User who created or last updated the discount config"
     )
     updated_by = models.ForeignKey(
-        "users.User", 
-        null=True, 
-        blank=True, 
-        on_delete=models.SET_NULL, 
+        "users.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name="discount_configs_updated",
         help_text="User who last updated the discount config"
     )
     created_at = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="Timestamp when the discount config was created"
-    )   
+    )
     updated_at = models.DateTimeField(
-        auto_now=True, 
+        auto_now=True,
         help_text="Timestamp of the last update"
     )
 

@@ -9,9 +9,9 @@ is always complete.
 
 OPERATIONS
 ----------
-get_config(website)                    — fetch or create with defaults
-update_config(website, fields, by)     — update WriterConfig fields
-get_escalation_config(website)         — fetch or create with defaults
+get_config(website) — fetch or create with defaults
+update_config(website, fields, by) — update WriterConfig fields
+get_escalation_config(website) — fetch or create with defaults
 update_escalation_config(website, ...) — update escalation thresholds
 
 AUDIT
@@ -114,10 +114,10 @@ class WriterConfigService:
         the previous values.
 
         Args:
-            website:    Website instance.
+            website: Website instance.
             updated_by: Admin User making the change. None = system.
-            notes:      Optional reason for the change.
-            **fields:   Config fields to update with their new values.
+            notes: Optional reason for the change.
+            **fields: Config fields to update with their new values.
 
         Returns:
             Updated WriterConfig instance.
@@ -182,7 +182,7 @@ class WriterConfigService:
         )
 
         return config
-    
+
 
     @staticmethod
     def get_config_history(website):
@@ -245,9 +245,9 @@ class WriterConfigService:
             admin_alert <= auto_probation <= auto_suspension
 
         Args:
-            website:    Website instance.
+            website: Website instance.
             updated_by: Admin User making the change.
-            **fields:   Escalation config fields to update.
+            **fields: Escalation config fields to update.
 
         Returns:
             Updated WriterWarningEscalationConfig instance.

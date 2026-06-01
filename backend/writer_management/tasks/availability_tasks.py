@@ -22,12 +22,12 @@ CELERY BEAT SCHEDULE (add to settings.py):
         "cleanup-expired-availability-windows": {
             "task": "writer_management.tasks.availability_tasks"
                     ".cleanup_expired_windows",
-            "schedule": crontab(minute=0),  # every hour
+            "schedule": crontab(minute=0), # every hour
         },
         "process-writer-auto-offline": {
             "task": "writer_management.tasks.availability_tasks"
                     ".process_auto_offline",
-            "schedule": crontab(minute="*/5"),  # every 5 minutes
+            "schedule": crontab(minute="*/5"), # every 5 minutes
         },
     }
 """

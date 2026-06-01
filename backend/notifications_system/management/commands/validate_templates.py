@@ -4,7 +4,7 @@ Validates that all active notification events have templates
 for all supported channels.
 
 Run: python manage.py validate_templates
-Run: python manage.py validate_templates --fix   (seeds missing ones)
+Run: python manage.py validate_templates --fix (seeds missing ones)
 Run: python manage.py validate_templates --channel email
 """
 from __future__ import annotations
@@ -80,7 +80,7 @@ class Command(BaseCommand):
                     missing.append((event, channel))
                     self.stdout.write(
                         self.style.WARNING(
-                            f"  MISSING  {event.event_key:<45} [{channel}]"
+                            f" MISSING {event.event_key:<45} [{channel}]"
                         )
                     )
 
@@ -90,13 +90,13 @@ class Command(BaseCommand):
         # Summary
         self.stdout.write('')
         self.stdout.write(
-            self.style.SUCCESS(f"  OK       {ok_count} template(s) found")
+            self.style.SUCCESS(f" OK {ok_count} template(s) found")
         )
 
         if missing:
             self.stdout.write(
                 self.style.ERROR(
-                    f"  MISSING  {len(missing)} template(s) not found"
+                    f" MISSING {len(missing)} template(s) not found"
                 )
             )
             self.stdout.write(
@@ -107,7 +107,7 @@ class Command(BaseCommand):
                 raise SystemExit(1)
         else:
             self.stdout.write(
-                self.style.SUCCESS('\n✓ All templates are present.\n')
+                self.style.SUCCESS('\n All templates are present.\n')
             )
 
     def _create_placeholder(self, event, channel):
@@ -144,6 +144,6 @@ class Command(BaseCommand):
         )
         self.stdout.write(
             self.style.SUCCESS(
-                f"    → Created placeholder for {event.event_key} [{channel}]"
+                f" → Created placeholder for {event.event_key} [{channel}]"
             )
         )

@@ -57,7 +57,7 @@ class AdminOverrideWriterRequestAction(BaseOrderAction):
 
         service = OrderRequestService(user=self.user)
         return service.accept_writer(self.order, writer)
-    
+
 
 class WithdrawWriterRequestAction(BaseOrderAction):
     """
@@ -213,7 +213,7 @@ class ListWithdrawnWriterRequestsAction(BaseOrderAction):
         if not self.order:
             raise ValueError("Order must be provided to list withdrawn writer requests.")
         service = OrderRequestService(user=self.user)
-        return service.list_withdrawn_requests(self.order) 
+        return service.list_withdrawn_requests(self.order)
 
 class ExpireWriterRequestAction(BaseOrderAction):
     """
@@ -247,8 +247,8 @@ class ListExpiredWriterRequestsAction(BaseOrderAction):
         if not self.order:
             raise ValueError("Order must be provided to list expired writer requests.")
         service = OrderRequestService(user=self.user)
-        return service.list_expired_requests(self.order) 
-    
+        return service.list_expired_requests(self.order)
+
 
 class ReopenWriterRequestAction(BaseOrderAction):
     """
@@ -342,7 +342,7 @@ class ListMyAcceptedWriterRequestsAction(BaseOrderAction):
             raise PermissionDenied("Only authenticated users can list their requests.")
         service = OrderRequestService(user=self.user)
         return service.list_my_accepted_requests(self.user)
-    
+
 class ListRequestsByStatusAction(BaseOrderAction):
     """
     List all writer requests for the current order by status.

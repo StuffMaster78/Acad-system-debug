@@ -261,7 +261,7 @@ class RevisionOrchestrationService:
             raise ValidationError(
                 "Approved orders cannot be revised."
             )
-        
+
         existing_open_paid_revision_adjustment = (
             OrderAdjustmentRequest.objects.select_for_update()
             .filter(
@@ -276,7 +276,7 @@ class RevisionOrchestrationService:
             raise ValidationError(
                 "Order already has a pending paid revision adjustment."
             )
-        
+
         existing_open_revision = OrderRevisionRequest.objects.select_for_update().filter(
             order=order,
             status=ORDER_REVISION_STATUS_PENDING,
@@ -286,7 +286,7 @@ class RevisionOrchestrationService:
             raise ValidationError(
                 "Order already has a pending revision request."
             )
-        
+
         reference_time = (
             order.completed_at
             or getattr(order, "submitted_at", None)

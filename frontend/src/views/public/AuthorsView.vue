@@ -82,7 +82,7 @@ useMeta({
 });
 
 const isLoading = ref(true);
-const authors   = ref<CMSAuthor[]>([]);
+const authors = ref<CMSAuthor[]>([]);
 
 onMounted(async () => {
   try {

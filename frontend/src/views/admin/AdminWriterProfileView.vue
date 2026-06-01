@@ -270,7 +270,7 @@ const levelColor = computed(() => {
                 :key="star"
                 class="flex items-center gap-2"
               >
-                <span class="text-xs text-graphite w-4 text-right">{{ star }}★</span>
+                <span class="text-xs text-graphite w-4 text-right">{{ star }}</span>
                 <div class="flex-1 h-2 rounded-full bg-slate-100">
                   <div
                     class="h-2 rounded-full bg-saffron transition-all"

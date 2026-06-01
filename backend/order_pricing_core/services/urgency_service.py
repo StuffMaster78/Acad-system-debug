@@ -10,7 +10,7 @@ class UrgencyResult:
   normalized_hours: float
   was_adjusted: bool
   reason: Optional[str]
-  level: str  # 'rush', 'same_day', 'standard'
+  level: str # 'rush', 'same_day', 'standard'
 
 
 class UrgencyService:
@@ -24,7 +24,7 @@ class UrgencyService:
   - Suggests safer deadlines when the request is too aggressive.
 
   These defaults follow the brainstormed rules:
-    - 1 page:  >= 1 hour
+    - 1 page: >= 1 hour
     - 2 pages: >= 1–2 hours
     - 3 pages: >= 2–3 hours
     - 4 pages: >= 3 hours
@@ -39,12 +39,12 @@ class UrgencyService:
     Compute a minimum safe deadline (in hours) for a given page count.
 
     Business rules (from your brainstorm):
-      - 1 page:  >= 1 hour
-      - 2 pages: >= 1-2 hours  → min 1h
-      - 3 pages: >= 2-3 hours  → min 2h
-      - 4 pages: >= 3-4 hours  → min 3h
-      - 5 pages: >= 5-6 hours  → min 5h
-      - 6 pages: >= 5-7 hours  → min 5h
+      - 1 page: >= 1 hour
+      - 2 pages: >= 1-2 hours → min 1h
+      - 3 pages: >= 2-3 hours → min 2h
+      - 4 pages: >= 3-4 hours → min 3h
+      - 5 pages: >= 5-6 hours → min 5h
+      - 6 pages: >= 5-7 hours → min 5h
       - 7+ pages: no extra hard limit here (pricing handles the pressure),
         so we return 0 to indicate "no adjustment" beyond the global 1h floor.
     """
@@ -73,9 +73,9 @@ class UrgencyService:
     """
     Classify urgency level for UX.
 
-    - <= 6h  => 'rush'
+    - <= 6h => 'rush'
     - <= 24h => 'same_day'
-    - > 24h  => 'standard'
+    - > 24h => 'standard'
     """
     if hours <= 6:
       return 'rush'

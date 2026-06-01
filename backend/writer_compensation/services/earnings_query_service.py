@@ -66,7 +66,7 @@ class EarningsQueryService:
         """
         qs = CompensationEvent.objects.filter(
             website=website,
-            payment_window__start_date__gte=start_date,   # FIX: was created_at__range
+            payment_window__start_date__gte=start_date, # FIX: was created_at__range
             payment_window__end_date__lte=end_date,
             status__in=[EventStatus.MATURED, EventStatus.PAID],
         )
@@ -108,13 +108,13 @@ class EarningsQueryService:
 
         return {
             "totals": {
-                "earnings":   earnings,
-                "bonuses":    bonuses,
-                "tips":       tips,
+                "earnings": earnings,
+                "bonuses": bonuses,
+                "tips": tips,
                 "deductions": deductions,
-                "reversals":  reversals,
-                "advances":   advances,
-                "net":        net,
+                "reversals": reversals,
+                "advances": advances,
+                "net": net,
             }
         }
 
@@ -134,7 +134,7 @@ class EarningsQueryService:
         qs = CompensationEvent.objects.filter(
             website=website,
             writer=writer,
-            payment_window__start_date__gte=start_date,   # FIX
+            payment_window__start_date__gte=start_date, # FIX
             payment_window__end_date__lte=end_date,
             status__in=[EventStatus.MATURED, EventStatus.PAID],
         )
@@ -190,16 +190,16 @@ class EarningsQueryService:
             "related_window",
         ).order_by("created_at")
 
-        events  = list(qs)
+        events = list(qs)
         grouped = EarningsQueryService._group_by_window(events)
-        totals  = EarningsQueryService._compute_totals(grouped)
+        totals = EarningsQueryService._compute_totals(grouped)
         anomalies = EarningsQueryService._detect_anomalies(events)
 
         return {
             "writer_id": writer.pk,
-            "windows":   grouped,
-            "totals":    totals,
-            "audit":     anomalies,
+            "windows": grouped,
+            "totals": totals,
+            "audit": anomalies,
         }
 
     @staticmethod
@@ -213,7 +213,7 @@ class EarningsQueryService:
         )
         return {
             "window_id": window.pk,
-            "writers":   EarningsQueryService._group_by_writer(events),
+            "writers": EarningsQueryService._group_by_writer(events),
         }
 
     # ------------------------------------------------------------------
@@ -228,18 +228,18 @@ class EarningsQueryService:
             w = e.payment_window
             if w.pk not in windows:
                 windows[w.pk] = {
-                    "window_id":  w.pk,
+                    "window_id": w.pk,
                     "start_date": w.start_date,
-                    "end_date":   w.end_date,
-                    "events":     [],
+                    "end_date": w.end_date,
+                    "events": [],
                     "totals": {
-                        "base":       Decimal("0.00"),
-                        "bonus":      Decimal("0.00"),
-                        "tips":       Decimal("0.00"),
+                        "base": Decimal("0.00"),
+                        "bonus": Decimal("0.00"),
+                        "tips": Decimal("0.00"),
                         "deductions": Decimal("0.00"),
-                        "reversals":  Decimal("0.00"),
-                        "advances":   Decimal("0.00"),
-                        "net":        Decimal("0.00"),
+                        "reversals": Decimal("0.00"),
+                        "advances": Decimal("0.00"),
+                        "net": Decimal("0.00"),
                     },
                 }
 
@@ -254,9 +254,9 @@ class EarningsQueryService:
                 t["base"]
                 + t["bonus"]
                 + t["tips"]
-                + t["deductions"]   # already negative
-                + t["reversals"]    # already negative
-                + t["advances"]     # signed: positive advance, negative recovery
+                + t["deductions"] # already negative
+                + t["reversals"] # already negative
+                + t["advances"] # signed: positive advance, negative recovery
             )
 
         return windows
@@ -272,13 +272,13 @@ class EarningsQueryService:
         elif t in _BONUS_TYPES:
             totals["bonus"] += a
         elif t in _TIP_TYPES:
-            totals["tips"] += a                     # FIX: was missing
+            totals["tips"] += a # FIX: was missing
         elif t in _DEDUCTION_TYPES:
-            totals["deductions"] += a               # already negative
+            totals["deductions"] += a # already negative
         elif t in _REVERSAL_TYPES:
-            totals["reversals"] += a                # already negative
+            totals["reversals"] += a # already negative
         elif t in _ADVANCE_TYPES:
-            totals["advances"] += a                 # FIX: was missing
+            totals["advances"] += a # FIX: was missing
         # HOLD types have no ledger impact — silently skipped
 
     @staticmethod
@@ -348,17 +348,17 @@ class EarningsQueryService:
 
             if key in seen and e.source_id is not None:
                 anomalies.append({
-                    "type":     "DUPLICATE_EVENT",
+                    "type": "DUPLICATE_EVENT",
                     "event_id": e.pk,
-                    "message":  "Duplicate ledger event detected",
+                    "message": "Duplicate ledger event detected",
                 })
             seen.add(key)
 
             if e.event_type in _BONUS_TYPES and e.amount < 0:
                 anomalies.append({
-                    "type":     "NEGATIVE_BONUS",
+                    "type": "NEGATIVE_BONUS",
                     "event_id": e.pk,
-                    "message":  "Bonus event has negative amount",
+                    "message": "Bonus event has negative amount",
                 })
 
             # FIX: only flag if snapshot relation exists on model
@@ -368,12 +368,12 @@ class EarningsQueryService:
                     snap = e.rate_card_snapshot
                     if snap is None:
                         anomalies.append({
-                            "type":     "MISSING_SNAPSHOT",
+                            "type": "MISSING_SNAPSHOT",
                             "event_id": e.pk,
-                            "message":  "Earning event has no rate card snapshot",
+                            "message": "Earning event has no rate card snapshot",
                         })
                 except AttributeError:
-                    pass  # model doesn't have snapshot yet — skip silently
+                    pass # model doesn't have snapshot yet — skip silently
 
         return anomalies
 
@@ -381,8 +381,8 @@ class EarningsQueryService:
     def _group_by_writer(events: list) -> dict:
         writers: dict[int, dict] = defaultdict(lambda: {
             "writer_id": None,
-            "events":    [],
-            "net":       Decimal("0.00"),
+            "events": [],
+            "net": Decimal("0.00"),
         })
         for e in events:
             w = writers[e.writer.pk]

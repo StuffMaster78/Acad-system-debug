@@ -200,7 +200,7 @@ class AuthNotificationBridgeService:
             return "*" * len(phone_number)
 
         return "*" * (len(phone_number) - 4) + phone_number[-4:]
-    
+
 
 
     @staticmethod
@@ -629,69 +629,69 @@ class AuthNotificationBridgeService:
             },
             channels=["email", "in_app"],
         )
-    
+
     # @staticmethod
     # def send_registration_verification_notification(
-    #     *,
-    #     user,
-    #     website,
-    #     verification_link: str,
-    #     otp_code: str,
-    #     expiry_minutes: int,
+    # *,
+    # user,
+    # website,
+    # verification_link: str,
+    # otp_code: str,
+    # expiry_minutes: int,
     # ) -> None:
-    #     NotificationService.notify(
-    #         recipient=user,
-    #         website=website,
-    #         event_key="auth.registration_verification_requested",
-    #         context={
-    #             "user": user,
-    #             "verification_link": verification_link,
-    #             "otp_code": otp_code,
-    #             "expiry_minutes": expiry_minutes,
-    #         },
-    #     )
+    # NotificationService.notify(
+    # recipient=user,
+    # website=website,
+    # event_key="auth.registration_verification_requested",
+    # context={
+    # "user": user,
+    # "verification_link": verification_link,
+    # "otp_code": otp_code,
+    # "expiry_minutes": expiry_minutes,
+    # },
+    # )
 
     # @staticmethod
     # def send_password_reset_notification(
-    #     *,
-    #     user,
-    #     website,
-    #     reset_link: str,
-    #     otp_code: str,
-    #     expiry_hours: int,
+    # *,
+    # user,
+    # website,
+    # reset_link: str,
+    # otp_code: str,
+    # expiry_hours: int,
     # ) -> None:
-    #     NotificationService.notify(
-    #         recipient=user,
-    #         website=website,
-    #         event_key="auth.password_reset_requested",
-    #         context={
-    #             "user": user,
-    #             "reset_link": reset_link,
-    #             "otp_code": otp_code,
-    #             "expiry_hours": expiry_hours,
-    #         },
-    #     )
+    # NotificationService.notify(
+    # recipient=user,
+    # website=website,
+    # event_key="auth.password_reset_requested",
+    # context={
+    # "user": user,
+    # "reset_link": reset_link,
+    # "otp_code": otp_code,
+    # "expiry_hours": expiry_hours,
+    # },
+    # )
 
     # @staticmethod
     # def send_account_unlock_notification(
-    #     *,
-    #     user,
-    #     website,
-    #     unlock_link: str,
-    #     otp_code: str,
-    #     expiry_minutes: int,
+    # *,
+    # user,
+    # website,
+    # unlock_link: str,
+    # otp_code: str,
+    # expiry_minutes: int,
     # ) -> None:
-    #     NotificationService.notify(
-    #         recipient=user,
-    #         website=website,
-    #         event_key="auth.account_unlock_requested",
-    #         context={
-    #             "user": user,
-    #             "unlock_link": unlock_link,
-    #             "otp_code": otp_code,
-    #             "expiry_minutes": expiry_minutes,
-    #         },
-    #     )
+    # NotificationService.notify(
+    # recipient=user,
+    # website=website,
+    # event_key="auth.account_unlock_requested",
+    # context={
+    # "user": user,
+    # "unlock_link": unlock_link,
+    # "otp_code": otp_code,
+    # "expiry_minutes": expiry_minutes,
+    # },
+    # )
 
     @staticmethod
     def send_account_unlocked_notification(
@@ -711,19 +711,19 @@ class AuthNotificationBridgeService:
 
     # @staticmethod
     # def send_magic_link_notification(
-    #     *,
-    #     user,
-    #     website,
-    #     magic_url: str,
-    #     expiry_minutes: int,
+    # *,
+    # user,
+    # website,
+    # magic_url: str,
+    # expiry_minutes: int,
     # ) -> None:
-    #     NotificationService.notify(
-    #         recipient=user,
-    #         website=website,
-    #         event_key="auth.magic_link_requested",
-    #         context={
-    #             "user": user,
-    #             "magic_url": magic_url,
-    #             "expiry_minutes": expiry_minutes,
-    #         },
-    #     )
+    # NotificationService.notify(
+    # recipient=user,
+    # website=website,
+    # event_key="auth.magic_link_requested",
+    # context={
+    # "user": user,
+    # "magic_url": magic_url,
+    # "expiry_minutes": expiry_minutes,
+    # },
+    # )

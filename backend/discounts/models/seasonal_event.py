@@ -5,7 +5,7 @@ from .promotions import PromotionalCampaign
 
 
 class SeasonalEventManager(models.Manager):
-    def create(self, **kwargs):  # type: ignore[override]
+    def create(self, **kwargs): # type: ignore[override]
         # Map legacy field names used by tests
         mapping = {}
         if 'name' in kwargs:

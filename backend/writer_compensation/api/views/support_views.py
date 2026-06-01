@@ -41,17 +41,17 @@ class SupportWriterEventsView(APIView):
 
         filters = {
             "event_type": request.query_params.get("event_type"),
-            "status":     request.query_params.get("status"),
-            "from_date":  request.query_params.get("from_date"),
-            "to_date":    request.query_params.get("to_date"),
+            "status": request.query_params.get("status"),
+            "from_date": request.query_params.get("from_date"),
+            "to_date": request.query_params.get("to_date"),
         }
 
-        events  = WriterSelectors.get_writer_events(writer, website, filters)
+        events = WriterSelectors.get_writer_events(writer, website, filters)
         summary = WriterSelectors.get_writer_lifetime_summary(writer, website)
 
         return Response({
             "summary": summary,
-            "events":  CompensationEventSerializer(events, many=True).data,
+            "events": CompensationEventSerializer(events, many=True).data,
         })
 
 

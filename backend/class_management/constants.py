@@ -169,7 +169,7 @@ class ClassTimelineEventType(models.TextChoices):
     NEEDS_CLIENT_INFO = "needs_client_info", "Needs Client Info"
     REVIEW_STARTED = "review_started", "Review Started"
     PRICE_PROPOSED = "price_proposed", "Price Proposed"
-    PRICE_ACCEPTED = "price_accepted", "Price Accepted"    
+    PRICE_ACCEPTED = "price_accepted", "Price Accepted"
     PRICE_REJECTED = "price_rejected", "Price Rejected"
     COUNTER_OFFER_SENT = "counter_offer_sent", "Counter Offer Sent"
     INVOICE_CREATED = "invoice_created", "Invoice Created"

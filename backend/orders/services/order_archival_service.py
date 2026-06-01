@@ -96,7 +96,7 @@ class OrderArchivalService:
         cls._ensure_no_pending_paid_revision_adjustment(
             order=locked_order,
         )
-        
+
         locked_order.status = ORDER_STATUS_ARCHIVED
         locked_order.archived_at = timezone.now()
         locked_order.save(
@@ -206,7 +206,7 @@ class OrderArchivalService:
         completed_at = getattr(order, "completed_at", None)
         if completed_at is None:
             return False
-        
+
         active_dispute_exists = OrderDispute.objects.filter(
             order=order,
             is_active=True,
@@ -255,7 +255,7 @@ class OrderArchivalService:
             raise ValidationError(
                 "Only completed orders can be archived."
             )
-        
+
         if getattr(order, "completed_at", None) is None:
             raise ValidationError(
                 "Completed orders must have completed_at."
@@ -334,7 +334,7 @@ class OrderArchivalService:
             actor=actor,
             metadata=metadata,
         )
-    
+
 
     # ----------------------------
     # Helpers

@@ -18,7 +18,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Technical Writing',
     'Business Writing',
     'Professional Writing',
-    
+
     # ========== EDITING & REVISION SERVICES ==========
     'Editing',
     'Copy Editing',
@@ -31,7 +31,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Revision',
     'Revisions',
     'Multiple Revisions',
-    
+
     # ========== PROOFREADING & CORRECTION ==========
     'Proofreading',
     'Grammar Check',
@@ -40,7 +40,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Language Correction',
     'Error Correction',
     'Formatting Check',
-    
+
     # ========== REWRITING & PARAPHRASING ==========
     'Rewriting',
     'Rewriting AI Content',
@@ -51,7 +51,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Content Rephrasing',
     'Sentence Rephrasing',
     'Paragraph Rephrasing',
-    
+
     # ========== PLAGIARISM SERVICES ==========
     'Plagiarism Removal',
     'Plagiarism Check',
@@ -60,7 +60,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Duplicate Content Removal',
     'Originality Check',
     'Similarity Reduction',
-    
+
     # ========== FORMATTING & STYLING ==========
     'Formatting',
     'Citation Formatting',
@@ -72,7 +72,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'IEEE Formatting',
     'Style Formatting',
     'Document Formatting',
-    
+
     # ========== RESEARCH SERVICES ==========
     'Research',
     'Literature Research',
@@ -82,7 +82,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Data Collection',
     'Research Assistance',
     'Research Support',
-    
+
     # ========== ANALYSIS SERVICES ==========
     'Data Analysis',
     'Statistical Analysis',
@@ -93,7 +93,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Critical Analysis',
     'Case Analysis',
     'SWOT Analysis',
-    
+
     # ========== REVIEW & CRITIQUE ==========
     'Review',
     'Article Review',
@@ -105,7 +105,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Critical Review',
     'Critical Evaluation',
     'Critical Assessment',
-    
+
     # ========== GRADING & MARKING ==========
     'Marking',
     'Grading',
@@ -114,7 +114,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Scoring',
     'Rubric Assessment',
     'Grade Assignment',
-    
+
     # ========== TRANSLATION SERVICES ==========
     'Translation',
     'Language Translation',
@@ -122,7 +122,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Academic Translation',
     'Technical Translation',
     'Professional Translation',
-    
+
     # ========== PROGRAMMING & TECHNICAL ==========
     'Programming',
     'Coding',
@@ -131,7 +131,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Code Debugging',
     'Software Development',
     'Algorithm Development',
-    
+
     # ========== DESIGN SERVICES ==========
     'Design',
     'Graphic Design',
@@ -139,7 +139,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Layout Design',
     'Visual Design',
     'Presentation Design',
-    
+
     # ========== CONSULTATION & GUIDANCE ==========
     'Consultation',
     'Writing Consultation',
@@ -150,7 +150,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Guidance',
     'Writing Guidance',
     'Academic Guidance',
-    
+
     # ========== OUTLINING & PLANNING ==========
     'Outlining',
     'Outline Creation',
@@ -158,14 +158,14 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Content Planning',
     'Thesis Development',
     'Argument Development',
-    
+
     # ========== SUMMARY & ABSTRACT ==========
     'Summary',
     'Summarizing',
     'Abstract Writing',
     'Executive Summary',
     'Synopsis Writing',
-    
+
     # ========== ANNOTATION & CITATION ==========
     'Annotation',
     'Annotating',
@@ -174,14 +174,14 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Bibliography Creation',
     'Works Cited Creation',
     'Reference List Creation',
-    
+
     # ========== PRESENTATION SERVICES ==========
     'Presentation Creation',
     'Slide Creation',
     'PowerPoint Creation',
     'Presentation Design',
     'Visual Presentation',
-    
+
     # ========== SPECIALIZED SERVICES ==========
     'Thesis Writing',
     'Dissertation Writing',
@@ -192,7 +192,7 @@ COMPREHENSIVE_TYPES_OF_WORK = [
     'Cover Letter Writing',
     'Personal Statement Writing',
     'Statement of Purpose Writing',
-    
+
     # ========== QUALITY ASSURANCE ==========
     'Quality Check',
     'Quality Assurance',

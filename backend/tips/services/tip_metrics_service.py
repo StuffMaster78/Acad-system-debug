@@ -45,7 +45,7 @@ class TipMetricsService:
     @staticmethod
     def get_platform_failure_rate() -> Decimal:
         return TipPlatformMetricsService.failure_rate()
-    
+
     @staticmethod
     def get_pending_tips_count() -> int:
         """

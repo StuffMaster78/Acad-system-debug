@@ -23,7 +23,7 @@ class AdminLoyaltyTransferSerializer(serializers.Serializer):
     def validate(self, attrs):
         # Additional validation logic can be added here if needed
         return attrs
-    
+
 class LoyaltyTierSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoyaltyTier
@@ -141,7 +141,7 @@ class AdminLoyaltyForceConvertSerializer(serializers.Serializer):
     def validate(self, attrs):
         # Additional validation logic can be added here if needed
         return attrs
-    
+
 
 class AdminLoyaltyDeductSerializer(serializers.Serializer):
     client_id = serializers.PrimaryKeyRelatedField(queryset=ClientProfile.objects.all())
@@ -157,7 +157,7 @@ class AdminLoyaltyDeductSerializer(serializers.Serializer):
     def validate(self, attrs):
         # Additional validation logic can be added here if needed
         return attrs
-    
+
 class AdminLoyaltyTrasferSerializer(serializers.Serializer):
     from_client_id = serializers.PrimaryKeyRelatedField(queryset=ClientProfile.objects.all(), source='from_client')
     to_client_id = serializers.PrimaryKeyRelatedField(queryset=ClientProfile.objects.all(), source='to_client')
@@ -172,7 +172,7 @@ class AdminLoyaltyTrasferSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         # Additional validation logic can be added here if needed
-        return attrs    
+        return attrs
 
 class AdminLoyaltyTransactionSerializer(serializers.ModelSerializer):
     client_username = serializers.CharField(source='client.user.username', read_only=True)
@@ -189,7 +189,7 @@ class AdminLoyaltyTransactionSerializer(serializers.ModelSerializer):
 
 class RedemptionCategorySerializer(serializers.ModelSerializer):
     items_count = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = RedemptionCategory
         fields = [
@@ -197,7 +197,7 @@ class RedemptionCategorySerializer(serializers.ModelSerializer):
             'created_at', 'items_count'
         ]
         read_only_fields = ['created_at']
-    
+
     def get_items_count(self, obj):
         return obj.items.filter(is_active=True).count()
 
@@ -206,7 +206,7 @@ class RedemptionItemSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     is_available = serializers.BooleanField(read_only=True)
     can_redeem = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = RedemptionItem
         fields = [
@@ -218,7 +218,7 @@ class RedemptionItemSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['total_redemptions', 'created_at', 'updated_at']
-    
+
     def get_can_redeem(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
@@ -237,7 +237,7 @@ class RedemptionRequestSerializer(serializers.ModelSerializer):
     client_username = serializers.CharField(source='client.user.username', read_only=True)
     approved_by_username = serializers.CharField(source='approved_by.username', read_only=True, allow_null=True)
     fulfilled_by_username = serializers.CharField(source='fulfilled_by.username', read_only=True, allow_null=True)
-    
+
     class Meta:
         model = RedemptionRequest
         fields = [
@@ -274,7 +274,7 @@ class RejectRedemptionSerializer(serializers.Serializer):
 class LoyaltyAnalyticsSerializer(serializers.ModelSerializer):
     website_name = serializers.CharField(source='website.name', read_only=True)
     most_popular_item_name = serializers.CharField(source='most_popular_item.name', read_only=True, allow_null=True)
-    
+
     class Meta:
         model = LoyaltyAnalytics
         fields = [
@@ -291,7 +291,7 @@ class LoyaltyAnalyticsSerializer(serializers.ModelSerializer):
 
 class DashboardWidgetSerializer(serializers.ModelSerializer):
     website_name = serializers.CharField(source='website.name', read_only=True)
-    
+
     class Meta:
         model = DashboardWidget
         fields = [

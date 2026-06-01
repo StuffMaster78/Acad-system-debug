@@ -58,7 +58,7 @@ class ProfileService:
             profile.save(update_fields=[*update_data.keys(), "updated_at"])
 
         return profile
-    
+
     @staticmethod
     def get_display_name(user: User) -> str:
         """

@@ -20,7 +20,7 @@ This service configures the workflow and adds:
 Usage:
     from cms_core.services.workflow_service import WorkflowService
 
-    WorkflowService.setup_editorial_workflow(site)  # one-time per tenant
+    WorkflowService.setup_editorial_workflow(site) # one-time per tenant
 """
 
 from __future__ import annotations
@@ -57,8 +57,8 @@ class WorkflowService:
         Create the standard editorial workflow for a tenant.
 
         Pipeline:
-            1. Editor Review  — assigned to ``{Tenant} Editors`` group
-            2. Quality Check   — assigned to ``{Tenant} Admins`` group
+            1. Editor Review — assigned to ``{Tenant} Editors`` group
+            2. Quality Check — assigned to ``{Tenant} Admins`` group
 
         After approval at step 2, Wagtail publishes the page.
         Post-publish audit is triggered via the ``after_publish_page``

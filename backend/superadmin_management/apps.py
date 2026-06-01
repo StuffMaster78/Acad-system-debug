@@ -11,6 +11,6 @@ class SuperadminManagementConfig(AppConfig):
         This ensures automated notifications & logging.
         """
         try:
-            import superadmin_management.signals  # noqa: F401
+            import superadmin_management.signals # noqa: F401
         except Exception:
             pass

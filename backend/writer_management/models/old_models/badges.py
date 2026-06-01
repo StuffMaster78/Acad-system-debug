@@ -71,7 +71,7 @@ class Badge(models.Model):
 
     def __str__(self):
         return f"{self.icon or ''} {self.name}"
-    
+
 class WriterBadge(models.Model):
     """Represents a badge awarded to a writer."""
 

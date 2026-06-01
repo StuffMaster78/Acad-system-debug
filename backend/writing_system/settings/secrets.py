@@ -11,10 +11,10 @@ class Secrets:
     Layered secrets resolver.
 
     Resolution order (first non-empty value wins):
-        1. Environment variable  — always checked first, fastest path
-        2. AWS Secrets Manager   — optional; activated when AWS_SECRETS_MANAGER_PREFIX
+        1. Environment variable — always checked first, fastest path
+        2. AWS Secrets Manager — optional; activated when AWS_SECRETS_MANAGER_PREFIX
                                    is set and boto3 is available
-        3. default               — caller-supplied fallback
+        3. default — caller-supplied fallback
 
     AWS Secrets Manager notes:
         - Set AWS_SECRETS_MANAGER_PREFIX to the path prefix for your secrets,

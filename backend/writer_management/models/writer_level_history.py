@@ -9,11 +9,11 @@ All 8 models from the old ranking.py:
     WriterAutoRanking
     WriterRankingHistory
     WriterRankingLog
-    WriterRankingCriteria       → now WriterLevelCriteria
-    WriterRankingCriteriaAdmin  → deleted (duplicate)
-    WriterRanking               → live level is on WriterProfile.writer_level
-    WriterRankingAdminReview    → admin_notes field on this model
-    WriterRankingNotification   → platform notification system
+    WriterRankingCriteria → now WriterLevelCriteria
+    WriterRankingCriteriaAdmin → deleted (duplicate)
+    WriterRanking → live level is on WriterProfile.writer_level
+    WriterRankingAdminReview → admin_notes field on this model
+    WriterRankingNotification → platform notification system
 
 ONE MODEL. ONE RESPONSIBILITY.
     Record that a level change happened, when, why, by what trigger,

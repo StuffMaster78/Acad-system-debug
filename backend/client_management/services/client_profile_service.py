@@ -54,9 +54,9 @@ class ClientProfileService:
         Logs action and notifies client.
 
         Args:
-            client:       ClientProfile to suspend.
+            client: ClientProfile to suspend.
             performed_by: Admin User performing the action.
-            reason:       Required suspension reason.
+            reason: Required suspension reason.
 
         Raises:
             ValueError: If already suspended.
@@ -88,7 +88,7 @@ class ClientProfileService:
             client=client,
             context={
                 "registration_id": client.registration_id,
-                "reason":          reason,
+                "reason": reason,
             },
         )
 
@@ -112,9 +112,9 @@ class ClientProfileService:
         Reactivate a suspended or deactivated client account.
 
         Args:
-            client:       ClientProfile to reactivate.
+            client: ClientProfile to reactivate.
             performed_by: Admin User.
-            reason:       Optional reason for reactivation.
+            reason: Optional reason for reactivation.
         """
         client.is_suspended = False
         client.is_active = True
@@ -189,9 +189,9 @@ class ClientProfileService:
         explicit separate methods.
 
         Args:
-            client:     ClientProfile to update.
+            client: ClientProfile to update.
             updated_by: User making the change.
-            **fields:   Fields to update.
+            **fields: Fields to update.
         """
         allowed = {"country", "timezone", "phone_number"}
         unknown = set(fields) - allowed
@@ -209,7 +209,7 @@ class ClientProfileService:
         if not update_fields:
             return client
 
-        update_fields.append("date_joined")  # updated_at not on model
+        update_fields.append("date_joined") # updated_at not on model
         client.save(update_fields=[
             f for f in update_fields if f != "date_joined"
         ])
@@ -365,7 +365,7 @@ class ClientProfileService:
             client=request.client,
             context={
                 "registration_id": request.client.registration_id,
-                "reason":          reason,
+                "reason": reason,
             },
         )
 

@@ -40,9 +40,9 @@ class AdminWriterEarningsView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request, writer_id):
-        website    = _get_website(request)
-        from_date  = request.query_params.get("from_date")
-        to_date    = request.query_params.get("to_date")
+        website = _get_website(request)
+        from_date = request.query_params.get("from_date")
+        to_date = request.query_params.get("to_date")
 
         if not from_date or not to_date:
             return _error("from_date and to_date query params are required.", 400)
@@ -73,9 +73,9 @@ class AdminWriterEarningsBreakdownView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request, writer_id):
-        website   = _get_website(request)
+        website = _get_website(request)
         from_date = request.query_params.get("from_date")
-        to_date   = request.query_params.get("to_date")
+        to_date = request.query_params.get("to_date")
 
         if not from_date or not to_date:
             return _error("from_date and to_date query params are required.", 400)
@@ -98,7 +98,7 @@ class AdminWriterEarningsBreakdownView(APIView):
 class AdminWriterFullEarningsView(APIView):
     """
     GET /admin/writers/{writer_id}/earnings/full/
-        ?window_id=12  (optional — omit for full history)
+        ?window_id=12 (optional — omit for full history)
 
     Full earnings reconstruction grouped by window.
     Includes anomaly audit flags.
@@ -113,11 +113,11 @@ class AdminWriterFullEarningsView(APIView):
             return _error("Writer not found.", 404)
 
         window_id = request.query_params.get("window_id")
-        window    = None
+        window = None
 
         if window_id:
             website = _get_website(request)
-            window  = WindowSelectors.get_window_by_id(int(window_id), website)
+            window = WindowSelectors.get_window_by_id(int(window_id), website)
             if not window:
                 return _error("Window not found.", 404)
 
@@ -139,7 +139,7 @@ class AdminWindowEarningsBreakdownView(APIView):
 
     def get(self, request, window_id):
         website = _get_website(request)
-        window  = WindowSelectors.get_window_by_id(window_id, website)
+        window = WindowSelectors.get_window_by_id(window_id, website)
         if not window:
             return _error("Window not found.", 404)
 
@@ -169,14 +169,14 @@ class AdminApplyMilestoneBonusView(APIView):
             return _error("Writer not found.", 404)
 
         milestone = request.data.get("milestone")
-        amount    = request.data.get("amount")
+        amount = request.data.get("amount")
 
         if not milestone or not amount:
             return _error("milestone and amount are required.", 400)
 
         try:
             milestone = int(milestone)
-            amount    = Decimal(str(amount))
+            amount = Decimal(str(amount))
         except Exception:
             return _error("milestone must be an integer, amount must be a decimal.", 400)
 
@@ -220,7 +220,7 @@ class AdminApplyPerformanceBonusView(APIView):
         except Exception:
             return _error("Writer not found.", 404)
 
-        order_id    = request.data.get("order_id")
+        order_id = request.data.get("order_id")
         base_amount = request.data.get("base_amount")
 
         if not order_id or not base_amount:
@@ -311,7 +311,7 @@ class AdminWriterBonusHistoryView(APIView):
         except Exception:
             return _error("Writer not found.", 404)
 
-        limit  = int(request.query_params.get("limit", 50))
+        limit = int(request.query_params.get("limit", 50))
         events = BonusService.get_bonus_history(writer=writer, limit=limit)
 
         from writer_compensation.api.serializers.compensation_event_serializers import (
@@ -334,10 +334,10 @@ class WriterEarningsView(APIView):
     permission_classes = [IsWriter]
 
     def get(self, request):
-        website   = _get_website(request)
-        writer    = _get_writer_profile(request)
+        website = _get_website(request)
+        writer = _get_writer_profile(request)
         from_date = request.query_params.get("from_date")
-        to_date   = request.query_params.get("to_date")
+        to_date = request.query_params.get("to_date")
 
         if not from_date or not to_date:
             return _error("from_date and to_date query params are required.", 400)
@@ -362,7 +362,7 @@ class WriterRunningBalanceView(APIView):
 
     def get(self, request):
         website = _get_website(request)
-        writer  = _get_writer_profile(request)
+        writer = _get_writer_profile(request)
 
         return Response({
             "pending": EarningsQueryService.get_pending_balance(
@@ -385,7 +385,7 @@ class WriterBonusHistoryView(APIView):
 
     def get(self, request):
         writer = _get_writer_profile(request)
-        limit  = int(request.query_params.get("limit", 20))
+        limit = int(request.query_params.get("limit", 20))
         events = BonusService.get_bonus_history(writer=writer, limit=limit)
 
         from writer_compensation.api.serializers.writer_payout_serializers import (

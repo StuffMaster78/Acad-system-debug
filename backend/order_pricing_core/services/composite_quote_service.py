@@ -279,7 +279,7 @@ class CompositePricingQuoteService:
     @staticmethod
     def _money(amount: Decimal) -> Decimal:
         return amount.quantize(TWOPLACES, rounding=ROUND_HALF_UP)
-    
+
 
     @staticmethod
     def build_checkout_payload(

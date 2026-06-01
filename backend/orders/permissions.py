@@ -61,7 +61,7 @@ class IsClient(BasePermission):
     Allow only the client who placed the order.
     """
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == User.CLIENT   
+        return request.user.is_authenticated and request.user.role == User.CLIENT
 
 class IsClientWhoOwnsOrder(BasePermission):
     """
@@ -210,11 +210,11 @@ class IsOrderOwnerOrSupport(BasePermission):
         # Client owns the order
         if obj.client == request.user:
             return True
-        
+
         # Support/admin/superadmin/editor can see all orders
         if user_role in support_roles:
             return True
-        
+
         if user_role == "writer":
             from orders.selectors.order_visibility_selector import (
                 OrderVisibilitySelector,
@@ -224,7 +224,7 @@ class IsOrderOwnerOrSupport(BasePermission):
                 writer=request.user,
                 order=obj,
             ).can_view
-        
+
         return False
 
 

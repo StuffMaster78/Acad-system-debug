@@ -7,14 +7,14 @@ from orders.models.legacy_models.review_reminders import ReviewReminder
 
 class ReviewReminderSerializer(serializers.ModelSerializer):
     """Serializer for Review Reminders"""
-    
+
     client_username = serializers.CharField(source='client.username', read_only=True)
     client_email = serializers.EmailField(source='client.email', read_only=True)
     writer_username = serializers.CharField(source='writer.username', read_only=True, allow_null=True)
     writer_email = serializers.EmailField(source='writer.email', read_only=True, allow_null=True)
     order_id = serializers.IntegerField(source='order.id', read_only=True)
     order_title = serializers.CharField(source='order.title', read_only=True)
-    
+
     class Meta:
         model = ReviewReminder
         fields = [

@@ -14,7 +14,7 @@ class RateOrderAction(BaseOrderAction):
 
         AuditLogService.log_auto(
             actor=self.user,
-            action="RATE",  # Add this to ACTION_CHOICES
+            action="RATE", # Add this to ACTION_CHOICES
             target="orders.Order",
             target_id=self.order_id,
             metadata={

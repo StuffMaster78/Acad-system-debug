@@ -16,7 +16,7 @@ class SystemHealthViewSet(viewsets.ViewSet):
     Admin and superadmin only.
     """
     permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
-    
+
     @action(detail=False, methods=['get'])
     def health(self, request):
         """Get comprehensive system health metrics."""
@@ -32,7 +32,7 @@ class SystemHealthViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     @action(detail=False, methods=['get'], url_path='alerts')
     def alerts(self, request):
         """Get system alerts only."""

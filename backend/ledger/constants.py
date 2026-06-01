@@ -75,7 +75,7 @@ class LedgerEntryType(models.TextChoices):
         "Gateway Reconciliation Adjustment",
     )
 
-    
+
     TIP_SETTLEMENT = "tip_settlement", "Tip Settlement"
     ORDER_PAYMENT = "order_payment", "Order Payment"
     ORDER_INSTALLMENT_PAYMENT = (

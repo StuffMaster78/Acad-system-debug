@@ -18,7 +18,7 @@ class CompleteOrderAction(BaseOrderAction):
 
         AuditLogService.log_auto(
             actor=self.user,
-            action="COMPLETE",  # Add this to your ACTION_CHOICES
+            action="COMPLETE", # Add this to your ACTION_CHOICES
             target="orders.Order",
             target_id=self.order_id,
             changes={"status": [old_status, new_status]},

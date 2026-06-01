@@ -276,7 +276,7 @@ class CreateOrderSerializer(serializers.Serializer):
         if not user_model.objects.filter(pk=value).exists():
             raise serializers.ValidationError("Invalid client_id.")
         return value
-    
+
     def validate_preferred_writer_id(
         self,
         value: Optional[int],

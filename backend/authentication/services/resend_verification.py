@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 class ResendVerificationService:
     """
     Handles resending email verification tokens with cooldown and resend limits.
-    Designed for multitenancy support. 
+    Designed for multitenancy support.
     Ensures users can only request a new token after a cooldown period.
     """
     MAX_RESENDS = 3

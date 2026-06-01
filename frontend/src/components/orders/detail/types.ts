@@ -13,24 +13,24 @@ export const ORDER_DETAIL_KEY: InjectionKey<OrderDetailContext> = Symbol("order-
 
 // Which tabs each role may access
 export const ROLE_TABS: Record<UserRole, string[]> = {
-  client:     ["details", "files", "messages", "payments", "revisions", "timeline"],
-  writer:     ["details", "files", "messages", "revisions", "timeline"],
-  support:    ["details", "files", "messages", "payments", "revisions", "timeline"],
-  editor:     ["details", "files", "messages", "quality", "timeline"],
-  admin:      ["details", "files", "messages", "payments", "staffing", "revisions", "quality", "timeline", "audit"],
+  client: ["details", "files", "messages", "payments", "revisions", "timeline"],
+  writer: ["details", "files", "messages", "revisions", "timeline"],
+  support: ["details", "files", "messages", "payments", "revisions", "timeline"],
+  editor: ["details", "files", "messages", "quality", "timeline"],
+  admin: ["details", "files", "messages", "payments", "staffing", "revisions", "quality", "timeline", "audit"],
   superadmin: ["details", "files", "messages", "payments", "staffing", "revisions", "quality", "timeline", "audit"],
 };
 
 export const TAB_LABELS: Record<string, string> = {
-  details:  "Details",
-  files:    "Files",
+  details: "Details",
+  files: "Files",
   messages: "Messages",
   payments: "Payments",
   staffing: "Staffing",
   revisions: "Revisions",
-  quality:  "Quality",
+  quality: "Quality",
   timeline: "Timeline",
-  audit:    "Audit",
+  audit: "Audit",
 };
 
 // Masked identity helpers — display only, no real names crossing role boundary
@@ -48,11 +48,11 @@ export function maskedWriter(writerId: number | null | undefined): string {
 
 export function backRoute(role: UserRole): string {
   const map: Record<UserRole, string> = {
-    client:     "/client/orders",
-    writer:     "/writer/assignments",
-    support:    "/support/orders",
-    editor:     "/editor/qa",
-    admin:      "/admin/orders",
+    client: "/client/orders",
+    writer: "/writer/assignments",
+    support: "/support/orders",
+    editor: "/editor/qa",
+    admin: "/admin/orders",
     superadmin: "/superadmin/orders",
   };
   return map[role] ?? "/";

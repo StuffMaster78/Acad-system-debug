@@ -5,7 +5,7 @@ import difflib
 
 from orders.registry.decorator import get_registered_action
 
-if TYPE_CHECKING:  # avoid runtime import cycles
+if TYPE_CHECKING: # avoid runtime import cycles
     from orders.actions.base import BaseOrderAction
 
 
@@ -20,9 +20,9 @@ def get_action_or_raise(name: str) -> "Type[BaseOrderAction]":
     if action:
         return action
 
-    keys = list(get_registered_action_keys())  # type: ignore[name-defined]
+    keys = list(get_registered_action_keys()) # type: ignore[name-defined]
     # lazy import to dodge circulars
-    from orders.registry.decorator import get_registered_action_keys  # noqa
+    from orders.registry.decorator import get_registered_action_keys # noqa
 
     keys = list(get_registered_action_keys())
     hint = ""

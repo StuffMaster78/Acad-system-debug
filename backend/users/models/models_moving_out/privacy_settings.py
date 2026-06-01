@@ -74,14 +74,14 @@ class WriterPrivacySettings(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         indexes = [
             models.Index(fields=['user', 'website']),
         ]
         verbose_name = _("Writer Privacy Settings")
         verbose_name_plural = _("Writer Privacy Settings")
-    
+
     def __str__(self):
         return f"Privacy settings for {self.user.email}"
 
@@ -126,14 +126,14 @@ class ClientPrivacySettings(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         indexes = [
             models.Index(fields=['user', 'website']),
         ]
         verbose_name = _("Client Privacy Settings")
         verbose_name_plural = _("Client Privacy Settings")
-    
+
     def __str__(self):
         return f"Privacy settings for {self.user.email}"
 
@@ -180,7 +180,7 @@ class PenName(models.Model):
         help_text=_("When pen name was approved")
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         unique_together = ['user', 'website', 'pen_name']
         indexes = [
@@ -189,7 +189,7 @@ class PenName(models.Model):
         ]
         verbose_name = _("Pen Name")
         verbose_name_plural = _("Pen Names")
-    
+
     def __str__(self):
         return f"{self.pen_name} ({self.user.email})"
 

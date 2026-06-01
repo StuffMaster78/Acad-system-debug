@@ -36,7 +36,7 @@ class ClassWorkloadMetrics:
             .annotate(count=Count("id"))
             .order_by("status")
         )
-    
+
     @staticmethod
     def portal_activity_breakdown(*, website):
         return (

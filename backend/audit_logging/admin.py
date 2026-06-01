@@ -206,7 +206,7 @@ class AuditDeadLetterAdmin(admin.ModelAdmin):
 
         if obj.is_resolved:
             return format_html(
-                "<span style='color:green; font-weight:bold;'>✓ Resolved</span>"
+                "<span style='color:green; font-weight:bold;'> Resolved</span>"
             )
 
         return format_html(

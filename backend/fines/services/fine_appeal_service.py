@@ -125,7 +125,7 @@ class FineAppealService:
             raise PermissionDenied(
                 "Only the writer assigned to this order can dispute the fine."
             )
-        
+
         # Check if writer role
         if appealed_by.role != 'writer':
             raise PermissionDenied("Only writers can dispute fines.")
@@ -146,7 +146,7 @@ class FineAppealService:
             created_at=timezone.now(),
         )
 
-        fine.status = FineStatus.DISPUTED  # Changed from APPEALED to DISPUTED
+        fine.status = FineStatus.DISPUTED # Changed from APPEALED to DISPUTED
         fine.save(update_fields=["status"])
 
         event = FineAppealService._record_event(
@@ -163,7 +163,7 @@ class FineAppealService:
             metadata={
                 "appeal_id": appeal.id,
                 "reason": reason,
-                "appeal_status": FineStatus.DISPUTED,   
+                "appeal_status": FineStatus.DISPUTED,
             }
         )
 
@@ -179,38 +179,38 @@ class FineAppealService:
         )
 
         return appeal
-    
+
     @staticmethod
     def escalate_dispute(appeal, escalated_to, escalation_reason=None):
         """
         Escalate a dispute to admin/superadmin for resolution.
-        
+
         Args:
             appeal: The FineAppeal to escalate
             escalated_to: Admin/superadmin handling escalation
             escalation_reason: Optional reason for escalation
-            
+
         Returns:
             FineAppeal: Updated appeal instance
         """
         if appeal.escalated:
             raise ValueError("Dispute already escalated.")
-        
+
         if escalated_to.role not in ['admin', 'superadmin']:
             raise PermissionDenied("Only admins or superadmins can handle escalations.")
-        
+
         appeal.escalated = True
         appeal.escalated_at = timezone.now()
         appeal.escalated_to = escalated_to
-        
+
         if escalation_reason:
             appeal.resolution_notes = f"Escalation: {escalation_reason}"
-        
+
         appeal.save(update_fields=['escalated', 'escalated_at', 'escalated_to', 'resolution_notes'])
-        
+
         appeal.fine.status = FineStatus.ESCALATED
         appeal.fine.save(update_fields=['status'])
-        
+
         message = escalation_reason or "Appeal escalated for further review."
         FineAppealService._record_event(
             appeal,
@@ -219,7 +219,7 @@ class FineAppealService:
             message=message,
             metadata={"escalated_to": escalated_to.id},
         )
-        
+
         AuditLogService.log_auto(
             actor=escalated_to,
             action="fine_dispute_escalated",
@@ -240,7 +240,7 @@ class FineAppealService:
                 "message": message,
             },
         )
-        
+
         return appeal
 
     @staticmethod
@@ -262,7 +262,7 @@ class FineAppealService:
         """
         if reviewed_by.role not in FineAppealService.SUPPORTED_ADMIN_ROLES:
             raise PermissionDenied("Only admins, superadmins, or support can review disputes.")
-        
+
         if appeal.reviewed_at is not None:
             raise ValueError(
                 "This appeal has already been reviewed."

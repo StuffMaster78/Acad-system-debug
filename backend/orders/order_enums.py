@@ -17,17 +17,17 @@ class OrderFlags(str, Enum):
     EXPIRED_ORDER = 'EO'
     UNDER_REVIEW_ORDER = 'URO'
     REOPENED_ORDER = 'RO'
-    
+
     @classmethod
     def choices(cls):
         """
         Returns a list of tuples (value, label) for each flag in the enum.
         """
         return [
-            (flag.value, flag.name.replace('_', ' ').title()) 
+            (flag.value, flag.name.replace('_', ' ').title())
             for flag in cls
         ]
-    
+
 class OrderPaymentStatus(str, Enum):
     """
     Enum representing the payment status of an order.
@@ -63,10 +63,10 @@ class OrderPaymentStatus(str, Enum):
         Returns a list of tuples (value, label) for each dispute status.
         """
         return [
-            (status.value, status.name.replace('_', ' ').title()) 
+            (status.value, status.name.replace('_', ' ').title())
             for status in cls
         ]
-    
+
 class DisputeStatusEnum(Enum):
     """
     Enum representing the different statuses a dispute can have.
@@ -83,7 +83,7 @@ class DisputeStatusEnum(Enum):
         Returns a list of tuples (value, label) for each dispute status.
         """
         return [
-            (status.value, status.name.replace('_', ' ').title()) 
+            (status.value, status.name.replace('_', ' ').title())
             for status in cls
         ]
 
@@ -103,7 +103,7 @@ class ResolutionOutcome(Enum):
         Returns a list of tuples (value, label) for each dispute status.
         """
         return [
-            (status.value, status.name.replace('_', ' ').title()) 
+            (status.value, status.name.replace('_', ' ').title())
             for status in cls
         ]
 class SpacingOptions(Enum):
@@ -119,7 +119,7 @@ class SpacingOptions(Enum):
         Returns a list of tuples (value, label) for each spacing type in the enum.
         """
         return [
-            (spacing.value, spacing.name.capitalize()) 
+            (spacing.value, spacing.name.capitalize())
             for spacing in cls
         ]
 
@@ -135,7 +135,7 @@ class WriterPaymentStatus(Enum):
         Returns a list of tuples (value, label) for each dispute status.
         """
         return [
-            (status.value, status.name.replace('_', ' ').title()) 
+            (status.value, status.name.replace('_', ' ').title())
             for status in cls
         ]
 class OrderStatus(str, Enum):
@@ -169,7 +169,7 @@ class OrderStatus(str, Enum):
     ON_HOLD = 'on_hold'
     AVAILABLE = 'available'
     PENDING_PREFERRED = 'pending_preferred'
-    PENDING_WRITER_ASSIGNMENT = 'pending_writer_assignment'  # Assigned but waiting for writer acceptance
+    PENDING_WRITER_ASSIGNMENT = 'pending_writer_assignment' # Assigned but waiting for writer acceptance
     CRITICAL = 'critical'
     ASSIGNED = 'assigned'
     LATE = 'late'
@@ -185,7 +185,7 @@ class OrderStatus(str, Enum):
         Returns a list of tuples (value, label) for each dispute status.
         """
         return [
-            (status.value, status.name.replace('_', ' ').title()) 
+            (status.value, status.name.replace('_', ' ').title())
             for status in cls
         ]
 
@@ -276,14 +276,14 @@ def choices(cls):
         Returns a list of tuples (value, label) for each status in the enum.
         """
         return [
-            (status.value, status.name.replace('_', ' ').title()) 
+            (status.value, status.name.replace('_', ' ').title())
             for status in cls
         ]
 
 
 
 class OrderRequestStatus(models.TextChoices):
-    """ 
+    """
     Represents the status of an order request made by a writer.
     """
     PENDING = "pending", "Pending"
@@ -293,21 +293,21 @@ class OrderRequestStatus(models.TextChoices):
     EXPIRED = "expired", "Expired"
 
 # class OrderRequestType(models.TextChoices):
-#     """
-#     Represents the type of order request made by a writer.
-#     """
-#     WRITER_REQUEST = "writer_request", "Writer Request"
-#     ORDER_REQUEST = "order_request", "Order Request"
+# """
+# Represents the type of order request made by a writer.
+# """
+# WRITER_REQUEST = "writer_request", "Writer Request"
+# ORDER_REQUEST = "order_request", "Order Request"
 
-#     @classmethod
-#     def choices(cls):
-#         """
-#         Returns a list of tuples (value, label) for each type in the enum.
-#         """
-#         return [
-#             (request_type.value, request_type.label) 
-#             for request_type in cls
-#         ]
+# @classmethod
+# def choices(cls):
+# """
+# Returns a list of tuples (value, label) for each type in the enum.
+# """
+# return [
+# (request_type.value, request_type.label)
+# for request_type in cls
+# ]
 
 class WebhookEvent(models.TextChoices):
     """Webhook events for order updates."""

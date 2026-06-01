@@ -8,7 +8,7 @@ class OrderAccessService:
     ) -> bool:
         # If order doesn't have a writer_level requirement, allow assignment
         if not hasattr(order, 'writer_level') or not order.writer_level:
-            return True  # No restriction
+            return True # No restriction
 
         # Get writer's current level from their profile
         try:
@@ -44,7 +44,7 @@ class OrderAccessService:
         except AttributeError:
             # Writer profile doesn't exist
             return False
-        
+
         # Check level requirements
         return OrderAccessService.writer_meets_level(writer, order)
 

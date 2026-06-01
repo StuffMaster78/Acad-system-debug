@@ -27,7 +27,7 @@ class DeadLetterQueueStore:
                 is_resolved=False,
                 retry_count__lt=F("max_retries"),
             )
-            .order_by("failed_at")  # FIXED (was created_at)
+            .order_by("failed_at") # FIXED (was created_at)
         )[:batch_size]
 
     @classmethod

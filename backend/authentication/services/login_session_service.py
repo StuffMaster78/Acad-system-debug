@@ -123,9 +123,9 @@ class LoginSessionService:
 
         if not session.is_active:
             return None
-        
+
         return session
-    
+
     @staticmethod
     def get_idle_timeout_seconds(
         *,
@@ -161,7 +161,7 @@ class LoginSessionService:
         return timezone.now() >= (
             reference_time + timedelta(seconds=timeout_seconds)
         )
-    
+
     @staticmethod
     @transaction.atomic
     def revoke_if_expired(
@@ -311,7 +311,7 @@ class LoginSessionService:
         )
 
         return list(queryset)
-    
+
 
     @staticmethod
     def get_active_session_by_token_hash(
@@ -331,10 +331,10 @@ class LoginSessionService:
             queryset = queryset.filter(website=website)
 
         session = queryset.first()
-    
+
         if session is None or not session.is_active:
             return None
-        
+
         return session
 
     @staticmethod
@@ -349,7 +349,7 @@ class LoginSessionService:
             return False
 
         return timezone.now() >= session.expires_at
-    
+
 
     @staticmethod
     def get_session_by_id(
@@ -373,7 +373,7 @@ class LoginSessionService:
             return None
 
         return session
-    
+
 
     @staticmethod
     def get_current_session_from_request(

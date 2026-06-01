@@ -3,7 +3,7 @@ Promotion and demotion thresholds for a writer level.
 
 WHY SEPARATE FROM WriterLevel AND WriterLevelSettings
 ------------------------------------------------------
-WriterLevel       = what the level is called and its position in hierarchy
+WriterLevel = what the level is called and its position in hierarchy
 WriterLevelSettings = what we pay writers at this level (rate card)
 WriterLevelCriteria = what a writer must achieve to reach / stay at this level
 

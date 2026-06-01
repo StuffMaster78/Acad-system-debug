@@ -20,7 +20,7 @@ class ApproveOrderAction(BaseOrderAction):
 
         AuditLogService.log_auto(
             actor=self.user,
-            action="APPROVE",  
+            action="APPROVE",
             target="orders.Order",
             target_id=self.order_id,
             changes={"status": [old_status, new_status]},

@@ -8,11 +8,11 @@ This service answers one question:
      what is their current derived state?"
 
 It reads from:
-    WriterStrike          (lifetime and active strike counts)
-    WriterWarning         (active and lifetime warning counts)
-    WriterSuspension      (is_suspended, suspension_ends_at)
-    WriterBlacklist       (is_blacklisted)
-    WriterProbation       (is_on_probation, probation_ends_at)
+    WriterStrike (lifetime and active strike counts)
+    WriterWarning (active and lifetime warning counts)
+    WriterSuspension (is_suspended, suspension_ends_at)
+    WriterBlacklist (is_blacklisted)
+    WriterProbation (is_on_probation, probation_ends_at)
 
 It writes to:
     WriterDisciplineState (the cache)

@@ -92,7 +92,7 @@ class ClientBadgeViewSet(ModelViewSet):
         if self.request.user.is_staff:
             return ClientBadge.objects.all()
         return ClientBadge.objects.filter(client__user=self.request.user)
-    
+
 class LoyaltyPointsConversionConfigViewSet(viewsets.ModelViewSet):
     """
     Viewset for managing the LoyaltyPointsConversionConfig model.
@@ -115,7 +115,7 @@ class LoyaltyPointsConversionConfigViewSet(viewsets.ModelViewSet):
         if website is None:
             return LoyaltyPointsConversionConfig.objects.none()
         return LoyaltyPointsConversionConfig.objects.filter(website=website)
-    
+
 
 class AdminForceConversionView(APIView):
     permission_classes = [IsAdminUser]
@@ -138,7 +138,7 @@ class AdminForceConversionView(APIView):
             })
         except Exception as e:
             return Response({"detail": str(e)}, status=400)
-        
+
 
 
 class LoyaltySummaryView(APIView):
@@ -158,7 +158,7 @@ class LoyaltySummaryView(APIView):
             "conversion_rate": config.conversion_rate if config else "0.00"
         }
         return Response(LoyaltySummarySerializer(data).data)
-    
+
 
 class LoyaltyConvertView(APIView):
     def post(self, request):
@@ -172,7 +172,7 @@ class LoyaltyConvertView(APIView):
         amount = LoyaltyConversionService.convert_points_to_wallet(client, website, points)
 
         return Response({"converted": points, "amount": str(amount)}, status=status.HTTP_200_OK)
-    
+
 
 class LoyaltyTransactionListView(ListAPIView):
     serializer_class = LoyaltyTransactionSerializer
@@ -180,7 +180,7 @@ class LoyaltyTransactionListView(ListAPIView):
     def get_queryset(self):
         # LoyaltyTransaction model uses 'timestamp' not 'created_at'
         return LoyaltyTransaction.objects.filter(client=self.request.user.client_profile).order_by("-timestamp")
-    
+
 class AdminLoyaltyAwardView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -201,7 +201,7 @@ class AdminLoyaltyAwardView(APIView):
         )
 
         return Response(LoyaltyTransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
-    
+
 class AdminLoyaltyDeductView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -221,8 +221,8 @@ class AdminLoyaltyDeductView(APIView):
             reason=reason
         )
 
-        return Response(LoyaltyTransactionSerializer(transaction).data, status=status.HTTP_201_CREATED) 
-    
+        return Response(LoyaltyTransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
+
 class AdminLoyaltyTransferView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -258,7 +258,7 @@ class AdminLoyaltyTransferView(APIView):
         )
 
         return Response(LoyaltyTransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
-    
+
 class AdminLoyaltyConversionConfigView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -266,11 +266,11 @@ class AdminLoyaltyConversionConfigView(APIView):
         website = get_current_website(request)
         if not website:
             return Response({"detail": _("Website not found.")}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         config = LoyaltyPointsConversionConfig.objects.filter(website=website).first()
         if not config:
             return Response({"detail": _("No conversion configuration found.")}, status=status.HTTP_404_NOT_FOUND)
-        
+
         serializer = LoyaltyPointsConversionConfigSerializer(config)
         return Response(serializer.data)
 
@@ -278,7 +278,7 @@ class AdminLoyaltyConversionConfigView(APIView):
         website = get_current_website(request)
         if not website:
             return Response({"detail": _("Website not found.")}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         serializer = LoyaltyPointsConversionConfigSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -288,7 +288,7 @@ class AdminLoyaltyConversionConfigView(APIView):
         )
 
         return Response(LoyaltyPointsConversionConfigSerializer(config).data, status=status.HTTP_200_OK)
-    
+
 class AdminLoyaltyAwardView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
@@ -341,7 +341,7 @@ class RedemptionCategoryViewSet(viewsets.ModelViewSet):
     queryset = RedemptionCategory.objects.all()
     serializer_class = RedemptionCategorySerializer
     permission_classes = [IsAdminOrReadOnly]
-    
+
     def get_queryset(self):
         """Filter by website if available."""
         queryset = super().get_queryset()
@@ -359,23 +359,23 @@ class RedemptionItemViewSet(viewsets.ModelViewSet):
     queryset = RedemptionItem.objects.all()
     serializer_class = RedemptionItemSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter by website and active status."""
         queryset = super().get_queryset()
         website = get_current_website(self.request)
         if website:
             queryset = queryset.filter(website=website)
-        
+
         # Clients only see active items
         if not self.request.user.is_staff:
             queryset = queryset.filter(is_active=True)
-        
+
         # Filter by category if provided
         category_id = self.request.query_params.get('category')
         if category_id:
             queryset = queryset.filter(category_id=category_id)
-        
+
         return queryset.select_related('category', 'min_tier_level')
 
 
@@ -387,14 +387,14 @@ class RedemptionRequestViewSet(viewsets.ModelViewSet):
     queryset = RedemptionRequest.objects.all()
     serializer_class = RedemptionRequestSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter by user role."""
         queryset = super().get_queryset()
         website = get_current_website(self.request)
         if website:
             queryset = queryset.filter(website=website)
-        
+
         # Clients only see their own requests
         if not self.request.user.is_staff:
             try:
@@ -402,33 +402,33 @@ class RedemptionRequestViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(client=client_profile)
             except:
                 queryset = queryset.none()
-        
+
         # Filter by status if provided
         status_filter = self.request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-        
+
         return queryset.select_related('item', 'item__category', 'client', 'client__user')
-    
+
     def get_serializer_class(self):
         """Use different serializer for creation."""
         if self.action == 'create':
             return CreateRedemptionRequestSerializer
         return RedemptionRequestSerializer
-    
+
     def perform_create(self, serializer):
         """Create redemption request using service."""
         client_profile = self.request.user.client_profile
         item_id = serializer.validated_data['item_id']
         fulfillment_details = serializer.validated_data.get('fulfillment_details', {})
-        
+
         redemption = RedemptionService.create_redemption_request(
             client_profile=client_profile,
             item_id=item_id,
             fulfillment_details=fulfillment_details
         )
         serializer.instance = redemption
-    
+
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def approve(self, request, pk=None):
         """Approve a redemption request."""
@@ -441,14 +441,14 @@ class RedemptionRequestViewSet(viewsets.ModelViewSet):
             )
         except ValidationError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def reject(self, request, pk=None):
         """Reject a redemption request."""
         redemption = self.get_object()
         serializer = RejectRedemptionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             RedemptionService.reject_redemption(
                 redemption,
@@ -461,12 +461,12 @@ class RedemptionRequestViewSet(viewsets.ModelViewSet):
             )
         except ValidationError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def cancel(self, request, pk=None):
         """Cancel a redemption request."""
         redemption = self.get_object()
-        
+
         # Clients can only cancel their own pending requests
         if not request.user.is_staff:
             if redemption.client.user != request.user:
@@ -474,7 +474,7 @@ class RedemptionRequestViewSet(viewsets.ModelViewSet):
                     {'detail': 'You can only cancel your own redemptions.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
         try:
             RedemptionService.cancel_redemption(redemption, request.user)
             return Response(
@@ -496,7 +496,7 @@ class LoyaltyAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = LoyaltyAnalytics.objects.all()
     serializer_class = LoyaltyAnalyticsSerializer
     permission_classes = [IsAdminUser]
-    
+
     def get_queryset(self):
         """Filter by website."""
         queryset = super().get_queryset()
@@ -504,57 +504,57 @@ class LoyaltyAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
         if website:
             queryset = queryset.filter(website=website)
         return queryset
-    
+
     @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
     def calculate(self, request):
         """Calculate analytics for a date range."""
         from datetime import datetime, date
-        
+
         website = get_current_website(request)
         date_from_str = request.data.get('date_from')
         date_to_str = request.data.get('date_to')
-        
+
         date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date() if date_from_str else None
         date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date() if date_to_str else None
-        
+
         analytics = LoyaltyAnalyticsService.calculate_analytics(
             website=website,
             date_from=date_from,
             date_to=date_to
         )
-        
+
         return Response(
             LoyaltyAnalyticsSerializer(analytics).data,
             status=status.HTTP_200_OK
         )
-    
+
     @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
     def points_trend(self, request):
         """Get points trend over time."""
         website = get_current_website(request)
         days = int(request.query_params.get('days', 30))
-        
+
         trend = LoyaltyAnalyticsService.get_points_trend(website, days)
         serializer = PointsTrendSerializer(trend, many=True)
         return Response(serializer.data)
-    
+
     @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
     def top_redemptions(self, request):
         """Get top redemption items."""
         website = get_current_website(request)
         limit = int(request.query_params.get('limit', 10))
-        
+
         items = LoyaltyAnalyticsService.get_top_redemption_items(website, limit)
         serializer = TopRedemptionItemSerializer(items, many=True)
         return Response(serializer.data)
-    
+
     @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
     def tier_distribution(self, request):
         """Get tier distribution."""
         website = get_current_website(request)
-        
+
         distribution = LoyaltyAnalyticsService.get_tier_distribution(website)
-        
+
         # Convert to list format
         data = [
             {
@@ -565,16 +565,16 @@ class LoyaltyAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
             }
             for tier_name, tier_data in distribution.items()
         ]
-        
+
         serializer = TierDistributionSerializer(data, many=True)
         return Response(serializer.data)
-    
+
     @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
     def engagement_stats(self, request):
         """Get client engagement statistics."""
         website = get_current_website(request)
         days = int(request.query_params.get('days', 30))
-        
+
         stats = LoyaltyAnalyticsService.get_client_engagement_stats(website, days)
         serializer = EngagementStatsSerializer(stats)
         return Response(serializer.data)
@@ -587,7 +587,7 @@ class DashboardWidgetViewSet(viewsets.ModelViewSet):
     queryset = DashboardWidget.objects.all()
     serializer_class = DashboardWidgetSerializer
     permission_classes = [IsAdminUser]
-    
+
     def get_queryset(self):
         """Filter by website."""
         queryset = super().get_queryset()

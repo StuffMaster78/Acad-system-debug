@@ -41,46 +41,46 @@ class Command(BaseCommand):
 
         # Get clients without referral codes
         clients_query = User.objects.filter(role='client', is_active=True)
-        
+
         if website_id:
             clients_query = clients_query.filter(website_id=website_id)
-        
+
         # Exclude clients who already have codes
         if not force:
             clients_with_codes = ReferralCode.objects.values_list('user_id', flat=True)
             clients_query = clients_query.exclude(id__in=clients_with_codes)
-        
+
         clients = clients_query.select_related('website')
-        
+
         total_clients = clients.count()
-        
+
         if total_clients == 0:
             self.stdout.write(
                 self.style.SUCCESS('No clients found without referral codes.')
             )
             return
-        
+
         self.stdout.write(
             f'Found {total_clients} client(s) without referral codes.'
         )
-        
+
         if dry_run:
             self.stdout.write(
                 self.style.WARNING('DRY RUN MODE - No codes will be created')
             )
-            for client in clients[:10]:  # Show first 10
+            for client in clients[:10]: # Show first 10
                 website_name = client.website.name if client.website else 'No website'
                 self.stdout.write(
-                    f'  - {client.username} ({client.email}) - {website_name}'
+                    f' - {client.username} ({client.email}) - {website_name}'
                 )
             if total_clients > 10:
-                self.stdout.write(f'  ... and {total_clients - 10} more')
+                self.stdout.write(f' ... and {total_clients - 10} more')
             return
-        
+
         # Generate codes
         created = 0
         failed = 0
-        
+
         for client in clients:
             try:
                 if not client.website:
@@ -91,7 +91,7 @@ class Command(BaseCommand):
                     )
                     failed += 1
                     continue
-                
+
                 # Check if code already exists (if force is False)
                 if not force:
                     if ReferralCode.objects.filter(user=client, website=client.website).exists():
@@ -101,7 +101,7 @@ class Command(BaseCommand):
                             )
                         )
                         continue
-                
+
                 # Generate unique code
                 with transaction.atomic():
                     code = ReferralService.generate_unique_code(client, client.website)
@@ -127,7 +127,7 @@ class Command(BaseCommand):
                     f'Failed to generate referral code for client {client.id}: {e}',
                     exc_info=True
                 )
-        
+
         # Summary
         self.stdout.write('')
         self.stdout.write(

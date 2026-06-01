@@ -180,7 +180,7 @@ class WriterReputationSnapshot(models.Model):
             f"{self.writer_id}:{self.trust_score}"
             f">"
         )
-    
+
     @property
     def is_elite_writer(self) -> bool:
         """

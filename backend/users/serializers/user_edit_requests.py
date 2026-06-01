@@ -7,14 +7,14 @@ from users.models.user_edit_requests import UserEditRequest
 
 class UserEditRequestSerializer(serializers.ModelSerializer):
     """Serializer for user edit requests."""
-    
+
     user_email = serializers.CharField(source='user.email', read_only=True)
     user_username = serializers.CharField(source='user.username', read_only=True)
     user_full_name = serializers.SerializerMethodField()
     reviewed_by_email = serializers.CharField(source='reviewed_by.email', read_only=True, allow_null=True)
     changes_summary = serializers.SerializerMethodField()
     website_name = serializers.CharField(source='website.name', read_only=True)
-    
+
     class Meta:
         model = UserEditRequest
         fields = [
@@ -47,13 +47,13 @@ class UserEditRequestSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-    
+
     def get_user_full_name(self, obj):
         """Get user's full name."""
         if obj.user.first_name or obj.user.last_name:
             return f"{obj.user.first_name or ''} {obj.user.last_name or ''}".strip()
         return obj.user.username
-    
+
     def get_changes_summary(self, obj):
         """Get human-readable summary of changes."""
         return obj.get_changes_summary()
@@ -61,7 +61,7 @@ class UserEditRequestSerializer(serializers.ModelSerializer):
 
 class CreateUserEditRequestSerializer(serializers.Serializer):
     """Serializer for creating edit requests."""
-    
+
     field_changes = serializers.JSONField(
         help_text="Dictionary of field changes: {field_name: new_value}"
     )
@@ -75,7 +75,7 @@ class CreateUserEditRequestSerializer(serializers.Serializer):
         allow_blank=True,
         help_text="Reason for the change request"
     )
-    
+
     def validate_field_changes(self, value):
         """Validate field changes."""
         if not isinstance(value, dict):

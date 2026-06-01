@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 RATE_LIMIT_MAX = getattr(settings, 'NOTIFICATION_RATE_LIMIT_MAX', 10)
 RATE_LIMIT_WINDOW_SECONDS = getattr(
     settings, 'NOTIFICATION_RATE_LIMIT_WINDOW_SECONDS', 300
-)  # 5 minutes
+) # 5 minutes
 
 
 class NotificationService:
@@ -71,17 +71,17 @@ class NotificationService:
         Fire a notification for a given event.
 
         Args:
-            event_key:     Dot-notation event e.g. 'order.completed'
-            recipient:     User instance receiving the notification
-            website:       Website instance — required for tenancy
-            context:       Template variables e.g. {'order_id': 1}
-            channels:      Override channels — None uses event config defaults
-            triggered_by:  User who caused the event — None means system
-            priority:      NotificationPriority value — defaults to NORMAL
-            is_critical:   If True bypasses mute and DND checks
-            is_silent:     Store only — do not deliver to user
-            is_digest:     Group into digest instead of immediate send
-            digest_group:  Digest group key e.g. 'daily_summary'
+            event_key: Dot-notation event e.g. 'order.completed'
+            recipient: User instance receiving the notification
+            website: Website instance — required for tenancy
+            context: Template variables e.g. {'order_id': 1}
+            channels: Override channels — None uses event config defaults
+            triggered_by: User who caused the event — None means system
+            priority: NotificationPriority value — defaults to NORMAL
+            is_critical: If True bypasses mute and DND checks
+            is_silent: Store only — do not deliver to user
+            is_digest: Group into digest instead of immediate send
+            digest_group: Digest group key e.g. 'daily_summary'
 
         Returns:
             Outbox instance if queued, None if skipped or failed.
@@ -222,13 +222,13 @@ class NotificationService:
         Each user gets their own outbox entry and delivery.
 
         Args:
-            event_key:    Event to fire
-            role:         Role string e.g. 'writer', 'support'
-            website:      Website to scope users to
-            context:      Template context
+            event_key: Event to fire
+            role: Role string e.g. 'writer', 'support'
+            website: Website to scope users to
+            context: Template context
             triggered_by: Who triggered the event
-            priority:     Notification priority
-            is_critical:  Bypass mute and DND
+            priority: Notification priority
+            is_critical: Bypass mute and DND
         """
         # FIX: was settings.AUTH_USER_MODEL (a string). get_user_model()
         # returns the actual model class.
@@ -408,7 +408,7 @@ class NotificationService:
 
         try:
             from notifications_system.tasks.send import process_outbox_entry
-            process_outbox_entry.delay(outbox_id)  # type: ignore[attr-defined]
+            process_outbox_entry.delay(outbox_id) # type: ignore[attr-defined]
         except Exception as exc:
             logger.warning(
                 "Celery unavailable. Outbox %s queued for polling worker: %s",

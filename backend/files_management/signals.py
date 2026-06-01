@@ -5,6 +5,6 @@ from django.dispatch import Signal
 # actions such as order completion checks.
 #
 # Keyword arguments sent:
-#   attachment  — the FileAttachment that was downloaded
-#   user        — the user who downloaded the file
+# attachment — the FileAttachment that was downloaded
+# user — the user who downloaded the file
 file_first_downloaded = Signal()

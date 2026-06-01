@@ -115,7 +115,7 @@ class WriterDashboardRealtimeService:
             Order.objects.filter(
                 assigned_writer=user,
                 status__in=cls.READY_FOR_SUBMISSION_STATUSES,
-                is_paid=True,  # Only show paid orders
+                is_paid=True, # Only show paid orders
             )
             .select_related("client")
             .order_by("writer_deadline", "client_deadline")
@@ -138,7 +138,7 @@ class WriterDashboardRealtimeService:
         upcoming = (
             Order.objects.filter(
                 assigned_writer=user,
-                is_paid=True,  # Only show paid orders
+                is_paid=True, # Only show paid orders
             )
             .exclude(status__in=cls.EXCLUDED_DEADLINE_STATUSES)
             .order_by("writer_deadline", "client_deadline", "created_at")

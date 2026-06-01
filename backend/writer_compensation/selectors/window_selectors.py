@@ -63,10 +63,10 @@ class WindowSelectors:
             count=Count("id"),
         )
 
-        totals["gross"]      = totals["gross"]      or Decimal("0.00")
+        totals["gross"] = totals["gross"] or Decimal("0.00")
         totals["deductions"] = totals["deductions"] or Decimal("0.00")
-        totals["net"]        = totals["net"]        or Decimal("0.00")
-        totals["count"]      = totals["count"]      or 0
+        totals["net"] = totals["net"] or Decimal("0.00")
+        totals["count"] = totals["count"] or 0
 
         return events, totals
 

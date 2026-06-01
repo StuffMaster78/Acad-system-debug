@@ -26,9 +26,9 @@ Created by writer_metrics_snapshot_service on a Celery schedule
 (weekly or monthly depending on config).
 
 Used exclusively by:
-    level_progression_service   — promotion/demotion decisions
-    composite_score_service     — scoring input
-    admin performance reports   — trend visualisation
+    level_progression_service — promotion/demotion decisions
+    composite_score_service — scoring input
+    admin performance reports — trend visualisation
 
 The composite_score and better_than_percent fields are computed
 by composite_score_service AFTER snapshot creation and written
@@ -44,8 +44,8 @@ Created by performance_aggregator_service on weekly Celery task.
 Used by dashboards, reward criteria evaluation.
 
 Differs from WriterPerformanceSnapshot:
-    Snapshot  = frozen record for level progression (by period)
-    Metrics   = weekly aggregation with percentile rank (always weekly)
+    Snapshot = frozen record for level progression (by period)
+    Metrics = weekly aggregation with percentile rank (always weekly)
 
 ─────────────────────────────────────────────────────────────
 WHAT WAS FIXED
@@ -251,9 +251,9 @@ class WriterPerformanceSnapshot(models.Model):
     Frozen performance record for a specific time window.
 
     Append-only. Never updated after creation except:
-        composite_score     — written by composite_score_service
+        composite_score — written by composite_score_service
         better_than_percent — written by composite_score_service
-        is_processed        — set True after composite score is computed
+        is_processed — set True after composite score is computed
 
     CREATION
     --------
@@ -533,7 +533,7 @@ class WriterPerformanceSnapshot(models.Model):
         return (
             f"WriterPerformanceSnapshot<{self.writer.id}> "
             f"{self.period_start} → {self.period_end}"
-            f"{' ✓' if self.is_processed else ''}"
+            f"{' ' if self.is_processed else ''}"
         )
 
 

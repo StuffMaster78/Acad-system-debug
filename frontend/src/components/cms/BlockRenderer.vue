@@ -9,8 +9,8 @@
         class="font-bold text-ink"
         :class="{
           'text-3xl mt-10': (block.value as HeadingValue).level === 'h2',
-          'text-2xl mt-8':  (block.value as HeadingValue).level === 'h3',
-          'text-xl mt-6':   (block.value as HeadingValue).level === 'h4',
+          'text-2xl mt-8': (block.value as HeadingValue).level === 'h3',
+          'text-xl mt-6': (block.value as HeadingValue).level === 'h4',
         }"
         v-html="(block.value as HeadingValue).text"
       />
@@ -232,7 +232,7 @@
               <td class="px-5 py-3 font-medium text-ink">{{ row.feature }}</td>
               <td v-for="(val, vi) in row.values" :key="vi" class="px-5 py-3 text-graphite">
                 <CheckCircle v-if="val === true" class="size-4 text-signal" />
-                <span v-else-if="val === false" class="text-rose-400">✗</span>
+                <span v-else-if="val === false" class="text-rose-400"></span>
                 <span v-else>{{ val }}</span>
               </td>
             </tr>
@@ -257,33 +257,33 @@ import type { WagtailBlock } from "@/api/cms";
 defineProps<{ blocks: WagtailBlock[] }>();
 
 // ── Block value type helpers ──────────────────────────────────────────────
-interface HeadingValue   { level: string; text: string }
-interface ImageValue     { url?: string; alt?: string; caption?: string }
-interface QuoteValue     { text: string; attribution?: string }
-interface CalloutValue   { type?: string; title?: string; body: string }
-interface FaqValue       { items: { question: string; answer: string }[] }
-interface CtaValue       { text: string; url: string; subtext?: string }
-interface HeroValue      { heading: string; subheading?: string; cta_text?: string; cta_url?: string }
+interface HeadingValue { level: string; text: string }
+interface ImageValue { url?: string; alt?: string; caption?: string }
+interface QuoteValue { text: string; attribution?: string }
+interface CalloutValue { type?: string; title?: string; body: string }
+interface FaqValue { items: { question: string; answer: string }[] }
+interface CtaValue { text: string; url: string; subtext?: string }
+interface HeroValue { heading: string; subheading?: string; cta_text?: string; cta_url?: string }
 interface TrustStripValue { items: { label: string }[] }
 interface FeatureGridValue { features: { icon?: string; title: string; body: string }[] }
 interface PricingTableValue { rows: { pages: string; standard: string; urgent: string }[] }
 interface TestimonialsValue { items: { quote: string; author: string; context?: string }[] }
-interface CodeValue      { code: string; language?: string }
+interface CodeValue { code: string; language?: string }
 interface HowItWorksValue { heading?: string; steps: { title: string; body: string }[] }
 interface GuaranteesValue { items: { title: string; body: string }[] }
 interface ComparisonValue { columns: string[]; rows: { feature: string; values: (string | boolean)[] }[] }
 
 function calloutClass(type?: string): string {
   if (type === "warning") return "border-amber-200 bg-amber-50 text-amber-900";
-  if (type === "danger")  return "border-rose-200 bg-rose-50 text-rose-900";
+  if (type === "danger") return "border-rose-200 bg-rose-50 text-rose-900";
   if (type === "success") return "border-emerald-200 bg-emerald-50 text-emerald-900";
   return "border-blue-200 bg-blue-50 text-blue-900";
 }
 
 function calloutIcon(type?: string): string {
-  if (type === "warning") return "⚠️";
-  if (type === "danger")  return "🚫";
-  if (type === "success") return "✅";
+  if (type === "warning") return "️";
+  if (type === "danger") return "";
+  if (type === "success") return "";
   return "ℹ️";
 }
 </script>

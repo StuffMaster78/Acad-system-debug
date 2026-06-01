@@ -182,7 +182,7 @@ class ClientActionSerializer(serializers.Serializer):
 
 class ClientBadgeSerializer(serializers.ModelSerializer):
     client_username = serializers.CharField(source='client.user.username', read_only=True)
-    
+
     class Meta:
         model = ClientBadge
         fields = ['id', 'client', 'client_username', 'badge_name', 'description', 'awarded_at']

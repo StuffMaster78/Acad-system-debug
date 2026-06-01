@@ -46,7 +46,7 @@ Identity chain:
 
   auth.User
     └── accounts.AccountProfile
-          └── writer_management.WriterProfile   <- this model
+          └── writer_management.WriterProfile <- this model
                 └── writer_management.WriterLevel
                       └── writer_management.WriterLevelSettings
 """
@@ -66,10 +66,10 @@ class WriterProfile(models.Model):
     Low-volatility. Cache-friendly. Query-friendly.
     Fields here change rarely — level assignment, verification,
     onboarding progression, soft delete.
- 
+
     High-churn concerns (orders, availability, discipline, metrics)
     live in dedicated models keyed to this one.
- 
+
     Routing eligibility is computed by:
         writer_management.services.assignment_eligibility_service
             .WriterEligibilityService.is_eligible(writer_profile)
@@ -121,7 +121,7 @@ class WriterProfile(models.Model):
             "by the writer through the standard profile API."
         ),
     )
- 
+
     timezone = models.CharField(
         max_length=50,
         default="UTC",
@@ -171,7 +171,7 @@ class WriterProfile(models.Model):
     # Valid level names live in the WriterLevel table — no enum here.
     # Use LevelSelector.get_active_levels(website) for choices.
     # ----------------------------------------------------------------
- 
+
     writer_level = models.ForeignKey(
         "writer_management.WriterLevel",
         on_delete=models.SET_NULL,
@@ -198,14 +198,14 @@ class WriterProfile(models.Model):
             "not directly via the API."
         ),
     )
- 
+
     verification_status = models.CharField(
         max_length=20,
         choices=WriterVerificationStatus.choices,
         default=WriterVerificationStatus.UNVERIFIED,
         help_text="Tracks progress through the verification workflow.",
     )
- 
+
     # LIFECYCLE STATE (soft delete pattern)
     onboarding_status = models.CharField(
         max_length=20,
@@ -219,12 +219,12 @@ class WriterProfile(models.Model):
             "Managed by accounts.writer_onboarding_service."
         ),
     )
- 
+
     joined_at = models.DateTimeField(
         auto_now_add=True,
         db_index=True,
     )
- 
+
     is_deleted = models.BooleanField(
         default=False,
         db_index=True,
@@ -234,12 +234,12 @@ class WriterProfile(models.Model):
             "Set via profile_service.delete_writer() — never directly."
         ),
     )
- 
+
     deleted_at = models.DateTimeField(
         null=True,
         blank=True,
     )
- 
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -285,7 +285,7 @@ class WriterProfile(models.Model):
                 name="writer_prof_verified_implies_status",
             ),
         ]
- 
+
 
     def __str__(self) -> str:
         return self.registration_id
@@ -297,7 +297,7 @@ class WriterProfile(models.Model):
     @property
     def user_id(self):
         return self.account_profile.user_id
-    
+
 
     # CONVENIENCE — no logic, no DB queries
 
@@ -308,7 +308,7 @@ class WriterProfile(models.Model):
         in querysets — this property is for single-instance checks only.
         """
         return self.onboarding_status == WriterOnboardingStatus.COMPLETED
- 
+
     @property
     def is_onboarding_failed(self) -> bool:
         return self.onboarding_status == WriterOnboardingStatus.REJECTED
@@ -353,4 +353,4 @@ class WriterProfile(models.Model):
             "joined_at": self.joined_at,
             "is_deleted": self.is_deleted,
         }
- 
+

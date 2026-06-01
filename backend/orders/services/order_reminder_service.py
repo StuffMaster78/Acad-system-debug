@@ -186,7 +186,7 @@ class OrderReminderService:
         return True
 
 
-    
+
     # -------------------------
     # DECISION LOGIC
     # -------------------------
@@ -269,7 +269,7 @@ class OrderReminderService:
                 True when auto approval should happen.
         """
         return OrderApprovalService.can_auto_approve(order=order)
-    
+
 
     # -------------------------
     # HELPERS

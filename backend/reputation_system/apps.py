@@ -23,11 +23,11 @@ class ReputationSystemConfig(AppConfig):
         # Import consumers to register handlers
         # IMPORTANT: keep lazy imports to avoid circular issues
         # try:
-        #     from reputation_system.events.reputation_event_consumer import (
-        #         register_reputation_event_consumer,
-        #     )
+        # from reputation_system.events.reputation_event_consumer import (
+        # register_reputation_event_consumer,
+        # )
 
-        #     register_reputation_event_consumer()
+        # register_reputation_event_consumer()
         # except ImportError:
-        #     # Safe fallback for partial environments / migrations
-        #     pass
+        # # Safe fallback for partial environments / migrations
+        # pass

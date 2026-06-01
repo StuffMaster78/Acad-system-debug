@@ -56,7 +56,7 @@ class AccountSuspension(models.Model):
         blank=True,
         help_text=_("When account was reactivated")
     )
-    
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -68,7 +68,7 @@ class AccountSuspension(models.Model):
             models.Index(fields=["user", "website", "is_suspended"]),
             models.Index(fields=["scheduled_reactivation_at"]),
         ]
-    
+
     @property
     def is_effective(self) -> bool:
         """
@@ -84,7 +84,7 @@ class AccountSuspension(models.Model):
             return False
 
         return True
-    
+
     def __str__(self):
         status = "Suspended" if self.is_suspended else "Active"
         return f"Account suspension for {self.user.email} - {status}"

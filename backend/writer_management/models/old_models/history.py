@@ -43,7 +43,7 @@ class WriterOrderRequestHistory(BaseHistory):
 
     def __str__(self):
         return f"History: {self.request.writer.user.username} for Order {self.request.order.id} ({self.change_type})"
-    
+
     class Meta:
         verbose_name = "Writer Order Request History"
         verbose_name_plural = "Writer Order Request Histories"
@@ -59,10 +59,10 @@ class WriterOrderTakeHistory(BaseHistory):
         WriterOrderTake, on_delete=models.CASCADE,
         related_name="history"
     )
-    
+
     def __str__(self):
         return f"History: {self.take.writer.user.username} - Order {self.take.order.id} ({self.change_type})"
-    
+
     class Meta:
         verbose_name = "Writer Order Take History"
         verbose_name_plural = "Writer Order Take Histories"
@@ -81,7 +81,7 @@ class WriterReassignmentHistory(BaseHistory):
 
     def __str__(self):
         return f"Reassignment History: {self.request.writer.user.username} for Order {self.request.order.id} ({self.change_type})"
-    
+
     class Meta:
         verbose_name = "Writer Reassignment History"
         verbose_name_plural = "Writer Reassignment Histories"

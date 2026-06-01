@@ -7,11 +7,11 @@ import { useOrderStore } from "@/stores/orders";
 import { useWalletStore } from "@/stores/wallets";
 import type { EChartsOption } from "echarts";
 
-const orderStore  = useOrderStore();
+const orderStore = useOrderStore();
 const walletStore = useWalletStore();
-const spending    = ref<ChartData | null>(null);
-const loading     = ref(false);
-const months      = ref(12);
+const spending = ref<ChartData | null>(null);
+const loading = ref(false);
+const months = ref(12);
 
 const spendingOption = computed<EChartsOption>(() => {
   const d = spending.value;

@@ -25,7 +25,7 @@ class AuditDeadLetterViewSet(viewsets.ReadOnlyModelViewSet):
 
     ordering = ("-created_at",)
 
-    def get_queryset(self) -> QuerySet[AuditDeadLetter]:  # type: ignore[override]
+    def get_queryset(self) -> QuerySet[AuditDeadLetter]: # type: ignore[override]
 
         user = self.request.user
 

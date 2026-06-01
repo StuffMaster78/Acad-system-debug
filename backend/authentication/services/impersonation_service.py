@@ -189,7 +189,7 @@ class ImpersonationService:
         )
         if not allowed:
             raise PermissionDenied(denial_reason)
-        
+
         if not reason:
             raise ValidationError(
                 "Reason is required for impersonation."
@@ -245,7 +245,7 @@ class ImpersonationService:
         token_hash = TokenService.hash_value(raw_token)
         website = self.website
         if website is None:
-            raise PermissionDenied("Website context is required.") 
+            raise PermissionDenied("Website context is required.")
 
         try:
             token = ImpersonationToken.objects.select_related(
@@ -257,13 +257,13 @@ class ImpersonationService:
                 website=website,
                 used_at__isnull=True,
             )
-            
+
         except ImpersonationToken.DoesNotExist as exc:
             raise PermissionDenied(
                 "Invalid impersonation token."
             ) from exc
 
-        
+
         if not token.is_valid:
             raise PermissionDenied(
                 "Impersonation token is invalid or expired."
@@ -271,12 +271,12 @@ class ImpersonationService:
 
         if token.website.pk != website.pk:
             raise PermissionDenied("Cross-tenant impersonation denied.")
-        
+
         if not self.admin_user or token.admin_user.pk != self.admin_user.pk:
             raise PermissionDenied(
                 "You are not authorized to use this impersonation token."
             )
-        
+
         if self.is_impersonating():
             raise PermissionDenied(
                 "Already impersonating a user. End current session first."
@@ -584,7 +584,7 @@ class ImpersonationService:
             ),
             "role": getattr(admin_user, "role", None),
         }
-    
+
     @staticmethod
     def cleanup_expired_tokens() -> int:
         """

@@ -18,8 +18,8 @@ class CancelOrderAction(BaseOrderAction):
 
         AuditLogService.log_auto(
             actor=self.user,
-            action="DELETE",  
-            target="orders.Order", 
+            action="DELETE",
+            target="orders.Order",
             target_id=self.order_id,
             metadata={"reason": self.reason},
             changes={"status": [old_status, new_status]},

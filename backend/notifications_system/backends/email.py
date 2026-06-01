@@ -20,9 +20,9 @@ class EmailBackend(BaseDeliveryBackend):
     Sends email notifications via the website's configured email provider.
 
     Expects delivery.rendered to contain:
-        subject:    Email subject line
-        body_html:  HTML email body
-        body_text:  Plain text fallback
+        subject: Email subject line
+        body_html: HTML email body
+        body_text: Plain text fallback
 
     All rendering is done by TemplateService before this backend is called.
     This backend is responsible only for the actual send.

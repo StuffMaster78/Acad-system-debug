@@ -49,7 +49,7 @@ class RoleMixin(models.Model):
 
     def is_global_role(self):
         """
-        Returns True if the user has a global role (superadmin, admin, 
+        Returns True if the user has a global role (superadmin, admin,
         support, or editor).
         """
         return self.role in {
@@ -201,7 +201,7 @@ class LoginSecurityMixin(models.Model):
     def register_failed_login(self):
         self.failed_login_attempts += 1
         self.last_failed_login = timezone.now()
-        if self.failed_login_attempts >= 5:  # configurable
+        if self.failed_login_attempts >= 5: # configurable
             self.is_locked = True
             self.lockout_until = timezone.now() + timedelta(minutes=15)
         self.save()
@@ -268,7 +268,7 @@ class DeletionMixin(models.Model):
     )
     deletion_requested_at = models.DateTimeField(null=True, blank=True)
     grace_period_days = models.PositiveIntegerField(
-        default=30, 
+        default=30,
         help_text="Number of days before final deletion after request."
     )
     class Meta:
@@ -310,7 +310,7 @@ class DeletionMixin(models.Model):
             # Get grace period days (admin adjustable)
             grace_period_days = self.grace_period_days
             expiration_date = self.deletion_scheduled + timedelta(days=grace_period_days)
-            
+
             # Check if the grace period has passed
             if timezone.now() >= expiration_date:
                 # Perform soft deletion (mark as deleted, or freeze account)
@@ -320,7 +320,7 @@ class DeletionMixin(models.Model):
                 self.save()
                 return True
         return False
-    
+
     def soft_delete(self, force=False):
         """Set the user as inactive and timestamp the deletion."""
         if force or (self.deletion_scheduled and self.deletion_scheduled <= timezone.now()):
@@ -421,7 +421,7 @@ class GeoDetectionMixin(models.Model):
     def auto_detect_country(self, request, save=True):
         """
         Auto-detect country and timezone from IP address.
-        
+
         Args:
             request: HTTP request object (optional)
             save: Whether to save the model after setting fields (default: True)
@@ -429,10 +429,10 @@ class GeoDetectionMixin(models.Model):
         """
         if self.detected_country and self.detected_timezone:
             return
-        
+
         from users.utils import get_client_ip
         import requests
-        
+
         ip_address = get_client_ip(request) if request else "8.8.8.8"
         try:
             response = requests.get(f"https://ipinfo.io/{ip_address}/json", timeout=2)
@@ -440,7 +440,7 @@ class GeoDetectionMixin(models.Model):
             self.detected_country = data.get("country", "Unknown")
             self.detected_timezone = data.get("timezone", "Unknown")
             self.detected_ip = ip_address
-            if save and not self._state.adding:  # Only save if not in the middle of creation
+            if save and not self._state.adding: # Only save if not in the middle of creation
                 self.save(update_fields=['detected_country', 'detected_timezone', 'detected_ip'])
         except requests.RequestException:
             self.detected_country = "Unknown"

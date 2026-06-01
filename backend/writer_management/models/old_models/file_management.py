@@ -47,7 +47,7 @@ class WriterFile(models.Model):
         default=False, help_text="If True, the file is marked as deleted."
     )
     deleted_at = models.DateTimeField(null=True, blank=True)
-    
+
     last_accessed = models.DateTimeField(null=True, blank=True)
     last_accessed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
@@ -150,7 +150,7 @@ class WriterFileAccessRequest(models.Model):
 
     def __str__(self):
         return f"File Access Request: {self.writer.user.username} for Order {self.order.id} ({self.status})"
-    
+
     class Meta:
         verbose_name = "Writer File Access Request"
         verbose_name_plural = "Writer File Access Requests"

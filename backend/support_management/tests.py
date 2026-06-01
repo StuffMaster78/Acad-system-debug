@@ -17,7 +17,7 @@ User = get_user_model()
 SUPPORT_API = "/api/v1/support/"
 
 
-# 🚀 **1️⃣ Base Setup for Test Cases**
+# ** Base Setup for Test Cases**
 class SupportBaseTestCase(APITestCase):
     """Sets up common test users and data for all support-related tests."""
 
@@ -89,7 +89,7 @@ class SupportBaseTestCase(APITestCase):
         self.client.force_authenticate(user=self.support_user)
 
 
-# 🚀 **2️⃣ Test Support Profile API**
+# ** Test Support Profile API**
 class SupportProfileTestCase(SupportBaseTestCase):
     """Tests support profile CRUD operations."""
 
@@ -105,7 +105,7 @@ class SupportProfileTestCase(SupportBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
-# 🚀 **3️⃣ Test Support Notifications API**
+# ** Test Support Notifications API**
 class SupportNotificationTestCase(SupportBaseTestCase):
     """Tests notifications for support staff."""
 
@@ -128,7 +128,7 @@ class SupportNotificationTestCase(SupportBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
-# 🚀 **4️⃣ Test Order Management API**
+# ** Test Order Management API**
 class SupportOrderManagementTestCase(SupportBaseTestCase):
     """Tests support managing order statuses."""
 
@@ -140,7 +140,7 @@ class SupportOrderManagementTestCase(SupportBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
-# 🚀 **5️⃣ Test Support Messaging API**
+# ** Test Support Messaging API**
 class SupportMessageTestCase(SupportBaseTestCase):
     """Tests support messages between clients, writers, and admins."""
 
@@ -156,7 +156,7 @@ class SupportMessageTestCase(SupportBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
-# 🚀 **6️⃣ Test Escalation Log API**
+# ** Test Escalation Log API**
 class EscalationLogTestCase(SupportBaseTestCase):
     """Tests support agents escalating cases."""
 
@@ -172,7 +172,7 @@ class EscalationLogTestCase(SupportBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
-# 🚀 **7️⃣ Test Payment Issue Log API**
+# ** Test Payment Issue Log API**
 class PaymentIssueLogTestCase(SupportBaseTestCase):
     """Tests tracking of payment-related issues."""
 
@@ -188,7 +188,7 @@ class PaymentIssueLogTestCase(SupportBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
-# 🚀 **8️⃣ Test FAQ Management API**
+# ** Test FAQ Management API**
 class FAQManagementTestCase(SupportBaseTestCase):
     """Tests support agents managing FAQs."""
 
@@ -204,7 +204,7 @@ class FAQManagementTestCase(SupportBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
-# 🚀 **9️⃣ Test Support Dashboard API**
+# ** Test Support Dashboard API**
 class SupportDashboardTestCase(SupportBaseTestCase):
     """Tests support agents accessing their dashboard."""
 

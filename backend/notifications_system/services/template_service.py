@@ -14,7 +14,7 @@ from django.template import Context, Template
 
 logger = logging.getLogger(__name__)
 
-TEMPLATE_CACHE_TTL = 300  # 5 minutes
+TEMPLATE_CACHE_TTL = 300 # 5 minutes
 
 
 class TemplateService:
@@ -39,11 +39,11 @@ class TemplateService:
         Resolve the best template for an event + channel + website + locale.
 
         Args:
-            event_key:  Event key e.g. 'order.completed'
-            channel:    Channel e.g. 'email', 'in_app'
-            website:    Website instance or None for global
-            locale:     BCP-47 locale e.g. 'sw-KE', 'en'
-            use_cache:  Cache resolved template PK for TEMPLATE_CACHE_TTL
+            event_key: Event key e.g. 'order.completed'
+            channel: Channel e.g. 'email', 'in_app'
+            website: Website instance or None for global
+            locale: BCP-47 locale e.g. 'sw-KE', 'en'
+            use_cache: Cache resolved template PK for TEMPLATE_CACHE_TTL
 
         Returns:
             NotificationTemplate or None
@@ -141,7 +141,7 @@ class TemplateService:
 
         Args:
             template: NotificationTemplate instance
-            context:  Dict of variables to inject
+            context: Dict of variables to inject
 
         Returns:
             Dict with rendered fields relevant to the channel.
@@ -159,7 +159,7 @@ class TemplateService:
                 logger.warning(
                     "TemplateService.render() field rendering failed: %s", exc
                 )
-                return text  # return unrendered rather than crashing
+                return text # return unrendered rather than crashing
 
         rendered = {}
 
@@ -207,7 +207,7 @@ class TemplateService:
         Build fallback locale chain from most to least specific.
         'sw-KE' → ['sw-KE', 'sw', 'en']
         'en-US' → ['en-US', 'en']
-        'en'    → ['en']
+        'en' → ['en']
         """
         if not locale:
             return ['en']

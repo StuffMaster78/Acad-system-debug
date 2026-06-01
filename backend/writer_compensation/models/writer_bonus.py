@@ -88,7 +88,7 @@ class MilestoneBonus(models.Model):
         related_name="milestone_bonus_records"
     )
 
-    milestone = models.IntegerField()  # e.g. 100 orders, 250 orders
+    milestone = models.IntegerField() # e.g. 100 orders, 250 orders
 
     amount = models.DecimalField(
         max_digits=12,
@@ -186,7 +186,7 @@ class RetentionBonus(models.Model):
         related_name="retention_bonus_records"
     )
 
-    month = models.DateField()  # store first day of month
+    month = models.DateField() # store first day of month
 
     amount = models.DecimalField(
         max_digits=12,

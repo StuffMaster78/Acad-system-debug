@@ -14,7 +14,7 @@ class WriterReassignmentLogViewSet(viewsets.ReadOnlyModelViewSet):
         "order", "previous_writer", "new_writer", "reassigned_by"
     )
     serializer_class = WriterReassignmentLogSerializer
-    permission_classes = [permissions.IsAdminUser]  # override as needed
+    permission_classes = [permissions.IsAdminUser] # override as needed
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = [

@@ -25,13 +25,13 @@ User = get_user_model()
 
 # @receiver(post_save, sender=User)
 # def create_writer_profile(sender, instance, created, **kwargs):
-#     """
-#     Automatically create a WriterProfile for new users with the 'writer' role.
-#     """
-#     if created and instance.role == "writer":
-#         WriterProfile.objects.create(user=instance)
-#         print(f"✅ WriterProfile created for {instance.username}")
-# 
+# """
+# Automatically create a WriterProfile for new users with the 'writer' role.
+# """
+# if created and instance.role == "writer":
+# WriterProfile.objects.create(user=instance)
+# print(f" WriterProfile created for {instance.username}")
+#
 # NOTE: This signal is disabled because WriterProfile creation is now handled
 # in users/signals.py with proper website and wallet creation
 
@@ -42,7 +42,7 @@ def log_writer_action(sender, instance, created, **kwargs):
     Log writer profile updates as actions.
     """
     if not created:
-        action = f"✏️ Writer profile updated for {instance.user.username}."
+        action = f"️ Writer profile updated for {instance.user.username}."
         website = getattr(instance, 'website', None)
         if website is None:
             try:
@@ -70,9 +70,9 @@ def delete_writer_profile(sender, instance, **kwargs):
         try:
             writer_profile = instance.writer_profile
             writer_profile.delete()
-            print(f"❌ WriterProfile deleted for {instance.username}")
+            print(f" WriterProfile deleted for {instance.username}")
         except WriterProfile.DoesNotExist:
-            print(f"⚠️ No WriterProfile found for {instance.username}")
+            print(f"️ No WriterProfile found for {instance.username}")
 
 
 ### ---------------- Writer Login Tracking Signals ---------------- ###
@@ -85,8 +85,8 @@ def update_writer_geolocation(sender, request, user, **kwargs):
     if user.role == "writer":
         try:
             writer_profile = user.writer_profile
-            ip_address = get_client_ip(request)  # Fetch client IP address
-            geo_data = get_geolocation_from_ip(ip_address)  # Fetch geolocation data
+            ip_address = get_client_ip(request) # Fetch client IP address
+            geo_data = get_geolocation_from_ip(ip_address) # Fetch geolocation data
 
             if "error" not in geo_data:
                 writer_profile.country = geo_data.get("country", writer_profile.country)
@@ -95,28 +95,28 @@ def update_writer_geolocation(sender, request, user, **kwargs):
                 writer_profile.location_verified = True
                 writer_profile.last_logged_in = now()
                 writer_profile.save()
-                print(f"🌍 Updated geolocation for writer: {user.username} (IP: {ip_address})")
+                print(f" Updated geolocation for writer: {user.username} (IP: {ip_address})")
 
         except WriterProfile.DoesNotExist:
-            print(f"⚠️ No WriterProfile found for {user.username}")
+            print(f"️ No WriterProfile found for {user.username}")
 
 
 ### ---------------- Order Assignment & Management Signals ---------------- ###
 
 # @receiver(post_save, sender=User)
 # def auto_update_writer_profile(sender, instance, **kwargs):
-#     """
-#     Automatically update WriterProfile when a writer's user instance is updated.
-#     """
-#     if instance.role == "writer":
-#         try:
-#             writer_profile = instance.writer_profile
-#             writer_profile.last_logged_in = now()
-#             writer_profile.save()
-#             print(f"🔄 WriterProfile auto-updated for {instance.username}")
-#         except WriterProfile.DoesNotExist:
-#             print(f"⚠️ No WriterProfile found for {instance.username}")
-# 
+# """
+# Automatically update WriterProfile when a writer's user instance is updated.
+# """
+# if instance.role == "writer":
+# try:
+# writer_profile = instance.writer_profile
+# writer_profile.last_logged_in = now()
+# writer_profile.save()
+# print(f" WriterProfile auto-updated for {instance.username}")
+# except WriterProfile.DoesNotExist:
+# print(f"️ No WriterProfile found for {instance.username}")
+#
 # NOTE: This signal is disabled to prevent validation conflicts during user creation
 
 
@@ -128,7 +128,7 @@ def enforce_writer_take_limits(sender, instance, **kwargs):
     if instance.writer_level and instance.number_of_takes > instance.writer_level.max_orders:
         instance.number_of_takes = instance.writer_level.max_orders
         instance.save()
-        print(f"⚠️ Order take limit enforced for {instance.user.username}")
+        print(f"️ Order take limit enforced for {instance.user.username}")
 
 
 ### ---------------- Utility Functions ---------------- ###
@@ -159,76 +159,76 @@ def invalidate_writer_status_cache(sender, instance, **kwargs):
 
 # @receiver(pre_save, sender=WriterWarning)
 # def store_previous_warning_state(sender, instance, **kwargs):
-#     if not instance.pk:
-#         instance._previous_is_active = None
-#         return
-#     try:
-#         instance._previous_is_active = (
-#             sender.objects.only("is_active").get(pk=instance.pk).is_active
-#         )
-#     except sender.DoesNotExist:
-#         instance._previous_is_active = None
+# if not instance.pk:
+# instance._previous_is_active = None
+# return
+# try:
+# instance._previous_is_active = (
+# sender.objects.only("is_active").get(pk=instance.pk).is_active
+# )
+# except sender.DoesNotExist:
+# instance._previous_is_active = None
 #
 #
 # @receiver(post_save, sender=WriterWarning)
 # def writer_warning_notifications(sender, instance, created, **kwargs):
-#     if created:
-#         DisciplineNotificationService.notify_warning_issued(instance)
-#         return
-#     prev_active = getattr(instance, "_previous_is_active", None)
-#     if prev_active and not instance.is_active:
-#         DisciplineNotificationService.notify_warning_resolved(
-#             instance, reason="resolved"
-#         )
+# if created:
+# DisciplineNotificationService.notify_warning_issued(instance)
+# return
+# prev_active = getattr(instance, "_previous_is_active", None)
+# if prev_active and not instance.is_active:
+# DisciplineNotificationService.notify_warning_resolved(
+# instance, reason="resolved"
+# )
 #
 #
 # @receiver(post_delete, sender=WriterWarning)
 # def writer_warning_deleted(sender, instance, **kwargs):
-#     if instance.writer:
-#         DisciplineNotificationService.notify_warning_resolved(
-#             instance, reason="removed"
-#         )
+# if instance.writer:
+# DisciplineNotificationService.notify_warning_resolved(
+# instance, reason="removed"
+# )
 #
 #
 # @receiver(post_save, sender=WriterStrike)
 # def writer_strike_created(sender, instance, created, **kwargs):
-#     if created:
-#         DisciplineNotificationService.notify_strike_issued(instance)
+# if created:
+# DisciplineNotificationService.notify_strike_issued(instance)
 #
 #
 # @receiver(post_delete, sender=WriterStrike)
 # def writer_strike_deleted(sender, instance, **kwargs):
-#     if instance.writer:
-#         DisciplineNotificationService.notify_strike_revoked(instance)
+# if instance.writer:
+# DisciplineNotificationService.notify_strike_revoked(instance)
 #
 #
 # @receiver(pre_save, sender=WriterSuspension)
 # def store_previous_suspension_state(sender, instance, **kwargs):
-#     if not instance.pk:
-#         instance._previous_is_active = None
-#         return
-#     try:
-#         instance._previous_is_active = (
-#             sender.objects.only("is_active").get(pk=instance.pk).is_active
-#         )
-#     except sender.DoesNotExist:
-#         instance._previous_is_active = None
+# if not instance.pk:
+# instance._previous_is_active = None
+# return
+# try:
+# instance._previous_is_active = (
+# sender.objects.only("is_active").get(pk=instance.pk).is_active
+# )
+# except sender.DoesNotExist:
+# instance._previous_is_active = None
 #
 #
 # @receiver(post_save, sender=WriterSuspension)
 # def writer_suspension_notifications(sender, instance, created, **kwargs):
-#     if created:
-#         DisciplineNotificationService.notify_suspension_started(instance)
-#         return
-#     prev_active = getattr(instance, "_previous_is_active", None)
-#     if prev_active and not instance.is_active:
-#         DisciplineNotificationService.notify_suspension_lifted(instance)
+# if created:
+# DisciplineNotificationService.notify_suspension_started(instance)
+# return
+# prev_active = getattr(instance, "_previous_is_active", None)
+# if prev_active and not instance.is_active:
+# DisciplineNotificationService.notify_suspension_lifted(instance)
 #
 #
 # @receiver(post_save, sender=WriterProbation)
 # def writer_probation_notifications(sender, instance, created, **kwargs):
-#     if created:
-#         DisciplineNotificationService.notify_probation_started(instance)
+# if created:
+# DisciplineNotificationService.notify_probation_started(instance)
 
 # ---- CurrencyConversionRate handler removed (model deleted, migrated to writer_compensation) ----
 # Cache invalidation now handled by writer_compensation app.

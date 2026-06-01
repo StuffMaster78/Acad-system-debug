@@ -10,7 +10,7 @@ def cleanup_soft_deleted_models():
     """
     Runs force_delete_if_expired on all models that inherit from DeletionMixin
     and have expired deletion grace periods.
-    
+
     For writers, this also handles WriterProfile cleanup since WriterProfile
     is linked to User via OneToOneField and doesn't directly inherit DeletionMixin.
     """
@@ -30,7 +30,7 @@ def cleanup_soft_deleted_models():
             # Skip models that don't exist - this is expected in some deployments
             logger.debug(f"Model {model_path} not found, skipping...")
             continue
-        
+
         expired = model.objects.filter(
             is_deletion_requested=True,
             deletion_scheduled__lte=now,
@@ -40,7 +40,7 @@ def cleanup_soft_deleted_models():
         for obj in expired:
             # Handle deletion - force_delete_if_expired returns True if deletion occurred
             was_deleted = obj.force_delete_if_expired()
-            
+
             # Special handling for writer users: also mark WriterProfile as deleted
             if model_path == "users.User" and obj.role == "writer":
                 try:
@@ -56,7 +56,7 @@ def cleanup_soft_deleted_models():
                 except Exception as e:
                     # Other errors
                     logger.warning(f"Could not update WriterProfile for writer user {obj.id}: {e}")
-            
+
             if was_deleted:
                 deleted_total += 1
 

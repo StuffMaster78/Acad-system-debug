@@ -15,7 +15,7 @@ class OrderDeadlineExtensionTests(APITestCase):
         self.client_user = User.objects.create_user(email="client@example.com", role="client")
         self.writer_user = User.objects.create_user(email="writer@example.com", role="writer")
         self.support_user = User.objects.create_user(email="support@example.com", role="support")
-        
+
         self.order = Order.objects.create(
             client=self.client_user,
             writer=self.writer_user,

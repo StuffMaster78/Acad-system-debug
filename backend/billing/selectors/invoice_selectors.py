@@ -233,7 +233,7 @@ class InvoiceSelector:
             Invoice: Matching invoice instance.
         """
         return Invoice.objects.get(payment_token=payment_token)
-    
+
 
     @classmethod
     def get_queryset_for_client(

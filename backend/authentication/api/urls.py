@@ -89,13 +89,13 @@ from authentication.api.views.support_auth_link_views import (
 
 urlpatterns = [
     path(
-        "login/", 
-        LoginView.as_view(), 
+        "login/",
+        LoginView.as_view(),
         name="auth-login"
     ),
     path(
-        "sessions/", 
-        SessionListView.as_view(), 
+        "sessions/",
+        SessionListView.as_view(),
         name="session-list"
     ),
     path(
@@ -135,22 +135,22 @@ urlpatterns = [
     ),
     path(
         "mfa/state/",
-        MFAStateView.as_view(), 
+        MFAStateView.as_view(),
         name="mfa-state"
     ),
     path(
         "mfa/devices/",
-        MFADeviceListView.as_view(), 
+        MFADeviceListView.as_view(),
         name="mfa-device-list"
     ),
     path(
         "mfa/challenge/",
-        MFAChallengeView.as_view(), 
+        MFAChallengeView.as_view(),
         name="mfa-challenge"
     ),
     path(
         "mfa/verify/",
-        MFAVerifyView.as_view(), 
+        MFAVerifyView.as_view(),
         name="mfa-verify"
     ),
 
@@ -221,17 +221,17 @@ urlpatterns = [
     ),
     path(
         "otp/",
-        OTPListView.as_view(), 
+        OTPListView.as_view(),
         name="otp-list"
     ),
     path(
         "otp/create/",
-        OTPCreateView.as_view(), 
+        OTPCreateView.as_view(),
         name="otp-create"
     ),
     path(
         "otp/verify/",
-        OTPVerifyView.as_view(), 
+        OTPVerifyView.as_view(),
         name="otp-verify"
     ),
     path(

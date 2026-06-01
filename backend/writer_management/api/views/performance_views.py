@@ -59,13 +59,13 @@ class WriterPerformanceSnapshotListView(ListAPIView):
     """GET /api/writer-management/writers/<rid>/performance/snapshots/"""
     permission_classes = [IsAdminUser]
 
-    def get_serializer_class(self):  # type: ignore[override]
+    def get_serializer_class(self): # type: ignore[override]
         from writer_management.api.serializers.performance_serializers import (
             WriterPerformanceSnapshotSerializer,
         )
         return WriterPerformanceSnapshotSerializer
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         from writer_management.models.writer_performance import WriterPerformanceSnapshot
         from writer_management.services.writer_profile_service import (
             WriterProfileService,
@@ -89,14 +89,14 @@ class WriterMetricsListView(ListAPIView):
     """GET /api/writer-management/writers/<rid>/performance/metrics/"""
     permission_classes = [IsAdminUser]
 
-    def get_serializer_class(self):  # type: ignore[override]
+    def get_serializer_class(self): # type: ignore[override]
         # Fix 3: missing type: ignore[override] on both methods
         from writer_management.api.serializers.performance_serializers import (
             WriterPerformanceMetricsSerializer,
         )
         return WriterPerformanceMetricsSerializer
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         from writer_management.models.writer_performance import WriterPerformanceMetrics
         from writer_management.services.writer_profile_service import (
             WriterProfileService,

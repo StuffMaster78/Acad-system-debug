@@ -41,7 +41,7 @@ class BroadcastService:
         channels: Optional[Iterable[str]] = None,
         target_roles: Optional[List[str]] = None,
         show_to_all: bool = False,
-        is_blocking: bool = False, 
+        is_blocking: bool = False,
         triggered_by=None,
         priority: str = NotificationPriority.NORMAL,
         is_critical: bool = False,
@@ -53,19 +53,19 @@ class BroadcastService:
         Create a broadcast and queue async fan-out to recipients.
 
         Args:
-            event_key:              Event key e.g. 'system.broadcast'
-            title:                  Broadcast title
-            message:                Broadcast body text
-            website:                Website to scope to — None means platform-wide
-            channels:               Override channels — None uses event config defaults
-            target_roles:           Roles to target e.g. ['writer', 'client']
-            show_to_all:            If True ignores target_roles and sends to everyone
-            triggered_by:           Staff member creating the broadcast
-            priority:               NotificationPriority value
-            is_critical:            If True bypasses user mute and DND
+            event_key: Event key e.g. 'system.broadcast'
+            title: Broadcast title
+            message: Broadcast body text
+            website: Website to scope to — None means platform-wide
+            channels: Override channels — None uses event config defaults
+            target_roles: Roles to target e.g. ['writer', 'client']
+            show_to_all: If True ignores target_roles and sends to everyone
+            triggered_by: Staff member creating the broadcast
+            priority: NotificationPriority value
+            is_critical: If True bypasses user mute and DND
             require_acknowledgement: If True users must acknowledge the broadcast
-            scheduled_for:          Optional future send time
-            expires_at:             Optional expiry datetime
+            scheduled_for: Optional future send time
+            expires_at: Optional expiry datetime
 
         Returns:
             BroadcastNotification instance

@@ -17,7 +17,7 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
     ViewSet for preferred writers to accept or reject order assignments.
     """
     permission_classes = [IsAuthenticated]
-    
+
     @action(detail=False, methods=['get'], url_path='pending')
     def pending_assignments(self, request):
         """
@@ -29,7 +29,7 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
                 {"error": "Only writers can view pending preferred assignments."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         # Get orders where this writer is the preferred writer and status is pending_preferred
         pending_orders = Order.objects.filter(
             preferred_writer=user,
@@ -37,7 +37,7 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
         ).select_related(
             'client', 'type_of_work', 'paper_type', 'subject', 'website'
         ).order_by('-created_at')
-        
+
         data = []
         for order in pending_orders:
             data.append({
@@ -45,9 +45,9 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
                 'order': OrderSerializer(order).data,
                 'created_at': order.created_at,
             })
-        
+
         return Response(data, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['post'], url_path='(?P<order_id>[^/.]+)/accept/')
     def accept_assignment(self, request, order_id=None):
         """
@@ -61,23 +61,23 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
                 {"error": "Order not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Verify the writer is the preferred writer
         if order.preferred_writer != request.user:
             return Response(
                 {"error": "You are not the preferred writer for this order."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         if order.status != 'pending_preferred':
             return Response(
                 {"error": f"Order is not pending preferred writer response. Current status: {order.status}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             updated_order = PreferredWriterResponseService.accept(order_id, request.user)
-            
+
             from orders.notification_emitters import emit_event
             emit_event(
                 "order.preferred_writer_accepted",
@@ -85,7 +85,7 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
                 actor=request.user,
                 extra={"order_id": order.id}
             )
-            
+
             return Response(
                 {
                     "message": "Assignment accepted successfully",
@@ -105,7 +105,7 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
                 {"error": f"Failed to accept assignment: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     @action(detail=False, methods=['post'], url_path='(?P<order_id>[^/.]+)/reject/')
     def reject_assignment(self, request, order_id=None):
         """
@@ -119,25 +119,25 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
                 {"error": "Order not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Verify the writer is the preferred writer
         if order.preferred_writer != request.user:
             return Response(
                 {"error": "You are not the preferred writer for this order."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         if order.status != 'pending_preferred':
             return Response(
                 {"error": f"Order is not pending preferred writer response. Current status: {order.status}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         reason = request.data.get('reason', '')
-        
+
         try:
             updated_order = PreferredWriterResponseService.reject(order_id, request.user, reason=reason)
-            
+
             from orders.notification_emitters import emit_event
 
             emit_event(
@@ -146,7 +146,7 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
                 actor=request.user,
                 extra={"reason": reason, "order_id": order.id}
             )
-            
+
             return Response(
                 {
                     "message": "Assignment rejected. Order returned to available pool.",

@@ -17,7 +17,7 @@ class AccountLockoutService:
         Locks a user account with a reason.
         Automatically deactivates any existing lockouts.
         """
-        self.unlock_account()  # Ensure no overlapping lockouts
+        self.unlock_account() # Ensure no overlapping lockouts
 
         return AccountLockout.objects.update_or_create(
             user=self.user,
@@ -48,7 +48,7 @@ class AccountLockoutService:
             if not lock.is_locked:
                 return False
 
-            if (timezone.now() - lock.locked_at).total_seconds() >= 1800:  # 30 min
+            if (timezone.now() - lock.locked_at).total_seconds() >= 1800: # 30 min
                 lock.is_locked = False
                 lock.save()
                 return False

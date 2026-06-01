@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from urllib.parse import urlparse
 
-from .base import *  # noqa: F401,F403
+from .base import * # noqa: F401,F403
 from .env import env
 
 
@@ -123,14 +123,14 @@ for _app in [
     "drf_spectacular_sidecar",
     "django_ratelimit",
 ]:
-    if _app in INSTALLED_APPS:  # noqa: F405
-        INSTALLED_APPS.remove(_app)  # noqa: F405
+    if _app in INSTALLED_APPS: # noqa: F405
+        INSTALLED_APPS.remove(_app) # noqa: F405
 
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
 
-REST_FRAMEWORK = {  # noqa: F405
+REST_FRAMEWORK = { # noqa: F405
     **REST_FRAMEWORK,
     "DEFAULT_THROTTLE_CLASSES": [],
     "DEFAULT_THROTTLE_RATES": {
@@ -169,4 +169,4 @@ DISABLE_COMMUNICATION_EVENTS = True
 DISABLE_PRICE_RECALC_DURING_TESTS = True
 DISABLE_AUTO_CREATE_WRITER_PROFILE = True
 
-ALLOWED_HOSTS = ["*"]  # tests use arbitrary tenant hostnames
+ALLOWED_HOSTS = ["*"] # tests use arbitrary tenant hostnames

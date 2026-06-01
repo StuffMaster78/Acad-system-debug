@@ -9,7 +9,7 @@ class RedisCacheClient:
 
     def __init__(self):
         client = getattr(cache, "client", None)
-        self._client: Any = client  # force explicit typing for Pylance
+        self._client: Any = client # force explicit typing for Pylance
 
     # ----------------------------
     # BASIC OPS

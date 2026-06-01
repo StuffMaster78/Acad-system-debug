@@ -14,7 +14,7 @@ class RevisionRequestSerializer(serializers.ModelSerializer):
     timeline = serializers.SerializerMethodField()
     is_overdue = serializers.SerializerMethodField()
     days_remaining = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = RevisionRequest
         fields = [
@@ -50,21 +50,21 @@ class RevisionRequestSerializer(serializers.ModelSerializer):
             'id', 'website', 'order', 'requested_by', 'created_at', 'updated_at',
             'completed_at', 'timeline', 'is_overdue', 'days_remaining'
         ]
-    
+
     def get_timeline(self, obj):
         """Get timeline information."""
         return obj.get_timeline()
-    
+
     def get_is_overdue(self, obj):
         """Check if revision is overdue."""
         timeline = obj.get_timeline()
         return timeline.get('is_overdue', False)
-    
+
     def get_days_remaining(self, obj):
         """Get days remaining until deadline."""
         timeline = obj.get_timeline()
         return timeline.get('days_remaining', None)
-    
+
     def create(self, validated_data):
         """Create revision request."""
         request = self.context.get('request')
@@ -76,7 +76,7 @@ class RevisionRequestSerializer(serializers.ModelSerializer):
 
 class RevisionRequestCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating revision requests."""
-    
+
     class Meta:
         model = RevisionRequest
         fields = [
@@ -91,27 +91,27 @@ class RevisionRequestCreateSerializer(serializers.ModelSerializer):
             'is_urgent',
             'requires_client_review',
         ]
-    
+
     def validate_order(self, value):
         """Validate that order belongs to user and can be revised."""
         request = self.context.get('request')
         if not request or not request.user:
             raise serializers.ValidationError("User not found")
-        
+
         # Check order belongs to user
         if value.client != request.user:
             raise serializers.ValidationError("Order does not belong to you")
-        
+
         # Check order status allows revision
         if value.status not in ['completed', 'approved']:
             raise serializers.ValidationError("Order is not in a state that allows revisions")
-        
+
         return value
 
 
 class RevisionRequestUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating revision requests."""
-    
+
     class Meta:
         model = RevisionRequest
         fields = [
@@ -128,7 +128,7 @@ class RevisionRequestUpdateSerializer(serializers.ModelSerializer):
             'status',
             'assigned_to',
         ]
-        read_only_fields = ['status']  # Status changes through actions
+        read_only_fields = ['status'] # Status changes through actions
 
 
 class RevisionRequestCompleteSerializer(serializers.Serializer):

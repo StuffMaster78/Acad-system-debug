@@ -17,8 +17,8 @@ class IsSuperadmin(BasePermission):
         if Blacklist.objects.filter(user=request.user, is_active=True).exists():
             return False
 
-        return True  # User is a valid Superadmin
-    
+        return True # User is a valid Superadmin
+
 
 class IsSuperadminOrAdmin(BasePermission):
     """Allows access to Superadmins & Admins, but limits some actions."""

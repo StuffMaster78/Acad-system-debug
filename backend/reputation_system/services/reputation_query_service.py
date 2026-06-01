@@ -53,7 +53,7 @@ class ReputationQueryService:
             .order_by("-rating", "-review_count")
             [:limit]
         )
-    
+
     @staticmethod
     def top_websites(limit: int = 50):
         """

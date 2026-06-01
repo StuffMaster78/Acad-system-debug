@@ -13,8 +13,8 @@ This service is the only place that answers:
     "Can this writer receive an assignment right now?"
 
 Two entry points:
-  1. is_eligible(profile)       — single writer, full check including DB
-  2. get_eligible_queryset(...)  — bulk routing, single optimised query
+  1. is_eligible(profile) — single writer, full check including DB
+  2. get_eligible_queryset(...) — bulk routing, single optimised query
 """
 
 import logging
@@ -280,9 +280,9 @@ class WriterEligibilityService:
     def _resolve_max_active_orders(profile, capacity) -> int:
         """
         Ceiling resolution:
-          1. capacity.override_max_active_orders  (admin per-writer override)
-          2. writer_level.settings.max_active_orders  (level default)
-          3. 10  (absolute fallback — should never be reached in production)
+          1. capacity.override_max_active_orders (admin per-writer override)
+          2. writer_level.settings.max_active_orders (level default)
+          3. 10 (absolute fallback — should never be reached in production)
         """
         if capacity.override_max_active_orders is not None:
             return capacity.override_max_active_orders

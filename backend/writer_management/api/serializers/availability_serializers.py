@@ -4,15 +4,15 @@ from writer_management.models.writer_availability import (
     WriterAvailabilityPreference,
     UnavailabilityReason,
 )
- 
- 
+
+
 class WriterAvailabilityWindowSerializer(serializers.ModelSerializer):
     reason_display = serializers.CharField(
         source="get_reason_display", read_only=True
     )
     is_active = serializers.BooleanField(read_only=True)
     is_future = serializers.BooleanField(read_only=True)
- 
+
     class Meta:
         model = WriterAvailabilityWindow
         fields = [
@@ -29,8 +29,8 @@ class WriterAvailabilityWindowSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id", "reason_display", "is_active", "is_future", "created_at"
         ]
- 
- 
+
+
 class DeclareUnavailableSerializer(serializers.Serializer):
     start_at = serializers.DateTimeField()
     end_at = serializers.DateTimeField(required=False)
@@ -41,7 +41,7 @@ class DeclareUnavailableSerializer(serializers.Serializer):
     note = serializers.CharField(
         max_length=200, required=False, allow_blank=True
     )
- 
+
     def validate(self, data):
         end_at = data.get("end_at")
         start_at = data.get("start_at")
@@ -50,8 +50,8 @@ class DeclareUnavailableSerializer(serializers.Serializer):
                 {"end_at": "end_at must be after start_at."}
             )
         return data
- 
- 
+
+
 class WriterAvailabilityPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterAvailabilityPreference

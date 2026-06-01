@@ -40,7 +40,7 @@ class SettlementValidationService:
 
         return {
             "is_valid": len(issues) == 0,
-            "issues":   issues,
+            "issues": issues,
         }
 
     @staticmethod
@@ -51,6 +51,6 @@ class SettlementValidationService:
         result = SettlementValidationService.validate(period=period)
 
         if not result["is_valid"]:
-            raise SettlementValidationError(    # FIX: was bare ValueError
+            raise SettlementValidationError( # FIX: was bare ValueError
                 f"Settlement invalid: {result['issues']}"
             )

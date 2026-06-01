@@ -172,7 +172,7 @@ class CancelAccountDeletionView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-    
+
 
 class AccountDeletionStateView(APIView):
     """

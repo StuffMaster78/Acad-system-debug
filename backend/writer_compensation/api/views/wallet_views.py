@@ -21,7 +21,7 @@ class WalletListView(generics.ListAPIView):
 
     def get_queryset( # pyright: ignore[reportIncompatibleMethodOverride]
             self,
-        ): 
+        ):
         from wallets.models import Wallet
         return Wallet.objects.filter(website=_get_website(self.request))
 

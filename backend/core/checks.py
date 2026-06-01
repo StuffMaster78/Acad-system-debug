@@ -3,7 +3,7 @@ from django.core.checks import Warning, register
 from django.urls import URLPattern, URLResolver, get_resolver
 
 
-LEGACY_ROUTE_FRAGMENTS: tuple[str, ...] = ()  # all legacy routes removed
+LEGACY_ROUTE_FRAGMENTS: tuple[str, ...] = () # all legacy routes removed
 
 
 def _iter_route_patterns(patterns, prefix=""):

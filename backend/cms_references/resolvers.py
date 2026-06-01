@@ -18,7 +18,7 @@ CROSSREF_API = "https://api.crossref.org/works"
 NCBI_ESUMMARY_API = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
 WAYBACK_SAVE_API = "https://web.archive.org/save"
 
-REQUEST_TIMEOUT = 10  # seconds
+REQUEST_TIMEOUT = 10 # seconds
 
 
 class DOIResolver:
@@ -187,7 +187,7 @@ class WaybackArchiver:
         try:
             response = requests.get(
                 f"{WAYBACK_SAVE_API}/{url}",
-                timeout=30,  # Wayback can be slow
+                timeout=30, # Wayback can be slow
                 headers={"User-Agent": "CMS-Archiver/1.0"},
             )
 

@@ -6,20 +6,20 @@ from django.utils import timezone
 
 
 class DocumentType(models.TextChoices):
-    TERMS_OF_SERVICE       = "terms_of_service",       "Terms of Service"
-    PRIVACY_POLICY         = "privacy_policy",         "Privacy Policy"
-    REFUND_POLICY          = "refund_policy",          "Refund Policy"
-    COOKIE_POLICY          = "cookie_policy",          "Cookie Policy"
-    ACCEPTABLE_USE_POLICY  = "acceptable_use_policy",  "Acceptable Use Policy"
-    WRITER_AGREEMENT       = "writer_agreement",       "Writer Agreement"
-    COPYRIGHT_POLICY       = "copyright_policy",       "Copyright Policy"
+    TERMS_OF_SERVICE = "terms_of_service", "Terms of Service"
+    PRIVACY_POLICY = "privacy_policy", "Privacy Policy"
+    REFUND_POLICY = "refund_policy", "Refund Policy"
+    COOKIE_POLICY = "cookie_policy", "Cookie Policy"
+    ACCEPTABLE_USE_POLICY = "acceptable_use_policy", "Acceptable Use Policy"
+    WRITER_AGREEMENT = "writer_agreement", "Writer Agreement"
+    COPYRIGHT_POLICY = "copyright_policy", "Copyright Policy"
 
 
 class HelpAudience(models.TextChoices):
-    ALL     = "all",     "All users"
-    CLIENT  = "client",  "Clients"
-    WRITER  = "writer",  "Writers"
-    STAFF   = "staff",   "Staff / Support"
+    ALL = "all", "All users"
+    CLIENT = "client", "Clients"
+    WRITER = "writer", "Writers"
+    STAFF = "staff", "Staff / Support"
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -249,5 +249,5 @@ class HelpArticle(models.Model):
         ]
 
     def __str__(self) -> str:
-        status = "✓" if self.is_published else "draft"
+        status = "" if self.is_published else "draft"
         return f"[{status}] {self.title}"

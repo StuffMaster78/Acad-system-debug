@@ -22,7 +22,7 @@ class CommunicationSavedReplyViewSet(ModelViewSet):
         CanManageSavedReplies,
     ]
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         """
         Return saved replies for the current website.
         """
@@ -32,7 +32,7 @@ class CommunicationSavedReplyViewSet(ModelViewSet):
             website=website,
         ).order_by("title", "id")
 
-    def get_serializer_class(self):  # type: ignore[override]
+    def get_serializer_class(self): # type: ignore[override]
         """
         Return serializer class.
         """

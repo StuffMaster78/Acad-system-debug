@@ -25,7 +25,7 @@ class DraftService:
         approve: bool,
         note: str = "",
     ):
-    
+
         draft = OrderDraft.objects.create(
             website=order.website,
             order=order,
@@ -34,7 +34,7 @@ class DraftService:
             note=note,
             status="submitted",
         )
-    
+
         NotificationService.notify(
             event_key= "orders.draft.submitted",
             recipient=order.client,
@@ -60,7 +60,7 @@ class DraftService:
         )
 
         return draft
-        
+
 
     @classmethod
     @transaction.atomic

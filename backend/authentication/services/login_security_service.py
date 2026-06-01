@@ -148,7 +148,7 @@ class LoginSecurityService:
         )
 
         return recent_attempts >= effective_max_attempts
-    
+
     @staticmethod
     def get_active_lockout(
         *,
@@ -382,7 +382,7 @@ class LoginSecurityService:
         ).delete()
 
         return deleted_count
-    
+
     @classmethod
     @transaction.atomic
     def record_failed_login_and_enforce(
@@ -515,7 +515,7 @@ class LoginSecurityService:
             count += 1
 
         return count
-    
+
     @staticmethod
     def validate_login_allowed(
         *,

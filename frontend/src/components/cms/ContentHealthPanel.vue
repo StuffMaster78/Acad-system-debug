@@ -38,12 +38,12 @@ const summaryStats = computed(() => {
   const s = report.value?.summary;
   if (!s) return [];
   return [
-    { flag: "missing_meta" as ContentHealthFlag,    count: s.missing_meta,      label: "No meta" },
-    { flag: "missing_author" as ContentHealthFlag,  count: s.missing_author,    label: "No author" },
-    { flag: "stale" as ContentHealthFlag,           count: s.stale,             label: "Stale" },
-    { flag: "no_cta" as ContentHealthFlag,          count: s.no_cta,            label: "No CTA" },
-    { flag: "no_service_route" as ContentHealthFlag,count: s.no_service_route,  label: "No service link" },
-    { flag: "no_citations" as ContentHealthFlag,    count: s.no_citations,      label: "No citations" },
+    { flag: "missing_meta" as ContentHealthFlag, count: s.missing_meta, label: "No meta" },
+    { flag: "missing_author" as ContentHealthFlag, count: s.missing_author, label: "No author" },
+    { flag: "stale" as ContentHealthFlag, count: s.stale, label: "Stale" },
+    { flag: "no_cta" as ContentHealthFlag, count: s.no_cta, label: "No CTA" },
+    { flag: "no_service_route" as ContentHealthFlag,count: s.no_service_route, label: "No service link" },
+    { flag: "no_citations" as ContentHealthFlag, count: s.no_citations, label: "No citations" },
   ].filter((s) => s.count > 0);
 });
 

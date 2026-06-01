@@ -53,7 +53,7 @@ const ratingOptions = [null, 5, 4, 3, 2, 1];
           type="button"
           @click="reviews.ratingFilter = star"
         >
-          {{ star === null ? 'All' : `${star}★` }}
+          {{ star === null ? 'All' : `${star}` }}
         </button>
       </div>
     </div>

@@ -501,7 +501,7 @@ class DiscountAdminService:
             for client in eligible_clients
             if getattr(client, "website_id", None) == website.id
         ]
-    
+
     @staticmethod
     def _validate_unique_code(
         *,

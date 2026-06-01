@@ -53,7 +53,7 @@ class WriterOrderRequest(models.Model):
         """
         Enforce max request limit before saving.
         Uses writer's level configuration instead of global config.
-        
+
         Note: This check is skipped if:
         - The request is already approved (being updated, not created)
         - The request is being saved with admin_override=True (set by admin/support actions)
@@ -61,11 +61,11 @@ class WriterOrderRequest(models.Model):
         # Skip validation if request is already approved (admin is updating it)
         if self.pk and self.approved:
             return
-        
+
         # Skip validation if admin override is set (for admin/support assignments)
         if getattr(self, '_admin_override', False):
             return
-        
+
         # Get max requests from writer's level, fallback to WriterConfig if no level
         if self.writer.writer_level:
             max_requests = self.writer.writer_level.max_requests_per_writer
@@ -73,7 +73,7 @@ class WriterOrderRequest(models.Model):
             # Fallback to WriterConfig for writers without a level
             config = WriterConfig.objects.filter(website=self.writer.website).first()
             max_requests = config.max_requests_per_writer if config else 5
-        
+
         # Only count unapproved requests (exclude this one if it exists)
         active_requests_qs = WriterOrderRequest.objects.filter(writer=self.writer, approved=False)
         if self.pk:
@@ -130,7 +130,7 @@ class WriterOrderTake(models.Model):
         related_name="writer_takes"
     )
     taken_at = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="Timestamp when the order was taken."
     )
 
@@ -144,7 +144,7 @@ class WriterOrderTake(models.Model):
         config = WriterConfig.objects.first()
         if not config or not config.takes_enabled:
             raise ValidationError("Order takes are currently disabled. Writers must request orders.")
-        
+
         # Check if writer is allowed to take orders (admin restriction)
         if not self.writer.can_take_orders:
             raise ValidationError(
@@ -195,7 +195,7 @@ class WriterOrderRequestReview(models.Model):
         related_name="order_request_reviews"
     )
     review_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the review was made."
     )
     comments = models.TextField(
@@ -205,11 +205,11 @@ class WriterOrderRequestReview(models.Model):
 
     def __str__(self):
         return f"Review: {self.request.writer.user.username} for Order {self.request.order.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Request Review"
         verbose_name_plural = "Writer Order Request Reviews"
-        ordering = ['-review_date'] 
+        ordering = ['-review_date']
 
 class WriterOrderTakeReview(models.Model):
     """
@@ -224,7 +224,7 @@ class WriterOrderTakeReview(models.Model):
         related_name="order_take_reviews"
     )
     review_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the review was made."
     )
     comments = models.TextField(
@@ -234,7 +234,7 @@ class WriterOrderTakeReview(models.Model):
 
     def __str__(self):
         return f"Review: {self.take.writer.user.username} - Order {self.take.order.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Take Review"
         verbose_name_plural = "Writer Order Take Reviews"
@@ -254,7 +254,7 @@ class WriterOrderRequestAdminReview(models.Model):
         related_name="order_request_admin_reviews"
     )
     review_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the review was made."
     )
     comments = models.TextField(
@@ -264,7 +264,7 @@ class WriterOrderRequestAdminReview(models.Model):
 
     def __str__(self):
         return f"Admin Review: {self.request.writer.user.username} for Order {self.request.order.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Request Admin Review"
         verbose_name_plural = "Writer Order Request Admin Reviews"
@@ -317,7 +317,7 @@ class WriterDeadlineExtensionRequest(models.Model):
             except Exception:
                 pass
         super().save(*args, **kwargs)
-    
+
     class Meta:
         ordering = ['-requested_at']
         indexes = [
@@ -367,7 +367,7 @@ class WriterOrderHoldRequest(models.Model):
             except Exception:
                 pass
         super().save(*args, **kwargs)
-    
+
     class Meta:
         ordering = ['-requested_at']
         indexes = [
@@ -418,7 +418,7 @@ class WriterReassignmentRequest(models.Model):
             except Exception:
                 pass
         super().save(*args, **kwargs)
-    
+
 
 
 class WriterOrderReopenRequest(models.Model):
@@ -458,7 +458,7 @@ class WriterOrderReopenRequest(models.Model):
             except Exception:
                 pass
         super().save(*args, **kwargs)
-    
+
     class Meta:
         ordering = ['-requested_at']
         indexes = [
@@ -526,7 +526,7 @@ class WriterEarningsReviewRequest(models.Model):
 
     def __str__(self):
         return f"Earnings Review Request: {self.writer.user.username} (Approved: {self.approved})"
-    
+
     class Meta:
         ordering = ['-requested_at']
         indexes = [

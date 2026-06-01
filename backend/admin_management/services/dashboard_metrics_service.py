@@ -22,16 +22,16 @@ class DashboardMetricsService:
     Service for generating comprehensive dashboard metrics.
     Role-aware and tenant-aware (website-scoped).
     """
-    
-    CACHE_TIMEOUT = 300  # 5 minutes
-    
+
+    CACHE_TIMEOUT = 300 # 5 minutes
+
     @staticmethod
     def get_cache_key(user, key_suffix: str) -> str:
         """Generate cache key for user-specific metrics."""
         website_id = getattr(user, 'website_id', None) or 'all'
         role = getattr(user, 'role', 'unknown')
         return f"dashboard_metrics_{role}_{website_id}_{key_suffix}"
-    
+
     @staticmethod
     def get_summary(user) -> Dict[str, Any]:
         """
@@ -42,17 +42,17 @@ class DashboardMetricsService:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
-        
+
         website = getattr(user, 'website', None)
         role = getattr(user, 'role', 'client')
-        
+
         # Base queryset - no website filtering for superadmin and admin
         order_qs = Order.objects.all()
         # Both superadmin and admin see all orders (no website filtering)
         if role not in ['superadmin', 'admin']:
             if website:
                 order_qs = order_qs.filter(website=website)
-        
+
         # Role-based filtering
         if role == 'client':
             order_qs = order_qs.filter(client=user)
@@ -72,36 +72,36 @@ class DashboardMetricsService:
             except Exception:
                 order_qs = order_qs.none()
         # Admin/Superadmin see all orders (no additional filtering)
-        
+
         # Orders by status - combined query
         orders_by_status = order_qs.values('status').annotate(
             count=Count('id')
         )
         status_counts = {item['status']: item['count'] for item in orders_by_status}
-        
+
         # Revenue metrics and order counts - combined into single aggregation
         recent_cutoff = timezone.now() - timedelta(days=7)
-        
+
         # Calculate paid/unpaid orders correctly
         # Paid orders: orders where is_paid=True
         # Unpaid orders: orders where is_paid=False OR is_paid is None
         paid_orders_qs = order_qs.filter(is_paid=True)
         unpaid_orders_qs = order_qs.filter(Q(is_paid=False) | Q(is_paid__isnull=True))
         recent_orders_qs = order_qs.filter(created_at__gte=recent_cutoff)
-        
+
         order_stats = order_qs.aggregate(
             total_revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField()),
         )
-        
+
         # Get counts separately to ensure accuracy
         paid_orders_count = paid_orders_qs.count()
         unpaid_orders_count = unpaid_orders_qs.count()
         recent_orders_count = recent_orders_qs.count()
-        
+
         # Calculate total_orders as the sum of paid and unpaid to ensure consistency
         # This ensures total_orders = paid_orders_count + unpaid_orders_count
         total_orders = paid_orders_count + unpaid_orders_count
-        
+
         # If total_orders from status sum differs significantly, log a warning but use the consistent value
         status_sum_total = sum(item['count'] for item in orders_by_status)
         if abs(total_orders - status_sum_total) > 1:
@@ -111,9 +111,9 @@ class DashboardMetricsService:
                 f"Order count mismatch: status sum={status_sum_total}, "
                 f"paid+unpaid={total_orders} (using paid+unpaid for consistency)"
             )
-        
+
         total_revenue = order_stats['total_revenue'] or Decimal('0.00')
-        
+
         # Tickets (if applicable) - combined queries
         ticket_qs = Ticket.objects.all()
         # Both superadmin and admin see all tickets (no website filtering)
@@ -122,7 +122,7 @@ class DashboardMetricsService:
                 ticket_qs = ticket_qs.filter(website=website)
         if role == 'client':
             ticket_qs = ticket_qs.filter(client=user)
-        
+
         # Combined ticket statistics
         ticket_stats = ticket_qs.aggregate(
             total_tickets=Count('id'),
@@ -132,11 +132,11 @@ class DashboardMetricsService:
         total_tickets = ticket_stats['total_tickets'] or 0
         open_tickets = ticket_stats['open_tickets'] or 0
         closed_tickets = ticket_stats['closed_tickets'] or 0
-        
+
         # Additional metrics for admin/superadmin dashboard
         today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start + timedelta(days=1)
-        
+
         # Orders in progress (active work states)
         orders_in_progress = order_qs.filter(
             status__in=[
@@ -147,7 +147,7 @@ class DashboardMetricsService:
                 OrderStatus.UNDER_REVIEW.value,
             ]
         ).count()
-        
+
         # Orders on revision
         orders_on_revision = order_qs.filter(
             status__in=[
@@ -156,10 +156,10 @@ class DashboardMetricsService:
                 OrderStatus.REVISED.value,
             ]
         ).count()
-        
+
         # Disputed orders
         disputed_orders = order_qs.filter(status=OrderStatus.DISPUTED.value).count()
-        
+
         # Amount paid today - use PaymentIntent model
         try:
             from payments_processor.models import PaymentIntent
@@ -218,14 +218,14 @@ class DashboardMetricsService:
             ).aggregate(
                 total=Sum('total_price', output_field=DecimalField())
             )['total'] or Decimal('0.00')
-        
+
         summary = {
             'total_orders': total_orders,
             'orders_by_status': status_counts,
             'total_revenue': float(total_revenue),
             'paid_orders_count': paid_orders_count,
             'unpaid_orders_count': unpaid_orders_count,
-            'recent_orders_count': recent_orders_count,  # Last 7 days
+            'recent_orders_count': recent_orders_count, # Last 7 days
             'total_tickets': total_tickets,
             'open_tickets_count': open_tickets,
             'closed_tickets_count': closed_tickets,
@@ -238,11 +238,11 @@ class DashboardMetricsService:
             'income_2weeks': float(income_2weeks),
             'income_monthly': float(income_monthly),
         }
-        
+
         # Cache for 5 minutes
         cache.set(cache_key, summary, DashboardMetricsService.CACHE_TIMEOUT)
         return summary
-    
+
     @staticmethod
     def get_yearly_orders(user, year: Optional[int] = None) -> List[Dict[str, Any]]:
         """
@@ -251,26 +251,26 @@ class DashboardMetricsService:
         """
         if year is None:
             year = timezone.now().year
-        
+
         cache_key = DashboardMetricsService.get_cache_key(user, f"yearly_{year}")
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
-        
+
         website = getattr(user, 'website', None)
         role = getattr(user, 'role', 'client')
-        
+
         order_qs = Order.objects.filter(created_at__year=year)
         # Both superadmin and admin see all orders (no website filtering)
         if role not in ['superadmin', 'admin']:
             if website:
                 order_qs = order_qs.filter(website=website)
-        
+
         if role == 'client':
             order_qs = order_qs.filter(client=user)
         elif role == 'writer':
             order_qs = order_qs.filter(assigned_writer=user)
-        
+
         # Group by month
         monthly_data = order_qs.annotate(
             month_start=TruncMonth('created_at')
@@ -278,13 +278,13 @@ class DashboardMetricsService:
             order_count=Count('id'),
             revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField())
         ).order_by('month_start')
-        
+
         month_lookup = {}
         for item in monthly_data:
             month_dt = item.get('month_start')
             if month_dt:
                 month_lookup[month_dt.month] = item
-        
+
         # Format for frontend (ensure all 12 months)
         result = []
         for month_num in range(1, 13):
@@ -297,10 +297,10 @@ class DashboardMetricsService:
                 'order_count': order_count,
                 'revenue': float(revenue_value or Decimal('0.00')),
             })
-        
+
         cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
         return result
-    
+
     @staticmethod
     def get_yearly_earnings(user, year: Optional[int] = None) -> List[Dict[str, Any]]:
         """
@@ -308,7 +308,7 @@ class DashboardMetricsService:
         Same as yearly orders but focused on revenue.
         """
         return DashboardMetricsService.get_yearly_orders(user, year)
-    
+
     @staticmethod
     def get_monthly_orders(user, year: Optional[int] = None, month: Optional[int] = None) -> List[Dict[str, Any]]:
         """
@@ -318,15 +318,15 @@ class DashboardMetricsService:
             year = timezone.now().year
         if month is None:
             month = timezone.now().month
-        
+
         cache_key = DashboardMetricsService.get_cache_key(user, f"monthly_{year}_{month}")
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
-        
+
         website = getattr(user, 'website', None)
         role = getattr(user, 'role', 'client')
-        
+
         order_qs = Order.objects.filter(
             created_at__year=year,
             created_at__month=month
@@ -335,12 +335,12 @@ class DashboardMetricsService:
         if role not in ['superadmin', 'admin']:
             if website:
                 order_qs = order_qs.filter(website=website)
-        
+
         if role == 'client':
             order_qs = order_qs.filter(client=user)
         elif role == 'writer':
             order_qs = order_qs.filter(assigned_writer=user)
-        
+
         # Group by day
         daily_data = order_qs.annotate(
             day_start=TruncDay('created_at')
@@ -348,13 +348,13 @@ class DashboardMetricsService:
             order_count=Count('id'),
             revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField())
         ).order_by('day_start')
-        
+
         day_lookup = {}
         for item in daily_data:
             day_dt = item.get('day_start')
             if day_dt:
                 day_lookup[day_dt.day] = item
-        
+
         days_in_month = calendar.monthrange(year, month)[1]
         result = []
         for day in range(1, days_in_month + 1):
@@ -365,10 +365,10 @@ class DashboardMetricsService:
                 'order_count': day_data.get('order_count', 0) if day_data else 0,
                 'revenue': float(revenue_value or Decimal('0.00')),
             })
-        
+
         cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
         return result
-    
+
     @staticmethod
     def get_service_revenue(user, days: int = 30) -> List[Dict[str, Any]]:
         """
@@ -378,12 +378,12 @@ class DashboardMetricsService:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
-        
+
         website = getattr(user, 'website', None)
         role = getattr(user, 'role', 'client')
-        
+
         cutoff = timezone.now() - timedelta(days=days)
-        
+
         order_qs = Order.objects.filter(
             created_at__gte=cutoff,
             is_paid=True
@@ -392,29 +392,29 @@ class DashboardMetricsService:
         if role not in ['superadmin', 'admin']:
             if website:
                 order_qs = order_qs.filter(website=website)
-        
+
         if role == 'client':
             order_qs = order_qs.filter(client=user)
         elif role == 'writer':
             order_qs = order_qs.filter(assigned_writer=user)
-        
+
         # Revenue by paper type
         paper_type_revenue = order_qs.values('paper_type__name').annotate(
             revenue=Sum('total_price', output_field=DecimalField()),
             count=Count('id')
         )
-        
+
         # Revenue by additional services
         # For ManyToMany relationships, we need to query from the service side
         # Get the order IDs that match our filters
         order_ids = list(order_qs.values_list('id', flat=True))
-        
+
         if not order_ids:
             # No orders match, return empty service revenue
             service_revenue = []
         else:
             service_revenue = []
-        
+
         result = {
             'by_paper_type': [
                 {
@@ -433,10 +433,10 @@ class DashboardMetricsService:
                 for item in service_revenue
             ],
         }
-        
+
         cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
         return result
-    
+
     @staticmethod
     def get_payment_status_breakdown(user) -> Dict[str, Any]:
         """
@@ -446,26 +446,26 @@ class DashboardMetricsService:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
-        
+
         website = getattr(user, 'website', None)
         role = getattr(user, 'role', 'client')
-        
+
         order_qs = Order.objects.all()
         # Both superadmin and admin see all orders (no website filtering)
         if role not in ['superadmin', 'admin']:
             if website:
                 order_qs = order_qs.filter(website=website)
-        
+
         if role == 'client':
             order_qs = order_qs.filter(client=user)
         elif role == 'writer':
             order_qs = order_qs.filter(assigned_writer=user)
-        
+
         payment_data = order_qs.values('is_paid').annotate(
             count=Count('id'),
             total_revenue=Sum('total_price', output_field=DecimalField())
         )
-        
+
         paid_count = next(
             (item['count'] for item in payment_data if item['is_paid']),
             0
@@ -474,12 +474,12 @@ class DashboardMetricsService:
             (item['count'] for item in payment_data if not item['is_paid']),
             0
         )
-        
+
         paid_revenue = next(
             (float(item['total_revenue']) for item in payment_data if item['is_paid']),
             0.0
         )
-        
+
         result = {
             'paid': {
                 'count': paid_count,
@@ -487,25 +487,25 @@ class DashboardMetricsService:
             },
             'unpaid': {
                 'count': unpaid_count,
-                'revenue': 0.0,  # Unpaid orders don't contribute to revenue
+                'revenue': 0.0, # Unpaid orders don't contribute to revenue
             },
         }
-        
+
         cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
         return result
-    
+
     @staticmethod
-    def get_yearly_comparison(user, start_year: Optional[int] = None, end_year: Optional[int] = None, 
+    def get_yearly_comparison(user, start_year: Optional[int] = None, end_year: Optional[int] = None,
                              website_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Get comprehensive yearly comparison data including orders, classes, revenue, writers, clients.
-        
+
         Args:
             user: The user requesting the data
             start_year: Start year for comparison (default: 5 years ago)
             end_year: End year for comparison (default: current year)
             website_id: Optional website filter
-            
+
         Returns:
             List of yearly metrics with orders, classes, revenue, writers, clients
         """
@@ -513,12 +513,12 @@ class DashboardMetricsService:
             start_year = timezone.now().year - 5
         if end_year is None:
             end_year = timezone.now().year
-        
+
         cache_key = DashboardMetricsService.get_cache_key(user, f"yearly_comparison_{start_year}_{end_year}_{website_id or 'all'}")
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
-        
+
         website = getattr(user, 'website', None)
         if website_id:
             from websites.models.websites import Website
@@ -526,9 +526,9 @@ class DashboardMetricsService:
                 website = Website.objects.get(id=website_id)
             except Website.DoesNotExist:
                 pass
-        
+
         role = getattr(user, 'role', 'client')
-        
+
         # Base queryset for orders
         order_qs = Order.objects.filter(
             created_at__year__gte=start_year,
@@ -539,7 +539,7 @@ class DashboardMetricsService:
                 order_qs = order_qs.filter(website=website)
         elif website:
             order_qs = order_qs.filter(website=website)
-        
+
         # Base queryset for users
         user_qs = User.objects.filter(
             date_joined__year__gte=start_year,
@@ -547,7 +547,7 @@ class DashboardMetricsService:
         )
         if website:
             user_qs = user_qs.filter(website=website)
-        
+
         # Base queryset for writers
         from writer_management.models import WriterProfile
         writer_qs = WriterProfile.objects.filter(
@@ -556,7 +556,7 @@ class DashboardMetricsService:
         )
         if website:
             writer_qs = writer_qs.filter(website=website)
-        
+
         # Get classes (bulk orders) - check if class_management app exists
         class_qs = None
         try:
@@ -569,13 +569,13 @@ class DashboardMetricsService:
                 class_qs = class_qs.filter(website=website)
         except ImportError:
             pass
-        
+
         # Aggregate by year
         result = []
         for year in range(start_year, end_year + 1):
             year_start = timezone.make_aware(datetime(year, 1, 1))
             year_end = timezone.make_aware(datetime(year + 1, 1, 1))
-            
+
             # Orders for this year
             year_orders = order_qs.filter(
                 created_at__gte=year_start,
@@ -585,20 +585,20 @@ class DashboardMetricsService:
             revenue = year_orders.filter(is_paid=True).aggregate(
                 total=Sum('total_price', output_field=DecimalField())
             )['total'] or Decimal('0.00')
-            
+
             # Clients for this year
             year_clients = user_qs.filter(
                 role='client',
                 date_joined__gte=year_start,
                 date_joined__lt=year_end
             ).count()
-            
+
             # Writers for this year
             year_writers = writer_qs.filter(
                 joined_at__gte=year_start,
                 joined_at__lt=year_end
             ).count()
-            
+
             # Classes for this year
             classes_count = 0
             if class_qs is not None:
@@ -606,7 +606,7 @@ class DashboardMetricsService:
                     created_at__gte=year_start,
                     created_at__lt=year_end
                 ).count()
-            
+
             result.append({
                 'year': year,
                 'orders': orders_count,
@@ -615,6 +615,6 @@ class DashboardMetricsService:
                 'writers': year_writers,
                 'clients': year_clients,
             })
-        
+
         cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
         return result

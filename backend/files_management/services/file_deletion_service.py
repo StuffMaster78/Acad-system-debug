@@ -313,14 +313,14 @@ class FileDeletionService:
                 "updated_at",
             ])
             return
-        
+
         managed_file = deletion_request.managed_file
 
         if managed_file is None:
             raise FileDeletionError(
                 "Archive-file deletion requires a managed file."
             )
-        
+
         managed_file.lifecycle_status = FileLifecycleStatus.ARCHIVED
         managed_file.full_clean()
         managed_file.save(
@@ -346,7 +346,7 @@ class FileDeletionService:
             external_link.is_active = False
             external_link.save(update_fields=["is_active", "updated_at"])
             return
-        
+
         managed_file = deletion_request.managed_file
         if managed_file is None:
             raise FileDeletionError(

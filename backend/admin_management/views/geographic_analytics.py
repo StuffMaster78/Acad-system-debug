@@ -32,7 +32,7 @@ class GeographicAnalyticsViewSet(viewsets.ViewSet):
     def dashboard(self, request):
         """
         Get comprehensive geographic and subject analytics.
-        
+
         Returns:
         - Spending by country
         - Spending by state

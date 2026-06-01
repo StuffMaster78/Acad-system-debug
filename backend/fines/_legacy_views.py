@@ -36,7 +36,7 @@ class FineViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter fines based on user role."""
         user = self.request.user
-        
+
         if user.role in ['admin', 'superadmin', 'support']:
             # Admins see all fines
             return self.queryset.all()
@@ -56,10 +56,10 @@ class FineViewSet(viewsets.ModelViewSet):
         Admin action to waive a fine (restores compensation).
         """
         fine = get_object_or_404(self.get_queryset(), pk=pk)
-        
+
         if request.user.role not in ['admin', 'superadmin']:
             raise PermissionDenied("Only admins or superadmins can waive fines.")
-        
+
         reason = request.data.get("reason", "")
         waived = FineService.waive_fine(fine, request.user, reason)
         return Response(self.get_serializer(waived).data, status=status.HTTP_200_OK)
@@ -70,14 +70,14 @@ class FineViewSet(viewsets.ModelViewSet):
         Admin action to void/revoke a fine (restores compensation).
         """
         fine = get_object_or_404(self.get_queryset(), pk=pk)
-        
+
         if request.user.role not in ['admin', 'superadmin']:
             raise PermissionDenied("Only admins or superadmins can void fines.")
-        
+
         reason = request.data.get("reason", "Fine revoked by admin")
         voided = FineService.void_fine(fine, request.user, reason)
         return Response(self.get_serializer(voided).data, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'], url_path='statistics')
     def statistics(self, request):
         """
@@ -87,9 +87,9 @@ class FineViewSet(viewsets.ModelViewSet):
         from django.db.models import Sum, Count, Q
         from django.utils import timezone
         from decimal import Decimal
-        
+
         queryset = self.get_queryset()
-        
+
         # Date range filters
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
@@ -97,23 +97,23 @@ class FineViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(imposed_at__gte=start_date)
         if end_date:
             queryset = queryset.filter(imposed_at__lte=end_date)
-        
+
         # Status filters
         status_filter = request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-        
+
         # Calculate statistics
         total_fines = queryset.count()
         total_amount = queryset.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-        
+
         # Revenue (only from paid/resolved fines, not waived/voided)
         revenue_fines = queryset.filter(
             status__in=['paid', 'resolved'],
             resolved=False
         )
         total_revenue = revenue_fines.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-        
+
         # Status breakdown
         status_breakdown = {}
         for status_code, status_label in FineStatus.choices:
@@ -124,7 +124,7 @@ class FineViewSet(viewsets.ModelViewSet):
                 'count': count,
                 'amount': float(amount)
             }
-        
+
         # Fine type breakdown
         fine_type_breakdown = {}
         fine_types = queryset.values('fine_type').annotate(
@@ -137,7 +137,7 @@ class FineViewSet(viewsets.ModelViewSet):
                 'count': item['count'],
                 'amount': float(item['total_amount'] or 0)
             }
-        
+
         # Recent fines (last 30 days)
         thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
         recent_fines = queryset.filter(imposed_at__gte=thirty_days_ago).count()
@@ -146,7 +146,7 @@ class FineViewSet(viewsets.ModelViewSet):
             status__in=['paid', 'resolved'],
             resolved=False
         ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-        
+
         return Response({
             'total_fines': total_fines,
             'total_amount': float(total_amount),
@@ -156,50 +156,50 @@ class FineViewSet(viewsets.ModelViewSet):
             'status_breakdown': status_breakdown,
             'fine_type_breakdown': fine_type_breakdown,
         })
-    
+
     @action(detail=False, methods=["post"], url_path="issue")
     def issue_fine(self, request):
         """
         Admin action to issue a fine using fine type config.
-        
+
         Request Body:
         {
             "order_id": 123,
             "fine_type_code": "quality_issue",
             "reason": "Poor quality work, multiple issues",
-            "custom_amount": 25.00  // Optional override
+            "custom_amount": 25.00 // Optional override
         }
         """
         if request.user.role not in ['admin', 'superadmin']:
             raise PermissionDenied("Only admins or superadmins can issue fines.")
-        
+
         order_id = request.data.get('order_id')
         fine_type_code = request.data.get('fine_type_code')
         reason = request.data.get('reason', '')
         custom_amount = request.data.get('custom_amount')
-        
+
         if not order_id:
             return Response(
                 {"detail": "order_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if not fine_type_code:
             return Response(
                 {"detail": "fine_type_code is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if not reason:
             return Response(
                 {"detail": "reason is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             from orders.models.orders import Order
             order = Order.objects.get(id=order_id)
-            
+
             from fines.services.fine_type_service import FineTypeService
             fine = FineTypeService.issue_fine(
                 order=order,
@@ -208,7 +208,7 @@ class FineViewSet(viewsets.ModelViewSet):
                 issued_by=request.user,
                 custom_amount=custom_amount
             )
-            
+
             return Response(
                 self.get_serializer(fine).data,
                 status=status.HTTP_201_CREATED
@@ -223,37 +223,37 @@ class FineViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=False, methods=["get"], url_path="available-types")
     def available_types(self, request):
         """Get available fine types for current website."""
         from fines.services.fine_management_service import FineManagementService
         from websites.utils import get_current_website
-        
+
         website = get_current_website(request)
         fine_types = FineManagementService.get_available_fine_types(website)
-        
+
         from fines.serializers.fine_type_config_serializers import FineTypeConfigSerializer
         serializer = FineTypeConfigSerializer(fine_types, many=True, context={'request': request})
         return Response(serializer.data)
-    
+
     @action(detail=True, methods=["post"], url_path="dispute")
     def dispute(self, request, pk=None):
         """
         Writer action to dispute a fine.
         """
         fine = get_object_or_404(self.get_queryset(), pk=pk)
-        
+
         if request.user.role != 'writer':
             raise PermissionDenied("Only writers can dispute fines.")
-        
+
         reason = request.data.get("reason", "")
         if not reason:
             return Response(
                 {"detail": "Reason is required for disputing a fine."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             appeal = FineAppealService.submit_appeal(fine, request.user, reason)
             return Response(
@@ -285,7 +285,7 @@ class FineAppealViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter appeals based on user role."""
         user = self.request.user
-        
+
         if user.role in ['admin', 'superadmin', 'support']:
             # Admins see all appeals
             return self.queryset.all()
@@ -381,19 +381,19 @@ class FineAppealViewSet(viewsets.ModelViewSet):
         Admin action to review a submitted appeal/dispute.
         """
         appeal = get_object_or_404(self.get_queryset(), pk=pk)
-        
+
         if request.user.role not in ['admin', 'superadmin', 'support']:
             raise PermissionDenied("Only admins, superadmins, or support can review disputes.")
-        
+
         accept = request.data.get("accept")
         if accept is None:
             return Response(
                 {"detail": "Field 'accept' (true/false) is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         review_notes = request.data.get("review_notes", "")
-        
+
         try:
             reviewed = FineAppealService.review_appeal(
                 appeal, request.user, accept, review_notes
@@ -404,17 +404,17 @@ class FineAppealViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=True, methods=["post"], url_path="escalate")
     def escalate(self, request, pk=None):
         """
         Escalate a dispute to admin/superadmin for resolution.
         """
         appeal = get_object_or_404(self.get_queryset(), pk=pk)
-        
+
         if request.user.role not in ['admin', 'superadmin', 'support']:
             raise PermissionDenied("Only admins, superadmins, or support can escalate disputes.")
-        
+
         escalated_to_id = request.data.get("escalated_to_id")
         if escalated_to_id:
             from django.contrib.auth import get_user_model
@@ -422,9 +422,9 @@ class FineAppealViewSet(viewsets.ModelViewSet):
             escalated_to = get_object_or_404(User, id=escalated_to_id)
         else:
             escalated_to = request.user
-        
+
         escalation_reason = request.data.get("escalation_reason", "")
-        
+
         try:
             escalated = FineAppealService.escalate_dispute(
                 appeal, escalated_to, escalation_reason

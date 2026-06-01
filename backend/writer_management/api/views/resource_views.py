@@ -19,13 +19,13 @@ class WriterResourceListView(ListAPIView):
     """GET /api/writer-management/resources/"""
     permission_classes = [IsWriterUser]
 
-    def get_serializer_class(self):  # type: ignore[override]
+    def get_serializer_class(self): # type: ignore[override]
         from writer_management.api.serializers.resource_serializers import (
             WriterResourceSerializer,
         )
         return WriterResourceSerializer
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         website = _resolve_website(self.request)
 
         # Fix 3: use .GET — HttpRequest always has it; query_params is DRF-only

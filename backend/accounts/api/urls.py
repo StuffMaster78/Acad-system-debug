@@ -65,16 +65,16 @@ router.register(
 
 urlpatterns = [
     path(
-        "me/summary/", 
-        MyAccountSummaryView.as_view(), 
+        "me/summary/",
+        MyAccountSummaryView.as_view(),
         name="my-account-summary"),
     path(
-        "me/profile/", 
-        MyAccountProfileView.as_view(), 
+        "me/profile/",
+        MyAccountProfileView.as_view(),
         name="my-profile"),
     path(
-        "me/roles/", 
-        ListMyAccountRolesView.as_view(), 
+        "me/roles/",
+        ListMyAccountRolesView.as_view(),
         name="my-roles"),
 
     path(

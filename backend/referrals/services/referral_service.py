@@ -15,13 +15,13 @@ class ReferralService:
     including checking if a bonus can be awarded, applying discounts to orders, and managing
     the referral state.
     """
-    
+
     def __init__(self, referral: Referral):
         self.referral = referral
         self.config = ReferralBonusConfig.objects.filter(website=referral.website).first()
 
     def get_orders_for_referral(self, referral_code):
-        
+
         Order = apps.get_model('orders', 'Order')
         return Order.objects.filter(referral_code=referral_code)
 
@@ -35,13 +35,13 @@ class ReferralService:
     def _get_qualifying_order(self):
         """
         Get the first approved order for the referee.
-        A client only becomes eligible for referral rewards after ordering 
+        A client only becomes eligible for referral rewards after ordering
         and approving their first order to avoid abuse.
         """
         # Order model uses 'client' field
         # Check for approved status - this means the client has approved their first order
         return self.referral.referee.orders_as_client.filter(status='approved').first()
-    
+
     def get_referral_link(self):
         """Dynamically generates a referral link."""
         return f"https://{self.referral.website.domain}/order?ref={self.referral.referral_code}"
@@ -101,7 +101,7 @@ class ReferralService:
         self.referral.save()
 
         return discount
-    
+
     def get_referral_bonus(self) -> Decimal:
         """
         Returns the referral bonus amount if applicable.
@@ -116,7 +116,7 @@ class ReferralService:
             return Decimal('0.00')
 
         return self.config.first_order_bonus if self.can_award_bonus() else Decimal('0.00')
-    
+
 
     def get_referral_discount(self, order: "Order") -> Decimal:
         """Returns the referral discount amount for the order if applicable."""
@@ -139,8 +139,8 @@ class ReferralService:
         else:
             discount = min(self.config.first_order_discount_amount, order.total)
 
-        return discount 
-    
+        return discount
+
     def reset_referral(self):
         """
         Reset the referral status, allowing the bonus to be re-awarded.
@@ -165,7 +165,7 @@ class ReferralService:
                 'first_order_discount_amount': self.config.first_order_discount_amount if self.config else None,
             }
         }
-    @staticmethod 
+    @staticmethod
     def record_referral_for_user(user, request):
         """
         Record a referral for the user based on the referral code.
@@ -174,7 +174,7 @@ class ReferralService:
         2. Query parameters (ref parameter)
         3. Session (referral_code)
         4. Pending invitations (by email)
-        
+
         This method validates the code and creates a Referral object if valid and not a self-referral.
         """
         # Try to get code from multiple sources
@@ -185,7 +185,7 @@ class ReferralService:
             code = request.query_params.get("ref")
         if not code and hasattr(request, 'session'):
             code = request.session.pop("referral_code", None)
-        
+
         if not code:
             # Check if there's a pending invitation for this user's email
             from .models import PendingReferralInvitation
@@ -215,9 +215,9 @@ class ReferralService:
             website=ref_code.website,
             is_deleted=False
         ).first()
-        
+
         if existing_referral:
-            return  # Already referred
+            return # Already referred
 
         # Get IP addresses from request
         def get_client_ip(request):
@@ -227,10 +227,10 @@ class ReferralService:
             else:
                 ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
             return ip
-        
+
         referrer_ip = get_client_ip(request) if hasattr(request, 'META') else None
-        referee_ip = referrer_ip  # Same IP for now, will be updated when referee registers
-        
+        referee_ip = referrer_ip # Same IP for now, will be updated when referee registers
+
         # Create the referral
         referral = Referral.objects.create(
             website=ref_code.website,
@@ -240,7 +240,7 @@ class ReferralService:
             referrer_ip=referrer_ip,
             referee_ip=referee_ip
         )
-        
+
         # Run abuse detection
         try:
             from referrals.services.abuse_detection import ReferralAbuseDetectionService
@@ -257,7 +257,7 @@ class ReferralService:
             referral_code=code,
             converted=False
         ).first()
-        
+
         if pending_invitation:
             pending_invitation.mark_as_converted()
 

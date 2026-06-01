@@ -25,9 +25,9 @@ class CommunicationScreeningRuleViewSet(ModelViewSet):
         IsAuthenticatedForCommunications,
         CanManageScreeningRules,
     ]
-    
-    
-    def get_throttles(self):  # type: ignore[override]
+
+
+    def get_throttles(self): # type: ignore[override]
         """
         Apply write throttle only to screening rule mutations.
         """
@@ -41,7 +41,7 @@ class CommunicationScreeningRuleViewSet(ModelViewSet):
 
         return super().get_throttles()
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         """
         Return website specific and platform rules.
         """
@@ -51,7 +51,7 @@ class CommunicationScreeningRuleViewSet(ModelViewSet):
             website=website,
         ).order_by("-is_platform_rule", "name", "id")
 
-    def get_serializer_class(self):  # type: ignore[override]
+    def get_serializer_class(self): # type: ignore[override]
         """
         Return serializer class.
         """

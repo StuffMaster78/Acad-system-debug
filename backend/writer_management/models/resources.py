@@ -2,9 +2,9 @@
 Admin-managed resources for writer development.
 No writer-specific identity — resources are site-level content.
 
-WriterResourceCategory  — organises resources
-WriterResource          — the resource itself (doc, link, video, article)
-WriterResourceView      — tracks which writers viewed which resources
+WriterResourceCategory — organises resources
+WriterResource — the resource itself (doc, link, video, article)
+WriterResourceView — tracks which writers viewed which resources
 """
 
 from django.conf import settings
@@ -52,10 +52,10 @@ class WriterResource(models.Model):
 
     class ResourceType(models.TextChoices):
         DOCUMENT = "document", "Document (PDF, DOC, etc.)"
-        LINK     = "link",     "External Link"
-        VIDEO    = "video",    "Video"
-        ARTICLE  = "article",  "Article / Guide"
-        TOOL     = "tool",     "Tool / Software"
+        LINK = "link", "External Link"
+        VIDEO = "video", "Video"
+        ARTICLE = "article", "Article / Guide"
+        TOOL = "tool", "Tool / Software"
 
     website = models.ForeignKey(
         "websites.Website",
@@ -77,9 +77,9 @@ class WriterResource(models.Model):
         default=ResourceType.DOCUMENT,
     )
     # file = models.FileField(
-    #     upload_to="writer_resources/",
-    #     null=True,
-    #     blank=True,
+    # upload_to="writer_resources/",
+    # null=True,
+    # blank=True,
     # )
     file_url = models.URLField(
         null=True,

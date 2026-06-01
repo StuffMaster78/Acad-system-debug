@@ -35,7 +35,7 @@ class PrettyJSONWidget(widgets.Textarea):
     def render(self, name, value, attrs=None, renderer=None):
         value = self.format_value(value)
         return super().render(name, value, attrs, renderer)
-    
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
@@ -92,13 +92,13 @@ class OrderAdmin(admin.ModelAdmin):
         }),
     )
     actions = ['mark_as_completed', 'cancel_order', 'force_editing', 'skip_editing']
-    
+
     def force_editing(self, request, queryset):
         """Force editing for selected orders."""
         count = queryset.update(requires_editing=True)
         self.message_user(request, f"{count} order(s) will now undergo editing.")
     force_editing.short_description = "Force editing for selected orders"
-    
+
     def skip_editing(self, request, queryset):
         """Skip editing for selected orders."""
         count = queryset.update(requires_editing=False, editing_skip_reason="Admin disabled editing")
@@ -174,14 +174,14 @@ class OrderPricingSnapshotAdmin(admin.ModelAdmin):
         return obj.total_amount
 
     def has_add_permission(self, request):
-        return False  # snapshots should only be created programmatically
+        return False # snapshots should only be created programmatically
 
     def has_change_permission(self, request, obj=None):
-        return False  # immutable once saved
+        return False # immutable once saved
 
     def has_delete_permission(self, request, obj=None):
         return False
-    
+
 @admin.register(UnpaidOrderMessage)
 class UnpaidOrderMessageAdmin(admin.ModelAdmin):
     """

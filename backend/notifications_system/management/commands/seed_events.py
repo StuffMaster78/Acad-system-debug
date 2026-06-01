@@ -41,13 +41,13 @@ class Command(BaseCommand):
 
             if was_created:
                 created += 1
-                self.stdout.write(f"  CREATE  {event_value}")
+                self.stdout.write(f" CREATE {event_value}")
             elif update:
                 obj.label = event_label
                 obj.category = category
                 obj.save(update_fields=['label', 'category'])
                 updated += 1
-                self.stdout.write(f"  UPDATE  {event_value}")
+                self.stdout.write(f" UPDATE {event_value}")
             else:
                 skipped += 1
 

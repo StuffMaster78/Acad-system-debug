@@ -21,7 +21,7 @@ class ReassignmentRequestAction(BaseOrderAction):
             metadata={"params": self.params}
         )
         return reassignment
-    
+
 @register_order_action("reassign_order")
 class OrderReassignmentAction(BaseOrderAction):
     """

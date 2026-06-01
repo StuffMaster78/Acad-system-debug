@@ -46,7 +46,7 @@ class CommunicationModerationService:
             created_by=created_by,
             metadata=metadata or {},
         )
-        
+
         transaction.on_commit(
             lambda: CommunicationNotificationService.notify_message_flagged(
                 message=message,

@@ -3,14 +3,14 @@ Creates WriterActionLog entries after discipline events.
 Called by DisciplineService after every mutation.
 """
 import logging
- 
+
 from writer_management.models.logs import WriterActionLog
- 
+
 logger = logging.getLogger(__name__)
- 
- 
+
+
 class WriterActionLogService:
- 
+
     @staticmethod
     def log(
         writer,
@@ -21,14 +21,14 @@ class WriterActionLogService:
     ) -> WriterActionLog | None:
         """
         Create a WriterActionLog entry.
- 
+
         Args:
-            writer:           WriterProfile instance.
-            action:           WriterActionLog.ActionType value.
-            reason:           Reason or notes for the action.
-            performed_by:     Admin User. None = system.
+            writer: WriterProfile instance.
+            action: WriterActionLog.ActionType value.
+            reason: Reason or notes for the action.
+            performed_by: Admin User. None = system.
             source_object_id: PK of the source record (strike PK, etc.).
- 
+
         Returns:
             WriterActionLog instance or None on failure.
         """
@@ -43,7 +43,7 @@ class WriterActionLogService:
                     action,
                 )
                 return None
- 
+
             entry = WriterActionLog.objects.create(
                 website=website,
                 writer=writer,

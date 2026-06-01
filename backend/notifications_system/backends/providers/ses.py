@@ -6,9 +6,9 @@ Uses boto3 — the official AWS SDK for Python.
 
 Config:
     {
-        'aws_access_key_id':     'AKIAxxxxxxxxxx',
+        'aws_access_key_id': 'AKIAxxxxxxxxxx',
         'aws_secret_access_key': 'xxxxxxxxxx',
-        'region_name':           'us-east-1',
+        'region_name': 'us-east-1',
     }
 
 Cheapest provider at scale:
@@ -117,7 +117,7 @@ class SESBackend(BaseEmailBackend):
             if message.tags:
                 params['Tags'] = [
                     {'Name': tag[:128], 'Value': 'true'}
-                    for tag in message.tags[:10]  # SES max 10 tags
+                    for tag in message.tags[:10] # SES max 10 tags
                 ]
 
             response = client.send_email(**params)

@@ -309,7 +309,7 @@ class OrderFileService:
                 getattr(order, "id", None),
                 exc_info=True,
             )
-    
+
     @staticmethod
     def _resolve_writer_user(order):
         try:

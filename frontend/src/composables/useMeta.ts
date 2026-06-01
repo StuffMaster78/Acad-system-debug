@@ -42,22 +42,22 @@ function apply(opts: MetaOptions) {
   setMeta("name", "description", opts.description ?? "");
 
   // Open Graph
-  setMeta("property", "og:title",       fullTitle);
+  setMeta("property", "og:title", fullTitle);
   setMeta("property", "og:description", opts.description ?? "");
-  setMeta("property", "og:type",        opts.type ?? "website");
-  setMeta("property", "og:url",         url);
-  setMeta("property", "og:site_name",   siteName);
+  setMeta("property", "og:type", opts.type ?? "website");
+  setMeta("property", "og:url", url);
+  setMeta("property", "og:site_name", siteName);
   if (opts.image) setMeta("property", "og:image", opts.image);
 
   // Article-specific
   if (opts.type === "article") {
     if (opts.publishedAt) setMeta("property", "article:published_time", opts.publishedAt);
-    if (opts.author)      setMeta("property", "article:author", opts.author);
+    if (opts.author) setMeta("property", "article:author", opts.author);
   }
 
   // Twitter card
-  setMeta("name", "twitter:card",        opts.image ? "summary_large_image" : "summary");
-  setMeta("name", "twitter:title",       fullTitle);
+  setMeta("name", "twitter:card", opts.image ? "summary_large_image" : "summary");
+  setMeta("name", "twitter:title", fullTitle);
   setMeta("name", "twitter:description", opts.description ?? "");
   if (opts.image) setMeta("name", "twitter:image", opts.image);
 

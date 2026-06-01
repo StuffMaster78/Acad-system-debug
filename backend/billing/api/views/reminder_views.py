@@ -42,7 +42,7 @@ def _reject_tenant_override(*, request: Request) -> None:
 
     if "website" in request_data or "website_id" in request_data:
         raise PermissionDenied("Tenant cannot be overridden.")
-    
+
 
 class ReminderListView(APIView):
     permission_classes = [
@@ -59,7 +59,7 @@ class ReminderListView(APIView):
 
         serializer = ReminderReadSerializer(queryset, many=True)
         return Response(serializer.data)
-    
+
 class ReminderDetailView(APIView):
     permission_classes = [
         permissions.IsAuthenticated,
@@ -84,7 +84,7 @@ class ReminderDetailView(APIView):
 
         serializer = ReminderReadSerializer(reminder)
         return Response(serializer.data)
-    
+
 
 class InvoiceReminderListCreateView(APIView):
     permission_classes = [
@@ -147,7 +147,7 @@ class InvoiceReminderListCreateView(APIView):
             ReminderReadSerializer(reminder).data,
             status=status.HTTP_201_CREATED,
         )
-    
+
 class PaymentRequestReminderListCreateView(APIView):
     permission_classes = [
         permissions.IsAuthenticated,

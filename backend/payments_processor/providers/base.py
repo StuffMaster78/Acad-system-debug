@@ -32,7 +32,7 @@ class ProviderWebhookVerificationResult:
     """
 
     is_verified: bool
-    error_message: str = "" 
+    error_message: str = ""
     raw_response: dict[str, Any] = field(default_factory=dict)
 
 @dataclass(slots=True)

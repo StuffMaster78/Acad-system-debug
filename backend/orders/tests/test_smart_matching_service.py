@@ -19,7 +19,7 @@ User = get_user_model()
 
 class SmartMatchingServiceTestCase(TestCase):
     """Test cases for SmartMatchingService."""
-    
+
     def setUp(self):
         """Set up test data."""
         self.website = Website.objects.create(
@@ -27,21 +27,21 @@ class SmartMatchingServiceTestCase(TestCase):
             domain='https://test.com',
             is_active=True
         )
-        
+
         self.client_user = User.objects.create_user(
             username='testclient',
             email='client@test.com',
             role='client',
             website=self.website
         )
-        
+
         # Create writer level
         self.writer_level = WriterLevel.objects.create(
             website=self.website,
             name='Level 1',
             max_orders=5
         )
-        
+
         # Create writers
         self.writer1 = User.objects.create_user(
             username='writer1',
@@ -55,7 +55,7 @@ class SmartMatchingServiceTestCase(TestCase):
             writer_level=self.writer_level,
             is_available_for_auto_assignments=True
         )
-        
+
         self.writer2 = User.objects.create_user(
             username='writer2',
             email='writer2@test.com',
@@ -68,26 +68,26 @@ class SmartMatchingServiceTestCase(TestCase):
             writer_level=self.writer_level,
             is_available_for_auto_assignments=True
         )
-        
+
         # Create order configs
         self.paper_type = PaperType.objects.create(
             website=self.website,
             name='Essay',
             base_price=10.00
         )
-        
+
         self.subject = Subject.objects.create(
             website=self.website,
             name='History',
             base_price_multiplier=1.0
         )
-        
+
         self.type_of_work = TypeOfWork.objects.create(
             website=self.website,
             name='Research Paper',
             base_price_multiplier=1.2
         )
-        
+
         # Create an order to match
         self.order = Order.objects.create(
             website=self.website,
@@ -101,7 +101,7 @@ class SmartMatchingServiceTestCase(TestCase):
             total_cost=100.00,
             client_deadline=timezone.now() + timedelta(days=7)
         )
-    
+
     def test_find_matches_basic(self):
         """Test basic matching functionality."""
         # Give writer1 completed orders in same subject
@@ -120,19 +120,19 @@ class SmartMatchingServiceTestCase(TestCase):
                 total_cost=100.00,
                 rating=4.5
             )
-        
+
         service = SmartMatchingService()
         matches = service.find_matches(
             order=self.order,
             max_results=10,
             min_rating=4.0
         )
-        
+
         self.assertGreater(len(matches), 0)
         # Writer1 should be in matches
         writer_ids = [match['writer_id'] for match in matches]
         self.assertIn(self.writer1.id, writer_ids)
-    
+
     def test_find_matches_with_scoring(self):
         """Test that matches include scores and explanations."""
         # Give writer1 high rating and experience
@@ -151,13 +151,13 @@ class SmartMatchingServiceTestCase(TestCase):
                 total_cost=100.00,
                 rating=4.8
             )
-        
+
         service = SmartMatchingService()
         matches = service.find_matches(
             order=self.order,
             max_results=10
         )
-        
+
         if len(matches) > 0:
             match = matches[0]
             self.assertIn('writer_id', match)
@@ -165,7 +165,7 @@ class SmartMatchingServiceTestCase(TestCase):
             self.assertIn('explanation', match)
             self.assertIn('rating', match)
             self.assertIn('reasons', match)
-    
+
     def test_find_matches_excludes_overloaded(self):
         """Test that overloaded writers are excluded."""
         # Fill writer1's capacity
@@ -183,17 +183,17 @@ class SmartMatchingServiceTestCase(TestCase):
                 number_of_pages=5,
                 total_cost=50.00
             )
-        
+
         service = SmartMatchingService()
         matches = service.find_matches(
             order=self.order,
             max_results=10
         )
-        
+
         # Writer1 should not be in matches (at capacity)
         writer_ids = [match['writer_id'] for match in matches]
         self.assertNotIn(self.writer1.id, writer_ids)
-    
+
     def test_find_matches_prioritizes_experience(self):
         """Test that writers with more experience score higher."""
         # Give writer1 more completed orders
@@ -212,7 +212,7 @@ class SmartMatchingServiceTestCase(TestCase):
                 total_cost=100.00,
                 rating=4.5
             )
-        
+
         # Give writer2 fewer completed orders
         for i in range(3):
             Order.objects.create(
@@ -229,18 +229,18 @@ class SmartMatchingServiceTestCase(TestCase):
                 total_cost=100.00,
                 rating=4.5
             )
-        
+
         service = SmartMatchingService()
         matches = service.find_matches(
             order=self.order,
             max_results=10
         )
-        
+
         if len(matches) >= 2:
             # Writer1 should have higher score (more experience)
             writer1_match = next((m for m in matches if m['writer_id'] == self.writer1.id), None)
             writer2_match = next((m for m in matches if m['writer_id'] == self.writer2.id), None)
-            
+
             if writer1_match and writer2_match:
                 self.assertGreaterEqual(writer1_match['score'], writer2_match['score'])
 

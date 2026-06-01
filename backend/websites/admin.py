@@ -25,7 +25,7 @@ class SoftDeleteFilter(SimpleListFilter):
         if self.value() is None:
             return queryset
         return queryset.filter(is_deleted=self.value() == 'True')
-    
+
 
 @admin.register(Website)
 class WebsiteAdmin(admin.ModelAdmin):
@@ -47,7 +47,7 @@ class WebsiteAdmin(admin.ModelAdmin):
         }),
         ("Branding & Contact", {
             "fields": ("logo", "theme_color", "contact_email", "contact_phone"),
-            "classes": ("collapse",),  # Makes this section collapsible
+            "classes": ("collapse",), # Makes this section collapsible
         }),
         ("SEO & Analytics", {
             "fields": ("meta_title", "meta_description", "google_analytics_id", "google_search_console_id", "bing_webmaster_id"),
@@ -62,11 +62,11 @@ class WebsiteAdmin(admin.ModelAdmin):
         }),
         ("Soft Deletion", {
             "fields": ("is_deleted", "deleted_at"),
-            "classes": ("collapse",),  # Makes soft delete info collapsible
+            "classes": ("collapse",), # Makes soft delete info collapsible
         }),
     )
 
-    readonly_fields = ("slug", "deleted_at")  # Slug should not be editable manually
+    readonly_fields = ("slug", "deleted_at") # Slug should not be editable manually
 
     actions = ["soft_delete_selected", "restore_selected"]
 
@@ -94,17 +94,17 @@ class WebsiteStaticPageAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
-    
+
 
 # website/admin.py
 # class WebsiteSettingsInline(admin.TabularInline):
-#     model = WebsiteSettings
-#     extra = 1  # Only show one inline form for the website settings
+# model = WebsiteSettings
+# extra = 1 # Only show one inline form for the website settings
 
 # class WebsiteAdmin(admin.ModelAdmin):
-#     inlines = [WebsiteSettingsInline]
+# inlines = [WebsiteSettingsInline]
 
-admin.site.register(WebsiteSettings)  # assuming you don't have a custom admin
+admin.site.register(WebsiteSettings) # assuming you don't have a custom admin
 admin.site.register(WebsiteStaticPage, WebsiteStaticPageAdmin)
 
 
@@ -118,7 +118,7 @@ class WebsiteTermsAcceptanceAdmin(admin.ModelAdmin):
 @admin.register(WebsiteIntegrationConfig)
 class WebsiteIntegrationConfigAdmin(admin.ModelAdmin):
     """Admin interface for managing website integration configurations."""
-    
+
     list_display = (
         "website", "integration_type", "name", "is_active",
         "created_at", "updated_at", "created_by"
@@ -131,7 +131,7 @@ class WebsiteIntegrationConfigAdmin(admin.ModelAdmin):
         "integration_type"
     )
     readonly_fields = ("created_at", "updated_at", "created_by")
-    
+
     fieldsets = (
         ("Basic Information", {
             "fields": ("website", "integration_type", "name", "description", "is_active")
@@ -149,10 +149,10 @@ class WebsiteIntegrationConfigAdmin(admin.ModelAdmin):
             "classes": ("collapse",),
         }),
     )
-    
+
     def save_model(self, request, obj, form, change):
         """Set created_by on first save."""
-        if not change:  # New object
+        if not change: # New object
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
@@ -160,7 +160,7 @@ class WebsiteIntegrationConfigAdmin(admin.ModelAdmin):
 @admin.register(ExternalReviewLink)
 class ExternalReviewLinkAdmin(admin.ModelAdmin):
     """Admin interface for managing external review links (TrustPilot, Google Reviews, etc.)."""
-    
+
     list_display = (
         "review_site_name", "website", "review_type", "is_active",
         "display_order", "created_at", "updated_at"
@@ -173,7 +173,7 @@ class ExternalReviewLinkAdmin(admin.ModelAdmin):
     )
     readonly_fields = ("created_at", "updated_at")
     ordering = ("website", "display_order", "review_site_name")
-    
+
     fieldsets = (
         ("Basic Information", {
             "fields": ("website", "review_site_name", "review_url", "review_type", "is_active")
@@ -187,7 +187,7 @@ class ExternalReviewLinkAdmin(admin.ModelAdmin):
             "classes": ("collapse",),
         }),
     )
-    
+
     def get_queryset(self, request):
         """Optimize queryset with select_related."""
         qs = super().get_queryset(request)

@@ -18,7 +18,7 @@ def validate_webhook_provider(provider: str) -> None:
     """
     if provider not in PaymentProvider.values:
         raise PaymentError(f"Unsupported webhook provider '{provider}'.")
-    
+
 
 
 def validate_webhook_payload(payload: dict[str, Any] | None) -> None:
@@ -39,7 +39,7 @@ def validate_webhook_payload(payload: dict[str, Any] | None) -> None:
 
     if not payload:
         raise PaymentError("Webhook payload is empty.")
-    
+
 
 def validate_webhook_event_id(event_id: str | None) -> None:
     """
@@ -53,7 +53,7 @@ def validate_webhook_event_id(event_id: str | None) -> None:
     """
     if not event_id:
         raise PaymentError("Webhook event ID is required.")
-    
+
 
 def validate_webhook_event_type(event_type: str | None) -> None:
     """
@@ -67,7 +67,7 @@ def validate_webhook_event_type(event_type: str | None) -> None:
     """
     if not event_type:
         raise PaymentError("Webhook event type is required.")
-    
+
 
 def validate_webhook_not_processed(
     *,
@@ -87,7 +87,7 @@ def validate_webhook_not_processed(
 
     if existing_event.processing_status == "processed":
         raise PaymentError("Webhook event already processed.")
-    
+
 
 
 def validate_webhook_payment_intent(
@@ -106,7 +106,7 @@ def validate_webhook_payment_intent(
         raise PaymentError(
             "Webhook could not be mapped to a payment intent."
         )
-    
+
 
 
 def validate_signature_verified(is_verified: bool) -> None:
@@ -121,7 +121,7 @@ def validate_signature_verified(is_verified: bool) -> None:
     """
     if not is_verified:
         raise PaymentError("Webhook signature verification failed.")
-    
+
 
 
 def validate_webhook_status_transition(

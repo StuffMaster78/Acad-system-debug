@@ -77,7 +77,7 @@ class WriterProfileDetailView(RetrieveAPIView):
 
 class MyWriterProfileView(APIView):
     """
-    GET  /api/writer-management/me/profile/
+    GET /api/writer-management/me/profile/
     PATCH /api/writer-management/me/profile/
 
     Writer: view and update their own profile.

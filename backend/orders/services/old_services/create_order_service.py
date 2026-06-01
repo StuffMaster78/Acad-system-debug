@@ -39,5 +39,5 @@ class CreateOrderService:
             notification_type="in_app",
             context_data={"order": order}
         )
-        
-        return order 
+
+        return order

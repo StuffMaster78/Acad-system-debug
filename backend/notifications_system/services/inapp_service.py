@@ -64,10 +64,10 @@ class InAppService:
         Excludes cancelled and expired by default.
 
         Args:
-            user:               Recipient user
-            website:            Website for tenant scoping
-            exclude_cancelled:  Exclude CANCELLED status rows
-            exclude_expired:    Exclude rows past their expires_at
+            user: Recipient user
+            website: Website for tenant scoping
+            exclude_cancelled: Exclude CANCELLED status rows
+            exclude_expired: Exclude rows past their expires_at
 
         Returns:
             Notification QuerySet — not yet evaluated.
@@ -223,8 +223,8 @@ class InAppService:
         the cached unread count from source of truth.
 
         Args:
-            user:            Recipient user
-            website:         Website for tenant scoping
+            user: Recipient user
+            website: Website for tenant scoping
             notification_id: Notification PK to mark read
 
         Returns:

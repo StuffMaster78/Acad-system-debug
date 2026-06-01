@@ -26,7 +26,7 @@ class IdempotencyService:
             timeout=ttl,
         )
 
-    
+
     @staticmethod
     def claim(event_id: str, ttl: int = 300) -> bool:
         """

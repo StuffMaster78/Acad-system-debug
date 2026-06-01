@@ -45,7 +45,7 @@ class AdjustmentValidator:
             raise ValidationError(
                 "Unit type is required for scope increment adjustments."
             )
-        
+
         if requested_quantity <= current_quantity:
             raise ValidationError(
                 "Requested quantity must be greater than current quantity for scope increment adjustments."
@@ -77,12 +77,12 @@ class AdjustmentValidator:
             raise ValidationError(
                 "Requested quantity cannot be negative."
             )
-        
+
         if countered_quantity > current_quantity:
             raise ValidationError(
                 "Countered quantity cannot exceed current quantity."
             )
-        
+
         if countered_quantity > requested_quantity:
             raise ValidationError(
                 "Countered quantity cannot exceed requested quantity."
@@ -98,7 +98,7 @@ class AdjustmentValidator:
         Validate that the extra service code is provided for extra service adjustments.
         Args:
             extra_service_code: The code of the extra service being added.
-            
+
             Raises:
                 ValidationError: If the extra service code is not provided for
                 extra service adjustments.

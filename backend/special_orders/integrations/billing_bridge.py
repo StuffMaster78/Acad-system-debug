@@ -35,9 +35,9 @@ class SpecialOrderBillingBridge:
 
         Args:
             special_order: Parent special order.
-            milestone:     Funding milestone to invoice.
-            created_by:    Staff member creating the invoice.
-            metadata:      Optional additional metadata stored on the invoice.
+            milestone: Funding milestone to invoice.
+            created_by: Staff member creating the invoice.
+            metadata: Optional additional metadata stored on the invoice.
 
         Returns:
             Invoice: Newly created draft invoice.

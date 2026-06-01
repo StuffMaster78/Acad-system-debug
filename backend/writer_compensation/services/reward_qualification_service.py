@@ -67,9 +67,9 @@ class RewardQualificationService:
                 "qualified": False,
                 "snapshot": {},
             }
-        
+
         metadata = snapshot.metadata or {}
-        
+
         qualification_snapshot = {
             "average_rating": snapshot.rating,
             "review_count": (

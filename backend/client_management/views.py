@@ -8,7 +8,7 @@ from client_management.serializers import (
     ClientActionSerializer,
     ProfileUpdateRequestSerializer
 )
-from loyalty_management.serializers import  LoyaltyTierSerializer, LoyaltyTransactionSerializer
+from loyalty_management.serializers import LoyaltyTierSerializer, LoyaltyTransactionSerializer
 from core.utils.location import get_geolocation_from_ip
 from .permissions import IsAdminOrSuperAdmin, IsSelfOrAdmin
 from .pagination import StandardResultsSetPagination
@@ -154,7 +154,7 @@ class ClientActionView(views.APIView):
             serializer.is_valid(raise_exception=True)
 
             action = serializer.validated_data.get("action")
-            
+
             # Perform the action and log it
             if action == "suspend":
                 client.suspend_account(admin=request.user)
@@ -206,12 +206,12 @@ class BlacklistEmailListView(generics.ListAPIView):
     """Get a list of all blacklisted emails"""
     queryset = BlacklistedEmail.objects.all()
     serializer_class = BlacklistedEmailSerializer
-    permission_classes = [IsAdminUser]  # Only admins can view
+    permission_classes = [IsAdminUser] # Only admins can view
 
 class BlacklistEmailAddView(generics.CreateAPIView):
     """Add an email to the blacklist"""
     serializer_class = BlacklistedEmailSerializer
-    permission_classes = [IsAdminUser]  # Only admins can add
+    permission_classes = [IsAdminUser] # Only admins can add
 
     def create(self, request, *args, **kwargs):
         email = request.data.get("email")
@@ -224,7 +224,7 @@ class BlacklistEmailAddView(generics.CreateAPIView):
 
 class BlacklistEmailRemoveView(generics.DestroyAPIView):
     """Remove an email from the blacklist"""
-    permission_classes = [IsAdminUser]  # Only admins can remove
+    permission_classes = [IsAdminUser] # Only admins can remove
 
     def delete(self, request, *args, **kwargs):
         email = request.data.get("email")

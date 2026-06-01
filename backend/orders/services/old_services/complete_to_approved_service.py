@@ -10,7 +10,7 @@ class CompleteToApprovedService:
     after a set grace period (e.g., 3 weeks).
     """
 
-    GRACE_PERIOD_DAYS = 21  # 3 weeks
+    GRACE_PERIOD_DAYS = 21 # 3 weeks
 
     def move_complete_to_approved(self, order: Order) -> Order:
         """

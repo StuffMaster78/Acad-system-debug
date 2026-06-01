@@ -23,7 +23,7 @@ class CommunicationAuditLogViewSet(ReadOnlyModelViewSet):
     ]
     pagination_class = CommunicationDefaultPagePagination
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         """
         Return audit logs for admin and superadmin users.
         """

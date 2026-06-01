@@ -36,7 +36,7 @@ class DropdownOptionsView(APIView):
     def get(self, request):
         """
         Get all dropdown options.
-        
+
         Query params:
         - website_id: Filter order configs by website
         - include_enums: Include enum choices (default: true)
@@ -49,16 +49,16 @@ class DropdownOptionsView(APIView):
         include_configs = request.query_params.get('include_configs', 'true').lower() == 'true'
         include_websites = request.query_params.get('include_websites', 'true').lower() == 'true'
         include_users = request.query_params.get('include_users', 'false').lower() == 'true'
-        
+
         # Get user's website if not superadmin
         user_website = None
         if request.user.role != 'superadmin':
             user_website = getattr(request.user, 'website', None)
             if user_website:
                 website_id = str(user_website.id)
-        
+
         response_data = {}
-        
+
         # Order Configurations (Database-driven)
         if include_configs:
             website_filter = Q()
@@ -66,7 +66,7 @@ class DropdownOptionsView(APIView):
                 website_filter = Q(website_id=website_id)
             elif user_website:
                 website_filter = Q(website=user_website)
-            
+
             response_data['order_configs'] = {
                 'paper_types': [
                     {'id': pt.id, 'name': pt.name, 'website_id': pt.website_id}
@@ -93,7 +93,7 @@ class DropdownOptionsView(APIView):
                     for et in EnglishType.objects.filter(website_filter).select_related('website').order_by('name')
                 ],
             }
-        
+
         # Enum Choices (Status, Payment Types, etc.)
         if include_enums:
             response_data['enums'] = {
@@ -130,18 +130,18 @@ class DropdownOptionsView(APIView):
                     for choice in FineStatus
                 ],
             }
-        
+
         # Websites List
         if include_websites:
             websites_qs = Website.objects.filter(is_active=True, is_deleted=False)
             if request.user.role != 'superadmin' and user_website:
                 websites_qs = websites_qs.filter(id=user_website.id)
-            
+
             response_data['websites'] = [
                 {'id': w.id, 'name': w.name, 'domain': w.domain}
                 for w in websites_qs.order_by('name')
             ]
-        
+
         # Class Duration Options (Database-driven)
         if include_configs:
             duration_filter = Q()
@@ -149,7 +149,7 @@ class DropdownOptionsView(APIView):
                 duration_filter = Q(website_id=website_id)
             elif user_website:
                 duration_filter = Q(website=user_website)
-            
+
             response_data['class_duration_options'] = []
             if ClassDurationOption is not None:
                 response_data['class_duration_options'] = [
@@ -158,14 +158,14 @@ class DropdownOptionsView(APIView):
                     .select_related('website')
                     .order_by('website', 'class_code')
                 ]
-        
+
         # Users List (Admin only, optional)
         if include_users and request.user.role in ['superadmin', 'admin']:
             users_qs = User.objects.filter(is_active=True)
             if request.user.role == 'admin' and user_website:
                 # Admins see users from their website
                 users_qs = users_qs.filter(website=user_website)
-            
+
             response_data['users'] = [
                 {
                     'id': u.id,
@@ -174,9 +174,9 @@ class DropdownOptionsView(APIView):
                     'full_name': u.get_full_name() or u.username,
                     'role': u.role
                 }
-                for u in users_qs.select_related('website').order_by('username')[:100]  # Limit to 100
+                for u in users_qs.select_related('website').order_by('username')[:100] # Limit to 100
             ]
-        
+
         return Response(response_data)
 
 
@@ -190,7 +190,7 @@ class DropdownOptionsByCategoryView(APIView):
     def get(self, request, category):
         """
         Get dropdown options for a specific category.
-        
+
         Categories:
         - order_configs: All order configuration options
         - enums: All enum choices
@@ -204,13 +204,13 @@ class DropdownOptionsByCategoryView(APIView):
             user_website = getattr(request.user, 'website', None)
             if user_website:
                 website_id = str(user_website.id)
-        
+
         website_filter = Q()
         if website_id:
             website_filter = Q(website_id=website_id)
         elif user_website:
             website_filter = Q(website=user_website)
-        
+
         if category == 'order_configs':
             return Response({
                 'paper_types': [
@@ -238,7 +238,7 @@ class DropdownOptionsByCategoryView(APIView):
                     for et in EnglishType.objects.filter(website_filter).select_related('website').order_by('name')
                 ],
             })
-        
+
         elif category == 'enums':
             return Response({
                 'order_status': [
@@ -274,25 +274,25 @@ class DropdownOptionsByCategoryView(APIView):
                     for choice in FineStatus
                 ],
             })
-        
+
         elif category == 'websites':
             websites_qs = Website.objects.filter(is_active=True, is_deleted=False)
             if request.user.role != 'superadmin' and user_website:
                 websites_qs = websites_qs.filter(id=user_website.id)
-            
+
             return Response([
                 {'id': w.id, 'name': w.name, 'domain': w.domain}
                 for w in websites_qs.order_by('name')
             ])
-        
+
         elif category == 'users':
             if request.user.role not in ['superadmin', 'admin']:
                 return Response({'detail': 'Permission denied'}, status=403)
-            
+
             users_qs = User.objects.filter(is_active=True)
             if request.user.role == 'admin' and user_website:
                 users_qs = users_qs.filter(website=user_website)
-            
+
             return Response([
                 {
                     'id': u.id,
@@ -303,44 +303,44 @@ class DropdownOptionsByCategoryView(APIView):
                 }
                 for u in users_qs.select_related('website').order_by('username')[:100]
             ])
-        
+
         # Specific config types
         elif category == 'paper_types':
             return Response([
                 {'id': pt.id, 'name': pt.name, 'website_id': pt.website_id}
                 for pt in PaperType.objects.filter(website_filter).select_related('website').order_by('name')
             ])
-        
+
         elif category == 'subjects':
             return Response([
                 {'id': s.id, 'name': s.name, 'is_technical': s.is_technical, 'website_id': s.website_id}
                 for s in Subject.objects.filter(website_filter).select_related('website').order_by('name')
             ])
-        
+
         elif category == 'academic_levels':
             return Response([
                 {'id': al.id, 'name': al.name, 'website_id': al.website_id}
                 for al in AcademicLevel.objects.filter(website_filter).select_related('website').order_by('name')
             ])
-        
+
         elif category == 'formatting_styles':
             return Response([
                 {'id': fs.id, 'name': fs.name, 'website_id': fs.website_id}
                 for fs in FormattingandCitationStyle.objects.filter(website_filter).select_related('website').order_by('name')
             ])
-        
+
         elif category == 'types_of_work':
             return Response([
                 {'id': tow.id, 'name': tow.name, 'website_id': tow.website_id}
                 for tow in TypeOfWork.objects.filter(website_filter).select_related('website').order_by('name')
             ])
-        
+
         elif category == 'english_types':
             return Response([
                 {'id': et.id, 'name': et.name, 'code': et.code, 'website_id': et.website_id}
                 for et in EnglishType.objects.filter(website_filter).select_related('website').order_by('name')
             ])
-        
+
         elif category == 'class_duration_options':
             if ClassDurationOption is None:
                 return Response([])
@@ -351,6 +351,6 @@ class DropdownOptionsByCategoryView(APIView):
                 .select_related('website')
                 .order_by('website', 'class_code')
             ])
-        
+
         else:
             return Response({'detail': f'Unknown category: {category}'}, status=400)

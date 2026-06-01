@@ -10,8 +10,8 @@ from orders.order_enums import OrderStatus
 class PreferredWriterResponseService:
     """Service to handle preferred writer responses on assigned orders.
 
-    This service supports accepting, declining an assigned order, and 
-    releasing orders back to the available pool if the acceptance window 
+    This service supports accepting, declining an assigned order, and
+    releasing orders back to the available pool if the acceptance window
     expires without response.
 
     Attributes:
@@ -69,7 +69,7 @@ class PreferredWriterResponseService:
             order.assigned_writer = writer
             order.accepted_at = timezone.now()
             order.save()
-            
+
             # Use unified transition helper to move to in_progress
             from orders.services.transition_helper import OrderTransitionHelper
             OrderTransitionHelper.transition_order(
@@ -79,7 +79,7 @@ class PreferredWriterResponseService:
                 reason="Preferred writer accepted assignment",
                 action="preferred_writer_accept",
                 is_automatic=False,
-                skip_payment_check=True,  # Payment already validated when order was created
+                skip_payment_check=True, # Payment already validated when order was created
                 metadata={
                     "preferred_writer_id": writer.id,
                 }
@@ -131,7 +131,7 @@ class PreferredWriterResponseService:
             # Clear preferred writer
             order.preferred_writer = None
             order.save()
-            
+
             # Use unified transition helper to move to available
             from orders.services.transition_helper import OrderTransitionHelper
             OrderTransitionHelper.transition_order(
@@ -153,12 +153,12 @@ class PreferredWriterResponseService:
     def release_if_expired():
         """Release assigned orders if acceptance window expired.
 
-        Finds orders with status 'pending_preferred' where the preferred writer 
-        failed to respond within the acceptance window (20% of time 
-        between creation and deadline). Such orders are moved back to 
+        Finds orders with status 'pending_preferred' where the preferred writer
+        failed to respond within the acceptance window (20% of time
+        between creation and deadline). Such orders are moved back to
         'available' and preferred_writer is cleared.
 
-        This method is intended to be called periodically by a background 
+        This method is intended to be called periodically by a background
         job or scheduler.
         """
         now = timezone.now()
@@ -184,14 +184,14 @@ class PreferredWriterResponseService:
                         # Clear preferred writer
                         locked_order.preferred_writer = None
                         locked_order.save()
-                        
+
                         # Use unified transition helper
                         from orders.services.transition_helper import OrderTransitionHelper
                         try:
                             OrderTransitionHelper.transition_order(
                                 locked_order,
                                 OrderStatus.AVAILABLE.value,
-                                user=None,  # System action
+                                user=None, # System action
                                 reason="Preferred writer acceptance window expired",
                                 action="auto_release_preferred",
                                 is_automatic=True,

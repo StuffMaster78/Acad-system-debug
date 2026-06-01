@@ -21,7 +21,7 @@ from core.urls.frontend_url import build_frontend_url
 class AccountDeletionService:
     """
     Handle account deletion request workflows, including
-    immediate access revocation, undo window, and 
+    immediate access revocation, undo window, and
     retained deletion cycle.
 
 
@@ -260,7 +260,7 @@ class AccountDeletionService:
             raise ValidationError(
                 "Only scheduled deletion requests can be completed."
             )
-        
+
         if (
             request_obj.scheduled_deletion_at is not None
             and timezone.now() < request_obj.scheduled_deletion_at
@@ -291,7 +291,7 @@ class AccountDeletionService:
         )
 
         return request_obj
-    
+
     @transaction.atomic
     def mark_purged(
         self,

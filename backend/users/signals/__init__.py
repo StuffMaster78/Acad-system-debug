@@ -29,4 +29,4 @@ def _load_legacy_signal_module() -> None:
 _load_legacy_signal_module()
 
 # Import phone reminder signals.
-from . import phone_reminder_signals  # noqa: F401
+from . import phone_reminder_signals # noqa: F401

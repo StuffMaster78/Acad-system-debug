@@ -3,12 +3,12 @@ from orders.models.orders import Order
 from orders.models.legacy_models.order_disputes import Dispute
 from tickets.models import Ticket
 from .models import (
-    SupportNotification, SupportWorkloadTracker, OrderDisputeSLA, 
+    SupportNotification, SupportWorkloadTracker, OrderDisputeSLA,
     SupportActionLog, PaymentIssueLog, SupportProfile
 )
 
 
-# 🚀 **1️⃣ Send Support Notification**
+# ** Send Support Notification**
 def send_support_notification(support_staff, message, priority="medium"):
     """
     Sends a notification to a support agent.
@@ -20,7 +20,7 @@ def send_support_notification(support_staff, message, priority="medium"):
     )
 
 
-# 🚀 **2️⃣ Log Support Action**
+# ** Log Support Action**
 def log_support_action(support_staff, action, related_order=None, related_dispute=None, related_ticket=None):
     """
     Logs an action performed by a support agent.
@@ -34,7 +34,7 @@ def log_support_action(support_staff, action, related_order=None, related_disput
     )
 
 
-# 🚀 **3️⃣ Check SLA Breach**
+# ** Check SLA Breach**
 def check_sla_status():
     """
     Checks all unresolved orders and disputes for SLA breaches and sends alerts.
@@ -46,17 +46,17 @@ def check_sla_status():
     for task in breached_tasks:
         task.sla_breached = True
         task.save()
-        
+
         # Send notification if assigned to a support agent
         if task.assigned_to and hasattr(task.assigned_to, 'support_profile'):
             send_support_notification(
-                task.assigned_to.support_profile, 
-                f"⚠️ SLA Breach Alert: {task.sla_type} - {'Order' if task.order else 'Dispute'} {task.order.id if task.order else task.dispute.id}", 
+                task.assigned_to.support_profile,
+                f"️ SLA Breach Alert: {task.sla_type} - {'Order' if task.order else 'Dispute'} {task.order.id if task.order else task.dispute.id}",
                 priority="high"
             )
 
 
-# 🚀 **4️⃣ Update Support Workload**
+# ** Update Support Workload**
 def update_support_workload(support_staff):
     """
     Updates the workload stats for a support agent.
@@ -64,7 +64,7 @@ def update_support_workload(support_staff):
     support_workload, created = SupportWorkloadTracker.objects.get_or_create(
         support_staff=support_staff
     )
-    
+
     support_workload.tickets_handled = Ticket.objects.filter(resolved_by=support_staff).count()
     support_workload.disputes_handled = Dispute.objects.filter(resolved_by=support_staff).count()
     support_workload.orders_managed = Order.objects.filter(updated_by=support_staff).count()
@@ -72,7 +72,7 @@ def update_support_workload(support_staff):
     support_workload.save()
 
 
-# 🚀 **5️⃣ Escalate Payment Issue**
+# ** Escalate Payment Issue**
 def escalate_payment_issue(payment_issue, admin):
     """
     Escalates a payment issue to an admin.
@@ -88,13 +88,13 @@ def escalate_payment_issue(payment_issue, admin):
     )
 
 
-# 🚀 **6️⃣ Assign a Ticket to an Available Support Agent**
+# ** Assign a Ticket to an Available Support Agent**
 def assign_ticket_to_support(ticket):
     """
     Finds the least busy support agent and assigns the ticket.
     """
     available_support = SupportWorkloadTracker.objects.order_by('tickets_handled').first()
-    
+
     if available_support:
         ticket.assigned_to = available_support.support_staff
         ticket.save()
@@ -105,13 +105,13 @@ def assign_ticket_to_support(ticket):
         )
 
 
-# 🚀 **7️⃣ Auto-Resolve Support Availability**
+# ** Auto-Resolve Support Availability**
 def auto_update_support_availability():
     """
     Automatically updates the availability of support agents based on activity.
     """
     support_profiles = SupportProfile.objects.all()
-    
+
     for profile in support_profiles:
         if profile.last_logged_in and (now() - profile.last_logged_in).total_seconds() > 3600:
             profile.status = "inactive"

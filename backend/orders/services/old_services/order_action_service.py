@@ -149,19 +149,19 @@ class OrderActionService:
     """
     Service for managing order actions with automatic status transitions.
     """
-    
+
     def __init__(self, user=None):
         self.user = user
         self.user_role = getattr(user, 'role', None) if user else None
-    
+
     def get_available_actions(self, order: Order) -> List[Dict]:
         """
         Get list of available actions for an order based on its current state.
         Includes business logic validation to ensure actions are appropriate.
-        
+
         Args:
             order: The order instance
-            
+
         Returns:
             List of available action dictionaries with action name, label, and metadata
         """
@@ -170,7 +170,7 @@ class OrderActionService:
         if current_status == "complete":
             current_status = "completed"
         all_actions = STATUS_ACTIONS_MAP.get(current_status, [])
-        
+
         # Filter by user role
         if self.user_role:
             available = [
@@ -179,39 +179,39 @@ class OrderActionService:
             ]
         else:
             available = all_actions
-        
+
         # Apply business logic filters
         filtered_actions = []
         for action in available:
             action_name = action.get("action")
-            
+
             # Business rule: Completed orders cannot be reassigned
             if action_name == "reassign_order" and current_status in ["completed", "closed", "archived"]:
-                continue  # Skip this action
-            
+                continue # Skip this action
+
             # Business rule: Closed/archived orders have limited edit capabilities
             if action_name in ["edit_order", "update_order"] and current_status in ["closed", "archived"]:
                 # Allow edit for closed/archived but mark as restricted
                 action["restricted"] = True
                 action["reason"] = "Order is in final state - edits are for corrections only"
-            
+
             # Business rule: Cancelled orders can only be reopened or refunded
             if current_status == "cancelled" and action_name not in ["reopen_order", "refund_order", "edit_order"]:
-                if action_name != "update_order":  # Allow update for corrections
+                if action_name != "update_order": # Allow update for corrections
                     continue
-            
+
             # Business rule: Refunded orders can only be closed
             if current_status == "refunded" and action_name not in ["close_order", "edit_order"]:
-                if action_name != "update_order":  # Allow update for corrections
+                if action_name != "update_order": # Allow update for corrections
                     continue
-            
+
             filtered_actions.append(action)
-        
+
         # Add additional context
         for action in filtered_actions:
             action["available"] = True
             action["current_status"] = current_status
-            
+
             # Check if transition is valid
             target_status = action.get("target_status")
             if target_status:
@@ -222,9 +222,9 @@ class OrderActionService:
                     action["reason"] = f"Cannot transition from '{current_status}' to '{target_status}'"
             else:
                 action["can_transition"] = True
-        
+
         return filtered_actions
-    
+
     def execute_action(
         self,
         order: Order,
@@ -234,15 +234,15 @@ class OrderActionService:
     ) -> Order:
         """
         Execute an action on an order and automatically trigger status transition if needed.
-        
+
         Args:
             order: The order instance
             action_name: Name of the action to execute
             **params: Additional parameters for the action
-            
+
         Returns:
             Updated order instance
-            
+
         Raises:
             ValueError: If action is not available for current state
             ValidationError: If transition is not allowed
@@ -253,24 +253,24 @@ class OrderActionService:
             (a for a in available_actions if a["action"] == action_name),
             None
         )
-        
+
         if not action_config:
             raise ValueError(
                 f"Action '{action_name}' is not available for order in status '{order.status}'"
             )
-        
+
         # Check if user has permission
         if self.user_role and self.user_role != "superadmin":
             if self.user_role not in action_config.get("roles", []):
                 raise ValidationError(
                     f"User role '{self.user_role}' does not have permission to perform '{action_name}'"
                 )
-        
+
         # Build reason for transition (use provided reason or default)
         transition_reason = reason or f"Action: {action_name}"
         if reason:
             transition_reason = f"{action_name}: {reason}"
-        
+
         # Execute the action via dispatcher
         from orders.dispatcher import OrderActionDispatcher
         try:
@@ -282,7 +282,7 @@ class OrderActionService:
                     params["reference_id"] = reference_id
                 if payment_method:
                     params["payment_method"] = payment_method
-            
+
             updated_order = OrderActionDispatcher.dispatch(
                 action_name=action_name,
                 order_id=order.id,
@@ -306,7 +306,7 @@ class OrderActionService:
                 )
             else:
                 raise ValueError(f"Action '{action_name}' failed: {str(e)}")
-        
+
         # If action has a target status and order hasn't transitioned, do it now
         target_status = action_config.get("target_status")
         if target_status and updated_order.status != target_status:
@@ -327,13 +327,13 @@ class OrderActionService:
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.warning(f"Action {action_name} succeeded but transition to {target_status} failed: {str(e)}")
-        
+
         return updated_order
-    
+
     def can_perform_action(self, order: Order, action_name: str) -> tuple[bool, Optional[str]]:
         """
         Check if a user can perform a specific action on an order.
-        
+
         Returns:
             (can_perform, reason_if_not)
         """
@@ -342,16 +342,16 @@ class OrderActionService:
             (a for a in available_actions if a["action"] == action_name),
             None
         )
-        
+
         if not action_config:
             return False, f"Action '{action_name}' is not available for status '{order.status}'"
-        
+
         if self.user_role and self.user_role != "superadmin":
             if self.user_role not in action_config.get("roles", []):
                 return False, f"User role '{self.user_role}' cannot perform this action"
-        
+
         if not action_config.get("can_transition", True):
             return False, action_config.get("reason", "Transition not allowed")
-        
+
         return True, None
 

@@ -79,7 +79,7 @@ class CreateOrderView(GenericAPIView):
             raise PermissionDenied(
                 "Tenant cannot be overridden."
             )
-        
+
         pricing_snapshot = validated_data["pricing_snapshot"]
 
         user = cast(Any, request.user)
@@ -163,7 +163,7 @@ class CreateOrderView(GenericAPIView):
 
         if not client_id:
             return acting_user
-    
+
         can_create_on_behalf = AccountPermissionService.user_has_permission(
             user=acting_user,
             permission_code="orders.create_on_behalf",

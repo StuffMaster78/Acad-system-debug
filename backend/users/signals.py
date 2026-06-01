@@ -79,7 +79,7 @@ def sync_user_groups_on_role_change(sender, instance, **kwargs):
     """
     Sync user groups when role changes.
     """
-    if instance.pk:  # Only for existing users
+    if instance.pk: # Only for existing users
         try:
             old_user = User.objects.get(pk=instance.pk)
             if old_user.role != instance.role:
@@ -101,7 +101,7 @@ def create_role_based_profiles(sender, instance, created, **kwargs):
     if created:
         # Only tenant-bound roles should auto-create tenant-bound profiles
         if instance.role == 'client':
-            if instance.website:  # clients must be tied to a website
+            if instance.website: # clients must be tied to a website
                 try:
                     # Check if profile already exists to avoid duplicate key errors
                     ClientProfile.objects.get_or_create(
@@ -121,7 +121,7 @@ def create_role_based_profiles(sender, instance, created, **kwargs):
                     return
             except Exception:
                 pass
-            if instance.website:  # writers must be tied to a website
+            if instance.website: # writers must be tied to a website
                 try:
                     from accounts.models import AccountProfile
                     from accounts.services.account_service import AccountService

@@ -11,10 +11,10 @@ User = settings.AUTH_USER_MODEL
 
 
 class ClearanceStatus(models.TextChoices):
-    PENDING    = "PENDING",    "Pending"
+    PENDING = "PENDING", "Pending"
     PROCESSING = "PROCESSING", "Processing"
-    PAID       = "PAID",       "Paid"
-    FAILED     = "FAILED",     "Failed"
+    PAID = "PAID", "Paid"
+    FAILED = "FAILED", "Failed"
 
 
 class PayoutClearance(models.Model):
@@ -32,12 +32,12 @@ class PayoutClearance(models.Model):
 
     website = models.ForeignKey(
         Website,
-        on_delete=models.PROTECT,          # FIX: was CASCADE
+        on_delete=models.PROTECT, # FIX: was CASCADE
         related_name="payout_clearances",
     )
     payout_record = models.ForeignKey(
         "writer_compensation.PayoutRecord", # FIX: was writer_payments_management
-        on_delete=models.PROTECT,          # FIX: was CASCADE — proof must outlive intent
+        on_delete=models.PROTECT, # FIX: was CASCADE — proof must outlive intent
         related_name="clearances",
     )
 
@@ -77,14 +77,14 @@ class PayoutClearance(models.Model):
         blank=True,
         related_name="processed_payout_clearances",
     )
-    processed_at   = models.DateTimeField(null=True, blank=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
     failure_reason = models.TextField(blank=True)
-    metadata       = models.JSONField(default=dict, blank=True)
-    created_at     = models.DateTimeField(auto_now_add=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
-        indexes  = [
+        indexes = [
             models.Index(fields=["payout_record", "status"]),
             models.Index(fields=["external_transaction_id"]),
             models.Index(fields=["website", "status"]),

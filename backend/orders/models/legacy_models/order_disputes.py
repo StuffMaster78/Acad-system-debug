@@ -11,13 +11,13 @@ from orders.order_enums import (
 )
 
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 class Dispute(models.Model):
     """
     Tracks disputes raised for an order.
-    The order status is automatically updated when 
+    The order status is automatically updated when
     disputes are raised, reviewed, or resolved.
     """
     website = models.ForeignKey(
@@ -137,7 +137,7 @@ class Dispute(models.Model):
         if recipients:
             send_mail(
                 subject,
-                message, 
+                message,
                 "no-reply@yourdomain.com",
                 recipients
             )

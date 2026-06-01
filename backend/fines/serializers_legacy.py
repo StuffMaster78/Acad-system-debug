@@ -149,11 +149,11 @@ class FineSerializer(serializers.ModelSerializer):
             "can_dispute",
             "appeal",
         ]
-    
+
     def get_has_appeal(self, obj):
         """Check if fine has an appeal/dispute."""
         return hasattr(obj, 'appeal')
-    
+
     def get_can_dispute(self, obj):
         """Check if fine can be disputed."""
         return obj.status == FineStatus.ISSUED
@@ -267,12 +267,12 @@ class FineAppealSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if request:
             validated_data["submitted_by"] = request.user
-        
+
         fine_id = validated_data.pop('fine_id', None)
         if fine_id:
             fine = get_object_or_404(Fine, id=fine_id)
             validated_data['fine'] = fine
-        
+
         return FineAppeal.objects.create(**validated_data)
 
     def _include_timeline(self):

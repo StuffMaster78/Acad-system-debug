@@ -40,7 +40,7 @@ class RewardRuleListView(
         IsRewardViewer,
     ]
 
-    def get_queryset(  # type: ignore[override]
+    def get_queryset( # type: ignore[override]
             self) -> QuerySet[RewardRule]:
         request = cast(Request, self.request)
         website_id = (
@@ -104,8 +104,8 @@ class RewardRuleCreateView(
             ).data,
             status=status.HTTP_201_CREATED,
         )
-    
-    
+
+
 class RewardRuleDetailView(
     RetrieveAPIView,
 ):

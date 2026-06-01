@@ -3,7 +3,7 @@ Tenant Resolution Middleware
 ==============================
 
 Sets ``request.site`` (Wagtail Site) and ``request.website`` (your
-Website model) on every incoming request.  Downstream code can rely on
+Website model) on every incoming request. Downstream code can rely on
 both being present without performing lookups.
 
 Add to MIDDLEWARE after Wagtail's own ``SiteMiddleware`` (or as a
@@ -11,7 +11,7 @@ replacement if you prefer a single middleware):
 
     MIDDLEWARE = [
         ...
-        # 'wagtail.contrib.legacy.sitemiddleware.SiteMiddleware',  # optional
+        # 'wagtail.contrib.legacy.sitemiddleware.SiteMiddleware', # optional
         'cms_core.middleware.TenantMiddleware',
         ...
     ]
@@ -34,9 +34,9 @@ class TenantMiddleware:
     Resolve Site + Website for every request.
 
     After this middleware:
-        request.site     -> wagtailcore.Site instance (or None)
-        request.website  -> websites.Website instance (or None)
-        request.tenant   -> dict with both for convenience
+        request.site -> wagtailcore.Site instance (or None)
+        request.website -> websites.Website instance (or None)
+        request.tenant -> dict with both for convenience
     """
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]):

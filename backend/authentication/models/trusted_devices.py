@@ -7,7 +7,7 @@ from django.utils.timezone import now
 
 class TrustedDevice(models.Model):
     """
-    Stores trusted devices per user and per website 
+    Stores trusted devices per user and per website
     for "Remember This Device" during MFA.
     """
     user = models.ForeignKey(

@@ -12,7 +12,7 @@ from django.db import models
 from orders.models.orders import Order
 
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 
@@ -24,7 +24,7 @@ class DeadlineChangeLog(models.Model):
         'websites.Website',
         on_delete=models.CASCADE,
         related_name='deadline_change_log'
-    ) 
+    )
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     old_deadline = models.DateTimeField()
     new_deadline = models.DateTimeField()

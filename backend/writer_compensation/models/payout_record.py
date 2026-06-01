@@ -23,16 +23,16 @@ class PayoutRecord(models.Model):
     This is "intent to pay".
 
      Moves independently of other items in the same batch:
-        PENDING   -> initial state when batch is created
+        PENDING -> initial state when batch is created
         CONFIRMED -> admin has reviewed and confirmed this writer's total
         PAID -> admin has paid this writer externally and marked it done
         HELD -> admin has flagged this writer; unblocks when admin resolves
         DEFERRED -> carried to next window (e.g. negative balance)
         FAILED -> payment attempt failed externally
- 
+
     A window can be marked DONE while some PayoutItems are still HELD.
     HELD items remain open indefinitely until admin resolves them.
- 
+
     When an item moves to PAID all linked CompensationEvents for this writer
     in this window are stamped PAID by the service layer.
     """
@@ -67,7 +67,7 @@ class PayoutRecord(models.Model):
         related_name="payout_records",
     )
 
-    hold_reason  = models.TextField(blank=True)
+    hold_reason = models.TextField(blank=True)
 
     total_amount = models.DecimalField(
         max_digits=12,
@@ -124,6 +124,6 @@ class PayoutRecord(models.Model):
 
     def __str__(self) -> str:
         return (
-            f"{self.writer.pk}| {self.writer.user.email}  | batch {self.batch.pk}"
+            f"{self.writer.pk}| {self.writer.user.email} | batch {self.batch.pk}"
             f" | ${self.total_amount} [{self.status}]"
         )

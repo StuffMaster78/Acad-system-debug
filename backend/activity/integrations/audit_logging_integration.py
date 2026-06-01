@@ -25,7 +25,7 @@ class ActivityAuditLoggingIntegration:
 
         This method is intentionally defensive because audit logging
         implementations often differ by project stage.
-        
+
         Activity remains user and product focused. Audit logging remains the
         forensic record. This bridge exists only for workflows that need both.
         """

@@ -19,14 +19,14 @@ class RevisionRequest(models.Model):
         ('major', 'Major'),
         ('critical', 'Critical'),
     ]
-    
+
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
     ]
-    
+
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -43,7 +43,7 @@ class RevisionRequest(models.Model):
         related_name='revision_requests_made',
         limit_choices_to={'role': 'client'}
     )
-    
+
     # Structured request fields
     title = models.CharField(
         max_length=255,
@@ -52,13 +52,13 @@ class RevisionRequest(models.Model):
     description = models.TextField(
         help_text="Detailed description of what needs to be changed"
     )
-    
+
     # What to change (structured)
     changes_required = models.JSONField(
         default=list,
         help_text="List of specific changes: [{'section': 'Introduction', 'issue': '...', 'request': '...'}]"
     )
-    
+
     # Severity and priority
     severity = models.CharField(
         max_length=20,
@@ -70,7 +70,7 @@ class RevisionRequest(models.Model):
         default=5,
         help_text="Priority level (1-10, higher = more urgent)"
     )
-    
+
     # Timeline
     requested_deadline = models.DateTimeField(
         null=True,
@@ -87,14 +87,14 @@ class RevisionRequest(models.Model):
         blank=True,
         help_text="When the revision was completed"
     )
-    
+
     # Status tracking
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default='pending'
     )
-    
+
     # Assignment
     assigned_to = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -104,7 +104,7 @@ class RevisionRequest(models.Model):
         related_name='revision_requests_assigned',
         limit_choices_to={'role__in': ['writer', 'editor']}
     )
-    
+
     # Communication
     client_notes = models.TextField(
         blank=True,
@@ -114,7 +114,7 @@ class RevisionRequest(models.Model):
         blank=True,
         help_text="Notes from writer during revision"
     )
-    
+
     # Metadata
     is_urgent = models.BooleanField(
         default=False,
@@ -124,10 +124,10 @@ class RevisionRequest(models.Model):
         default=True,
         help_text="Whether client needs to review after completion"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['-priority', '-created_at']
         indexes = [
@@ -138,32 +138,32 @@ class RevisionRequest(models.Model):
         ]
         verbose_name = "Revision Request"
         verbose_name_plural = "Revision Requests"
-    
+
     def __str__(self):
         return f"Revision #{self.pk} - Order #{self.order.pk} - {self.severity}"
-    
+
     def can_complete(self):
         """Check if revision can be marked as completed."""
         return self.status in ['pending', 'in_progress']
-    
+
     def complete(self, completed_by=None):
         """Mark revision as completed."""
         if not self.can_complete():
             return False
-        
+
         self.status = 'completed'
         self.completed_at = timezone.now()
         if completed_by:
             self.assigned_to = completed_by
         self.save(update_fields=['status', 'completed_at', 'assigned_to', 'updated_at'])
-        
+
         # Update order status if needed
         if self.order.status == 'revision_requested':
             self.order.status = 'revision_in_progress'
             self.order.save(update_fields=['status'])
-        
+
         return True
-    
+
     def get_timeline(self):
         """Get timeline information for display."""
         timeline = {
@@ -172,10 +172,10 @@ class RevisionRequest(models.Model):
             'agreed_deadline': self.agreed_deadline,
             'completed': self.completed_at,
         }
-        
+
         if self.agreed_deadline:
             timeline['days_remaining'] = (self.agreed_deadline - timezone.now()).days
             timeline['is_overdue'] = timezone.now() > self.agreed_deadline and self.status != 'completed'
-        
+
         return timeline
 

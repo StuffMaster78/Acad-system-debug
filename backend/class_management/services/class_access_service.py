@@ -52,7 +52,7 @@ class ClassAccessService:
             "pk",
             None,
         )
-    
+
     @staticmethod
     def _get_user_pk(
         user: Any
@@ -365,7 +365,7 @@ class ClassAccessService:
 
         if getattr(user, "is_staff", False):
             return True
-        
+
         assigned_writer_pk = cls._get_related_pk(
             obj=class_order,
             field_name="assigned_writer",

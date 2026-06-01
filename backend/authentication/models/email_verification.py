@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 
 class EmailVerification(models.Model):
     """
-    Stores the email verification token for a user 
+    Stores the email verification token for a user
     (used in link-based verification).
     Can be used alongside OTP.
     """
@@ -53,13 +53,13 @@ class EmailVerification(models.Model):
 
     def __str__(self) -> str:
         return f"Email verification for {self.user}"
-    
+
     def clean(self):
         if self.expires_at <= self.created_at:
             raise ValidationError(
                 "expires_at must be after created_at"
             )
-        
+
     def matches_token(self, raw_token: str) -> bool:
         import hashlib
 
@@ -67,7 +67,7 @@ class EmailVerification(models.Model):
             hashlib.sha256(raw_token.encode()).hexdigest()
             == self.token_hash
         )
-        
+
     @classmethod
     def create_verification(cls, *, user, website, expiry_hours=24):
         raw_token = secrets.token_urlsafe(32)

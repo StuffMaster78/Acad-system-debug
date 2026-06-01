@@ -98,12 +98,12 @@ class Command(BaseCommand):
             academic_levels = ['Undergraduate', 'Graduate', 'Doctoral']
 
             status_distribution = [
-                (ExpressClass.INQUIRY, 0.20),  # 20% in inquiry
-                (ExpressClass.SCOPE_REVIEW, 0.15),  # 15% in scope review
-                (ExpressClass.PRICED, 0.15),  # 15% priced
-                (ExpressClass.ASSIGNED, 0.20),  # 20% assigned
-                (ExpressClass.IN_PROGRESS, 0.25),  # 25% in progress
-                (ExpressClass.COMPLETED, 0.05),  # 5% completed
+                (ExpressClass.INQUIRY, 0.20), # 20% in inquiry
+                (ExpressClass.SCOPE_REVIEW, 0.15), # 15% in scope review
+                (ExpressClass.PRICED, 0.15), # 15% priced
+                (ExpressClass.ASSIGNED, 0.20), # 20% assigned
+                (ExpressClass.IN_PROGRESS, 0.25), # 25% in progress
+                (ExpressClass.COMPLETED, 0.05), # 5% completed
             ]
 
             total_created = 0
@@ -164,15 +164,15 @@ class Command(BaseCommand):
                         base_price = Decimal('750.00')
                     elif academic_level == 'Doctoral':
                         base_price = Decimal('1000.00')
-                    
+
                     # Adjust price based on workload
                     total_items = (
-                        workload['discussions'] + workload['assignments'] + 
-                        workload['exams'] + workload['quizzes'] + 
+                        workload['discussions'] + workload['assignments'] +
+                        workload['exams'] + workload['quizzes'] +
                         workload['projects'] + workload['papers']
                     )
                     price = base_price + (Decimal(str(total_items)) * Decimal('50.00'))
-                    
+
                     # Round to nearest 10
                     price = Decimal(str(round(float(price) / 10) * 10))
 
@@ -204,7 +204,7 @@ class Command(BaseCommand):
                         total_workload_in_pages=workload['pages'],
                         price=price if price_approved else None,
                         price_approved=price_approved,
-                        installments_needed=random.choice([0, 0, 0, 2, 3]),  # Mostly full payment, some installments
+                        installments_needed=random.choice([0, 0, 0, 2, 3]), # Mostly full payment, some installments
                         instructions=f'Sample express class for {discipline} course. Please follow all course guidelines and maintain high quality standards.',
                         scope_review_notes=f'Scope reviewed: {workload["pages"]} pages of work expected.' if reviewed_by else '',
                         admin_notes=f'Admin notes for {discipline} express class.' if reviewed_by else '',
@@ -216,13 +216,13 @@ class Command(BaseCommand):
                     total_created += 1
                     status_display = dict(ExpressClass.STATUS_CHOICES).get(status, status)
                     self.stdout.write(
-                        f'  ✓ Created express class #{express_class.id} | '
+                        f' Created express class #{express_class.id} | '
                         f'{client.email} | {discipline} | {status_display} | ${price if price_approved else "TBD"}'
                     )
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'\n✓ Successfully created {total_created} express classes'
+                    f'\n Successfully created {total_created} express classes'
                 )
             )
 

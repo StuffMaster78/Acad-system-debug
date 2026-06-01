@@ -298,7 +298,7 @@ class OrderStaffingService:
             keep_interest=locked_interest,
             superseded_status=ORDER_INTEREST_STATUS_SUPERSEDED,
         )
-    
+
         cls._mark_order_in_progress(
             order=locked_order,
             actor=assigned_by,

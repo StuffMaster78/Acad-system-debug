@@ -5,14 +5,14 @@ Owns the full WriterApplication lifecycle.
 
 PIPELINE
 --------
-submit()             → WriterApplication (status=PENDING)
-mark_under_review()  → status=UNDER_REVIEW
-approve()            → status=APPROVED
+submit() → WriterApplication (status=PENDING)
+mark_under_review() → status=UNDER_REVIEW
+approve() → status=APPROVED
                        1. AccountCreationService.create_account_profile()
                        2. WriterOnboardingService.complete_onboarding()
                        3. WriterProfileService.create_for_approved_application()
-reject()             → status=REJECTED
-withdraw()           → status=WITHDRAWN
+reject() → status=REJECTED
+withdraw() → status=WITHDRAWN
 
 NOTIFICATION STRATEGY
 ---------------------
@@ -24,21 +24,21 @@ points the applicant may not have a User account yet.
 
 Resolution by event:
 
-    submitted   → notify_role("admin", ...) to alert admins
+    submitted → notify_role("admin", ...) to alert admins
                   No notification to applicant — they get a confirmation
                   email from the form submission layer (not this service)
 
     under_review → notify_role("admin", ...) — already reviewing
                    No applicant notification at this stage
 
-    approved    → User exists by this point (created in approve())
+    approved → User exists by this point (created in approve())
                   notify(recipient=user, ...) — standard path
 
-    rejected    → If User exists: notify(recipient=user, ...)
+    rejected → If User exists: notify(recipient=user, ...)
                   If no User: send direct email via platform email backend
                   (NotificationService requires authenticated User)
 
-    withdrawn   → If User exists: notify(recipient=user, ...)
+    withdrawn → If User exists: notify(recipient=user, ...)
                   If no User: nothing — they withdrew themselves
 
 EVENT KEY REGISTRATION
@@ -94,17 +94,17 @@ class WriterApplicationService:
         Submit a new writer application.
 
         Args:
-            website:              Website the applicant is applying to.
-            full_name:            Applicant's full name.
-            email:                Contact email address.
-            application_text:     Cover letter or motivation text.
-            phone_number:         Optional.
-            country:              Applicant's country.
-            education_level:      Highest education completed.
-            years_of_experience:  Years of writing experience.
-            subjects:             List of subject area strings.
-            resume:               Uploaded resume file or None.
-            sample_work:          Uploaded sample file or None.
+            website: Website the applicant is applying to.
+            full_name: Applicant's full name.
+            email: Contact email address.
+            application_text: Cover letter or motivation text.
+            phone_number: Optional.
+            country: Applicant's country.
+            education_level: Highest education completed.
+            years_of_experience: Years of writing experience.
+            subjects: List of subject area strings.
+            resume: Uploaded resume file or None.
+            sample_work: Uploaded sample file or None.
 
         Returns:
             WriterApplication (status=PENDING).
@@ -159,10 +159,10 @@ class WriterApplicationService:
             event_key="writer.application.submitted",
             website=website,
             context={
-                "full_name":       application.full_name,
-                "email":           application.email,
-                "application_id":  application.pk,
-                "website_name":    getattr(website, "name", str(website.pk)),
+                "full_name": application.full_name,
+                "email": application.email,
+                "application_id": application.pk,
+                "website_name": getattr(website, "name", str(website.pk)),
             },
         )
 
@@ -249,9 +249,9 @@ class WriterApplicationService:
             8. Notify writer (User now exists — notify() works)
 
         Args:
-            application:    WriterApplication to approve.
-            reviewed_by:    Admin User approving.
-            initial_level:  Optional WriterLevel. None = unassigned.
+            application: WriterApplication to approve.
+            reviewed_by: Admin User approving.
+            initial_level: Optional WriterLevel. None = unassigned.
             require_review: True → AccountProfile.status = UNDER_REVIEW.
                             False → AccountProfile.status = ACTIVE.
 
@@ -293,7 +293,7 @@ class WriterApplicationService:
                 user=user,
                 actor=reviewed_by,
                 metadata={
-                    "source":         "writer_application",
+                    "source": "writer_application",
                     "application_id": application.pk,
                 },
             )
@@ -351,9 +351,9 @@ class WriterApplicationService:
             user=user,
             website=application.website,
             context={
-                "full_name":       application.full_name,
+                "full_name": application.full_name,
                 "registration_id": writer_profile.registration_id,
-                "email":           application.email,
+                "email": application.email,
             },
         )
 
@@ -376,10 +376,10 @@ class WriterApplicationService:
         Reject a writer application.
 
         Args:
-            application:      WriterApplication to reject.
-            reviewed_by:      Admin User rejecting.
+            application: WriterApplication to reject.
+            reviewed_by: Admin User rejecting.
             rejection_reason: Required — shown to applicant.
-            admin_notes:      Optional internal notes.
+            admin_notes: Optional internal notes.
 
         Returns:
             Updated WriterApplication.
@@ -425,8 +425,8 @@ class WriterApplicationService:
             email=application.email,
             website=application.website,
             context={
-                "full_name":        application.full_name,
-                "email":            application.email,
+                "full_name": application.full_name,
+                "email": application.email,
                 "rejection_reason": rejection_reason.strip(),
             },
         )
@@ -474,7 +474,7 @@ class WriterApplicationService:
             website=application.website,
             context={
                 "full_name": application.full_name,
-                "email":     application.email,
+                "email": application.email,
             },
         )
 
@@ -654,14 +654,14 @@ class WriterApplicationService:
 
         Args:
             event_key: Notification event key (for subject resolution).
-            email:     Recipient email address.
-            website:   Website instance (for provider resolution).
-            context:   Template variables.
+            email: Recipient email address.
+            website: Website instance (for provider resolution).
+            context: Template variables.
         """
         from notifications_system.services.email_service import EmailService
 
         subject_map: dict[str, str] = {
-            "writer.application.rejected":  "Update on your writer application",
+            "writer.application.rejected": "Update on your writer application",
             "writer.application.withdrawn": "Application withdrawal confirmed",
             "writer.application.submitted": "Application received",
         }
@@ -706,9 +706,9 @@ class WriterApplicationService:
             body_text += f"Status update: {action}\n\nBest regards"
 
         rendered: dict[str, str] = {
-            "subject":   subject,
+            "subject": subject,
             "body_text": body_text,
-            "body_html": "",   # Plain text only — no HTML template yet
+            "body_html": "", # Plain text only — no HTML template yet
         }
 
         try:
@@ -747,7 +747,7 @@ class WriterApplicationService:
         from django.conf import settings as django_settings
 
         subject_map = {
-            "writer.application.rejected":  "Your writer application",
+            "writer.application.rejected": "Your writer application",
             "writer.application.withdrawn": "Application withdrawal confirmed",
         }
 

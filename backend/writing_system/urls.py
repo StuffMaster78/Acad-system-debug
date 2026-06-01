@@ -152,7 +152,7 @@ if wagtailadmin_urls and wagtail_urls and api_router:
         # Tenant-scoped sitemap and robots — must precede Wagtail catch-all
         path("sitemap.xml", sitemap_view, name="sitemap"),
         path("robots.txt", robots_txt, name="robots-txt"),
-        path("", include(wagtail_urls)),  # Wagtail page serving — must be last
+        path("", include(wagtail_urls)), # Wagtail page serving — must be last
     ]
 
 

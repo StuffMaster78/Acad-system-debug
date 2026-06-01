@@ -22,10 +22,10 @@ Usage:
 
     blocks = ContentImporter.html_to_blocks(pasted_html)
     # Returns: [
-    #     {"type": "heading", "value": {"text": "Introduction", "level": "h2"}},
-    #     {"type": "paragraph", "value": "<p>The first paragraph...</p>"},
-    #     {"type": "list", "value": {"style": "bulleted", "items": [...]}},
-    #     ...
+    # {"type": "heading", "value": {"text": "Introduction", "level": "h2"}},
+    # {"type": "paragraph", "value": "<p>The first paragraph...</p>"},
+    # {"type": "list", "value": {"style": "bulleted", "items": [...]}},
+    # ...
     # ]
 """
 
@@ -63,7 +63,7 @@ OFFICE_CRUFT_PATTERNS = [
     re.compile(r"<w:.*?</w:.*?>", re.DOTALL),
     re.compile(r"<m:.*?</m:.*?>", re.DOTALL),
     re.compile(r"</?font[^>]*>"),
-    re.compile(r"</?span[^>]*>"),  # Remove all spans (styling carriers)
+    re.compile(r"</?span[^>]*>"), # Remove all spans (styling carriers)
 ]
 
 # Inline style patterns to strip

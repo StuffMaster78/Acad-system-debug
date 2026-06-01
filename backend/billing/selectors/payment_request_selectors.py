@@ -170,7 +170,7 @@ class PaymentRequestSelector:
             due_at__isnull=False,
             due_at__lt=timezone.now(),
         )
-    
+
 
 
 
@@ -194,7 +194,7 @@ class PaymentRequestSelector:
             return False
 
         return timezone.now() < payment_request.token_expires_at
-    
+
 
     @classmethod
     def get_queryset_for_client(

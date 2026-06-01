@@ -60,9 +60,9 @@
               :class="entry.leaderboard_position <= 3 ? 'bg-amber-50/40' : 'hover:bg-gray-50'"
             >
               <td class="px-3 py-2 text-center">
-                <span v-if="entry.leaderboard_position === 1" class="text-lg">🥇</span>
-                <span v-else-if="entry.leaderboard_position === 2" class="text-lg">🥈</span>
-                <span v-else-if="entry.leaderboard_position === 3" class="text-lg">🥉</span>
+                <span v-if="entry.leaderboard_position === 1" class="text-lg"></span>
+                <span v-else-if="entry.leaderboard_position === 2" class="text-lg"></span>
+                <span v-else-if="entry.leaderboard_position === 3" class="text-lg"></span>
                 <span v-else class="text-gray-500 font-mono text-xs">{{ entry.leaderboard_position }}</span>
               </td>
               <td class="px-3 py-2 font-medium text-gray-800">{{ entry.writer_name }}</td>
@@ -202,7 +202,7 @@
                 <span v-else class="text-gray-300 text-xs">—</span>
               </td>
               <td class="px-3 py-2 text-center">
-                <span :class="rule.is_repeatable ? 'text-green-600' : 'text-gray-400'" class="text-xs">{{ rule.is_repeatable ? '✓' : '✗' }}</span>
+                <span :class="rule.is_repeatable ? 'text-green-600' : 'text-gray-400'" class="text-xs">{{ rule.is_repeatable ? '' : '' }}</span>
               </td>
             </tr>
           </tbody>

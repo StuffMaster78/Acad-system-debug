@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 # === CORS Settings ===
-CORS_ALLOW_ALL_ORIGINS = False  # Set to True only in development
+CORS_ALLOW_ALL_ORIGINS = False # Set to True only in development
 CORS_ALLOWED_ORIGINS = [
     "https://yourfrontend.com",
     "https://admin.yourfrontend.com",

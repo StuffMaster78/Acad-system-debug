@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path  # noqa: F401 — used in validate_extension
+from pathlib import Path # noqa: F401 — used in validate_extension
 
 from django.core.files.uploadedfile import UploadedFile
 

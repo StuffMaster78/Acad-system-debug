@@ -45,10 +45,10 @@ class AvailabilityService:
 
         Args:
             writer_profile: WriterProfile instance.
-            start_at:       datetime — when unavailability begins.
-            end_at:         datetime or None — when it ends.
-            reason:         UnavailabilityReason value.
-            note:           Optional admin-visible note.
+            start_at: datetime — when unavailability begins.
+            end_at: datetime or None — when it ends.
+            reason: UnavailabilityReason value.
+            note: Optional admin-visible note.
 
         Returns:
             WriterAvailabilityWindow — saved.
@@ -154,7 +154,7 @@ class AvailabilityService:
 
         Args:
             writer_profile: WriterProfile instance.
-            accepting:      True = open to new orders. False = not.
+            accepting: True = open to new orders. False = not.
         """
         updated = WriterCapacity.objects.filter(
             writer=writer_profile,

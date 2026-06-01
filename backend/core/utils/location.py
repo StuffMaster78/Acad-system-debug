@@ -17,7 +17,7 @@ def get_geolocation_from_ip(ip_address):
     Replace the API key and URL with your preferred geolocation provider.
     """
     try:
-        api_key = settings.GEOLOCATION_API_KEY  # Add this to your settings
+        api_key = settings.GEOLOCATION_API_KEY # Add this to your settings
         url = f"http://api.ipstack.com/{ip_address}?access_key={api_key}"
 
         response = requests.get(url, timeout=10)

@@ -222,7 +222,7 @@ class ClassAssignmentService:
 
         return assignment
 
-    @staticmethod 
+    @staticmethod
     def sync_class_writer_communications(
         *,
         class_order: ClassOrder,

@@ -29,42 +29,42 @@ import { useAuthStore } from "@/stores/auth";
 import { useWebsitesStore } from "@/stores/websites";
 import type { PublishingContentType, PublishingItem } from "@/types/adminPublishing";
 
-const route      = useRoute();
+const route = useRoute();
 const publishing = useAdminPublishingStore();
-const auth         = useAuthStore();
-const websites     = useWebsitesStore();
+const auth = useAuthStore();
+const websites = useWebsitesStore();
 const isSuperAdmin = computed(() => auth.role === "superadmin");
-const isStaff      = computed(() => ["superadmin", "admin", "editor", "support"].includes(auth.role ?? ""));
+const isStaff = computed(() => ["superadmin", "admin", "editor", "support"].includes(auth.role ?? ""));
 
 // ── Filters ───────────────────────────────────────────────────────────────
 const tabs: Array<{ key: PublishingContentType | "all"; label: string }> = [
-  { key: "all",     label: "All" },
-  { key: "blog",    label: "Blog" },
+  { key: "all", label: "All" },
+  { key: "blog", label: "Blog" },
   { key: "service", label: "Service" },
-  { key: "seo",     label: "SEO pages" },
+  { key: "seo", label: "SEO pages" },
 ];
 
 // ── Content type options ──────────────────────────────────────────────────
 const contentTypes = [
-  { key: "blog"    as PublishingContentType, label: "Blog article",     hint: "Rich editorial page managed in Wagtail CMS." },
-  { key: "service" as PublishingContentType, label: "Service page",     hint: "Conversion landing page managed in Wagtail CMS." },
-  { key: "seo"     as PublishingContentType, label: "SEO landing page", hint: "Lightweight structured page managed via the API." },
+  { key: "blog" as PublishingContentType, label: "Blog article", hint: "Rich editorial page managed in Wagtail CMS." },
+  { key: "service" as PublishingContentType, label: "Service page", hint: "Conversion landing page managed in Wagtail CMS." },
+  { key: "seo" as PublishingContentType, label: "SEO landing page", hint: "Lightweight structured page managed via the API." },
 ];
 
 // ── Create panel ──────────────────────────────────────────────────────────
-const showCreate    = ref(false);
-const showAdvanced  = ref(false);
+const showCreate = ref(false);
+const showAdvanced = ref(false);
 
 function openCreate() {
-  showCreate.value   = true;
+  showCreate.value = true;
   showAdvanced.value = false;
 }
 
 // ── Link suggestions ──────────────────────────────────────────────────────
-const linkSuggestions     = ref<{ page_id: number; title: string; url: string; reason: string; score: number }[]>([]);
+const linkSuggestions = ref<{ page_id: number; title: string; url: string; reason: string; score: number }[]>([]);
 const linkSuggestionPageId = ref<number | null>(null);
 const isFetchingSuggestions = ref(false);
-const showLinkTool         = ref(false);
+const showLinkTool = ref(false);
 
 async function fetchLinkSuggestions() {
   if (!linkSuggestionPageId.value) return;
@@ -110,13 +110,13 @@ function statusTone(status: string) {
 }
 
 function typeBadge(type: PublishingContentType): string {
-  if (type === "blog")    return "bg-blue-100 text-blue-700";
+  if (type === "blog") return "bg-blue-100 text-blue-700";
   if (type === "service") return "bg-purple-100 text-purple-700";
   return "bg-amber-100 text-amber-700";
 }
 
 function typeLabel(type: PublishingContentType): string {
-  if (type === "blog")    return "Blog";
+  if (type === "blog") return "Blog";
   if (type === "service") return "Service";
   return "SEO";
 }
@@ -126,7 +126,7 @@ onMounted(() => {
 });
 
 const showHealth = ref(false);
-const showSync  = ref(false);
+const showSync = ref(false);
 </script>
 
 <template>
@@ -151,9 +151,9 @@ const showSync  = ref(false);
             class="rounded-full border px-2.5 py-1 text-xs font-semibold"
             :class="{
               'border-emerald-200 bg-emerald-50 text-emerald-700': metric.tone === 'good',
-              'border-amber-200  bg-amber-50  text-amber-700' : metric.tone === 'warn',
-              'border-rose-200   bg-rose-50   text-rose-700'  : metric.tone === 'risk',
-              'border-slate-200  bg-slate-50  text-graphite'  : metric.tone === 'neutral',
+              'border-amber-200 bg-amber-50 text-amber-700' : metric.tone === 'warn',
+              'border-rose-200 bg-rose-50 text-rose-700' : metric.tone === 'risk',
+              'border-slate-200 bg-slate-50 text-graphite' : metric.tone === 'neutral',
             }"
           >
             {{ metric.value }} {{ metric.label }}
@@ -214,7 +214,7 @@ const showSync  = ref(false);
 
     <!-- ── Notices ────────────────────────────────────────────────────────── -->
     <div v-if="publishing.error || publishing.notice" class="px-6 pt-3">
-      <p v-if="publishing.error"  class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
+      <p v-if="publishing.error" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
         {{ publishing.error }}
       </p>
       <p v-if="publishing.notice" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-900">

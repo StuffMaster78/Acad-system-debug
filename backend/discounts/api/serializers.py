@@ -644,7 +644,7 @@ class CampaignCreateUpdateSerializer(serializers.Serializer):
             )
 
         return attrs
-    
+
 class DiscountSpendTierSerializer(serializers.Serializer):
     """
     Read serializer for spend tier discounts.

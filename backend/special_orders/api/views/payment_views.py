@@ -56,7 +56,7 @@ class ApplyExternalPaymentView(APIView):
 
         serializer = SpecialOrderPaymentApplicationSerializer(application)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
 class ApplyWalletPaymentView(APIView):
     permission_classes = [IsAuthenticated, CanPaySpecialOrder]
 
@@ -93,7 +93,7 @@ class ApplyWalletPaymentView(APIView):
             response_serializer.data,
             status=status.HTTP_201_CREATED,
         )
-    
+
 
 class ApplySplitPaymentView(APIView):
     permission_classes = [IsAuthenticated, CanPaySpecialOrder]
@@ -145,4 +145,4 @@ class ApplySplitPaymentView(APIView):
             many=True,
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+

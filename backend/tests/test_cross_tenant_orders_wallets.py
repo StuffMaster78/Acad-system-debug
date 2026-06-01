@@ -80,7 +80,7 @@ class TestOrderCrossTenantIsolation:
         client_b = make_client(site_b, "b")
 
         order_a = make_order(client_a, site_a)
-        order_b = make_order(client_b, site_b)  # noqa: F841
+        order_b = make_order(client_b, site_b) # noqa: F841
 
         api_client.force_authenticate(user=client_a)
         # Use site_a's host so the middleware resolves the correct tenant
@@ -152,11 +152,11 @@ class TestOrderCrossTenantIsolation:
         """A client's queryset only returns their own orders, not other clients' orders."""
         site = WebsiteFactory(domain="scope-test.test", name="Scope Test")
         client_a = make_client(site, "owner")
-        client_b = make_client(site, "other")  # same site, different client
+        client_b = make_client(site, "other") # same site, different client
 
         order_a1 = make_order(client_a, site)
         order_a2 = make_order(client_a, site)
-        order_b = make_order(client_b, site)  # noqa: F841
+        order_b = make_order(client_b, site) # noqa: F841
 
         api_client.force_authenticate(user=client_a)
         response = api_client.get("/api/v1/orders/orders/", HTTP_HOST="scope-test.test")
@@ -280,7 +280,7 @@ class TestPaymentSummaryIsolation:
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
-            status.HTTP_404_NOT_FOUND,  # endpoint may not be exposed to clients
+            status.HTTP_404_NOT_FOUND, # endpoint may not be exposed to clients
         ), "Clients must not access the admin payment summary endpoint"
 
     def test_client_cannot_view_other_client_order_detail(self, api_client, db):

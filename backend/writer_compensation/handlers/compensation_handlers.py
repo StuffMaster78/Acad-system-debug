@@ -43,9 +43,9 @@ def on_window_processing_started(sender, window, **kwargs):
 
     context = {
         "window_label": f"{window.start_date} - {window.end_date}",
-        "start_date":   str(window.start_date),
-        "end_date":     str(window.end_date),
-        "window_id":    window.pk,
+        "start_date": str(window.start_date),
+        "end_date": str(window.end_date),
+        "window_id": window.pk,
     }
 
     for recipient in recipients:
@@ -80,10 +80,10 @@ def on_payout_record_paid(sender, record, **kwargs):
             recipient=writer_user,
             website=window.website,
             context={
-                "amount":       str(record.total_amount),
+                "amount": str(record.total_amount),
                 "window_label": f"{window.start_date} - {window.end_date}",
-                "window_id":    window.pk,
-                "record_id":    record.pk,
+                "window_id": window.pk,
+                "record_id": record.pk,
             },
         )
     except Exception:
@@ -111,7 +111,7 @@ def on_payout_record_held(sender, record, **kwargs):
             website=window.website,
             context={
                 "window_label": f"{window.start_date} - {window.end_date}",
-                "window_id":    window.pk,
+                "window_id": window.pk,
                 # hold_reason intentionally excluded
             },
         )
@@ -142,11 +142,11 @@ def on_fine_event_created(sender, event, **kwargs):
             recipient=event.writer.user,
             website=event.website,
             context={
-                "amount":       str(abs(event.amount)),
+                "amount": str(abs(event.amount)),
                 "source_label": source_label,
-                "source_type":  event.source_type,
-                "source_id":    event.source_id,
-                "event_id":     event.pk,
+                "source_type": event.source_type,
+                "source_id": event.source_id,
+                "event_id": event.pk,
             },
         )
     except Exception:
@@ -170,9 +170,9 @@ def on_adjustment_event_created(sender, event, **kwargs):
             recipient=event.writer.user,
             website=event.website,
             context={
-                "amount":    str(abs(event.amount)),
+                "amount": str(abs(event.amount)),
                 "direction": "credit" if event.amount > 0 else "deduction",
-                "event_id":  event.pk,
+                "event_id": event.pk,
             },
         )
     except Exception:

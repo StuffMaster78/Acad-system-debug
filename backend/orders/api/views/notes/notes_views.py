@@ -40,7 +40,7 @@ class OrderNotesView(GenericAPIView):
         **kwargs: Any,
     ) -> Response:
         user = request.user
-        order = get_object_or_404(Order, pk=order_id, website=user.website)  # type: ignore[attr-defined]
+        order = get_object_or_404(Order, pk=order_id, website=user.website) # type: ignore[attr-defined]
         notes = (
             OrderOperationalNote.objects.filter(order=order)
             .select_related("author")
@@ -56,7 +56,7 @@ class OrderNotesView(GenericAPIView):
         **kwargs: Any,
     ) -> Response:
         user = request.user
-        order = get_object_or_404(Order, pk=order_id, website=user.website)  # type: ignore[attr-defined]
+        order = get_object_or_404(Order, pk=order_id, website=user.website) # type: ignore[attr-defined]
         body = str(request.data.get("body", "")).strip()
         if not body:
             return Response({"detail": "body is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -67,7 +67,7 @@ class OrderNotesView(GenericAPIView):
             body=body,
         )
         note.refresh_from_db()
-        note.author = user  # avoid extra query
+        note.author = user # avoid extra query
         return Response(_serialize_note(note), status=status.HTTP_201_CREATED)
 
 
@@ -91,7 +91,7 @@ class OrderNoteDetailView(GenericAPIView):
             OrderOperationalNote,
             pk=note_id,
             order_id=order_id,
-            website=user.website,  # type: ignore[attr-defined]
+            website=user.website, # type: ignore[attr-defined]
         )
         if "is_pinned" in request.data:
             note.is_pinned = bool(request.data["is_pinned"])
@@ -112,7 +112,7 @@ class OrderNoteDetailView(GenericAPIView):
             OrderOperationalNote,
             pk=note_id,
             order_id=order_id,
-            website=user.website,  # type: ignore[attr-defined]
+            website=user.website, # type: ignore[attr-defined]
         )
         note.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

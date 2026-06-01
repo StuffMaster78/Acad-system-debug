@@ -1,8 +1,8 @@
 """
 Service layer for handling reassignment requests for orders.
 
-This module contains logic for creating, resolving, and managing reassignment 
-requests. It also includes utilities for calculating fines, checking deadlines, 
+This module contains logic for creating, resolving, and managing reassignment
+requests. It also includes utilities for calculating fines, checking deadlines,
 and retrieving top-rated previous writers for clients.
 """
 
@@ -111,17 +111,17 @@ class OrderReassignmentService:
         if status == 'reassigned' and processed_by and processed_by.is_staff:
             from orders.services.transition_helper import OrderTransitionHelper
             from orders.services.status_transition_service import VALID_TRANSITIONS
-            
+
             assigned_writer = metadata.get('assigned_writer') if metadata else None
             order.assigned_writer = assigned_writer
-            
+
             # Determine target status based on current status and valid transitions
             current_status = order.status
             preferred_target = "in_progress" if assigned_writer else "available"
-            
+
             # Check if preferred target is valid from current status
             allowed_transitions = VALID_TRANSITIONS.get(current_status, [])
-            
+
             if preferred_target in allowed_transitions:
                 target_status = preferred_target
             else:
@@ -153,7 +153,7 @@ class OrderReassignmentService:
                             )
                     else:
                         target_status = "available"
-            
+
             OrderTransitionHelper.transition_order(
                 order=order,
                 target_status=target_status,

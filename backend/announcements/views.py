@@ -169,7 +169,7 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
         """Get count of unread announcements for current user."""
         user = request.user
         website = getattr(user, 'website', None) if user.role not in ['admin', 'superadmin'] else None
-        
+
         try:
             count = EngagementTrackingService.get_user_unread_count(
                 user=user,
@@ -181,7 +181,7 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
             logger = logging.getLogger(__name__)
             logger.error(f"Error getting unread count: {e}", exc_info=True)
             count = 0
-        
+
         return Response({'unread_count': count})
 
     @action(detail=True, methods=['post'])

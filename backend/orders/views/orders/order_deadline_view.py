@@ -15,7 +15,7 @@ class ExtendOrderDeadlineView(APIView):
 
     Expects:
     # {
-    #     "new_deadline": "2025-07-01T23:59:00Z"
+    # "new_deadline": "2025-07-01T23:59:00Z"
     # }
     """
     permission_classes = [IsAuthenticated, IsOrderOwnerOrSupport]

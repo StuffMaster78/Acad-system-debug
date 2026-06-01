@@ -93,10 +93,10 @@ class CanReopenOrder(BaseSubmissionTenantPermission):
     required_portal = "internal_admin"
     required_permission = "orders.reopen_order"
 
-    def has_object_permission( # type: ignore[override] 
+    def has_object_permission( # type: ignore[override]
         self,
         request: Request,
         view: APIView,
         obj: Any,
-    ):  
+    ):
         return self._same_tenant(request, obj)

@@ -21,17 +21,17 @@ interface SyncStatus {
   recent_failures: Array<{ task: string; ran_at: string; error_message: string }>;
 }
 
-const data    = ref<SyncStatus | null>(null);
+const data = ref<SyncStatus | null>(null);
 const loading = ref(false);
-const error   = ref("");
+const error = ref("");
 
 const TASK_LABELS: Record<string, string> = {
-  gsc:         "GSC ingestion",
-  ga4:         "GA4 ingestion",
-  freshness:   "Freshness scanner",
-  snapshot:    "Performance snapshots",
+  gsc: "GSC ingestion",
+  ga4: "GA4 ingestion",
+  freshness: "Freshness scanner",
+  snapshot: "Performance snapshots",
   attribution: "Conversion attribution",
-  embeddings:  "Embedding generation",
+  embeddings: "Embedding generation",
 };
 
 const TASKS = ["gsc", "ga4", "freshness", "snapshot", "attribution", "embeddings"] as const;
@@ -48,7 +48,7 @@ function fmt(iso: string) {
   const d = new Date(iso);
   const now = Date.now();
   const diff = now - d.getTime();
-  if (diff < 60_000)  return "just now";
+  if (diff < 60_000) return "just now";
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
   return d.toLocaleDateString("en", { month: "short", day: "numeric" });
@@ -57,14 +57,14 @@ function fmt(iso: string) {
 function statusIcon(entry: SyncEntry | null) {
   if (!entry) return Clock;
   if (entry.status === "success") return CheckCircle2;
-  if (entry.status === "failed")  return XCircle;
+  if (entry.status === "failed") return XCircle;
   return AlertTriangle;
 }
 
 function statusColor(entry: SyncEntry | null) {
   if (!entry) return "text-slate-400";
   if (entry.status === "success") return "text-emerald-500";
-  if (entry.status === "failed")  return "text-rose-500";
+  if (entry.status === "failed") return "text-rose-500";
   return "text-amber-400";
 }
 

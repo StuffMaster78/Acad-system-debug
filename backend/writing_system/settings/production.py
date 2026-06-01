@@ -11,7 +11,7 @@ from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
-from .base import *  # noqa: F401,F403
+from .base import * # noqa: F401,F403
 from .env import env, env_bool, env_int, env_list, require_envs
 
 
@@ -35,7 +35,7 @@ require_envs(
     ]
 )
 
-if SECRET_KEY == "dev-insecure-secret-key-change-me":  # noqa: F405
+if SECRET_KEY == "dev-insecure-secret-key-change-me": # noqa: F405
     from django.core.exceptions import ImproperlyConfigured
 
     raise ImproperlyConfigured("SECRET_KEY must be set in production.")
@@ -78,7 +78,7 @@ CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "")
 CORS_ALLOW_ALL_ORIGINS = False
 
 SENDGRID_API_KEY = env("SENDGRID_API_KEY", "")
-if module_available("anymail") and SENDGRID_API_KEY:  # noqa: F405
+if module_available("anymail") and SENDGRID_API_KEY: # noqa: F405
     EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
     ANYMAIL = {
         "SENDGRID_API_KEY": SENDGRID_API_KEY,
@@ -129,7 +129,7 @@ if USE_S3:
         )
 
     STORAGES = {
-        **STORAGES,  # noqa: F405
+        **STORAGES, # noqa: F405
         "default": {
             "BACKEND": "core.storage_backends.MediaStorage",
         },

@@ -403,7 +403,7 @@ class ReminderOrchestrationService:
                     "error": str(exc),
                 },
             )
-            return updated                  
+            return updated
 
     @classmethod
     @transaction.atomic
@@ -513,7 +513,7 @@ class ReminderOrchestrationService:
             return True
 
         return reminder.scheduled_for <= timezone.now()
-    
+
 
 
     @staticmethod
@@ -599,7 +599,7 @@ class ReminderOrchestrationService:
             raise ValidationError(
                 "Only active unpaid installments can receive reminders."
             )
-        
+
         existing_reminder = cls._find_existing_pending_reminder(
             website=invoice.website,
             invoice=invoice,
@@ -608,7 +608,7 @@ class ReminderOrchestrationService:
         )
         if existing_reminder is not None:
             return existing_reminder
-        
+
         return ReminderService.create_reminder(
             website=invoice.website,
             invoice=invoice,
@@ -653,7 +653,7 @@ class ReminderOrchestrationService:
             event_key=event_key,
             scheduled_for=scheduled_for,
         )
-    
+
     @classmethod
     def ensure_next_installment_upcoming_reminder(
         cls,
@@ -728,7 +728,7 @@ class ReminderOrchestrationService:
             installment=installment,
             scheduled_for=installment.due_at,
         )
-    
+
     @classmethod
     @transaction.atomic
     def ensure_invoice_reminder(
@@ -823,7 +823,7 @@ class ReminderOrchestrationService:
             queryset = queryset.filter(scheduled_for=scheduled_for)
 
         return queryset.first()
-    
+
 
 
     @classmethod
@@ -915,7 +915,7 @@ class ReminderOrchestrationService:
             scheduled_for=scheduled_for,
             triggered_by=triggered_by,
         )
-    
+
 
 
     @classmethod

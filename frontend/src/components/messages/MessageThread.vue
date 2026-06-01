@@ -182,26 +182,26 @@ async function submitCompose() {
 
 // ── Role metadata ──────────────────────────────────────────────────────────────
 const ROLE_STYLE: Record<string, { border: string; badge: string; activeBadge: string; label: string }> = {
-  client:        { border: "border-l-blue-400",    badge: "bg-blue-100 text-blue-800",       activeBadge: "bg-blue-500 text-white",       label: "Client" },
-  writer:        { border: "border-l-emerald-400", badge: "bg-emerald-100 text-emerald-800", activeBadge: "bg-emerald-600 text-white",    label: "Writer" },
-  support:       { border: "border-l-amber-400",   badge: "bg-amber-100 text-amber-800",     activeBadge: "bg-amber-500 text-white",      label: "Support" },
-  admin:         { border: "border-l-violet-400",  badge: "bg-violet-100 text-violet-800",   activeBadge: "bg-violet-600 text-white",     label: "Admin" },
-  editor:        { border: "border-l-cyan-400",    badge: "bg-cyan-100 text-cyan-800",       activeBadge: "bg-cyan-600 text-white",       label: "Editor" },
-  superadmin:    { border: "border-l-rose-400",    badge: "bg-rose-100 text-rose-800",       activeBadge: "bg-rose-600 text-white",       label: "Superadmin" },
-  system:        { border: "border-l-slate-300",   badge: "bg-slate-100 text-slate-500",     activeBadge: "bg-slate-400 text-white",      label: "System" },
-  internal:      { border: "border-l-slate-400",   badge: "bg-slate-100 text-slate-600",     activeBadge: "bg-slate-600 text-white",      label: "Staff note" },
-  client_writer: { border: "border-l-violet-300",  badge: "bg-violet-100 text-violet-700",   activeBadge: "bg-violet-600 text-white",     label: "Client + Writer" },
+  client: { border: "border-l-blue-400", badge: "bg-blue-100 text-blue-800", activeBadge: "bg-blue-500 text-white", label: "Client" },
+  writer: { border: "border-l-emerald-400", badge: "bg-emerald-100 text-emerald-800", activeBadge: "bg-emerald-600 text-white", label: "Writer" },
+  support: { border: "border-l-amber-400", badge: "bg-amber-100 text-amber-800", activeBadge: "bg-amber-500 text-white", label: "Support" },
+  admin: { border: "border-l-violet-400", badge: "bg-violet-100 text-violet-800", activeBadge: "bg-violet-600 text-white", label: "Admin" },
+  editor: { border: "border-l-cyan-400", badge: "bg-cyan-100 text-cyan-800", activeBadge: "bg-cyan-600 text-white", label: "Editor" },
+  superadmin: { border: "border-l-rose-400", badge: "bg-rose-100 text-rose-800", activeBadge: "bg-rose-600 text-white", label: "Superadmin" },
+  system: { border: "border-l-slate-300", badge: "bg-slate-100 text-slate-500", activeBadge: "bg-slate-400 text-white", label: "System" },
+  internal: { border: "border-l-slate-400", badge: "bg-slate-100 text-slate-600", activeBadge: "bg-slate-600 text-white", label: "Staff note" },
+  client_writer: { border: "border-l-violet-300", badge: "bg-violet-100 text-violet-700", activeBadge: "bg-violet-600 text-white", label: "Client + Writer" },
 };
 
 // ── Thread access control ──────────────────────────────────────────────────────
 const THREAD_ROLE_ACCESS: Record<string, string[]> = {
   client_support: ["client", "support", "admin", "superadmin"],
-  client_writer:  ["client", "writer", "support", "admin", "superadmin"],
-  revision:       ["client", "writer", "editor", "support", "admin", "superadmin"],
-  dispute:        ["client", "support", "admin", "superadmin"],
-  internal:       ["support", "admin", "editor", "superadmin"],
-  moderation:     ["admin", "superadmin"],
-  sensitive:      ["admin", "superadmin"],
+  client_writer: ["client", "writer", "support", "admin", "superadmin"],
+  revision: ["client", "writer", "editor", "support", "admin", "superadmin"],
+  dispute: ["client", "support", "admin", "superadmin"],
+  internal: ["support", "admin", "editor", "superadmin"],
+  moderation: ["admin", "superadmin"],
+  sensitive: ["admin", "superadmin"],
 };
 
 function canAccessThread(thread: CommunicationThread): boolean {
@@ -212,15 +212,15 @@ function canAccessThread(thread: CommunicationThread): boolean {
 
 // ── Audience labels + chips ────────────────────────────────────────────────────
 const AUDIENCE_LABELS: Record<string, string> = {
-  internal:      "Staff only",
-  client:        "Client only",
-  writer:        "Writer only",
+  internal: "Staff only",
+  client: "Client only",
+  writer: "Writer only",
   client_writer: "Client + Writer",
 };
 const AUDIENCE_CHIP_CLASS: Record<string, string> = {
-  internal:      "bg-slate-200 text-slate-600",
-  client:        "bg-blue-100 text-blue-700",
-  writer:        "bg-emerald-100 text-emerald-700",
+  internal: "bg-slate-200 text-slate-600",
+  client: "bg-blue-100 text-blue-700",
+  writer: "bg-emerald-100 text-emerald-700",
   client_writer: "bg-violet-100 text-violet-700",
 };
 
@@ -240,24 +240,24 @@ function audienceChipClass(msg: CommunicationMessage): string {
 
 // ── Message flags ──────────────────────────────────────────────────────────────
 const FLAG_META: Record<string, { label: string; cls: string }> = {
-  contact_leak:      { label: "Contact leak",     cls: "bg-amber-100 text-amber-800" },
-  off_platform:      { label: "Off-platform",     cls: "bg-amber-100 text-amber-800" },
-  risky_link:        { label: "Risky link",        cls: "bg-orange-100 text-orange-800" },
+  contact_leak: { label: "Contact leak", cls: "bg-amber-100 text-amber-800" },
+  off_platform: { label: "Off-platform", cls: "bg-amber-100 text-amber-800" },
+  risky_link: { label: "Risky link", cls: "bg-orange-100 text-orange-800" },
   unsafe_attachment: { label: "Unsafe attachment", cls: "bg-red-100 text-red-800" },
 };
 
 // ── Moderation status display ──────────────────────────────────────────────────
 const MOD_STATUS_META: Record<string, { label: string; cls: string }> = {
-  held:     { label: "Held",     cls: "bg-amber-100 text-amber-800" },
-  blocked:  { label: "Blocked",  cls: "bg-red-100 text-red-800" },
+  held: { label: "Held", cls: "bg-amber-100 text-amber-800" },
+  blocked: { label: "Blocked", cls: "bg-red-100 text-red-800" },
   approved: { label: "Approved", cls: "bg-emerald-100 text-emerald-700" },
-  warned:   { label: "Warned",   cls: "bg-orange-100 text-orange-800" },
+  warned: { label: "Warned", cls: "bg-orange-100 text-orange-800" },
 };
 
 // ── Attachment scan status ─────────────────────────────────────────────────────
 const SCAN_META: Record<string, { label: string; cls: string }> = {
-  clean:    { label: "Verified",  cls: "text-emerald-600" },
-  blocked:  { label: "Blocked",   cls: "text-red-600" },
+  clean: { label: "Verified", cls: "text-emerald-600" },
+  blocked: { label: "Blocked", cls: "text-red-600" },
   scanning: { label: "Scanning…", cls: "text-slate-500" },
 };
 
@@ -271,9 +271,9 @@ const isStaff = computed(() => STAFF_ROLES.has(props.role));
 // ── Recipient display label (audience-qualified for staff) ────────────────────
 function recipientLabel(role: string): string {
   if (isStaff.value) {
-    if (role === "client")        return "Client only";
-    if (role === "writer")        return "Writer only";
-    if (role === "internal")      return "Staff only";
+    if (role === "client") return "Client only";
+    if (role === "writer") return "Writer only";
+    if (role === "internal") return "Staff only";
     if (role === "client_writer") return "Client + Writer";
   }
   return roleStyle(role).label;
@@ -284,27 +284,27 @@ const newMessageRecipients = computed<RecipientOption[]>(() => {
   switch (props.role) {
     case "client":
       return [
-        { value: "writer",  label: "Writer" },
+        { value: "writer", label: "Writer" },
         { value: "support", label: "Support" },
       ];
     case "writer":
       return [
-        { value: "client",  label: "Client" },
+        { value: "client", label: "Client" },
         { value: "support", label: "Support" },
       ];
     case "editor":
       return [
-        { value: "client",  label: "Client" },
-        { value: "writer",  label: "Writer" },
+        { value: "client", label: "Client" },
+        { value: "writer", label: "Writer" },
         { value: "support", label: "Support" },
       ];
     case "support":
     case "admin":
     case "superadmin":
       return [
-        { value: "client",   label: "Client only" },
-        { value: "writer",   label: "Writer only" },
-        { value: "editor",   label: "Editor" },
+        { value: "client", label: "Client only" },
+        { value: "writer", label: "Writer only" },
+        { value: "editor", label: "Editor" },
         { value: "internal", label: "Staff only" },
       ];
     default:
@@ -314,21 +314,21 @@ const newMessageRecipients = computed<RecipientOption[]>(() => {
 
 function threadKindFor(recipientRole: string): CommunicationThreadKind {
   const pair = new Set([props.role, recipientRole]);
-  if (pair.has("client") && pair.has("writer"))  return "client_writer";
-  if (pair.has("client"))                         return "client_support";
-  if (pair.has("editor"))                         return "revision";
+  if (pair.has("client") && pair.has("writer")) return "client_writer";
+  if (pair.has("client")) return "client_support";
+  if (pair.has("editor")) return "revision";
   return "client_support";
 }
 
 // ── Participant inference from thread kind ─────────────────────────────────────
 const KIND_PARTICIPANTS: Record<string, string[]> = {
-  client_writer:  ["client", "writer"],
+  client_writer: ["client", "writer"],
   client_support: ["client", "support"],
-  revision:       ["client", "writer", "editor"],
-  dispute:        ["client", "support", "admin"],
-  internal:       ["admin", "support"],
-  moderation:     ["admin", "superadmin"],
-  sensitive:      ["admin", "superadmin"],
+  revision: ["client", "writer", "editor"],
+  dispute: ["client", "support", "admin"],
+  internal: ["admin", "support"],
+  moderation: ["admin", "superadmin"],
+  sensitive: ["admin", "superadmin"],
 };
 
 function participantsFromKind(kind: string): string[] {
@@ -460,13 +460,13 @@ function unreadCount(thread: CommunicationThread): number {
 
 function kindLabel(kind: string): string {
   const map: Record<string, string> = {
-    client_writer:  "Client ↔ Writer",
+    client_writer: "Client ↔ Writer",
     client_support: "Client ↔ Support",
-    revision:       "Revision",
-    dispute:        "Dispute",
-    internal:       "Internal",
-    moderation:     "Moderation",
-    sensitive:      "Sensitive",
+    revision: "Revision",
+    dispute: "Dispute",
+    internal: "Internal",
+    moderation: "Moderation",
+    sensitive: "Sensitive",
   };
   return map[kind] ?? kind.replace(/_/g, " ");
 }

@@ -81,7 +81,7 @@ class CommunicationAttachmentSelector:
             .select_related("thread", "message", "file", "uploaded_by")
             .order_by("created_at", "id")
         )
-    
+
     @staticmethod
     def visible_to_user(*, website, user) -> QuerySet[CommunicationAttachment]:
         """

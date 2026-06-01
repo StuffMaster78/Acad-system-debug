@@ -19,7 +19,7 @@ class RiskEngine:
         ]:
             base += 70
 
-        if command.actor_id == 1:  # superadmin example
+        if command.actor_id == 1: # superadmin example
             base -= 30
 
         return max(0.0, min(100.0, base))

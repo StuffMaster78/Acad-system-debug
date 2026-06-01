@@ -209,7 +209,7 @@ class HoldLedgerService:
             actor=user,
         )
         return hold
-    
+
     @staticmethod
     def _raise_if_expired_active_hold(
         *,

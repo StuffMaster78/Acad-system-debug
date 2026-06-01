@@ -36,7 +36,7 @@ class IsWriterOrAdminOrSuperAdmin(BasePermission):
             if request.user.role in ['admin', 'superadmin']:
                 return True
             if request.user.role == 'writer':
-                return obj.writer == request.user.writer_profile  # Ensure writer can only access their own data
+                return obj.writer == request.user.writer_profile # Ensure writer can only access their own data
         return False
 
 
@@ -58,7 +58,7 @@ class IsSupportOrEditorOrReadOnly(BasePermission):
         if request.method in SAFE_METHODS:
             return True
         return request.user.is_authenticated and request.user.role in ['support', 'editor']
-    
+
 
 
 class IsActiveWriter(BasePermission):

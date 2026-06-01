@@ -23,7 +23,7 @@ class ProfileChangeRequestViewSet(viewsets.ViewSet):
     ViewSet for profile change requests.
     """
     permission_classes = [IsAuthenticated]
-    
+
     @action(detail=False, methods=['post'], url_path='request')
     def request_profile_change(self, request):
         """
@@ -34,17 +34,17 @@ class ProfileChangeRequestViewSet(viewsets.ViewSet):
                 {'error': 'Only writers can request profile changes'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         change_type = request.data.get('change_type')
         requested_value = request.data.get('requested_value')
         current_value = request.data.get('current_value')
-        
+
         if not change_type or not requested_value:
             return Response(
                 {'error': 'change_type and requested_value are required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         service = ProfileChangeService(request.user)
         try:
             change_request = service.request_profile_change(
@@ -59,22 +59,22 @@ class ProfileChangeRequestViewSet(viewsets.ViewSet):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=False, methods=['get'], url_path='my-requests')
     def get_my_requests(self, request):
         """Get user's profile change requests."""
         from users.models.profile_changes import ProfileChangeRequest
         from websites.utils import get_current_website
         website = get_current_website(request)
-        
+
         requests = ProfileChangeRequest.objects.filter(
             user=request.user,
             website=website
         ).order_by('-created_at')
-        
+
         serializer = ProfileChangeRequestSerializer(requests, many=True)
         return Response(serializer.data)
-    
+
     @action(detail=True, methods=['post'], url_path='approve')
     def approve_change(self, request, pk=None):
         """
@@ -85,9 +85,9 @@ class ProfileChangeRequestViewSet(viewsets.ViewSet):
                 {'error': 'Only admins can approve profile changes'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         rejection_reason = request.data.get('rejection_reason')
-        
+
         try:
             change_request = ProfileChangeRequest.objects.get(id=pk)
         except ProfileChangeRequest.DoesNotExist:
@@ -95,7 +95,7 @@ class ProfileChangeRequestViewSet(viewsets.ViewSet):
                 {'error': 'Profile change request not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         service = ProfileChangeService(change_request.user)
         try:
             approved = service.approve_change(request.user, pk, rejection_reason)
@@ -108,7 +108,7 @@ class ProfileChangeRequestViewSet(viewsets.ViewSet):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=False, methods=['get'], url_path='admin/pending')
     def get_pending_requests(self, request):
         """
@@ -119,15 +119,15 @@ class ProfileChangeRequestViewSet(viewsets.ViewSet):
                 {'error': 'Only admins can view pending requests'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         from websites.utils import get_current_website
         website = get_current_website(request)
-        
+
         requests = ProfileChangeRequest.objects.filter(
             website=website,
             status='pending'
         ).order_by('-created_at')
-        
+
         serializer = ProfileChangeRequestSerializer(requests, many=True)
         return Response(serializer.data)
 
@@ -137,7 +137,7 @@ class WriterAvatarViewSet(viewsets.ViewSet):
     ViewSet for writer avatar uploads (requires admin approval).
     """
     permission_classes = [IsAuthenticated]
-    
+
     @action(detail=False, methods=['post'], url_path='upload')
     def upload_avatar(self, request):
         """
@@ -148,14 +148,14 @@ class WriterAvatarViewSet(viewsets.ViewSet):
                 {'error': 'Only writers can upload avatars'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         avatar_file = request.FILES.get('avatar')
         if not avatar_file:
             return Response(
                 {'error': 'Avatar file is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         service = WriterAvatarService(request.user)
         try:
             upload = service.upload_avatar(avatar_file)
@@ -166,7 +166,7 @@ class WriterAvatarViewSet(viewsets.ViewSet):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=True, methods=['post'], url_path='approve')
     def approve_avatar(self, request, pk=None):
         """
@@ -177,9 +177,9 @@ class WriterAvatarViewSet(viewsets.ViewSet):
                 {'error': 'Only admins can approve avatars'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         rejection_reason = request.data.get('rejection_reason')
-        
+
         try:
             upload = WriterAvatarUpload.objects.get(id=pk)
         except WriterAvatarUpload.DoesNotExist:
@@ -187,7 +187,7 @@ class WriterAvatarViewSet(viewsets.ViewSet):
                 {'error': 'Avatar upload not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         service = WriterAvatarService(upload.user)
         try:
             approved = service.approve_avatar(request.user, pk, rejection_reason)
@@ -200,7 +200,7 @@ class WriterAvatarViewSet(viewsets.ViewSet):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(detail=False, methods=['get'], url_path='admin/pending')
     def get_pending_uploads(self, request):
         """
@@ -211,15 +211,15 @@ class WriterAvatarViewSet(viewsets.ViewSet):
                 {'error': 'Only admins can view pending uploads'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         from websites.utils import get_current_website
         website = get_current_website(request)
-        
+
         uploads = WriterAvatarUpload.objects.filter(
             website=website,
             status='pending'
         ).order_by('-created_at')
-        
+
         serializer = WriterAvatarUploadSerializer(uploads, many=True)
         return Response(serializer.data)
 

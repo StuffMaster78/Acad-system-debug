@@ -22,7 +22,7 @@ class PasteContentView(APIView):
     Body:
         {
             "content": "<h2>Introduction</h2><p>Care plans are...</p>",
-            "format": "html"   // or "text"
+            "format": "html" // or "text"
         }
 
     Returns:
@@ -145,12 +145,12 @@ class ContentHealthView(APIView):
     the current site/website and returns editorial health flags per item.
 
     Health flags:
-        missing_meta        — no search_description / meta_description
-        missing_author      — blog post with no primary_author
-        stale               — no substantive update in 90+ days
-        no_cta              — service page with no primary_cta_text
-        no_service_route    — blog post not linked to any service page
-        no_citations        — blog post with citation_style set but no references
+        missing_meta — no search_description / meta_description
+        missing_author — blog post with no primary_author
+        stale — no substantive update in 90+ days
+        no_cta — service page with no primary_cta_text
+        no_service_route — blog post not linked to any service page
+        no_citations — blog post with citation_style set but no references
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -325,11 +325,11 @@ class CreatePageDraftView(APIView):
 
     Body:
         {
-          "type":             "blog" | "service",
-          "title":            "How to write a nursing essay",
-          "slug":             "how-to-write-nursing-essay",
+          "type": "blog" | "service",
+          "title": "How to write a nursing essay",
+          "slug": "how-to-write-nursing-essay",
           "meta_description": "...",
-          "primary_keyword":  "nursing essay" (optional)
+          "primary_keyword": "nursing essay" (optional)
         }
 
     Response:
@@ -348,11 +348,11 @@ class CreatePageDraftView(APIView):
                 status=403,
             )
 
-        page_type    = request.data.get("type", "blog")
-        title        = (request.data.get("title") or "").strip()
-        slug         = (request.data.get("slug") or "").strip()
-        meta_desc    = request.data.get("meta_description", "")
-        primary_kw   = request.data.get("primary_keyword", "")
+        page_type = request.data.get("type", "blog")
+        title = (request.data.get("title") or "").strip()
+        slug = (request.data.get("slug") or "").strip()
+        meta_desc = request.data.get("meta_description", "")
+        primary_kw = request.data.get("primary_keyword", "")
 
         if not title or not slug:
             return Response({"detail": "title and slug are required."}, status=400)

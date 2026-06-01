@@ -67,7 +67,7 @@ class OrderActionDispatcher:
             Type[BaseOrderAction] or None: The action class if found.
         """
         return get_registered_action(action_name)
-    
+
     def run_action(self, action_class, **kwargs):
         """
         Run a specific action class with the current order and actor.

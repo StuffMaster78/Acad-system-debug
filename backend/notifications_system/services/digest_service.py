@@ -164,7 +164,7 @@ class DigestService:
         All digests deliver at 08:00 local time.
 
         Args:
-            now:       Current timezone-aware datetime
+            now: Current timezone-aware datetime
             frequency: DigestFrequency value
 
         Returns:

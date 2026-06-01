@@ -11,7 +11,7 @@ def get_total_earned_by_user(*, user_id: int) -> int:
     Total writer earnings from tips in cents.
     Ledger-aligned.
     """
-    
+
     return (
         Tip.objects
         .filter(

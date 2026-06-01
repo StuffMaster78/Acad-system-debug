@@ -116,7 +116,7 @@ class Command(BaseCommand):
                 self.stdout.write(f'\nProcessing website: {website.name} (ID: {website.id})')
 
                 # Create Website Reviews
-                self.stdout.write('  Creating website reviews...')
+                self.stdout.write(' Creating website reviews...')
                 website_clients = random.sample(clients, min(count, len(clients)))
                 for client in website_clients:
                     # Check if review already exists (unique constraint)
@@ -125,13 +125,13 @@ class Command(BaseCommand):
 
                     # Rating distribution: mostly positive (4-5 stars), some neutral (3), few negative (1-2)
                     rand = random.random()
-                    if rand < 0.70:  # 70% positive
+                    if rand < 0.70: # 70% positive
                         rating = random.choice([4, 5])
                         comment = random.choice(positive_comments)
-                    elif rand < 0.90:  # 20% neutral
+                    elif rand < 0.90: # 20% neutral
                         rating = 3
                         comment = random.choice(neutral_comments)
-                    else:  # 10% negative
+                    else: # 10% negative
                         rating = random.choice([1, 2])
                         comment = random.choice(negative_comments)
 
@@ -141,32 +141,32 @@ class Command(BaseCommand):
                         rating=rating,
                         comment=comment,
                         origin='client',
-                        is_approved=random.choice([True, True, True, False]),  # 75% approved
-                        is_shadowed=random.choice([False, False, False, True]),  # 25% shadowed
+                        is_approved=random.choice([True, True, True, False]), # 75% approved
+                        is_shadowed=random.choice([False, False, False, True]), # 25% shadowed
                         submitted_at=timezone.now() - timedelta(days=random.randint(1, 90)),
                     )
 
                     total_website_reviews += 1
                     self.stdout.write(
-                        f'    ✓ Created website review #{review.id} | {client.email} | {rating} stars'
+                        f' Created website review #{review.id} | {client.email} | {rating} stars'
                     )
 
                 # Create Writer Reviews
                 if writers:
-                    self.stdout.write('  Creating writer reviews...')
-                    for i in range(min(count, len(writers) * 3)):  # Multiple reviews per writer possible
+                    self.stdout.write(' Creating writer reviews...')
+                    for i in range(min(count, len(writers) * 3)): # Multiple reviews per writer possible
                         writer = random.choice(writers)
                         client = random.choice(clients)
 
                         # Rating distribution
                         rand = random.random()
-                        if rand < 0.75:  # 75% positive
+                        if rand < 0.75: # 75% positive
                             rating = random.choice([4, 5])
                             comment = random.choice(positive_comments)
-                        elif rand < 0.90:  # 15% neutral
+                        elif rand < 0.90: # 15% neutral
                             rating = 3
                             comment = random.choice(neutral_comments)
-                        else:  # 10% negative
+                        else: # 10% negative
                             rating = random.choice([1, 2])
                             comment = random.choice(negative_comments)
 
@@ -177,29 +177,29 @@ class Command(BaseCommand):
                             rating=rating,
                             comment=comment,
                             origin='client',
-                            is_approved=random.choice([True, True, True, False]),  # 75% approved
-                            is_shadowed=random.choice([False, False, False, True]),  # 25% shadowed
+                            is_approved=random.choice([True, True, True, False]), # 75% approved
+                            is_shadowed=random.choice([False, False, False, True]), # 25% shadowed
                             submitted_at=timezone.now() - timedelta(days=random.randint(1, 90)),
                         )
 
                         total_writer_reviews += 1
                         self.stdout.write(
-                            f'    ✓ Created writer review #{review.id} | {client.email} → {writer.email} | {rating} stars'
+                            f' Created writer review #{review.id} | {client.email} → {writer.email} | {rating} stars'
                         )
 
                 # Create Order Reviews
-                self.stdout.write('  Creating order reviews...')
+                self.stdout.write(' Creating order reviews...')
                 # Get completed orders for this website
                 completed_orders = Order.objects.filter(
                     website=website,
                     status='completed',
                     is_paid=True,
                     assigned_writer__isnull=False
-                )[:count * 2]  # Get more orders than needed
+                )[:count * 2] # Get more orders than needed
 
                 if not completed_orders.exists():
                     self.stdout.write(
-                        f'    ⚠ No completed orders found for {website.name}. Skipping order reviews.'
+                        f' No completed orders found for {website.name}. Skipping order reviews.'
                     )
                     continue
 
@@ -213,13 +213,13 @@ class Command(BaseCommand):
 
                     # Rating distribution
                     rand = random.random()
-                    if rand < 0.70:  # 70% positive
+                    if rand < 0.70: # 70% positive
                         rating = random.choice([4, 5])
                         comment = random.choice(positive_comments)
-                    elif rand < 0.85:  # 15% neutral
+                    elif rand < 0.85: # 15% neutral
                         rating = 3
                         comment = random.choice(neutral_comments)
-                    else:  # 15% negative
+                    else: # 15% negative
                         rating = random.choice([1, 2])
                         comment = random.choice(negative_comments)
 
@@ -231,15 +231,15 @@ class Command(BaseCommand):
                         rating=rating,
                         comment=comment,
                         origin='client',
-                        is_approved=random.choice([True, True, True, False]),  # 75% approved
-                        is_shadowed=random.choice([False, False, False, True]),  # 25% shadowed
+                        is_approved=random.choice([True, True, True, False]), # 75% approved
+                        is_shadowed=random.choice([False, False, False, True]), # 25% shadowed
                         submitted_at=timezone.now() - timedelta(days=random.randint(1, 90)),
                     )
 
                     reviewed_orders.add(order.client)
                     total_order_reviews += 1
                     self.stdout.write(
-                        f'    ✓ Created order review #{review.id} | Order #{order.id} | {rating} stars'
+                        f' Created order review #{review.id} | Order #{order.id} | {rating} stars'
                     )
 
                     if total_order_reviews >= count:
@@ -247,10 +247,10 @@ class Command(BaseCommand):
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'\n✓ Successfully created:\n'
-                    f'  - {total_website_reviews} website reviews\n'
-                    f'  - {total_writer_reviews} writer reviews\n'
-                    f'  - {total_order_reviews} order reviews'
+                    f'\n Successfully created:\n'
+                    f' - {total_website_reviews} website reviews\n'
+                    f' - {total_writer_reviews} writer reviews\n'
+                    f' - {total_order_reviews} order reviews'
                 )
             )
 

@@ -19,8 +19,8 @@ class PermissionedAction(BaseAction):
         actor_role = getattr(self.actor, 'role', None)
 
         if actor_role == UserRole.SUPERADMIN:
-            return  # full override
-        
+            return # full override
+
         if self.required_roles is None:
             raise NotImplementedError(
                 f"{self.__class__.__name__} must define required_roles"

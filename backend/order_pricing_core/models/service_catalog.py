@@ -114,7 +114,7 @@ class PaperOrderServiceConfig(models.Model):
         Return a readable representation.
         """
         return f"Paper config for {self.service.name}"
-    
+
 
 class DesignOrderServiceConfig(models.Model):
     """

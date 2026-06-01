@@ -53,9 +53,9 @@ DIGEST_ELIGIBLE = {
 # Default cooldown in seconds per event key.
 # 0 = no cooldown (default).
 COOLDOWNS = {
-    'order.deadline_approaching': 3600,   # 1 hour
-    'wallet.balance_low': 86400,          # 24 hours
-    'message.new': 300,                   # 5 minutes
+    'order.deadline_approaching': 3600, # 1 hour
+    'wallet.balance_low': 86400, # 24 hours
+    'message.new': 300, # 5 minutes
 }
 
 
@@ -89,7 +89,7 @@ class Command(BaseCommand):
             category = get_event_category(event_key)
 
             if dry_run:
-                self.stdout.write(f'  [dry-run] Would seed: {event_key}')
+                self.stdout.write(f' [dry-run] Would seed: {event_key}')
                 continue
 
             # Seed NotificationEvent
@@ -105,7 +105,7 @@ class Command(BaseCommand):
             if event_created:
                 created_events += 1
                 self.stdout.write(
-                    self.style.SUCCESS(f'  Created event: {event_key}')
+                    self.style.SUCCESS(f' Created event: {event_key}')
                 )
             else:
                 skipped += 1

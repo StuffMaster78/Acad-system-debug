@@ -30,22 +30,22 @@ TRANSITION_VALIDATION_RULES: Dict[tuple, List[Callable]] = {
     ('submitted', 'cancelled'): [
         lambda order, user, **kwargs: _validate_can_cancel_paid_order(order, user, **kwargs)
     ],
-    
+
     # Can't submit without files (optional - can be enabled)
     # ('in_progress', 'submitted'): [
-    #     lambda order, user, **kwargs: _validate_has_files(order, **kwargs)
+    # lambda order, user, **kwargs: _validate_has_files(order, **kwargs)
     # ],
-    
+
     # Can't complete without payment
     ('unpaid', 'completed'): [
         lambda order, user, **kwargs: _validate_payment_required(order, **kwargs)
     ],
-    
+
     # Can't archive non-approved orders
     ('approved', 'archived'): [
         lambda order, user, **kwargs: _validate_is_approved(order, **kwargs)
     ],
-    
+
     # Can't rate non-reviewed orders (already handled by status check, but explicit)
     ('reviewed', 'rated'): [
         lambda order, user, **kwargs: _validate_is_reviewed(order, **kwargs)
@@ -122,11 +122,11 @@ def _emit_transition_notification(
 def _validate_can_cancel_paid_order(order: Order, user=None, **kwargs) -> None:
     """Validate that paid orders can only be cancelled by admins."""
     skip_payment_check = kwargs.get('skip_payment_check', False)
-    
+
     if order.is_paid and not skip_payment_check:
         # Check if user is admin/support
         is_admin = user and (
-            getattr(user, 'is_staff', False) or 
+            getattr(user, 'is_staff', False) or
             getattr(user, 'role', None) in ['admin', 'superadmin', 'support']
         )
         if not is_admin:
@@ -139,7 +139,7 @@ def _validate_can_cancel_paid_order(order: Order, user=None, **kwargs) -> None:
 def _validate_payment_required(order: Order, **kwargs) -> None:
     """Validate that order is paid before completing."""
     skip_payment_check = kwargs.get('skip_payment_check', False)
-    
+
     if not skip_payment_check and not order.is_paid:
         raise ValidationError(
             "Order must be paid before it can be completed."
@@ -192,7 +192,7 @@ class OrderTransitionHelper:
     - Business rule enforcement
     - Before/After hooks
     """
-    
+
     @staticmethod
     def register_before_hook(
         from_status: str,
@@ -201,7 +201,7 @@ class OrderTransitionHelper:
     ) -> None:
         """
         Register a hook to run before a specific transition.
-        
+
         Args:
             from_status: Source status
             to_status: Target status
@@ -212,7 +212,7 @@ class OrderTransitionHelper:
             _BEFORE_TRANSITION_HOOKS[key] = []
         _BEFORE_TRANSITION_HOOKS[key].append(callback)
         logger.debug(f"Registered before hook for {from_status} -> {to_status}")
-    
+
     @staticmethod
     def register_after_hook(
         from_status: str,
@@ -221,7 +221,7 @@ class OrderTransitionHelper:
     ) -> None:
         """
         Register a hook to run after a specific transition.
-        
+
         Args:
             from_status: Source status
             to_status: Target status
@@ -232,7 +232,7 @@ class OrderTransitionHelper:
             _AFTER_TRANSITION_HOOKS[key] = []
         _AFTER_TRANSITION_HOOKS[key].append(callback)
         logger.debug(f"Registered after hook for {from_status} -> {to_status}")
-    
+
     @staticmethod
     def _run_before_hooks(
         order: Order,
@@ -244,7 +244,7 @@ class OrderTransitionHelper:
         """Run all before hooks for this transition."""
         key = (from_status, to_status)
         hooks = _BEFORE_TRANSITION_HOOKS.get(key, [])
-        
+
         for hook in hooks:
             try:
                 hook(order, user, metadata or {})
@@ -255,7 +255,7 @@ class OrderTransitionHelper:
                 )
                 # Don't fail the transition if hook fails, but log it
                 # Could optionally raise if hooks are critical
-    
+
     @staticmethod
     def _run_after_hooks(
         order: Order,
@@ -267,7 +267,7 @@ class OrderTransitionHelper:
         """Run all after hooks for this transition."""
         key = (from_status, to_status)
         hooks = _AFTER_TRANSITION_HOOKS.get(key, [])
-        
+
         for hook in hooks:
             try:
                 hook(order, user, metadata or {})
@@ -277,7 +277,7 @@ class OrderTransitionHelper:
                     exc_info=True
                 )
                 # Don't fail the transition if hook fails, but log it
-    
+
     @staticmethod
     @transaction.atomic
     def transition_order(
@@ -296,7 +296,7 @@ class OrderTransitionHelper:
     ) -> Order:
         """
         Transition an order to a new status with full validation and logging.
-        
+
         Args:
             order: The order instance to transition
             target_status: Target status (string value)
@@ -309,23 +309,23 @@ class OrderTransitionHelper:
             metadata: Additional metadata for logging
             log_transition: Whether to log to OrderTransitionLog
             log_audit: Whether to log to AuditLog
-            
+
         Returns:
             Order: The updated order instance
-            
+
         Raises:
             AlreadyInTargetStatusError: If order is already in target status
             InvalidTransitionError: If transition is not allowed
             ValidationError: If business rules are violated
         """
         current_status = order.status
-        
+
         # Check if already in target status
         if target_status == current_status:
             raise AlreadyInTargetStatusError(
                 f"Order #{order.id} is already in status '{target_status}'."
             )
-        
+
         # Validate transition is allowed
         allowed_transitions = VALID_TRANSITIONS.get(current_status, [])
         if target_status not in allowed_transitions:
@@ -333,7 +333,7 @@ class OrderTransitionHelper:
                 f"Cannot transition Order #{order.id} from '{current_status}' to '{target_status}'. "
                 f"Allowed transitions: {', '.join(allowed_transitions)}"
             )
-        
+
         # Run custom validation rules for this specific transition
         transition_key = (current_status, target_status)
         if transition_key in TRANSITION_VALIDATION_RULES:
@@ -348,10 +348,10 @@ class OrderTransitionHelper:
                         metadata=metadata
                     )
                 except ValidationError:
-                    raise  # Re-raise validation errors as-is
+                    raise # Re-raise validation errors as-is
                 except Exception as e:
                     raise ValidationError(f"Validation failed: {str(e)}")
-        
+
         # Run before hooks
         OrderTransitionHelper._run_before_hooks(
             order=order,
@@ -360,17 +360,17 @@ class OrderTransitionHelper:
             user=user,
             metadata=metadata
         )
-        
+
         # Use StatusTransitionService for validation and business rules
         transition_service = StatusTransitionService(user=user)
-        
+
         # Build metadata
         transition_metadata = {
             "action": action,
             "is_automatic": is_automatic,
             **(metadata or {})
         }
-        
+
         # Perform transition with validation (StatusTransitionService will log to OrderTransitionLog)
         # We disable its audit log and handle it ourselves to avoid duplicates
         try:
@@ -378,7 +378,7 @@ class OrderTransitionHelper:
                 order,
                 target_status,
                 metadata=transition_metadata,
-                log_action=log_audit,  # Let StatusTransitionService handle audit log
+                log_action=log_audit, # Let StatusTransitionService handle audit log
                 skip_payment_check=skip_payment_check,
                 reason=reason
             )
@@ -388,7 +388,7 @@ class OrderTransitionHelper:
         except Exception as e:
             # Wrap other exceptions
             raise ValidationError(f"Transition failed: {str(e)}")
-        
+
         # Run after hooks
         OrderTransitionHelper._run_after_hooks(
             order=updated_order,
@@ -407,36 +407,36 @@ class OrderTransitionHelper:
             reason=reason,
             action=action,
         )
-        
+
         return updated_order
-    
+
     @staticmethod
     def can_transition(order: Order, target_status: str) -> bool:
         """
         Check if an order can transition to a target status.
-        
+
         Args:
             order: The order instance
             target_status: Target status to check
-            
+
         Returns:
             bool: True if transition is allowed
         """
         current_status = order.status
         if current_status == target_status:
             return False
-        
+
         allowed_transitions = VALID_TRANSITIONS.get(current_status, [])
         return target_status in allowed_transitions
-    
+
     @staticmethod
     def get_available_transitions(order: Order) -> list[str]:
         """
         Get list of available transitions for an order.
-        
+
         Args:
             order: The order instance
-            
+
         Returns:
             List of available target statuses
         """

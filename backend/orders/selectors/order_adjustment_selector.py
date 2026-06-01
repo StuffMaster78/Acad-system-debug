@@ -68,7 +68,7 @@ class OrderAdjustmentSelector:
         ).filter(
             status=ORDER_ADJUSTMENT_STATUS_CLIENT_COUNTERED
         )
-    
+
     @staticmethod
     def funding_pending(
         *,
@@ -97,7 +97,7 @@ class OrderAdjustmentSelector:
         ).filter(
             status=ORDER_ADJUSTMENT_STATUS_COUNTER_FUNDED_FINAL
         )
-    
+
     @staticmethod
     def open_scope_increments(
         *,

@@ -291,7 +291,7 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
   });
 
   async function hydrate() {
-    const auth  = useAuthStore();
+    const auth = useAuthStore();
     const sites = useWebsitesStore();
     isLoading.value = true;
     error.value = "";

@@ -30,25 +30,25 @@ import { cmsApi, type SeoLandingPage, type WagtailBlock } from "@/api/cms";
 import { useMeta, webPageSchema } from "@/composables/useMeta";
 import BlockRenderer from "@/components/cms/BlockRenderer.vue";
 
-const route     = useRoute();
+const route = useRoute();
 const isLoading = ref(true);
-const notFound  = ref(false);
-const lp        = ref<SeoLandingPage | null>(null);
+const notFound = ref(false);
+const lp = ref<SeoLandingPage | null>(null);
 
 // SEO landing pages store blocks as plain dicts; cast to WagtailBlock shape
 const normalizedBlocks = computed((): WagtailBlock[] =>
   (lp.value?.blocks ?? []).map((b) => ({
-    type:  String((b as Record<string, unknown>).type ?? "paragraph"),
+    type: String((b as Record<string, unknown>).type ?? "paragraph"),
     value: (b as Record<string, unknown>).value ?? b,
-    id:    String((b as Record<string, unknown>).id ?? ""),
+    id: String((b as Record<string, unknown>).id ?? ""),
   })),
 );
 
 async function load() {
   const slug = route.params.slug as string;
   isLoading.value = true;
-  notFound.value  = false;
-  lp.value        = null;
+  notFound.value = false;
+  lp.value = null;
 
   try {
     const { data } = await cmsApi.landingPage(slug);

@@ -25,7 +25,7 @@ class SubmitOrderAction(BaseOrderAction):
             target="orders.Order",
             target_id=self.order.id,
             metadata={
-                "message"  : "Order submitted by writer.",
+                "message" : "Order submitted by writer.",
                 "transition": {
                     "from": OrderStatus.IN_PROGRESS.value,
                     "to": OrderStatus.SUBMITTED.value,

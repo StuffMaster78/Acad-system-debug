@@ -25,7 +25,7 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
         """Filter requests based on user role."""
         user = self.request.user
         queryset = super().get_queryset()
-        
+
         if user.role == 'writer':
             # Writers see their own requests
             return queryset.filter(requested_by_writer=user)
@@ -35,14 +35,14 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
         elif user.role in ['admin', 'superadmin', 'support']:
             # Admins see all requests
             return queryset
-        
+
         return queryset.none()
 
     @action(detail=False, methods=['post'], url_path='create')
     def create_request(self, request):
         """
         Create a new writer request for page/slide increase or deadline extension.
-        
+
         Expected payload:
         {
             "order_id": int,
@@ -58,26 +58,26 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
                 {"detail": "Only writers can create requests."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         order_id = request.data.get('order_id')
         order = get_object_or_404(Order, id=order_id)
-        
+
         # Verify writer is assigned to this order
         if order.assigned_writer != request.user:
             return Response(
                 {"detail": "You are not assigned to this order."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         request_type = request.data.get('request_type')
         request_reason = request.data.get('request_reason')
-        
+
         if not request_reason:
             return Response(
                 {"detail": "request_reason is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         data = {}
         if request_type == WriterRequest.RequestType.DEADLINE:
             new_deadline = request.data.get('new_deadline')
@@ -108,7 +108,7 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
                 {"detail": "Invalid request_type."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             writer_request = WriterRequestService.create_request(
                 order=order,
@@ -117,7 +117,7 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
                 reason=request_reason,
                 data=data
             )
-            
+
             serializer = self.get_serializer(writer_request)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -130,7 +130,7 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
     def client_respond(self, request, pk=None):
         """
         Client responds to a writer request: accept, decline, or counteroffer.
-        
+
         Expected payload:
         {
             "action": "accept" | "decline" | "counteroffer",
@@ -142,22 +142,22 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
         }
         """
         writer_request = get_object_or_404(WriterRequest, pk=pk)
-        
+
         # Verify client owns the order
         if writer_request.order.client != request.user:
             return Response(
                 {"detail": "You do not have permission to respond to this request."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         if writer_request.status != WriterRequest.RequestStatus.PENDING:
             return Response(
                 {"detail": "This request has already been handled."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         action_type = request.data.get('action')
-        
+
         try:
             if action_type == 'accept':
                 WriterRequestService.client_respond(
@@ -165,7 +165,7 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
                     client=request.user,
                     approve=True
                 )
-                
+
                 # If payment is required, return payment info
                 if writer_request.requires_payment:
                     return Response({
@@ -180,7 +180,7 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
                         "message": "Request accepted successfully.",
                         "writer_request": self.get_serializer(writer_request).data
                     }, status=status.HTTP_200_OK)
-                    
+
             elif action_type == 'decline':
                 reason = request.data.get('reason', '')
                 WriterRequestService.client_respond(
@@ -193,7 +193,7 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
                     "message": "Request declined.",
                     "writer_request": self.get_serializer(writer_request).data
                 }, status=status.HTTP_200_OK)
-                
+
             elif action_type == 'counteroffer':
                 counter_offer_data = {
                     'counter_pages': request.data.get('counter_pages'),
@@ -201,13 +201,13 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
                     'counter_cost': request.data.get('counter_cost'),
                     'counter_reason': request.data.get('counter_reason')
                 }
-                
+
                 if not counter_offer_data.get('counter_reason'):
                     return Response(
                         {"detail": "counter_reason is required for counteroffer."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-                
+
                 WriterRequestService.client_respond(
                     request=writer_request,
                     client=request.user,
@@ -238,15 +238,15 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
         request_type = request.query_params.get('request_type')
         additional_pages = request.query_params.get('additional_pages', 0)
         additional_slides = request.query_params.get('additional_slides', 0)
-        
+
         if not order_id or not request_type:
             return Response(
                 {"detail": "order_id and request_type are required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         order = get_object_or_404(Order, id=order_id)
-        
+
         # Create a temporary request to calculate pricing
         temp_request = WriterRequest(
             order=order,
@@ -255,11 +255,11 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
             additional_pages=int(additional_pages) if additional_pages else None,
             additional_slides=int(additional_slides) if additional_slides else None
         )
-        
+
         from orders.services.writer_request_pricing_service import WriterRequestPricingService
         pricing_service = WriterRequestPricingService(temp_request)
         pricing_service.update_writer_request_costs(save=False)
-        
+
         return Response({
             "estimated_cost": str(temp_request.estimated_cost or Decimal('0.00')),
             "final_cost": str(temp_request.final_cost or Decimal('0.00')),

@@ -51,7 +51,7 @@ class CommunicationThreadViewSet(ModelViewSet):
 
     def get_queryset( # type: ignore[override]
             self,
-        ): 
+        ):
         """
         Return threads visible to the request user.
         """
@@ -198,7 +198,7 @@ class CommunicationThreadViewSet(ModelViewSet):
 
         output = CommunicationParticipantSerializer(participant)
         return Response(output.data, status=status.HTTP_201_CREATED)
-    
+
     @action(
         detail=True,
         methods=["post"],

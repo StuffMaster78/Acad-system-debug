@@ -69,19 +69,19 @@ class EventStatus(models.TextChoices):
     """
     Lifecycle of a single CompensationEvent.
 
-    PENDING_CONFIRMATION  -> just created, awaiting maturity
-    MATURED               -> confirmed, eligible for settlement
-    DEFERRED              -> held back (dispute / revision / risk)
+    PENDING_CONFIRMATION -> just created, awaiting maturity
+    MATURED -> confirmed, eligible for settlement
+    DEFERRED -> held back (dispute / revision / risk)
     INCLUDED_IN_SETTLEMENT -> picked up by a SettlementPeriod
-    PAID                  -> underlying payout record marked paid
-    REVERSED              -> cancelled by a REVERSAL event
-    VOIDED                -> admin-voided, not paid
-    DISPUTED              -> under dispute review
-    ON_HOLD               -> manual admin hold
+    PAID -> underlying payout record marked paid
+    REVERSED -> cancelled by a REVERSAL event
+    VOIDED -> admin-voided, not paid
+    DISPUTED -> under dispute review
+    ON_HOLD -> manual admin hold
     """
-    PENDING_CONFIRMATION   = "PENDING_CONFIRMATION", "Pending Confirmation"
+    PENDING_CONFIRMATION = "PENDING_CONFIRMATION", "Pending Confirmation"
     MATURED = "MATURED", "Matured"
-    DEFERRED = "DEFERRED",  "Deferred"
+    DEFERRED = "DEFERRED", "Deferred"
     INCLUDED_IN_SETTLEMENT = "INCLUDED_IN_SETTLEMENT", "Included In Settlement"
     PAID = "PAID", "Paid"
     REVERSED = "REVERSED", "Reversed"
@@ -115,11 +115,11 @@ CycleType = WindowType
 class WindowStatus(models.TextChoices):
     """
     One-way lifecycle. Never reversed.
-    UPCOMING   -> created in advance, not yet open
-    OPEN       -> accepting events
-    CLOSED     -> period ended; batch created; no new events
+    UPCOMING -> created in advance, not yet open
+    OPEN -> accepting events
+    CLOSED -> period ended; batch created; no new events
     PROCESSING -> admin clicked Process; writers see status message; events locked
-    DONE       -> admin finished; held records remain open
+    DONE -> admin finished; held records remain open
     """
     UPCOMING = "UPCOMING", "Upcoming"
     OPEN = "OPEN", "Open"
@@ -161,7 +161,7 @@ class PayoutRecordStatus(models.TextChoices):
     PENDING = "PENDING", "Pending"
     CONFIRMED = "CONFIRMED", "Confirmed"
     HELD = "HELD", "Held"
-    DEFERRED  = "DEFERRED", "Deferred"
+    DEFERRED = "DEFERRED", "Deferred"
     PAID = "PAID", "Paid"
     FAILED = "FAILED", "Failed"
 
@@ -175,7 +175,7 @@ class AdvancePaymentStatus(models.TextChoices):
     APPROVED = "APPROVED", "Approved"
     REJECTED = "REJECTED", "Rejected"
     RECOVERED = "RECOVERED", "Recovered"
-    PARTIALLY_RECOVERED  = "PARTIALLY_RECOVERED", "Partially Recovered"
+    PARTIALLY_RECOVERED = "PARTIALLY_RECOVERED", "Partially Recovered"
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +183,7 @@ class AdvancePaymentStatus(models.TextChoices):
 # ---------------------------------------------------------------------------
 
 class CycleChangeStatus(models.TextChoices):
-    PENDING = "PENDING",  "Pending"
+    PENDING = "PENDING", "Pending"
     APPROVED = "APPROVED", "Approved"
     REJECTED = "REJECTED", "Rejected"
 
@@ -193,10 +193,10 @@ class CycleChangeStatus(models.TextChoices):
 # ---------------------------------------------------------------------------
 
 class AdjustmentType(models.TextChoices):
-    BONUS = "BONUS",      "Bonus"
-    DEDUCTION = "DEDUCTION",  "Deduction"
+    BONUS = "BONUS", "Bonus"
+    DEDUCTION = "DEDUCTION", "Deduction"
     CORRECTION = "CORRECTION", "Correction"
-    MANUAL = "MANUAL",     "Manual"
+    MANUAL = "MANUAL", "Manual"
 
 
 # ---------------------------------------------------------------------------
@@ -209,7 +209,7 @@ class DeferralReason(models.TextChoices):
     CLIENT_RISK = "CLIENT_RISK", "Client Risk"
     QUALITY_REVIEW = "QUALITY_REVIEW", "Quality Review"
     MANUAL_REVIEW = "MANUAL_REVIEW", "Manual Review"
-    FRAUD_REVIEW = "FRAUD_REVIEW",  "Fraud Review"
+    FRAUD_REVIEW = "FRAUD_REVIEW", "Fraud Review"
 
 
 # ---------------------------------------------------------------------------

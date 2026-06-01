@@ -115,7 +115,7 @@ class DiscountValidationService:
             raise DiscountValidationError(
                 "This discount campaign is inactive."
             )
-        
+
     @staticmethod
     def _validate_time_window(*, discount) -> None:
         """
@@ -214,7 +214,7 @@ class DiscountValidationService:
             raise DiscountValidationError(
                 "You are not eligible for this discount."
             )
-        
+
     @staticmethod
     def _validate_first_order(
         *,

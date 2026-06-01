@@ -13,13 +13,13 @@ class WriterNoteListView(ListAPIView):
     """GET /api/writer-management/writers/<rid>/notes/"""
     permission_classes = [IsAdminUser]
 
-    def get_serializer_class(self):  # type: ignore[override]
+    def get_serializer_class(self): # type: ignore[override]
         from writer_management.api.serializers.note_serializers import (
             WriterNoteSerializer,
         )
         return WriterNoteSerializer
 
-    def get_queryset(self) -> QuerySet:  # type: ignore[override]
+    def get_queryset(self) -> QuerySet: # type: ignore[override]
         from writer_management.services.writer_profile_service import (
             WriterProfileService,
         )
@@ -68,7 +68,7 @@ class CreateWriterNoteView(APIView):
         # Fix 2: was `note=note` — circular reference (note not yet assigned).
         # Fix 3: was **d — Pylance rejects validated_data as ** mapping.
         # Solution: explicit keyword arguments from the validated data dict.
-        d: dict = serializer.validated_data  # type: ignore[assignment]
+        d: dict = serializer.validated_data # type: ignore[assignment]
         website = _resolve_website(request)
 
         note_obj = WriterNoteService.create_note(
@@ -88,7 +88,7 @@ class CreateWriterNoteView(APIView):
 
 class UpdateWriterNoteView(APIView):
     """
-    PATCH  /api/writer-management/notes/<pk>/
+    PATCH /api/writer-management/notes/<pk>/
     DELETE /api/writer-management/notes/<pk>/
     """
     permission_classes = [IsAdminUser]
@@ -109,7 +109,7 @@ class UpdateWriterNoteView(APIView):
 
         # Fix 4: validated_data typed as `empty` before is_valid() in stubs.
         # Cast to dict so .get() is available without Pylance complaints.
-        d: dict = serializer.validated_data  # type: ignore[assignment]
+        d: dict = serializer.validated_data # type: ignore[assignment]
 
         updated = WriterNoteService.update_note(
             note=note_obj,

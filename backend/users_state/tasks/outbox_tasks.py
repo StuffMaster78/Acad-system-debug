@@ -26,7 +26,7 @@ def create_outbox_entry(payload: dict):
 
     from notifications_system.tasks.send import process_outbox_entry
 
-    outbox_id = outbox.id  # type: ignore[attr-defined]
+    outbox_id = outbox.id # type: ignore[attr-defined]
 
     process_outbox_entry.delay(outbox_id)
 

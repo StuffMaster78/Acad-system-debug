@@ -8,7 +8,7 @@ class ClassAccessPermission(BasePermission):
     Object-level permission for class access records.
     """
 
-    def has_object_permission(  # type: ignore[override]
+    def has_object_permission( # type: ignore[override]
         self,
         request,
         view,

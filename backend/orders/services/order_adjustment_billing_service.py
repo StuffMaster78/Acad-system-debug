@@ -169,7 +169,7 @@ class OrderAdjustmentBillingService:
             raise ValidationError(
                 "Accepted adjustment request must have a final_amount."
             )
-        
+
         billing_payment_request = (
             PaymentRequestService.create_payment_request(
                 website=adjustment_request.website,

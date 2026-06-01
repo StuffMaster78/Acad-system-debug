@@ -165,7 +165,7 @@ class PasswordResetService:
             invalid_message="Invalid or used OTP.",
             expired_message="OTP has expired.",
         )
-    
+
 
     @classmethod
     def request_reset(
@@ -198,7 +198,7 @@ class PasswordResetService:
 
         if user is None:
             return {"success": True}
-        
+
         AccountAccessPolicyService.validate_auth_access(
             user=user,
             website=website,

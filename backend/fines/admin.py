@@ -38,12 +38,12 @@ class FineTypeConfigAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ('created_at', 'updated_at')
-    
+
     def save_model(self, request, obj, form, change):
-        if not change:  # Only set on creation
+        if not change: # Only set on creation
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
-    
+
     def get_readonly_fields(self, request, obj=None):
         """System-defined fine types cannot be deleted."""
         readonly = list(super().get_readonly_fields(request, obj))
@@ -77,7 +77,7 @@ class FineAdmin(admin.ModelAdmin):
         }),
     )
     actions = ['waive_selected_fines', 'void_selected_fines']
-    
+
     def waive_selected_fines(self, request, queryset):
         """Admin action to waive selected fines."""
         from fines.services.fine_services import FineService
@@ -90,7 +90,7 @@ class FineAdmin(admin.ModelAdmin):
                 pass
         self.message_user(request, f"{count} fine(s) waived.")
     waive_selected_fines.short_description = "Waive selected fines"
-    
+
     def void_selected_fines(self, request, queryset):
         """Admin action to void selected fines."""
         from fines.services.fine_services import FineService
@@ -177,8 +177,8 @@ class LatenessFineRuleAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ('created_at', 'updated_at')
-    
+
     def save_model(self, request, obj, form, change):
-        if not change:  # Only set on creation
+        if not change: # Only set on creation
             obj.created_by = request.user
         super().save_model(request, obj, form, change)

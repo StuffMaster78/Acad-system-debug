@@ -9,7 +9,7 @@ Celery beat::
 
     "send-scheduled-newsletters": {
         "task": "cms_newsletters.tasks.send_newsletter.send_scheduled_newsletters",
-        "schedule": 300,  # check every 5 minutes
+        "schedule": 300, # check every 5 minutes
     }
 """
 

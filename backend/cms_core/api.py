@@ -6,9 +6,9 @@ Exposes pages, images, and documents as JSON endpoints
 for the Vue/Nuxt frontends to consume.
 
 Endpoints:
-    /api/v2/pages/          — all published pages (filterable by type, site)
-    /api/v2/images/         — all images
-    /api/v2/documents/      — all documents
+    /api/v2/pages/ — all published pages (filterable by type, site)
+    /api/v2/images/ — all images
+    /api/v2/documents/ — all documents
 
 Usage in frontend:
     GET /api/v2/pages/?type=cms_blog.BlogPostPage&fields=*

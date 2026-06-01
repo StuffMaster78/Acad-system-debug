@@ -220,12 +220,12 @@ def _validate_image_alt_texts(body, result):
                         "required for accessibility and SEO",
                         field="body",
                     )
-                    return  # One error is enough
+                    return # One error is enough
 
 
 def _validate_heading_hierarchy(body, result):
     """Check heading levels don't skip (H2 → H4 without H3)."""
-    last_level = 1  # H1 is the page title
+    last_level = 1 # H1 is the page title
     for block in body:
         if block.block_type == "heading":
             value = block.value

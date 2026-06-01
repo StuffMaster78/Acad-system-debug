@@ -12,10 +12,10 @@ BASE_URL = "http://localhost:8000/api/v1"
 
 def print_test(name, passed, details=""):
     """Print test result"""
-    status = "✅ PASS" if passed else "❌ FAIL"
+    status = " PASS" if passed else " FAIL"
     print(f"{status}: {name}")
     if details:
-        print(f"   {details}")
+        print(f" {details}")
     return passed
 
 def login(email, password):
@@ -39,7 +39,7 @@ def login(email, password):
 
 def test_financial_overview(token):
     """Test financial overview endpoint"""
-    print("\n📊 Testing Financial Overview Endpoint...")
+    print("\n Testing Financial Overview Endpoint...")
     try:
         headers = {
             "Authorization": f"Bearer {token}",
@@ -49,7 +49,7 @@ def test_financial_overview(token):
             f"{BASE_URL}/admin-management/financial-overview/overview/",
             headers=headers
         )
-        
+
         passed = response.status_code == 200
         if passed:
             data = response.json()
@@ -72,7 +72,7 @@ def test_financial_overview(token):
 
 def test_websites_endpoint(token):
     """Test websites listing endpoint"""
-    print("\n🌐 Testing Websites Endpoint...")
+    print("\n Testing Websites Endpoint...")
     try:
         headers = {
             "Authorization": f"Bearer {token}",
@@ -82,7 +82,7 @@ def test_websites_endpoint(token):
             f"{BASE_URL}/websites/websites/",
             headers=headers
         )
-        
+
         passed = response.status_code == 200
         if passed:
             data = response.json()
@@ -106,7 +106,7 @@ def test_websites_endpoint(token):
 
 def test_payment_transactions(token):
     """Test payment transactions endpoint"""
-    print("\n💳 Testing Payment Transactions Endpoint...")
+    print("\n Testing Payment Transactions Endpoint...")
     try:
         headers = {
             "Authorization": f"Bearer {token}",
@@ -115,13 +115,13 @@ def test_payment_transactions(token):
         # Test with date range
         date_from = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
         date_to = datetime.now().strftime("%Y-%m-%d")
-        
+
         response = requests.get(
             f"{BASE_URL}/order-payments/order-payments/all-transactions/",
             headers=headers,
             params={"date_from": date_from, "date_to": date_to, "page_size": 10}
         )
-        
+
         passed = response.status_code == 200
         if passed:
             data = response.json()
@@ -145,7 +145,7 @@ def test_payment_transactions(token):
 
 def test_writer_payments_grouped(token):
     """Test writer payments grouped endpoint"""
-    print("\n💰 Testing Writer Payments Grouped Endpoint...")
+    print("\n Testing Writer Payments Grouped Endpoint...")
     try:
         headers = {
             "Authorization": f"Bearer {token}",
@@ -155,7 +155,7 @@ def test_writer_payments_grouped(token):
             f"{BASE_URL}/writer-wallet/writer-payments/grouped/",
             headers=headers
         )
-        
+
         passed = response.status_code == 200
         if passed:
             data = response.json()
@@ -183,16 +183,16 @@ def main():
     print("=" * 60)
     print("Testing Fixed Endpoints")
     print("=" * 60)
-    
+
     # Get credentials from user or use defaults
     if len(sys.argv) >= 3:
         email = sys.argv[1]
         password = sys.argv[2]
     else:
-        print("\n⚠️  Usage: python test_fixed_endpoints.py <email> <password>")
-        print("   Or set credentials in the script")
+        print("\n️ Usage: python test_fixed_endpoints.py <email> <password>")
+        print(" Or set credentials in the script")
         print("\nTrying to find admin user...")
-        
+
         # Try to get admin user from database
         try:
             import subprocess
@@ -204,49 +204,49 @@ def main():
             )
             if result.returncode == 0 and result.stdout.strip() != "None":
                 email = result.stdout.strip()
-                print(f"   Found admin user: {email}")
-                print("   Please provide password as second argument")
+                print(f" Found admin user: {email}")
+                print(" Please provide password as second argument")
                 return
         except:
             pass
-        
-        print("   Could not find admin user automatically")
+
+        print(" Could not find admin user automatically")
         return
-    
+
     # Login
-    print(f"\n🔐 Logging in as {email}...")
+    print(f"\n Logging in as {email}...")
     token = login(email, password)
     if not token:
-        print("❌ Login failed. Cannot proceed with tests.")
+        print(" Login failed. Cannot proceed with tests.")
         return
-    
-    print("✅ Login successful")
-    
+
+    print(" Login successful")
+
     # Run tests
     results = []
     results.append(("Financial Overview", test_financial_overview(token)))
     results.append(("Websites Listing", test_websites_endpoint(token)))
     results.append(("Payment Transactions", test_payment_transactions(token)))
     results.append(("Writer Payments Grouped", test_writer_payments_grouped(token)))
-    
+
     # Summary
     print("\n" + "=" * 60)
     print("Test Summary")
     print("=" * 60)
     passed = sum(1 for _, result in results if result)
     total = len(results)
-    
+
     for name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = " PASS" if result else " FAIL"
         print(f"{status}: {name}")
-    
+
     print(f"\nTotal: {passed}/{total} tests passed")
-    
+
     if passed == total:
-        print("🎉 All tests passed!")
+        print(" All tests passed!")
         return 0
     else:
-        print("⚠️  Some tests failed")
+        print("️ Some tests failed")
         return 1
 
 if __name__ == "__main__":

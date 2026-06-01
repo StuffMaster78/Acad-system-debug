@@ -45,10 +45,10 @@ class DisputeResolutionService:
         Assign an open dispute to a support agent.
 
         Args:
-            dispute:     OrderDispute instance.
-            agent:       Support agent user to assign.
+            dispute: OrderDispute instance.
+            agent: Support agent user to assign.
             assigned_by: Staff member making the assignment.
-            reason:      Optional assignment reason.
+            reason: Optional assignment reason.
 
         Returns:
             Updated dispute instance.
@@ -89,11 +89,11 @@ class DisputeResolutionService:
         Record a resolution decision and close the dispute.
 
         Args:
-            dispute:     OrderDispute instance.
+            dispute: OrderDispute instance.
             resolved_by: Support agent resolving the dispute.
-            resolution:  Human-readable resolution summary.
-            notes:       Internal resolution notes.
-            outcome:     Outcome label (resolved, resolved_for_client,
+            resolution: Human-readable resolution summary.
+            notes: Internal resolution notes.
+            outcome: Outcome label (resolved, resolved_for_client,
                          resolved_for_writer). Default: resolved.
 
         Returns:
@@ -160,10 +160,10 @@ class DisputeResolutionService:
         Creates an EscalationLog and notifies admin staff.
 
         Args:
-            dispute:      OrderDispute to escalate.
+            dispute: OrderDispute to escalate.
             escalated_by: Support agent escalating.
-            reason:       Required escalation reason.
-            website:      Tenant website.
+            reason: Required escalation reason.
+            website: Tenant website.
 
         Returns:
             EscalationLog instance.
@@ -175,7 +175,7 @@ class DisputeResolutionService:
 
         escalation = EscalationLog.objects.create(
             escalated_by=escalated_by,
-            action_type="blacklist_client",  # Closest available type — ops reviews
+            action_type="blacklist_client", # Closest available type — ops reviews
             target_user=getattr(dispute, "client", escalated_by),
             reason=f"Dispute #{dispute.pk} escalation: {reason}",
             status="pending",

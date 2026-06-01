@@ -14,7 +14,7 @@ User = settings.AUTH_USER_MODEL
 
 class SeoPageAPITestCase(TestCase):
     """Test cases for SEO Pages API endpoints."""
-    
+
     def setUp(self):
         """Set up test data."""
         self.client = APIClient()
@@ -40,19 +40,19 @@ class SeoPageAPITestCase(TestCase):
             is_published=True,
             created_by=self.user
         )
-    
+
     def test_list_seo_pages_requires_auth(self):
         """Test that listing SEO pages requires authentication."""
         response = self.client.get('/api/v1/seo-pages/seo-pages/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-    
+
     def test_list_seo_pages_authenticated(self):
         """Test listing SEO pages when authenticated."""
         self.client.force_authenticate(user=self.user)
         response = self.client.get('/api/v1/seo-pages/seo-pages/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.data['results']), 1)
-    
+
     def test_create_seo_page(self):
         """Test creating a new SEO page."""
         self.client.force_authenticate(user=self.user)
@@ -68,22 +68,22 @@ class SeoPageAPITestCase(TestCase):
         response = self.client.post('/api/v1/seo-pages/seo-pages/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(SeoPage.objects.count(), 2)
-    
+
     def test_public_get_seo_page_by_slug(self):
         """Test public endpoint to get SEO page by slug."""
         response = self.client.get(f'/api/v1/public/seo-pages/{self.seo_page.slug}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['title'], self.seo_page.title)
         self.assertEqual(response.data['slug'], self.seo_page.slug)
-    
+
     def test_public_get_unpublished_page_returns_404(self):
         """Test that unpublished pages are not accessible via public API."""
         self.seo_page.is_published = False
         self.seo_page.save()
-        
+
         response = self.client.get(f'/api/v1/public/seo-pages/{self.seo_page.slug}/')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-    
+
     def test_public_list_seo_pages(self):
         """Test public endpoint to list published SEO pages."""
         response = self.client.get('/api/v1/public/seo-pages/')
@@ -96,7 +96,7 @@ class SeoPageAPITestCase(TestCase):
 
 class GuestOrderAPITestCase(TestCase):
     """Test cases for Guest Order endpoints."""
-    
+
     def setUp(self):
         """Set up test data."""
         self.client = APIClient()
@@ -109,7 +109,7 @@ class GuestOrderAPITestCase(TestCase):
             guest_max_order_amount=200.00,
             guest_block_urgent_before_hours=12
         )
-    
+
     def test_start_guest_order_requires_website_id(self):
         """Test that website_id is required."""
         response = self.client.post('/api/v1/orders/guest-orders/start/', {
@@ -117,7 +117,7 @@ class GuestOrderAPITestCase(TestCase):
             'order_data': {}
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    
+
     def test_start_guest_order_requires_email(self):
         """Test that email is required."""
         response = self.client.post('/api/v1/orders/guest-orders/start/', {
@@ -125,12 +125,12 @@ class GuestOrderAPITestCase(TestCase):
             'order_data': {}
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    
+
     def test_start_guest_order_checks_guest_checkout_enabled(self):
         """Test that guest checkout must be enabled."""
         self.website.allow_guest_checkout = False
         self.website.save()
-        
+
         response = self.client.post('/api/v1/orders/guest-orders/start/', {
             'website_id': self.website.id,
             'email': 'guest@example.com',
@@ -143,7 +143,7 @@ class GuestOrderAPITestCase(TestCase):
             }
         })
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-    
+
     def test_verify_email_requires_token(self):
         """Test that verification token is required."""
         response = self.client.post('/api/v1/orders/guest-orders/verify-email/', {

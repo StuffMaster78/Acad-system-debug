@@ -18,7 +18,7 @@ class EmailChangeRequest(models.Model):
         COMPLETED = "completed", "Completed"
         REJECTED = "rejected", "Rejected"
         CANCELLED = "cancelled", "Cancelled"
-    
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -55,16 +55,16 @@ class EmailChangeRequest(models.Model):
         help_text=_("Current status of the email change request")
     )
     # verified = models.BooleanField(
-    #     default=False,
-    #     help_text=_("Whether new email has been verified")
+    # default=False,
+    # help_text=_("Whether new email has been verified")
     # )
     # old_email_confirmed = models.BooleanField(
-    #     default=False,
-    #     help_text=_("Whether old email change was confirmed")
+    # default=False,
+    # help_text=_("Whether old email change was confirmed")
     # )
     # admin_approved = models.BooleanField(
-    #     default=False,
-    #     help_text=_("Whether admin has approved the email change")
+    # default=False,
+    # help_text=_("Whether admin has approved the email change")
     # )
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -95,7 +95,7 @@ class EmailChangeRequest(models.Model):
         blank=True,
         help_text=_("When email change was completed")
     )
-    
+
     class Meta:
         ordering = ["-created_at"]
         indexes = [
@@ -123,8 +123,7 @@ class EmailChangeRequest(models.Model):
                 self.Status.CANCELLED,
             }
         )
-    
+
     def __str__(self):
         status = "Verified" if self.status else "Pending"
         return f"Email change: {self.old_email} → {self.new_email} ({status})"
-    

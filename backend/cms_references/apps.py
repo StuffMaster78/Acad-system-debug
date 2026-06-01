@@ -8,4 +8,4 @@ class CmsReferencesConfig(AppConfig):
     label = "cms_references"
 
     def ready(self):
-        import cms_references.signals  # noqa: F401
+        import cms_references.signals # noqa: F401

@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from websites.models.websites import Website
 from websites.models.action_log import WebsiteActionLog
-from websites.models.website_settings import  WebsiteTermsAcceptance
+from websites.models.website_settings import WebsiteTermsAcceptance
 from websites.models.static_pages import WebsiteStaticPage
 from websites.models_integrations import WebsiteIntegrationConfig
 from rest_framework.permissions import AllowAny
@@ -26,32 +26,32 @@ from django.core.cache import cache
 from rest_framework.throttling import AnonRateThrottle
 
 class StaticPageThrottle(AnonRateThrottle):
-    rate = '5/min'  
+    rate = '5/min'
 class LogPagination(PageNumberPagination):
-    page_size = 25 
+    page_size = 25
 class WebsiteViewSet(viewsets.ModelViewSet):
     """Handles website CRUD, SEO updates, and soft deletion."""
-    
+
     # Default ordering by id to avoid UnorderedObjectListWarning with pagination
     queryset = Website.objects.all().order_by('id')
     serializer_class = WebsiteSerializer
-    permission_classes = [IsAdminOrSuperadmin]  # 🔥 Restrict all actions to superadmins/admins
-    
+    permission_classes = [IsAdminOrSuperadmin] # Restrict all actions to superadmins/admins
+
     def get_queryset(self):
         """Filter websites based on user's role and website assignment."""
         queryset = Website.objects.all().order_by('id')
-        
+
         # Superadmins see all websites
         if self.request.user.role == 'superadmin':
             return queryset
-        
+
         # Regular admins see only their assigned website
         user_website = getattr(self.request.user, 'website', None)
         if user_website:
             queryset = queryset.filter(id=user_website.id)
-        
+
         return queryset
-    
+
     def list(self, request, *args, **kwargs):
         """List websites with error handling."""
         try:
@@ -89,10 +89,10 @@ class WebsiteViewSet(viewsets.ModelViewSet):
                 details=f"Updated SEO settings: {serializer.data}",
             )
             return Response({"message": "SEO settings updated successfully!", "data": serializer.data})
-        
+
         return Response(serializer.errors, status=400)
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrSuperadmin])  # 🔥 Restrict to Superadmins/Admins
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrSuperadmin]) # Restrict to Superadmins/Admins
     def soft_delete(self, request, pk=None):
         """Allows only admins to soft delete a website."""
         website = self.get_object()
@@ -104,7 +104,7 @@ class WebsiteViewSet(viewsets.ModelViewSet):
             details="Website was soft deleted.",
         )
         return Response({"message": "Website soft-deleted successfully!"})
-    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrSuperadmin])  # 🔥 Restrict to Superadmins/Admins
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrSuperadmin]) # Restrict to Superadmins/Admins
     def restore(self, request, pk=None):
         """Allows only admins to restore a soft-deleted website."""
         website = self.get_object()
@@ -166,10 +166,10 @@ class WebsiteViewSet(viewsets.ModelViewSet):
 
 class WebsiteActionLogViewSet(viewsets.ReadOnlyModelViewSet):
     """Handles retrieving admin action logs for website updates."""
-    
+
     serializer_class = WebsiteActionLogSerializer
     permission_classes = [permissions.IsAdminUser]
-    pagination_class = LogPagination  # 🔥 Enable pagination
+    pagination_class = LogPagination # Enable pagination
 
     def get_queryset(self):
         """Filter logs based on website query param and limit to recent 100 logs."""
@@ -179,7 +179,7 @@ class WebsiteActionLogViewSet(viewsets.ReadOnlyModelViewSet):
         if website_id:
             queryset = queryset.filter(website_id=website_id)
 
-        return queryset[:100]  # 🔥 Limit logs to the last 100 records for performance
+        return queryset[:100] # Limit logs to the last 100 records for performance
 
     def list(self, request, *args, **kwargs):
         """Retrieve all logs for admin actions on websites."""
@@ -190,7 +190,7 @@ class WebsiteActionLogViewSet(viewsets.ReadOnlyModelViewSet):
 class WebsiteStaticPageViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint to retrieve static pages for websites.
-    
+
     - Retrieves static pages by `slug`
     - Filters by `website` domain and `language`
     - Excludes pages from soft-deleted websites
@@ -198,11 +198,11 @@ class WebsiteStaticPageViewSet(viewsets.ReadOnlyModelViewSet):
     - Increments unique page views while preventing multiple increments within 1 minute
     """
 
-    queryset = WebsiteStaticPage.objects.filter(website__is_deleted=False)  # 🔥 Exclude deleted websites
+    queryset = WebsiteStaticPage.objects.filter(website__is_deleted=False) # Exclude deleted websites
     serializer_class = WebsiteStaticPageSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = "slug"
-    throttle_classes = [StaticPageThrottle]  # 🔥 Prevent abuse by bots
+    throttle_classes = [StaticPageThrottle] # Prevent abuse by bots
 
     def get_queryset(self):
         """
@@ -213,7 +213,7 @@ class WebsiteStaticPageViewSet(viewsets.ReadOnlyModelViewSet):
         2) Fallback to X-Website header (website ID) if present
         """
         website_param = self.request.query_params.get("website")
-        language = self.request.query_params.get("lang", "en")  # Default to English
+        language = self.request.query_params.get("lang", "en") # Default to English
 
         # 1) If explicit domain is provided, use it as-is
         if website_param:
@@ -244,11 +244,11 @@ class WebsiteStaticPageViewSet(viewsets.ReadOnlyModelViewSet):
         """Retrieves a specific static page by slug and increments views (rate-limited)."""
         instance = self.get_object()
 
-        # 🔥 Rate limit views (Only increment if not counted in cache)
+        # Rate limit views (Only increment if not counted in cache)
         cache_key = f"page_view_{instance.slug}_{request.META['REMOTE_ADDR']}"
         if not cache.get(cache_key):
-            instance.increment_views()  # Increase views count
-            cache.set(cache_key, "viewed", timeout=60)  # Prevent multiple increments within 1 minute
+            instance.increment_views() # Increase views count
+            cache.set(cache_key, "viewed", timeout=60) # Prevent multiple increments within 1 minute
 
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
@@ -328,7 +328,7 @@ class WebsiteIntegrationConfigViewSet(viewsets.ModelViewSet):
     Only admins and superadmins can manage integrations.
     """
     permission_classes = [IsAdminOrSuperadmin]
-    
+
     def get_queryset(self):
         """Filter integrations by website if specified."""
         queryset = WebsiteIntegrationConfig.objects.all()
@@ -336,13 +336,13 @@ class WebsiteIntegrationConfigViewSet(viewsets.ModelViewSet):
         if website_id:
             queryset = queryset.filter(website_id=website_id)
         return queryset.order_by('-created_at')
-    
+
     def get_serializer_class(self):
         """Use different serializers for read vs write operations."""
         if self.action in ['create', 'update', 'partial_update']:
             return WebsiteIntegrationConfigCreateUpdateSerializer
         return WebsiteIntegrationConfigSerializer
-    
+
     def perform_create(self, serializer):
         """Set created_by user on creation."""
         serializer.save(created_by=self.request.user)

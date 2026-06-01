@@ -137,7 +137,7 @@ class DiscountSelector:
             website=website,
             origin=DiscountOrigin.LOYALTY,
         )
-    
+
     @classmethod
     def list_with_usage_counts(
         cls,

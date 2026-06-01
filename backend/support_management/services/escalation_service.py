@@ -55,10 +55,10 @@ class EscalationService:
 
         Args:
             escalated_by: Support agent raising the escalation.
-            action_type:  One of VALID_ACTION_TYPES.
-            target_user:  The user the action will be applied to.
-            reason:       Required explanation.
-            website:      Tenant website scope.
+            action_type: One of VALID_ACTION_TYPES.
+            target_user: The user the action will be applied to.
+            reason: Required explanation.
+            website: Tenant website scope.
 
         Returns:
             EscalationLog instance with status=pending.
@@ -125,9 +125,9 @@ class EscalationService:
         Approve a pending escalation and execute the downstream action.
 
         Args:
-            escalation:  EscalationLog instance to approve.
+            escalation: EscalationLog instance to approve.
             approved_by: Admin user approving.
-            notes:       Optional approval notes.
+            notes: Optional approval notes.
 
         Returns:
             Updated EscalationLog with status=approved.
@@ -180,9 +180,9 @@ class EscalationService:
         Reject a pending escalation.
 
         Args:
-            escalation:  EscalationLog instance to reject.
+            escalation: EscalationLog instance to reject.
             rejected_by: Admin user rejecting.
-            reason:      Required rejection reason.
+            reason: Required rejection reason.
 
         Returns:
             Updated EscalationLog with status=rejected.

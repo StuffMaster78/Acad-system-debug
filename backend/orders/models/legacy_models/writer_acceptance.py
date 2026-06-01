@@ -31,7 +31,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.utils.timezone import now
 from django.utils.text import slugify
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 
@@ -46,7 +46,7 @@ class WriterAssignmentAcceptance(models.Model):
         ('accepted', 'Accepted'),
         ('rejected', 'Rejected'),
     ]
-    
+
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -93,7 +93,7 @@ class WriterAssignmentAcceptance(models.Model):
         blank=True,
         help_text="When the writer accepted or rejected"
     )
-    
+
     class Meta:
         verbose_name = "Writer Assignment Acceptance"
         verbose_name_plural = "Writer Assignment Acceptances"
@@ -103,20 +103,20 @@ class WriterAssignmentAcceptance(models.Model):
             models.Index(fields=['order', 'status']),
             models.Index(fields=['status', 'assigned_at']),
         ]
-    
+
     def __str__(self):
         return f"Assignment #{self.id} - Order #{self.order.id} - {self.get_status_display()}"
-    
+
     def accept(self, reason=None):
         """Mark assignment as accepted and move order to in_progress."""
         if self.status != 'pending':
             raise ValidationError(f"Cannot accept assignment that is already {self.status}")
-        
+
         self.status = 'accepted'
         self.reason = reason
         self.responded_at = timezone.now()
         self.save()
-        
+
         # Use unified transition helper to move to in_progress
         from orders.services.transition_helper import OrderTransitionHelper
         OrderTransitionHelper.transition_order(
@@ -126,17 +126,17 @@ class WriterAssignmentAcceptance(models.Model):
             reason=reason or "Writer accepted assignment",
             action="accept_assignment",
             is_automatic=False,
-            skip_payment_check=True,  # Payment already validated
+            skip_payment_check=True, # Payment already validated
             metadata={
                 "assignment_acceptance_id": self.id,
                 "writer_id": self.writer.id,
                 "assigned_by_id": self.assigned_by.id if self.assigned_by else None,
             }
         )
-        
+
         # Send notification
         from notifications_system.services.notification_service import NotificationService
-    
+
         NotificationService.notify(
             event_key="order.assignment_accepted",
             recipient=self.assigned_by,
@@ -154,21 +154,21 @@ class WriterAssignmentAcceptance(models.Model):
             is_silent=False,
             digest_group=None,
         )
-    
+
     def reject(self, reason=None):
         """Mark assignment as rejected and return order to available."""
         if self.status != 'pending':
             raise ValidationError(f"Cannot reject assignment that is already {self.status}")
-        
+
         self.status = 'rejected'
         self.reason = reason
         self.responded_at = timezone.now()
         self.save()
-        
+
         # Unassign writer
         self.order.assigned_writer = None
         self.order.save(update_fields=['assigned_writer'])
-        
+
         # Use unified transition helper to move to available
         from orders.services.transition_helper import OrderTransitionHelper
         OrderTransitionHelper.transition_order(
@@ -185,7 +185,7 @@ class WriterAssignmentAcceptance(models.Model):
                 "rejection_reason": reason,
             }
         )
-        
+
         # Send notification
         from notifications_system.services.notification_service import NotificationService
         NotificationService.notify(

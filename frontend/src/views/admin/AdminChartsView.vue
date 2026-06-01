@@ -9,14 +9,14 @@ import type { EChartsOption } from "echarts";
 const auth = useAuthStore();
 const isSuperAdmin = computed(() => auth.role === "superadmin");
 
-const revenue    = ref<ChartData | null>(null);
-const orders     = ref<ChartData | null>(null);
-const clients    = ref<ChartData | null>(null);
-const byWebsite  = ref<ChartData | null>(null);
+const revenue = ref<ChartData | null>(null);
+const orders = ref<ChartData | null>(null);
+const clients = ref<ChartData | null>(null);
+const byWebsite = ref<ChartData | null>(null);
 const comparison = ref<ComparisonData | null>(null);
-const loading    = ref(false);
-const period     = ref<"month" | "quarter">("month");
-const months     = ref(12);
+const loading = ref(false);
+const period = ref<"month" | "quarter">("month");
+const months = ref(12);
 const compareMode = ref<"mom" | "qoq" | "yoy">("mom");
 const compareMetric = ref<"revenue" | "orders" | "clients">("revenue");
 

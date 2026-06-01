@@ -16,7 +16,7 @@ from analytics.models import (
 class ClientAnalyticsSnapshotSerializer(serializers.ModelSerializer):
     """Serializer for client analytics snapshots."""
     client_email = serializers.EmailField(source='client.email', read_only=True)
-    
+
     class Meta:
         model = ClientAnalyticsSnapshot
         fields = [
@@ -32,7 +32,7 @@ class ClientAnalyticsSerializer(serializers.ModelSerializer):
     client_email = serializers.EmailField(source='client.email', read_only=True)
     client_name = serializers.CharField(source='client.username', read_only=True)
     snapshots = ClientAnalyticsSnapshotSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = ClientAnalytics
         fields = [
@@ -50,7 +50,7 @@ class ClientAnalyticsSerializer(serializers.ModelSerializer):
 class WriterAnalyticsSnapshotSerializer(serializers.ModelSerializer):
     """Serializer for writer analytics snapshots."""
     writer_email = serializers.EmailField(source='writer.email', read_only=True)
-    
+
     class Meta:
         model = WriterAnalyticsSnapshot
         fields = [
@@ -66,7 +66,7 @@ class WriterAnalyticsSerializer(serializers.ModelSerializer):
     writer_email = serializers.EmailField(source='writer.email', read_only=True)
     writer_name = serializers.CharField(source='writer.username', read_only=True)
     snapshots = WriterAnalyticsSnapshotSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = WriterAnalytics
         fields = [
@@ -87,7 +87,7 @@ class WriterAnalyticsSerializer(serializers.ModelSerializer):
 class ClassPerformanceReportSerializer(serializers.ModelSerializer):
     """Serializer for class performance reports."""
     generated_by_name = serializers.CharField(source='generated_by.username', read_only=True, allow_null=True)
-    
+
     class Meta:
         model = ClassPerformanceReport
         fields = [
@@ -101,7 +101,7 @@ class ClassAnalyticsSerializer(serializers.ModelSerializer):
     """Serializer for class analytics."""
     reports = ClassPerformanceReportSerializer(many=True, read_only=True)
     reports_count = serializers.IntegerField(source='reports.count', read_only=True)
-    
+
     class Meta:
         model = ClassAnalytics
         fields = [
@@ -117,7 +117,7 @@ class ClassAnalyticsSerializer(serializers.ModelSerializer):
 
 class ClassAnalyticsCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating class analytics."""
-    
+
     class Meta:
         model = ClassAnalytics
         fields = [
@@ -128,11 +128,11 @@ class ClassAnalyticsCreateSerializer(serializers.ModelSerializer):
 
 class ClassPerformanceReportCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating class performance reports."""
-    
+
     class Meta:
         model = ClassPerformanceReport
         fields = ['class_analytics', 'report_type', 'report_data']
-    
+
     def create(self, validated_data):
         validated_data['generated_by'] = self.context['request'].user
         return super().create(validated_data)

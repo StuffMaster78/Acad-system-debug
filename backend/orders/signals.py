@@ -23,7 +23,7 @@ def update_order_status(sender, instance, **kwargs):
     Automatically update the order's status based on payment.
     """
     if instance.is_paid and instance.status == 'unpaid':
-        instance.status = 'pending'  # Auto-update status when payment is received
+        instance.status = 'pending' # Auto-update status when payment is received
 
 @receiver(post_save, sender=Dispute)
 def handle_dispute_creation(sender, instance, created, **kwargs):
@@ -32,7 +32,7 @@ def handle_dispute_creation(sender, instance, created, **kwargs):
     """
     if created:
         order = instance.order
-        order.flag = True  # Mark the order as disputed
+        order.flag = True # Mark the order as disputed
         order.save()
         print(f"Dispute created for order: {order.topic}")
         # Example: Notify admin for dispute resolution

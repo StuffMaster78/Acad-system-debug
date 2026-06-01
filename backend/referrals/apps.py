@@ -9,4 +9,4 @@ class ReferralsConfig(AppConfig):
 
     def ready(self):
         """Import signal handlers."""
-        import referrals.signals  # noqa: F401
+        import referrals.signals # noqa: F401

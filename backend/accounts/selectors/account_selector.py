@@ -33,7 +33,7 @@ class AccountSelector:
             website=website,
             user=user,
         )
-    
+
 
     @staticmethod
     def get_account_profile_by_id(*, website, account_profile_id: int):

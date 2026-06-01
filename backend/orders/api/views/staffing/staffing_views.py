@@ -250,7 +250,7 @@ class TakeOrderView(GenericAPIView):
             pk=order_id,
             website=user.website,
         )
-    
+
 
 class WithdrawInterestView(GenericAPIView):
     """
@@ -306,7 +306,7 @@ class WithdrawInterestView(GenericAPIView):
             pk=interest_id,
             website=user.website,
         )
-    
+
 
 class AssignFromInterestView(GenericAPIView):
     """
@@ -364,7 +364,7 @@ class AssignFromInterestView(GenericAPIView):
             pk=interest_id,
             website=user.website,
         )
-    
+
 
 class AssignDirectView(GenericAPIView):
     """
@@ -441,7 +441,7 @@ class AssignDirectView(GenericAPIView):
             user_model.objects.filter(website=user.website),
             pk=writer_id,
         )
-    
+
 class PreferredWriterAcceptView(GenericAPIView):
     """
     Allow the invited preferred writer to accept the invitation.
@@ -501,7 +501,7 @@ class PreferredWriterAcceptView(GenericAPIView):
             pk=interest_id,
             website=user.website,
         )
-    
+
 
 class PreferredWriterDeclineView(GenericAPIView):
     """
@@ -559,7 +559,7 @@ class PreferredWriterDeclineView(GenericAPIView):
             pk=interest_id,
             website=user.website,
         )
-    
+
 
 class ReleaseToPoolView(GenericAPIView):
     """

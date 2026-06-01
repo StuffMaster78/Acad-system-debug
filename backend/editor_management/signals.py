@@ -3,7 +3,7 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from .models import EditorProfile
 import logging
- 
+
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
@@ -19,17 +19,17 @@ def create_editor_profile(sender, instance, created, **kwargs):
 
 """
 editor_management/signals.py
- 
+
 Bootstrap EditorPerformance when EditorProfile is created.
- 
+
 FIX: EditorPerformance was not created on EditorProfile save.
 This caused RelatedObjectDoesNotExist when editor.performance
 was accessed before calculate_performance() ran.
 """
- 
 
- 
- 
+
+
+
 @receiver(post_save, sender="editor_management.EditorProfile")
 def bootstrap_editor_performance(sender, instance, created, **kwargs):
     """
@@ -38,14 +38,14 @@ def bootstrap_editor_performance(sender, instance, created, **kwargs):
     """
     if not created:
         return
- 
+
     try:
         from editor_management.models import EditorPerformance
         EditorPerformance.objects.get_or_create(
             editor=instance,
             defaults={
                 "total_orders_reviewed": 0,
-                "late_reviews":          0,
+                "late_reviews": 0,
             },
         )
         logger.info(

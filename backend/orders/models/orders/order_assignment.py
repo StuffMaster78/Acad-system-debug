@@ -143,7 +143,7 @@ class OrderAssignment(models.Model):
                 raise ValidationError(
                     "Writer website must match assignment website."
                 )
-            
+
             if self.source_interest is not None:
                 if self.order is None:
                     raise ValidationError(

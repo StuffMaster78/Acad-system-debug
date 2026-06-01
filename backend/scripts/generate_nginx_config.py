@@ -25,7 +25,7 @@ from websites.models.websites import Website
 # Configuration
 WRITER_DOMAIN = os.getenv('WRITER_DOMAIN', 'writers.yourdomain.com')
 STAFF_DOMAIN = os.getenv('STAFF_DOMAIN', 'staff.yourdomain.com')
-API_DOMAIN = os.getenv('API_DOMAIN', 'api.yourdomain.com')  # Optional
+API_DOMAIN = os.getenv('API_DOMAIN', 'api.yourdomain.com') # Optional
 SSL_CERT_PATH = '/etc/nginx/ssl'
 FRONTEND_ROOT = '/var/www'
 
@@ -36,12 +36,12 @@ def normalize_domain(domain_url):
 
 def generate_nginx_config():
     """Generate complete nginx configuration."""
-    
+
     # Get all active websites
     active_websites = Website.objects.filter(is_active=True, is_deleted=False)
-    
+
     config = []
-    
+
     # Header
     config.append("""events {
     worker_connections 1024;
@@ -56,7 +56,7 @@ http {
     limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
     limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 """)
-    
+
     # Writer Dashboard
     config.append(f"""
     # Writer Dashboard
@@ -117,7 +117,7 @@ http {
         }}
     }}
 """)
-    
+
     # Staff Dashboard
     config.append(f"""
     # Staff Dashboard
@@ -178,12 +178,12 @@ http {
         }}
     }}
 """)
-    
+
     # Client Dashboards (one per website)
     for website in active_websites:
         domain = normalize_domain(website.domain)
         domain_safe = domain.replace('.', '_')
-        
+
         config.append(f"""
     # Client Dashboard: {website.name} ({domain})
     server {{
@@ -243,7 +243,7 @@ http {
         }}
     }}
 """)
-    
+
     # API Server (Optional)
     if API_DOMAIN:
         config.append(f"""
@@ -285,10 +285,10 @@ http {
         }}
     }}
 """)
-    
+
     # Footer
     config.append("}\n")
-    
+
     return ''.join(config)
 
 if __name__ == '__main__':

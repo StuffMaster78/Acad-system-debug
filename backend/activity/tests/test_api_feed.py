@@ -27,7 +27,7 @@ def api_client(user, website):
 
         return req
 
-    client.request = request_with_website  # type: ignore[method-assign]
+    client.request = request_with_website # type: ignore[method-assign]
 
     return client
 

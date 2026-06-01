@@ -33,9 +33,9 @@ class LoginSessionEnforcementMiddleware:
                 # session_id: int | None = None
 
                 # if isinstance(raw_session_id, int):
-                #     session_id = raw_session_id
+                # session_id = raw_session_id
                 # elif isinstance(raw_session_id, str) and raw_session_id.isdigit():
-                #     session_id = int(raw_session_id)
+                # session_id = int(raw_session_id)
 
                 if session_id is not None:
                     session = LoginSessionService.get_session_by_id(
@@ -46,7 +46,7 @@ class LoginSessionEnforcementMiddleware:
 
                     if session is None:
                         raise PermissionDenied("Session not found.")
-                    
+
                     was_revoked = LoginSessionService.revoke_if_expired(
                     session=session,
                     )
@@ -94,7 +94,7 @@ class LoginSessionEnforcementMiddleware:
             return auth[key]
         except Exception:
             return None
-        
+
     @staticmethod
     def _get_int_claim(auth, key) -> int | None:
         value = LoginSessionEnforcementMiddleware._get_claim(

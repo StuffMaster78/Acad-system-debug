@@ -14,7 +14,7 @@ from authentication.permissions import IsAdminOrSuperAdmin
 from wallets.constants import WalletEntryType
 from wallets.services.client_wallet_service import ClientWalletService
 from wallets.services.wallet_service import WalletService
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 # Constants for transaction types
@@ -72,15 +72,15 @@ class ReferralViewSet(viewsets.ModelViewSet):
     def generate_code(self, request):
         """Generate a referral code for the authenticated user. Only clients can generate codes."""
         user = request.user
-        
+
         # Only clients can generate referral codes
         if user.role != 'client':
             return Response({
                 "error": "Only clients can generate referral codes. Your role is not authorized for this action.",
                 "user_role": user.role
             }, status=status.HTTP_403_FORBIDDEN)
-        
-        website_id = request.data.get("website")  # Website ID must be provided
+
+        website_id = request.data.get("website") # Website ID must be provided
 
         if not website_id:
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -105,7 +105,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         # Generate a unique code using the service
         from referrals.services.referral_service import ReferralService
         code = ReferralService.generate_unique_code(user, website)
-        
+
         # Create referral code
         referral_code = ReferralCode.objects.create(
             user=user,
@@ -179,20 +179,20 @@ class ReferralViewSet(viewsets.ModelViewSet):
     def refer_by_email(self, request):
         """Send a referral invitation to someone who doesn't have an account yet."""
         user = request.user
-        
+
         # Only clients can create referrals
         if user.role != 'client':
             return Response({
                 "error": "Only clients can create referrals. Your role is not authorized for this action.",
                 "user_role": user.role
             }, status=status.HTTP_403_FORBIDDEN)
-        
+
         email = request.data.get("email")
         website_id = request.data.get("website")
 
         if not email:
             return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         if not website_id:
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -208,10 +208,10 @@ class ReferralViewSet(viewsets.ModelViewSet):
             return Response({
                 "error": f"User with email {email} already has an account. Please share your referral link with them instead.",
                 "email": email,
-                "referral_link": None  # Will be populated below if they have a code
+                "referral_link": None # Will be populated below if they have a code
             }, status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExist:
-            pass  # Good, they don't have an account yet
+            pass # Good, they don't have an account yet
         except User.MultipleObjectsReturned:
             return Response({
                 "error": f"Multiple accounts found for {email}. Please contact support.",
@@ -251,7 +251,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
                 website=website,
                 code=code
             )
-        
+
         referral_code = referral_code_obj.code
         referral_link = referral_code_obj.get_referral_link()
 
@@ -269,7 +269,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         try:
             from django.core.mail import send_mail
             from django.conf import settings
-            
+
             subject = f"{user.username} invited you to join {website.name}"
             message = f"""
 Hello!
@@ -429,7 +429,7 @@ from datetime import timedelta
 
 from .models import Referral, ReferralBonusConfig, ReferralCode
 from .serializers import ReferralSerializer, ReferralBonusConfigSerializer, ReferralCodeSerializer
-from authentication.permissions import IsAdminOrSuperAdmin  # Only admins can access
+from authentication.permissions import IsAdminOrSuperAdmin # Only admins can access
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
     """Pagination for large admin reports"""
@@ -454,15 +454,15 @@ class ReferralViewSet(viewsets.ModelViewSet):
     def generate_code(self, request):
         """Generate a referral code for the authenticated user. Only clients can generate codes."""
         user = request.user
-        
+
         # Only clients can generate referral codes
         if user.role != 'client':
             return Response({
                 "error": "Only clients can generate referral codes. Your role is not authorized for this action.",
                 "user_role": user.role
             }, status=status.HTTP_403_FORBIDDEN)
-        
-        website_id = request.data.get("website")  # Website ID must be provided
+
+        website_id = request.data.get("website") # Website ID must be provided
 
         if not website_id:
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -487,7 +487,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         # Generate a unique code using the service
         from referrals.services.referral_service import ReferralService
         code = ReferralService.generate_unique_code(user, website)
-        
+
         # Create referral code
         referral_code = ReferralCode.objects.create(
             user=user,
@@ -643,10 +643,10 @@ class ReferralAdminViewSet(viewsets.ViewSet):
         """Admin manually credits bonus for a referral."""
         referral_id = request.data.get("referral_id")
         referral = get_object_or_404(Referral.objects.select_related("referrer"), id=referral_id)
-        
+
         # Fetch referral bonus config for the same website
         bonus_config = ReferralBonusConfig.objects.filter(website=referral.website).first()
-        
+
         if not bonus_config:
             return Response({"error": "Bonus configuration not found"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -669,12 +669,12 @@ class ReferralAdminViewSet(viewsets.ViewSet):
         referral.save()
 
         return Response({"message": "Bonus credited successfully"}, status=status.HTTP_200_OK)
-    
+
 class ReferralCodeViewSet(viewsets.ModelViewSet):
     queryset = ReferralCode.objects.all()
     serializer_class = ReferralCodeSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter codes based on user role."""
         user = self.request.user
@@ -687,7 +687,7 @@ class ReferralCodeViewSet(viewsets.ModelViewSet):
         else:
             # Other roles see nothing
             return ReferralCode.objects.none()
-    
+
     @action(detail=False, methods=['get'], url_path='my-code')
     def my_code(self, request):
         """
@@ -695,12 +695,12 @@ class ReferralCodeViewSet(viewsets.ModelViewSet):
         Only available for clients.
         """
         user = request.user
-        
+
         if user.role != 'client':
             return Response({
                 "error": "Only clients can access their referral code."
             }, status=status.HTTP_403_FORBIDDEN)
-        
+
         # Get user's website
         website = getattr(user, 'website', None)
         if not website:
@@ -718,10 +718,10 @@ class ReferralCodeViewSet(viewsets.ModelViewSet):
                 return Response({
                     "error": "User must have a website assigned or provide website parameter"
                 }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Get or create referral code
         referral_code = ReferralCode.objects.filter(user=user, website=website).first()
-        
+
         if not referral_code:
             # Auto-generate if doesn't exist
             from referrals.services.referral_service import ReferralService
@@ -731,7 +731,7 @@ class ReferralCodeViewSet(viewsets.ModelViewSet):
                 website=website,
                 code=code
             )
-        
+
         # Serialize with usage stats
         serializer = ReferralCodeSerializer(referral_code)
         return Response(serializer.data)
@@ -747,7 +747,7 @@ class ReferralStatsViewSet(viewsets.ViewSet):
             "successful_referrals": 6,
             "pending_referrals": 4,
         })
-    
+
 class ReferralBonusDecayViewSet(viewsets.ViewSet):
     permission_classes = [IsAdminOrSuperAdmin]
 
@@ -755,7 +755,7 @@ class ReferralBonusDecayViewSet(viewsets.ViewSet):
         return Response({
             "status": "Referral bonus decay placeholder working."
         })
-    
+
 
 class ReferralReportsAPI(APIView):
     permission_classes = [IsAdminOrSuperAdmin]
@@ -764,7 +764,7 @@ class ReferralReportsAPI(APIView):
         return Response({
             "status": "Referral reports coming soon.",
         })
-    
+
 class AwardReferralBonusAPI(APIView):
     permission_classes = [IsAdminOrSuperAdmin]
 

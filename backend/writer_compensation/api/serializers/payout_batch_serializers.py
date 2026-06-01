@@ -11,17 +11,17 @@ from writer_compensation.api.serializers.payment_window_serializers import (
 
 
 class PayoutBatchSerializer(serializers.ModelSerializer):
-    records       = PayoutRecordSerializer(many=True, read_only=True)   # FIX: was items
-    payment_window = PaymentWindowSerializer(read_only=True)             # FIX: was window
-    paid_count    = serializers.SerializerMethodField()
-    held_count    = serializers.SerializerMethodField()
+    records = PayoutRecordSerializer(many=True, read_only=True) # FIX: was items
+    payment_window = PaymentWindowSerializer(read_only=True) # FIX: was window
+    paid_count = serializers.SerializerMethodField()
+    held_count = serializers.SerializerMethodField()
     pending_count = serializers.SerializerMethodField()
 
     class Meta:
-        model  = PayoutBatch
+        model = PayoutBatch
         fields = [
             "id",
-            "payment_window",           # FIX: was window
+            "payment_window", # FIX: was window
             "total_amount",
             "total_writers",
             "status",
@@ -30,22 +30,22 @@ class PayoutBatchSerializer(serializers.ModelSerializer):
             "held_count",
             "pending_count",
             "notes",
-            "records",                  # FIX: was items
+            "records", # FIX: was items
             "created_at",
         ]
         read_only_fields = fields
 
     def get_paid_count(self, obj) -> int:
         return obj.records.filter(
-            status=PayoutRecordStatus.PAID,         # FIX: was raw "paid"
+            status=PayoutRecordStatus.PAID, # FIX: was raw "paid"
         ).count()
 
     def get_held_count(self, obj) -> int:
         return obj.records.filter(
-            status=PayoutRecordStatus.HELD,         # FIX: was raw "held"
+            status=PayoutRecordStatus.HELD, # FIX: was raw "held"
         ).count()
 
     def get_pending_count(self, obj) -> int:
         return obj.records.filter(
-            status=PayoutRecordStatus.PENDING,      # FIX: was raw "pending"
+            status=PayoutRecordStatus.PENDING, # FIX: was raw "pending"
         ).count()

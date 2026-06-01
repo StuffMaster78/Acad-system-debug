@@ -5,11 +5,11 @@ Tenant Permissions Service
 Creates and manages per-tenant permission groups and their scoping.
 
 Each tenant gets three Groups:
-    • ``{Tenant} Admins``   — can add, edit, publish, lock any page in the
-      tenant's tree.  Can also manage snippets and images for the tenant.
-    • ``{Tenant} Editors``  — can add, edit, and submit for moderation.
+    • ``{Tenant} Admins`` — can add, edit, publish, lock any page in the
+      tenant's tree. Can also manage snippets and images for the tenant.
+    • ``{Tenant} Editors`` — can add, edit, and submit for moderation.
       Cannot publish directly (unless overridden).
-    • ``{Tenant} Writers``  — can add and edit own drafts only.
+    • ``{Tenant} Writers`` — can add and edit own drafts only.
       Must submit for review.
 
 Superusers bypass all of this (Django built-in).
@@ -160,7 +160,7 @@ class TenantPermissionsService:
                 "change_document",
                 "choose_document",
             ]
-        else:  # writer
+        else: # writer
             codenames = [
                 "add_image",
                 "choose_image",

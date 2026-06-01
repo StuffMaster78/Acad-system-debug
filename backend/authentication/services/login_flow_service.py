@@ -103,7 +103,7 @@ class LoginFlowService:
             fingerprint_device_name = getattr(fingerprint, "device_name", None)
             fingerprint_hash = getattr(fingerprint, "fingerprint_hash", None)
         else:
-            is_trusted_device = True  # staff on their own portal are trusted
+            is_trusted_device = True # staff on their own portal are trusted
             fingerprint_device_name = None
             fingerprint_hash = None
 

@@ -32,46 +32,46 @@ class EditingRequirementConfig(models.Model):
         related_name='editing_requirements',
         help_text="Website this configuration applies to"
     )
-    
+
     # Global settings
     enable_editing_by_default = models.BooleanField(
         default=True,
         help_text="Enable editing for orders by default (unless urgent or explicitly disabled)"
     )
-    
+
     skip_editing_for_urgent = models.BooleanField(
         default=True,
         help_text="Skip editing for urgent orders (deadline < 24 hours or is_urgent=True)"
     )
-    
+
     allow_editing_for_early_submissions = models.BooleanField(
         default=True,
         help_text="Allow editing for orders submitted before deadline"
     )
-    
+
     early_submission_hours_threshold = models.PositiveIntegerField(
         default=24,
         help_text="Hours before deadline to consider submission 'early' (for editing eligibility)"
     )
-    
+
     # Order type specific settings
     editing_required_for_first_orders = models.BooleanField(
         default=True,
         help_text="Require editing for client's first order"
     )
-    
+
     editing_required_for_high_value = models.BooleanField(
         default=True,
         help_text="Require editing for high-value orders"
     )
-    
+
     high_value_threshold = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=Decimal(300.00),
         help_text="Order value threshold (USD) to consider 'high value'"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(
@@ -82,7 +82,7 @@ class EditingRequirementConfig(models.Model):
         related_name='created_editing_configs',
         help_text="Admin who created this configuration"
     )
-    # QA Fields 
+    # QA Fields
     enable_qa_by_default = models.BooleanField(
         default=False,
         help_text="Enable QA review for orders that don't require editing.",
@@ -106,7 +106,7 @@ class EditingRequirementConfig(models.Model):
         verbose_name = "Editing Requirement Config"
         verbose_name_plural = "Editing Requirement Configs"
         unique_together = ('website',)
-    
+
     def __str__(self):
         return f"Editing Config for {self.website.domain}"
 
@@ -196,7 +196,7 @@ class Subject(models.Model):
         help_text="Subject (e.g., Nursing, Physics)."
     )
     is_technical = models.BooleanField(
-        default=False, 
+        default=False,
         help_text="Is this subject technical?"
     )
 
@@ -288,7 +288,7 @@ class WriterDeadlineConfig(models.Model):
 
 class RevisionPolicyConfig(models.Model):
     """
-    Configuration for revision deadline threshold in days. 
+    Configuration for revision deadline threshold in days.
     Days after which revision must be paid.
     """
     website = models.ForeignKey(
@@ -325,7 +325,7 @@ class SubjectTemplate(models.Model):
         ('education', 'Education'),
         ('social_sciences', 'Social Sciences'),
     ]
-    
+
     name = models.CharField(
         max_length=200,
         help_text="Template name (e.g., 'Nursing & Healthcare', 'Computer Science')"
@@ -358,30 +358,30 @@ class SubjectTemplate(models.Model):
         related_name='created_subject_templates',
         help_text="User who created this template"
     )
-    
+
     def __str__(self):
         return f"{self.name} ({self.get_category_display()})"
-    
+
     def clone_to_website(self, website, skip_existing=True):
         """
         Clone this template's subjects to a website.
-        
+
         Args:
             website: Website instance to clone to
             skip_existing: If True, skip subjects that already exist
-            
+
         Returns:
             dict with counts of created/updated/skipped subjects
         """
         from .models import Subject
-        
+
         counts = {
             'created': 0,
             'updated': 0,
             'skipped': 0,
             'errors': []
         }
-        
+
         for subject_data in self.subjects:
             if isinstance(subject_data, dict):
                 subject_name = subject_data.get('name', '')
@@ -391,21 +391,21 @@ class SubjectTemplate(models.Model):
             else:
                 subject_name = str(subject_data)
                 is_technical = False
-            
+
             if not subject_name:
                 continue
-            
+
             try:
                 if skip_existing and Subject.objects.filter(website=website, name=subject_name).exists():
                     counts['skipped'] += 1
                     continue
-                
+
                 subject, created = Subject.objects.get_or_create(
                     website=website,
                     name=subject_name,
                     defaults={'is_technical': is_technical}
                 )
-                
+
                 if created:
                     counts['created'] += 1
                 else:
@@ -418,17 +418,17 @@ class SubjectTemplate(models.Model):
                         counts['skipped'] += 1
             except Exception as e:
                 counts['errors'].append(f"Error creating {subject_name}: {str(e)}")
-        
+
         return counts
-    
-    def get_category_display(self) -> str:  # pragma: no cover
+
+    def get_category_display(self) -> str: # pragma: no cover
         """
         Stub for Pylance — Django generates this at runtime for
         CharField(choices=...). The real implementation is injected
         by Django's contribute_to_class machinery.
         """
-        ...  # never reached — Django overrides this
-    
+        ... # never reached — Django overrides this
+
     class Meta:
         ordering = ['category', 'name']
         verbose_name = "Subject Template"
@@ -452,7 +452,7 @@ class PaperTypeTemplate(models.Model):
         ('business', 'Business'),
         ('law', 'Law & Legal'),
     ]
-    
+
     name = models.CharField(
         max_length=200,
         help_text="Template name (e.g., 'High School Assignments', 'Graduate Research Papers')"
@@ -485,62 +485,62 @@ class PaperTypeTemplate(models.Model):
         related_name='created_paper_type_templates',
         help_text="User who created this template"
     )
-    
+
     def __str__(self):
         return f"{self.name} ({self.get_category_display()})"
-    
+
     def clone_to_website(self, website, skip_existing=True):
         """
         Clone this template's paper types to a website.
-        
+
         Args:
             website: Website instance to clone to
             skip_existing: If True, skip paper types that already exist
-            
+
         Returns:
             dict with counts of created/updated/skipped paper types
         """
         from .models import PaperType
-        
+
         counts = {
             'created': 0,
             'updated': 0,
             'skipped': 0,
             'errors': []
         }
-        
+
         for paper_type_name in self.paper_types:
             if not paper_type_name or not isinstance(paper_type_name, str):
                 continue
-            
+
             try:
                 if skip_existing and PaperType.objects.filter(website=website, name=paper_type_name).exists():
                     counts['skipped'] += 1
                     continue
-                
+
                 paper_type, created = PaperType.objects.get_or_create(
                     website=website,
                     name=paper_type_name,
                     defaults={}
                 )
-                
+
                 if created:
                     counts['created'] += 1
                 else:
                     counts['skipped'] += 1
             except Exception as e:
                 counts['errors'].append(f"Error creating {paper_type_name}: {str(e)}")
-        
+
         return counts
-    
-    def get_category_display(self) -> str:  # pragma: no cover
+
+    def get_category_display(self) -> str: # pragma: no cover
         """
         Stub for Pylance — Django generates this at runtime for
         CharField(choices=...). The real implementation is injected
         by Django's contribute_to_class machinery.
         """
-        ...  # never reached — Django overrides this
-    
+        ... # never reached — Django overrides this
+
     class Meta:
         ordering = ['category', 'name']
         verbose_name = "Paper Type Template"
@@ -567,7 +567,7 @@ class TypeOfWorkTemplate(models.Model):
         ('grading', 'Grading & Marking'),
         ('technical', 'Technical Services'),
     ]
-    
+
     name = models.CharField(
         max_length=200,
         help_text="Template name (e.g., 'Complete Writing Services', 'Editing & Proofreading')"
@@ -600,62 +600,62 @@ class TypeOfWorkTemplate(models.Model):
         related_name='created_type_of_work_templates',
         help_text="User who created this template"
     )
-    
+
     def __str__(self):
         return f"{self.name} ({self.get_category_display()})"
-    
+
     def clone_to_website(self, website, skip_existing=True):
         """
         Clone this template's types of work to a website.
-        
+
         Args:
             website: Website instance to clone to
             skip_existing: If True, skip types that already exist
-            
+
         Returns:
             dict with counts of created/updated/skipped types
         """
         from .models import TypeOfWork
-        
+
         counts = {
             'created': 0,
             'updated': 0,
             'skipped': 0,
             'errors': []
         }
-        
+
         for work_type_name in self.types_of_work:
             if not work_type_name or not isinstance(work_type_name, str):
                 continue
-            
+
             try:
                 if skip_existing and TypeOfWork.objects.filter(website=website, name=work_type_name).exists():
                     counts['skipped'] += 1
                     continue
-                
+
                 work_type, created = TypeOfWork.objects.get_or_create(
                     website=website,
                     name=work_type_name,
                     defaults={}
                 )
-                
+
                 if created:
                     counts['created'] += 1
                 else:
                     counts['skipped'] += 1
             except Exception as e:
                 counts['errors'].append(f"Error creating {work_type_name}: {str(e)}")
-        
+
         return counts
-    
-    def get_category_display(self) -> str:  # pragma: no cover
+
+    def get_category_display(self) -> str: # pragma: no cover
         """
         Stub for Pylance — Django generates this at runtime for
         CharField(choices=...). The real implementation is injected
         by Django's contribute_to_class machinery.
         """
-        ...  # never reached — Django overrides this
-    
+        ... # never reached — Django overrides this
+
     class Meta:
         ordering = ['category', 'name']
         verbose_name = "Type of Work Template"

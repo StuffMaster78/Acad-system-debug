@@ -22,5 +22,5 @@ router.register(r"tenants", SuperadminTenantManagementViewSet, basename="tenant-
 
 # Define urlpatterns
 urlpatterns = [
-    path("", include(router.urls)),  # Include all router-generated routes
+    path("", include(router.urls)), # Include all router-generated routes
 ]

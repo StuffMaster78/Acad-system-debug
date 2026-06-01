@@ -61,7 +61,7 @@ class AuditEventViewSet(viewsets.ReadOnlyModelViewSet):
     # Queryset
     # --------------------------------------------------
 
-    def get_queryset(  # type: ignore[override]
+    def get_queryset( # type: ignore[override]
         self,
     ) -> QuerySet[AuditEvent]:
 
@@ -100,7 +100,7 @@ class AuditEventViewSet(viewsets.ReadOnlyModelViewSet):
     # Serializer
     # --------------------------------------------------
 
-    def get_serializer_class(  # type: ignore[override]
+    def get_serializer_class( # type: ignore[override]
         self,
     ):
 

@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from orders.api.permissions.lifecycle_permissions import (
     CanViewOrderLifecycle,
 )
-from orders.api.serializers.lifecycle.order_lifecycle_snapshot_serializer import (  # noqa: E501
+from orders.api.serializers.lifecycle.order_lifecycle_snapshot_serializer import ( # noqa: E501
     OrderLifecycleSnapshotSerializer,
 )
 from orders.models import Order

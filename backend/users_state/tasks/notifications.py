@@ -66,7 +66,7 @@ def handle_notification_event(event_payload: dict) -> None:
         ),
     }
 
-    create_outbox_entry.delay(payload)  # type: ignore[attr-defined]
+    create_outbox_entry.delay(payload) # type: ignore[attr-defined]
 
 
 def _build_dedupe_key(event_key: str, user_id: int, website_id: int) -> str:

@@ -8,7 +8,7 @@ class WebsitesConfig(AppConfig):
     def ready(self):
         # Import signals to auto-populate academic settings on Website creation
         try:
-            from . import signals  # noqa: F401
+            from . import signals # noqa: F401
         except Exception:
             # Avoid crashing app startup on optional import errors
             pass

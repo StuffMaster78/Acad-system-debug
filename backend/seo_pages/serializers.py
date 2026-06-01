@@ -7,7 +7,7 @@ from .models import SeoPage
 
 class SeoPageSerializer(serializers.ModelSerializer):
     """Serializer for SEO Page (admin/internal use)."""
-    
+
     class Meta:
         model = SeoPage
         fields = [
@@ -20,7 +20,7 @@ class SeoPageSerializer(serializers.ModelSerializer):
 
 class PublicSeoPageSerializer(serializers.ModelSerializer):
     """Public serializer for SEO Page (read-only, excludes internal fields)."""
-    
+
     class Meta:
         model = SeoPage
         fields = [

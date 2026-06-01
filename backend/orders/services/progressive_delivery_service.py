@@ -47,7 +47,7 @@ class ProgressiveDeliveryService:
         Returns:
             OrderProgressivePlan:
                 Created progressive plan.
-        
+
         """
         plan = OrderProgressivePlan.objects.create(
             website=order.website,
@@ -96,7 +96,7 @@ class ProgressiveDeliveryService:
         )
 
         return plan
-    
+
 
     @classmethod
     @transaction.atomic
@@ -130,7 +130,7 @@ class ProgressiveDeliveryService:
             raise ValueError(
                 "Adjustment is not for progressive delivery"
             )
-        
+
         milestones = cls._resolve_milestones_from_adjustment(
             adjustment_request=adjustment_request,
         )
@@ -155,7 +155,7 @@ class ProgressiveDeliveryService:
         )
 
         return plan
-    
+
 
     @staticmethod
     def _resolve_milestones_from_adjustment(
@@ -199,9 +199,9 @@ class ProgressiveDeliveryService:
             raise ValueError(
                 "Progressive delivery adjustment requires milestones"
             )
-        
+
         return milestones
-    
+
     @staticmethod
     def _create_timeline_event(
         *,
@@ -261,5 +261,5 @@ class ProgressiveDeliveryService:
             )
             if current_assignment is not None:
                 return current_assignment.writer
-            
+
         return getattr(order, "preferred_writer", None)

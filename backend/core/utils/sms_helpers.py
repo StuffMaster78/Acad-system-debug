@@ -25,18 +25,18 @@ def send_sms_notification(user, message):
     """
     if not user.phone_number:
         logger.warning(f"User {user.username} does not have a phone number.")
-        return False  # Return false if the user doesn't have a phone number.
+        return False # Return false if the user doesn't have a phone number.
 
     try:
         client = get_twilio_client()
-        
+
         # Send the SMS
         message_sent = client.messages.create(
             body=message,
-            from_=settings.TWILIO_PHONE_NUMBER,  # Your Twilio phone number
-            to=user.phone_number  # User's phone number
+            from_=settings.TWILIO_PHONE_NUMBER, # Your Twilio phone number
+            to=user.phone_number # User's phone number
         )
-        
+
         # Log the message SID for debugging
         logger.info(f"Sent SMS to {user.phone_number}: {message_sent.sid}")
         return True

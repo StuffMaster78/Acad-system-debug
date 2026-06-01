@@ -8,4 +8,4 @@ class CmsCoreConfig(AppConfig):
     label = "cms_core"
 
     def ready(self):
-        import cms_core.wagtail_hooks  # noqa: F401
+        import cms_core.wagtail_hooks # noqa: F401

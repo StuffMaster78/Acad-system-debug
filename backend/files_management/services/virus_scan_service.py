@@ -2,10 +2,10 @@
 Virus Scan Service
 ====================
 
-Scans uploaded files via ClamAV.  Two modes:
+Scans uploaded files via ClamAV. Two modes:
 
 1. **Network mode** (recommended for production):
-   ClamAV runs on a separate droplet/container.  Files are streamed
+   ClamAV runs on a separate droplet/container. Files are streamed
    to the ``clamd`` daemon via TCP socket.
 
 2. **Local mode** (for dev/testing):
@@ -13,10 +13,10 @@ Scans uploaded files via ClamAV.  Two modes:
 
 Configuration in settings.py::
 
-    CLAMAV_HOST = "clamav.internal"   # or "127.0.0.1" for local
+    CLAMAV_HOST = "clamav.internal" # or "127.0.0.1" for local
     CLAMAV_PORT = 3310
-    CLAMAV_TIMEOUT = 60               # seconds per scan
-    CLAMAV_ENABLED = True             # set False to skip scanning in dev
+    CLAMAV_TIMEOUT = 60 # seconds per scan
+    CLAMAV_ENABLED = True # set False to skip scanning in dev
 
 If ClamAV is unreachable, the scan is marked as ERROR (not CLEAN).
 Files with ERROR scan status are flagged for manual review.
@@ -51,7 +51,7 @@ class VirusScanService:
     @classmethod
     def scan_file(cls, managed_file: ManagedFile) -> dict:
         """
-        Scan a ManagedFile.  Updates scan fields on the model and saves.
+        Scan a ManagedFile. Updates scan fields on the model and saves.
 
         Returns:
             {
@@ -236,7 +236,7 @@ class VirusScanService:
 
     @classmethod
     def ping(cls) -> bool:
-        """Check if ClamAV is reachable.  Used by health checks."""
+        """Check if ClamAV is reachable. Used by health checks."""
         if not CLAMAV_ENABLED:
             return False
 

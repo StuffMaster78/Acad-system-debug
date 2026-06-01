@@ -8,11 +8,11 @@ from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from django.contrib.postgres.fields import ArrayField
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 class WriterProfileManager(models.Manager):
-    def create(self, **kwargs):  # type: ignore[override]
+    def create(self, **kwargs): # type: ignore[override]
         email = kwargs.pop('email', None)
         username = kwargs.pop('username', None)
         website = kwargs.get('website')
@@ -224,7 +224,7 @@ class WriterProfile(models.Model):
 
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    
+
     # Payment Schedule Preferences
     payment_schedule = models.CharField(
         max_length=20,
@@ -266,8 +266,8 @@ class WriterProfile(models.Model):
             models.Index(fields=['writer_level', 'average_rating']),
             models.Index(fields=['verification_status', 'joined_at']),
             models.Index(fields=['is_deleted', 'joined_at']),
-            models.Index(fields=['user']),  # For direct user lookups
-            models.Index(fields=['website', 'is_deleted']),  # For active writers by website
+            models.Index(fields=['user']), # For direct user lookups
+            models.Index(fields=['website', 'is_deleted']), # For active writers by website
         ]
 
     def clean(self):
@@ -277,7 +277,7 @@ class WriterProfile(models.Model):
         if not self.registration_id:
             self.registration_id = "Writer #00000"
         # Keep provided registration_id as-is for tests; do not mutate
-    
+
     def save(self, *args, **kwargs):
         """
         Override save method to perform custom validation.
@@ -379,7 +379,7 @@ class WriterEducation(models.Model):
 
     def __str__(self):
         return f"{self.degree} from {self.institution_name} ({self.writer.user.username})"
-    
+
     class Meta:
         verbose_name = "Writer Education"
         verbose_name_plural = "Writer Education"
@@ -391,10 +391,10 @@ class WriterEducation(models.Model):
         """
         if self.graduation_year and self.graduation_year > now().year:
             raise ValidationError("Graduation year cannot be in the future.")
-        
+
         if not self.document:
             raise ValidationError("Document is required for education verification.")
-        
+
     def save(self, *args, **kwargs):
         """
         Override save method to perform custom validation.
@@ -427,7 +427,7 @@ class WriterSubjectPreference(models.Model):
 
     def __str__(self):
         return f"Subject Preferences for {self.writer.user.username}"
-    
+
     class Meta:
         verbose_name = "Writer Subject Preference"
         verbose_name_plural = "Writer Subject Preferences"
@@ -457,10 +457,10 @@ class WriterProfileWebhookSetting(models.Model):
         default=list,
         help_text="List of events that trigger the webhook."
     )
-    
+
     def __str__(self):
         return f"{self.user.username} – {self.platform} webhook"
-    
+
     class Meta:
         unique_together = ("user", "platform")
         verbose_name = "Writer Profile Webhook Setting"
@@ -473,10 +473,10 @@ class WriterProfileWebhookSetting(models.Model):
         """
         if not self.url.startswith("http"):
             raise ValidationError("Webhook URL must start with 'http' or 'https'.")
-        
+
         if not self.events:
             raise ValidationError("At least one event must be specified for the webhook.")
-        
+
         if len(self.events) > 10:
             raise ValidationError("A maximum of 10 events can be subscribed to a webhook.")
 
@@ -523,10 +523,10 @@ class WriterProfileHistory(models.Model):
         """
         if not self.change_details:
             raise ValidationError("Change details cannot be empty.")
-        
+
         if not isinstance(self.change_details, dict):
-            raise ValidationError("Change details must be a dictionary.")   
-        
+            raise ValidationError("Change details must be a dictionary.")
+
     def save(self, *args, **kwargs):
         """
         Override save method to perform custom validation.
@@ -557,7 +557,7 @@ class WriterProfileWebhookEvent(models.Model):
 
     def __str__(self):
         return f"Webhook Event: {self.event_type} for {self.webhook_setting.user.username}"
-    
+
     class Meta:
         verbose_name = "Writer Profile Webhook Event"
         verbose_name_plural = "Writer Profile Webhook Events"
@@ -569,13 +569,13 @@ class WriterProfileWebhookEvent(models.Model):
         """
         if not self.event_type:
             raise ValidationError("Event type cannot be empty.")
-        
+
         if not isinstance(self.payload, dict):
             raise ValidationError("Payload must be a dictionary.")
-        
+
         if len(self.payload) > 1000:
-            raise ValidationError("Payload size exceeds the maximum limit of 1000 characters.")     
-        
+            raise ValidationError("Payload size exceeds the maximum limit of 1000 characters.")
+
     def save(self, *args, **kwargs):
         """
         Override save method to perform custom validation.

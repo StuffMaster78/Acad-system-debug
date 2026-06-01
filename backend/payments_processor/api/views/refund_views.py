@@ -28,8 +28,8 @@ class InitiateRefundView(APIView):
     POST /api/payments/refunds/
     {
         "payment_intent_id": 123,
-        "amount": "50.00",           // optional — defaults to full amount
-        "destination": "wallet"      // "wallet" | "original_method"
+        "amount": "50.00", // optional — defaults to full amount
+        "destination": "wallet" // "wallet" | "original_method"
     }
 
     Staff / admin only. Validates the intent exists and is refundable,

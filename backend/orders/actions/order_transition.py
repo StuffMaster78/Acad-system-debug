@@ -14,7 +14,7 @@ class OrderTransitionAction(BaseOrderAction):
         service = OrderTransitionService()
         result = service.transition(self.order_id, **self.params)
 
-        new_status = self.order.status  # assumes service updates `self.order`
+        new_status = self.order.status # assumes service updates `self.order`
         AuditLogService.log_auto(
             actor=self.user,
             action="TRANSITION",

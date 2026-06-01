@@ -30,7 +30,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.utils.timezone import now
 from django.utils.text import slugify
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 class ClientFeedback(models.Model):
@@ -66,7 +66,7 @@ class ClientFeedback(models.Model):
 
     def __str__(self):
         return f"Feedback from {self.client} on Order #{self.order.id}"
-    
+
     class Meta:
         unique_together = ('order', 'client')
     def save(self, *args, **kwargs):

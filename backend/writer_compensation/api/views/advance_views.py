@@ -180,8 +180,8 @@ class AdminAdvanceListView(generics.ListAPIView):
     serializer_class = AdvancePaymentRequestSerializer
     permission_classes = [IsAdminUser]
     request: Request
-    
-    def get_queryset(  # pyright: ignore[reportIncompatibleMethodOverride]
+
+    def get_queryset( # pyright: ignore[reportIncompatibleMethodOverride]
         self,
     ):
         website = _get_website(self.request)

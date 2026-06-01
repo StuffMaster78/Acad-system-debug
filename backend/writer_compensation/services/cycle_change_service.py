@@ -1,11 +1,11 @@
 from __future__ import annotations
- 
+
 from decimal import Decimal
- 
+
 from django.db import transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
- 
+
 from writer_compensation.enums.compensation_enums import (
     CycleChangeStatus,
     WindowStatus,
@@ -32,7 +32,7 @@ class PaymentCycleChangeService:
     Admin approves or rejects.
     Change takes effect at the start of the next open window after approval.
     """
- 
+
     @staticmethod
     @transaction.atomic
     def request_change(
@@ -44,33 +44,33 @@ class PaymentCycleChangeService:
     ) -> PaymentWindowChangeRequest:
         """
         Writer submits a cycle change request.
- 
+
         Raises CycleChangeNotAllowedError if a PENDING request already exists.
         """
         preference = WriterPayoutPreference.objects.filter(
             website=website,
             writer=writer,
         ).first()
- 
+
         current_cycle = preference.cycle_type if preference else None
- 
+
         if current_cycle == requested_cycle:
             raise CycleChangeNotAllowedError(
                 "Requested cycle is the same as the current cycle."
             )
- 
+
         already_pending = PaymentWindowChangeRequest.objects.filter(
             website=website,
             writer=writer,
             status=CycleChangeStatus.PENDING,
         ).exists()
- 
+
         if already_pending:
             raise CycleChangeNotAllowedError(
                 "A pending cycle change request already exists. "
                 "Wait for it to be reviewed before submitting another."
             )
- 
+
         return PaymentWindowChangeRequest.objects.create(
             website=website,
             writer=writer,
@@ -79,7 +79,7 @@ class PaymentCycleChangeService:
             reason=reason,
             status=CycleChangeStatus.PENDING,
         )
- 
+
     @staticmethod
     @transaction.atomic
     def approve(
@@ -95,7 +95,7 @@ class PaymentCycleChangeService:
             raise ValueError(
                 f"Request {change_request.pk} is {change_request.status}, not PENDING."
             )
- 
+
         effective_window = (
             PaymentWindow.objects
             .filter(
@@ -105,7 +105,7 @@ class PaymentCycleChangeService:
             .order_by("start_date")
             .first()
         )
- 
+
         now = timezone.now()
         change_request.status = CycleChangeStatus.APPROVED
         change_request.reviewed_by = reviewed_by
@@ -114,19 +114,19 @@ class PaymentCycleChangeService:
         change_request.save(update_fields=[
             "status", "reviewed_by", "reviewed_at", "effective_from_window", "updated_at",
         ])
- 
+
         # Apply the change to the preference.
         WriterPayoutPreference.objects.update_or_create(
             website=change_request.website,
             writer=change_request.writer,
             defaults={
                 "cycle_type": change_request.requested_window,
-                "locked":     True,
+                "locked": True,
             },
         )
- 
+
         return change_request
- 
+
     @staticmethod
     @transaction.atomic
     def reject(
@@ -139,14 +139,14 @@ class PaymentCycleChangeService:
             raise ValueError(
                 f"Request {change_request.pk} is {change_request.status}, not PENDING."
             )
- 
+
         now = timezone.now()
         change_request.status = CycleChangeStatus.REJECTED
         change_request.reviewed_by = reviewed_by
-        change_request.reviewed_at  = now
+        change_request.reviewed_at = now
         change_request.rejection_reason = rejection_reason
         change_request.save(update_fields=[
             "status", "reviewed_by", "reviewed_at", "rejection_reason", "updated_at",
         ])
- 
+
         return change_request

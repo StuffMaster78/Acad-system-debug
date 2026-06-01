@@ -13,6 +13,6 @@ class BlacklistAuthenticationBackend(BaseBackend):
         user = User.objects.filter(username=username).first()
 
         if user and BlacklistedUser.objects.filter(email=user.email).exists():
-            return None  # Deny authentication for blacklisted users
+            return None # Deny authentication for blacklisted users
 
         return user

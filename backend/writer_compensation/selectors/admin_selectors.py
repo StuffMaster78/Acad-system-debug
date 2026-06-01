@@ -51,15 +51,15 @@ class AdminSelectors:
     @staticmethod
     def get_window_health(window: PaymentWindow) -> dict:
         events = CompensationEvent.objects.filter(payment_window=window)
-        batch  = PayoutSelectors.get_batch_for_window(window)
+        batch = PayoutSelectors.get_batch_for_window(window)
         counts = PayoutSelectors.get_batch_record_counts(batch) if batch else {}
 
         return {
-            "pending_events":   events.filter(status=EventStatus.PENDING_CONFIRMATION).count(),
-            "matured_events":   events.filter(status=EventStatus.MATURED).count(),
-            "paid_events":      events.filter(status=EventStatus.PAID).count(),
-            "payout_pending":   counts.get("pending",   0),
+            "pending_events": events.filter(status=EventStatus.PENDING_CONFIRMATION).count(),
+            "matured_events": events.filter(status=EventStatus.MATURED).count(),
+            "paid_events": events.filter(status=EventStatus.PAID).count(),
+            "payout_pending": counts.get("pending", 0),
             "payout_confirmed": counts.get("confirmed", 0),
-            "payout_paid":      counts.get("paid",      0),
-            "payout_held":      counts.get("held",      0),
+            "payout_paid": counts.get("paid", 0),
+            "payout_held": counts.get("held", 0),
         }

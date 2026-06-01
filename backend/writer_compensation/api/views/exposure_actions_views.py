@@ -23,10 +23,10 @@ def _error(message: str, code: int = 400) -> Response:
 
 
 class ExposureLedgerListView(generics.ListAPIView):
-    serializer_class   = ExposureLedgerSerializer
+    serializer_class = ExposureLedgerSerializer
     permission_classes = [CanViewPayouts]
 
-    def get_queryset(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def get_queryset( # pyright: ignore[reportIncompatibleMethodOverride]
             self
         ):
         return (
@@ -38,10 +38,10 @@ class ExposureLedgerListView(generics.ListAPIView):
 
 
 class ExposureLedgerDetailView(generics.RetrieveAPIView):
-    serializer_class   = ExposureLedgerSerializer
+    serializer_class = ExposureLedgerSerializer
     permission_classes = [CanViewPayouts]
 
-    def get_queryset(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def get_queryset( # pyright: ignore[reportIncompatibleMethodOverride]
             self
         ):
         return ExposureLedger.objects.filter(

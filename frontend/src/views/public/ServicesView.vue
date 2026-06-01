@@ -102,8 +102,8 @@ useMeta({
   schema: webPageSchema({ title: "Services", url: window.location.href }),
 });
 
-const isLoading      = ref(true);
-const services       = ref<ServicePageSummary[]>([]);
+const isLoading = ref(true);
+const services = ref<ServicePageSummary[]>([]);
 const activeCategory = ref<string | null>(null);
 
 const categories = computed(() => {

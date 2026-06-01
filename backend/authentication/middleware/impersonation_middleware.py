@@ -14,7 +14,7 @@ class ImpersonationMiddleware(MiddlewareMixin):
     Middleware to extract impersonation information from JWT tokens
     and make it available in request object.
     """
-    
+
     def process_request(self, request):
         """
         Extract impersonation info from JWT token claims if present.
@@ -34,7 +34,7 @@ class ImpersonationMiddleware(MiddlewareMixin):
                         return None
             except (AttributeError, TypeError, KeyError):
                 pass
-        
+
         # Check session as fallback
         if hasattr(request, 'session') and request.session.get('_impersonator_id'):
             request._impersonation_context = {
@@ -46,7 +46,6 @@ class ImpersonationMiddleware(MiddlewareMixin):
             request._impersonation_context = {
                 'is_impersonating': False,
             }
-        
+
         return None
 
-    

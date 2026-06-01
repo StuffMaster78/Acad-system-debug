@@ -12,7 +12,7 @@ class ChangePasswordSerializer(serializers.Serializer):
     """Serializer for changing password."""
     current_password = serializers.CharField(write_only=True, required=True)
     new_password = serializers.CharField(write_only=True, required=True)
-    
+
     def validate_new_password(self, value):
         """Validate new password with Django's validators."""
         validate_password(value)
@@ -26,12 +26,12 @@ class CompletePasswordResetSerializer(serializers.Serializer):
     token = serializers.CharField(max_length=255, required=True)
     otp_code = serializers.CharField(max_length=6, min_length=6, required=True)
     new_password = serializers.CharField(write_only=True, required=True)
-    
+
     def validate_new_password(self, value):
         """Validate new password with Django's validators."""
         validate_password(value)
         return value
-    
+
     def validate_otp_code(self, value):
         """Validate OTP code is numeric."""
         if not value.isdigit():
@@ -42,20 +42,20 @@ class CompletePasswordResetSerializer(serializers.Serializer):
 class ProfileUpdateRequestSerializer(serializers.Serializer):
     """Serializer for profile update requests."""
     requested_data = serializers.DictField(required=True)
-    
+
     def validate_requested_data(self, value):
         """Validate that requested data contains valid fields."""
         allowed_fields = [
             'email', 'username', 'first_name', 'last_name',
             'phone_number', 'bio', 'country', 'state', 'website', 'role'
         ]
-        
+
         invalid_fields = [field for field in value.keys() if field not in allowed_fields]
         if invalid_fields:
             raise serializers.ValidationError(
                 f"Invalid fields: {', '.join(invalid_fields)}"
             )
-        
+
         return value
 
 

@@ -18,7 +18,7 @@ class SpecialOrderPaymentIntentBridge:
     Create payment intents for special orders using payments_processor.
     """
 
-    DEFAULT_PROVIDER = "stripe"  # or config-driven
+    DEFAULT_PROVIDER = "stripe" # or config-driven
 
     @classmethod
     def create_external_payment_intent(
@@ -58,7 +58,7 @@ class SpecialOrderPaymentIntentBridge:
             purpose="special_order_payment",
             amount=amount,
             currency=funding_plan.currency,
-            payable=special_order,  # 🔥 CRITICAL
+            payable=special_order, # CRITICAL
             metadata={
                 "payable_type": "special_order",
                 "payable_id": str(special_order.id),

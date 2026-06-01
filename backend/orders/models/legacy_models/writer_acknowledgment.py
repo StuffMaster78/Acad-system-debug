@@ -30,10 +30,10 @@ class WriterAssignmentAcknowledgment(models.Model):
     last_reminder_sent = models.DateTimeField(null=True, blank=True)
     reminder_count = models.PositiveIntegerField(default=0)
     notes = models.TextField(blank=True, help_text="Writer's notes about the assignment")
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         unique_together = ['order', 'writer']
         ordering = ['-created_at']
@@ -41,35 +41,35 @@ class WriterAssignmentAcknowledgment(models.Model):
             models.Index(fields=['order', 'writer']),
             models.Index(fields=['writer', 'acknowledged_at']),
         ]
-    
+
     def __str__(self):
         status = "Acknowledged" if self.acknowledged_at else "Pending"
         return f"Writer {self.writer.username} - Order {self.order.id} - {status}"
-    
+
     def acknowledge(self):
         """Mark assignment as acknowledged."""
         if not self.acknowledged_at:
             self.acknowledged_at = timezone.now()
             self.save(update_fields=['acknowledged_at', 'updated_at'])
-    
+
     def mark_message_sent(self):
         """Mark that writer has sent a message to client."""
         if not self.has_sent_message:
             self.has_sent_message = True
             self.save(update_fields=['has_sent_message', 'updated_at'])
-    
+
     def mark_file_downloaded(self):
         """Mark that writer has downloaded order files."""
         if not self.has_downloaded_files:
             self.has_downloaded_files = True
             self.save(update_fields=['has_downloaded_files', 'updated_at'])
-    
+
     def send_reminder(self):
         """Record that a reminder was sent."""
         self.last_reminder_sent = timezone.now()
         self.reminder_count += 1
         self.save(update_fields=['last_reminder_sent', 'reminder_count', 'updated_at'])
-    
+
     @property
     def is_fully_engaged(self):
         """Check if writer is fully engaged (acknowledged, messaged, downloaded files)."""

@@ -73,7 +73,7 @@ def award_milestone_on_points(sender, instance, created, **kwargs):
         target_type='loyalty_points',
         target_value__lte=client_profile.loyalty_points
     ).exclude(
-        id__in=client_profile.badges.values_list('id', flat=True)  # Avoid re-awarding badges
+        id__in=client_profile.badges.values_list('id', flat=True) # Avoid re-awarding badges
     )
 
     for milestone in milestones:

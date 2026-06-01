@@ -2,7 +2,7 @@
 Quota Service
 ===============
 
-Manages per-tenant storage quotas.  Called during upload validation
+Manages per-tenant storage quotas. Called during upload validation
 and by the nightly recalculation task.
 
 Configuration per tenant is stored in ``FileQuota`` model.
@@ -96,7 +96,7 @@ class QuotaService:
     def recalculate_quota(cls, website) -> dict:
         """
         Recalculate the actual usage for a tenant by counting
-        live files in the database.  Fixes any drift from failed
+        live files in the database. Fixes any drift from failed
         uploads, manual deletions, etc.
 
         Returns the updated counts.
@@ -109,7 +109,7 @@ class QuotaService:
         live_files = ManagedFile.objects.filter(
             website=website,
             lifecycle_status=FileLifecycleStatus.ACTIVE,
-            parent_file__isnull=True,  # exclude derivatives
+            parent_file__isnull=True, # exclude derivatives
         )
 
         aggregates = live_files.aggregate(
@@ -166,7 +166,7 @@ class QuotaService:
 
     @classmethod
     def recalculate_all_quotas(cls) -> list[dict]:
-        """Recalculate quotas for all tenants.  Called by nightly task."""
+        """Recalculate quotas for all tenants. Called by nightly task."""
         from django.apps import apps
 
         try:
@@ -182,7 +182,7 @@ class QuotaService:
 
     @classmethod
     def get_near_quota_tenants(cls, threshold_percent: float = 80.0) -> list:
-        """Return tenants approaching their quota.  For admin alerts."""
+        """Return tenants approaching their quota. For admin alerts."""
         from files_management.models.file_quota import FileQuota
 
         results = []

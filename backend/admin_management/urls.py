@@ -1,11 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
+from rest_framework_simplejwt.views import TokenRefreshView # type: ignore
 from .views import (
-    AdminDashboardView, 
-    UserManagementView, 
-    AdminLoginView, 
-    AdminLogoutView, 
+    AdminDashboardView,
+    UserManagementView,
+    AdminLoginView,
+    AdminLogoutView,
     BlacklistedUserViewSet,
     AdminActivityLogViewSet,
     AdminDisputeManagementViewSet,

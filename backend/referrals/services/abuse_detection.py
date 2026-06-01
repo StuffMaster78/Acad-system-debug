@@ -16,7 +16,7 @@ class ReferralAbuseDetectionService:
     """
     Service to detect and flag potential abuse in the referral system.
     """
-    
+
     @staticmethod
     def detect_self_referral(referral):
         """
@@ -34,7 +34,7 @@ class ReferralAbuseDetectionService:
             referral.save()
             return True
         return False
-    
+
     @staticmethod
     def detect_same_ip_referral(referral):
         """
@@ -54,7 +54,7 @@ class ReferralAbuseDetectionService:
                 referral.save()
                 return True
         return False
-    
+
     @staticmethod
     def detect_multiple_accounts(referral):
         """
@@ -70,7 +70,7 @@ class ReferralAbuseDetectionService:
             referee_ip=referral.referee_ip,
             created_at__gte=now() - timedelta(days=7)
         ).exclude(id=referral.id)
-        
+
         if recent_referrals.count() >= 3:
             ReferralAbuseFlag.objects.create(
                 referral=referral,
@@ -82,12 +82,12 @@ class ReferralAbuseDetectionService:
             referral.flagged_reason = "Multiple accounts pattern detected"
             referral.save()
             return True
-        
+
         # Check if referee has been referred multiple times
         referee_referrals = Referral.objects.filter(
             referee=referral.referee
         ).exclude(id=referral.id)
-        
+
         if referee_referrals.count() > 0:
             ReferralAbuseFlag.objects.create(
                 referral=referral,
@@ -99,9 +99,9 @@ class ReferralAbuseDetectionService:
             referral.flagged_reason = "Referee has multiple referral records"
             referral.save()
             return True
-        
+
         return False
-    
+
     @staticmethod
     def detect_rapid_referrals(referral):
         """
@@ -112,7 +112,7 @@ class ReferralAbuseDetectionService:
             referrer=referral.referrer,
             created_at__gte=now() - timedelta(hours=1)
         ).exclude(id=referral.id)
-        
+
         if recent_referrals.count() >= 5:
             ReferralAbuseFlag.objects.create(
                 referral=referral,
@@ -124,9 +124,9 @@ class ReferralAbuseDetectionService:
             referral.flagged_reason = "Rapid referral pattern detected"
             referral.save()
             return True
-        
+
         return False
-    
+
     @staticmethod
     def check_all_abuse_patterns(referral):
         """
@@ -134,21 +134,21 @@ class ReferralAbuseDetectionService:
         Returns list of detected abuse types.
         """
         detected = []
-        
+
         if ReferralAbuseDetectionService.detect_self_referral(referral):
             detected.append('self_referral')
-        
+
         if ReferralAbuseDetectionService.detect_same_ip_referral(referral):
             detected.append('suspicious_ip')
-        
+
         if ReferralAbuseDetectionService.detect_multiple_accounts(referral):
             detected.append('multiple_accounts')
-        
+
         if ReferralAbuseDetectionService.detect_rapid_referrals(referral):
             detected.append('rapid_referrals')
-        
+
         return detected
-    
+
     @staticmethod
     def void_referral(referral, voided_by, reason):
         """
@@ -159,15 +159,15 @@ class ReferralAbuseDetectionService:
         referral.voided_by = voided_by
         referral.flagged_reason = reason
         referral.save()
-        
+
         # Update all related abuse flags
         ReferralAbuseFlag.objects.filter(
             referral=referral,
             status='pending'
         ).update(status='resolved')
-        
+
         logger.info(f"Referral {referral.id} voided by {voided_by.username}: {reason}")
-    
+
     @staticmethod
     def get_abuse_statistics(website=None):
         """
@@ -176,7 +176,7 @@ class ReferralAbuseDetectionService:
         queryset = ReferralAbuseFlag.objects.all()
         if website:
             queryset = queryset.filter(referral__website=website)
-        
+
         return {
             'total_flags': queryset.count(),
             'pending_review': queryset.filter(status='pending').count(),

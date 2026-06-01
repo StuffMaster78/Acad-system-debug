@@ -161,17 +161,17 @@ import { useMeta, articleSchema } from "@/composables/useMeta";
 import BlockRenderer from "@/components/cms/BlockRenderer.vue";
 import CitationList from "@/components/cms/CitationList.vue";
 
-const route    = useRoute();
+const route = useRoute();
 const isLoading = ref(true);
-const notFound  = ref(false);
-const post      = ref<BlogPost | null>(null);
+const notFound = ref(false);
+const post = ref<BlogPost | null>(null);
 const citations = ref<Citation[]>([]);
 
 async function load() {
   const slug = route.params.slug as string;
   isLoading.value = true;
-  notFound.value  = false;
-  post.value      = null;
+  notFound.value = false;
+  post.value = null;
 
   try {
     const { data } = await cmsApi.blogPost(slug);

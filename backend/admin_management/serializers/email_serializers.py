@@ -17,7 +17,7 @@ class MassEmailListSerializer(serializers.ModelSerializer):
     website_domain = serializers.CharField(source='website.domain', read_only=True)
     website = serializers.PrimaryKeyRelatedField(read_only=True)
     created_by_username = serializers.CharField(source='created_by.username', read_only=True)
-    
+
     class Meta:
         model = EmailCampaign
         fields = [
@@ -34,7 +34,7 @@ class EmailDigestSerializer(serializers.ModelSerializer):
     user_username = serializers.CharField(source='user.username', read_only=True)
     website_name = serializers.CharField(source='website.name', read_only=True)
     website_domain = serializers.CharField(source='website.domain', read_only=True)
-    
+
     class Meta:
         model = NotificationDigest
         fields = [
@@ -49,14 +49,14 @@ class EmailDigestSerializer(serializers.ModelSerializer):
 
 class EmailDigestCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating email digests."""
-    
+
     class Meta:
         model = NotificationDigest
         fields = [
             'user', 'website', 'event_key', 'digest_group',
             'event', 'scheduled_for', 'payload',
         ]
-    
+
     def create(self, validated_data):
         # Set default values
         validated_data.setdefault('is_sent', False)
@@ -69,7 +69,7 @@ class BroadcastMessageSerializer(serializers.ModelSerializer):
     website_domain = serializers.CharField(source='website.domain', read_only=True)
     created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
     created_by_username = serializers.CharField(source='created_by.username', read_only=True)
-    
+
     class Meta:
         model = BroadcastNotification
         fields = [
@@ -87,7 +87,7 @@ class BroadcastMessageSerializer(serializers.ModelSerializer):
 
 class BroadcastMessageCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating broadcast messages."""
-    
+
     class Meta:
         model = BroadcastNotification
         fields = [
@@ -97,7 +97,7 @@ class BroadcastMessageCreateSerializer(serializers.ModelSerializer):
             'pinned', 'dismissible', 'show_in_dashboard',
             'scheduled_for', 'expires_at',
         ]
-    
+
     def validate_channels(self, value):
         """Validate channels."""
         valid_channels = ['in_app', 'email', 'sms', 'push']

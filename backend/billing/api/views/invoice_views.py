@@ -135,7 +135,7 @@ class InvoiceListCreateView(APIView):
         special_order_id = validated.get("special_order")
         class_purchase_id = validated.get("class_purchase")
 
-        
+
         order = None
         if order_id is not None:
             order = get_object_or_404(

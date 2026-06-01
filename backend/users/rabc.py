@@ -21,7 +21,7 @@ def require_role(user, *roles):
             f"Access denied. Required role(s): {roles}. "
             f"User has: {getattr(user.profile, 'role', None)}"
         )
-    
+
 def is_superadmin(user):
     """
     Check if the user has superadmin role.
@@ -101,7 +101,7 @@ def require_any_role(user, *roles):
             f"Access denied. Required role(s): {roles}. "
             f"User has: {getattr(user.profile, 'role', None)}"
         )
-    
+
 def require_all_roles(user, *roles):
     """
     Require the user to have all of the specified roles.
@@ -112,7 +112,7 @@ def require_all_roles(user, *roles):
                 f"Access denied. Required role(s): {roles}. "
                 f"User has: {getattr(user.profile, 'role', None)}"
             )
-        
+
 def require_no_role(user):
     """
     Require the user to have no role.
@@ -121,7 +121,7 @@ def require_no_role(user):
         raise PermissionError(
             f"Access denied. User has a role: {getattr(user.profile, 'role', None)}"
         )
-    
+
 def require_role_or_no_role(user, *roles):
     """
     Require the user to have any of the specified roles or no role at all.
@@ -130,8 +130,8 @@ def require_role_or_no_role(user, *roles):
         raise PermissionError(
             f"Access denied. Required role(s): {roles}. "
             f"User has: {getattr(user.profile, 'role', None)}"
-        )   
-    
+        )
+
 def require_role_or_any_role(user, *roles):
     """
     Require the user to have any of the specified roles or any role at all.
@@ -141,7 +141,7 @@ def require_role_or_any_role(user, *roles):
             f"Access denied. Required role(s): {roles}. "
             f"User has: {getattr(user.profile, 'role', None)}"
         )
-    
+
 
 def require_role_or_all_roles(user, *roles):
     """

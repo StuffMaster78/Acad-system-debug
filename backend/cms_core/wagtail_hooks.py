@@ -79,7 +79,7 @@ def schedule_post_publish_audit(request, page):
     """Queue a post-publish audit to run 2 hours after publication.
 
     The audit checks: SEO metadata, internal link health, schema readiness,
-    author assignment, featured image, service route.  Issues are logged
+    author assignment, featured image, service route. Issues are logged
     and surfaced as FreshnessAlerts in the dashboard.
     """
     try:
@@ -88,7 +88,7 @@ def schedule_post_publish_audit(request, page):
         # Schedule 2 hours from now
         post_publish_audit.apply_async(
             args=[page.pk],
-            countdown=7200,  # 2 hours
+            countdown=7200, # 2 hours
         )
         logger.info(
             "Post-publish audit scheduled for page '%s' (id=%s) in 2 hours",
@@ -182,7 +182,7 @@ def track_slug_changes(request, page):
 def scope_explorer_to_tenant(parent_page, pages, request):
     """
     In the page explorer, non-superusers only see pages within
-    their permitted sites.  This is belt-and-suspenders on top of
+    their permitted sites. This is belt-and-suspenders on top of
     Wagtail's GroupPagePermission — it filters the queryset directly.
     """
     user = request.user

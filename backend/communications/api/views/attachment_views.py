@@ -29,7 +29,7 @@ class CommunicationAttachmentViewSet(ReadOnlyModelViewSet):
         CanViewCommunicationObject,
     ]
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         """
         Return attachments visible to the request user.
         """

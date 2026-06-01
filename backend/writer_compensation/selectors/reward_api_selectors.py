@@ -63,7 +63,7 @@ class RewardAPISelectors:
             )
             .order_by("-issued_at")
         )
-    
+
     @staticmethod
     def reward_queryset() -> QuerySet[WriterReward]:
         return (

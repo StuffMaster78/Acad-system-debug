@@ -85,7 +85,7 @@ class RegistrationToken(models.Model):
             f"Registration token for {self.user.email} "
             f"on {self.website}"
         )
-    
+
 class RegistrationConfirmationLog(models.Model):
     """
     Log registration confirmation attempts.

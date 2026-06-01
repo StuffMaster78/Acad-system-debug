@@ -11,11 +11,11 @@ def get_current_website(): return _current_site.get()
 class WebsiteMiddleware:
     def __init__(self, get_response): self.get_response = get_response
     def __call__(self, request):
-        site = Website.resolve_from_request(request)  # your logic
+        site = Website.resolve_from_request(request) # your logic
         set_current_website(site)
         request.website = site
         return self.get_response(request)
-    
+
 
 # Celery task pattern
 @shared_task

@@ -187,7 +187,7 @@ class PaymentApplicationService:
 
         if purpose == PaymentIntentPurpose.TIP:
             return cls._handle_tip_payment(payment_intent)
-        
+
         if purpose == PaymentIntentPurpose.INVOICE:
             return cls._handle_invoice_payment(payment_intent=payment_intent)
 
@@ -274,7 +274,7 @@ class PaymentApplicationService:
                 "Cannot apply special order payment without a successful "
                 "payment transaction."
             )
-        
+
         intent_metadata = payment_intent.metadata or {}
 
         ledger_entry_reference = str(
@@ -399,7 +399,7 @@ class PaymentApplicationService:
             "object_id": getattr(tip, "pk", None),
             "action": "mark_paid",
         }
-    
+
 
     @staticmethod
     def _handle_invoice_payment(
@@ -442,7 +442,7 @@ class PaymentApplicationService:
             "object_id": payable.pk,
             "action": "mark_paid",
         }
-    
+
 
     @staticmethod
     def _handle_billing_payment_request(
@@ -486,7 +486,7 @@ class PaymentApplicationService:
             "object_id": payable.pk,
             "action": "mark_paid",
         }
-    
+
     def _apply_domain_payment(
         *,
         payment_intent,
@@ -517,4 +517,4 @@ class PaymentApplicationService:
 
         # future:
         # elif payable_type == "order":
-        #     OrderPaymentsBridge.apply(...)
+        # OrderPaymentsBridge.apply(...)

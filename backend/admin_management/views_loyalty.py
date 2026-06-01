@@ -25,24 +25,24 @@ class LoyaltyTransactionDetailSerializer(serializers.ModelSerializer):
     points_redeemed = serializers.SerializerMethodField()
     points_deducted = serializers.SerializerMethodField()
     explanation = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = LoyaltyTransaction
         fields = '__all__'
         read_only_fields = ['timestamp']
-    
+
     def get_points_awarded(self, obj):
         """Return points if transaction is 'add', else 0."""
         return obj.points if obj.transaction_type == 'add' else 0
-    
+
     def get_points_redeemed(self, obj):
         """Return points if transaction is 'redeem', else 0."""
         return obj.points if obj.transaction_type == 'redeem' else 0
-    
+
     def get_points_deducted(self, obj):
         """Return points if transaction is 'deduct', else 0."""
         return obj.points if obj.transaction_type == 'deduct' else 0
-    
+
     def get_explanation(self, obj):
         """Generate human-readable explanation of the transaction."""
         if obj.transaction_type == 'add':
@@ -81,30 +81,30 @@ class AdminLoyaltyTrackingViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ['timestamp', 'points']
     ordering = ['-timestamp']
     pagination_class = LoyaltyTrackingPagination
-    
+
     @action(detail=False, methods=['get'])
     def statistics(self, request):
         """Get overall loyalty point statistics."""
         queryset = self.filter_queryset(self.get_queryset())
-        
+
         # Calculate totals by type
         total_awarded = queryset.filter(transaction_type='add').aggregate(
             total=Sum('points')
         )['total'] or 0
-        
+
         total_redeemed = queryset.filter(transaction_type='redeem').aggregate(
             total=Sum('points')
         )['total'] or 0
-        
+
         total_deducted = queryset.filter(transaction_type='deduct').aggregate(
             total=Sum('points')
         )['total'] or 0
-        
+
         # Recent activity
         last_24h = queryset.filter(timestamp__gte=now() - timedelta(days=1))
         last_7d = queryset.filter(timestamp__gte=now() - timedelta(days=7))
         last_30d = queryset.filter(timestamp__gte=now() - timedelta(days=30))
-        
+
         stats = {
             'total_points_awarded': total_awarded,
             'total_points_redeemed': total_redeemed,
@@ -137,9 +137,9 @@ class AdminLoyaltyTrackingViewSet(viewsets.ReadOnlyModelViewSet):
                 total_points=Sum('points')
             ).order_by('-total_points')[:10],
         }
-        
+
         return Response(stats)
-    
+
     @action(detail=False, methods=['get'])
     def award_sources(self, request):
         """
@@ -149,7 +149,7 @@ class AdminLoyaltyTrackingViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = self.filter_queryset(
             self.get_queryset().filter(transaction_type='add')
         )
-        
+
         # Analyze reasons to categorize award sources
         sources = {
             'order_completion': 0,
@@ -157,7 +157,7 @@ class AdminLoyaltyTrackingViewSet(viewsets.ReadOnlyModelViewSet):
             'manual_award': 0,
             'other': 0,
         }
-        
+
         for transaction in queryset:
             reason_lower = (transaction.reason or '').lower()
             if 'order' in reason_lower or 'completed' in reason_lower:
@@ -168,7 +168,7 @@ class AdminLoyaltyTrackingViewSet(viewsets.ReadOnlyModelViewSet):
                 sources['manual_award'] += transaction.points
             else:
                 sources['other'] += transaction.points
-        
+
         return Response({
             'award_sources': sources,
             'explanation': {
@@ -178,7 +178,7 @@ class AdminLoyaltyTrackingViewSet(viewsets.ReadOnlyModelViewSet):
                 'other': 'Other sources of points'
             }
         })
-    
+
     @action(detail=False, methods=['get'])
     def client_summary(self, request):
         """Get loyalty point summary for a specific client."""
@@ -188,21 +188,21 @@ class AdminLoyaltyTrackingViewSet(viewsets.ReadOnlyModelViewSet):
                 {'error': 'client_id parameter is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         transactions = self.get_queryset().filter(client_id=client_id)
-        
+
         total_earned = transactions.filter(transaction_type='add').aggregate(
             total=Sum('points')
         )['total'] or 0
-        
+
         total_redeemed = transactions.filter(transaction_type='redeem').aggregate(
             total=Sum('points')
         )['total'] or 0
-        
+
         total_deducted = transactions.filter(transaction_type='deduct').aggregate(
             total=Sum('points')
         )['total'] or 0
-        
+
         return Response({
             'client_id': client_id,
             'total_earned': total_earned,

@@ -1,6 +1,6 @@
 """
 Formal warnings issued to writers for correctable behaviour.
- 
+
 WHAT A WARNING IS
 -----------------
 A temporary formal notice for behaviour that can be corrected.
@@ -10,49 +10,49 @@ Examples:
     - Unprofessional revision handling
     - Accepting orders outside verified expertise
     - Availability abuse
- 
+
 WHAT A WARNING IS NOT
 ---------------------
 A warning is NOT a strike.
 Strikes are for serious, permanent policy violations (plagiarism,
 fraud, off-platform solicitation). See discipline.py.
- 
+
 KEY PROPERTIES
 --------------
 - Temporary: warnings expire after a configured duration
 - Revocable: admin can void a warning issued in error
 - Countable: active warning count triggers escalation thresholds
 - Auditable: full revocation trail preserved
- 
+
 ACTIVE WARNING DEFINITION
 --------------------------
 A warning is active when ALL of the following are true:
     is_active=True
     is_voided=False
     expires_at is None OR expires_at > now()
- 
+
 ESCALATION
 ----------
 WriterWarningService evaluates thresholds from
 WriterWarningEscalationConfig after every new warning:
- 
+
     active_warnings >= admin_alert_threshold
         → notify admins
- 
+
     active_warnings >= auto_probation_threshold
         → DisciplineService.place_on_probation()
- 
+
     active_warnings >= auto_suspension_threshold
         → DisciplineService.suspend()
- 
+
 WriterDisciplineState caches active_warning_count and
 lifetime_warning_count for fast eligibility checks.
- 
+
 OWNERSHIP
 ---------
 Created by: WriterWarningService.issue_warning()
 Revoked by: WriterWarningService.revoke_warning()
-Read by:    WriterStatusService.recompute()
+Read by: WriterStatusService.recompute()
             WriterEligibilityService (via WriterDisciplineState)
 """
 
@@ -96,13 +96,13 @@ class WriterWarning(models.Model):
     category = models.CharField(
         max_length=30,
         choices=[
-            ("late_delivery",      "Late Delivery"),
-            ("communication",      "Communication Failure"),
-            ("quality",            "Quality Issue"),
-            ("availability",       "Availability Abuse"),
-            ("revision_handling",  "Revision Handling"),
-            ("policy_violation",   "Policy Violation"),
-            ("other",              "Other"),
+            ("late_delivery", "Late Delivery"),
+            ("communication", "Communication Failure"),
+            ("quality", "Quality Issue"),
+            ("availability", "Availability Abuse"),
+            ("revision_handling", "Revision Handling"),
+            ("policy_violation", "Policy Violation"),
+            ("other", "Other"),
         ],
         default="other",
         db_index=True,
@@ -196,7 +196,7 @@ class WriterWarning(models.Model):
             ),
             # Void integrity: voided warnings must have a reason
             # (enforced in service — cannot express text non-empty in SQL)
- 
+
             # Inactive integrity: if is_active=False, must be voided
             # OR expires_at must be in the past
             # (partial logic — service enforces, constraint catches gross errors)
@@ -229,7 +229,7 @@ class WriterWarning(models.Model):
     def is_currently_active(self) -> bool:
         """
         True if this warning currently counts toward escalation thresholds.
- 
+
         Conditions:
             is_active=True
             AND is_voided=False
@@ -242,14 +242,14 @@ class WriterWarning(models.Model):
         if self.expires_at is None:
             return True
         return self.expires_at > now()
- 
+
     @property
     def is_expired(self) -> bool:
         """True if warning has passed its expiry date."""
         if self.expires_at is None:
             return False
         return self.expires_at <= now()
- 
+
     @property
     def days_remaining(self) -> int | None:
         """

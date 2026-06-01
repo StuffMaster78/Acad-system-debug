@@ -2,10 +2,10 @@
 import { computed } from "vue";
 
 const props = withDefaults(defineProps<{
-  rows?:    number;
+  rows?: number;
   variant?: "lines" | "cards" | "table" | "avatar-list" | "chips" | "detail";
 }>(), {
-  rows:    3,
+  rows: 3,
   variant: "lines",
 });
 

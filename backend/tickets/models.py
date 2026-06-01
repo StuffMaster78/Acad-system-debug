@@ -1,4 +1,4 @@
-        
+
 from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
@@ -14,14 +14,14 @@ class Ticket(models.Model):
         ('awaiting_response', 'Awaiting Response'),
         ('escalated', 'Escalated'),
     ]
-    
+
     PRIORITY_CHOICES = [
         ('low', 'Low'),
         ('medium', 'Medium'),
         ('high', 'High'),
         ('critical', 'Critical'),
     ]
-    
+
     CATEGORY_CHOICES = [
         ('general', 'General Inquiry'),
         ('payment', 'Payment Issues'),
@@ -75,10 +75,10 @@ class Ticket(models.Model):
     resolution_time = models.DateTimeField(null=True, blank=True, help_text="When the ticket was resolved.")
     created_at = models.DateTimeField(auto_now_add=True, help_text="When the ticket was created.")
     updated_at = models.DateTimeField(auto_now=True, help_text="When the ticket was last updated.")
-    
+
     # SLA tracking (will be created automatically)
     has_sla = models.BooleanField(default=False, help_text="Whether SLA tracking is enabled")
-    
+
     # Generic foreign key for linking to different object types (orders, class bundles, etc.)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
@@ -258,4 +258,4 @@ class TicketStatistics(models.Model):
 
 # Import TicketSLA from sla_timers module at the end to avoid circular import
 # This ensures Ticket is defined before TicketSLA tries to reference it
-from tickets import sla_timers  # Import the module, not the class directly
+from tickets import sla_timers # Import the module, not the class directly

@@ -4,8 +4,8 @@ from __future__ import annotations
 Development overrides. Never deploy these settings to production.
 """
 
-from .base import *  # noqa: F401,F403
-from .base import module_available  # explicit import so it's always in scope
+from .base import * # noqa: F401,F403
+from .base import module_available # explicit import so it's always in scope
 from .env import env, env_bool, env_int, env_list
 
 
@@ -17,11 +17,11 @@ SECRET_KEY = env(
 )
 DB_HOST = env("DB_HOST", env("POSTGRES_HOST", "localhost"))
 
-ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "*")  # noqa: F405
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "*") # noqa: F405
 
-if module_available("debug_toolbar"):  # noqa: F405
-    INSTALLED_APPS += ["debug_toolbar"]  # noqa: F405
-    MIDDLEWARE.insert(  # noqa: F405
+if module_available("debug_toolbar"): # noqa: F405
+    INSTALLED_APPS += ["debug_toolbar"] # noqa: F405
+    MIDDLEWARE.insert( # noqa: F405
         0,
         "debug_toolbar.middleware.DebugToolbarMiddleware",
     )
@@ -44,7 +44,7 @@ DATABASES = {
     },
 }
 
-CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", True)  # noqa: F405
+CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", True) # noqa: F405
 
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",
@@ -59,7 +59,7 @@ CSRF_COOKIE_SECURE = False
 STORAGE_BACKEND = env("STORAGE_BACKEND", "local")
 USE_S3 = env_bool("USE_S3", False)
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"  # noqa: F405
+MEDIA_ROOT = BASE_DIR / "media" # noqa: F405
 
 LOGGING = {
     "version": 1,
@@ -99,7 +99,7 @@ LOGGING = {
 }
 
 SILENCED_SYSTEM_CHECKS = [
-    *SILENCED_SYSTEM_CHECKS,  # noqa: F405
+    *SILENCED_SYSTEM_CHECKS, # noqa: F405
     "notifications_system.W001",
 ]
 

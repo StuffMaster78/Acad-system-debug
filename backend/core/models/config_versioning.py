@@ -20,7 +20,7 @@ class ConfigVersion(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     config_object = GenericForeignKey('content_type', 'object_id')
-    
+
     # Version metadata
     version_number = models.PositiveIntegerField(
         help_text="Sequential version number for this config"
@@ -37,12 +37,12 @@ class ConfigVersion(models.Model):
         related_name="config_versions_created",
         help_text="User who created this version"
     )
-    
+
     # Snapshot of config data
     config_data = JSONField(
         help_text="Complete snapshot of configuration at this version"
     )
-    
+
     # Change tracking
     change_type = models.CharField(
         max_length=20,
@@ -73,7 +73,7 @@ class ConfigVersion(models.Model):
         related_name='next_versions',
         help_text="Previous version (for version chain)"
     )
-    
+
     # Metadata
     notes = models.TextField(
         blank=True,
@@ -84,7 +84,7 @@ class ConfigVersion(models.Model):
         default=True,
         help_text="Whether this is the current active version"
     )
-    
+
     class Meta:
         verbose_name = "Configuration Version"
         verbose_name_plural = "Configuration Versions"
@@ -95,11 +95,11 @@ class ConfigVersion(models.Model):
             models.Index(fields=['created_at']),
         ]
         unique_together = [['content_type', 'object_id', 'version_number']]
-    
+
     def __str__(self):
         config_name = f"{self.content_type.model} #{self.object_id}"
         return f"Version {self.version_number} of {config_name} ({self.change_type})"
-    
+
     @classmethod
     def get_next_version_number(cls, content_type, object_id):
         """Get the next version number for a config object."""
@@ -107,11 +107,11 @@ class ConfigVersion(models.Model):
             content_type=content_type,
             object_id=object_id
         ).order_by('-version_number').first()
-        
+
         if last_version:
             return last_version.version_number + 1
         return 1
-    
+
     @classmethod
     def get_current_version(cls, content_type, object_id):
         """Get the current version for a config object."""
@@ -120,7 +120,7 @@ class ConfigVersion(models.Model):
             object_id=object_id,
             is_current=True
         ).first()
-    
+
     @classmethod
     def get_version_history(cls, content_type, object_id, limit=None):
         """Get version history for a config object."""
@@ -128,9 +128,9 @@ class ConfigVersion(models.Model):
             content_type=content_type,
             object_id=object_id
         ).order_by('-version_number')
-        
+
         if limit:
             queryset = queryset[:limit]
-        
+
         return queryset
 

@@ -32,8 +32,8 @@ class LimitedPagination(PageNumberPagination):
     """Custom pagination class with safety limits to prevent performance issues."""
     page_size = 100
     page_size_query_param = 'page_size'
-    max_page_size = 500  # Safety limit to prevent excessive data transfer
-    
+    max_page_size = 500 # Safety limit to prevent excessive data transfer
+
     def get_paginated_response(self, data):
         """Return paginated response with metadata."""
         return Response({
@@ -139,9 +139,9 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated, IsOrderOwnerOrSupport]
-    pagination_class = LimitedPagination  # Paginated with safety limits
-    
-    
+    pagination_class = LimitedPagination # Paginated with safety limits
+
+
     def get_serializer_class(self):
         """
         Use lightweight serializer for list views to reduce data transfer.
@@ -150,7 +150,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             from orders.serializers_legacy import OrderListSerializer
             return OrderListSerializer
         return OrderSerializer
-    
+
     def update(self, request, *args, **kwargs):
         """
         Update order fields. Only allows updating specific safe fields.
@@ -158,37 +158,37 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         """
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        
+
         # Define allowed fields that can be updated directly
         # These fields are updated directly on the model, bypassing serializer validation
         allowed_direct_fields = {
-            'completion_notes',  # For revision notes and completion notes
+            'completion_notes', # For revision notes and completion notes
         }
-        
+
         # Fields that go through serializer validation
         allowed_serializer_fields = {
-            'order_instructions',  # For updating instructions
+            'order_instructions', # For updating instructions
         }
-        
+
         # Separate direct updates from serializer updates
         direct_updates = {}
         serializer_updates = {}
-        
+
         for key, value in request.data.items():
             if key in allowed_direct_fields:
                 direct_updates[key] = value
             elif key in allowed_serializer_fields:
                 serializer_updates[key] = value
-        
+
         if not direct_updates and not serializer_updates:
             return Response(
                 {
-                    "detail": "No allowed fields provided for update. Allowed fields: " + 
+                    "detail": "No allowed fields provided for update. Allowed fields: " +
                     ", ".join(allowed_direct_fields | allowed_serializer_fields)
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Update direct fields on the model (bypass serializer since completion_notes is not in serializer fields)
         update_fields = []
         for field, value in direct_updates.items():
@@ -201,7 +201,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     {"detail": f"Field '{field}' does not exist on Order model"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        
+
         # Update serializer fields if any
         if serializer_updates:
             try:
@@ -218,14 +218,14 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     {"detail": f"Error updating order: {str(e)}", "errors": getattr(serializer, 'errors', {})},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        
+
         # Save direct updates
         if direct_updates:
             # Always include updated_at in update_fields
             if 'updated_at' not in update_fields:
                 update_fields.append('updated_at')
             instance.save(update_fields=update_fields)
-        
+
         # Return updated order
         instance.refresh_from_db()
         serializer = self.get_serializer(instance)
@@ -369,24 +369,24 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         # This uses the status index and reduces the dataset early
         statuses = parse_csv(params.get('status'))
         status_groups = parse_csv(params.get('status_group'))
-        
+
         # Combine status and status_group filters
         if statuses or status_groups:
             resolved_statuses = set()
-            
+
             # Add explicit statuses
             if statuses:
                 resolved_statuses.update(statuses)
-            
+
             # Add status group statuses
             if status_groups:
                 for group in status_groups:
                     resolved_statuses.update(STATUS_GROUPS.get(group, []))
-            
+
             # Apply single filter with all statuses (uses index efficiently)
             if resolved_statuses:
                 base_qs = base_qs.filter(status__in=list(resolved_statuses))
-        
+
         # Filter by "can transition to" - orders that can transition to a specific status
         can_transition_to = params.get('can_transition_to')
         if can_transition_to:
@@ -397,13 +397,13 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             ]
             if can_transition_statuses:
                 base_qs = base_qs.filter(status__in=can_transition_statuses)
-        
+
         # Filter by "needs attention" - overdue, stuck, unassigned, etc.
         needs_attention = params.get('needs_attention')
         if needs_attention:
             from django.utils import timezone
             from datetime import timedelta
-            
+
             if needs_attention == 'overdue':
                 now = timezone.now()
                 base_qs = base_qs.filter(
@@ -443,21 +443,21 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                         OrderStatus.PENDING.value,
                     ]
                 )
-        
+
         # Filter by recently transitioned
         recently_transitioned = params.get('recently_transitioned')
         if recently_transitioned:
             from django.utils import timezone
             from datetime import timedelta
             from orders.models.orders import OrderTransitionLog
-            
+
             period_map = {
                 '1h': timedelta(hours=1),
                 '6h': timedelta(hours=6),
                 '24h': timedelta(hours=24),
                 '7d': timedelta(days=7),
             }
-            
+
             cutoff = timezone.now() - period_map.get(recently_transitioned, timedelta(hours=24))
             recent_order_ids = OrderTransitionLog.objects.filter(
                 timestamp__gte=cutoff
@@ -569,14 +569,14 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
 
         include_archived = parse_bool(params.get('include_archived'))
         only_archived = parse_bool(params.get('only_archived'))
-        
+
         # Admin and superadmin should see all orders including archived by default
         # unless explicitly excluded
         is_admin_or_superadmin = (
-            user.is_superuser or 
+            user.is_superuser or
             user_role in ['admin', 'superadmin', 'support']
         )
-        
+
         if only_archived:
             archived_statuses = STATUS_GROUPS["archived"]
             base_qs = base_qs.filter(status__in=archived_statuses)
@@ -602,16 +602,16 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             base_qs = base_qs.order_by(f"{direction}{sort_field}", '-id')
         else:
             base_qs = base_qs.order_by('-created_at', '-id')
-        
+
         # Apply ordering - use created_at index for better performance
         # The Order model has ordering = ['-created_at'] in Meta, but we ensure it here
         # for list views, use the index efficiently
         if self.action == 'list':
             # For list views, ensure we're using the created_at index
             base_qs = base_qs.order_by('-created_at')
-        
+
         return base_qs
-    
+
     def list(self, request, *args, **kwargs):
         """
         Override list to ensure queryset is not filtered by object permissions.
@@ -623,21 +623,21 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         from django.core.cache import cache
         import hashlib
         import json
-        
+
         # Only cache simple, frequently-used queries (status, is_paid filters)
         params = request.query_params
         has_simple_filters = (
-            len(params) <= 3 and  # Only 1-3 query params
+            len(params) <= 3 and # Only 1-3 query params
             all(key in ['status', 'is_paid', 'page', 'page_size', 'ordering'] for key in params.keys())
         )
-        
+
         # For very simple queries (page_size=1), use longer cache
         is_simple_count_query = (
             params.get('page_size', '10') in ['1', '0'] and
             len([k for k in params.keys() if k not in ['page', 'page_size', 'ordering']]) <= 2
         )
-        cache_ttl = 120 if is_simple_count_query else 30  # 2 minutes for count queries, 30s for others
-        
+        cache_ttl = 120 if is_simple_count_query else 30 # 2 minutes for count queries, 30s for others
+
         if has_simple_filters and request.user.is_authenticated:
             # Build cache key
             cache_key_parts = [
@@ -648,19 +648,19 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             ]
             cache_key_data = ':'.join(cache_key_parts)
             cache_key = f"orders_list:{hashlib.md5(cache_key_data.encode()).hexdigest()}"
-            
+
             # Try cache
             cached_result = cache.get(cache_key)
             if cached_result is not None:
                 return Response(cached_result)
-        
+
         try:
             queryset = self.filter_queryset(self.get_queryset())
-            
+
             # Ensure distinct() is applied for complex OR queries
             if hasattr(queryset.query, 'where') and queryset.query.where:
                 queryset = queryset.distinct()
-            
+
             page = self.paginate_queryset(queryset)
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
@@ -668,29 +668,29 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             else:
                 serializer = self.get_serializer(queryset, many=True)
                 response = Response(serializer.data)
-            
+
             # Cache simple queries
             if has_simple_filters and request.user.is_authenticated:
                 if hasattr(response, 'data'):
                     cache.set(cache_key, response.data, cache_ttl)
-            
+
             # Add phone reminder info for clients (skip for simple count queries)
             is_simple = getattr(self, '_is_simple_query', False)
             if (request.user.role in ['client', 'customer'] and not is_simple):
                 from users.services.phone_reminder_service import PhoneReminderService
                 phone_service = PhoneReminderService(request.user)
-                
+
                 # Check if reminder should be shown (user has active orders)
                 active_orders = queryset.filter(
-                    status__in=['pending', 'in_progress', 'submitted', 'reviewed', 
+                    status__in=['pending', 'in_progress', 'submitted', 'reviewed',
                                'rated', 'revision_requested', 'on_revision', 'revised']
                 ).exists()
-                
+
                 if active_orders and phone_service.should_show_reminder_in_order_context():
                     reminder_info = phone_service.get_reminder_info()
                     if isinstance(response.data, dict):
                         response.data['phone_reminder'] = reminder_info
-            
+
             return response
         except Exception as e:
             import logging
@@ -704,7 +704,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 'results': [],
                 'total_pages': 0,
             })
-    
+
     def get_object(self):
         """
         Override get_object to check permissions first, then fetch the order.
@@ -712,12 +712,12 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         we can still check object-level permissions and provide better error messages.
         """
         from rest_framework.exceptions import NotFound, PermissionDenied
-        
+
         # Get the order ID from the URL kwargs
         # DRF uses 'pk' as the default lookup_field
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         order_id = self.kwargs[lookup_url_kwarg]
-        
+
         # Fetch the order directly from the database (bypass queryset filtering)
         # This allows us to check permissions even if the queryset would exclude it
         try:
@@ -726,7 +726,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             ).get(id=order_id)
         except Order.DoesNotExist:
             raise NotFound("No Order matches the given query.")
-        
+
         # Check object-level permissions
         # This will check if the user has permission to view this specific order
         permission_classes = self.get_permissions()
@@ -742,26 +742,26 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     raise PermissionDenied(
                         "You do not have permission to view this order."
                     )
-        
+
         return order
-    
+
     def retrieve(self, request, *args, **kwargs):
         """
         Retrieve a single order with phone reminder info for clients.
         """
         response = super().retrieve(request, *args, **kwargs)
-        
+
         # Add phone reminder info for clients viewing orders
         if request.user.role in ['client', 'customer']:
             from users.services.phone_reminder_service import PhoneReminderService
             phone_service = PhoneReminderService(request.user)
-            
+
             order = self.get_object()
             if phone_service.should_show_reminder_in_order_context(order):
                 reminder_info = phone_service.get_reminder_info()
                 if isinstance(response.data, dict):
                     response.data['phone_reminder'] = reminder_info
-        
+
         return response
         """
         Override list to ensure queryset is not filtered by object permissions.
@@ -770,12 +770,12 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         """
         try:
             queryset = self.filter_queryset(self.get_queryset())
-            
+
             page = self.paginate_queryset(queryset)
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
                 return self.get_paginated_response(serializer.data)
-            
+
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
         except Exception as e:
@@ -790,7 +790,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 'results': [],
                 'total_pages': 0,
             })
-    
+
     @decorators.action(detail=False, methods=["get"], url_path="filter-options", permission_classes=[IsAuthenticated])
     def filter_options(self, request):
         status_list = [
@@ -985,13 +985,13 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         try:
             from django.utils import timezone
             from datetime import datetime
-            
+
             # Parse deadline
             deadline = data.get("client_deadline")
             if deadline:
                 if isinstance(deadline, str):
                     deadline = datetime.fromisoformat(deadline.replace('Z', '+00:00'))
-            
+
             temp = Order(
                 website=getattr(request.user, 'website', None),
                 client=request.user if getattr(request.user, 'role', None) == 'client' else None,
@@ -1022,7 +1022,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     temp.writer_level = WriterLevelOptionConfig.objects.get(id=int(data["writer_level_id"]))
                 except WriterLevelOptionConfig.DoesNotExist:
                     pass
-            
+
             # Handle extra services - calculate price manually since we can't save M2M on unsaved order
             extra_services_price = Decimal("0.00")
             if data.get("extra_services"):
@@ -1031,7 +1031,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 if isinstance(service_ids, list):
                     services = AdditionalService.objects.filter(id__in=service_ids, is_active=True)
                     extra_services_price = sum(Decimal(str(s.service_cost or 0)) for s in services)
-            
+
             # Handle discount code
             if data.get("discount_code"):
                 from discounts.models import Discount
@@ -1050,20 +1050,20 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             calculator = PricingCalculatorService(temp)
             breakdown = calculator.calculate_breakdown()
             total = calculator.calculate_total_price()
-            
+
             # Get deadline multiplier for display
             deadline_multiplier = calculator.get_deadline_multiplier()
-            
+
             # Calculate hours until deadline
             hours_until_deadline = None
             if deadline:
                 hours_until_deadline = (deadline - timezone.now()).total_seconds() / 3600
-            
+
             # Manually add extra services to total if they weren't included
             final_total = float(total)
             if extra_services_price > 0:
                 final_total += float(extra_services_price)
-            
+
             return Response({
                 "total_price": final_total,
                 "base_price": breakdown.get("base_price", 0),
@@ -1088,18 +1088,18 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         """
         from orders.services.preferred_writer_service import PreferredWriterService
         from users.serializers import UserSerializer
-        
+
         if request.user.role != 'client':
             return Response(
                 {"detail": "This endpoint is only available for clients."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         writer_ids = PreferredWriterService.get_last_five_writers_for_client(request.user)
         from django.contrib.auth import get_user_model
         User = get_user_model()
         writers = User.objects.filter(id__in=writer_ids).select_related('writer_profile')
-        
+
         # Get preferred writer costs
         from order_pricing_core.models import PreferredWriterConfig
         website = getattr(request.user, 'website', None)
@@ -1113,7 +1113,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                         cost = config.preferred_writer_cost
                 except PreferredWriterConfig.DoesNotExist:
                     pass
-            
+
             writer_data.append({
                 'id': writer.id,
                 'username': writer.username,
@@ -1122,7 +1122,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 'last_name': writer.last_name,
                 'preferred_writer_cost': float(cost)
             })
-        
+
         return Response(writer_data, status=status.HTTP_200_OK)
 
     @decorators.action(detail=True, methods=["post"], url_path="pay/wallet")
@@ -1240,7 +1240,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         """
         Allow clients to directly add pages or slides to their order.
         This creates a payment requirement that must be fulfilled.
-        
+
         Expected payload:
         {
             "additional_pages": int (optional),
@@ -1250,34 +1250,34 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         """
         order = get_object_or_404(Order, pk=pk)
         user = request.user
-        
+
         # Authorization check
         if not (user.is_superuser or user.role in ["admin", "support"] or order.client_id == user.id):
             return Response({"detail": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
-        
+
         additional_pages = request.data.get("additional_pages", 0) or 0
         additional_slides = request.data.get("additional_slides", 0) or 0
-        
+
         if additional_pages <= 0 and additional_slides <= 0:
             return Response(
                 {"detail": "At least one of additional_pages or additional_slides must be greater than 0."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             with transaction.atomic():
                 # Calculate the cost for additional pages/slides
                 from orders.services.pricing_calculator import PricingCalculatorService
                 calculator = PricingCalculatorService(order)
-                
+
                 # Get pricing config
                 config = calculator.get_pricing_config_for_website(order.website.id)
-                
+
                 # Calculate additional cost
                 pages_cost = Decimal(str(additional_pages)) * config.base_price_per_page if additional_pages > 0 else Decimal('0.00')
                 slides_cost = Decimal(str(additional_slides)) * config.base_price_per_slide if additional_slides > 0 else Decimal('0.00')
                 additional_cost = pages_cost + slides_cost
-                
+
                 # Apply discount if order has one
                 if order.discount:
                     from discounts.services.discount_engine import DiscountEngine
@@ -1293,34 +1293,34 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     )
                     discount_engine.apply_discounts()
                     additional_cost = discount_engine.discounted_total
-                
+
                 # Update order immediately (pages/slides added)
                 order.number_of_pages += additional_pages
                 order.number_of_slides += additional_slides
-                
+
                 # Recalculate total order price
                 order.total_price = calculator.calculate_total_price()
                 order.save(update_fields=["number_of_pages", "number_of_slides", "total_price", "updated_at"])
-                
+
                 # If payment method is provided and it's wallet, process immediately
                 payment_method = request.data.get("payment_method")
                 if payment_method == "wallet" and additional_cost > 0:
                     from wallets.models import Wallet
                     from wallets.services.client_wallet_service import ClientWalletService
-                    
+
                     wallet = ClientWalletService.get_wallet(
                         website=order.website,
                         client=order.client,
                     )
                     wallet = Wallet.objects.select_for_update().get(id=wallet.id)
-                    
+
                     if wallet.available_balance < additional_cost:
                         # Rollback order changes
                         order.number_of_pages -= additional_pages
                         order.number_of_slides -= additional_slides
                         order.total_price = calculator.calculate_total_price()
                         order.save(update_fields=["number_of_pages", "number_of_slides", "total_price", "updated_at"])
-                        
+
                         return Response(
                             {
                                 "detail": "Insufficient wallet balance.",
@@ -1330,7 +1330,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                             },
                             status=status.HTTP_400_BAD_REQUEST
                         )
-                    
+
                     ClientWalletService.debit_for_order(
                         website=order.website,
                         client=order.client,
@@ -1364,7 +1364,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                         "additional_slides": additional_slides,
                         "payment_url": f"/orders/{order.id}/pay"
                     }, status=status.HTTP_200_OK)
-                    
+
         except Exception as e:
             import logging
             import traceback
@@ -1381,7 +1381,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         """
         Allow clients to add additional services to their order.
         This creates a payment requirement that must be fulfilled.
-        
+
         Expected payload:
         {
             "service_ids": [int, int, ...],
@@ -1390,51 +1390,51 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         """
         order = get_object_or_404(Order, pk=pk)
         user = request.user
-        
+
         # Authorization check
         if not (user.is_superuser or user.role in ["admin", "support"] or order.client_id == user.id):
             return Response({"detail": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
-        
+
         service_ids = request.data.get("service_ids", [])
-        
+
         if not service_ids or not isinstance(service_ids, list):
             return Response(
                 {"detail": "service_ids must be a non-empty list of service IDs."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             with transaction.atomic():
                 from order_pricing_core.models import AdditionalService
                 from orders.services.pricing_calculator import PricingCalculatorService
-                
+
                 # Get the services
                 services = AdditionalService.objects.filter(
                     id__in=service_ids,
                     is_active=True,
                     website=order.website
                 )
-                
+
                 if services.count() != len(service_ids):
                     return Response(
                         {"detail": "One or more services not found or inactive."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-                
+
                 # Check if services are already added
                 existing_service_ids = set(order.extra_services.values_list('id', flat=True))
                 new_service_ids = set(service_ids)
                 already_added = existing_service_ids.intersection(new_service_ids)
-                
+
                 if already_added:
                     return Response(
                         {"detail": f"Services with IDs {list(already_added)} are already added to this order."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-                
+
                 # Calculate additional cost
                 additional_cost = sum(Decimal(str(service.cost)) for service in services)
-                
+
                 # Apply discount if order has one
                 if order.discount and additional_cost > 0:
                     from discounts.services.discount_engine import DiscountEngine
@@ -1449,33 +1449,33 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     )
                     discount_engine.apply_discounts()
                     additional_cost = discount_engine.discounted_total
-                
+
                 # Add services to order
                 order.extra_services.add(*services)
-                
+
                 # Recalculate total order price
                 calculator = PricingCalculatorService(order)
                 order.total_price = calculator.calculate_total_price()
                 order.save(update_fields=["total_price", "updated_at"])
-                
+
                 # If payment method is provided and it's wallet, process immediately
                 payment_method = request.data.get("payment_method")
                 if payment_method == "wallet" and additional_cost > 0:
                     from wallets.models import Wallet
                     from wallets.services.client_wallet_service import ClientWalletService
-                    
+
                     wallet = ClientWalletService.get_wallet(
                         website=order.website,
                         client=order.client,
                     )
                     wallet = Wallet.objects.select_for_update().get(id=wallet.id)
-                    
+
                     if wallet.available_balance < additional_cost:
                         # Rollback service addition
                         order.extra_services.remove(*services)
                         order.total_price = calculator.calculate_total_price()
                         order.save(update_fields=["total_price", "updated_at"])
-                        
+
                         return Response(
                             {
                                 "detail": "Insufficient wallet balance.",
@@ -1485,7 +1485,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                             },
                             status=status.HTTP_400_BAD_REQUEST
                         )
-                    
+
                     ClientWalletService.debit_for_order(
                         website=order.website,
                         client=order.client,
@@ -1517,7 +1517,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                         "services_added": [{"id": s.id, "name": s.service_name, "cost": float(s.cost)} for s in services],
                         "payment_url": f"/orders/{order.id}/pay"
                     }, status=status.HTTP_200_OK)
-                    
+
         except Exception as e:
             import logging
             import traceback
@@ -1588,13 +1588,13 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         code = status.HTTP_204_NO_CONTENT if result.was_deleted \
             else status.HTTP_200_OK
         return Response(status=code)
-    
+
     @decorators.action(detail=True, methods=["get", "post"], url_path="transition")
     def transition_status(self, request, pk=None):
         """
         GET: Get available transitions for an order.
         POST: Transition order to a new status.
-        
+
         POST Body:
         {
             "target_status": "in_progress",
@@ -1604,12 +1604,12 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         }
         """
         order = get_object_or_404(Order, pk=pk)
-        
+
         if request.method == "GET":
             # Return available transitions
             from orders.services.transition_helper import OrderTransitionHelper
             available_transitions = OrderTransitionHelper.get_available_transitions(order)
-            
+
             return Response(
                 {
                     "order_id": order.id,
@@ -1622,7 +1622,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 },
                 status=status.HTTP_200_OK
             )
-        
+
         # POST: Perform transition
         target_status = request.data.get("target_status")
         reason = request.data.get("reason", "")
@@ -1630,21 +1630,21 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         metadata = request.data.get("metadata", {})
         action = request.data.get("action", "status_transition")
         is_automatic = request.data.get("is_automatic", False)
-        
+
         if not target_status:
             return Response(
                 {"detail": "target_status is required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Check if user has permission (admin/superadmin/support can skip checks)
         user_role = getattr(request.user, 'role', None)
         if user_role not in ['admin', 'superadmin', 'support']:
             skip_payment_check = False
-        
+
         try:
             from orders.services.transition_helper import OrderTransitionHelper
-            
+
             old_status = order.status
             updated_order = OrderTransitionHelper.transition_order(
                 order=order,
@@ -1656,10 +1656,10 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 skip_payment_check=skip_payment_check,
                 metadata=metadata
             )
-            
+
             # Refresh order from DB to get latest state
             updated_order.refresh_from_db()
-            
+
             return Response(
                 {
                     "message": f"Order transitioned from '{old_status}' to '{target_status}'",
@@ -1684,17 +1684,17 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 {"detail": f"Transition failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     @decorators.action(detail=True, methods=["get"], url_path="available-transitions")
     def get_available_transitions(self, request, pk=None):
         """
         Get list of available status transitions for an order.
         """
         order = get_object_or_404(Order, pk=pk)
-        
+
         from orders.services.transition_helper import OrderTransitionHelper
         available = OrderTransitionHelper.get_available_transitions(order)
-        
+
         return Response(
             {
                 "current_status": order.status,
@@ -1703,12 +1703,12 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             },
             status=status.HTTP_200_OK
         )
-    
+
     @decorators.action(detail=True, methods=["post"], url_path="auto-assign")
     def auto_assign(self, request, pk=None):
         """
         Automatically assign a writer to an order.
-        
+
         Body (optional):
         {
             "min_rating": 4.0,
@@ -1717,20 +1717,20 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         }
         """
         order = get_object_or_404(Order, pk=pk, website_id=self.website.id)
-        
+
         # Check permissions (admin/support only)
         if not (request.user.is_staff or getattr(request.user, 'role', None) in ['admin', 'superadmin', 'support']):
             return Response(
                 {"detail": "Only administrators can use auto-assignment."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         min_rating = request.data.get('min_rating', 4.0)
         max_candidates = request.data.get('max_candidates', 10)
-        
+
         try:
             from orders.services.auto_assignment_service import AutoAssignmentService
-            
+
             service = AutoAssignmentService(order, actor=request.user)
             updated_order, writer, assignment_info = service.auto_assign(
                 reason=f"Auto-assigned by {request.user.username}",
@@ -1738,7 +1738,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 max_candidates=max_candidates,
                 min_rating=min_rating,
             )
-            
+
             return Response(
                 {
                     "message": f"Order #{order.id} auto-assigned to {writer.username}",
@@ -1762,12 +1762,12 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 {"detail": f"Auto-assignment failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     @decorators.action(detail=False, methods=["post"], url_path="bulk-auto-assign")
     def bulk_auto_assign(self, request):
         """
         Automatically assign multiple available orders.
-        
+
         Body (optional):
         {
             "max_assignments": 10,
@@ -1781,24 +1781,24 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 {"detail": "Only administrators can use bulk auto-assignment."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         max_assignments = request.data.get('max_assignments', 10)
         min_rating = request.data.get('min_rating', 4.0)
         website_id = request.data.get('website_id', self.website.id)
-        
+
         try:
             from orders.services.auto_assignment_service import AutoAssignmentService
             from websites.models.websites import Website
-            
+
             website = Website.objects.get(id=website_id) if website_id else self.website
-            
+
             results = AutoAssignmentService.auto_assign_available_orders(
                 website=website,
                 max_assignments=max_assignments,
                 min_rating=min_rating,
                 actor=request.user,
             )
-            
+
             return Response(
                 {
                     "message": f"Bulk auto-assignment completed: {results['successful']} successful, {results['failed']} failed",
@@ -1811,19 +1811,19 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 {"detail": f"Bulk auto-assignment failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     @decorators.action(detail=False, methods=["post"], url_path="bulk-assign")
     def bulk_assign(self, request):
         """
         Bulk assign multiple orders to writers.
-        
+
         Body:
         {
             "assignments": [
                 {"order_id": 1, "writer_id": 5, "reason": "..."},
                 {"order_id": 2, "writer_id": 6, "reason": "..."}
             ],
-            "strategy": "balanced"  // or "round_robin", "best_match"
+            "strategy": "balanced" // or "round_robin", "best_match"
         }
         """
         # Check permissions (admin/support only)
@@ -1832,19 +1832,19 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 {"detail": "Only administrators can use bulk assignment."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         assignments = request.data.get('assignments', [])
         strategy = request.data.get('strategy', 'balanced')
-        
+
         if not assignments:
             return Response(
                 {"detail": "No assignments provided"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             from orders.services.bulk_assignment_service import BulkAssignmentService
-            
+
             # If assignments is a list of order IDs, use automatic distribution
             if isinstance(assignments[0], int):
                 # List of order IDs - use automatic distribution
@@ -1853,7 +1853,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     id__in=order_ids,
                     website_id=self.website.id,
                 )
-                
+
                 results = BulkAssignmentService.distribute_orders_automatically(
                     orders=list(orders),
                     actor=request.user,
@@ -1865,7 +1865,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     assignments=assignments,
                     actor=request.user,
                 )
-            
+
             return Response(
                 {
                     "message": f"Bulk assignment completed: {results['successful']} successful, {results['failed']} failed",
@@ -1883,31 +1883,31 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 {"detail": f"Bulk assignment failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     @decorators.action(detail=True, methods=["get"], url_path="smart-match")
     def smart_match(self, request, pk=None):
         """
         Get smart matching recommendations for an order.
-        
+
         Query params:
         - max_results: Maximum matches to return (default: 10)
         - min_rating: Minimum writer rating (default: 4.0)
         """
         # Get order - use get_queryset() to respect permissions and filtering
         order = get_object_or_404(self.get_queryset(), pk=pk)
-        
+
         max_results = int(request.query_params.get('max_results', 10))
         min_rating = float(request.query_params.get('min_rating', 4.0))
-        
+
         try:
             from orders.services.smart_matching_service import SmartMatchingService
-            
+
             matches = SmartMatchingService.find_best_matches(
                 order=order,
                 max_results=max_results,
                 min_rating=min_rating,
             )
-            
+
             # Format response
             results = []
             for match in matches:
@@ -1921,7 +1921,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     'reasons': match['reasons'],
                     'explanation': explanation,
                 })
-            
+
             return Response(
                 {
                     "order_id": order.id,

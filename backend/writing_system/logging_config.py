@@ -110,7 +110,7 @@ LOGGING = {
         },
         'django.db.backends': {
             'handlers': ['console'],
-            'level': 'WARNING',  # Reduce database query logging noise
+            'level': 'WARNING', # Reduce database query logging noise
             'propagate': False,
         },
         'writing_system': {
@@ -130,12 +130,12 @@ LOGGING = {
         },
         'django.utils.autoreload': {
             'handlers': ['console'],
-            'level': 'WARNING',  # Suppress autoreload INFO messages
+            'level': 'WARNING', # Suppress autoreload INFO messages
             'propagate': False,
         },
         'django_celery_beat': {
             'handlers': ['console'],
-            'level': 'WARNING',  # Suppress DatabaseScheduler schedule changed messages
+            'level': 'WARNING', # Suppress DatabaseScheduler schedule changed messages
             'propagate': False,
         },
     },
@@ -148,8 +148,8 @@ if LOG_DIR_CREATED and LOG_DIR is not None:
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': str(LOG_DIR / 'app.log'),
-            'maxBytes': 1024 * 1024 * 50,  # 50MB
-            'backupCount': 10,  # Keep 10 backup files
+            'maxBytes': 1024 * 1024 * 50, # 50MB
+            'backupCount': 10, # Keep 10 backup files
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
@@ -157,7 +157,7 @@ if LOG_DIR_CREATED and LOG_DIR is not None:
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': str(LOG_DIR / 'error.log'),
-            'maxBytes': 1024 * 1024 * 50,  # 50MB
+            'maxBytes': 1024 * 1024 * 50, # 50MB
             'backupCount': 10,
             'formatter': 'verbose',
             'encoding': 'utf-8',
@@ -172,7 +172,7 @@ if LOG_DIR_CREATED and LOG_DIR is not None:
             'encoding': 'utf-8',
         },
     })
-    
+
     # Update root and logger handlers to include file handlers
     LOGGING['root']['handlers'] = ['console', 'file', 'error_file']
     LOGGING['loggers']['django']['handlers'] = ['console', 'django_file', 'error_file']

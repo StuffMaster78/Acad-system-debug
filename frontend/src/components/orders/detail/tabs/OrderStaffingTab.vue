@@ -142,10 +142,10 @@ function fmtDate(v: string | null): string {
 
 function interestStatusClass(s: string): string {
   const map: Record<string, string> = {
-    pending:   "bg-amber-100 text-amber-700",
-    accepted:  "bg-emerald-100 text-emerald-700",
+    pending: "bg-amber-100 text-amber-700",
+    accepted: "bg-emerald-100 text-emerald-700",
     withdrawn: "bg-slate-100 text-slate-500",
-    rejected:  "bg-rose-100 text-rose-700",
+    rejected: "bg-rose-100 text-rose-700",
   };
   return map[s] ?? "bg-slate-100 text-slate-600";
 }
@@ -156,8 +156,8 @@ async function loadInterests() {
   try {
     if (auth.isPreviewSession) {
       interests.value = [
-        { id: 1, writer_id: 3201, writer_username: null, interest_type: "pool_bid", status: "pending",  message: "I have strong experience in this subject area.", created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), reviewed_at: null },
-        { id: 2, writer_id: 4857, writer_username: null, interest_type: "pool_bid", status: "pending",  message: "", created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString(), reviewed_at: null },
+        { id: 1, writer_id: 3201, writer_username: null, interest_type: "pool_bid", status: "pending", message: "I have strong experience in this subject area.", created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), reviewed_at: null },
+        { id: 2, writer_id: 4857, writer_username: null, interest_type: "pool_bid", status: "pending", message: "", created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString(), reviewed_at: null },
         { id: 3, writer_id: 1123, writer_username: null, interest_type: "pool_bid", status: "withdrawn", message: "Scheduling conflict.", created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(), reviewed_at: null },
       ];
       return;

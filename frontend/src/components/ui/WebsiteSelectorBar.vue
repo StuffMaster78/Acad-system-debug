@@ -36,8 +36,8 @@ const props = withDefaults(
 );
 const emit = defineEmits<{ "update:modelValue": [id: number | null] }>();
 
-const auth           = useAuthStore();
-const websitesStore  = useWebsitesStore();
+const auth = useAuthStore();
+const websitesStore = useWebsitesStore();
 
 const isStaff = computed(() => auth.role === "superadmin" || auth.role === "admin");
 

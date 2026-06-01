@@ -18,46 +18,46 @@ VALID_TRANSITIONS: Dict[str, List[str]] = {
     # Initial states
     "pending": ["unpaid", "cancelled", "deleted", "pending_writer_assignment", "available", "paid"],
     "created": ["pending", "unpaid", "cancelled"],
-    
+
     # Payment states
-    "unpaid": ["paid", "cancelled", "deleted", "on_hold", "pending", "in_progress"],  # Can go directly to in_progress when paid
+    "unpaid": ["paid", "cancelled", "deleted", "on_hold", "pending", "in_progress"], # Can go directly to in_progress when paid
     "paid": ["available", "pending_writer_assignment", "pending_preferred", "in_progress", "on_hold", "cancelled"],
-    
+
     # Assignment states
     "pending_writer_assignment": ["available", "cancelled", "on_hold", "in_progress"],
     "pending_preferred": ["available", "cancelled", "on_hold", "in_progress"],
     "available": ["in_progress", "pending_writer_assignment", "pending_preferred", "cancelled", "on_hold", "reassigned"],
-    
+
     # Active work states
     "in_progress": ["on_hold", "cancelled", "submitted", "reassigned", "under_editing"],
     "on_hold": ["in_progress", "cancelled", "available", "reassigned"],
     "reassigned": ["in_progress", "available", "on_hold"],
-    
+
     # Submission and review states
     "submitted": ["reviewed", "rated", "revision_requested", "disputed", "cancelled", "under_editing"],
     "reviewed": ["rated", "revision_requested", "approved"],
     "rated": ["approved", "revision_requested", "completed"],
     "approved": ["archived", "completed"],
     "completed": ["approved", "archived", "closed", "revision_requested"],
-    
+
     # Revision states
     "revision_requested": ["revision_in_progress", "reassigned", "on_hold", "cancelled"],
     "revision_in_progress": ["revised", "submitted", "cancelled", "reassigned", "closed", "on_hold"],
     "revised": ["reviewed", "rated", "approved", "revision_requested", "cancelled", "closed", "under_editing"],
     "on_revision": ["revised", "revision_in_progress", "cancelled"],
-    
+
     # Editing states
     "under_editing": ["submitted", "in_progress", "revised", "cancelled", "on_hold"],
-    
+
     # Dispute states
     "disputed": ["in_progress", "revision_requested", "cancelled", "closed", "refunded"],
-    
+
     # Final states
     "cancelled": ["reopened", "unpaid", "refunded"],
     "reopened": ["unpaid", "pending", "available"],
     "refunded": ["closed", "cancelled"],
     "archived": ["closed"],
-    "closed": ["archived"],  # Can be archived after a period
+    "closed": ["archived"], # Can be archived after a period
     "deleted": [],
 }
 
@@ -169,7 +169,7 @@ class StatusTransitionService:
         payment_required_statuses = ['in_progress', 'available', 'pending_writer_assignment', 'submitted']
         if not skip_payment_check and target_status in payment_required_statuses:
             self._validate_payment_completed(order, target_status)
-        
+
         # Validate writer assignment for statuses that require it
         writer_required_statuses = ['in_progress', 'submitted', 'revision_in_progress', 'revised']
         if target_status in writer_required_statuses and not order.assigned_writer:
@@ -201,7 +201,7 @@ class StatusTransitionService:
         if log_action and self.user:
             AuditLogService.log_auto(
                 actor=self.user,
-                action="UPDATE",  # Use valid action choice (max_length=10)
+                action="UPDATE", # Use valid action choice (max_length=10)
                 target=order,
                 metadata={
                     "old_status": current,
@@ -213,14 +213,14 @@ class StatusTransitionService:
             )
 
         return order
-    
+
     def get_available_transitions(self, order: Order) -> List[str]:
         """
         Get list of available transitions for an order.
-        
+
         Args:
             order: The order instance
-            
+
         Returns:
             List of available target statuses
         """
@@ -231,11 +231,11 @@ class StatusTransitionService:
     def _validate_payment_completed(order: Order, target_status: str) -> None:
         """
         Validate that order has a completed payment before allowing transition.
-        
+
         Args:
             order: The order instance.
             target_status: The target status being transitioned to.
-            
+
         Raises:
             ValidationError: If payment is required but not completed.
         """

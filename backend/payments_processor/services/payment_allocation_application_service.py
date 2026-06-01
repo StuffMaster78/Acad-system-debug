@@ -171,7 +171,7 @@ class PaymentAllocationApplicationService:
             raise PaymentError(
                 "Allocation is not an external allocation."
             )
-        
+
 
         payment_intent = external_allocation.payment_intent
         if payment_intent is None:

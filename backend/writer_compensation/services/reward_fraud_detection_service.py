@@ -60,7 +60,7 @@ class RewardFraudDetectionService:
                 risk_score=risk_score,
                 reasons=reasons,
             )
-        
+
         metadata = snapshot.metadata or {}
         trust_score = Decimal(
             str(
@@ -86,7 +86,7 @@ class RewardFraudDetectionService:
                 risk_score=risk_score,
                 reasons=reasons,
             )
-        
+
         recent_reviews = (
             Review.objects
             .filter(
@@ -109,10 +109,9 @@ class RewardFraudDetectionService:
             risk_score=risk_score,
             reasons=reasons,
         )
-        
 
-        
 
-        
 
-        
+
+
+

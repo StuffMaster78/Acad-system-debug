@@ -6,7 +6,7 @@ from typing import Any
 from django.db import transaction
 from django.utils import timezone
 
-from writer_compensation.enums.compensation_enums import (   # unified enum only
+from writer_compensation.enums.compensation_enums import ( # unified enum only
     EventStatus,
     EventType,
     WindowStatus,
@@ -52,7 +52,7 @@ class AdjustmentService:
         separate review step.
 
         Raises:
-            ZeroAmountError  — amount is zero
+            ZeroAmountError — amount is zero
             NoOpenWindowError — no open window exists for this website
         """
         if amount == Decimal("0.00"):
@@ -79,7 +79,7 @@ class AdjustmentService:
         )
 
         # Mature immediately — admin adjustments are pre-approved.
-        event.status   = EventStatus.MATURED
+        event.status = EventStatus.MATURED
         event.metadata = event_metadata
         event.save(update_fields=["status", "metadata"])
 
@@ -112,8 +112,8 @@ class AdjustmentService:
         (over-payment correction).
 
         Raises:
-            ValueError        — closed_window is not PROCESSING or DONE
-            ZeroAmountError   — amount is zero
+            ValueError — closed_window is not PROCESSING or DONE
+            ZeroAmountError — amount is zero
             NoOpenWindowError — no open window exists
         """
         if amount == Decimal("0.00"):

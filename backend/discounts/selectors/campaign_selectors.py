@@ -115,7 +115,7 @@ class CampaignSelector:
                 Decimal("0.00"),
             ),
         )
-    
+
 
     @classmethod
     def list_public_calendar_campaigns(

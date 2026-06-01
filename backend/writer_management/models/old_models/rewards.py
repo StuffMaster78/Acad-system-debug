@@ -4,7 +4,7 @@ from writer_management.models.writer_profile import WriterProfile
 
 
 class WriterRewardManager(models.Manager):
-    def create(self, **kwargs):  # type: ignore[override]
+    def create(self, **kwargs): # type: ignore[override]
         writer = kwargs.get('writer')
         if kwargs.get('website') is None and writer is not None:
             try:
@@ -35,8 +35,8 @@ class WriterReward(models.Model):
     awarded_date = models.DateTimeField(default=now, help_text="Date the reward was given.")
     prize = models.CharField(max_length=255, blank=True, null=True, help_text="Prize or benefit (e.g., 'Bonus $50').")
     notes = models.TextField(blank=True, null=True, help_text="Additional notes about the reward.")
-    metadata = models.JSONField(default=dict, blank=True)  # For backward compatibility
-    created_at = models.DateTimeField(default=now)  # For backward compatibility
+    metadata = models.JSONField(default=dict, blank=True) # For backward compatibility
+    created_at = models.DateTimeField(default=now) # For backward compatibility
 
     objects = WriterRewardManager()
 
@@ -89,4 +89,3 @@ class WriterRewardCriteria(models.Model):
 
     def __str__(self):
         return f"Reward Criteria: {self.name} (Auto: {self.auto_reward_enabled})"
-    

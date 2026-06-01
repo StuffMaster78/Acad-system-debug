@@ -8,12 +8,12 @@ from orders.serializers.orders import OrderSerializer
 
 class OrderTemplateSerializer(serializers.ModelSerializer):
     """Serializer for order templates."""
-    
+
     paper_type_name = serializers.CharField(source='paper_type.name', read_only=True)
     academic_level_name = serializers.CharField(source='academic_level.name', read_only=True)
     subject_name = serializers.CharField(source='subject.name', read_only=True)
     client_username = serializers.CharField(source='client.username', read_only=True)
-    
+
     class Meta:
         model = OrderTemplate
         fields = [
@@ -28,7 +28,7 @@ class OrderTemplateSerializer(serializers.ModelSerializer):
 
 class OrderTemplateCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating order templates."""
-    
+
     class Meta:
         model = OrderTemplate
         fields = [
@@ -40,7 +40,7 @@ class OrderTemplateCreateSerializer(serializers.ModelSerializer):
 
 class OrderFromTemplateSerializer(serializers.Serializer):
     """Serializer for creating order from template."""
-    
+
     template_id = serializers.IntegerField()
     client_deadline = serializers.DateTimeField(required=False)
     writer_deadline = serializers.DateTimeField(required=False)

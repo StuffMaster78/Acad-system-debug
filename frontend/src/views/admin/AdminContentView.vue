@@ -545,7 +545,7 @@ import {
 
 const TABS = [
   { key: "legal" as const, label: "Legal documents" },
-  { key: "help"  as const, label: "Help center" },
+  { key: "help" as const, label: "Help center" },
   { key: "pages" as const, label: "Static pages" },
 ];
 const tab = ref<"legal" | "help" | "pages">("legal");
@@ -749,11 +749,11 @@ function fmtDate(v: string) {
 }
 
 // ── Static pages ─────────────────────────────────────────────────────────────
-const pages            = ref<SeoPageRecord[]>([]);
-const isLoadingPages   = ref(false);
-const editingPage      = ref<(Partial<SeoPageRecord> & { body_html: string }) | null>(null);
-const isSavingPage     = ref(false);
-const pageSaveError    = ref("");
+const pages = ref<SeoPageRecord[]>([]);
+const isLoadingPages = ref(false);
+const editingPage = ref<(Partial<SeoPageRecord> & { body_html: string }) | null>(null);
+const isSavingPage = ref(false);
+const pageSaveError = ref("");
 
 // Extract HTML body from the first paragraph block
 function extractBody(page: SeoPageRecord): string {

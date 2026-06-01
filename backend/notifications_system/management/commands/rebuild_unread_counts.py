@@ -97,15 +97,15 @@ class Command(BaseCommand):
 
         if website_id:
             meta_qs = meta_qs.filter(website_id=website_id)
-            self.stdout.write(f"  Scoped to website_id={website_id}")
+            self.stdout.write(f" Scoped to website_id={website_id}")
 
         if user_id:
             meta_qs = meta_qs.filter(user_id=user_id)
-            self.stdout.write(f"  Scoped to user_id={user_id}")
+            self.stdout.write(f" Scoped to user_id={user_id}")
 
         total = meta_qs.count()
         self.stdout.write(
-            f"  Checking {total} UserNotificationMeta row(s)...\n"
+            f" Checking {total} UserNotificationMeta row(s)...\n"
         )
 
         # --- Process in batches
@@ -135,7 +135,7 @@ class Command(BaseCommand):
                         already_correct += 1
                         if include_correct:
                             self.stdout.write(
-                                f"  OK      user={meta.user_id} "
+                                f" OK user={meta.user_id} "
                                 f"website={meta.website_id} "
                                 f"count={actual_count}"
                             )
@@ -144,7 +144,7 @@ class Command(BaseCommand):
                     # Count is wrong
                     self.stdout.write(
                         self.style.WARNING(
-                            f"  DRIFT   user={meta.user_id} "
+                            f" DRIFT user={meta.user_id} "
                             f"website={meta.website_id} "
                             f"cached={meta.unread_count} "
                             f"actual={actual_count}"
@@ -168,7 +168,7 @@ class Command(BaseCommand):
                     )
                     self.stdout.write(
                         self.style.ERROR(
-                            f"  ERROR   user={meta.user_id} "
+                            f" ERROR user={meta.user_id} "
                             f"website={meta.website_id}: {exc}"
                         )
                     )
@@ -178,7 +178,7 @@ class Command(BaseCommand):
             # Progress indicator for large datasets
             if total > batch_size:
                 self.stdout.write(
-                    f"  ... processed {min(offset, total)}/{total}",
+                    f" ... processed {min(offset, total)}/{total}",
                     ending='\r',
                 )
 
@@ -191,36 +191,36 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.WARNING(
                     f"\n[DRY RUN] Summary:\n"
-                    f"  Checked:         {checked}\n"
-                    f"  Already correct: {already_correct}\n"
-                    f"  Would update:    {drift_count}\n"
-                    f"  Errors:          {errors}\n"
+                    f" Checked: {checked}\n"
+                    f" Already correct: {already_correct}\n"
+                    f" Would update: {drift_count}\n"
+                    f" Errors: {errors}\n"
                 )
             )
             if drift_count > 0:
                 self.stdout.write(
-                    "  Run without --dry-run to fix these counts.\n"
+                    " Run without --dry-run to fix these counts.\n"
                 )
             else:
                 self.stdout.write(
                     self.style.SUCCESS(
-                        "  All counts are correct. No updates needed.\n"
+                        " All counts are correct. No updates needed.\n"
                     )
                 )
         else:
             self.stdout.write(
                 self.style.SUCCESS(
                     f"\nDone:\n"
-                    f"  Checked:         {checked}\n"
-                    f"  Already correct: {already_correct}\n"
-                    f"  Updated:         {updated}\n"
-                    f"  Errors:          {errors}\n"
+                    f" Checked: {checked}\n"
+                    f" Already correct: {already_correct}\n"
+                    f" Updated: {updated}\n"
+                    f" Errors: {errors}\n"
                 )
             )
             if errors:
                 self.stdout.write(
                     self.style.WARNING(
-                        f"  {errors} error(s) occurred. "
+                        f" {errors} error(s) occurred. "
                         f"Check logs for details.\n"
                     )
                 )

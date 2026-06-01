@@ -8,7 +8,7 @@ from .views import (
     OrderDisputeViewSet, DisputeMessageViewSet
 )
 
-# 📌 **Initialize Router for ViewSets**
+# **Initialize Router for ViewSets**
 router = DefaultRouter()
 router.register(r"support-profiles", SupportProfileViewSet, basename="support-profile")
 router.register(r"notifications", SupportNotificationViewSet, basename="support-notifications")
@@ -22,16 +22,16 @@ router.register(r"dashboard", SupportDashboardViewSet, basename="support-dashboa
 router.register(r"disputes", OrderDisputeViewSet, basename="order-dispute")
 router.register(r"dispute-messages", DisputeMessageViewSet, basename="dispute-message")
 
-# 📌 **Define API URL Patterns**
+# **Define API URL Patterns**
 urlpatterns = [
     path("", include(router.urls)),
 
     # Auto-generated schema
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
-    
+
     # Swagger UI
     path("swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    
+
     # ReDoc UI
     path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]

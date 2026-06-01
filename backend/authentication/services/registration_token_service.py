@@ -62,7 +62,7 @@ class RegistrationTokenService:
         ).delete()
 
         raw_token, token_hash = TokenService.generate_hashed_token()
-        
+
         token = RegistrationToken.objects.create(
             user=self.user,
             website=self.website,
@@ -75,11 +75,11 @@ class RegistrationTokenService:
         )
 
         # AuthNotificationBridgeService.send_registration_verification_notification(
-        #     user=self.user,
-        #     website=self.website,
-        #     verification_link=verification_link,
-        #     raw_token=raw_token,
-        #     expiry_minutes=service.OTP_EXPIRY_MINUTES,
+        # user=self.user,
+        # website=self.website,
+        # verification_link=verification_link,
+        # raw_token=raw_token,
+        # expiry_minutes=service.OTP_EXPIRY_MINUTES,
         # )
 
         return token, raw_token
@@ -215,7 +215,7 @@ class RegistrationTokenService:
         Has a raw registration token.
         """
         return TokenService.hash_value(raw_token)
-    
+
     def _build_verification_link(self, raw_token: str) -> str:
         """
         Build the frontend verification link.
@@ -256,7 +256,7 @@ class RegistrationTokenService:
 
         return token, raw_token, raw_otp, verification_link
 
-    
+
     @classmethod
     def request_registration_verification(
         cls,
@@ -285,7 +285,7 @@ class RegistrationTokenService:
             "success": True,
             "token_id": token.pk,
         }
-    
+
     @classmethod
     def resend_registration_verification(
         cls,

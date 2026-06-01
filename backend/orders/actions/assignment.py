@@ -15,14 +15,14 @@ class OrderAssignmentAction(BaseOrderAction):
         writer_id = self.params.get('writer_id')
         if not writer_id:
             raise ValueError("writer_id is required for assign_order action")
-        
+
         reason = self.params.get('reason', 'Assigned by admin')
         writer_payment_amount = self.params.get('writer_payment_amount')
-        
+
         # Initialize service with order and set actor for admin override
         service = OrderAssignmentService(self.order)
-        service.actor = self.user  # Set actor so admin/support can override constraints
-        
+        service.actor = self.user # Set actor so admin/support can override constraints
+
         result = service.assign_writer(
             writer_id=writer_id,
             reason=reason,
@@ -54,7 +54,7 @@ class OrderAssignmentAction(BaseOrderAction):
                 else:
                     # Fallback: convert to string
                     sanitized_params[key] = str(value)
-        
+
         AuditLogService.log_auto(
             actor=self.user,
             action="ASSIGN",

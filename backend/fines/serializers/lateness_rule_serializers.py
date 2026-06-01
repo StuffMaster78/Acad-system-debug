@@ -13,7 +13,7 @@ class LatenessFineRuleSerializer(serializers.ModelSerializer):
     website_domain = serializers.CharField(source='website.domain', read_only=True)
     created_by_username = serializers.CharField(source='created_by.username', read_only=True)
     is_active_now = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = LatenessFineRule
         fields = [
@@ -26,11 +26,11 @@ class LatenessFineRuleSerializer(serializers.ModelSerializer):
             'is_active_now'
         ]
         read_only_fields = ('created_at', 'updated_at', 'created_by')
-    
+
     def get_is_active_now(self, obj):
         """Check if rule is currently active."""
         return obj.is_active()
-    
+
     def validate(self, data):
         """Validate that percentages are reasonable."""
         if data.get('first_hour_percentage', 0) < 0:

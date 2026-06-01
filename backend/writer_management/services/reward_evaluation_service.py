@@ -29,9 +29,9 @@ grant_manual(writer, criteria, granted_by, notes)
 
 EVALUATION PERIOD DISPATCH
 ---------------------------
-weekly   → reads WriterPerformanceMetrics  (week_start = last Monday)
-monthly  → reads WriterPerformanceSnapshot (period = last calendar month)
-lifetime → reads WriterPerformance         (all-time totals)
+weekly → reads WriterPerformanceMetrics (week_start = last Monday)
+monthly → reads WriterPerformanceSnapshot (period = last calendar month)
+lifetime → reads WriterPerformance (all-time totals)
 
 TOP vs ALL
 ----------
@@ -62,14 +62,14 @@ exists for this writer + criteria + period. If yes, skip.
 DEPENDENCIES
 ------------
 Reads from:
-    WriterRewardCriteria        (writer_management)
-    WriterPerformanceMetrics    (writer_management)
-    WriterPerformanceSnapshot   (writer_management)
-    WriterPerformance           (writer_management)
-    WriterReward                (writer_management)
+    WriterRewardCriteria (writer_management)
+    WriterPerformanceMetrics (writer_management)
+    WriterPerformanceSnapshot (writer_management)
+    WriterPerformance (writer_management)
+    WriterReward (writer_management)
 
 Writes to:
-    WriterReward                (writer_management)
+    WriterReward (writer_management)
 
 Calls:
     writer_compensation.services.bonus_service.BonusService.credit()
@@ -108,10 +108,10 @@ class RewardEvaluationService:
 
         Returns:
             {
-                'evaluated': int,   — criteria rows processed
-                'granted': int,     — total rewards granted
-                'skipped': int,     — already awarded, skipped
-                'errors': int,      — criteria that raised exceptions
+                'evaluated': int, — criteria rows processed
+                'granted': int, — total rewards granted
+                'skipped': int, — already awarded, skipped
+                'errors': int, — criteria that raised exceptions
             }
         """
         criteria_qs = WriterRewardCriteria.objects.filter(
@@ -226,10 +226,10 @@ class RewardEvaluationService:
         Does check for duplicate awards in the current period.
 
         Args:
-            writer:     WriterProfile.
-            criteria:   WriterRewardCriteria to grant against.
+            writer: WriterProfile.
+            criteria: WriterRewardCriteria to grant against.
             granted_by: Admin User performing the grant.
-            notes:      Reason for manual grant.
+            notes: Reason for manual grant.
 
         Returns:
             WriterReward instance.
@@ -280,8 +280,8 @@ class RewardEvaluationService:
         """
         Resolve the evaluation period dates for a criteria.
 
-        weekly   → last full Monday–Sunday week
-        monthly  → last full calendar month
+        weekly → last full Monday–Sunday week
+        monthly → last full calendar month
         lifetime → beginning of time to today
         """
         today = now().date()
@@ -450,28 +450,28 @@ class RewardEvaluationService:
         field_map = {
             "weekly": {
                 "completed": "total_orders_completed",
-                "rating":    "avg_rating",
-                "earnings":  "total_earnings",
-                "score":     "composite_score",
-                "lateness":  "lateness_rate",
-                "revision":  "revision_rate",
+                "rating": "avg_rating",
+                "earnings": "total_earnings",
+                "score": "composite_score",
+                "lateness": "lateness_rate",
+                "revision": "revision_rate",
             },
             "monthly": {
                 "completed": "completed_orders",
-                "rating":    "average_rating",
-                "earnings":  "amount_paid",
-                "score":     "composite_score",
+                "rating": "average_rating",
+                "earnings": "amount_paid",
+                "score": "composite_score",
                 # monthly rates stored as proportions — convert threshold
-                "lateness":  "lateness_rate",
-                "revision":  "revision_rate",
+                "lateness": "lateness_rate",
+                "revision": "revision_rate",
             },
             "lifetime": {
                 "completed": "completed_orders",
-                "rating":    "average_rating",
-                "earnings":  "total_earnings",
-                "score":     None,   # not available on WriterPerformance
-                "lateness":  None,
-                "revision":  None,
+                "rating": "average_rating",
+                "earnings": "total_earnings",
+                "score": None, # not available on WriterPerformance
+                "lateness": None,
+                "revision": None,
             },
         }
 
@@ -499,7 +499,7 @@ class RewardEvaluationService:
 
         if criteria.max_lateness_rate is not None and fm["lateness"]:
             # Monthly: stored as proportion (0.0–1.0)
-            # Weekly:  stored as percentage (0–100)
+            # Weekly: stored as percentage (0–100)
             threshold = (
                 criteria.max_lateness_rate / 100
                 if period == "monthly"
@@ -660,7 +660,7 @@ class RewardEvaluationService:
                 criteria.prize_amount,
                 exc,
             )
-            raise  # Rolls back the entire grant transaction
+            raise # Rolls back the entire grant transaction
 
     # ----------------------------------------------------------------
     # NOTIFICATION

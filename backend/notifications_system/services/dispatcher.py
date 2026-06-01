@@ -67,16 +67,16 @@ class NotificationDispatcher:
         per-channel delivery tasks.
 
         Args:
-            event_key:    Event key e.g. 'order.completed'
-            recipient:    User receiving the notification
-            website:      Website instance for tenant scoping
-            context:      Template context variables
-            channels:     Channels resolved by NotificationService
+            event_key: Event key e.g. 'order.completed'
+            recipient: User receiving the notification
+            website: Website instance for tenant scoping
+            context: Template context variables
+            channels: Channels resolved by NotificationService
             triggered_by: User who caused the event — None means system
-            priority:     NotificationPriority value
-            is_critical:  If True bypasses mute, DND, and cooldown
-            is_silent:    Create record only — skip all delivery
-            is_digest:    Group into digest batch — skip immediate delivery
+            priority: NotificationPriority value
+            is_critical: If True bypasses mute, DND, and cooldown
+            is_silent: Create record only — skip all delivery
+            is_digest: Group into digest batch — skip immediate delivery
             digest_group: Digest group key e.g. 'daily_summary'
 
         Returns:
@@ -241,9 +241,9 @@ class NotificationDispatcher:
 
         Args:
             notification: Parent Notification instance
-            channel:      Channel string e.g. 'email', 'in_app'
-            context:      Template context variables
-            priority:     Delivery priority
+            channel: Channel string e.g. 'email', 'in_app'
+            context: Template context variables
+            priority: Delivery priority
         """
         from notifications_system.models.delivery import Delivery
         from notifications_system.services.template_service import TemplateService
@@ -289,7 +289,7 @@ class NotificationDispatcher:
             user=notification.user,
             website=notification.website,
             notification=notification,
-            channel=channel,              # single string — not a list
+            channel=channel, # single string — not a list
             priority=priority,
             payload=context,
             rendered=rendered,

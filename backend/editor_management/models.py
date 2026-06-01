@@ -4,7 +4,7 @@ from django.conf import settings
 from websites.models.websites import Website
 from orders.models.orders import Order
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 class EditorProfile(models.Model):
@@ -62,7 +62,7 @@ class EditorProfile(models.Model):
         default=0,
         help_text="Total number of orders reviewed by the editor."
     )
-    
+
     # Editor preferences/settings
     can_self_assign = models.BooleanField(
         default=True,
@@ -72,7 +72,7 @@ class EditorProfile(models.Model):
         default=5,
         help_text="Maximum number of concurrent editing tasks."
     )
-    
+
     # Expertise areas (optional - for auto-assignment)
     expertise_subjects = models.ManyToManyField(
         'order_configs.Subject',
@@ -89,14 +89,14 @@ class EditorProfile(models.Model):
 
     def __str__(self):
         return f"{self.name} (Editor Profile: {self.user.username}, {self.registration_id})"
-    
+
     def get_active_tasks_count(self):
         """Get count of currently active editing tasks."""
         return EditorTaskAssignment.objects.filter(
             assigned_editor=self,
             review_status__in=["pending", "in_review"]
         ).count()
-    
+
     def can_take_more_tasks(self):
         """Check if editor can take more tasks."""
         return self.get_active_tasks_count() < self.max_concurrent_tasks
@@ -111,7 +111,7 @@ class EditorTaskAssignment(models.Model):
         ("manual", "Manually Assigned"),
         ("claimed", "Self-Claimed"),
     ]
-    
+
     order = models.OneToOneField(
         Order,
         on_delete=models.CASCADE,
@@ -182,7 +182,7 @@ class EditorTaskAssignment(models.Model):
         blank=True,
         help_text="Quality rating given by admin/superadmin (1-5)."
     )
-    
+
     class Meta:
         ordering = ["-assigned_at"]
         indexes = [
@@ -194,7 +194,7 @@ class EditorTaskAssignment(models.Model):
     def __str__(self):
         editor_name = self.assigned_editor.name if self.assigned_editor else "Unassigned"
         return f"Task {self.order.id} - {editor_name} ({self.review_status})"
-    
+
     def start_review(self):
         """Mark task as in review and record start time."""
         if self.review_status not in ["pending", "unclaimed"]:
@@ -203,7 +203,7 @@ class EditorTaskAssignment(models.Model):
         if not self.started_at:
             self.started_at = now()
         self.save(update_fields=["review_status", "started_at"])
-    
+
     def complete_review(self):
         """Mark task as completed."""
         if self.review_status != "in_review":
@@ -241,7 +241,7 @@ class EditorReviewSubmission(models.Model):
         related_name="editor_reviews",
         help_text="Order that was reviewed."
     )
-    
+
     # Review details
     quality_score = models.DecimalField(
         max_digits=3,
@@ -274,14 +274,14 @@ class EditorReviewSubmission(models.Model):
         blank=True,
         help_text="Notes for writer if revision is required."
     )
-    
+
     # File attachments (optional)
     edited_files = models.JSONField(
         default=list,
         blank=True,
         help_text="List of file IDs that were edited/reviewed."
     )
-    
+
     submitted_at = models.DateTimeField(
         auto_now_add=True,
         help_text="When this review was submitted."
@@ -290,10 +290,10 @@ class EditorReviewSubmission(models.Model):
         auto_now=True,
         help_text="Last update time."
     )
-    
+
     class Meta:
         ordering = ["-submitted_at"]
-    
+
     def __str__(self):
         status = "Approved" if self.is_approved else "Revision Required"
         return f"Review for Order {self.order.id} by {self.editor.name} - {status}"
@@ -311,7 +311,7 @@ class EditorActionLog(models.Model):
         ("rejected_task", "Rejected Task"),
         ("unclaimed_task", "Unclaimed Task"),
     ]
-    
+
     editor = models.ForeignKey(
         EditorProfile,
         on_delete=models.CASCADE,
@@ -465,7 +465,7 @@ class EditorNotification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.editor.name}: {self.message[:30]}"
-    
+
     def mark_as_read(self):
         """Mark notification as read."""
         self.is_read = True

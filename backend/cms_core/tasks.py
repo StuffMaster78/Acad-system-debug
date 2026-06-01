@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 @shared_task(bind=True, max_retries=2)
 def post_publish_audit(self, page_id: int):
     """
-    Run 2 hours after page publication.  Checks:
+    Run 2 hours after page publication. Checks:
     1. Page is live and accessible
     2. SEO metadata is complete (title, description, canonical)
     3. All internal links resolve to live pages
@@ -32,7 +32,7 @@ def post_publish_audit(self, page_id: int):
     6. Page appears in sitemap
     7. No validator blockers crept in (re-run validators)
 
-    Findings are logged.  Critical issues create a FreshnessAlert
+    Findings are logged. Critical issues create a FreshnessAlert
     (via cms_intelligence) so the editor sees them in the dashboard.
     """
     from wagtail.models import Page
@@ -122,11 +122,11 @@ def post_publish_audit(self, page_id: int):
     # --- Report findings ---
     if issues:
         logger.warning(
-            "Post-publish audit for '%s' (id=%s) found %d issues:\n  %s",
+            "Post-publish audit for '%s' (id=%s) found %d issues:\n %s",
             page.title,
             page_id,
             len(issues),
-            "\n  ".join(issues),
+            "\n ".join(issues),
         )
 
         # Create a FreshnessAlert if cms_intelligence is available
@@ -136,7 +136,7 @@ def post_publish_audit(self, page_id: int):
             logger.debug("Could not create FreshnessAlert: %s", exc)
     else:
         logger.info(
-            "Post-publish audit for '%s' (id=%s): all checks passed ✓",
+            "Post-publish audit for '%s' (id=%s): all checks passed ",
             page.title,
             page_id,
         )
@@ -176,7 +176,7 @@ def _create_audit_alert(page, issues: list[str]):
             "issues": issues,
             "audit_timestamp": timezone.now().isoformat(),
         }
-        existing.severity = min(4, 2 + len(issues))  # Scale severity with issue count
+        existing.severity = min(4, 2 + len(issues)) # Scale severity with issue count
         existing.save(update_fields=["detail", "severity"])
         return
 
@@ -238,11 +238,11 @@ def tenant_health_check():
 
     if issues:
         logger.warning(
-            "Tenant health check found %d issues:\n  %s",
+            "Tenant health check found %d issues:\n %s",
             len(issues),
-            "\n  ".join(issues),
+            "\n ".join(issues),
         )
     else:
-        logger.info("Tenant health check: all %d tenants healthy ✓", Site.objects.count())
+        logger.info("Tenant health check: all %d tenants healthy ", Site.objects.count())
 
     return {"issues": issues, "tenant_count": Site.objects.count()}

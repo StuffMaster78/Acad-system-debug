@@ -8,18 +8,18 @@ from .models import SeoPage
 @admin.register(SeoPage)
 class SeoPageAdmin(admin.ModelAdmin):
     """Admin interface for SEO Pages."""
-    
+
     list_display = [
-        'title', 'slug', 'website', 'is_published', 
+        'title', 'slug', 'website', 'is_published',
         'publish_date', 'created_at', 'updated_at'
     ]
     list_filter = [
-        'website', 'is_published', 'is_deleted', 
+        'website', 'is_published', 'is_deleted',
         'publish_date', 'created_at'
     ]
     search_fields = ['title', 'slug', 'meta_title', 'meta_description']
     readonly_fields = ['created_at', 'updated_at', 'created_by', 'updated_by']
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('website', 'title', 'slug')
@@ -43,12 +43,12 @@ class SeoPageAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
     def get_queryset(self, request):
         """Optimize queryset with select_related."""
         qs = super().get_queryset(request)
         return qs.select_related('website', 'created_by', 'updated_by')
-    
+
     def save_model(self, request, obj, form, change):
         """Set created_by/updated_by automatically."""
         if not change:

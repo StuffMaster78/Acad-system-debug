@@ -16,7 +16,7 @@ def mark_overdue_installments():
     now = timezone.now()
 
     installments = ClassPaymentSelector.overdue_installments(
-        website=None,  # loop per tenant later if needed
+        website=None, # loop per tenant later if needed
     )
 
     for installment in installments:

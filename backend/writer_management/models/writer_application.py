@@ -59,11 +59,11 @@ class WriterApplication(models.Model):
     """
 
     class Status(models.TextChoices):
-        PENDING      = "pending",      "Pending"
+        PENDING = "pending", "Pending"
         UNDER_REVIEW = "under_review", "Under Review"
-        APPROVED     = "approved",     "Approved"
-        REJECTED     = "rejected",     "Rejected"
-        WITHDRAWN    = "withdrawn",    "Withdrawn"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+        WITHDRAWN = "withdrawn", "Withdrawn"
 
     website = models.ForeignKey(
         "websites.Website",

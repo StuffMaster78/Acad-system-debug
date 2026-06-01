@@ -84,7 +84,7 @@ class Command(BaseCommand):
 
                 if not writer_profiles.exists():
                     self.stdout.write(
-                        f'  ⚠ No writers found for {website.name}. Skipping.'
+                        f' No writers found for {website.name}. Skipping.'
                     )
                     continue
 
@@ -125,9 +125,9 @@ class Command(BaseCommand):
 
                 # Payment amount ranges (base payment)
                 base_amount_ranges = [
-                    (Decimal('50.00'), Decimal('150.00')),   # Small orders
+                    (Decimal('50.00'), Decimal('150.00')), # Small orders
                     (Decimal('150.00'), Decimal('300.00')), # Medium orders
-                    (Decimal('300.00'), Decimal('500.00')),  # Large orders
+                    (Decimal('300.00'), Decimal('500.00')), # Large orders
                     (Decimal('500.00'), Decimal('1000.00')), # Very large orders
                 ]
 
@@ -161,9 +161,9 @@ class Command(BaseCommand):
                         rand = random.random()
                         order = None
                         payment_status = None
-                        
+
                         # Determine order and payment status based on order state
-                        if rand < 0.40 and completed_orders.exists():  # 40% completed orders -> Paid
+                        if rand < 0.40 and completed_orders.exists(): # 40% completed orders -> Paid
                             # Find an order assigned to this writer
                             writer_orders = [o for o in completed_orders if o.assigned_writer == writer_profile.user]
                             if writer_orders:
@@ -175,9 +175,9 @@ class Command(BaseCommand):
                                     user=order.assigned_writer,
                                     website=website
                                 )
-                            payment_status = 'Paid'  # Completed payments
+                            payment_status = 'Paid' # Completed payments
 
-                        elif rand < 0.65 and in_progress_orders.exists():  # 25% in-progress orders -> Pending (upcoming)
+                        elif rand < 0.65 and in_progress_orders.exists(): # 25% in-progress orders -> Pending (upcoming)
                             writer_orders = [o for o in in_progress_orders if o.assigned_writer == writer_profile.user]
                             if writer_orders:
                                 order = random.choice(writer_orders)
@@ -187,9 +187,9 @@ class Command(BaseCommand):
                                     user=order.assigned_writer,
                                     website=website
                                 )
-                            payment_status = 'Pending'  # Upcoming payments
+                            payment_status = 'Pending' # Upcoming payments
 
-                        elif rand < 0.80 and delayed_orders.exists():  # 15% revision/disputed orders -> Delayed (processing)
+                        elif rand < 0.80 and delayed_orders.exists(): # 15% revision/disputed orders -> Delayed (processing)
                             writer_orders = [o for o in delayed_orders if o.assigned_writer == writer_profile.user]
                             if writer_orders:
                                 order = random.choice(writer_orders)
@@ -199,9 +199,9 @@ class Command(BaseCommand):
                                     user=order.assigned_writer,
                                     website=website
                                 )
-                            payment_status = 'Delayed'  # Processing payments
+                            payment_status = 'Delayed' # Processing payments
 
-                        elif rand < 0.85 and cancelled_orders.exists():  # 5% cancelled orders -> Blocked
+                        elif rand < 0.85 and cancelled_orders.exists(): # 5% cancelled orders -> Blocked
                             writer_orders = [o for o in cancelled_orders if o.assigned_writer == writer_profile.user]
                             if writer_orders:
                                 order = random.choice(writer_orders)
@@ -211,9 +211,9 @@ class Command(BaseCommand):
                                     user=order.assigned_writer,
                                     website=website
                                 )
-                            payment_status = 'Blocked'  # Blocked payments
+                            payment_status = 'Blocked' # Blocked payments
 
-                        elif rand < 0.70 and completed_orders.exists():  # Fallback to completed orders
+                        elif rand < 0.70 and completed_orders.exists(): # Fallback to completed orders
                             writer_orders = [o for o in completed_orders if o.assigned_writer == writer_profile.user]
                             if writer_orders:
                                 order = random.choice(writer_orders)
@@ -253,7 +253,7 @@ class Command(BaseCommand):
                             elif random.random() < 0.30:
                                 tips = Decimal(str(random.uniform(5.00, 50.00))).quantize(Decimal('0.01'))
 
-                        elif rand < 0.85 and special_orders.exists():  # 15% special order-based
+                        elif rand < 0.85 and special_orders.exists(): # 15% special order-based
                             special_order = random.choice(special_orders)
                             # SpecialOrder uses 'writer' field (User, not WriterProfile)
                             if special_order.writer:
@@ -273,7 +273,7 @@ class Command(BaseCommand):
                             if random.random() < 0.50:
                                 bonuses = Decimal(str(random.uniform(25.00, 100.00))).quantize(Decimal('0.01'))
 
-                        else:  # 15% standalone payments (no order)
+                        else: # 15% standalone payments (no order)
                             # Base amount
                             amount_range = random.choice(base_amount_ranges)
                             base_amount = Decimal(str(random.uniform(float(amount_range[0]), float(amount_range[1]))))
@@ -289,7 +289,7 @@ class Command(BaseCommand):
 
                         # Calculate total amount
                         total_amount = base_amount + bonuses + tips - fines
-                        total_amount = max(total_amount, Decimal('0.00'))  # Ensure non-negative
+                        total_amount = max(total_amount, Decimal('0.00')) # Ensure non-negative
 
                         # Use payment status determined from order state, or fallback to distribution
                         if payment_status:
@@ -308,7 +308,7 @@ class Command(BaseCommand):
                         # Set processed_at based on status
                         processed_at = None
                         transaction_reference = None
-                        
+
                         if status == 'Paid':
                             # Completed payments: processed in the past
                             processed_at = timezone.now() - timedelta(days=random.randint(1, 90))
@@ -371,7 +371,7 @@ class Command(BaseCommand):
                             status_category = "[BLOCKED]"
 
                         self.stdout.write(
-                            f'  ✓ Created payment #{payment.pk} | '
+                            f' Created payment #{payment.pk} | '
                             f'{writer_profile.user.email} | ${total_amount} | '
                             f'{status_category} {status} | Base: ${base_amount} | '
                             f'Bonuses: ${bonuses} | Tips: ${tips} | Fines: ${fines}{entity_info}'
@@ -380,18 +380,18 @@ class Command(BaseCommand):
                     except Exception as e:
                         self.stdout.write(
                             self.style.WARNING(
-                                f'  ⚠ Failed to create payment: {str(e)}'
+                                f' Failed to create payment: {str(e)}'
                             )
                         )
                         continue
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'\n✓ Successfully created:\n'
-                    f'  - {total_created} total payments\n'
-                    f'  - {total_paid} paid payments\n'
-                    f'  - {total_pending} pending payments\n'
-                    f'  - {total_delayed} delayed payments\n'
-                    f'  - {total_blocked} blocked payments'
+                    f'\n Successfully created:\n'
+                    f' - {total_created} total payments\n'
+                    f' - {total_paid} paid payments\n'
+                    f' - {total_pending} pending payments\n'
+                    f' - {total_delayed} delayed payments\n'
+                    f' - {total_blocked} blocked payments'
                 )
             )

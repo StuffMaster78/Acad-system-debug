@@ -196,7 +196,7 @@ async function confirmReject(orderId: number, bidId: number) {
                     <button
                       class="rounded border border-slate-200 px-2 py-1 text-xs text-graphite hover:text-ink"
                       @click="rejectingBidId = null"
-                    >✕</button>
+                    ></button>
                   </div>
                 </div>
                 <button

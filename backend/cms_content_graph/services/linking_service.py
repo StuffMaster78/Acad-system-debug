@@ -327,7 +327,7 @@ class InternalLinkingService:
             if not emb.embedding:
                 continue
             sim = cosine_sim(source_vec, emb.embedding)
-            if sim > 0.6:  # threshold
+            if sim > 0.6: # threshold
                 scored.append((emb.object_id, sim))
 
         scored.sort(key=lambda x: -x[1])

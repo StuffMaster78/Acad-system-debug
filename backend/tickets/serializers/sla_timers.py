@@ -13,7 +13,7 @@ class TicketSLASerializer(serializers.ModelSerializer):
     first_response_time_remaining = serializers.SerializerMethodField()
     is_urgent = serializers.SerializerMethodField()
     is_overdue = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = TicketSLA
         fields = [
@@ -29,22 +29,22 @@ class TicketSLASerializer(serializers.ModelSerializer):
             'id', 'created_at', 'first_response_at', 'resolved_at',
             'first_response_breached', 'resolution_breached'
         ]
-    
+
     def get_time_remaining(self, obj):
         """Get time remaining until resolution deadline."""
         return obj.get_time_remaining()
-    
+
     def get_first_response_time_remaining(self, obj):
         """Get time remaining until first response deadline."""
         return obj.get_first_response_time_remaining()
-    
+
     def get_is_urgent(self, obj):
         """Check if SLA is urgent (less than 1 hour remaining)."""
         time_remaining = obj.get_time_remaining()
         if time_remaining:
             return time_remaining.get('is_urgent', False)
         return False
-    
+
     def get_is_overdue(self, obj):
         """Check if SLA is overdue."""
         time_remaining = obj.get_time_remaining()
@@ -55,7 +55,7 @@ class TicketSLASerializer(serializers.ModelSerializer):
 
 class TicketSLACreateSerializer(serializers.ModelSerializer):
     """Serializer for creating ticket SLA (usually auto-created)."""
-    
+
     class Meta:
         model = TicketSLA
         fields = ['ticket']
@@ -63,10 +63,10 @@ class TicketSLACreateSerializer(serializers.ModelSerializer):
 
 class TicketSLAMarkFirstResponseSerializer(serializers.Serializer):
     """Serializer for marking first response."""
-    pass  # No fields needed, just triggers the action
+    pass # No fields needed, just triggers the action
 
 
 class TicketSLAMarkResolvedSerializer(serializers.Serializer):
     """Serializer for marking ticket as resolved."""
-    pass  # No fields needed, just triggers the action
+    pass # No fields needed, just triggers the action
 

@@ -66,7 +66,7 @@ class OrderApprovalService:
 
         approved_at = timezone.now()
         locked_order.approved_at = approved_at
-    
+
         locked_order.save(
             update_fields=[
                 "approved_at",
@@ -190,12 +190,12 @@ class OrderApprovalService:
         Raises:
             ValidationError:
                 Raised when approval is invalid.
-        """    
+        """
         if order.status != ORDER_STATUS_COMPLETED:
             raise ValidationError(
                 "You can only approve a completed order."
             )
-        
+
         if getattr(order, "completed_at", None) is None:
             raise ValidationError(
                 "Completed orders must have completed_at."

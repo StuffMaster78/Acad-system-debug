@@ -13,9 +13,9 @@ and as fallbacks when no per-level or per-writer override is set.
 # CAPACITY DEFAULTS
 # Used as model field defaults on WriterProfile and WriterCapacity.
 # The live ceiling is resolved by WriterEligibilityService in order:
-#   1. WriterCapacity.override_max_active_orders  (per-writer admin override)
-#   2. WriterLevelSettings.max_active_orders       (per-level default)
-#   3. DEFAULT_MAX_ACTIVE_ORDERS                   (this constant — last resort)
+# 1. WriterCapacity.override_max_active_orders (per-writer admin override)
+# 2. WriterLevelSettings.max_active_orders (per-level default)
+# 3. DEFAULT_MAX_ACTIVE_ORDERS (this constant — last resort)
 # ----------------------------------------------------------------
 
 DEFAULT_MAX_ACTIVE_ORDERS: int = 10
@@ -67,7 +67,7 @@ LEVEL_EVALUATION_SNAPSHOT_COUNT: int = 10
 # REGISTRATION ID GENERATION
 # ----------------------------------------------------------------
 
-import string  # noqa: E402 — kept here for co-location with constants
+import string # noqa: E402 — kept here for co-location with constants
 
 REGISTRATION_ID_CHARS: str = string.ascii_uppercase + string.digits
 REGISTRATION_ID_MAX_RETRIES: int = 10

@@ -108,7 +108,7 @@ class CommunicationThreadService:
         )
 
         return thread
-    
+
 
     @staticmethod
     @transaction.atomic

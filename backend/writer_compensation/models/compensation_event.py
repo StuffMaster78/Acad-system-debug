@@ -30,7 +30,7 @@ class CompensationEvent(models.Model):
     This is the ONLY source of truth for what a writer is owed. It represents
     all writer earnings and deductions before settlement or payout processing.
 
-    Positive amount = earning  (order, tip, bonus, class, special order, advance)
+    Positive amount = earning (order, tip, bonus, class, special order, advance)
     Negative amount = deduction (fine, reversal, advance repayment, dispute)
 
     Rules:

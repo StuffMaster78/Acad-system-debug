@@ -12,7 +12,7 @@ class FineTypeConfigSerializer(serializers.ModelSerializer):
     """
     website_domain = serializers.CharField(source='website.domain', read_only=True, allow_null=True)
     created_by_username = serializers.CharField(source='created_by.username', read_only=True, allow_null=True)
-    
+
     class Meta:
         model = FineTypeConfig
         fields = [
@@ -25,30 +25,30 @@ class FineTypeConfigSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ('created_at', 'updated_at', 'created_by')
-    
+
     def validate(self, data):
         """Validate fine type configuration."""
         calculation_type = data.get('calculation_type', self.instance.calculation_type if self.instance else 'fixed')
-        
+
         if calculation_type == 'fixed':
             if not data.get('fixed_amount') and not (self.instance and self.instance.fixed_amount):
                 raise serializers.ValidationError({
                     'fixed_amount': 'Fixed amount is required for fixed calculation type.'
                 })
-        
+
         elif calculation_type == 'percentage':
             if not data.get('percentage') and not (self.instance and self.instance.percentage):
                 raise serializers.ValidationError({
                     'percentage': 'Percentage is required for percentage calculation type.'
                 })
-        
+
         elif calculation_type == 'progressive_hourly':
             code = data.get('code', self.instance.code if self.instance else None)
             if code != 'late_submission':
                 raise serializers.ValidationError({
                     'calculation_type': 'Progressive hourly only available for late_submission fine type.'
                 })
-        
+
         # Validate min/max
         min_amount = data.get('min_amount')
         max_amount = data.get('max_amount')
@@ -56,17 +56,17 @@ class FineTypeConfigSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'min_amount': 'Min amount cannot be greater than max amount.'
             })
-        
+
         return data
-    
+
     def validate_code(self, value):
         """Validate code is unique per website."""
         queryset = FineTypeConfig.objects.filter(code=value)
-        
+
         # If updating, exclude current instance
         if self.instance:
             queryset = queryset.exclude(pk=self.instance.pk)
-        
+
         # Check if code exists for this website or global
         website = self.initial_data.get('website') or (self.instance.website if self.instance else None)
         if website:
@@ -80,6 +80,6 @@ class FineTypeConfigSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f"Global fine type with code '{value}' already exists."
                 )
-        
+
         return value
 

@@ -24,7 +24,7 @@ class PayoutBatch(models.Model):
     One batch per window (OneToOne). Admin-managed.
 
     Created automatically when a window is CLOSED.
-    total_amount is denormalised and informational only 
+    total_amount is denormalised and informational only
     — the authoritative total is always the sum of
       confirmed PayoutItems.
 

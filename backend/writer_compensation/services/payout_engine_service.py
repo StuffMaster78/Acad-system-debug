@@ -1,11 +1,11 @@
 from __future__ import annotations
- 
+
 from decimal import Decimal
 from typing import Any
- 
+
 from django.db import transaction
 from django.utils import timezone
- 
+
 from writer_compensation.enums.compensation_enums import (
     EventStatus,
     PayoutRecordStatus,
@@ -21,23 +21,23 @@ from writer_compensation.models.payout_record import PayoutRecord
 from writer_compensation.services.wallet_sync_service import (
     CompensationWalletSyncService,
 )
- 
- 
+
+
 class PayoutEngineService:
     """
     Payout intent builder and record state machine.
- 
+
     Rules:
       1. Batch = grouping container (one per window)
       2. Record = payout intent per writer (one per writer per batch)
       3. Never executes money movement
       4. All state transitions are atomic
     """
- 
+
     # ------------------------------------------------------------------
     # Record confirmation
     # ------------------------------------------------------------------
- 
+
     @staticmethod
     @transaction.atomic
     def confirm_record(
@@ -58,18 +58,18 @@ class PayoutEngineService:
             raise InvalidWindowTransitionError(
                 "Window must be PROCESSING to confirm payout records."
             )
- 
+
         record.status = PayoutRecordStatus.CONFIRMED
         record.confirmed_at = timezone.now()
         record.confirmed_by = confirmed_by
         record.save(update_fields=["status", "confirmed_at", "confirmed_by"])
- 
+
         return record
- 
+
     # ------------------------------------------------------------------
     # Mark paid
     # ------------------------------------------------------------------
- 
+
     @staticmethod
     @transaction.atomic
     def mark_record_paid(
@@ -107,23 +107,23 @@ class PayoutEngineService:
             record=record,
             actor=paid_by,
         )
- 
+
         # Stamp underlying events as PAID.
         CompensationEvent.objects.filter(
             writer=record.writer,
-            payment_window=record.batch.payment_window,   
+            payment_window=record.batch.payment_window,
             status=EventStatus.MATURED,
         ).update(status=EventStatus.PAID)
- 
+
         from writer_compensation.signals import payout_record_paid
         payout_record_paid.send(sender=PayoutRecord, record=record)
- 
+
         return record
- 
+
     # ------------------------------------------------------------------
     # Hold
     # ------------------------------------------------------------------
- 
+
     @staticmethod
     @transaction.atomic
     def hold_record(
@@ -139,21 +139,21 @@ class PayoutEngineService:
             raise InvalidPayoutItemTransitionError(
                 f"Record {record.pk} is already PAID and cannot be held."
             )
- 
+
         record.status = PayoutRecordStatus.HELD
         record.hold_reason = reason
         record.save(update_fields=["status", "hold_reason"])
- 
+
         # Generic notification — hold_reason is NEVER shown to the writer.
         from writer_compensation.signals import payout_record_held
         payout_record_held.send(sender=PayoutRecord, record=record)
- 
+
         return record
- 
+
     # ------------------------------------------------------------------
     # Release hold
     # ------------------------------------------------------------------
- 
+
     @staticmethod
     @transaction.atomic
     def release_held_record(
@@ -166,17 +166,17 @@ class PayoutEngineService:
                 f"Record {record.pk} is {record.status}. "
                 "Only HELD records can be released."
             )
- 
+
         record.status = PayoutRecordStatus.PENDING
         record.hold_reason = ""
         record.save(update_fields=["status", "hold_reason"])
- 
+
         return record
- 
+
     # ------------------------------------------------------------------
     # Bulk operations
     # ------------------------------------------------------------------
- 
+
     @staticmethod
     @transaction.atomic
     def bulk_confirm_all(
@@ -191,7 +191,7 @@ class PayoutEngineService:
             raise InvalidWindowTransitionError(
                 "Window must be PROCESSING for bulk confirm."
             )
- 
+
         now = timezone.now()
         count = (
             PayoutRecord.objects
@@ -203,7 +203,7 @@ class PayoutEngineService:
             )
         )
         return count
- 
+
     @staticmethod
     @transaction.atomic
     def bulk_mark_paid(
@@ -219,16 +219,16 @@ class PayoutEngineService:
             raise InvalidWindowTransitionError(
                 "Window must be PROCESSING for bulk pay."
             )
- 
+
         confirmed_records = (
             PayoutRecord.objects
             .filter(batch=batch, status=PayoutRecordStatus.CONFIRMED)
             .select_related("writer")
         )
- 
+
         now = timezone.now()
         count = 0
- 
+
         for record in confirmed_records:
             record.status = PayoutRecordStatus.PAID
             record.paid_at = now
@@ -239,16 +239,16 @@ class PayoutEngineService:
                 record=record,
                 actor=paid_by,
             )
- 
+
             CompensationEvent.objects.filter(
                 writer=record.writer,
-                payment_window=batch.payment_window,   # FIX: was window
-                status=EventStatus.MATURED,            # FIX: was CONFIRMED
+                payment_window=batch.payment_window, # FIX: was window
+                status=EventStatus.MATURED, # FIX: was CONFIRMED
             ).update(status=EventStatus.PAID)
- 
+
             from writer_compensation.signals import payout_record_paid
             payout_record_paid.send(sender=PayoutRecord, record=record)
- 
+
             count += 1
- 
+
         return count

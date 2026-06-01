@@ -88,7 +88,7 @@ class WriterRewardListView(
             )
         )
 
-        
+
         queryset = (
             RewardAPISelectors.reward_queryset()
         )

@@ -68,41 +68,41 @@ from writer_compensation.services.window_service import WindowService
 
 _STATUS_COLOURS: dict[str, tuple[str, str]] = {
     # Window
-    WindowStatus.UPCOMING:   ("5C6BC0", "white"),
-    WindowStatus.OPEN:       ("1B6AAA", "white"),
-    WindowStatus.CLOSED:     ("8B5E0A", "white"),
+    WindowStatus.UPCOMING: ("5C6BC0", "white"),
+    WindowStatus.OPEN: ("1B6AAA", "white"),
+    WindowStatus.CLOSED: ("8B5E0A", "white"),
     WindowStatus.PROCESSING: ("0E6B74", "white"),
-    WindowStatus.DONE:       ("1A5C2A", "white"),
+    WindowStatus.DONE: ("1A5C2A", "white"),
     # Payout record
-    PayoutRecordStatus.PENDING:   ("8B5E0A", "white"),
+    PayoutRecordStatus.PENDING: ("8B5E0A", "white"),
     PayoutRecordStatus.CONFIRMED: ("1B6AAA", "white"),
-    PayoutRecordStatus.PAID:      ("1A5C2A", "white"),
-    PayoutRecordStatus.HELD:      ("B84232", "white"),
-    PayoutRecordStatus.DEFERRED:  ("5C6BC0", "white"),
-    PayoutRecordStatus.FAILED:    ("8B0000", "white"),
+    PayoutRecordStatus.PAID: ("1A5C2A", "white"),
+    PayoutRecordStatus.HELD: ("B84232", "white"),
+    PayoutRecordStatus.DEFERRED: ("5C6BC0", "white"),
+    PayoutRecordStatus.FAILED: ("8B0000", "white"),
     # Advance
-    AdvancePaymentStatus.PENDING:             ("8B5E0A", "white"),
-    AdvancePaymentStatus.APPROVED:            ("1B6AAA", "white"),
-    AdvancePaymentStatus.REJECTED:            ("B84232", "white"),
-    AdvancePaymentStatus.RECOVERED:           ("1A5C2A", "white"),
+    AdvancePaymentStatus.PENDING: ("8B5E0A", "white"),
+    AdvancePaymentStatus.APPROVED: ("1B6AAA", "white"),
+    AdvancePaymentStatus.REJECTED: ("B84232", "white"),
+    AdvancePaymentStatus.RECOVERED: ("1A5C2A", "white"),
     AdvancePaymentStatus.PARTIALLY_RECOVERED: ("0E6B74", "white"),
     # Event
-    EventStatus.PENDING_CONFIRMATION:   ("8B5E0A",  "white"),
-    EventStatus.MATURED:                ("1B6AAA",  "white"),
-    EventStatus.INCLUDED_IN_SETTLEMENT: ("0E6B74",  "white"),
-    EventStatus.PAID:                   ("1A5C2A",  "white"),
-    EventStatus.REVERSED:               ("B84232",  "white"),
-    EventStatus.VOIDED:                 ("555555",  "white"),
-    EventStatus.DISPUTED:               ("8B0000",  "white"),
-    EventStatus.ON_HOLD:                ("8B5E0A",  "white"),
-    EventStatus.DEFERRED:               ("5C6BC0",  "white"),
+    EventStatus.PENDING_CONFIRMATION: ("8B5E0A", "white"),
+    EventStatus.MATURED: ("1B6AAA", "white"),
+    EventStatus.INCLUDED_IN_SETTLEMENT: ("0E6B74", "white"),
+    EventStatus.PAID: ("1A5C2A", "white"),
+    EventStatus.REVERSED: ("B84232", "white"),
+    EventStatus.VOIDED: ("555555", "white"),
+    EventStatus.DISPUTED: ("8B0000", "white"),
+    EventStatus.ON_HOLD: ("8B5E0A", "white"),
+    EventStatus.DEFERRED: ("5C6BC0", "white"),
     # Outbox
-    "PENDING":    ("8B5E0A", "white"),
+    "PENDING": ("8B5E0A", "white"),
     "PROCESSING": ("1B6AAA", "white"),
-    "DONE":       ("1A5C2A", "white"),
-    "DEAD":       ("8B0000", "white"),
+    "DONE": ("1A5C2A", "white"),
+    "DEAD": ("8B0000", "white"),
     # Correction
-    "OPEN":     ("8B5E0A", "white"),
+    "OPEN": ("8B5E0A", "white"),
     "RESOLVED": ("1A5C2A", "white"),
 }
 
@@ -136,49 +136,49 @@ def amount_html(value, positive_is_green: bool = True) -> str:
 # ===========================================================================
 
 class CompensationEventInline(admin.TabularInline):
-    model            = CompensationEvent
-    extra            = 0
-    can_delete       = False
+    model = CompensationEvent
+    extra = 0
+    can_delete = False
     show_change_link = True
-    fields           = ("event_type", "amount", "status", "source_type", "source_id", "created_at")
-    readonly_fields  = fields
+    fields = ("event_type", "amount", "status", "source_type", "source_id", "created_at")
+    readonly_fields = fields
 
 
 class PayoutRecordInline(admin.TabularInline):
-    model            = PayoutRecord
-    extra            = 0
-    can_delete       = False
+    model = PayoutRecord
+    extra = 0
+    can_delete = False
     show_change_link = True
-    fields           = ("writer", "total_amount", "status", "confirmed_at", "paid_at")
-    readonly_fields  = fields
+    fields = ("writer", "total_amount", "status", "confirmed_at", "paid_at")
+    readonly_fields = fields
 
 
 class AdvanceRecoveryInline(admin.TabularInline):
-    model            = AdvanceRecovery
-    extra            = 0
-    can_delete       = False
+    model = AdvanceRecovery
+    extra = 0
+    can_delete = False
     show_change_link = True
-    fields           = ("amount", "settlement_period", "notes", "recovered_at")
-    readonly_fields  = fields
+    fields = ("amount", "settlement_period", "notes", "recovered_at")
+    readonly_fields = fields
 
 
 class PayoutClearanceInline(admin.TabularInline):
-    model            = PayoutClearance
-    extra            = 0
-    can_delete       = False
+    model = PayoutClearance
+    extra = 0
+    can_delete = False
     show_change_link = True
-    fields           = ("amount_sent", "method", "external_reference", "status", "processed_at")
-    readonly_fields  = fields
+    fields = ("amount_sent", "method", "external_reference", "status", "processed_at")
+    readonly_fields = fields
 
 
 class DeferredSettlementItemInline(admin.TabularInline):
-    model            = DeferredSettlementItem
-    extra            = 0
-    can_delete       = False
+    model = DeferredSettlementItem
+    extra = 0
+    can_delete = False
     show_change_link = True
-    fk_name          = "from_payment_window"
-    fields           = ("financial_event", "to_payment_window", "reason", "deferred_by", "created_at")
-    readonly_fields  = fields
+    fk_name = "from_payment_window"
+    fields = ("financial_event", "to_payment_window", "reason", "deferred_by", "created_at")
+    readonly_fields = fields
 
 
 # ===========================================================================
@@ -193,17 +193,17 @@ class PaymentWindowAdmin(admin.ModelAdmin):
         "window_status", "event_count",
         "pending_events", "created_at",
     )
-    list_filter  = ("status", "cycle_type", "website")
+    list_filter = ("status", "cycle_type", "website")
     search_fields = ("website__name", "title")
     readonly_fields = (
         "status", "closed_at", "processing_at",
         "done_at", "created_at", "updated_at",
     )
-    ordering            = ("-start_date",)
+    ordering = ("-start_date",)
     list_select_related = ("website",)
-    date_hierarchy      = "created_at"
-    inlines             = (CompensationEventInline, DeferredSettlementItemInline)
-    actions             = ("action_close", "action_start_processing", "action_mark_done")
+    date_hierarchy = "created_at"
+    inlines = (CompensationEventInline, DeferredSettlementItemInline)
+    actions = ("action_close", "action_start_processing", "action_mark_done")
 
     fieldsets = (
         ("Window info", {
@@ -303,9 +303,9 @@ class CompensationEventAdmin(admin.ModelAdmin):
         "idempotency_key", "created_by",
         "created_at", "updated_at",
     )
-    ordering            = ("-created_at",)
+    ordering = ("-created_at",)
     list_select_related = ("writer__account_profile__user", "payment_window")
-    date_hierarchy      = "created_at"
+    date_hierarchy = "created_at"
 
     fieldsets = (
         ("Event", {
@@ -370,14 +370,14 @@ class PayoutBatchAdmin(admin.ModelAdmin):
         "payment_window__status",
         "payment_window__website",
     )
-    search_fields   = ("payment_window__title",)
+    search_fields = ("payment_window__title",)
     readonly_fields = (
         "payment_window", "total_amount", "total_writers",
         "created_by", "paid_at", "created_at", "updated_at",
     )
     list_select_related = ("payment_window",)
-    date_hierarchy      = "created_at"
-    inlines             = (PayoutRecordInline,)
+    date_hierarchy = "created_at"
+    inlines = (PayoutRecordInline,)
 
     @admin.display(description="Status")
     def batch_status(self, obj):
@@ -433,8 +433,8 @@ class PayoutRecordAdmin(admin.ModelAdmin):
     )
     list_select_related = ("writer__account_profile__user", "batch")
     autocomplete_fields = ("writer",)
-    inlines             = (PayoutClearanceInline,)
-    actions             = ("action_confirm", "action_mark_paid", "action_hold", "action_release")
+    inlines = (PayoutClearanceInline,)
+    actions = ("action_confirm", "action_mark_paid", "action_hold", "action_release")
 
     fieldsets = (
         ("Record", {
@@ -498,9 +498,9 @@ class PayoutRecordAdmin(admin.ModelAdmin):
 
 @admin.register(WriterPayoutPreference)
 class WriterPayoutPreferenceAdmin(admin.ModelAdmin):
-    list_display    = ("id", "writer", "website", "cycle_type", "locked", "updated_at")
-    list_filter     = ("cycle_type", "locked", "website")
-    search_fields   = ("writer__account_profile__user__email",)
+    list_display = ("id", "writer", "website", "cycle_type", "locked", "updated_at")
+    list_filter = ("cycle_type", "locked", "website")
+    search_fields = ("writer__account_profile__user__email",)
     readonly_fields = ("created_at", "updated_at")
     autocomplete_fields = ("writer",)
 
@@ -517,7 +517,7 @@ class PaymentWindowChangeRequestAdmin(admin.ModelAdmin):
         "request_status", "reviewed_by",
         "reviewed_at", "created_at",
     )
-    list_filter   = ("status", "website")
+    list_filter = ("status", "website")
     search_fields = ("writer__account_profile__user__email",)
     readonly_fields = (
         "writer", "website",
@@ -527,7 +527,7 @@ class PaymentWindowChangeRequestAdmin(admin.ModelAdmin):
         "rejection_reason", "effective_from_window",
         "created_at", "updated_at",
     )
-    ordering            = ("-created_at",)
+    ordering = ("-created_at",)
     autocomplete_fields = ("writer",)
 
     @admin.display(description="Status")
@@ -547,7 +547,7 @@ class CompensationAdjustmentAdmin(admin.ModelAdmin):
         "is_applied", "applied_at",
         "created_by", "created_at",
     )
-    list_filter   = ("adjustment_type", "direction", "is_applied", "website")
+    list_filter = ("adjustment_type", "direction", "is_applied", "website")
     search_fields = ("writer__account_profile__user__email", "reason")
     readonly_fields = (
         "website", "writer",
@@ -555,7 +555,7 @@ class CompensationAdjustmentAdmin(admin.ModelAdmin):
         "created_by", "created_at",
     )
     autocomplete_fields = ("writer",)
-    date_hierarchy      = "created_at"
+    date_hierarchy = "created_at"
 
     @admin.display(description="Amount")
     def amount_display(self, obj):
@@ -577,7 +577,7 @@ class AdvancePaymentRequestAdmin(admin.ModelAdmin):
         "recovered_amount", "outstanding",
         "advance_status", "reviewed_at", "created_at",
     )
-    list_filter   = ("status", "website")
+    list_filter = ("status", "website")
     search_fields = ("writer__account_profile__user__email", "reason")
     readonly_fields = (
         "writer", "website", "payment_window",
@@ -585,8 +585,8 @@ class AdvancePaymentRequestAdmin(admin.ModelAdmin):
         "created_at", "updated_at",
     )
     autocomplete_fields = ("writer",)
-    date_hierarchy      = "created_at"
-    inlines             = (AdvanceRecoveryInline,)
+    date_hierarchy = "created_at"
+    inlines = (AdvanceRecoveryInline,)
 
     @admin.display(description="Status")
     def advance_status(self, obj):
@@ -599,8 +599,8 @@ class AdvancePaymentRequestAdmin(admin.ModelAdmin):
 
 @admin.register(AdvanceRecovery)
 class AdvanceRecoveryAdmin(admin.ModelAdmin):
-    list_display  = ("id", "advance_request", "amount", "settlement_period", "recovered_at")
-    list_filter   = ("advance_request__website",)
+    list_display = ("id", "advance_request", "amount", "settlement_period", "recovered_at")
+    list_filter = ("advance_request__website",)
     search_fields = ("advance_request__writer__account_profile__user__email",)
     readonly_fields = ("advance_request", "recovered_at")
 
@@ -616,7 +616,7 @@ class DeferredSettlementItemAdmin(admin.ModelAdmin):
         "from_payment_window", "to_payment_window",
         "reason", "deferred_by", "created_at",
     )
-    list_filter   = ("reason", "from_payment_window__website")
+    list_filter = ("reason", "from_payment_window__website")
     search_fields = ("financial_event__writer__account_profile__user__email",)
     readonly_fields = (
         "financial_event",
@@ -640,7 +640,7 @@ class CorrectionEventAdmin(admin.ModelAdmin):
         "difference", "correction_status",
         "resolved_at", "created_at",
     )
-    list_filter   = ("correction_type", "status", "website")
+    list_filter = ("correction_type", "status", "website")
     search_fields = ("writer__account_profile__user__email", "reason")
     readonly_fields = (
         "website", "writer",
@@ -667,7 +667,7 @@ class WriterBalanceSnapshotAdmin(admin.ModelAdmin):
         "net_payable", "total_deductions",
         "total_advances", "captured_at",
     )
-    list_filter   = ("website", "payment_window")
+    list_filter = ("website", "payment_window")
     search_fields = ("writer__account_profile__user__email",)
     readonly_fields = (
         "website", "writer", "payment_window",
@@ -676,7 +676,7 @@ class WriterBalanceSnapshotAdmin(admin.ModelAdmin):
         "total_advances", "total_pending",
         "captured_at",
     )
-    ordering       = ("-captured_at",)
+    ordering = ("-captured_at",)
     date_hierarchy = "captured_at"
 
     def has_add_permission(self, request):
@@ -703,7 +703,7 @@ class ExposureLedgerAdmin(admin.ModelAdmin):
         "recoverable_balance", "risk_cap_percentage",
         "last_updated",
     )
-    list_filter   = ("website",)
+    list_filter = ("website",)
     search_fields = ("writer__account_profile__user__email",)
     readonly_fields = (
         "website", "writer",
@@ -753,7 +753,7 @@ class PayoutClearanceAdmin(admin.ModelAdmin):
         "method", "external_reference",
         "clearance_status", "processed_by", "processed_at",
     )
-    list_filter   = ("status", "method", "website")
+    list_filter = ("status", "method", "website")
     search_fields = ("external_reference", "payout_record__writer__account_profile__user__email")
     readonly_fields = (
         "website", "payout_record",
@@ -779,7 +779,7 @@ class PayoutReconciliationReportAdmin(admin.ModelAdmin):
         "total_cleared_amount", "mismatch_display",
         "report_status", "created_at",
     )
-    list_filter   = ("status", "website")
+    list_filter = ("status", "website")
     search_fields = ("payout_batch__payment_window__title",)
     readonly_fields = (
         "website", "payout_batch",
@@ -787,14 +787,14 @@ class PayoutReconciliationReportAdmin(admin.ModelAdmin):
         "total_cleared_amount", "mismatch_amount",
         "status", "created_at",
     )
-    ordering       = ("-created_at",)
+    ordering = ("-created_at",)
     date_hierarchy = "created_at"
 
     @admin.display(description="Mismatch")
     def mismatch_display(self, obj):
         if obj.mismatch_amount == 0:
             return format_html(
-                '<span style="color:green;font-weight:500">✓ Balanced</span>'
+                '<span style="color:green;font-weight:500"> Balanced</span>'
             )
         return format_html(
             '<span style="color:red;font-weight:500">{}</span>',
@@ -823,7 +823,7 @@ class ReversalChainAdmin(admin.ModelAdmin):
         "original_event", "reversal_event",
         "reason_short", "created_at",
     )
-    list_filter   = ("website",)
+    list_filter = ("website",)
     search_fields = (
         "original_event__writer__account_profile__user__email",
         "reason",
@@ -833,7 +833,7 @@ class ReversalChainAdmin(admin.ModelAdmin):
         "reversal_event", "reason",
         "created_at",
     )
-    ordering       = ("-created_at",)
+    ordering = ("-created_at",)
     date_hierarchy = "created_at"
 
     @admin.display(description="Reason")
@@ -853,11 +853,11 @@ class ReversalChainAdmin(admin.ModelAdmin):
 
 @admin.register(IdempotencyRecord)
 class IdempotencyRecordAdmin(admin.ModelAdmin):
-    list_display  = ("id", "scope", "key", "created_at")
-    list_filter   = ("scope",)
+    list_display = ("id", "scope", "key", "created_at")
+    list_filter = ("scope",)
     search_fields = ("key", "scope")
     readonly_fields = ("key", "scope", "request_hash", "response", "created_at")
-    ordering       = ("-created_at",)
+    ordering = ("-created_at",)
     date_hierarchy = "created_at"
 
     def has_add_permission(self, request):
@@ -882,7 +882,7 @@ class OutboxEventAdmin(admin.ModelAdmin):
         "processed", "processed_at",
         "created_at",
     )
-    list_filter   = ("status", "event_type", "processed")
+    list_filter = ("status", "event_type", "processed")
     search_fields = ("event_type", "payload_hash")
     readonly_fields = (
         "event_type", "payload", "payload_hash",
@@ -890,9 +890,9 @@ class OutboxEventAdmin(admin.ModelAdmin):
         "retry_count", "last_error",
         "processed_at", "created_at",
     )
-    ordering       = ("-created_at",)
+    ordering = ("-created_at",)
     date_hierarchy = "created_at"
-    actions        = ("action_retry",)
+    actions = ("action_retry",)
 
     @admin.display(description="Status")
     def outbox_status(self, obj):

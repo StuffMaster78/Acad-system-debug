@@ -28,7 +28,7 @@ class CommunicationThreadTagViewSet(ModelViewSet):
         CanManageThreadTags,
     ]
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         """
         Return tags for the request website.
         """
@@ -38,7 +38,7 @@ class CommunicationThreadTagViewSet(ModelViewSet):
             website=website,
         ).order_by("name", "id")
 
-    def get_serializer_class(self):  # type: ignore[override]
+    def get_serializer_class(self): # type: ignore[override]
         """
         Return serializer class.
         """
@@ -59,7 +59,7 @@ class CommunicationThreadTagAssignmentViewSet(ReadOnlyModelViewSet):
         CanManageThreadTags,
     ]
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         """
         Return tag assignments for a website.
         """

@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-from orders.tasks import order_completion_tasks 
+from orders.tasks import order_completion_tasks
 
 
 class FakeQuerySet:

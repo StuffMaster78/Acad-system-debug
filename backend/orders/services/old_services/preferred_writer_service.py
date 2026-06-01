@@ -10,7 +10,7 @@ User = get_user_model()
 
 
 CACHE_KEY_PREFERRED_WRITER_COST = "preferred_writer_cost"
-CACHE_TIMEOUT = 60 * 60  # 1 hour
+CACHE_TIMEOUT = 60 * 60 # 1 hour
 
 class PreferredWriterService:
     """

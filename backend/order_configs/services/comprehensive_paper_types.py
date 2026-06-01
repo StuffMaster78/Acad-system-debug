@@ -32,7 +32,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Personal Statement',
     'Cover Letter',
     'Motivation Letter',
-    
+
     # ========== RESEARCH PAPERS (All Levels) ==========
     'Research Paper',
     'Term Paper',
@@ -44,7 +44,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Annotated Bibliography',
     'Research Summary',
     'Research Abstract',
-    
+
     # ========== THESIS & DISSERTATION (Graduate Level) ==========
     'Thesis',
     'Master\'s Thesis',
@@ -57,7 +57,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Dissertation Chapter',
     'Thesis Abstract',
     'Dissertation Abstract',
-    
+
     # ========== ACADEMIC PAPERS (All Levels) ==========
     'Academic Paper',
     'Scholarly Paper',
@@ -69,7 +69,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'White Paper',
     'Discussion Paper',
     'Working Paper',
-    
+
     # ========== REPORTS (All Levels) ==========
     'Report',
     'Lab Report',
@@ -94,7 +94,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Article Review',
     'Movie Review',
     'Film Review',
-    
+
     # ========== CASE STUDIES (All Levels) ==========
     'Case Study',
     'Business Case Study',
@@ -104,7 +104,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Legal Case Study',
     'Case Analysis',
     'Case Brief',
-    
+
     # ========== COURSEWORK (All Levels) ==========
     'Coursework',
     'Assignment',
@@ -121,7 +121,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Statistics Problem',
     'Physics Problem',
     'Chemistry Problem',
-    
+
     # ========== PRESENTATIONS (All Levels) ==========
     'Presentation',
     'PowerPoint Presentation',
@@ -132,7 +132,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Conference Presentation',
     'Business Presentation',
     'Pitch Deck',
-    
+
     # ========== PROJECTS (All Levels) ==========
     'Project',
     'Capstone Project',
@@ -146,7 +146,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Portfolio',
     'Project Proposal',
     'Project Plan',
-    
+
     # ========== SPECIALIZED ASSIGNMENTS ==========
     'Article Review',
     'Literature Review',
@@ -163,7 +163,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Statistical Analysis',
     'Qualitative Analysis',
     'Quantitative Analysis',
-    
+
     # ========== BUSINESS & PROFESSIONAL ==========
     'Business Plan',
     'Marketing Plan',
@@ -188,7 +188,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Email',
     'Press Release',
     'Newsletter',
-    
+
     # ========== NURSING & HEALTHCARE ==========
     'Nursing Care Plan',
     'Patient Care Plan',
@@ -205,7 +205,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Discharge Summary',
     'Quality Improvement Project',
     'Patient Education Material',
-    
+
     # ========== LEGAL ==========
     'Legal Brief',
     'Case Brief',
@@ -216,7 +216,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Court Brief',
     'Motion',
     'Legal Argument',
-    
+
     # ========== TECHNICAL & ENGINEERING ==========
     'Technical Writing',
     'Technical Report',
@@ -239,7 +239,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Requirements Analysis',
     'Test Plan',
     'Test Report',
-    
+
     # ========== CREATIVE WRITING ==========
     'Creative Writing',
     'Short Story',
@@ -254,7 +254,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Memoir',
     'Autobiography',
     'Biography',
-    
+
     # ========== ONLINE & DISCUSSION ==========
     'Discussion Post',
     'Forum Post',
@@ -264,7 +264,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Discussion Response',
     'Peer Review',
     'Online Discussion',
-    
+
     # ========== OTHER ACADEMIC ==========
     'Q&A',
     'Question and Answer',
@@ -279,7 +279,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Proofreading',
     'Editing',
     'Rewriting',
-    
+
     # ========== HIGH SCHOOL SPECIFIC ==========
     'Book Report',
     'Book Review',
@@ -294,7 +294,7 @@ COMPREHENSIVE_PAPER_TYPES = [
     'Fill in the Blank',
     'Multiple Choice',
     'True/False',
-    
+
     # ========== GRADUATE LEVEL SPECIFIC ==========
     'Comprehensive Exam',
     'Qualifying Exam',

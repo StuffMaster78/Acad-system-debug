@@ -9,7 +9,7 @@ from websites.models.websites import Website
 
 class RewardRule(models.Model):
     """
-    
+
     Declarative reward criteria.
 
     Admin-configurable.
@@ -175,7 +175,7 @@ class RewardRule(models.Model):
         null=True,
         blank=True,
     )
-    
+
     # Audit
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

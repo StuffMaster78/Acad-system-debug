@@ -467,11 +467,11 @@ async function recheckAccess() {
 // ── Delivery helpers ─────────────────────────────────────────────────────────
 
 const DELIVERY_LABELS: Record<DeliveryStatus, string> = {
-  pending:   "Awaiting submission",
+  pending: "Awaiting submission",
   submitted: "Submitted",
-  locked:    "Payment required",
-  approved:  "Ready to download",
-  rejected:  "Rejected",
+  locked: "Payment required",
+  approved: "Ready to download",
+  rejected: "Rejected",
 };
 
 function deliveryLabel(s: DeliveryStatus): string {
@@ -479,9 +479,9 @@ function deliveryLabel(s: DeliveryStatus): string {
 }
 
 function deliveryBadge(s: DeliveryStatus): string {
-  if (s === "approved")  return "bg-emerald-100 text-emerald-700";
+  if (s === "approved") return "bg-emerald-100 text-emerald-700";
   if (s === "submitted") return "bg-blue-100 text-blue-700";
-  if (s === "rejected")  return "bg-rose-100 text-rose-700";
+  if (s === "rejected") return "bg-rose-100 text-rose-700";
   return "bg-amber-100 text-amber-700";
 }
 

@@ -8,7 +8,7 @@ class CustomJSONEncoder(json.JSONEncoder):
     Safe JSON encoder for system-wide use.
     """
 
-    def default(self, o):  # MUST be 'o' not 'obj'
+    def default(self, o): # MUST be 'o' not 'obj'
         if isinstance(o, Decimal):
             return str(o)
 

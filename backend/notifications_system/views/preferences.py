@@ -47,8 +47,8 @@ UPDATABLE_EVENT_PREF_FIELDS = {
 
 class NotificationPreferenceView(APIView):
     """
-    GET  /notifications/preferences/    → return current preferences
-    PATCH /notifications/preferences/   → update specific fields
+    GET /notifications/preferences/ → return current preferences
+    PATCH /notifications/preferences/ → update specific fields
     """
     permission_classes = [IsAuthenticated]
     throttle_classes = [NotificationPreferenceUpdateThrottle]

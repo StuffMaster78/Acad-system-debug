@@ -5,12 +5,12 @@ CHANGES FROM PREVIOUS VERSION
    Replaced with OrderTransitionService throughout.
 
 2. submit_review() approval branch:
-   UNDER_EDITING → REVIEWED  (WRONG — REVIEWED is post-client-rating)
+   UNDER_EDITING → REVIEWED (WRONG — REVIEWED is post-client-rating)
    UNDER_EDITING → SUBMITTED (CORRECT — delivered to client)
 
 3. submit_review() revision branch:
-   order.status = ... ; order.save()  (WRONG — no timeline event)
-   OrderTransitionService.transition(...)  (CORRECT — creates timeline event)
+   order.status = ... ; order.save() (WRONG — no timeline event)
+   OrderTransitionService.transition(...) (CORRECT — creates timeline event)
 
 4. submit_review() audit call:
    Syntax error fixed — service_name was inside metadata dict closing brace.
@@ -123,28 +123,28 @@ class EditorReviewService:
         review_submission, created = EditorReviewSubmission.objects.get_or_create(
             task_assignment=task_assignment,
             defaults={
-                "editor":            editor,
-                "order":             order,
-                "quality_score":     quality_score,
-                "issues_found":      issues_found,
-                "corrections_made":  corrections_made,
-                "recommendations":   recommendations,
-                "is_approved":       is_approved,
+                "editor": editor,
+                "order": order,
+                "quality_score": quality_score,
+                "issues_found": issues_found,
+                "corrections_made": corrections_made,
+                "recommendations": recommendations,
+                "is_approved": is_approved,
                 "requires_revision": requires_revision,
-                "revision_notes":    revision_notes,
-                "edited_files":      edited_files or [],
+                "revision_notes": revision_notes,
+                "edited_files": edited_files or [],
             },
         )
 
         if not created:
-            review_submission.quality_score    = quality_score
-            review_submission.issues_found     = issues_found
+            review_submission.quality_score = quality_score
+            review_submission.issues_found = issues_found
             review_submission.corrections_made = corrections_made
-            review_submission.recommendations  = recommendations
-            review_submission.is_approved      = is_approved
+            review_submission.recommendations = recommendations
+            review_submission.is_approved = is_approved
             review_submission.requires_revision = requires_revision
-            review_submission.revision_notes   = revision_notes
-            review_submission.edited_files     = edited_files or []
+            review_submission.revision_notes = revision_notes
+            review_submission.edited_files = edited_files or []
             review_submission.save()
 
         if is_approved and not requires_revision:
@@ -153,7 +153,7 @@ class EditorReviewService:
             task_assignment.complete_review()
 
             # FIX 2: was REVIEWED (post-client-rating — wrong)
-            #        was OrderTransitionHelper (doesn't exist — ImportError)
+            # was OrderTransitionHelper (doesn't exist — ImportError)
             # CORRECT: SUBMITTED = delivered to client
             if order.status == OrderStatus.UNDER_EDITING.value:
                 OrderTransitionService.transition(
@@ -175,7 +175,7 @@ class EditorReviewService:
                 related_task=task_assignment,
                 metadata={
                     "quality_score": float(quality_score) if quality_score else None,
-                    "is_approved":   True,
+                    "is_approved": True,
                 },
             )
 
@@ -188,7 +188,7 @@ class EditorReviewService:
                         "order_id": order.pk,
                         "order_topic": order.topic,
                         "reviewed_by": editor.name,
-                        "approved":    True,
+                        "approved": True,
                     },
                     is_critical=True,
                 )
@@ -225,7 +225,7 @@ class EditorReviewService:
                 related_order=order,
                 related_task=task_assignment,
                 metadata={
-                    "quality_score":     float(quality_score) if quality_score else None,
+                    "quality_score": float(quality_score) if quality_score else None,
                     "requires_revision": True,
                 },
             )
@@ -239,7 +239,7 @@ class EditorReviewService:
                         "order_id": order.pk,
                         "order_topic": order.topic,
                         "revision_notes": revision_notes,
-                        "requested_by":   editor.name,
+                        "requested_by": editor.name,
                     },
                     is_critical=True,
                 )
@@ -361,8 +361,8 @@ class EditorReviewService:
             website=task_assignment.order.website,
             context={
                 "order_id": task_assignment.order.pk,
-                "editor":   editor.name,
-                "reason":   reason,
+                "editor": editor.name,
+                "reason": reason,
             },
             is_critical=True,
         )

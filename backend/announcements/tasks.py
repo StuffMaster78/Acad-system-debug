@@ -24,10 +24,10 @@ def send_scheduled_announcements(self):
         logger.warning(f"Database connection issue in send_scheduled_announcements: {e}. Will retry later.")
         # Don't retry immediately - let the next scheduled run handle it
         return f"Skipped due to database connection issue: {e}"
-    
+
     try:
         now = timezone.now()
-        
+
         # Find announcements scheduled for now or earlier that haven't been sent
         scheduled_announcements = Announcement.objects.filter(
             broadcast__scheduled_for__lte=now,
@@ -39,7 +39,7 @@ def send_scheduled_announcements(self):
         for announcement in scheduled_announcements:
             try:
                 broadcast = announcement.broadcast
-                
+
                 # Send the broadcast
                 BroadcastService.send_broadcast(
                     event_key='broadcast.system_announcement',
@@ -57,14 +57,14 @@ def send_scheduled_announcements(self):
                     expires_at=broadcast.expires_at,
                     triggered_by=broadcast.created_by
                 )
-                
+
                 # Mark as sent
                 broadcast.sent_at = timezone.now()
                 broadcast.save(update_fields=['sent_at'])
-                
+
                 sent_count += 1
                 logger.info(f"Sent scheduled announcement: {announcement.id}")
-                
+
             except Exception as e:
                 logger.error(f"Failed to send scheduled announcement {announcement.id}: {e}", exc_info=True)
 
@@ -88,10 +88,10 @@ def expire_announcements(self):
         logger.warning(f"Database connection issue in expire_announcements: {e}. Will retry later.")
         # Don't retry immediately - let the next scheduled run handle it
         return f"Skipped due to database connection issue: {e}"
-    
+
     try:
         now = timezone.now()
-        
+
         expired = Announcement.objects.filter(
             broadcast__expires_at__lte=now,
             broadcast__is_active=True

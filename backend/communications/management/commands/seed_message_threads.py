@@ -106,12 +106,12 @@ class Command(BaseCommand):
                 "I've completed the final review. Everything looks great.",
             ],
         }
-        
+
         # Try to get role-specific messages
         key = (sender_role, recipient_role)
         if key in messages:
             return messages[key]
-        
+
         # Fallback to generic messages
         return [
             f"Hello from {sender_role}!",
@@ -158,14 +158,14 @@ class Command(BaseCommand):
             editors = User.objects.filter(website=website, role='editor', is_active=True)
 
             if not admins.exists():
-                self.stdout.write(self.style.WARNING(f'  No admin users found for website {website.name}. Skipping.'))
+                self.stdout.write(self.style.WARNING(f' No admin users found for website {website.name}. Skipping.'))
                 continue
 
             # Get orders for this website
             orders = Order.objects.filter(website=website, status__in=['in_progress', 'assigned', 'submitted', 'completed'])
 
             if not orders.exists():
-                self.stdout.write(self.style.WARNING(f'  No orders found for website {website.name}. Skipping.'))
+                self.stdout.write(self.style.WARNING(f' No orders found for website {website.name}. Skipping.'))
                 continue
 
             # Create threads with various role combinations
@@ -245,7 +245,7 @@ class Command(BaseCommand):
                         )
                         threads_created += 1
                     except Exception as e:
-                        self.stdout.write(self.style.WARNING(f'  Failed to create thread: {str(e)}'))
+                        self.stdout.write(self.style.WARNING(f' Failed to create thread: {str(e)}'))
                         continue
 
                 # Add messages to the thread
@@ -282,7 +282,7 @@ class Command(BaseCommand):
                             message=message_text,
                             message_type="text"
                         )
-                        
+
                         # Update sent_at timestamp manually (bypass auto_now_add)
                         # Use direct database update to set custom timestamp
                         from django.db import connection
@@ -291,10 +291,10 @@ class Command(BaseCommand):
                                 "UPDATE communications_communicationmessage SET sent_at = %s WHERE id = %s",
                                 [message_time, message.id]
                             )
-                        
+
                         messages_created += 1
                     except Exception as e:
-                        self.stdout.write(self.style.WARNING(f'  Failed to create message: {str(e)}'))
+                        self.stdout.write(self.style.WARNING(f' Failed to create message: {str(e)}'))
                         continue
 
             total_threads += threads_created
@@ -302,13 +302,13 @@ class Command(BaseCommand):
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'  Created {threads_created} threads and {messages_created} messages for {website.name}'
+                    f' Created {threads_created} threads and {messages_created} messages for {website.name}'
                 )
             )
 
         self.stdout.write(
             self.style.SUCCESS(
-                f'\n✅ Successfully seeded {total_threads} threads with {total_messages} messages total!'
+                f'\n Successfully seeded {total_threads} threads with {total_messages} messages total!'
             )
         )
 

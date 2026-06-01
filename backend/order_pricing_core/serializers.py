@@ -15,12 +15,12 @@ from order_pricing_core.models.calculator_session import PricingCalculatorSessio
 class PricingConfigurationSerializer(serializers.ModelSerializer):
     """Serializer for the PricingConfiguration model."""
     website = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = PricingConfiguration
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at']
-    
+
     def get_website(self, obj):
         """Get website information"""
         if obj.website:
@@ -120,7 +120,7 @@ class PriceEstimationInputSerializer(serializers.Serializer):
 
 class PricingCalculatorSessionSerializer(serializers.ModelSerializer):
     """Serializer for Pricing Calculator Session"""
-    
+
     class Meta:
         model = PricingCalculatorSession
         fields = [

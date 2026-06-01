@@ -99,7 +99,7 @@ class FineService:
         adjust_writer_compensation(fine.order, fine.amount)
 
         fine.save(update_fields=[
-            "status", "resolved", "resolved_at", "waived_by", "waived_at", 
+            "status", "resolved", "resolved_at", "waived_by", "waived_at",
             "waiver_reason", "resolved_reason"
         ])
 
@@ -135,7 +135,7 @@ class FineService:
         """
         if voided_by.role not in ['admin', 'superadmin']:
             raise PermissionDenied("Only admins or superadmins can void fines.")
-        
+
         if fine.status == FineStatus.VOIDED:
             raise ValidationError("Fine is already voided.")
 

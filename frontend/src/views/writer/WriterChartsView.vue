@@ -8,8 +8,8 @@ import type { EChartsOption } from "echarts";
 
 const writerWs = useWriterWorkspaceStore();
 const earnings = ref<ChartData | null>(null);
-const loading  = ref(false);
-const months   = ref(12);
+const loading = ref(false);
+const months = ref(12);
 
 const earningsOption = computed<EChartsOption>(() => {
   const d = earnings.value;

@@ -19,10 +19,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         overwrite = options.get('overwrite', False)
-        
+
         # Organize types of work by category
         all_types = COMPREHENSIVE_TYPES_OF_WORK
-        
+
         # Categorize types
         writing_keywords = ['writing', 'original', 'custom', 'academic writing', 'creative writing', 'technical writing', 'business writing', 'professional writing']
         editing_keywords = ['editing', 'revision', 'revisions', 'copy editing', 'line editing', 'substantive', 'developmental', 'content editing', 'structural', 'style editing']
@@ -35,7 +35,7 @@ class Command(BaseCommand):
         review_keywords = ['review', 'critiquing', 'critique', 'critical review', 'critical evaluation', 'critical assessment', 'article review', 'literature review', 'book review', 'peer review']
         grading_keywords = ['marking', 'grading', 'assessment', 'evaluation', 'scoring', 'rubric', 'grade assignment']
         technical_keywords = ['programming', 'coding', 'code', 'algorithm', 'software development', 'code review', 'code debugging']
-        
+
         templates = [
             {
                 'name': 'General (All Types)',
@@ -110,15 +110,15 @@ class Command(BaseCommand):
                 'types_of_work': [t for t in all_types if any(kw in t.lower() for kw in technical_keywords)]
             },
         ]
-        
+
         created_count = 0
         updated_count = 0
         skipped_count = 0
-        
+
         for template_data in templates:
             name = template_data['name']
             category = template_data['category']
-            
+
             if overwrite:
                 TypeOfWorkTemplate.objects.filter(name=name, category=category).delete()
                 template, created = TypeOfWorkTemplate.objects.get_or_create(
@@ -128,10 +128,10 @@ class Command(BaseCommand):
                 )
                 if created:
                     created_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'✅ Created template: {name} ({len(template_data["types_of_work"])} types)'))
+                    self.stdout.write(self.style.SUCCESS(f' Created template: {name} ({len(template_data["types_of_work"])} types)'))
                 else:
                     updated_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'🔄 Updated template: {name} ({len(template_data["types_of_work"])} types)'))
+                    self.stdout.write(self.style.SUCCESS(f' Updated template: {name} ({len(template_data["types_of_work"])} types)'))
             else:
                 template, created = TypeOfWorkTemplate.objects.get_or_create(
                     name=name,
@@ -140,12 +140,12 @@ class Command(BaseCommand):
                 )
                 if created:
                     created_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'✅ Created template: {name} ({len(template_data["types_of_work"])} types)'))
+                    self.stdout.write(self.style.SUCCESS(f' Created template: {name} ({len(template_data["types_of_work"])} types)'))
                 else:
                     skipped_count += 1
-                    self.stdout.write(self.style.WARNING(f'⏭️  Skipped existing template: {name}'))
-        
+                    self.stdout.write(self.style.WARNING(f'⏭️ Skipped existing template: {name}'))
+
         self.stdout.write(self.style.SUCCESS(
-            f'\n📊 Summary: {created_count} created, {updated_count} updated, {skipped_count} skipped'
+            f'\n Summary: {created_count} created, {updated_count} updated, {skipped_count} skipped'
         ))
 

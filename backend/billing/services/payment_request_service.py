@@ -205,7 +205,7 @@ class PaymentRequestService:
             update_fields=["status", "paid_at", "updated_at"]
         )
         return locked_request
-    
+
 
     @staticmethod
     def _generate_payment_token() -> str:

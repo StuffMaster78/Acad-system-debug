@@ -11,7 +11,7 @@ class DashboardCardConfigAdmin(admin.ModelAdmin):
     list_filter = ['is_active', 'color', 'data_type', 'website']
     search_fields = ['title', 'card_key', 'description']
     ordering = ['position', 'title']
-    
+
     fieldsets = (
         ('Card Information', {
             'fields': ('card_key', 'title', 'description', 'icon', 'color', 'position', 'is_active')
@@ -23,9 +23,9 @@ class DashboardCardConfigAdmin(admin.ModelAdmin):
             'fields': ('allowed_roles', 'website')
         }),
     )
-    
+
     filter_horizontal = []
-    
+
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         # Make allowed_roles a multiple choice field
@@ -38,7 +38,7 @@ class DashboardFontConfigAdmin(admin.ModelAdmin):
     list_display = ['website', 'font_family', 'base_font_size']
     list_filter = ['website']
     search_fields = ['font_family', 'website__name']
-    
+
     fieldsets = (
         ('Website', {
             'fields': ('website',)

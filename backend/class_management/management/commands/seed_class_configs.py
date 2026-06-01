@@ -113,11 +113,11 @@ class Command(BaseCommand):
                     if created:
                         total_durations += 1
                         self.stdout.write(
-                            f'  ✓ Created duration option: {duration.label}'
+                            f' Created duration option: {duration.label}'
                         )
                     else:
                         self.stdout.write(
-                            f'  - Duration option already exists: {duration.label}'
+                            f' - Duration option already exists: {duration.label}'
                         )
 
                 # Get all duration options for this website
@@ -142,7 +142,7 @@ class Command(BaseCommand):
                         if created:
                             total_configs += 1
                             self.stdout.write(
-                                f'  ✓ Created config: {config.get_level_display()} | '
+                                f' Created config: {config.get_level_display()} | '
                                 f'{duration_option.label} | {bundle_size} classes @ ${price_per_class}/class'
                             )
                         else:
@@ -151,15 +151,15 @@ class Command(BaseCommand):
                                 config.price_per_class = price_per_class
                                 config.save()
                                 self.stdout.write(
-                                    f'  ↻ Updated config: {config.get_level_display()} | '
+                                    f' ↻ Updated config: {config.get_level_display()} | '
                                     f'{duration_option.label} | {bundle_size} classes @ ${price_per_class}/class'
                                 )
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'\n✓ Successfully created/updated:\n'
-                    f'  - {total_durations} duration options\n'
-                    f'  - {total_configs} bundle configurations'
+                    f'\n Successfully created/updated:\n'
+                    f' - {total_durations} duration options\n'
+                    f' - {total_configs} bundle configurations'
                 )
             )
 
@@ -194,7 +194,7 @@ class Command(BaseCommand):
             configs = ClassBundleConfig.objects.filter(
                 website=website,
                 is_active=True
-            )[:10]  # Limit to 10 configs per website
+            )[:10] # Limit to 10 configs per website
 
             if not configs.exists():
                 continue
@@ -230,11 +230,11 @@ class Command(BaseCommand):
 
                 total_bundles += 1
                 self.stdout.write(
-                    f'  ✓ Created bundle #{bundle.id} for {client.email} | '
+                    f' Created bundle #{bundle.id} for {client.email} | '
                     f'{config.get_level_display()} | {config.bundle_size} classes | ${bundle.total_price}'
                 )
 
         self.stdout.write(
-            self.style.SUCCESS(f'\n✓ Created {total_bundles} sample class bundles')
+            self.style.SUCCESS(f'\n Created {total_bundles} sample class bundles')
         )
 

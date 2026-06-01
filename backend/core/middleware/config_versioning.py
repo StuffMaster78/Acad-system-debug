@@ -24,20 +24,20 @@ class ConfigVersioningMiddleware:
     """
     def __init__(self, get_response):
         self.get_response = get_response
-    
+
     def __call__(self, request):
         # Set the current user in thread-local storage
         if hasattr(request, 'user') and request.user.is_authenticated:
             set_current_user(request.user)
         else:
             set_current_user(None)
-        
+
         try:
             response = self.get_response(request)
         finally:
             # Clean up thread-local storage
             if hasattr(_thread_locals, 'user'):
                 delattr(_thread_locals, 'user')
-        
+
         return response
 

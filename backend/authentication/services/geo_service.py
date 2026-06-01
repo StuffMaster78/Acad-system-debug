@@ -14,7 +14,7 @@ class GeoService:
     Resolve IP address to geographic and network information.
     """
 
-    CACHE_TIMEOUT = 60 * 60 * 24  # 24 hours
+    CACHE_TIMEOUT = 60 * 60 * 24 # 24 hours
 
     @classmethod
     def get_geo(cls, ip: str) -> Dict[str, Optional[str]]:

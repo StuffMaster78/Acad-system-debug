@@ -7,7 +7,7 @@ from django.db import transaction
 
 from writer_compensation.enums.compensation_enums import EventType
 from writer_compensation.models.compensation_event import CompensationEvent
-from writer_compensation.models.exposure_ledger import ExposureLedger  
+from writer_compensation.models.exposure_ledger import ExposureLedger
 
 logger = logging.getLogger(__name__)
 
@@ -32,51 +32,51 @@ def _safe(value) -> Decimal:
 # ---------------------------------------------------------------------------
 
 # Each EventType maps to (field_name, sign_multiplier).
-# sign_multiplier = 1  → add the raw amount to the field.
+# sign_multiplier = 1 → add the raw amount to the field.
 # sign_multiplier = -1 → the amount is already negative; add it to the field
-#                        that tracks deductions (stored as positive running total).
+# that tracks deductions (stored as positive running total).
 #
 # NOTE: amounts on CompensationEvent are signed:
-#   earnings  → positive
-#   deductions → negative
+# earnings → positive
+# deductions → negative
 #
 # ExposureLedger stores UNSIGNED running totals, so for deduction fields
 # we store abs(amount).
 
 _EVENT_FIELD_MAP: dict[str, tuple[str, int] | None] = {
     # Earnings — accumulate into total_earned
-    EventType.ORDER_EARNING:         ("total_earned",       1),
-    EventType.SPECIAL_ORDER_EARNING: ("total_earned",       1),
-    EventType.CLASS_EARNING:         ("total_earned",       1),
+    EventType.ORDER_EARNING: ("total_earned", 1),
+    EventType.SPECIAL_ORDER_EARNING: ("total_earned", 1),
+    EventType.CLASS_EARNING: ("total_earned", 1),
 
     # Tips — treat as earned income
-    EventType.TIP:                   ("total_earned",       1),
+    EventType.TIP: ("total_earned", 1),
 
     # Bonuses
-    EventType.BONUS:                 ("total_bonuses",      1),
+    EventType.BONUS: ("total_bonuses", 1),
 
     # Advances issued — go into total_advance_taken
-    EventType.ADVANCE:               ("total_advance_taken", 1),
+    EventType.ADVANCE: ("total_advance_taken", 1),
 
     # Deductions (amounts are negative on the event; store absolute value)
-    EventType.FINE:                  ("total_deductions",   -1),
-    EventType.DEDUCTION:             ("total_deductions",   -1),
-    EventType.REFUND_DEDUCTION:      ("total_deductions",   -1),
-    EventType.CANCELLATION:          ("total_deductions",   -1),
+    EventType.FINE: ("total_deductions", -1),
+    EventType.DEDUCTION: ("total_deductions", -1),
+    EventType.REFUND_DEDUCTION: ("total_deductions", -1),
+    EventType.CANCELLATION: ("total_deductions", -1),
 
     # Advance recovery — reduces outstanding advance taken
-    EventType.ADVANCE_RECOVERY:      ("total_advance_taken", -1),
+    EventType.ADVANCE_RECOVERY: ("total_advance_taken", -1),
 
     # Reversals — undo a prior earning; subtract from total_earned
-    EventType.REVERSAL:              ("total_earned",       -1),
+    EventType.REVERSAL: ("total_earned", -1),
 
     # Adjustments — sign-driven; routed to _apply_adjustment in the service.
     # Sentinel value ("__adjustment__", 0) signals the special-case handler.
-    EventType.ADJUSTMENT:             ("__adjustment__",    0),
+    EventType.ADJUSTMENT: ("__adjustment__", 0),
 
     # Hold types — do not affect ledger totals (they are status markers)
-    EventType.REVISION_HOLD:         None,
-    EventType.DISPUTE_HOLD:          None,
+    EventType.REVISION_HOLD: None,
+    EventType.DISPUTE_HOLD: None,
 }
 
 
@@ -88,7 +88,7 @@ def _apply_to_ledger(
 ) -> None:
     """Increment a ledger field by (amount × multiplier), clamped at zero."""
     current = _safe(getattr(ledger, field))
-    delta   = _safe(amount) * multiplier
+    delta = _safe(amount) * multiplier
     setattr(ledger, field, max(ZERO, current + delta))
 
 
@@ -145,7 +145,7 @@ class ExposureMaterializationService:
     @transaction.atomic
     def materialize_from_settlement(
         *,
-        period,                    # SettlementPeriod instance
+        period, # SettlementPeriod instance
     ) -> ExposureLedger:
         """
         Full ledger rebuild from a closed SettlementPeriod.
@@ -173,10 +173,10 @@ class ExposureMaterializationService:
 
         # FIX 6: Reset all fields from settlement — including total_paid
         # which was missing in the original and caused stale values.
-        ledger.total_earned       = _safe(period.gross_earnings)
-        ledger.total_bonuses      = _safe(period.total_bonuses)
-        ledger.total_deductions   = _safe(period.total_deductions)
-        ledger.total_settled      = _safe(period.net_payable)
+        ledger.total_earned = _safe(period.gross_earnings)
+        ledger.total_bonuses = _safe(period.total_bonuses)
+        ledger.total_deductions = _safe(period.total_deductions)
+        ledger.total_settled = _safe(period.net_payable)
         ledger.total_advance_taken = _safe(period.total_advances)
 
         # total_paid: use period.total_paid if the field exists,
@@ -193,7 +193,7 @@ class ExposureMaterializationService:
             - ledger.total_deductions
             - ledger.total_settled
             - ledger.total_advance_taken
-            - ledger.total_paid,     # FIX: was missing
+            - ledger.total_paid, # FIX: was missing
         )
 
         ledger.save()

@@ -21,7 +21,7 @@ class WriterLevel(models.Model):
         ('percentage_of_order_cost', 'Percentage of Order Cost'),
         ('percentage_of_order_total', 'Percentage of Order Total'),
     ]
-    
+
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -35,7 +35,7 @@ class WriterLevel(models.Model):
         blank=True,
         help_text="Description of this level and its benefits."
     )
-    
+
     # EARNING MODE
     earning_mode = models.CharField(
         max_length=30,
@@ -43,7 +43,7 @@ class WriterLevel(models.Model):
         default='fixed_per_page',
         help_text="How writer earnings are calculated"
     )
-    
+
     # BASE PAY RATES (for fixed_per_page mode)
     base_pay_per_page = models.DecimalField(
         max_digits=10,
@@ -57,7 +57,7 @@ class WriterLevel(models.Model):
         default=Decimal('0.00'),
         help_text="Base pay per slide (used in fixed_per_page mode or as minimum fallback)."
     )
-    
+
     # PERCENTAGE-BASED EARNINGS (when earning_mode is percentage)
     earnings_percentage_of_cost = models.DecimalField(
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
@@ -113,7 +113,7 @@ class WriterLevel(models.Model):
         max_digits=5, decimal_places=2, default=Decimal('100.00'),
         help_text="Percentage of tips writer receives (alias for tip_percentage)"
     )
-    
+
     # LEVEL PROGRESSION REQUIREMENTS
     min_orders_to_attain = models.PositiveIntegerField(
         default=0,
@@ -139,7 +139,7 @@ class WriterLevel(models.Model):
         max_digits=5, decimal_places=2, null=True, blank=True,
         help_text="Maximum acceptable lateness rate (%) for this level"
     )
-    
+
     # BONUS STRUCTURE
     bonus_per_order_completed = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
@@ -153,7 +153,7 @@ class WriterLevel(models.Model):
         max_digits=3, decimal_places=2, default=Decimal('4.50'),
         help_text="Rating threshold to qualify for bonus"
     )
-    
+
     # LEVEL METADATA
     max_orders = models.PositiveIntegerField(
         default=10,
@@ -171,15 +171,15 @@ class WriterLevel(models.Model):
         default=True,
         help_text="Whether this level is active and can be assigned"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = "Writer Level"
         verbose_name_plural = "Writer Levels"
         ordering = ['display_order', 'name']
-        unique_together = [['website', 'name']]  # Level names unique per website
+        unique_together = [['website', 'name']] # Level names unique per website
 
     def __str__(self):
         earning_display = f"${self.base_pay_per_page}/page" if self.earning_mode == 'fixed_per_page' else f"{self.earnings_percentage_of_cost or self.earnings_percentage_of_total}%"
@@ -191,7 +191,7 @@ class WriterLevel(models.Model):
         This method is kept for backward compatibility but delegates to the new calculator.
         """
         from writer_management.services.earnings_calculator import WriterEarningsCalculator
-        
+
         # Create a mock order object for compatibility
         class MockOrder:
             def __init__(self, pages, slides, total_price, discounted_amount=None):
@@ -199,12 +199,12 @@ class WriterLevel(models.Model):
                 self.number_of_slides = slides
                 self.total_price = total_price
                 self.discounted_amount = discounted_amount or total_price
-        
+
         mock_order = MockOrder(pages, slides, order_total or Decimal('0.00'), order_cost)
         return WriterEarningsCalculator.calculate_earnings(
             self, mock_order, is_urgent, is_technical
         )
-    
+
     def full_payout(self, pages, slides, is_urgent, is_technical, order_total=None, order_cost=None):
         """Calculate the full payout including tips."""
         base = self.calculate_order_payment(pages, slides, is_urgent, is_technical, order_total, order_cost)
@@ -239,7 +239,7 @@ class WriterLevelHistory(models.Model):
     changed_at = models.DateTimeField(auto_now_add=True)
     triggered_by = models.CharField(
         max_length=50, default="system"
-    )  # or "admin", "weekly_task", etc.
+    ) # or "admin", "weekly_task", etc.
 
     class Meta:
         ordering = ["-changed_at"]

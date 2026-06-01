@@ -106,7 +106,7 @@ class CampaignAdminService:
             is_active=False,
             updated_by=updated_by,
         )
-        
+
         if updated_by is not None:
             DiscountNotificationService.notify_campaign_event(
                 campaign=campaign,
@@ -116,7 +116,7 @@ class CampaignAdminService:
             )
 
         return campaign
-    
+
     @staticmethod
     @transaction.atomic
     def restore_campaign(

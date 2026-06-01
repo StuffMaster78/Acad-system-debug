@@ -35,7 +35,7 @@ class WriterRequestService:
             additional_slides=data.get("additional_slides"),
             requires_payment=data.get("requires_payment", False),
             status=WriterRequest.RequestStatus.PENDING,
-            created_at=timezone.now(),  
+            created_at=timezone.now(),
 
         )
 
@@ -64,7 +64,7 @@ class WriterRequestService:
     def client_respond(request, client, approve, reason=None, counter_offer_data=None):
         """
         Handle client response to a writer request.
-        
+
         Args:
             request: WriterRequest instance
             client: User instance (client)
@@ -220,11 +220,11 @@ class WriterRequestService:
             slides_added = True
 
         order.save()
-        
+
         # Recalculate writer payment if pages/slides were added
         if (pages_added or slides_added) and order.assigned_writer:
             WriterRequestService._recalculate_writer_payment_for_additional_pages(order, request)
-    
+
     @staticmethod
     def _recalculate_writer_payment_for_additional_pages(order, writer_request):
         """
@@ -235,31 +235,31 @@ class WriterRequestService:
         from writer_management.services.earnings_calculator import WriterEarningsCalculator
         from writer_compensation.models import WriterPayment
         from django.utils import timezone
-        
+
         try:
             writer_profile = WriterProfile.objects.get(
                 user=order.assigned_writer,
                 website=order.website
             )
         except WriterProfile.DoesNotExist:
-            return  # No writer profile, skip recalculation
-        
+            return # No writer profile, skip recalculation
+
         if not writer_profile.writer_level:
-            return  # No writer level, skip recalculation
-        
+            return # No writer level, skip recalculation
+
         # Calculate additional earnings for the new pages/slides
         additional_pages = writer_request.additional_pages or 0
         additional_slides = writer_request.additional_slides or 0
-        
+
         if additional_pages == 0 and additional_slides == 0:
-            return  # No additional pages/slides
-        
+            return # No additional pages/slides
+
         # Calculate additional earnings based on writer level
         additional_earnings = (
             Decimal(str(additional_pages)) * writer_profile.writer_level.base_pay_per_page +
             Decimal(str(additional_slides)) * writer_profile.writer_level.base_pay_per_slide
         )
-        
+
         # Find or create writer payment for this order
         writer_payment, created = WriterPayment.objects.get_or_create(
             writer=writer_profile,
@@ -273,7 +273,7 @@ class WriterRequestService:
                 'status': 'Pending'
             }
         )
-        
+
         # If admin set a custom payment amount, we need to recalculate proportionally
         # or use level-based calculation for additional pages
         if order.writer_compensation and order.writer_compensation > 0:
@@ -289,9 +289,9 @@ class WriterRequestService:
                 deadline = order.writer_deadline or order.client_deadline
                 hours_until = (deadline - timezone.now()).total_seconds() / 3600
                 is_urgent = hours_until <= writer_profile.writer_level.urgent_order_deadline_hours
-            
+
             is_technical = getattr(order, 'is_technical', False)
-            
+
             # Recalculate total payment with new page/slide counts
             total_payment = WriterEarningsCalculator.calculate_earnings(
                 writer_profile.writer_level,
@@ -299,7 +299,7 @@ class WriterRequestService:
                 is_urgent=is_urgent,
                 is_technical=is_technical
             )
-            
+
             writer_payment.amount = total_payment
-        
+
         writer_payment.save()

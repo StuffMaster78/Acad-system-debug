@@ -16,7 +16,7 @@ class ClientSubscriptionSerializer(serializers.ModelSerializer):
         source='get_subscription_type_display',
         read_only=True
     )
-    
+
     class Meta:
         model = ClientSubscription
         fields = [
@@ -33,14 +33,14 @@ class ClientSubscriptionSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = [
-            'id', 'subscribed_at', 'unsubscribed_at', 
+            'id', 'subscribed_at', 'unsubscribed_at',
             'last_sent_at', 'created_at', 'updated_at'
         ]
 
 
 class SubscriptionPreferenceSerializer(serializers.ModelSerializer):
     """Serializer for subscription preferences."""
-    
+
     class Meta:
         model = SubscriptionPreference
         fields = [

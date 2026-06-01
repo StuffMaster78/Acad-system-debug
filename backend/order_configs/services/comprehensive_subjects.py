@@ -73,7 +73,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Latin', False),
     ('Greek', False),
     ('Classical Studies', False),
-    
+
     # ========== SOCIAL SCIENCES ==========
     ('Psychology', False),
     ('Clinical Psychology', False),
@@ -119,7 +119,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Asian American Studies', False),
     ('Latin American Studies', False),
     ('Middle Eastern Studies', False),
-    
+
     # ========== NATURAL SCIENCES (Technical) ==========
     ('Biology', True),
     ('Molecular Biology', True),
@@ -157,7 +157,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Atmospheric Science', True),
     ('Earth Science', True),
     ('Environmental Science', True),
-    
+
     # ========== MATHEMATICS & STATISTICS (Technical) ==========
     ('Mathematics', True),
     ('Algebra', True),
@@ -175,7 +175,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Probability', True),
     ('Mathematical Statistics', True),
     ('Actuarial Science', True),
-    
+
     # ========== COMPUTER SCIENCE & IT (Technical) ==========
     ('Computer Science', True),
     ('Information Technology', True),
@@ -213,7 +213,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Computer Architecture', True),
     ('Algorithms', True),
     ('Data Structures', True),
-    
+
     # ========== ENGINEERING (Technical) ==========
     ('Engineering', True),
     ('Mechanical Engineering', True),
@@ -236,7 +236,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Telecommunications Engineering', True),
     ('Marine Engineering', True),
     ('Agricultural Engineering', True),
-    
+
     # ========== HEALTH SCIENCES ==========
     ('Nursing', False),
     ('Nursing Practice', False),
@@ -292,7 +292,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Medical Laboratory Science', True),
     ('Biomedical Science', True),
     ('Health Informatics', True),
-    
+
     # ========== BUSINESS ==========
     ('Business', False),
     ('Business Administration', False),
@@ -334,7 +334,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Event Management', False),
     ('Sports Management', False),
     ('Retail Management', False),
-    
+
     # ========== EDUCATION ==========
     ('Education', False),
     ('Teaching', False),
@@ -352,7 +352,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Educational Administration', False),
     ('Educational Psychology', False),
     ('Learning Sciences', False),
-    
+
     # ========== COMMUNICATIONS ==========
     ('Communications', False),
     ('Mass Communications', False),
@@ -369,7 +369,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Television', False),
     ('Film Production', False),
     ('Video Production', False),
-    
+
     # ========== AVIATION & TRANSPORTATION ==========
     ('Aviation', False),
     ('Aeronautics', True),
@@ -384,7 +384,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Transportation', False),
     ('Logistics', False),
     ('Supply Chain', False),
-    
+
     # ========== ARCHITECTURE & DESIGN ==========
     ('Architecture', False),
     ('Urban Planning', False),
@@ -394,7 +394,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Web Design', False),
     ('Industrial Design', False),
     ('Fashion Design', False),
-    
+
     # ========== AGRICULTURE & ENVIRONMENT ==========
     ('Agriculture', False),
     ('Agricultural Science', True),
@@ -408,7 +408,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Renewable Energy', True),
     ('Climate Science', True),
     ('Conservation', False),
-    
+
     # ========== MILITARY & SECURITY ==========
     ('Military Science', False),
     ('Security Studies', False),
@@ -417,7 +417,7 @@ COMPREHENSIVE_SUBJECTS = [
     ('Criminal Justice', False),
     ('Forensics', True),
     ('Criminal Investigation', False),
-    
+
     # ========== OTHER PROFESSIONAL ==========
     ('Library Science', False),
     ('Information Science', False),

@@ -23,11 +23,11 @@ class SpecialOrderFileIntegrationService:
 
     File categories and their default visibility:
 
-        SPECIAL_ORDER_REFERENCE    — ORDER_PARTICIPANTS (client + writer + staff)
-        SPECIAL_ORDER_SCREENSHOT   — STAFF_ONLY (portal screenshots, sensitive)
-        SPECIAL_ORDER_CREDENTIAL   — STAFF_ONLY (portal logins, vault pending)
-        SPECIAL_ORDER_MILESTONE    — CLIENT_AND_STAFF until funded; guard-gated
-        SPECIAL_ORDER_REPORT       — CLIENT_AND_STAFF
+        SPECIAL_ORDER_REFERENCE — ORDER_PARTICIPANTS (client + writer + staff)
+        SPECIAL_ORDER_SCREENSHOT — STAFF_ONLY (portal screenshots, sensitive)
+        SPECIAL_ORDER_CREDENTIAL — STAFF_ONLY (portal logins, vault pending)
+        SPECIAL_ORDER_MILESTONE — CLIENT_AND_STAFF until funded; guard-gated
+        SPECIAL_ORDER_REPORT — CLIENT_AND_STAFF
 
     Credential and screenshot files are marked STAFF_ONLY by default.
     Full vault mode (access reason required, per-view audit, delegated
@@ -217,10 +217,10 @@ class SpecialOrderFileIntegrationService:
         payment status before generating a signed download URL.
 
         Args:
-            attachment:    The SPECIAL_ORDER_MILESTONE attachment to submit.
-            submitted_by:  Actor pressing Submit.
-            on_behalf_of:  Writer represented by staff, if applicable.
-            reason:        Required when on_behalf_of is set.
+            attachment: The SPECIAL_ORDER_MILESTONE attachment to submit.
+            submitted_by: Actor pressing Submit.
+            on_behalf_of: Writer represented by staff, if applicable.
+            reason: Required when on_behalf_of is set.
         """
         from files_management.services.file_delivery_guard_service import (
             FileDeliveryGuardService,

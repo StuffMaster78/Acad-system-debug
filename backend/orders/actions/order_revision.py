@@ -94,14 +94,14 @@ class OrderRevisionAction(BaseOrderAction):
     def execute(self):
         reason = self.params.get("reason", "")
         notes = self.params.get("notes", "")
-        
+
         # Combine reason and notes if both provided
         revision_reason = reason
         if notes and notes != reason:
             revision_reason = f"{reason}\n\n{notes}" if reason else notes
-        
+
         service = OrderRevisionService(order=self.order, user=self.user)
-        
+
         # For completed orders, check if within revision period
         # For other statuses, allow if action is available
         if self.order.status == OrderStatus.COMPLETED.value:
@@ -115,7 +115,7 @@ class OrderRevisionAction(BaseOrderAction):
                 user_role = getattr(self.user, 'role', None)
                 if user_role not in ['admin', 'superadmin', 'support']:
                     raise PermissionDenied("Only the client or admin can request revisions for completed orders.")
-        
+
         result = service.request_revision(reason=revision_reason)
 
         if result:

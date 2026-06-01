@@ -75,8 +75,8 @@ class FileDeliveryGuardService:
 
         Args:
             attachment: The file attachment being downloaded.
-            user:       The user requesting the download (for audit).
-            order:      Domain order object, used to check payment balance.
+            user: The user requesting the download (for audit).
+            order: Domain order object, used to check payment balance.
 
         Returns:
             FileDeliveryGuardResult with result=ALLOWED or BLOCKED.
@@ -154,10 +154,10 @@ class FileDeliveryGuardService:
             3. The file is not already submitted.
 
         Args:
-            attachment:    FileAttachment to submit.
-            submitted_by:  Actor performing the submit action.
-            on_behalf_of:  Writer the staff member is acting for.
-            reason:        Required when submitting on behalf of a writer.
+            attachment: FileAttachment to submit.
+            submitted_by: Actor performing the submit action.
+            on_behalf_of: Writer the staff member is acting for.
+            reason: Required when submitting on behalf of a writer.
 
         Returns:
             Updated FileAttachment.

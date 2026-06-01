@@ -96,7 +96,7 @@ class WriterActivityLog(models.Model):
 
     def __str__(self):
         return f"Activity: {self.writer.user.username} - {self.action_type} ({self.timestamp})"
-    
+
 
 class WriterActivityTracking(models.Model):
     """
@@ -150,7 +150,7 @@ class WriterIPLog(models.Model):
 
     def __str__(self):
         return f"IP Log: {self.writer.user.username} - {self.ip_address} ({self.logged_at})"
-    
+
 class WriterOrderRequestLog(models.Model):
     """
     Logs all writer order requests for auditing.
@@ -181,7 +181,7 @@ class WriterOrderRequestLog(models.Model):
 
     def __str__(self):
         return f"Request Log: {self.writer.user.username} for Order {self.order.id} (Approved: {self.approved})"
-    
+
     class Meta:
         verbose_name = "Writer Order Request Log"
         verbose_name_plural = "Writer Order Request Logs"
@@ -204,17 +204,17 @@ class WriterOrderTakeLog(models.Model):
         related_name="order_take_logs"
     )
     taken_at = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="Timestamp when the order was taken."
     )
 
     def __str__(self):
         return f"Take Log: {self.writer.user.username} - Order {self.order.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Take Log"
         verbose_name_plural = "Writer Order Take Logs"
-        ordering = ['-taken_at']    
+        ordering = ['-taken_at']
 
 class WriterOrderCompletionLog(models.Model):
     """
@@ -233,13 +233,13 @@ class WriterOrderCompletionLog(models.Model):
         related_name="order_completion_logs"
     )
     completed_at = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="Timestamp when the order was completed."
     )
 
     def __str__(self):
         return f"Completion Log: {self.writer.user.username} - Order {self.order.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Completion Log"
         verbose_name_plural = "Writer Order Completion Logs"
@@ -263,13 +263,13 @@ class WriterOrderReassignmentLog(models.Model):
         related_name="order_reassignment_logs"
     )
     reassigned_at = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="Timestamp when the order was reassigned."
     )
 
     def __str__(self):
         return f"Reassignment Log: {self.writer.user.username} - Order {self.order.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Reassignment Log"
         verbose_name_plural = "Writer Order Reassignment Logs"
@@ -292,7 +292,7 @@ class WriterOrderDeadlineExtensionLog(models.Model):
         related_name="order_deadline_extension_logs"
     )
     extension_requested_at = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="Timestamp when the deadline extension was requested."
     )
     new_deadline = models.DateTimeField(
@@ -301,7 +301,7 @@ class WriterOrderDeadlineExtensionLog(models.Model):
 
     def __str__(self):
         return f"Deadline Extension Log: {self.writer.user.username} - Order {self.order.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Deadline Extension Log"
         verbose_name_plural = "Writer Order Deadline Extension Logs"
@@ -325,13 +325,13 @@ class WriterOrderReopenLog(models.Model):
         related_name="order_reopen_logs"
     )
     reopened_at = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="Timestamp when the order was reopened."
     )
 
     def __str__(self):
         return f"Reopen Log: {self.writer.user.username} - Order {self.order.id}"
-    
+
     class Meta:
         verbose_name = "Writer Order Reopen Log"
         verbose_name_plural = "Writer Order Reopen Logs"
@@ -362,12 +362,12 @@ class WriterOrderMessageLog(models.Model):
 
     def __str__(self):
         return f"Message Log: {self.writer.user.username} - Order {self.order.id} ({self.sent_at})"
-    
+
 
     class Meta:
         verbose_name = "Writer Order Message Log"
         verbose_name_plural = "Writer Order Message Logs"
-        ordering = ['-sent_at'] 
+        ordering = ['-sent_at']
 
 
 class WriterRatingLog(models.Model):
@@ -398,11 +398,11 @@ class WriterRatingLog(models.Model):
 
     def __str__(self):
         return f"Rating Log: {self.writer.user.username} - Order {self.order.id} ({self.rating})"
-    
+
     class Meta:
         verbose_name = "Writer Rating Log"
         verbose_name_plural = "Writer Rating Logs"
-        ordering = ['-rated_at']    
+        ordering = ['-rated_at']
 
 
 class WriterProfileUpdateLog(models.Model):
@@ -429,7 +429,7 @@ class WriterProfileUpdateLog(models.Model):
 
     def __str__(self):
         return f"Profile Update Log: {self.writer.user.username} ({self.updated_at})"
-    
+
     class Meta:
         verbose_name = "Writer Profile Update Log"
         verbose_name_plural = "Writer Profile Update Logs"

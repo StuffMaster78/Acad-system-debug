@@ -12,7 +12,7 @@ from .models import (
 class EditorProfileSerializer(serializers.ModelSerializer):
     active_tasks_count = serializers.IntegerField(read_only=True)
     can_take_more_tasks = serializers.BooleanField(read_only=True)
-    
+
     class Meta:
         model = EditorProfile
         fields = "__all__"
@@ -26,7 +26,7 @@ class EditorTaskAssignmentSerializer(serializers.ModelSerializer):
     assigned_editor_name = serializers.CharField(source='assigned_editor.name', read_only=True)
     assigned_by_username = serializers.CharField(source='assigned_by.username', read_only=True)
     order_status = serializers.CharField(source='order.status', read_only=True)
-    
+
     class Meta:
         model = EditorTaskAssignment
         fields = "__all__"
@@ -37,12 +37,12 @@ class EditorReviewSubmissionSerializer(serializers.ModelSerializer):
     order_id = serializers.IntegerField(source='order.id', read_only=True)
     order_topic = serializers.CharField(source='order.topic', read_only=True)
     editor_name = serializers.CharField(source='editor.name', read_only=True)
-    
+
     class Meta:
         model = EditorReviewSubmission
         fields = "__all__"
         read_only_fields = ('task_assignment', 'editor', 'order', 'submitted_at', 'updated_at')
-    
+
     def validate_quality_score(self, value):
         if value is not None and (value < 0 or value > 10):
             raise serializers.ValidationError("Quality score must be between 0.00 and 10.00")
@@ -51,7 +51,7 @@ class EditorReviewSubmissionSerializer(serializers.ModelSerializer):
 
 class EditorPerformanceSerializer(serializers.ModelSerializer):
     editor_name = serializers.CharField(source='editor.name', read_only=True)
-    
+
     class Meta:
         model = EditorPerformance
         fields = "__all__"
@@ -61,7 +61,7 @@ class EditorPerformanceSerializer(serializers.ModelSerializer):
 class EditorNotificationSerializer(serializers.ModelSerializer):
     order_id = serializers.IntegerField(source='related_order.id', read_only=True, allow_null=True)
     order_topic = serializers.CharField(source='related_order.topic', read_only=True, allow_null=True)
-    
+
     class Meta:
         model = EditorNotification
         fields = "__all__"
@@ -71,7 +71,7 @@ class EditorNotificationSerializer(serializers.ModelSerializer):
 class EditorActionLogSerializer(serializers.ModelSerializer):
     editor_name = serializers.CharField(source='editor.name', read_only=True)
     order_id = serializers.IntegerField(source='related_order.id', read_only=True, allow_null=True)
-    
+
     class Meta:
         model = EditorActionLog
         fields = "__all__"
@@ -93,8 +93,8 @@ class SubmitReviewSerializer(serializers.Serializer):
     """Serializer for submitting a review."""
     task_id = serializers.IntegerField()
     quality_score = serializers.DecimalField(
-        max_digits=3, 
-        decimal_places=2, 
+        max_digits=3,
+        decimal_places=2,
         required=False,
         allow_null=True
     )

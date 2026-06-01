@@ -31,8 +31,8 @@ class CommunicationGuardService:
             # Check if thread is active
             if not thread.is_active and not thread.admin_override:
                 raise PermissionDenied("This thread is locked.")
-            return  # Allow messaging for class bundles if thread is active
-        
+            return # Allow messaging for class bundles if thread is active
+
         order = getattr(thread, "order", None)
         special_order = getattr(thread, "special_order", None)
 
@@ -47,7 +47,7 @@ class CommunicationGuardService:
         # Check if user has access to the order
         role = getattr(user, "role", None)
         has_order_access = False
-        
+
         if order:
             # Client who placed the order
             if order.client == user:

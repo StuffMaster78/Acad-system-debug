@@ -13,7 +13,7 @@ class DisputeMessageSerializer(serializers.ModelSerializer):
     """Serializer for dispute messages."""
     sender_name = serializers.CharField(source='sender.username', read_only=True)
     sender_email = serializers.EmailField(source='sender.email', read_only=True)
-    
+
     class Meta:
         model = DisputeMessage
         fields = [
@@ -25,11 +25,11 @@ class DisputeMessageSerializer(serializers.ModelSerializer):
 
 class DisputeMessageCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating dispute messages."""
-    
+
     class Meta:
         model = DisputeMessage
         fields = ['dispute', 'message', 'is_internal']
-    
+
     def create(self, validated_data):
         validated_data['sender'] = self.context['request'].user
         return super().create(validated_data)
@@ -48,7 +48,7 @@ class OrderDisputeSerializer(serializers.ModelSerializer):
     order_status = serializers.CharField(source='order.status', read_only=True)
     messages = DisputeMessageSerializer(many=True, read_only=True)
     messages_count = serializers.IntegerField(source='messages.count', read_only=True)
-    
+
     class Meta:
         model = OrderDispute
         fields = [
@@ -66,18 +66,18 @@ class OrderDisputeSerializer(serializers.ModelSerializer):
 
 class OrderDisputeCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating order disputes."""
-    
+
     def validate(self, data):
         """Validate dispute creation."""
         order = data.get('order')
         user = self.context['request'].user
-        
+
         # Ensure user is either client or writer of the order
         if order.client != user and order.writer != user:
             raise serializers.ValidationError(
                 "You can only raise disputes for orders you are involved in."
             )
-        
+
         # Set raised_by and other_party
         if order.client == user:
             data['raised_by'] = user
@@ -85,12 +85,12 @@ class OrderDisputeCreateSerializer(serializers.ModelSerializer):
         else:
             data['raised_by'] = user
             data['other_party'] = order.client
-        
+
         # Set website from order
         data['website'] = order.website
-        
+
         return data
-    
+
     def create(self, validated_data):
         return super().create(validated_data)
 
@@ -103,7 +103,7 @@ class OrderDisputeCreateSerializer(serializers.ModelSerializer):
 
 class OrderDisputeUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating order disputes."""
-    
+
     class Meta:
         model = OrderDispute
         fields = [
@@ -118,7 +118,7 @@ class OrderDisputeEscalateSerializer(serializers.Serializer):
         queryset=User.objects.filter(role__in=['admin', 'superadmin'])
     )
     escalation_reason = serializers.CharField(required=False, allow_blank=True)
-    
+
     def validate_escalated_to(self, value):
         """Validate escalated_to user."""
         if value.role not in ['admin', 'superadmin']:

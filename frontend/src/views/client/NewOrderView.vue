@@ -545,7 +545,7 @@ onMounted(loadConfig);
             >Clear</button>
           </div>
           <p v-if="couponApplied" class="mt-1.5 text-xs text-emerald-700">
-            ✓ Code applied — discount will be calculated at checkout.
+             Code applied — discount will be calculated at checkout.
           </p>
           <p class="mt-1.5 text-xs text-graphite">Applied at checkout if valid for your order.</p>
         </section>
@@ -579,7 +579,7 @@ onMounted(loadConfig);
           {{ error }}
         </div>
         <div v-if="success" class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-800" role="status">
-          <span class="shrink-0 font-bold">✓</span>
+          <span class="shrink-0 font-bold"></span>
           {{ success }}
         </div>
         <PaymentDisclosureBanner v-if="success" variant="post" />

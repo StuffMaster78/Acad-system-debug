@@ -11,5 +11,5 @@ class HolidayManagementConfig(AppConfig):
 
     def ready(self):
         """Import signals when app is ready."""
-        import holiday_management.signals  # noqa
+        import holiday_management.signals # noqa
 

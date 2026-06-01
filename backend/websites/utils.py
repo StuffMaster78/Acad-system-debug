@@ -7,7 +7,7 @@ def get_primary_website():
 def get_current_website(request):
     """
     Determines the current website based on the request.
-    Priority:   1. request.website (set by middleware)
+    Priority: 1. request.website (set by middleware)
                 2. request.user's website (if authenticated)
                 3. domain from request host
                 4. primary website as fallback

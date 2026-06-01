@@ -7,7 +7,7 @@ from websites.models.websites import Website
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier
 from django.apps import apps
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 def get_order_payment_model():
     return apps.get_model('payments_processor', 'PaymentIntent')
@@ -78,7 +78,7 @@ class Referral(SoftDeleteModel):
     bonus_awarded = models.BooleanField(default=False)
     registration_bonus_credited = models.BooleanField(default=False)
     first_order_bonus_credited = models.BooleanField(default=False)
-    
+
     # Abuse detection fields
     is_flagged = models.BooleanField(
         default=False,
@@ -107,14 +107,14 @@ class Referral(SoftDeleteModel):
         help_text="Admin who voided this referral."
     )
 
-    
+
 
 
     def apply_referral_discount(self, order):
         """
         Applies referral discount for the referee when it's their first order.
         This function is placed inside the Referral model.
-        
+
         NOTE: A client only becomes eligible after approving their first order.
         This method should check for approved orders, not just order count.
         """
@@ -123,15 +123,15 @@ class Referral(SoftDeleteModel):
         order_client = getattr(order, 'client', None) or getattr(order, 'user', None)
         if not order_client:
             return 0
-        
+
         # Check if this is the first approved order (not just first order)
         # A client only becomes eligible after approving their first order to avoid abuse
         previous_approved_orders = order_client.orders_as_client.exclude(id=order.id).filter(status='approved')
         if previous_approved_orders.exists():
-            return 0  # Not the first approved order
-        
+            return 0 # Not the first approved order
+
         # Check if this is the referee's first order (before approval)
-        if order_client.orders_as_client.count() == 1:  # The referee is placing their first order
+        if order_client.orders_as_client.count() == 1: # The referee is placing their first order
             # Check if the order is linked to the current referral
             if self.referee == order_client:
                 # Get referral bonus configuration for the current website
@@ -140,9 +140,9 @@ class Referral(SoftDeleteModel):
                     # Apply the discount based on the bonus configuration
                     discount_amount = 0
                     if bonus_config.first_order_discount_type == 'percentage':
-                        discount_amount = (bonus_config.first_order_discount_amount / 100) * order.total  # Apply percentage
+                        discount_amount = (bonus_config.first_order_discount_amount / 100) * order.total # Apply percentage
                     elif bonus_config.first_order_discount_type == 'fixed':
-                        discount_amount = bonus_config.first_order_discount_amount  # Apply fixed amount
+                        discount_amount = bonus_config.first_order_discount_amount # Apply fixed amount
 
                     # Deduct the discount from the order total
                     order.total -= discount_amount
@@ -153,9 +153,9 @@ class Referral(SoftDeleteModel):
                     self.save()
 
                     return discount_amount
-        return 0  # No discount if conditions aren't met
+        return 0 # No discount if conditions aren't met
 
-    
+
 
     def __str__(self):
         return f"{self.referrer.username} referred {self.referee.username}"
@@ -185,7 +185,7 @@ class ReferralBonusConfig(models.Model):
         ('percentage', 'Percentage'),
         ('fixed', 'Fixed')
     ]
-    website = models.ForeignKey(Website, on_delete=models.CASCADE) 
+    website = models.ForeignKey(Website, on_delete=models.CASCADE)
     first_order_bonus = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -217,11 +217,11 @@ class ReferralBonusConfig(models.Model):
         help_text="Order milestone that qualifies the referral reward.",
     )
     first_order_discount_type = models.CharField(
-        max_length=10,  choices=DISCOUNT_TYPE_CHOICES,
+        max_length=10, choices=DISCOUNT_TYPE_CHOICES,
         default='fixed'
-    )  # To define if the discount is percentage or fixed amount
-    first_order_discount_amount = models.DecimalField(max_digits=10, decimal_places=2)  # Discount value
-    bonus_expiry_days = models.IntegerField(default=30) 
+    ) # To define if the discount is percentage or fixed amount
+    first_order_discount_amount = models.DecimalField(max_digits=10, decimal_places=2) # Discount value
+    bonus_expiry_days = models.IntegerField(default=30)
     max_referrals_per_month = models.PositiveIntegerField(
         default=10,
         help_text="Max number of referrals a user can make in a month."
@@ -241,7 +241,7 @@ class ReferralCode(models.Model):
     """
     Stores referral codes and generates unique referral links.
     """
-    website = models.ForeignKey(Website, on_delete=models.CASCADE) 
+    website = models.ForeignKey(Website, on_delete=models.CASCADE)
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -268,7 +268,7 @@ class ReferralCode(models.Model):
         # Validate that only clients can have referral codes
         if self.user.role != 'client':
             raise ValueError(f"Only clients can have referral codes. User {self.user.username} has role: {self.user.role}")
-        
+
         if not getattr(self, "website_id", None):
             try:
                 if getattr(self.user, "website_id", None):
@@ -343,7 +343,7 @@ class ReferralBonusDecay(models.Model):
 
     def __str__(self):
         return f"Decay for {self.wallet_transaction.id}: {self.decay_rate}%/month"
-    
+
 
 class ReferralBonusUsage(models.Model):
     """
@@ -440,14 +440,14 @@ class ReferralAbuseFlag(models.Model):
         ('fake_accounts', 'Fake Accounts'),
         ('other', 'Other'),
     )
-    
+
     STATUS_CHOICES = (
         ('pending', 'Pending Review'),
         ('reviewed', 'Reviewed'),
         ('resolved', 'Resolved'),
         ('false_positive', 'False Positive'),
     )
-    
+
     referral = models.ForeignKey(
         Referral,
         on_delete=models.CASCADE,
@@ -500,17 +500,17 @@ class ReferralAbuseFlag(models.Model):
         null=True,
         help_text="Action taken (e.g., referral voided, bonus revoked)."
     )
-    
+
     class Meta:
         ordering = ['-detected_at']
         indexes = [
             models.Index(fields=['status', 'abuse_type']),
             models.Index(fields=['referral']),
         ]
-    
+
     def __str__(self):
         return f"Abuse Flag: {self.get_abuse_type_display()} for Referral {self.referral.id}"
-    
+
     def mark_as_reviewed(self, reviewer, notes=None, action_taken=None):
         """Mark this flag as reviewed by an admin."""
         self.status = 'reviewed'

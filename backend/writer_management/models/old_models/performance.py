@@ -46,7 +46,7 @@ class WriterPerformance(models.Model):
     )
     on_time_deliveries = models.PositiveIntegerField(
         default=0,
-        help_text="Number of orders delivered on time." 
+        help_text="Number of orders delivered on time."
     )
     total_orders = models.PositiveIntegerField(
         default=0,
@@ -83,7 +83,7 @@ class WriterPerformance(models.Model):
             f"Performance: {self.writer.user.username} - "
             f"Avg Rating: {self.average_rating}"
         )
-    
+
 
 class WriterPerformanceReport(models.Model):
     """

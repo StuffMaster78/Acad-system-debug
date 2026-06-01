@@ -45,7 +45,7 @@ existing data in this table.
 OWNERSHIP
 ---------
 Created by: site setup / management command seed_writer_config
-Read by:    WriterWarningService, DisciplineService, AssignmentService
+Read by: WriterWarningService, DisciplineService, AssignmentService
 Updated by: WriterConfigService (not yet written — admin API)
 Never written to directly from views.
 """
@@ -61,17 +61,17 @@ class WriterConfig(models.Model):
     One row per website. Created during site setup.
 
     Controls:
-        takes_enabled           — can writers self-assign orders?
+        takes_enabled — can writers self-assign orders?
         max_requests_per_writer — pending request cap (site default)
-        max_takes_per_writer    — concurrent order cap (site default)
+        max_takes_per_writer — concurrent order cap (site default)
 
     Per-level overrides live on WriterLevelSettings.
     Per-writer overrides live on WriterCapacity.override_max_active_orders.
 
     Ceiling resolution order (highest priority wins):
-        1. WriterCapacity.override_max_active_orders  (per writer)
-        2. WriterLevelSettings.max_active_orders      (per level)
-        3. WriterConfig.max_takes_per_writer          (site default)
+        1. WriterCapacity.override_max_active_orders (per writer)
+        2. WriterLevelSettings.max_active_orders (per level)
+        3. WriterConfig.max_takes_per_writer (site default)
     """
 
     website = models.OneToOneField(

@@ -71,9 +71,9 @@ class RedemptionRequestAdmin(admin.ModelAdmin):
     list_filter = ['status', 'item__category', 'website', 'requested_at']
     search_fields = ['client__user__username', 'item__name', 'fulfillment_code']
     readonly_fields = ['requested_at', 'approved_at', 'fulfilled_at', 'rejected_at']
-    
+
     actions = ['approve_requests', 'reject_requests']
-    
+
     def approve_requests(self, request, queryset):
         """Bulk approve redemption requests."""
         count = 0
@@ -86,7 +86,7 @@ class RedemptionRequestAdmin(admin.ModelAdmin):
                 self.message_user(request, f"Error approving {redemption.id}: {str(e)}", level='error')
         self.message_user(request, f"Approved {count} redemption requests.")
     approve_requests.short_description = "Approve selected redemptions"
-    
+
     def reject_requests(self, request, queryset):
         """Bulk reject redemption requests."""
         count = 0

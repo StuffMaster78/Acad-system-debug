@@ -41,7 +41,7 @@ class WriterLeave(models.Model):
 
     def __str__(self):
         return f"Leave: {self.writer.user.username} ({self.start_date} - {self.end_date})"
-    
+
     class Meta:
         verbose_name = "Writer Leave"
         verbose_name_plural = "Writer Leaves"
@@ -80,7 +80,7 @@ class WriterStrike(models.Model):
 
     def __str__(self):
         return f"Strike: {self.writer.user.username} - {self.reason[:50]}..."
-    
+
     class Meta:
         verbose_name = "Writer Strike"
         verbose_name_plural = "Writer Strikes"
@@ -100,11 +100,11 @@ class WriterLeaveHistory(models.Model):
         related_name="leave_history_changes"
     )
     change_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the change was made."
     )
     change_type = models.CharField(
-        max_length=50, 
+        max_length=50,
         choices=[("Created", "Created"), ("Updated", "Updated"), ("Deleted", "Deleted")],
         help_text="Type of change made."
     )
@@ -115,7 +115,7 @@ class WriterLeaveHistory(models.Model):
 
     def __str__(self):
         return f"Leave History: {self.leave.writer.user.username} ({self.change_type})"
-    
+
     class Meta:
         verbose_name = "Writer Leave History"
         verbose_name_plural = "Writer Leave Histories"
@@ -136,11 +136,11 @@ class WriterStrikeHistory(models.Model):
         related_name="strike_history_changes"
     )
     change_date = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         help_text="When the change was made."
     )
     change_type = models.CharField(
-        max_length=50, 
+        max_length=50,
         choices=[("Created", "Created"), ("Updated", "Updated"), ("Deleted", "Deleted")],
         help_text="Type of change made."
     )
@@ -178,7 +178,7 @@ class WriterLeaveAdminReview(models.Model):
 
     def __str__(self):
         return f"Leave Review: {self.leave.writer.user.username} ({self.review_date})"
-    
+
     class Meta:
         verbose_name = "Writer Leave Admin Review"
         verbose_name_plural = "Writer Leave Admin Reviews"

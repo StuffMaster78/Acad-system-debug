@@ -5,19 +5,19 @@ Celery tasks for the performance pipeline.
 
 PIPELINE ORDER (weekly, Sunday night → Monday morning)
 ------------------------------------------------------
-Sunday 23:00  run_weekly_aggregation
+Sunday 23:00 run_weekly_aggregation
               → PerformanceAggregatorService.run_weekly()
               → For each writer:
                   WriterMetricsSnapshotService.create_or_update()
                   WriterPerformanceMetrics upserted
               → Percentile ranks computed across all writers
 
-Monday 04:00  run_level_progression
+Monday 04:00 run_level_progression
               → LevelProgressionService.evaluate_all()
               → Reads processed snapshots from Sunday
               → Promotes / demotes writers
 
-Monday 06:00  evaluate_weekly_rewards  (reward_tasks.py)
+Monday 06:00 evaluate_weekly_rewards (reward_tasks.py)
               → Reads WriterPerformanceMetrics from Sunday
               → Awards weekly rewards
 
@@ -62,9 +62,9 @@ def _last_monday() -> date:
     name="writer_management.tasks.performance_tasks.run_weekly_aggregation",
     bind=True,
     max_retries=2,
-    default_retry_delay=600,  # 10 minutes
-    time_limit=3600,          # 1 hour hard limit
-    soft_time_limit=3300,     # 55 minutes soft limit
+    default_retry_delay=600, # 10 minutes
+    time_limit=3600, # 1 hour hard limit
+    soft_time_limit=3300, # 55 minutes soft limit
 )
 def run_weekly_aggregation(self, week_start_str: str | None = None):
     """
@@ -91,9 +91,9 @@ def run_weekly_aggregation(self, week_start_str: str | None = None):
         websites = Website.objects.filter(is_active=True)
         total_summary = {
             "week_start": str(week_start),
-            "websites":   0,
-            "processed":  0,
-            "failed":     0,
+            "websites": 0,
+            "processed": 0,
+            "failed": 0,
         }
 
         for website in websites:
@@ -104,7 +104,7 @@ def run_weekly_aggregation(self, week_start_str: str | None = None):
                 )
                 total_summary["websites"] += 1
                 total_summary["processed"] += summary.get("processed", 0)
-                total_summary["failed"]    += summary.get("failed", 0)
+                total_summary["failed"] += summary.get("failed", 0)
             except Exception as exc:
                 total_summary["failed"] += 1
                 logger.exception(
@@ -148,12 +148,12 @@ def run_level_progression(self):
     try:
         websites = Website.objects.filter(is_active=True)
         total_summary = {
-            "websites":  0,
+            "websites": 0,
             "evaluated": 0,
-            "promoted":  0,
-            "demoted":   0,
+            "promoted": 0,
+            "demoted": 0,
             "unchanged": 0,
-            "errors":    0,
+            "errors": 0,
         }
 
         for website in websites:
@@ -161,7 +161,7 @@ def run_level_progression(self):
                 summary = LevelProgressionService.evaluate_all(
                     website=website,
                 )
-                total_summary["websites"]  += 1
+                total_summary["websites"] += 1
                 for key in ("evaluated", "promoted", "demoted",
                             "unchanged", "errors"):
                     total_summary[key] += summary.get(key, 0)
@@ -198,7 +198,7 @@ def backfill_writer_metrics(
 
     Args:
         writer_registration_id: WriterProfile.registration_id.
-        week_start_str:         ISO date 'YYYY-MM-DD' (must be a Monday).
+        week_start_str: ISO date 'YYYY-MM-DD' (must be a Monday).
     """
     from writer_management.models.writer_profile import WriterProfile
     from writer_management.services.performance_aggregator_service import (

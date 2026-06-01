@@ -6,15 +6,15 @@ Nothing else writes to discipline models directly.
 
 OPERATIONS
 ----------
-issue_strike()          → WriterStrike
-suspend()               → WriterSuspension
-lift_suspension()       → updates WriterSuspension
-blacklist()             → WriterBlacklist
-lift_blacklist()        → updates WriterBlacklist
-place_on_probation()    → WriterProbation
-end_probation()         → updates WriterProbation
-apply_penalty()         → WriterPenalty
-expire_ended_actions()  → called by Celery task — clears timed-out
+issue_strike() → WriterStrike
+suspend() → WriterSuspension
+lift_suspension() → updates WriterSuspension
+blacklist() → WriterBlacklist
+lift_blacklist() → updates WriterBlacklist
+place_on_probation() → WriterProbation
+end_probation() → updates WriterProbation
+apply_penalty() → WriterPenalty
+expire_ended_actions() → called by Celery task — clears timed-out
                           suspensions and probations
 
 AFTER EVERY MUTATION
@@ -82,8 +82,8 @@ class DisciplineService:
         automatic suspension or blacklisting.
 
         Args:
-            writer:    WriterProfile receiving the strike.
-            reason:    Why the strike is being issued.
+            writer: WriterProfile receiving the strike.
+            reason: Why the strike is being issued.
             issued_by: Admin User. None = system-triggered.
 
         Returns:
@@ -212,10 +212,10 @@ class DisciplineService:
         Raises WriterSuspendedError if already suspended.
 
         Args:
-            writer:         WriterProfile to suspend.
-            reason:         Why the writer is being suspended.
-            duration_days:  Days until suspension ends. None = indefinite.
-            suspended_by:   Admin User. None = auto-triggered.
+            writer: WriterProfile to suspend.
+            reason: Why the writer is being suspended.
+            duration_days: Days until suspension ends. None = indefinite.
+            suspended_by: Admin User. None = auto-triggered.
             auto_triggered: True when triggered by threshold logic.
 
         Returns:
@@ -300,9 +300,9 @@ class DisciplineService:
         Raises WriterSuspendedError if no active suspension exists.
 
         Args:
-            writer:    WriterProfile to unsuspend.
+            writer: WriterProfile to unsuspend.
             lifted_by: Admin User performing the lift.
-            reason:    Optional reason for lifting early.
+            reason: Optional reason for lifting early.
 
         Returns:
             Updated WriterSuspension instance.
@@ -367,8 +367,8 @@ class DisciplineService:
         automatically lifted first — blacklist supersedes it.
 
         Args:
-            writer:         WriterProfile to blacklist.
-            reason:         Why the writer is being blacklisted.
+            writer: WriterProfile to blacklist.
+            reason: Why the writer is being blacklisted.
             blacklisted_by: Admin User. None = auto-triggered.
             auto_triggered: True when triggered by threshold logic.
 
@@ -397,7 +397,7 @@ class DisciplineService:
                 reason="Lifted — blacklist applied.",
             )
         except WriterSuspendedError:
-            pass  # No active suspension — that's fine
+            pass # No active suspension — that's fine
 
         entry = WriterBlacklist.objects.create(
             website=website,
@@ -448,9 +448,9 @@ class DisciplineService:
         This is a significant action. Log carefully.
 
         Args:
-            writer:    WriterProfile to un-blacklist.
+            writer: WriterProfile to un-blacklist.
             lifted_by: Admin User performing the lift.
-            reason:    Why the blacklist is being lifted.
+            reason: Why the blacklist is being lifted.
 
         Returns:
             Updated WriterBlacklist instance.
@@ -516,11 +516,11 @@ class DisciplineService:
         Place a writer on probation.
 
         Args:
-            writer:         WriterProfile.
-            reason:         Why.
-            end_date:       Explicit end datetime. Overrides duration_days.
-            duration_days:  Days of probation if end_date not given.
-            placed_by:      Admin User. None = auto.
+            writer: WriterProfile.
+            reason: Why.
+            end_date: Explicit end datetime. Overrides duration_days.
+            duration_days: Days of probation if end_date not given.
+            placed_by: Admin User. None = auto.
             auto_triggered: True when triggered by warning threshold.
 
         Returns:
@@ -627,12 +627,12 @@ class DisciplineService:
         The actual earnings deduction is executed by writer_compensation.
 
         Args:
-            writer:     WriterProfile.
-            reason:     PenaltyReason choice value.
-            amount:     Decimal amount to deduct.
-            order:      orders.Order if penalty relates to a specific order.
+            writer: WriterProfile.
+            reason: PenaltyReason choice value.
+            amount: Decimal amount to deduct.
+            order: orders.Order if penalty relates to a specific order.
             applied_by: Admin User.
-            notes:      Additional context.
+            notes: Additional context.
 
         Returns:
             WriterPenalty instance.

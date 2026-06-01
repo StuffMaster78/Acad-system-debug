@@ -72,8 +72,8 @@ class NotificationSerializer(serializers.ModelSerializer):
     def get_time_ago(self, obj) -> str:
         from django.utils import timezone
         diff = int((timezone.now() - obj.created_at).total_seconds())
-        if diff < 60:    return 'just now'
-        if diff < 3600:  return f"{diff // 60}m ago"
+        if diff < 60: return 'just now'
+        if diff < 3600: return f"{diff // 60}m ago"
         if diff < 86400: return f"{diff // 3600}h ago"
         if diff < 604800: return f"{diff // 86400}d ago"
         return obj.created_at.strftime('%b %d')
@@ -122,8 +122,8 @@ class NotificationListSerializer(serializers.ModelSerializer):
     def get_time_ago(self, obj) -> str:
         from django.utils import timezone
         diff = int((timezone.now() - obj.created_at).total_seconds())
-        if diff < 60:    return 'just now'
-        if diff < 3600:  return f"{diff // 60}m ago"
+        if diff < 60: return 'just now'
+        if diff < 3600: return f"{diff // 60}m ago"
         if diff < 86400: return f"{diff // 3600}h ago"
         if diff < 604800: return f"{diff // 86400}d ago"
         return obj.created_at.strftime('%b %d')

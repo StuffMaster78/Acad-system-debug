@@ -85,7 +85,7 @@ class UserAgreementAdmin(admin.ModelAdmin):
     ordering = ("-agreed_at",)
 
     def has_add_permission(self, request):
-        return False  # Agreements are created by the system, not manually
+        return False # Agreements are created by the system, not manually
 
 
 # ────────────────────────────────────────────────────────────────────────────

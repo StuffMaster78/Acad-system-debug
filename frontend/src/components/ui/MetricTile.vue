@@ -9,16 +9,16 @@ defineProps<{
 
 const iconRing: Record<MetricDefinition["tone"], string> = {
   neutral: "bg-slate-100 text-slate-500",
-  good:    "bg-emerald-100 text-emerald-600",
-  warn:    "bg-amber-100 text-amber-600",
-  risk:    "bg-rose-100 text-rose-600",
+  good: "bg-emerald-100 text-emerald-600",
+  warn: "bg-amber-100 text-amber-600",
+  risk: "bg-rose-100 text-rose-600",
 };
 
 const valueColor: Record<MetricDefinition["tone"], string> = {
   neutral: "text-ink",
-  good:    "text-emerald-700",
-  warn:    "text-amber-700",
-  risk:    "text-rose-700",
+  good: "text-emerald-700",
+  warn: "text-amber-700",
+  risk: "text-rose-700",
 };
 </script>
 

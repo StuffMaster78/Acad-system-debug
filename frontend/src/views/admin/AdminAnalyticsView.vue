@@ -67,7 +67,7 @@ function exportCSV() {
 // ── Charts ───────────────────────────────────────────────────────────────────
 
 const revenueChart = ref<ChartData | null>(null);
-const ordersChart  = ref<ChartData | null>(null);
+const ordersChart = ref<ChartData | null>(null);
 const clientsChart = ref<ChartData | null>(null);
 const chartsLoading = ref(false);
 
@@ -140,7 +140,7 @@ async function loadCharts() {
       analyticsChartsApi.clients({ months: 12 }),
     ]);
     revenueChart.value = rev.data;
-    ordersChart.value  = ord.data;
+    ordersChart.value = ord.data;
     clientsChart.value = cli.data;
   } catch { /* non-fatal */ }
   finally { chartsLoading.value = false; }

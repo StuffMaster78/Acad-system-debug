@@ -108,7 +108,7 @@ class Command(BaseCommand):
                 'referral',
                 'loyalty',
                 'student',
-                None,  # Some campaigns don't have a type
+                None, # Some campaigns don't have a type
             ]
 
             campaign_descriptions = [
@@ -136,7 +136,7 @@ class Command(BaseCommand):
                 self.stdout.write(f'\nProcessing website: {website.name} (ID: {website.id})')
 
                 # Create Promotional Campaigns
-                self.stdout.write('  Creating promotional campaigns...')
+                self.stdout.write(' Creating promotional campaigns...')
                 created_campaigns = []
 
                 for i in range(campaigns_count):
@@ -182,7 +182,7 @@ class Command(BaseCommand):
                             start_date = now - timedelta(days=random.randint(1, 30))
                             end_date = now + timedelta(days=random.randint(1, 60))
                             is_active = False
-                        else:  # draft, archived
+                        else: # draft, archived
                             # Draft/archived: future dates or past dates
                             start_date = now + timedelta(days=random.randint(1, 60))
                             end_date = now + timedelta(days=random.randint(61, 120))
@@ -206,20 +206,20 @@ class Command(BaseCommand):
                         total_campaigns += 1
 
                         self.stdout.write(
-                            f'    ✓ Created campaign: {campaign.campaign_name} | '
+                            f' Created campaign: {campaign.campaign_name} | '
                             f'{status} | {start_date.date()} - {end_date.date()}'
                         )
 
                     except Exception as e:
                         self.stdout.write(
                             self.style.WARNING(
-                                f'    ⚠ Failed to create campaign: {str(e)}'
+                                f' Failed to create campaign: {str(e)}'
                             )
                         )
                         continue
 
                 # Create Discount Codes for Campaigns
-                self.stdout.write('  Creating discount codes for campaigns...')
+                self.stdout.write(' Creating discount codes for campaigns...')
                 for campaign in created_campaigns:
                     for j in range(discounts_per_campaign):
                         try:
@@ -237,8 +237,8 @@ class Command(BaseCommand):
                                 discount_value = Decimal(str(random.choice([5, 10, 15, 20, 25, 50, 75, 100])))
 
                             # Usage limits
-                            usage_limit = random.choice([None, None, 50, 100, 200, 500])  # 50% unlimited
-                            per_user_usage_limit = random.choice([None, 1, 1, 2, 3])  # Mostly 1 use per user
+                            usage_limit = random.choice([None, None, 50, 100, 200, 500]) # 50% unlimited
+                            per_user_usage_limit = random.choice([None, 1, 1, 2, 3]) # Mostly 1 use per user
 
                             # Min order value (50% chance)
                             min_order_value = None
@@ -280,7 +280,7 @@ class Command(BaseCommand):
                             total_discounts += 1
 
                             self.stdout.write(
-                                f'    ✓ Created discount: {discount_code} | '
+                                f' Created discount: {discount_code} | '
                                 f'{discount_type} | {discount_value}{"%" if discount_type == "percent" else "$"} | '
                                 f'Campaign: {campaign.campaign_name}'
                             )
@@ -288,13 +288,13 @@ class Command(BaseCommand):
                         except Exception as e:
                             self.stdout.write(
                                 self.style.WARNING(
-                                    f'    ⚠ Failed to create discount: {str(e)}'
+                                    f' Failed to create discount: {str(e)}'
                                 )
                             )
                             continue
 
                 # Create Standalone Discount Codes
-                self.stdout.write('  Creating standalone discount codes...')
+                self.stdout.write(' Creating standalone discount codes...')
                 for i in range(standalone_discounts):
                     try:
                         # Generate unique discount code
@@ -315,8 +315,8 @@ class Command(BaseCommand):
                         origin_type = random.choice(['manual', 'automatic', 'system', 'client'])
 
                         # Usage limits
-                        usage_limit = random.choice([None, None, 100, 200, 500])  # 50% unlimited
-                        per_user_usage_limit = random.choice([None, 1, 1, 2])  # Mostly 1 use per user
+                        usage_limit = random.choice([None, None, 100, 200, 500]) # 50% unlimited
+                        per_user_usage_limit = random.choice([None, 1, 1, 2]) # Mostly 1 use per user
 
                         # Min order value (40% chance)
                         min_order_value = None
@@ -335,15 +335,15 @@ class Command(BaseCommand):
                         now = timezone.now()
                         # 60% active, 20% future, 20% expired
                         rand = random.random()
-                        if rand < 0.60:  # Active
+                        if rand < 0.60: # Active
                             start_date = now - timedelta(days=random.randint(1, 30))
                             end_date = now + timedelta(days=random.randint(1, 90))
                             is_active = True
-                        elif rand < 0.80:  # Future
+                        elif rand < 0.80: # Future
                             start_date = now + timedelta(days=random.randint(1, 30))
                             end_date = now + timedelta(days=random.randint(31, 120))
                             is_active = False
-                        else:  # Expired
+                        else: # Expired
                             start_date = now - timedelta(days=random.randint(60, 120))
                             end_date = now - timedelta(days=random.randint(1, 30))
                             is_active = False
@@ -374,7 +374,7 @@ class Command(BaseCommand):
 
                         status = "Active" if is_active else ("Expired" if rand >= 0.80 else "Future")
                         self.stdout.write(
-                            f'    ✓ Created discount: {discount_code} | '
+                            f' Created discount: {discount_code} | '
                             f'{discount_type} | {discount_value}{"%" if discount_type == "percent" else "$"} | '
                             f'{status} | Origin: {origin_type}'
                         )
@@ -382,16 +382,16 @@ class Command(BaseCommand):
                     except Exception as e:
                         self.stdout.write(
                             self.style.WARNING(
-                                f'    ⚠ Failed to create discount: {str(e)}'
+                                f' Failed to create discount: {str(e)}'
                             )
                         )
                         continue
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'\n✓ Successfully created:\n'
-                    f'  - {total_campaigns} promotional campaigns\n'
-                    f'  - {total_discounts} discount codes'
+                    f'\n Successfully created:\n'
+                    f' - {total_campaigns} promotional campaigns\n'
+                    f' - {total_discounts} discount codes'
                 )
             )
 

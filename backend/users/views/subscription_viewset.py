@@ -25,22 +25,22 @@ class SubscriptionViewSet(viewsets.ViewSet):
     ViewSet for managing client subscriptions.
     """
     permission_classes = [IsAuthenticated]
-    
+
     def get_service(self):
         """Get subscription service instance for current user."""
         return SubscriptionService(self.request.user)
-    
+
     @action(detail=False, methods=['get'])
     def list_all(self, request):
         """
         List all available subscriptions with current status.
-        
+
         GET /api/users/subscriptions/list-all/
         """
         try:
             service = self.get_service()
             subscriptions = service.get_all_subscriptions()
-            
+
             # Convert to list format
             result = [
                 {
@@ -53,17 +53,17 @@ class SubscriptionViewSet(viewsets.ViewSet):
                 }
                 for sub_type, data in subscriptions.items()
             ]
-            
+
             serializer = SubscriptionListSerializer(result, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ValidationError as e:
             raise DRFValidationError(str(e))
-    
+
     @action(detail=False, methods=['post'])
     def subscribe(self, request):
         """
         Subscribe to a subscription type.
-        
+
         POST /api/users/subscriptions/subscribe/
         Body: {
             "subscription_type": "newsletter",
@@ -73,7 +73,7 @@ class SubscriptionViewSet(viewsets.ViewSet):
         """
         serializer = SubscribeRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             service = self.get_service()
             subscription = service.subscribe(
@@ -81,17 +81,17 @@ class SubscriptionViewSet(viewsets.ViewSet):
                 frequency=serializer.validated_data.get('frequency', 'immediate'),
                 preferred_channels=serializer.validated_data.get('preferred_channels', [])
             )
-            
+
             result_serializer = ClientSubscriptionSerializer(subscription)
             return Response(result_serializer.data, status=status.HTTP_200_OK)
         except ValidationError as e:
             raise DRFValidationError(str(e))
-    
+
     @action(detail=False, methods=['post'])
     def unsubscribe(self, request):
         """
         Unsubscribe from a subscription type.
-        
+
         POST /api/users/subscriptions/unsubscribe/
         Body: {
             "subscription_type": "newsletter"
@@ -99,23 +99,23 @@ class SubscriptionViewSet(viewsets.ViewSet):
         """
         serializer = UnsubscribeRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             service = self.get_service()
             subscription = service.unsubscribe(
                 subscription_type=serializer.validated_data['subscription_type']
             )
-            
+
             result_serializer = ClientSubscriptionSerializer(subscription)
             return Response(result_serializer.data, status=status.HTTP_200_OK)
         except ValidationError as e:
             raise DRFValidationError(str(e))
-    
+
     @action(detail=False, methods=['put'])
     def update_frequency(self, request):
         """
         Update subscription frequency.
-        
+
         PUT /api/users/subscriptions/update-frequency/
         Body: {
             "subscription_type": "newsletter",
@@ -124,24 +124,24 @@ class SubscriptionViewSet(viewsets.ViewSet):
         """
         serializer = UpdateFrequencySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             service = self.get_service()
             subscription = service.update_frequency(
                 subscription_type=serializer.validated_data['subscription_type'],
                 frequency=serializer.validated_data['frequency']
             )
-            
+
             result_serializer = ClientSubscriptionSerializer(subscription)
             return Response(result_serializer.data, status=status.HTTP_200_OK)
         except ValidationError as e:
             raise DRFValidationError(str(e))
-    
+
     @action(detail=False, methods=['put'])
     def update_channels(self, request):
         """
         Update preferred channels for a subscription.
-        
+
         PUT /api/users/subscriptions/update-channels/
         Body: {
             "subscription_type": "newsletter",
@@ -150,24 +150,24 @@ class SubscriptionViewSet(viewsets.ViewSet):
         """
         serializer = UpdateChannelsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             service = self.get_service()
             subscription = service.update_channels(
                 subscription_type=serializer.validated_data['subscription_type'],
                 preferred_channels=serializer.validated_data['preferred_channels']
             )
-            
+
             result_serializer = ClientSubscriptionSerializer(subscription)
             return Response(result_serializer.data, status=status.HTTP_200_OK)
         except ValidationError as e:
             raise DRFValidationError(str(e))
-    
+
     @action(detail=False, methods=['get'])
     def preferences(self, request):
         """
         Get subscription preferences.
-        
+
         GET /api/users/subscriptions/preferences/
         """
         try:
@@ -176,12 +176,12 @@ class SubscriptionViewSet(viewsets.ViewSet):
             return Response(prefs, status=status.HTTP_200_OK)
         except ValidationError as e:
             raise DRFValidationError(str(e))
-    
+
     @action(detail=False, methods=['put'])
     def update_preferences(self, request):
         """
         Update subscription preferences.
-        
+
         PUT /api/users/subscriptions/update-preferences/
         Body: {
             "all_subscriptions_enabled": true,
@@ -197,11 +197,11 @@ class SubscriptionViewSet(viewsets.ViewSet):
         """
         serializer = SubscriptionPreferenceSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             service = self.get_service()
             preferences = service.update_preferences(**serializer.validated_data)
-            
+
             result_serializer = SubscriptionPreferenceSerializer(preferences)
             return Response(result_serializer.data, status=status.HTTP_200_OK)
         except ValidationError as e:

@@ -86,8 +86,8 @@ class AdminBroadcastViewSet(viewsets.ViewSet):
             is_critical=bool(data.get('is_critical', False)),
             is_blocking=bool(data.get('is_blocking', False)),
             require_acknowledgement=bool(data.get('require_acknowledgement', False)),
-            scheduled_for=_parse_datetime(data.get('scheduled_for')),   # ← Bug 5
-            expires_at=_parse_datetime(data.get('expires_at')),         # ← Bug 5
+            scheduled_for=_parse_datetime(data.get('scheduled_for')), # ← Bug 5
+            expires_at=_parse_datetime(data.get('expires_at')), # ← Bug 5
         )
         return Response(
             {
@@ -222,8 +222,8 @@ class AdminNotificationProfileViewSet(viewsets.ViewSet):
         Apply a preference profile to a single user.
 
         Body:
-            user_id           int   required
-            override_existing bool  optional — default False
+            user_id int required
+            override_existing bool optional — default False
         """
         from django.contrib.auth import get_user_model
         from notifications_system.models.notification_preferences import (
@@ -302,8 +302,8 @@ class AdminNotificationProfileViewSet(viewsets.ViewSet):
         Apply a preference profile to multiple specific users.
 
         Body:
-            user_ids          list[int]  required
-            override_existing bool       optional — default False
+            user_ids list[int] required
+            override_existing bool optional — default False
         """
         from django.contrib.auth import get_user_model
         from notifications_system.models.notification_preferences import (
@@ -378,8 +378,8 @@ class AdminNotificationProfileViewSet(viewsets.ViewSet):
         Apply a preference profile to all users of a role on this website.
 
         Body:
-            role              str   required — e.g. 'writer', 'client'
-            override_existing bool  optional — default False
+            role str required — e.g. 'writer', 'client'
+            override_existing bool optional — default False
         """
         from django.contrib.auth import get_user_model
         from notifications_system.models.notification_preferences import (
@@ -473,8 +473,8 @@ class AdminDeliveryLogViewSet(viewsets.ReadOnlyModelViewSet):
         from admin_management.permissions import IsSuperAdmin
         return [IsSuperAdmin()]
 
-    def get_queryset(self) -> QuerySet:  # type: ignore[override]
-        request: Request = self.request  # type: ignore[assignment]
+    def get_queryset(self) -> QuerySet: # type: ignore[override]
+        request: Request = self.request # type: ignore[assignment]
         website = getattr(request.user, 'website', None)
         qs = Delivery.objects.filter(
             website=website,
@@ -510,8 +510,8 @@ class AdminNotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
         from admin_management.permissions import IsSuperAdmin
         return [IsSuperAdmin()]
 
-    def get_queryset(self) -> QuerySet:  # type: ignore[override]
-        request: Request = self.request  # type: ignore[assignment]
+    def get_queryset(self) -> QuerySet: # type: ignore[override]
+        request: Request = self.request # type: ignore[assignment]
         website = getattr(request.user, 'website', None)
         qs = NotificationLog.objects.filter(
             website=website,

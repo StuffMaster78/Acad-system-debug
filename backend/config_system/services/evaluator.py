@@ -44,7 +44,7 @@ class ConfigEvaluator:
         # -------------------------
         # 1. Kill Switch (HARD STOP)
         # -------------------------
-        from config_system.rollout.kill_switch import KillSwitchEngine  # local to break circular import
+        from config_system.rollout.kill_switch import KillSwitchEngine # local to break circular import
         if KillSwitchEngine.is_disabled(
             key=key,
             user_id=user_id,

@@ -38,7 +38,7 @@ def auto_discover_order_actions() -> int:
     """
     try:
         import orders.actions as actions_pkg
-        from orders.actions.base import BaseOrderAction  # import here to dodge cycles
+        from orders.actions.base import BaseOrderAction # import here to dodge cycles
     except Exception as exc:
         logger.exception("[actions] Failed to import actions package/base: %s", exc)
         return 0

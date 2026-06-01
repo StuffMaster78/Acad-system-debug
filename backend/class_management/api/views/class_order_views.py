@@ -40,7 +40,7 @@ class ClassOrderViewSet(ClassTenantViewMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, ClassOrderPermission]
 
 
-    def get_queryset(self) -> QuerySet[ClassOrder]:  # type: ignore[override]
+    def get_queryset(self) -> QuerySet[ClassOrder]: # type: ignore[override]
         """
         Return tenant-scoped class orders based on user role.
         """
@@ -61,7 +61,7 @@ class ClassOrderViewSet(ClassTenantViewMixin, viewsets.ModelViewSet):
 
         return writer_qs | client_qs
 
-    def get_serializer_class(self):  # type: ignore[override]
+    def get_serializer_class(self): # type: ignore[override]
         """
         Return serializer class for the current action and actor.
         """

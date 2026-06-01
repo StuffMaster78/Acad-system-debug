@@ -4,7 +4,7 @@ from order_configs.models import RevisionPolicyConfig
 def get_order_config(website):
     """
     Retrieves the active revision policy config for a specific website.
-    
+
     Args:
         website (Website): The website associated with the order.
 
@@ -20,7 +20,7 @@ def check_if_urgent(data: dict) -> bool:
         return False
 
     now = datetime.now(timezone.utc)
-    urgent_threshold = timedelta(hours=6)  # Or 6, 24 — you decide
+    urgent_threshold = timedelta(hours=6) # Or 6, 24 — you decide
     return deadline - now < urgent_threshold
 
 

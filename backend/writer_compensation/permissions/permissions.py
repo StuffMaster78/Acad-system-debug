@@ -54,7 +54,7 @@ class IsAdminOrSupport(BasePermission):
             or user.is_superuser
             or getattr(user, "is_support", False)
         )
-    
+
 class CanManageRewards(
     BasePermission,
 ):

@@ -135,7 +135,7 @@ def send_operational_writer_reminders(self) -> dict[str, int]:
             assignments = getattr(order, "assignments", None)
             if assignments is None:
                 continue
-            
+
             current_assignment = (
                 assignments.filter(is_current=True)
                 .select_related("writer")

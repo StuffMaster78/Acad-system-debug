@@ -24,10 +24,10 @@ class NotificationEventSerializer(serializers.ModelSerializer):
 
 
 class NotificationTemplateSerializer(serializers.ModelSerializer):
-    event_key    = serializers.CharField(source='event.event_key', read_only=True)
-    event_label  = serializers.CharField(source='event.label',     read_only=True)
-    website_name = serializers.CharField(source='website.name',    read_only=True)
-    scope        = serializers.SerializerMethodField()
+    event_key = serializers.CharField(source='event.event_key', read_only=True)
+    event_label = serializers.CharField(source='event.label', read_only=True)
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    scope = serializers.SerializerMethodField()
 
     class Meta:
         model = NotificationTemplate
@@ -61,7 +61,7 @@ class NotificationTemplateCreateSerializer(serializers.ModelSerializer):
             'available_variables', 'provider_overrides', 'is_active',
         ]
 
-    def validate(self, attrs): 
+    def validate(self, attrs):
         channel = attrs.get('channel')
         if channel == NotificationChannel.EMAIL:
             if not attrs.get('subject') and not attrs.get('body_html'):
@@ -73,11 +73,11 @@ class NotificationTemplateCreateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "In-app templates require at least title or message."
                 )
-        return attrs       
+        return attrs
 
 
 class NotificationEventConfigSerializer(serializers.ModelSerializer):
-    event_key       = serializers.CharField(source='event.event_key', read_only=True)
+    event_key = serializers.CharField(source='event.event_key', read_only=True)
     default_channels = serializers.SerializerMethodField()
 
     class Meta:

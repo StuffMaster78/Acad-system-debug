@@ -11,7 +11,7 @@ CURRENT_ACTION_MODULES = (
 
 def autodiscover() -> list[str]:
     loaded: list[str] = []
-    pkg = __name__  # "orders.actions"
+    pkg = __name__ # "orders.actions"
     for modname in CURRENT_ACTION_MODULES:
         try:
             importlib.import_module(f"{pkg}.{modname}")

@@ -21,7 +21,7 @@ class TestEmailHistoryViews:
 
         self.campaign1 = EmailCampaign.objects.create(
             title="Welcome",
-            subject="👋 Hello!",
+            subject=" Hello!",
             email_type="communication",
             body="<p>Welcome</p>",
             created_by=self.admin
@@ -29,7 +29,7 @@ class TestEmailHistoryViews:
 
         self.campaign2 = EmailCampaign.objects.create(
             title="Promo",
-            subject="🎉 Big Sale!",
+            subject=" Big Sale!",
             email_type="promos",
             body="<p>Sale</p>",
             created_by=self.admin

@@ -17,7 +17,7 @@ class BaseAdjustmentTenantPermission(BasePlatformPermission):
     message = "Cross-tenant access denied."
     require_tenant = True
 
-    def has_permission(self, request: Request, view: APIView):  # type: ignore[override]
+    def has_permission(self, request: Request, view: APIView): # type: ignore[override]
         """
         Allow the view to resolve the object before ownership checks.
         """
@@ -47,7 +47,7 @@ class CanActOnOwnAdjustment(BaseAdjustmentTenantPermission):
         request: Request,
         view: APIView,
         obj: Any,
-    ):  
+    ):
         if not self._same_tenant(request, obj):
             return False
 

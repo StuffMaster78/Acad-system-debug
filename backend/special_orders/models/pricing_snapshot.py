@@ -50,7 +50,7 @@ class SpecialOrderPricingSnapshot(TimeStampedModel):
         help_text="Full serialized snapshot of quote lines and pricing.",
     )
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["website", "created_at"]),

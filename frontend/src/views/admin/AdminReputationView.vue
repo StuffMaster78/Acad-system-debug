@@ -40,7 +40,7 @@ function trustColor(score: string) {
 }
 
 function rankMedal(rank: number) {
-  return rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+  return rank === 1 ? "" : rank === 2 ? "" : rank === 3 ? "" : null;
 }
 </script>
 
@@ -217,7 +217,7 @@ function rankMedal(rank: number) {
               <!-- Rating -->
               <td class="px-4 py-3 text-center">
                 <span class="font-semibold" :class="ratingColor(entry.rating)">{{ entry.rating }}</span>
-                <span class="ml-1 text-amber-400 text-xs">★</span>
+                <span class="ml-1 text-amber-400 text-xs"></span>
               </td>
 
               <!-- Reviews -->

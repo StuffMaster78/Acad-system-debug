@@ -119,7 +119,7 @@ class FinePolicy(models.Model):
 class Fine(models.Model):
     """
     Represents a fine imposed on a writer for an order.
-    
+
     A fine can be issued automatically (e.g., for late submission) or manually by an admin.
     Writers can dispute fines, which creates a FineAppeal.
     Admins can waive or void fines.
@@ -131,7 +131,7 @@ class Fine(models.Model):
         related_name="fines",
         help_text="The order this fine is associated with."
     )
-    
+
     # Fine type - legacy enum (for backward compatibility)
     fine_type = models.CharField(
         max_length=30,
@@ -141,7 +141,7 @@ class Fine(models.Model):
         db_index=True,
         help_text="Legacy fine type enum (for backward compatibility)"
     )
-    
+
     # New system: admin-configurable fine type
     fine_type_config = models.ForeignKey(
         'fines.FineTypeConfig',
@@ -151,17 +151,17 @@ class Fine(models.Model):
         blank=True,
         help_text="Admin-configurable fine type (preferred)"
     )
-    
+
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     reason = models.TextField(help_text="Detailed reason for the fine.")
-    
+
     status = models.CharField(
         max_length=20,
         choices=FineStatus.choices,
         default=FineStatus.ISSUED,
         db_index=True
     )
-    
+
     issued_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -170,12 +170,12 @@ class Fine(models.Model):
         related_name="fines_issued",
         help_text="User who issued the fine (null for system-issued fines)."
     )
-    
+
     imposed_at = models.DateTimeField(
         auto_now_add=True,
         help_text="When the fine was issued."
     )
-    
+
     # Waiver fields
     resolved = models.BooleanField(
         default=False,
@@ -231,7 +231,7 @@ class Fine(models.Model):
 class FineAppeal(models.Model):
     """
     Represents a writer's appeal/dispute of a fine.
-    
+
     Writers can submit appeals with evidence/reasoning.
     Admins can review appeals and accept (waive fine) or reject (uphold fine).
     Appeals can be escalated for higher-level review.
@@ -243,7 +243,7 @@ class FineAppeal(models.Model):
         related_name="appeal",
         help_text="The fine being appealed."
     )
-    
+
     submitted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -252,18 +252,18 @@ class FineAppeal(models.Model):
         null=True,
         blank=True
     )
-    
+
     submitted_at = models.DateTimeField(auto_now_add=True)
-    
+
     reason = models.TextField(
         help_text="Writer's explanation for why the fine should be waived."
     )
-    
+
     evidence = models.TextField(
         blank=True,
         help_text="Any additional evidence or context provided by the writer."
     )
-    
+
     # Appeal status (tracks the fine's status changes)
     status = models.CharField(
         max_length=20,
@@ -271,7 +271,7 @@ class FineAppeal(models.Model):
         default=FineStatus.DISPUTED,
         help_text="Current status of the appeal (tracks fine status)."
     )
-    
+
     # Escalation fields
     escalated = models.BooleanField(
         default=False,
@@ -294,7 +294,7 @@ class FineAppeal(models.Model):
         blank=True,
         help_text="Reason for escalation."
     )
-    
+
     # Review fields
     reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

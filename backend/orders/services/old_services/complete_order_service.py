@@ -15,7 +15,7 @@ class CompleteOrderService:
     Methods:
         complete_order: Marks the specified order as completed.
     """
-    
+
     allowed_roles = {"Writer", "Editor", "Support", "Admin", "Superadmin"}
 
     @staticmethod
@@ -24,7 +24,7 @@ class CompleteOrderService:
         """
         NOTE: Referral bonuses are now awarded when orders are APPROVED, not completed.
         This method is kept for backward compatibility but should not award bonuses.
-        A client only becomes eligible for referral rewards after ordering 
+        A client only becomes eligible for referral rewards after ordering
         and approving their first order to avoid abuse.
         """
         # Referral bonuses are now awarded in ApproveOrderService
@@ -34,7 +34,7 @@ class CompleteOrderService:
     def complete_order(self, order_id: int, user) -> Order:
         """
         Complete an order by its ID.
-        
+
         For unattributed orders, if completed by admin/superadmin, they become the client.
 
         Args:
@@ -57,27 +57,27 @@ class CompleteOrderService:
         # Check valid transitions - 'completed' can be reached from 'rated' or 'approved'
         from orders.services.status_transition_service import VALID_TRANSITIONS
         from orders.services.transition_helper import OrderTransitionHelper
-        
+
         current_status = order.status
         target_status = 'completed'
-        
+
         # Check if direct transition to completed is allowed
         allowed_transitions = VALID_TRANSITIONS.get(current_status, [])
-        
+
         # For unattributed orders completed by admin/superadmin, set admin as client
         is_unattributed = order.client_id is None and (
             bool(getattr(order, 'external_contact_name', None)) or
             bool(getattr(order, 'external_contact_email', None))
         )
-        
+
         if is_unattributed and user.role in ['admin', 'superadmin']:
             # Admin/superadmin becomes the client for unattributed orders
             order.client = user
             logger.info(f"Unattributed order {order_id} completed by {user.username}. Admin set as client.")
-        
+
         order.completed_by = user
         save_order(order)
-        
+
         # If direct transition to completed is not allowed, try to go through intermediate states
         if target_status not in allowed_transitions:
             # Try to transition through 'rated' first (which allows transition to 'completed')
@@ -148,7 +148,7 @@ class CompleteOrderService:
                 reason="Order marked as completed",
                 action="complete_order",
                 is_automatic=False,
-                skip_payment_check=True,  # Payment already validated
+                skip_payment_check=True, # Payment already validated
                 metadata={
                     "completed_by_id": user.id,
                     "is_unattributed": is_unattributed,

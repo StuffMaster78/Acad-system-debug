@@ -33,7 +33,7 @@ class WriterPerformanceSnapshot(models.Model):
     late_orders = models.PositiveIntegerField(default=0)
     revised_orders = models.PositiveIntegerField(default=0)
     disputed_orders = models.PositiveIntegerField(default=0)
-    hvo_orders = models.PositiveIntegerField(default=0)  # High value
+    hvo_orders = models.PositiveIntegerField(default=0) # High value
 
     # Pages and preferred orders
     total_pages = models.PositiveIntegerField(default=0)

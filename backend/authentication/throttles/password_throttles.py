@@ -28,7 +28,7 @@ class PasswordResetRequestThrottle(SimpleRateThrottle):
             f"throttle:{self.scope}:"
             f"website:{website_id}:ip:{ident}"
         )
-    
+
 class PasswordResetConfirmThrottle(SimpleRateThrottle):
     """
     Throttle password reset confirmation attempts by IP.

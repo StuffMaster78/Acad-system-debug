@@ -24,6 +24,6 @@ class OrdersPricingCoreConfig(AppConfig):
         app loading.
         """
         try:
-            import order_pricing_core.signals  # noqa: F401
+            import order_pricing_core.signals # noqa: F401
         except ImportError:
             pass

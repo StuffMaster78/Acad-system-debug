@@ -33,9 +33,9 @@ def send_push_notification(device_token, title, message):
         "notification": {
             "title": title,
             "body": message,
-            "sound": "default"  # Optional: Play the default sound for the notification
+            "sound": "default" # Optional: Play the default sound for the notification
         },
-        "priority": "high",  # Optional: Priority of the notification
+        "priority": "high", # Optional: Priority of the notification
     }
 
     try:
@@ -83,13 +83,13 @@ def send_push_notification_to_group(group_name, title, message):
 def get_device_tokens_for_group(group_name):
     """
     Fetches device tokens for all users in the specified group.
-    
+
     For example, you can store the tokens in your database and retrieve them here.
     This is a mock implementation, and you should replace it with real logic.
-    
+
     Args:
         group_name: The name of the group (e.g., "admins", "writers").
-    
+
     Returns:
         A list of device tokens.
     """

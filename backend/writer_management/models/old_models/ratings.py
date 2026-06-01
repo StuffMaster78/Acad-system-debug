@@ -41,7 +41,7 @@ class WriterRating(models.Model):
     )
     rating = models.PositiveIntegerField(
         help_text="Rating given by the client (1 to 5).",
-        choices=[(i, str(i)) for i in range(1, 6)]  # Ratings from 1 to 5
+        choices=[(i, str(i)) for i in range(1, 6)] # Ratings from 1 to 5
     )
     feedback = models.TextField(
         blank=True,
@@ -52,7 +52,7 @@ class WriterRating(models.Model):
 
     def __str__(self):
         return f"Rating {self.rating} for {self.writer.user.username} by {self.client.username} (Order {self.order.id})"
-    
+
 
 class WriterRatingCooldown(models.Model):
     """
@@ -82,7 +82,7 @@ class WriterRatingCooldown(models.Model):
 
     def __str__(self):
         return f"Rating Cooldown for {self.writer.user.username} (Expires: {self.cooldown_until})"
-    
+
 
 class WriterRatingFeedback(models.Model):
     """

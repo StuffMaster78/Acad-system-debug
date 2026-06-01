@@ -33,7 +33,7 @@ class PasswordHistory(models.Model):
         auto_now_add=True,
         help_text=_("When this password was set")
     )
-    
+
     class Meta:
         ordering = ['-created_at']
         indexes = [
@@ -48,7 +48,7 @@ class PasswordHistory(models.Model):
         ]
         verbose_name = _("Password History")
         verbose_name_plural = _("Password Histories")
-    
+
     def __str__(self):
         return f"Password history for {self.user.email} at {self.created_at}"
 
@@ -90,7 +90,7 @@ class PasswordExpirationPolicy(models.Model):
         blank=True,
         help_text=_("When the last expiration warning was sent")
     )
-    
+
     class Meta:
         indexes = [
             models.Index(fields=['user', 'password_changed_at']),
@@ -104,18 +104,18 @@ class PasswordExpirationPolicy(models.Model):
         ]
         verbose_name = _("Password Expiration Policy")
         verbose_name_plural = _("Password Expiration Policies")
-    
+
     def clean(self):
         if self.expires_in_days < 0:
             raise ValidationError("expires_in_days must be >= 0")
-    
+
     @property
     def expires_at(self):
         """Calculate when password expires."""
         if self.is_exempt:
             return None
         return self.password_changed_at + timezone.timedelta(days=self.expires_in_days)
-    
+
     @property
     def is_expired(self):
         """Check if password is expired."""
@@ -123,7 +123,7 @@ class PasswordExpirationPolicy(models.Model):
             return False
         expires_at = self.expires_at
         return expires_at and expires_at < timezone.now()
-    
+
     @property
     def is_expiring_soon(self):
         """Check if password is expiring soon."""
@@ -134,7 +134,7 @@ class PasswordExpirationPolicy(models.Model):
             return False
         warning_date = expires_at - timezone.timedelta(days=self.warning_days_before)
         return timezone.now() >= warning_date
-    
+
     @property
     def days_until_expiration(self):
         """Get days until password expires."""
@@ -147,13 +147,13 @@ class PasswordExpirationPolicy(models.Model):
             return 0
         delta = expires_at - timezone.now()
         return max(0, delta.days)
-    
+
     def update_password_changed(self):
         """Update password changed timestamp."""
         self.password_changed_at = timezone.now()
         self.last_warning_sent = None
         self.save(update_fields=['password_changed_at', 'last_warning_sent'])
-    
+
     def __str__(self):
         status = "exempt" if self.is_exempt else f"expires in {self.days_until_expiration} days"
         return f"Password policy for {self.user.email} - {status}"
@@ -203,7 +203,7 @@ class PasswordBreachCheck(models.Model):
         default='none',
         help_text=_("Action taken based on breach check")
     )
-    
+
     class Meta:
         ordering = ['-checked_at']
         indexes = [
@@ -213,7 +213,7 @@ class PasswordBreachCheck(models.Model):
         ]
         verbose_name = _("Password Breach Check")
         verbose_name_plural = _("Password Breach Checks")
-    
+
     def __str__(self):
         status = "BREACHED" if self.is_breached else "SAFE"
         return f"Breach check for {self.user.email} - {status}"

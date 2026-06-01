@@ -15,7 +15,7 @@ class Tip(models.Model):
         ('order', 'Order-Based Tip'),
         ('class', 'Class/Task-Based Tip'),
     ]
-    
+
     client = models.ForeignKey(
         'users.User',
         on_delete=models.CASCADE,
@@ -31,7 +31,7 @@ class Tip(models.Model):
         on_delete=models.CASCADE,
         help_text="Multitenancy support: this tip is for a specific website.",
     )
-    
+
     # Tip type and related entities
     tip_type = models.CharField(
         max_length=20,
@@ -58,7 +58,7 @@ class Tip(models.Model):
         blank=True,
         help_text="ID of related entity (class bundle, express class, etc.)"
     )
-    
+
     # Tip amount and split
     tip_amount = models.DecimalField(
         max_digits=10,
@@ -67,7 +67,7 @@ class Tip(models.Model):
     )
     tip_reason = models.TextField(blank=True, help_text="Reason for the tip")
     sent_at = models.DateTimeField(auto_now_add=True)
-    
+
     # Writer level and split calculation
     writer_level = models.ForeignKey(
         'writer_management.WriterLevel',
@@ -91,7 +91,7 @@ class Tip(models.Model):
         decimal_places=2,
         help_text="Amount platform retains (not visible to writer)"
     )
-    
+
     # Payment tracking
     payment = models.ForeignKey(
         'payments_processor.PaymentIntent',
@@ -112,13 +112,13 @@ class Tip(models.Model):
         default='pending',
         help_text="Payment status for this tip"
     )
-    
+
     origin = models.CharField(
         max_length=50,
         default='client',
         help_text="Origin of tip (e.g., 'client', 'admin', 'system')"
     )
-    
+
     class Meta:
         ordering = ['-sent_at']
         indexes = [
@@ -126,7 +126,7 @@ class Tip(models.Model):
             models.Index(fields=['writer', 'website']),
             models.Index(fields=['tip_type', 'related_entity_type', 'related_entity_id']),
         ]
-    
+
     def __str__(self):
         entity_info = ""
         if self.tip_type == 'order' and self.order:

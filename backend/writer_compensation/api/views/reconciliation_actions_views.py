@@ -37,7 +37,7 @@ class ReconciliationReportListView(generics.ListAPIView):
     serializer_class = ReconciliationReportSerializer
     permission_classes = [CanReconcilePayouts]
 
-    
+
     def get_queryset( # pyright: ignore[reportIncompatibleMethodOverride]
             self,
         ):

@@ -8,7 +8,7 @@ from django.conf import settings
 from accounts.models import AccountProfile
 from accounts.services.account_activation_service import AccountActivationService
 from accounts.services.account_service import AccountService
-from notifications_system.services.notification_service import NotificationService  # Integration with Notifications App
+from notifications_system.services.notification_service import NotificationService # Integration with Notifications App
 
 User = get_user_model()
 

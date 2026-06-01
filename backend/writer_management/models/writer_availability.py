@@ -12,12 +12,12 @@ Three distinct layers — each answers a different question:
         High-churn presence data.
         Has NO effect on assignment routing.
 
-    WriterAvailabilityPreference  (this file)
+    WriterAvailabilityPreference (this file)
         "What are this writer's standing availability settings?"
         One row per writer. Low-churn.
         Contains preferred working hours and auto-offline behaviour.
 
-    WriterAvailabilityWindow  (this file)
+    WriterAvailabilityWindow (this file)
         "Has this writer declared a specific unavailability period?"
         Zero or more rows per writer.
         Has a start and optional end.
@@ -29,19 +29,19 @@ WriterEligibilityService checks in this order (cheapest first):
 
     1. WriterProfile.is_deleted
     2. WriterProfile.onboarding_status == COMPLETED
-    3. WriterCapacity.can_take_orders          (platform discipline gate)
-    4. WriterCapacity.is_accepting_orders      (writer instant toggle)
+    3. WriterCapacity.can_take_orders (platform discipline gate)
+    4. WriterCapacity.is_accepting_orders (writer instant toggle)
     5. WriterCapacity.active_orders_count < ceiling
     6. WriterDisciplineState.is_suspended / is_blacklisted
-    7. WriterAvailabilityWindow active?        (DB query — runs last)
+    7. WriterAvailabilityWindow active? (DB query — runs last)
 
 WHAT LIVES WHERE
 ----------------
-    can_take_orders      → WriterCapacity  (platform-controlled gate)
-    is_accepting_orders  → WriterCapacity  (writer instant toggle)
-    Online presence      → WriterStatus
-    Dated windows        → WriterAvailabilityWindow  (this file)
-    Hour preferences     → WriterAvailabilityPreference  (this file)
+    can_take_orders → WriterCapacity (platform-controlled gate)
+    is_accepting_orders → WriterCapacity (writer instant toggle)
+    Online presence → WriterStatus
+    Dated windows → WriterAvailabilityWindow (this file)
+    Hour preferences → WriterAvailabilityPreference (this file)
 
 DEPENDENCY
 ----------
@@ -53,11 +53,11 @@ from django.utils.timezone import now
 
 
 class UnavailabilityReason(models.TextChoices):
-    PERSONAL    = "personal",    "Personal"
-    OVERLOADED  = "overloaded",  "Taking a Break from New Work"
-    TECHNICAL   = "technical",   "Technical Issues"
-    SCHEDULED   = "scheduled",   "Scheduled Unavailability"
-    OTHER       = "other",       "Other"
+    PERSONAL = "personal", "Personal"
+    OVERLOADED = "overloaded", "Taking a Break from New Work"
+    TECHNICAL = "technical", "Technical Issues"
+    SCHEDULED = "scheduled", "Scheduled Unavailability"
+    OTHER = "other", "Other"
 
 
 class WriterAvailabilityWindow(models.Model):
@@ -196,9 +196,9 @@ class WriterAvailabilityPreference(models.Model):
         Auto-offline behaviour (controls WriterStatus automation)
 
     Does NOT own:
-        is_accepting_orders  → WriterCapacity
-        can_take_orders      → WriterCapacity
-        Online presence      → WriterStatus
+        is_accepting_orders → WriterCapacity
+        can_take_orders → WriterCapacity
+        Online presence → WriterStatus
 
     Key method:
         is_currently_unavailable() → queries WriterAvailabilityWindow

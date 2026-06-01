@@ -246,12 +246,12 @@ onBeforeUnmount(() => editor.value?.destroy());
 /* Prose styles scoped to editor content */
 .rich-editor .ProseMirror h2 { @apply mt-6 text-xl font-semibold text-gray-900; }
 .rich-editor .ProseMirror h3 { @apply mt-5 text-base font-semibold text-gray-900; }
-.rich-editor .ProseMirror p  { @apply leading-7 text-gray-700; }
+.rich-editor .ProseMirror p { @apply leading-7 text-gray-700; }
 .rich-editor .ProseMirror ul { @apply my-3 list-disc space-y-1 pl-5 text-gray-700; }
 .rich-editor .ProseMirror ol { @apply my-3 list-decimal space-y-1 pl-5 text-gray-700; }
 .rich-editor .ProseMirror blockquote { @apply border-l-4 border-slate-200 pl-4 italic text-gray-500; }
 .rich-editor .ProseMirror code { @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-sm text-rose-600; }
-.rich-editor .ProseMirror pre  { @apply my-4 rounded-lg bg-slate-900 p-4 text-sm text-white; }
+.rich-editor .ProseMirror pre { @apply my-4 rounded-lg bg-slate-900 p-4 text-sm text-white; }
 .rich-editor .ProseMirror pre code { @apply bg-transparent text-white; }
 .rich-editor .ProseMirror a { @apply text-rose-600 underline; }
 .rich-editor .ProseMirror hr { @apply my-6 border-slate-200; }

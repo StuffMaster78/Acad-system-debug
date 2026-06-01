@@ -48,7 +48,7 @@ WriterAdvancePaymentRequest = AdvancePaymentRequest
 class AdminDisputeDashboardViewSet(viewsets.ViewSet):
     """Dashboard endpoints for dispute management."""
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get dispute statistics dashboard."""
@@ -56,13 +56,13 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
         # Order model uses 'assigned_writer' not 'writer'
         # Dispute model doesn't have 'resolved_by' field
         all_disputes = Dispute.objects.all().select_related('order', 'order__client', 'order__assigned_writer', 'raised_by')
-        
+
         # Filter by website if user has website context and is not superadmin
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_disputes = all_disputes.filter(order__website=website)
-        
+
         # Combined aggregation - reduces from 4+ queries to 1 query
         month_ago = timezone.now() - timedelta(days=30)
         summary_stats = all_disputes.aggregate(
@@ -70,28 +70,28 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
             pending_disputes=Count('id', filter=Q(dispute_status='open')),
             resolved_this_month=Count('id', filter=Q(dispute_status='resolved', updated_at__gte=month_ago)),
         )
-        
+
         # Status breakdown - Dispute model uses 'dispute_status' not 'status'
         status_breakdown = all_disputes.values('dispute_status').annotate(
             count=Count('id')
         )
-        
+
         # Pending disputes (open disputes) - only fetch for list
         pending_disputes = all_disputes.filter(dispute_status='open')[:20]
-        
+
         # Disputes by reason
         reason_breakdown = all_disputes.values('reason').annotate(
             count=Count('id')
         )
-        
+
         # Average resolution time - calculate in Python but only for resolved disputes
         # This is acceptable since we're only calculating for a subset
         resolved_with_time = all_disputes.filter(
             dispute_status='resolved',
             updated_at__isnull=False,
             created_at__isnull=False
-        ).only('updated_at', 'created_at')  # Only fetch needed fields
-        
+        ).only('updated_at', 'created_at') # Only fetch needed fields
+
         avg_resolution_hours = None
         if resolved_with_time.exists():
             # Use values_list for faster iteration
@@ -102,7 +102,7 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
             ]
             if resolution_times:
                 avg_resolution_hours = sum(resolution_times) / len(resolution_times)
-        
+
         return Response({
             'summary': {
                 'total_disputes': summary_stats['total_disputes'] or 0,
@@ -130,22 +130,22 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
                 for dispute in pending_disputes
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get dispute analytics and trends."""
         all_disputes = Dispute.objects.all()
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_disputes = all_disputes.filter(order__website=website)
-        
+
         # Trends by week (last 12 weeks)
         weeks_ago = timezone.now() - timedelta(weeks=12)
         from django.db.models.functions import TruncWeek
-        
+
         weekly_trends = all_disputes.filter(
             created_at__gte=weeks_ago
         ).annotate(
@@ -154,7 +154,7 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
             created=Count('id', filter=Q(dispute_status='open')),
             resolved=Count('id', filter=Q(dispute_status='resolved'))
         ).order_by('week')
-        
+
         # Resolution rate trends - combined aggregation
         month_ago = timezone.now() - timedelta(days=30)
         recent_disputes = all_disputes.filter(created_at__gte=month_ago)
@@ -165,7 +165,7 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
         total_recent = recent_stats['total'] or 0
         resolved_recent = recent_stats['resolved'] or 0
         resolution_rate = (resolved_recent / total_recent * 100) if total_recent > 0 else 0
-        
+
         return Response({
             'weekly_trends': [
                 {
@@ -179,23 +179,23 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
             'total_this_month': total_recent,
             'resolved_this_month': resolved_recent,
         })
-    
+
     @action(detail=False, methods=['get'], url_path='pending')
     def pending(self, request):
         """Get pending disputes queue."""
         pending_disputes = Dispute.objects.filter(
             dispute_status='open'
         ).select_related('order', 'order__client', 'order__assigned_writer').order_by('-created_at')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 pending_disputes = pending_disputes.filter(order__website=website)
-        
+
         from orders.serializers_legacy import DisputeSerializer
         serializer = DisputeSerializer(pending_disputes, many=True)
-        
+
         return Response({
             'disputes': serializer.data,
             'count': pending_disputes.count(),
@@ -205,23 +205,23 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
 class AdminRefundDashboardViewSet(viewsets.ViewSet):
     """Dashboard endpoints for refund management."""
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get refund statistics dashboard."""
         # Get all refunds
         # Refund model has order_payment, not order directly
         all_refunds = Refund.objects.all().select_related('order_payment', 'order_payment__order', 'order_payment__order__client', 'client', 'processed_by', 'website')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_refunds = all_refunds.filter(website=website)
-        
+
         # Combined aggregations - reduces from 7+ queries to 2 queries
         month_ago = timezone.now() - timedelta(days=30)
-        
+
         # Main summary stats in one query
         summary_stats = all_refunds.aggregate(
             total_refunds=Count('id'),
@@ -231,7 +231,7 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
             pending_total=Sum(F('wallet_amount') + F('external_amount'), filter=Q(status='pending')),
             avg_refund=Avg(F('wallet_amount') + F('external_amount')),
         )
-        
+
         # Processed this month total
         processed_recent = all_refunds.filter(
             status='processed',
@@ -240,20 +240,20 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
         total_processed = processed_recent.aggregate(
             total=Sum(F('wallet_amount') + F('external_amount'))
         )['total'] or 0
-        
+
         # Status breakdown
         status_breakdown = all_refunds.values('status').annotate(
             count=Count('id')
         )
-        
+
         # Pending refunds - only fetch for list
         pending_refunds = all_refunds.filter(status='pending')[:20]
-        
+
         # Refunds by type (refund model doesn't have 'reason', use 'type' instead)
         type_breakdown = all_refunds.values('type').annotate(
             count=Count('id')
         )
-        
+
         return Response({
             'summary': {
                 'total_refunds': summary_stats['total_refunds'] or 0,
@@ -285,24 +285,24 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
                 for refund in pending_refunds
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get refund analytics and trends."""
         all_refunds = Refund.objects.all()
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_refunds = all_refunds.filter(order__website=website)
-        
+
         # Trends by week (last 12 weeks)
         # Note: Refund model doesn't have created_at, using processed_at for processed refunds
         # For pending refunds, we'll include them in the current week
         weeks_ago = timezone.now() - timedelta(weeks=12)
         from django.db.models.functions import TruncWeek
-        
+
         # Get all refunds and group by processed_at (or use id for approximate timing)
         # Since we don't have created_at, we'll use processed_at for processed refunds
         # and group others by their id (which gives approximate creation order)
@@ -315,14 +315,14 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
             processed=Count('id', filter=Q(status='processed')),
             total_amount=Sum(F('wallet_amount') + F('external_amount'))
         ).order_by('week')
-        
+
         # Processing time (average)
         # Refund model doesn't have created_at, use processed_at and id for approximate timing
         processed_with_time = all_refunds.filter(
             status='processed',
             processed_at__isnull=False
         )
-        
+
         avg_processing_hours = None
         if processed_with_time.exists():
             processing_times = []
@@ -332,7 +332,7 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
                     processing_times.append(hours)
             if processing_times:
                 avg_processing_hours = sum(processing_times) / len(processing_times)
-        
+
         return Response({
             'weekly_trends': [
                 {
@@ -345,62 +345,62 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
             ],
             'average_processing_hours': round(avg_processing_hours, 2) if avg_processing_hours else None,
         })
-    
+
     @action(detail=False, methods=['get'], url_path='pending')
     def pending(self, request):
         """Get pending refunds queue."""
         pending_refunds = Refund.objects.filter(
             status='pending'
         ).select_related('order', 'order__client').order_by('-created_at')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 pending_refunds = pending_refunds.filter(order__website=website)
-        
+
         try:
             from refunds.serializers import RefundSerializer
         except ImportError:
             pass
         serializer = RefundSerializer(pending_refunds, many=True)
-        
+
         return Response({
             'refunds': serializer.data,
             'count': pending_refunds.count(),
         })
-    
+
     @action(detail=False, methods=['get'], url_path='history')
     def history(self, request):
         """Get refund history with filters."""
         all_refunds = Refund.objects.all().select_related('order', 'order__client', 'processed_by')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_refunds = all_refunds.filter(order__website=website)
-        
+
         # Apply filters
         status_filter = request.query_params.get('status', None)
         if status_filter:
             all_refunds = all_refunds.filter(status=status_filter)
-        
+
         date_from = request.query_params.get('date_from', None)
         if date_from:
             all_refunds = all_refunds.filter(created_at__gte=date_from)
-        
+
         date_to = request.query_params.get('date_to', None)
         if date_to:
             all_refunds = all_refunds.filter(created_at__lte=date_to)
-        
+
         # Pagination
         limit = int(request.query_params.get('limit', 50))
         all_refunds = all_refunds[:limit]
-        
+
         from refunds.serializers import RefundSerializer
         serializer = RefundSerializer(all_refunds, many=True)
-        
+
         return Response({
             'refunds': serializer.data,
             'count': len(serializer.data),
@@ -410,7 +410,7 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
 class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
     """Dashboard endpoints for review moderation."""
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='moderation-queue')
     def moderation_queue(self, request):
         """Get pending reviews for moderation."""
@@ -418,10 +418,10 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
             Q(moderation_state__in=[ReviewState.PENDING, ReviewState.FLAGGED])
             | Q(visibility=ReviewVisibility.SHADOWED)
         )
-        
+
         # Get pending reviews by type
         pending_reviews = []
-        
+
         website_reviews = Review.objects.filter(
             pending_filter,
             target_type=ReviewTarget.WEBSITE,
@@ -430,7 +430,7 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
             website = getattr(request.user, 'website', None)
             if website:
                 website_reviews = website_reviews.filter(target_id=website.id)
-        
+
         for review in website_reviews[:50]:
             pending_reviews.append({
                 'id': review.id,
@@ -442,12 +442,12 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
                 'is_approved': review.moderation_state == ReviewState.APPROVED,
                 'created_at': review.created_at.isoformat() if review.created_at else None,
             })
-        
+
         writer_reviews = Review.objects.filter(
             pending_filter,
             writer_id__isnull=False,
         ).exclude(target_type=ReviewTarget.WEBSITE)
-        
+
         for review in writer_reviews[:50]:
             pending_reviews.append({
                 'id': review.id,
@@ -460,12 +460,12 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
                 'is_approved': review.moderation_state == ReviewState.APPROVED,
                 'created_at': review.created_at.isoformat() if review.created_at else None,
             })
-        
+
         order_reviews = Review.objects.filter(
             pending_filter,
             target_type=ReviewTarget.ORDER,
         )
-        
+
         for review in order_reviews[:50]:
             pending_reviews.append({
                 'id': review.id,
@@ -478,20 +478,20 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
                 'is_approved': review.moderation_state == ReviewState.APPROVED,
                 'created_at': review.created_at.isoformat() if review.created_at else None,
             })
-        
+
         # Sort by created_at descending
         pending_reviews.sort(key=lambda x: x['created_at'] or '', reverse=True)
-        
+
         return Response({
             'reviews': pending_reviews[:100],
             'count': len(pending_reviews),
         })
-    
+
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get review analytics dashboard."""
         from django.db.models.functions import TruncWeek
-        
+
         all_website_reviews = Review.objects.filter(
             target_type=ReviewTarget.WEBSITE,
         )
@@ -501,13 +501,13 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
         all_order_reviews = Review.objects.filter(
             target_type=ReviewTarget.ORDER,
         )
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_website_reviews = all_website_reviews.filter(target_id=website.id)
-        
+
         # Combined aggregations - reduces from 6 queries to 3 queries
         website_stats = all_website_reviews.aggregate(
             total=Count('id'),
@@ -521,10 +521,10 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
             total=Count('id'),
             flagged=Count('id', filter=Q(moderation_state=ReviewState.FLAGGED))
         )
-        
+
         total_reviews = (website_stats['total'] or 0) + (writer_stats['total'] or 0) + (order_stats['total'] or 0)
         flagged_reviews = (website_stats['flagged'] or 0) + (writer_stats['flagged'] or 0) + (order_stats['flagged'] or 0)
-        
+
         # Average rating (combine all ratings)
         all_ratings = []
         for review in list(all_website_reviews.values_list('rating', flat=True)) + \
@@ -532,43 +532,43 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
                      list(all_order_reviews.values_list('rating', flat=True)):
             if review is not None:
                 all_ratings.append(review)
-        
+
         avg_rating = sum(all_ratings) / len(all_ratings) if all_ratings else 0
-        
+
         # Rating distribution
         rating_distribution = {}
         for rating in all_ratings:
             key = str(rating)
             rating_distribution[key] = rating_distribution.get(key, 0) + 1
-        
+
         # Reviews by week (last 12 weeks) - combine all types
         weeks_ago = timezone.now() - timedelta(weeks=12)
-        
+
         website_weekly = all_website_reviews.filter(
             created_at__gte=weeks_ago
         ).annotate(
             week=TruncWeek('created_at')
         ).values('week').annotate(count=Count('id'))
-        
+
         writer_weekly = all_writer_reviews.filter(
             created_at__gte=weeks_ago
         ).annotate(
             week=TruncWeek('created_at')
         ).values('week').annotate(count=Count('id'))
-        
+
         order_weekly = all_order_reviews.filter(
             created_at__gte=weeks_ago
         ).annotate(
             week=TruncWeek('created_at')
         ).values('week').annotate(count=Count('id'))
-        
+
         # Combine weekly trends
         weekly_dict = {}
         for item in list(website_weekly) + list(writer_weekly) + list(order_weekly):
             week_key = item['week'].isoformat() if item['week'] else None
             if week_key:
                 weekly_dict[week_key] = weekly_dict.get(week_key, 0) + item['count']
-        
+
         weekly_trends = [
             {
                 'week': week,
@@ -576,7 +576,7 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
             }
             for week, count in sorted(weekly_dict.items())
         ]
-        
+
         return Response({
             'summary': {
                 'total_reviews': total_reviews,
@@ -594,23 +594,23 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
 class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
     """Dashboard endpoints for order management."""
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get order statistics dashboard."""
         all_orders = Order.objects.all().select_related('client', 'writer', 'website')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_orders = all_orders.filter(website=website)
-        
+
         # Combined aggregations - reduces from 6+ queries to 2 queries
         week_ago = timezone.now() - timedelta(days=7)
         month_ago = timezone.now() - timedelta(days=30)
         now = timezone.now()
-        
+
         # Main summary stats in one query
         summary_stats = all_orders.aggregate(
             total_orders=Count('id'),
@@ -636,18 +636,18 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
             recent_orders=Count('id', filter=Q(created_at__gte=month_ago)),
             total_revenue=Sum('total_price', filter=Q(status=OrderStatus.COMPLETED.value)),
         )
-        
+
         # Status breakdown
         status_breakdown = all_orders.values('status').annotate(
             count=Count('id')
         )
-        
+
         # Orders needing assignment - only fetch for list
         needs_assignment = all_orders.filter(
             status=OrderStatus.PENDING_ASSIGNMENT.value,
             assigned_writer__isnull=True
         )[:20]
-        
+
         # Overdue orders - only fetch for list
         overdue_orders = all_orders.filter(
             client_deadline__lt=now,
@@ -657,15 +657,15 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
                 OrderStatus.PENDING_REVISION.value
             ]
         )[:20]
-        
+
         # Calculate transition-based counts - optimized to reduce queries
         # Build all valid source statuses first, then do one query
         target_statuses = [
-            'in_progress', 'submitted', 'completed', 'cancelled', 
+            'in_progress', 'submitted', 'completed', 'cancelled',
             'on_hold', 'available', 'revision_requested', 'disputed',
             'under_editing', 'closed', 'reopened'
         ]
-        
+
         # Build a map of source statuses to target statuses
         status_to_targets = {}
         for source, transitions in VALID_TRANSITIONS.items():
@@ -675,17 +675,17 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
                         status_to_targets[target] = []
                     if source not in status_to_targets[target]:
                         status_to_targets[target].append(source)
-        
+
         # Get counts for all source statuses in one query
         status_counts = dict(all_orders.values('status').annotate(count=Count('id')))
-        
+
         # Calculate transition counts from the status_counts
         transition_counts = {}
         for target_status in target_statuses:
             valid_sources = status_to_targets.get(target_status, [])
             count = sum(status_counts.get(source, 0) for source in valid_sources)
             transition_counts[f'can_transition_to_{target_status}'] = count
-        
+
         return Response({
             'summary': {
                 'total_orders': summary_stats['total_orders'] or 0,
@@ -694,12 +694,12 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
                 'stuck_orders': summary_stats['stuck_orders'] or 0,
                 'recent_orders': summary_stats['recent_orders'] or 0,
                 'total_revenue': str(summary_stats['total_revenue'] or 0),
-                **transition_counts,  # Add transition counts to summary
+                **transition_counts, # Add transition counts to summary
             },
             'status_breakdown': {
                 item['status']: item['count'] for item in status_breakdown
             },
-            'transition_counts': transition_counts,  # Also include as separate field
+            'transition_counts': transition_counts, # Also include as separate field
             'needs_assignment_list': [
                 {
                     'id': order.id,
@@ -721,22 +721,22 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
                 for order in overdue_orders
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get order analytics and trends."""
         all_orders = Order.objects.all()
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_orders = all_orders.filter(website=website)
-        
+
         # Trends by week (last 12 weeks)
         weeks_ago = timezone.now() - timedelta(weeks=12)
         from django.db.models.functions import TruncWeek
-        
+
         weekly_trends = all_orders.filter(
             created_at__gte=weeks_ago
         ).annotate(
@@ -746,13 +746,13 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
             completed=Count('id', filter=Q(status=OrderStatus.COMPLETED.value)),
             revenue=Sum('total_price', filter=Q(status=OrderStatus.COMPLETED.value))
         ).order_by('week')
-        
+
         # Service breakdown (using type_of_work)
         service_breakdown = all_orders.values('type_of_work__name').annotate(
             count=Count('id'),
             revenue=Sum('total_price', filter=Q(status=OrderStatus.COMPLETED.value))
         )
-        
+
         return Response({
             'weekly_trends': [
                 {
@@ -772,7 +772,7 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
                 for item in service_breakdown
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='assignment-queue')
     def assignment_queue(self, request):
         """Get orders needing assignment."""
@@ -780,24 +780,24 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
             status=OrderStatus.PENDING_ASSIGNMENT.value,
             writer__isnull=True
         ).select_related('client', 'website').order_by('-created_at')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 needs_assignment = needs_assignment.filter(website=website)
-        
+
         try:
             from orders.serializers import OrderSerializer
         except ImportError:
             from orders.serializers_legacy import OrderSerializer
         serializer = OrderSerializer(needs_assignment, many=True)
-        
+
         return Response({
             'orders': serializer.data,
             'count': needs_assignment.count(),
         })
-    
+
     @action(detail=False, methods=['get'], url_path='overdue')
     def overdue(self, request):
         """Get overdue orders."""
@@ -809,24 +809,24 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
                 OrderStatus.PENDING_REVISION.value
             ]
         ).select_related('client', 'assigned_writer', 'website').order_by('client_deadline')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 overdue_orders = overdue_orders.filter(website=website)
-        
+
         try:
             from orders.serializers import OrderSerializer
         except ImportError:
             from orders.serializers_legacy import OrderSerializer
         serializer = OrderSerializer(overdue_orders, many=True)
-        
+
         return Response({
             'orders': serializer.data,
             'count': overdue_orders.count(),
         })
-    
+
     @action(detail=False, methods=['get'], url_path='stuck')
     def stuck(self, request):
         """Get stuck orders (no progress)."""
@@ -838,19 +838,19 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
             ],
             updated_at__lt=week_ago
         ).select_related('client', 'writer', 'website').order_by('updated_at')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 stuck_orders = stuck_orders.filter(website=website)
-        
+
         try:
             from orders.serializers import OrderSerializer
         except ImportError:
             from orders.serializers_legacy import OrderSerializer
         serializer = OrderSerializer(stuck_orders, many=True)
-        
+
         return Response({
             'orders': serializer.data,
             'count': stuck_orders.count(),
@@ -864,45 +864,45 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
 class AdminExpressClassesDashboardViewSet(viewsets.ViewSet):
     """Dashboard endpoints for express classes management."""
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get express class statistics dashboard."""
         all_express_classes = ExpressClass.objects.all().select_related(
             'client', 'assigned_writer', 'website'
         )
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_express_classes = all_express_classes.filter(website=website)
-        
+
         # Status breakdown
         status_breakdown = all_express_classes.values('status').annotate(
             count=Count('id')
         )
-        
+
         # Pending inquiries
         pending_inquiries = all_express_classes.filter(status='inquiry')
-        
+
         # Scope review queue
         scope_review = all_express_classes.filter(status='scope_review')
-        
+
         # Priced (awaiting assignment)
         priced = all_express_classes.filter(status='priced')
-        
+
         # Assigned/In Progress
         active = all_express_classes.filter(status__in=['assigned', 'in_progress'])
-        
+
         # Completed
         completed = all_express_classes.filter(status='completed')
-        
+
         # Total revenue
         total_revenue = completed.aggregate(
             total=Sum('price')
         )['total'] or 0
-        
+
         return Response({
             'summary': {
                 'total_classes': all_express_classes.count(),
@@ -941,22 +941,22 @@ class AdminExpressClassesDashboardViewSet(viewsets.ViewSet):
                 for ec in scope_review[:20]
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get express class analytics."""
         all_express_classes = ExpressClass.objects.all()
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_express_classes = all_express_classes.filter(website=website)
-        
+
         # Trends by week (last 12 weeks)
         weeks_ago = timezone.now() - timedelta(weeks=12)
         from django.db.models.functions import TruncWeek
-        
+
         weekly_trends = all_express_classes.filter(
             created_at__gte=weeks_ago
         ).annotate(
@@ -966,13 +966,13 @@ class AdminExpressClassesDashboardViewSet(viewsets.ViewSet):
             completed=Count('id', filter=Q(status='completed')),
             revenue=Sum('price', filter=Q(status='completed'))
         ).order_by('week')
-        
+
         # Discipline breakdown
         discipline_breakdown = all_express_classes.values('discipline').annotate(
             count=Count('id'),
             revenue=Sum('price', filter=Q(status='completed'))
         ).order_by('-count')[:10]
-        
+
         # Average class value
         avg_class_value = all_express_classes.filter(
             status='completed',
@@ -980,7 +980,7 @@ class AdminExpressClassesDashboardViewSet(viewsets.ViewSet):
         ).aggregate(
             avg=Avg('price')
         )['avg'] or 0
-        
+
         return Response({
             'weekly_trends': [
                 {
@@ -1012,46 +1012,46 @@ class AdminExpressClassesDashboardViewSet(viewsets.ViewSet):
 class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
     """Dashboard endpoints for class/bundle management."""
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get class bundle statistics dashboard."""
         all_bundles = ClassBundle.objects.all().select_related('client', 'website')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_bundles = all_bundles.filter(website=website)
-        
+
         # Status breakdown
         status_breakdown = all_bundles.values('status').annotate(
             count=Count('id')
         )
-        
+
         # Pending funding.
         pending_funding = all_bundles.filter(
             balance_amount__gt=0,
             status__in=['pending_payment', 'partially_paid', 'in_progress']
         )
-        
+
         # Active bundles
         active_bundles = all_bundles.filter(
             status__in=['active', 'in_progress']
         )
-        
+
         # Total revenue
         total_revenue = all_bundles.filter(
             status='completed'
         ).aggregate(
             total=Sum('final_amount')
         )['total'] or 0
-        
+
         # Payment schedule tracking.
         bundles_with_payment_schedules = all_bundles.filter(
             installment_plan__isnull=False
         )
-        
+
         return Response({
             'summary': {
                 'total_bundles': all_bundles.count(),
@@ -1076,22 +1076,22 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
                 for bundle in pending_funding[:20]
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get class bundle analytics."""
         all_bundles = ClassBundle.objects.all()
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_bundles = all_bundles.filter(website=website)
-        
+
         # Trends by week (last 12 weeks)
         weeks_ago = timezone.now() - timedelta(weeks=12)
         from django.db.models.functions import TruncWeek
-        
+
         weekly_trends = all_bundles.filter(
             created_at__gte=weeks_ago
         ).annotate(
@@ -1101,7 +1101,7 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
             completed=Count('id', filter=Q(status='completed')),
             revenue=Sum('final_amount', filter=Q(status='completed'))
         ).order_by('week')
-        
+
         return Response({
             'weekly_trends': [
                 {
@@ -1113,7 +1113,7 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
                 for item in weekly_trends
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='installment-tracking')
     def installment_tracking(self, request):
         """Compatibility endpoint for old admin installment callers."""
@@ -1125,7 +1125,7 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
         bundles_with_payment_schedules = ClassBundle.objects.filter(
             installment_plan__isnull=False
         ).select_related('client', 'website')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
@@ -1133,7 +1133,7 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
                 bundles_with_payment_schedules = (
                     bundles_with_payment_schedules.filter(website=website)
                 )
-        
+
         pending_payment_milestones = []
         for bundle in bundles_with_payment_schedules:
             milestones = ClassInstallment.objects.filter(
@@ -1153,7 +1153,7 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
                         else None
                     ),
                 })
-        
+
         return Response({
             'bundles_with_payment_schedules': (
                 len(bundles_with_payment_schedules)
@@ -1169,7 +1169,7 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
 class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
     """Dashboard endpoints for special orders management."""
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get special orders statistics dashboard."""
@@ -1177,38 +1177,38 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
             'client', 'writer', 'website', 'predefined_config',
             'funding_plan'
         )
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_special_orders = all_special_orders.filter(website=website)
-        
+
         # Status breakdown
         status_breakdown = all_special_orders.values('status').annotate(
             count=Count('id')
         )
-        
+
         # Pricing mode breakdown
         type_breakdown = all_special_orders.values('pricing_mode').annotate(
             count=Count('id')
         )
-        
+
         # Pending approvals
         pending_approvals = all_special_orders.filter(
             status__in=['inquiry', 'quote_pending']
         )
-        
+
         # In progress orders
         in_progress = all_special_orders.filter(status='in_progress')
-        
+
         # Total revenue
         total_revenue = all_special_orders.filter(
             status='completed'
         ).aggregate(
             total=Sum('funding_plan__funded_amount')
         )['total'] or 0
-        
+
         pending_funding_milestones = SpecialOrderFundingMilestone.objects.filter(
             special_order__in=all_special_orders,
             status__in=[
@@ -1217,11 +1217,11 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                 FundingMilestoneStatus.OVERDUE,
             ],
         )
-        
+
         total_pending_funding = pending_funding_milestones.aggregate(
             total=Sum('amount_due')
         )['total'] or 0
-        
+
         orders_with_funding_milestones = all_special_orders.filter(
             funding_milestones__status__in=[
                 FundingMilestoneStatus.PENDING,
@@ -1229,7 +1229,7 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                 FundingMilestoneStatus.OVERDUE,
             ],
         ).distinct()
-        
+
         return Response({
             'summary': {
                 'total_orders': all_special_orders.count(),
@@ -1272,22 +1272,22 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                 for order in pending_approvals[:20]
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get special orders analytics."""
         all_special_orders = SpecialOrder.objects.all()
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_special_orders = all_special_orders.filter(website=website)
-        
+
         # Trends by week (last 12 weeks)
         weeks_ago = timezone.now() - timedelta(weeks=12)
         from django.db.models.functions import TruncWeek
-        
+
         weekly_trends = all_special_orders.filter(
             created_at__gte=weeks_ago
         ).annotate(
@@ -1300,7 +1300,7 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                 filter=Q(status='completed'),
             )
         ).order_by('week')
-        
+
         # Revenue by pricing mode
         revenue_by_type = all_special_orders.filter(
             status='completed'
@@ -1308,7 +1308,7 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
             count=Count('id'),
             revenue=Sum('funding_plan__funded_amount')
         )
-        
+
         # Average order value
         avg_order_value = all_special_orders.filter(
             status='completed',
@@ -1316,12 +1316,12 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
         ).aggregate(
             avg=Avg('funding_plan__total_amount')
         )['avg'] or 0
-        
+
         # Average duration
         avg_duration = all_special_orders.aggregate(
             avg=Avg('duration_days')
         )['avg'] or 0
-        
+
         return Response({
             'weekly_trends': [
                 {
@@ -1345,7 +1345,7 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                 'avg_duration_days': round(avg_duration, 1) if avg_duration else 0,
             },
         })
-    
+
     @action(detail=False, methods=['get'], url_path='approval-queue')
     def approval_queue(self, request):
         """Get special orders awaiting approval."""
@@ -1354,13 +1354,13 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
         ).select_related(
             'client', 'website', 'predefined_config'
         ).order_by('-created_at')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 pending_approvals = pending_approvals.filter(website=website)
-        
+
         try:
             from special_orders.serializers import SpecialOrderSerializer
         except ImportError:
@@ -1370,25 +1370,25 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                     model = SpecialOrder
                     fields = '__all__'
         serializer = SpecialOrderSerializer(pending_approvals, many=True)
-        
+
         return Response({
             'orders': serializer.data,
             'count': pending_approvals.count(),
         })
-    
+
     @action(detail=False, methods=['get'], url_path='funding-milestones')
     def funding_milestones(self, request):
         """Get special orders with pending funding milestones."""
         all_special_orders = SpecialOrder.objects.all().select_related(
             'client', 'website'
         )
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_special_orders = all_special_orders.filter(website=website)
-        
+
         # Get orders with pending funding milestones.
         pending_funding_milestones = []
         for order in all_special_orders:
@@ -1400,13 +1400,13 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                     FundingMilestoneStatus.OVERDUE,
                 ],
             ).order_by('due_at')
-            
+
             if milestones.exists():
                 next_milestone = milestones.first()
                 total_pending = milestones.aggregate(
                     total=Sum('amount_due')
                 )['total'] or 0
-                
+
                 pending_funding_milestones.append({
                     'order_id': order.id,
                     'client_id': order.client.id if order.client else None,
@@ -1430,13 +1430,13 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
                         else None
                     ),
                 })
-        
+
         # Sort by next due date
         pending_funding_milestones.sort(
             key=lambda x: x['next_due_date'] or '',
             reverse=False,
         )
-        
+
         return Response({
             'orders_with_pending_funding_milestones': (
                 len(pending_funding_milestones)
@@ -1448,7 +1448,7 @@ class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
 class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
     """Advanced analytics dashboard aggregating all admin metrics."""
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get comprehensive advanced analytics dashboard."""
@@ -1456,18 +1456,18 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         from payments_processor.models import PaymentIntent
         from tickets.models import Ticket
         from writer_management.models import WriterProfile
-        
+
         # Filter by website if needed
         website_filter = None
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 website_filter = website
-        
+
         # Time range
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
-        
+
         # === REVENUE ANALYTICS ===
         revenue_orders = Order.objects.filter(
             created_at__gte=date_from,
@@ -1475,11 +1475,11 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         )
         if website_filter:
             revenue_orders = revenue_orders.filter(website=website_filter)
-        
+
         total_revenue = revenue_orders.aggregate(
             total=Sum('total_price')
         )['total'] or 0
-        
+
         # Revenue by day
         daily_revenue = revenue_orders.annotate(
             day=TruncDay('created_at')
@@ -1487,18 +1487,18 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
             revenue=Sum('total_price'),
             order_count=Count('id')
         ).order_by('day')
-        
+
         # Revenue by service type (using type_of_work)
         revenue_by_service = revenue_orders.values('type_of_work__name').annotate(
             revenue=Sum('total_price'),
             count=Count('id')
         ).order_by('-revenue')
-        
+
         # === ORDER ANALYTICS ===
         all_orders = Order.objects.filter(created_at__gte=date_from)
         if website_filter:
             all_orders = all_orders.filter(website=website_filter)
-        
+
         # Order conversion funnel
         conversion_funnel = {
             'created': all_orders.count(),
@@ -1508,20 +1508,20 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
             'submitted': all_orders.filter(status=OrderStatus.SUBMITTED.value).count(),
             'completed': all_orders.filter(status=OrderStatus.COMPLETED.value).count(),
         }
-        
+
         # Average order value
         avg_order_value = revenue_orders.aggregate(
             avg=Avg('total_price')
         )['avg'] or 0
-        
+
         # Order completion rate
         completion_rate = (conversion_funnel['completed'] / conversion_funnel['created'] * 100) if conversion_funnel['created'] > 0 else 0
-        
+
         # === WRITER PERFORMANCE ===
         writers = WriterProfile.objects.all()
         if website_filter:
             writers = writers.filter(user__website=website_filter)
-        
+
         # WriterProfile already has 'total_earnings' and 'average_rating' fields
         # Use different annotation name for period earnings to avoid conflict
         writer_performance = writers.annotate(
@@ -1534,7 +1534,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                 user__orders_as_writer__created_at__gte=date_from
             ))
         ).filter(completed_orders_count__gt=0).order_by('-completed_orders_count')[:10]
-        
+
         # === CLIENT ANALYTICS ===
         from users.models import User
         clients = User.objects.filter(
@@ -1543,7 +1543,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         )
         if website_filter:
             clients = clients.filter(website=website_filter)
-        
+
         client_analytics = clients.annotate(
             order_count=Count('orders_as_client', filter=Q(
                 orders_as_client__created_at__gte=date_from
@@ -1553,33 +1553,33 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                 orders_as_client__created_at__gte=date_from
             ))
         ).filter(order_count__gt=0).order_by('-total_spent')[:10]
-        
+
         # === SUPPORT METRICS ===
         tickets = Ticket.objects.filter(created_at__gte=date_from)
         if website_filter:
             tickets = tickets.filter(website=website_filter)
-        
+
         support_metrics = {
             'total_tickets': tickets.count(),
             'resolved_tickets': tickets.filter(status='closed').count(),
-            'avg_resolution_time': None,  # Would need to calculate from ticket timestamps
+            'avg_resolution_time': None, # Would need to calculate from ticket timestamps
             'tickets_by_priority': tickets.values('priority').annotate(
                 count=Count('id')
             ),
         }
-        
+
         # === DISPUTE METRICS ===
         disputes = Dispute.objects.filter(created_at__gte=date_from)
         if website_filter:
             disputes = disputes.filter(order__website=website_filter)
-        
+
         dispute_metrics = {
             'total_disputes': disputes.count(),
             'resolved': disputes.filter(dispute_status='resolved').count(),
             'pending': disputes.filter(dispute_status='open').count(),
             'resolution_rate': (disputes.filter(dispute_status='resolved').count() / disputes.count() * 100) if disputes.count() > 0 else 0,
         }
-        
+
         # === REFUND METRICS ===
         # Refund model has direct 'website' field, not 'order__website'
         # Refund model doesn't have 'created_at', use processed_at or order_payment creation
@@ -1589,17 +1589,17 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         # Filter by date - use processed_at if available, otherwise order_payment creation
         if date_from:
             refunds = refunds.filter(
-                Q(processed_at__gte=date_from) | 
+                Q(processed_at__gte=date_from) |
                 Q(processed_at__isnull=True, order_payment__created_at__gte=date_from)
             )
-        
+
         refund_metrics = {
             'total_refunds': refunds.count(),
             'total_amount': refunds.aggregate(total=Sum(F('wallet_amount') + F('external_amount')))['total'] or 0,
-            'approved': refunds.filter(status='processed').count(),  # Refund status is 'processed' not 'approved'
+            'approved': refunds.filter(status='processed').count(), # Refund status is 'processed' not 'approved'
             'pending': refunds.filter(status='pending').count(),
         }
-        
+
         # === TRENDS ===
         weekly_trends = all_orders.annotate(
             week=TruncWeek('created_at')
@@ -1608,7 +1608,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
             orders_completed=Count('id', filter=Q(status=OrderStatus.COMPLETED.value)),
             revenue=Sum('total_price', filter=Q(is_paid=True))
         ).order_by('week')
-        
+
         return Response({
             'summary': {
                 'total_revenue': str(total_revenue),
@@ -1648,9 +1648,9 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                 {
                     'writer_id': writer.id,
                     'username': writer.user.username if writer.user else None,
-                    'completed_orders': writer.completed_orders_count,  # Use annotation name
-                    'total_earnings': str(writer.period_total_earnings or 0),  # Use annotation name
-                    'avg_rating': round(float(writer.average_rating), 2) if writer.average_rating else None,  # Use existing field
+                    'completed_orders': writer.completed_orders_count, # Use annotation name
+                    'total_earnings': str(writer.period_total_earnings or 0), # Use annotation name
+                    'avg_rating': round(float(writer.average_rating), 2) if writer.average_rating else None, # Use existing field
                 }
                 for writer in writer_performance
             ],
@@ -1682,25 +1682,25 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                 for item in weekly_trends
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='comparison')
     def comparison(self, request):
         """Compare analytics between two time periods."""
         period1_days = int(request.query_params.get('period1_days', 30))
         period2_days = int(request.query_params.get('period2_days', 30))
-        
+
         now = timezone.now()
         period1_start = now - timedelta(days=period1_days)
         period2_start = now - timedelta(days=period2_days)
         period2_end = now - timedelta(days=period1_days)
-        
+
         # Filter by website if needed
         website_filter = None
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 website_filter = website
-        
+
         # Period 1 metrics
         period1_orders = Order.objects.filter(
             created_at__gte=period1_start,
@@ -1708,12 +1708,12 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         )
         if website_filter:
             period1_orders = period1_orders.filter(website=website_filter)
-        
+
         period1_revenue = period1_orders.filter(is_paid=True).aggregate(
             total=Sum('total_price')
         )['total'] or 0
         period1_completed = period1_orders.filter(status=OrderStatus.COMPLETED.value).count()
-        
+
         # Period 2 metrics
         period2_orders = Order.objects.filter(
             created_at__gte=period2_start,
@@ -1721,16 +1721,16 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         )
         if website_filter:
             period2_orders = period2_orders.filter(website=website_filter)
-        
+
         period2_revenue = period2_orders.filter(is_paid=True).aggregate(
             total=Sum('total_price')
         )['total'] or 0
         period2_completed = period2_orders.filter(status=OrderStatus.COMPLETED.value).count()
-        
+
         # Calculate changes
         revenue_change = ((period1_revenue - period2_revenue) / period2_revenue * 100) if period2_revenue > 0 else 0
         completed_change = ((period1_completed - period2_completed) / period2_completed * 100) if period2_completed > 0 else 0
-        
+
         return Response({
             'period1': {
                 'days': period1_days,
@@ -1754,34 +1754,34 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                 'revenue_change_amount': str(period1_revenue - period2_revenue),
             },
         })
-    
+
     @action(detail=False, methods=['get'], url_path='export')
     def export_analytics(self, request):
         """Export analytics data as CSV/JSON."""
         import csv
         import json
         from django.http import HttpResponse
-        
-        format_type = request.query_params.get('format', 'json')  # json or csv
-        analytics_type = request.query_params.get('type', 'dashboard')  # dashboard, orders, reviews, etc.
-        
+
+        format_type = request.query_params.get('format', 'json') # json or csv
+        analytics_type = request.query_params.get('type', 'dashboard') # dashboard, orders, reviews, etc.
+
         # Get dashboard data
         dashboard_data = self.dashboard(request)
         data = dashboard_data.data
-        
+
         if format_type == 'csv':
             response = HttpResponse(content_type='text/csv')
             response['Content-Disposition'] = f'attachment; filename="analytics_export_{timezone.now().date()}.csv"'
-            
+
             writer = csv.writer(response)
-            
+
             # Write summary
             if 'summary' in data:
                 writer.writerow(['Metric', 'Value'])
                 for key, value in data['summary'].items():
                     writer.writerow([key.replace('_', ' ').title(), value])
                 writer.writerow([])
-            
+
             # Write revenue analytics
             if 'revenue_analytics' in data and 'daily_breakdown' in data['revenue_analytics']:
                 writer.writerow(['Date', 'Revenue', 'Orders'])
@@ -1792,7 +1792,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                         item.get('order_count', 0)
                     ])
                 writer.writerow([])
-            
+
             # Write weekly trends
             if 'weekly_trends' in data:
                 writer.writerow(['Week', 'Orders Created', 'Orders Completed', 'Revenue'])
@@ -1803,7 +1803,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                         item.get('orders_completed', 0),
                         item.get('revenue', 0)
                     ])
-            
+
             return response
         else:
             # JSON export
@@ -1818,59 +1818,59 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
 class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
     """Dashboard endpoints for fines management."""
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get fines statistics dashboard."""
         all_fines = Fine.objects.all().select_related(
             'order', 'order__client', 'order__assigned_writer', 'issued_by', 'waived_by'
         )
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_fines = all_fines.filter(order__website=website)
-        
+
         # Status breakdown
         status_breakdown = all_fines.values('status').annotate(
             count=Count('id')
         )
-        
+
         # Fine type breakdown
         type_breakdown = all_fines.values('fine_type').annotate(
             count=Count('id'),
             total_amount=Sum('amount')
         )
-        
+
         # Active fines (not waived/voided/resolved)
         active_fines = all_fines.filter(
             status__in=[FineStatus.ISSUED.value, FineStatus.DISPUTED.value]
         )
-        
+
         # Total fine amount
         total_fine_amount = all_fines.aggregate(
             total=Sum('amount')
         )['total'] or 0
-        
+
         # Active fine amount
         active_fine_amount = active_fines.aggregate(
             total=Sum('amount')
         )['total'] or 0
-        
+
         # Waived fines
         waived_fines = all_fines.filter(status=FineStatus.WAIVED.value)
         waived_amount = waived_fines.aggregate(
             total=Sum('amount')
         )['total'] or 0
-        
+
         # Disputed fines
         disputed_fines = all_fines.filter(status=FineStatus.DISPUTED.value)
-        
+
         # Recent fines (last 30 days)
         month_ago = timezone.now() - timedelta(days=30)
         recent_fines = all_fines.filter(imposed_at__gte=month_ago)
-        
+
         return Response({
             'summary': {
                 'total_fines': all_fines.count(),
@@ -1907,22 +1907,22 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
                 for fine in disputed_fines[:20]
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get fines analytics."""
         all_fines = Fine.objects.all()
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_fines = all_fines.filter(order__website=website)
-        
+
         # Trends by week (last 12 weeks)
         weeks_ago = timezone.now() - timedelta(weeks=12)
         from django.db.models.functions import TruncWeek
-        
+
         weekly_trends = all_fines.filter(
             imposed_at__gte=weeks_ago
         ).annotate(
@@ -1931,7 +1931,7 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
             count=Count('id'),
             total_amount=Sum('amount')
         ).order_by('week')
-        
+
         # Fines by type over time
         type_trends = all_fines.filter(
             imposed_at__gte=weeks_ago
@@ -1939,19 +1939,19 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
             count=Count('id'),
             total_amount=Sum('amount')
         )
-        
+
         # Average fine amount
         avg_fine_amount = all_fines.aggregate(
             avg=Avg('amount')
         )['avg'] or 0
-        
+
         # Dispute resolution rate
         total_disputed = all_fines.filter(status=FineStatus.DISPUTED.value).count()
         resolved_disputes = FineAppeal.objects.filter(
             review_decision__in=['accepted', 'rejected']
         ).count()
         dispute_resolution_rate = (resolved_disputes / total_disputed * 100) if total_disputed > 0 else 0
-        
+
         return Response({
             'weekly_trends': [
                 {
@@ -1974,7 +1974,7 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
                 'dispute_resolution_rate': round(dispute_resolution_rate, 2),
             },
         })
-    
+
     @action(detail=False, methods=['get'], url_path='dispute-queue')
     def dispute_queue(self, request):
         """Get fines with active disputes."""
@@ -1983,13 +1983,13 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
         ).select_related(
             'order', 'order__client', 'order__assigned_writer'
         ).prefetch_related('fine_appeals').order_by('-imposed_at')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 disputed_fines = disputed_fines.filter(order__website=website)
-        
+
         # Get associated appeals
         disputed_list = []
         for fine in disputed_fines:
@@ -2007,12 +2007,12 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
                 'appeal_status': appeal.status if appeal else None,
                 'appeal_submitted_at': appeal.submitted_at.isoformat() if appeal and appeal.submitted_at else None,
             })
-        
+
         return Response({
             'disputed_fines': disputed_list,
             'count': len(disputed_list),
         })
-    
+
     @action(detail=False, methods=['get'], url_path='active-fines')
     def active_fines(self, request):
         """Get all active fines (not waived/voided)."""
@@ -2021,13 +2021,13 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
         ).select_related(
             'order', 'order__client', 'order__assigned_writer', 'issued_by'
         ).order_by('-imposed_at')
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 active_fines = active_fines.filter(order__website=website)
-        
+
         try:
             from fines.serializers import FineSerializer
         except ImportError:
@@ -2037,7 +2037,7 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
                     model = Fine
                     fields = '__all__'
         serializer = FineSerializer(active_fines, many=True)
-        
+
         return Response({
             'fines': serializer.data,
             'count': active_fines.count(),
@@ -2050,20 +2050,20 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
 class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
     """Consolidated dashboard endpoints for advance payment requests management."""
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):
         """Get consolidated advance payment requests statistics dashboard."""
         all_advances = WriterAdvancePaymentRequest.objects.all().select_related(
             'writer', 'writer__user', 'reviewed_by', 'disbursed_by', 'website'
         )
-        
+
         # Filter by website if user has website context and is not superadmin
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_advances = all_advances.filter(website=website)
-        
+
         # Combined aggregation - reduces multiple queries to single query
         month_ago = timezone.now() - timedelta(days=30)
         summary_stats = all_advances.aggregate(
@@ -2075,7 +2075,7 @@ class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
             repaid_requests=Count('id', filter=Q(status='repaid')),
             recent_requests=Count('id', filter=Q(requested_at__gte=month_ago)),
         )
-        
+
         # Financial aggregations in one query
         financial_stats = all_advances.aggregate(
             total_requested=Sum('requested_amount'),
@@ -2085,7 +2085,7 @@ class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
             pending_requested=Sum('requested_amount', filter=Q(status='pending')),
             approved_but_not_disbursed=Sum('approved_amount', filter=Q(status='approved')),
         )
-        
+
         # Calculate outstanding amount (disbursed - repaid) for all active advances
         outstanding_advances = all_advances.filter(
             status__in=['disbursed', 'approved'],
@@ -2095,27 +2095,27 @@ class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
             (adv.disbursed_amount or Decimal('0.00')) - (adv.repaid_amount or Decimal('0.00'))
             for adv in outstanding_advances
         )
-        
+
         # Status breakdown
         status_breakdown = all_advances.values('status').annotate(
             count=Count('id'),
             total_amount=Sum('requested_amount')
         )
-        
+
         # Pending requests (for review queue)
         pending_requests = all_advances.filter(status='pending').order_by('-requested_at')[:20]
-        
+
         # Approved but not disbursed (for disbursement queue)
         approved_not_disbursed = all_advances.filter(
             status='approved',
             disbursed_amount__isnull=True
         ).order_by('-reviewed_at')[:20]
-        
+
         # Recent activity (last 30 days)
         recent_activity = all_advances.filter(
             requested_at__gte=month_ago
         ).order_by('-requested_at')[:20]
-        
+
         return Response({
             'summary': {
                 'total_requests': summary_stats['total_requests'] or 0,
@@ -2180,22 +2180,22 @@ class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
                 for req in recent_activity
             ],
         })
-    
+
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get advance payment requests analytics and trends."""
         all_advances = WriterAdvancePaymentRequest.objects.all()
-        
+
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
                 all_advances = all_advances.filter(website=website)
-        
+
         # Time range
         days = int(request.query_params.get('days', 90))
         date_from = timezone.now() - timedelta(days=days)
-        
+
         # Weekly trends
         from django.db.models.functions import TruncWeek
         weekly_trends = all_advances.filter(
@@ -2209,7 +2209,7 @@ class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
             total_requested=Sum('requested_amount'),
             total_disbursed=Sum('disbursed_amount', filter=Q(status='disbursed'))
         ).order_by('week')
-        
+
         # Approval rate
         total_processed = all_advances.filter(
             status__in=['approved', 'rejected'],
@@ -2220,7 +2220,7 @@ class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
             requested_at__gte=date_from
         ).count()
         approval_rate = (approved_count / total_processed * 100) if total_processed > 0 else 0
-        
+
         # Average request amounts
         avg_stats = all_advances.filter(
             requested_at__gte=date_from
@@ -2229,7 +2229,7 @@ class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
             avg_approved=Avg('approved_amount', filter=Q(status='approved')),
             avg_disbursed=Avg('disbursed_amount', filter=Q(status='disbursed'))
         )
-        
+
         # Repayment analytics
         disbursed_advances = all_advances.filter(
             status='disbursed',
@@ -2238,7 +2238,7 @@ class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
         total_disbursed = sum(adv.disbursed_amount or Decimal('0.00') for adv in disbursed_advances)
         total_repaid = sum(adv.repaid_amount or Decimal('0.00') for adv in disbursed_advances)
         repayment_rate = (total_repaid / total_disbursed * 100) if total_disbursed > 0 else 0
-        
+
         return Response({
             'weekly_trends': [
                 {

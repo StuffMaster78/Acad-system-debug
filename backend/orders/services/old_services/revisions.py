@@ -47,7 +47,7 @@ class OrderRevisionService:
         # If order is not completed, allow revision (for other statuses like submitted, reviewed, etc.)
         if self.order.status != OrderStatus.COMPLETED.value:
             return True
-        
+
         # For completed orders, check if within revision period
         # Get completion time from transition log since Order model doesn't have completed_at
         from orders.models.legacy_models.logs import OrderTransitionLog
@@ -55,14 +55,14 @@ class OrderRevisionService:
             order=self.order,
             new_status=OrderStatus.COMPLETED.value
         ).order_by('-timestamp').first()
-        
+
         if not completed_transition:
             # If no transition log found, check updated_at as fallback
             # This handles edge cases where transition log might be missing
             completed_at = self.order.updated_at
         else:
             completed_at = completed_transition.timestamp
-            
+
         return timezone.now() - completed_at <= self.get_revision_deadline()
 
 
@@ -111,7 +111,7 @@ class OrderRevisionService:
             return False
 
         from orders.services.transition_helper import OrderTransitionHelper
-        
+
         self.order.revision_request = reason
         OrderTransitionHelper.transition_order(
             order=self.order,
@@ -138,7 +138,7 @@ class OrderRevisionService:
             bool: True if the revision was successfully processed, False otherwise.
         """
         from orders.services.transition_helper import OrderTransitionHelper
-        
+
         # Check for revision_in_progress status (string value)
         if self.order.status != 'revision_in_progress':
             return False

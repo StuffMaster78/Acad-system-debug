@@ -192,10 +192,10 @@ const canReturn = computed(() => STATUS.value === "qa_review" && isReviewer.valu
 
 // ── Banner ────────────────────────────────────────────────────────────────────
 const STATUS_BANNER: Record<string, { title: string; body: string; class: string; icon: unknown }> = {
-  qa_review:    { title: "In QA Review",        body: "This order is being reviewed for quality and accuracy.",       class: "border-amber-200 bg-amber-50 text-amber-900",   icon: Loader2 },
-  submitted:    { title: "Submitted for Review", body: "Writer has submitted the work; awaiting QA assignment.",       class: "border-blue-200 bg-blue-50 text-blue-900",      icon: Send },
-  completed:    { title: "QA Approved",          body: "This order passed QA and was delivered to the client.",        class: "border-emerald-200 bg-emerald-50 text-emerald-900", icon: CheckCircle2 },
-  under_editing:{ title: "Under Editing",        body: "The work has been passed to an editor for final polish.",      class: "border-cyan-200 bg-cyan-50 text-cyan-900",      icon: Loader2 },
+  qa_review: { title: "In QA Review", body: "This order is being reviewed for quality and accuracy.", class: "border-amber-200 bg-amber-50 text-amber-900", icon: Loader2 },
+  submitted: { title: "Submitted for Review", body: "Writer has submitted the work; awaiting QA assignment.", class: "border-blue-200 bg-blue-50 text-blue-900", icon: Send },
+  completed: { title: "QA Approved", body: "This order passed QA and was delivered to the client.", class: "border-emerald-200 bg-emerald-50 text-emerald-900", icon: CheckCircle2 },
+  under_editing:{ title: "Under Editing", body: "The work has been passed to an editor for final polish.", class: "border-cyan-200 bg-cyan-50 text-cyan-900", icon: Loader2 },
 };
 
 const banner = computed(() => {

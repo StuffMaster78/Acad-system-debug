@@ -42,7 +42,7 @@ class CurrencyConversionService:
         all_rates = CurrencyConversionService.preview_all_rates(website)
     """
 
-    CACHE_TIMEOUT_SECONDS = 60 * 60  # 1 hour
+    CACHE_TIMEOUT_SECONDS = 60 * 60 # 1 hour
 
     @staticmethod
     def _cache_key(website_id, currency: str) -> str:

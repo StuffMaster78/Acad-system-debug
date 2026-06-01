@@ -133,18 +133,18 @@ import { ArrowLeft, Award, GraduationCap } from "@lucide/vue";
 import { cmsApi, type BlogPostSummary, type CMSAuthor } from "@/api/cms";
 import { useMeta } from "@/composables/useMeta";
 
-const route     = useRoute();
+const route = useRoute();
 const isLoading = ref(true);
-const notFound  = ref(false);
-const author    = ref<CMSAuthor | null>(null);
-const posts     = ref<BlogPostSummary[]>([]);
+const notFound = ref(false);
+const author = ref<CMSAuthor | null>(null);
+const posts = ref<BlogPostSummary[]>([]);
 
 async function load() {
   const slug = route.params.slug as string;
   isLoading.value = true;
-  notFound.value  = false;
-  author.value    = null;
-  posts.value     = [];
+  notFound.value = false;
+  author.value = null;
+  posts.value = [];
 
   try {
     const [authorRes, postsRes] = await Promise.all([
@@ -152,7 +152,7 @@ async function load() {
       cmsApi.authorPosts(slug),
     ]);
     author.value = authorRes.data;
-    posts.value  = Array.isArray(postsRes.data) ? postsRes.data : [];
+    posts.value = Array.isArray(postsRes.data) ? postsRes.data : [];
 
     useMeta({
       title: author.value.name,
@@ -166,7 +166,7 @@ async function load() {
         description: author.value.bio,
         image: author.value.profile_photo?.meta?.download_url,
         sameAs: [
-          author.value.orcid_id        ? `https://orcid.org/${author.value.orcid_id}` : null,
+          author.value.orcid_id ? `https://orcid.org/${author.value.orcid_id}` : null,
           author.value.google_scholar_url,
           author.value.linkedin_url,
           author.value.personal_website,

@@ -80,8 +80,8 @@ from django.db import transaction
 
 from writer_management.enums import LevelChangeType, LevelChangeTrigger
 from writer_management.exceptions import (
-    LevelSettingsMissingError,  # noqa: F401 — exported for callers
-    WriterLevelNotFoundError,   # noqa: F401 — exported for callers
+    LevelSettingsMissingError, # noqa: F401 — exported for callers
+    WriterLevelNotFoundError, # noqa: F401 — exported for callers
 )
 from writer_management.models.writer_level_criteria import WriterLevelCriteria
 
@@ -118,10 +118,10 @@ class LevelProgressionService:
 
         summary = {
             "evaluated": 0,
-            "promoted":  0,
-            "demoted":   0,
+            "promoted": 0,
+            "demoted": 0,
             "unchanged": 0,
-            "errors":    0,
+            "errors": 0,
         }
 
         for writer_profile in writers.iterator(chunk_size=100):
@@ -230,7 +230,7 @@ class LevelProgressionService:
             current_level, website
         )
         if next_level is None:
-            return False  # already at highest level
+            return False # already at highest level
 
         # FIX 1: was `_get_criteria(next_level)` — missing class prefix
         criteria = LevelProgressionService._get_criteria(next_level)
@@ -383,13 +383,13 @@ class LevelProgressionService:
         if snapshot:
             performance_snapshot = {
                 "composite_score": float(snapshot.composite_score or 0),
-                "avg_rating":      float(snapshot.average_rating or 0),
+                "avg_rating": float(snapshot.average_rating or 0),
                 "completion_rate": float(snapshot.completion_rate * 100),
-                "lateness_rate":   float(snapshot.lateness_rate * 100),
-                "revision_rate":   float(snapshot.revision_rate * 100),
-                "dispute_rate":    float(snapshot.dispute_rate * 100),
-                "period_start":    str(snapshot.period_start),
-                "period_end":      str(snapshot.period_end),
+                "lateness_rate": float(snapshot.lateness_rate * 100),
+                "revision_rate": float(snapshot.revision_rate * 100),
+                "dispute_rate": float(snapshot.dispute_rate * 100),
+                "period_start": str(snapshot.period_start),
+                "period_end": str(snapshot.period_end),
             }
 
         # 1. Update profile level
@@ -421,7 +421,7 @@ class LevelProgressionService:
             if capacity.override_max_active_orders is None:
                 level_settings = new_level.settings_safe
                 if level_settings and level_settings.max_active_orders:
-                    capacity.max_orders_per_day = None  # reset daily limit
+                    capacity.max_orders_per_day = None # reset daily limit
                     capacity.save(update_fields=["max_orders_per_day", "updated_at"])
                     # Note: active_orders_count ceiling is
                     # WriterLevelSettings.max_active_orders — resolved
@@ -466,10 +466,10 @@ class LevelProgressionService:
 
         Args:
             writer_profile: WriterProfile instance.
-            new_level:      Target WriterLevel.
-            changed_by:     Admin User performing the change.
-            reason:         Required — why the change is being made.
-            admin_notes:    Optional internal notes.
+            new_level: Target WriterLevel.
+            changed_by: Admin User performing the change.
+            reason: Required — why the change is being made.
+            admin_notes: Optional internal notes.
 
         Raises:
             ValueError: If reason is blank.
@@ -586,9 +586,9 @@ class LevelProgressionService:
                 website=new_level.website,
                 context={
                     "registration_id": writer_profile.registration_id,
-                    "previous_level":  previous_level.name if previous_level else None,
-                    "new_level":       new_level.name,
-                    "change_type":     change_type,
+                    "previous_level": previous_level.name if previous_level else None,
+                    "new_level": new_level.name,
+                    "change_type": change_type,
                 },
             )
         except Exception as exc:

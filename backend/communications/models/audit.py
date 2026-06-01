@@ -22,10 +22,10 @@ class CommunicationAuditAction:
 
     PARTICIPANT_ADDED = "participant_added"
     PARTICIPANT_REMOVED = "participant_removed"
-  
+
     ATTACHMENT_ADDED = "attachment_added"
     ATTACHMENT_HIDDEN = "attachment_hidden"
-    
+
     MODERATION_FLAGGED = "moderation_flagged"
     MODERATION_RESOLVED = "moderation_resolved"
 

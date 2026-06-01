@@ -23,7 +23,7 @@ class TestCampaignAnalytics:
 
         self.campaign = EmailCampaign.objects.create(
             title="March Blast",
-            subject="🔥 New Promo",
+            subject=" New Promo",
             body="<p>Body</p>",
             email_type="marketing",
             sent_time=now() - timedelta(days=2),

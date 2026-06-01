@@ -150,5 +150,5 @@ urlpatterns = [
         ServiceAddonDetailView.as_view(),
         name="admin-service-addon-detail",
     ),
-    
+
 ]

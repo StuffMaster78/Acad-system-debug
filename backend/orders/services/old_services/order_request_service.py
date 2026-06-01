@@ -56,7 +56,7 @@ class OrderRequestService:
         """
         if OrderRequest.objects.filter(order=order, writer=writer).exists():
             raise ValidationError("You already requested this order.")
-        
+
         if not OrderAccessService.can_request(self.writer, self.order):
             raise PermissionDenied(
                 "Your level does not allow you to request this order."
@@ -84,7 +84,7 @@ class OrderRequestService:
         # notify_admin_new_request.delay(request.id)
 
         return request
-    
+
     def get_requests_for_order(self, order, status=None):
         """
         Retrieve all requests for a specific order.
@@ -176,8 +176,8 @@ class OrderRequestService:
 
         # Assign writer using transition helper
         from orders.services.transition_helper import OrderTransitionHelper
-        
-        order.assigned_writer = writer  # Use correct field name
+
+        order.assigned_writer = writer # Use correct field name
         OrderTransitionHelper.transition_order(
             order=order,
             target_status="in_progress",
@@ -297,7 +297,7 @@ class OrderRequestService:
             raise RequestNotFoundError("No pending request found for this order.")
 
         request.status = OrderRequestStatus.WITHDRAWN
-        
+
         request.rejection_feedback = "Writer withdrew their request."
         request.save(update_fields=["withdrawn", "rejection_feedback"])
 
@@ -311,7 +311,7 @@ class OrderRequestService:
             )
 
         return request
-    
+
     def reject_other_requests(self, order, accepted_writer):
         """
         Reject all other writer requests except the accepted one.
@@ -483,7 +483,7 @@ class OrderRequestService:
             QuerySet: A queryset of OrderRequest objects made by the specified writer.
         Raises:
             ValidationError: If the writer is not a valid User instance.
-        """ 
+        """
         from orders.order_enums import OrderRequestStatus
 
         if not isinstance(writer, User):

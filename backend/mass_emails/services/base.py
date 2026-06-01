@@ -38,7 +38,7 @@ class SMTPProvider(EmailProviderBase):
 
 # Optional: Add your SendGrid and Mailgun implementations
 # You’ll need to install these packages:
-#   pip install sendgrid mailgun-python
+# pip install sendgrid mailgun-python
 
 # Example: SendGrid
 # from sendgrid import SendGridAPIClient
@@ -46,17 +46,17 @@ class SMTPProvider(EmailProviderBase):
 
 # @register_provider("sendgrid")
 # class SendGridProvider(EmailProviderBase):
-#     def __init__(self, api_key):
-#         self.client = SendGridAPIClient(api_key=api_key)
+# def __init__(self, api_key):
+# self.client = SendGridAPIClient(api_key=api_key)
 
-#     def send_email(self, subject, body_html, from_email, to):
-#         message = Mail(
-#             from_email=from_email,
-#             to_emails=to,
-#             subject=subject,
-#             html_content=body_html
-#         )
-#         self.client.send(message)
+# def send_email(self, subject, body_html, from_email, to):
+# message = Mail(
+# from_email=from_email,
+# to_emails=to,
+# subject=subject,
+# html_content=body_html
+# )
+# self.client.send(message)
 
 
 # Example: Mailgun
@@ -64,21 +64,21 @@ class SMTPProvider(EmailProviderBase):
 
 # @register_provider("mailgun")
 # class MailgunProvider(EmailProviderBase):
-#     def __init__(self, api_key, domain):
-#         self.api_key = api_key
-#         self.domain = domain
+# def __init__(self, api_key, domain):
+# self.api_key = api_key
+# self.domain = domain
 
-#     def send_email(self, subject, body_html, from_email, to):
-#         return requests.post(
-#             f"https://api.mailgun.net/v3/{self.domain}/messages",
-#             auth=("api", self.api_key),
-#             data={
-#                 "from": from_email,
-#                 "to": to,
-#                 "subject": subject,
-#                 "html": body_html
-#             }
-#         )
+# def send_email(self, subject, body_html, from_email, to):
+# return requests.post(
+# f"https://api.mailgun.net/v3/{self.domain}/messages",
+# auth=("api", self.api_key),
+# data={
+# "from": from_email,
+# "to": to,
+# "subject": subject,
+# "html": body_html
+# }
+# )
 
 
 def get_provider_client(campaign):
@@ -99,7 +99,7 @@ def get_provider_client(campaign):
     try:
         return provider_class(api_key=integration.api_key)
     except TypeError:
-        return provider_class()  # For SMTP (no api_key needed)
+        return provider_class() # For SMTP (no api_key needed)
     except Exception as e:
         logging.error(f"Failed to init provider {provider_name}: {e}")
         raise

@@ -216,4 +216,4 @@ class PaymentReminderSent(models.Model):
     def __str__(self):
         target = f"Order {self.order.id}" if self.order else f"Payment {self.payment.pk}"
         return f"{self.reminder_config.name} sent to {target} at {self.sent_at}"
-    
+

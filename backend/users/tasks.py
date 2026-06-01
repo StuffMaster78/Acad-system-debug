@@ -31,7 +31,7 @@ def soft_delete_expired_accounts():
 
     for user in users_to_delete:
         user.is_active = False
-        user.is_archived = True  # Mark as archived instead of deleting
+        user.is_archived = True # Mark as archived instead of deleting
         user.save()
 
     return f"{users_to_delete.count()} accounts archived."

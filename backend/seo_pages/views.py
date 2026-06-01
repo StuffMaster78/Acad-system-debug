@@ -41,13 +41,13 @@ class SeoPageViewSet(viewsets.ModelViewSet):
             return qs.filter(website=website)
 
         return qs.none()
-    
+
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
-    
+
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)
-    
+
     @action(detail=True, methods=['get'], url_path='preview')
     def preview(self, request, pk=None):
         """
@@ -56,7 +56,7 @@ class SeoPageViewSet(viewsets.ModelViewSet):
         Works for both published and draft pages.
         """
         page = self.get_object()
-        
+
         # Check permissions - user must have access to this page's website
         user = request.user
         if user.role not in ['superadmin', 'admin']:
@@ -66,10 +66,10 @@ class SeoPageViewSet(viewsets.ModelViewSet):
                     {'error': 'You do not have permission to preview this page'},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
         # Use public serializer to show how it will appear
         serializer = PublicSeoPageSerializer(page, context={'request': request})
-        
+
         return Response({
             'preview': True,
             'is_internal_preview': True,

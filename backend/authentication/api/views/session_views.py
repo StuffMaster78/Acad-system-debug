@@ -141,7 +141,7 @@ class RevokeAllSessionsView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-    
+
 
 class CurrentSessionView(APIView):
     """

@@ -16,7 +16,7 @@ class TenantBranding(models.Model):
         on_delete=models.CASCADE,
         related_name='branding'
     )
-    
+
     # Email branding
     email_subject_prefix = models.CharField(
         max_length=50,
@@ -36,14 +36,14 @@ class TenantBranding(models.Model):
         blank=True,
         help_text="From address for emails"
     )
-    
+
     # Notification branding
     notification_subject_prefix = models.CharField(
         max_length=50,
         blank=True,
         help_text="Prefix for notification subjects"
     )
-    
+
     # Logo and colors
     email_logo_url = models.URLField(
         blank=True,
@@ -58,14 +58,14 @@ class TenantBranding(models.Model):
         blank=True,
         help_text="Footer text for emails"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = "Tenant Branding"
         verbose_name_plural = "Tenant Branding"
-    
+
     def __str__(self):
         return f"Branding for {self.website.name}"
 
@@ -79,7 +79,7 @@ class TenantFeatureToggle(models.Model):
         on_delete=models.CASCADE,
         related_name='feature_toggles'
     )
-    
+
     # Authentication features
     magic_link_enabled = models.BooleanField(
         default=True,
@@ -93,7 +93,7 @@ class TenantFeatureToggle(models.Model):
         default=True,
         help_text="Allow password reset"
     )
-    
+
     # Messaging features
     messaging_enabled = models.BooleanField(
         default=True,
@@ -104,7 +104,7 @@ class TenantFeatureToggle(models.Model):
         blank=True,
         help_text="Allowed messaging types: ['order_messages', 'direct_messages', 'group_messages']"
     )
-    
+
     # Order features
     max_order_size_pages = models.PositiveIntegerField(
         null=True,
@@ -124,7 +124,7 @@ class TenantFeatureToggle(models.Model):
         default=True,
         help_text="Allow order presets"
     )
-    
+
     # Writer features
     allow_writer_portfolios = models.BooleanField(
         default=True,
@@ -134,7 +134,7 @@ class TenantFeatureToggle(models.Model):
         default=True,
         help_text="Allow feedback system"
     )
-    
+
     # Payment features
     allow_wallet = models.BooleanField(
         default=True,
@@ -144,7 +144,7 @@ class TenantFeatureToggle(models.Model):
         default=True,
         help_text="Allow advance payments for writers"
     )
-    
+
     # Advanced features
     allow_class_orders = models.BooleanField(
         default=True,
@@ -158,17 +158,17 @@ class TenantFeatureToggle(models.Model):
         default=True,
         help_text="Allow escalation flows"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = "Tenant Feature Toggle"
         verbose_name_plural = "Tenant Feature Toggles"
-    
+
     def __str__(self):
         return f"Feature toggles for {self.website.name}"
-    
+
     def is_feature_enabled(self, feature_name):
         """Check if a feature is enabled."""
         feature_map = {

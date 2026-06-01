@@ -24,7 +24,7 @@ class SpecialDay(models.Model):
         ('seasonal', _('Seasonal Event')),
         ('cultural', _('Cultural Event')),
     ]
-    
+
     PRIORITY_LEVELS = [
         ('low', _('Low')),
         ('medium', _('Medium')),
@@ -68,7 +68,7 @@ class SpecialDay(models.Model):
         default='medium',
         help_text=_("Priority level for reminders")
     )
-    
+
     # Reminder settings
     reminder_days_before = models.PositiveIntegerField(
         default=7,
@@ -82,7 +82,7 @@ class SpecialDay(models.Model):
         default=False,
         help_text=_("Whether to automatically generate discount code")
     )
-    
+
     # Discount settings
     discount_percentage = models.DecimalField(
         max_digits=5,
@@ -100,13 +100,13 @@ class SpecialDay(models.Model):
         default=1,
         help_text=_("Number of days the discount is valid")
     )
-    
+
     # Broadcast message template
     broadcast_message_template = models.TextField(
         blank=True,
         help_text=_("Template for broadcast message (can include {name}, {date}, etc.)")
     )
-    
+
     # Metadata
     is_active = models.BooleanField(
         default=True,
@@ -146,11 +146,11 @@ class SpecialDay(models.Model):
         """Check if this event is upcoming within specified days."""
         today = timezone.now().date()
         event_date = self.get_date_for_year()
-        
+
         # If event already passed this year and is annual, check next year
         if self.is_annual and event_date < today:
             event_date = self.get_date_for_year(today.year + 1)
-        
+
         days_until = (event_date - today).days
         return 0 <= days_until <= days_ahead
 
@@ -158,14 +158,14 @@ class SpecialDay(models.Model):
         """Check if reminder should be sent today."""
         if not self.send_broadcast_reminder or not self.is_active:
             return False
-        
+
         today = timezone.now().date()
         event_date = self.get_date_for_year()
-        
+
         # If event already passed this year and is annual, check next year
         if self.is_annual and event_date < today:
             event_date = self.get_date_for_year(today.year + 1)
-        
+
         days_until = (event_date - today).days
         return days_until == self.reminder_days_before
 

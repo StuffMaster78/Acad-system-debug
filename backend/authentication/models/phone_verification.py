@@ -53,7 +53,7 @@ class PhoneVerification(models.Model):
         default=3,
         help_text=_("Maximum verification attempts allowed")
     )
-    
+
     class Meta:
         ordering = ["-created_at"]
         indexes = [
@@ -85,7 +85,7 @@ class PhoneVerification(models.Model):
             and not self.is_expired
             and not self.is_exhausted
         )
-    
+
     def __str__(self):
         status = "Verified" if self.is_verified else "Pending"
         return f"Phone verification for {self.user.email}: {self.phone_number} ({status})"

@@ -98,10 +98,10 @@ watch(() => route.params.slug, load);
 <style scoped>
 :deep(.prose h2) { @apply mt-10 text-xl font-semibold text-ink; }
 :deep(.prose h3) { @apply mt-8 text-base font-semibold text-ink; }
-:deep(.prose p)  { @apply leading-7 text-graphite; }
+:deep(.prose p) { @apply leading-7 text-graphite; }
 :deep(.prose ul, .prose ol) { @apply my-4 space-y-1 text-graphite; }
 :deep(.prose li::marker) { @apply text-berry; }
-:deep(.prose a)  { @apply text-berry hover:underline; }
+:deep(.prose a) { @apply text-berry hover:underline; }
 :deep(.prose strong) { @apply font-semibold text-ink; }
 :deep(.prose code) { @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-sm text-berry; }
 :deep(.prose blockquote) { @apply border-l-4 border-slate-200 pl-4 italic text-graphite; }

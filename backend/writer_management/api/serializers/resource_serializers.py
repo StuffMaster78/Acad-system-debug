@@ -210,10 +210,10 @@ class CreateWriterResourceSerializer(serializers.Serializer):
     VALIDATION RULES
     ----------------
     document type : file required
-    link type     : external_url required
-    video type    : video_url required
-    article type  : content required
-    tool type     : external_url or file required
+    link type : external_url required
+    video type : video_url required
+    article type : content required
+    tool type : external_url or file required
 
     All types: title required.
     """

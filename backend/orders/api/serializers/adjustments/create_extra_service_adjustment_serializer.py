@@ -46,5 +46,5 @@ class CreateExtraServiceAdjustmentSerializer(serializers.Serializer):
                         )
                     }
                 )
-            
+
         return attrs

@@ -39,7 +39,7 @@ class NotificationTemplateViewSet(viewsets.ModelViewSet):
         from admin_management.permissions import IsAdmin
         return [IsAdmin()]
 
-    def get_queryset(self) -> QuerySet:  # type: ignore[override]
+    def get_queryset(self) -> QuerySet: # type: ignore[override]
         from django.db.models import Q
         request = cast(Request, self.request)
         user = request.user
@@ -74,7 +74,7 @@ class NotificationTemplateViewSet(viewsets.ModelViewSet):
 
         return qs.order_by('event__event_key', 'channel', '-version')
 
-    def get_serializer_class(self):  # type: ignore[override]
+    def get_serializer_class(self): # type: ignore[override]
         if self.action in ('create', 'update', 'partial_update'):
             return NotificationTemplateCreateSerializer
         return NotificationTemplateSerializer
@@ -185,7 +185,7 @@ class NotificationEventConfigViewSet(viewsets.ReadOnlyModelViewSet):
         from admin_management.permissions import IsAdmin
         return [IsAdmin()]
 
-    def get_queryset(self) -> QuerySet:  # type: ignore[override]
+    def get_queryset(self) -> QuerySet: # type: ignore[override]
         from notifications_system.models.event_config import NotificationEventConfig
         return NotificationEventConfig.objects.select_related(
             'event'

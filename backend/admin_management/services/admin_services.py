@@ -64,8 +64,8 @@ def notify_superadmins_new_admin(user):
             from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
         if not website:
-            return  # Cannot send notification without website
-        
+            return # Cannot send notification without website
+
         for superadmin in User.objects.filter(role="superadmin"):
             NotificationService.notify(
                 event_key="admin.created",
@@ -107,8 +107,8 @@ def notify_superadmins_blacklist(blacklisted_user):
         from websites.models.websites import Website
         website = Website.objects.filter(is_active=True).first()
     if not website:
-        return  # Cannot send notification without website
-    
+        return # Cannot send notification without website
+
     for superadmin in User.objects.filter(role="superadmin"):
         NotificationService.notify(
             event_key="user.blacklisted",
@@ -130,14 +130,14 @@ def notify_superadmins_blacklist(blacklisted_user):
 def notify_admins_new_dispute(dispute):
     if not dispute.user or not dispute.order:
         return
-    
+
     website = getattr(dispute.order, 'website', None)
     if not website:
         from websites.models.websites import Website
         website = Website.objects.filter(is_active=True).first()
     if not website:
-        return  # Cannot send notification without website
-    
+        return # Cannot send notification without website
+
     created_by = dispute.user.username
     for admin in User.objects.filter(role="admin"):
         NotificationService.notify(

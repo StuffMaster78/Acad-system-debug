@@ -47,9 +47,9 @@ class ReferralInvitationService:
         Create a pending invitation and send the referral email.
 
         Args:
-            referrer:      User sending the invitation.
+            referrer: User sending the invitation.
             referee_email: Email of the person being invited.
-            website:       Tenant website.
+            website: Tenant website.
             referral_code: Referral code to embed in the link.
             referral_link: Full referral URL to send.
 

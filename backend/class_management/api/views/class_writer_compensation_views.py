@@ -35,7 +35,7 @@ class ClassWriterCompensationViewSet(viewsets.GenericViewSet):
     def get_website(self):
         """Returns middleware-injected website."""
         return getattr(cast(Any, self.request), "website")
-    
+
     def get_class_order(self):
         class_order = ClassOrderSelector.get_for_website(
             website=self.get_website(),

@@ -105,13 +105,13 @@
                     Go to <code class="rounded bg-slate-100 px-1 text-xs">Pages</code> and navigate to your site's home page (TenantHomePage). Under it you'll find:
                   </p>
                   <div class="mt-2 rounded-lg bg-slate-50 p-3 font-mono text-xs text-graphite space-y-0.5">
-                    <p>📁 <strong>YourSite Home</strong></p>
-                    <p class="ml-4">📁 Blog <span class="font-normal">(BlogIndexPage)</span></p>
-                    <p class="ml-8">📄 Blog posts go here</p>
-                    <p class="ml-4">📁 Services <span class="font-normal">(ServiceIndexPage)</span></p>
-                    <p class="ml-8">📄 Service pages go here</p>
-                    <p class="ml-4">📁 Authors <span class="font-normal">(AuthorIndexPage)</span></p>
-                    <p class="ml-4">📁 Resources <span class="font-normal">(ResourceIndexPage)</span></p>
+                    <p> <strong>YourSite Home</strong></p>
+                    <p class="ml-4"> Blog <span class="font-normal">(BlogIndexPage)</span></p>
+                    <p class="ml-8"> Blog posts go here</p>
+                    <p class="ml-4"> Services <span class="font-normal">(ServiceIndexPage)</span></p>
+                    <p class="ml-8"> Service pages go here</p>
+                    <p class="ml-4"> Authors <span class="font-normal">(AuthorIndexPage)</span></p>
+                    <p class="ml-4"> Resources <span class="font-normal">(ResourceIndexPage)</span></p>
                   </div>
                 </div>
               </div>
@@ -242,7 +242,7 @@ const StepBadge = defineComponent({
   props: { n: String, color: { default: "blue" } },
   render() {
     const colors: Record<string, string> = {
-      blue:    "bg-blue-600 text-white",
+      blue: "bg-blue-600 text-white",
       emerald: "bg-emerald-600 text-white",
     };
     return h(

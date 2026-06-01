@@ -1,14 +1,14 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.utils import timezone 
+from django.utils import timezone
 from django.utils.text import slugify
-import re  # Fix missing import
-from django.utils.timezone import now  # Fix missing import
-from django.contrib.postgres.fields import JSONField  # PostgreSQL JSON support
+import re # Fix missing import
+from django.utils.timezone import now # Fix missing import
+from django.contrib.postgres.fields import JSONField # PostgreSQL JSON support
 from django.conf import settings
 from websites.models.websites import Website
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 
 class WebsiteActionLog(models.Model):

@@ -1,14 +1,14 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.utils import timezone 
+from django.utils import timezone
 from django.utils.text import slugify
-import re  # Fix missing import
-from django.utils.timezone import now  # Fix missing import
-from django.contrib.postgres.fields import JSONField  # PostgreSQL JSON support
+import re # Fix missing import
+from django.utils.timezone import now # Fix missing import
+from django.contrib.postgres.fields import JSONField # PostgreSQL JSON support
 from django.conf import settings
 from websites.models.websites import Website
 
-User = settings.AUTH_USER_MODEL 
+User = settings.AUTH_USER_MODEL
 
 class WebsiteStaticPage(models.Model):
     website = models.ForeignKey(
@@ -40,7 +40,7 @@ class WebsiteStaticPage(models.Model):
         null=True,
         help_text="Schedule content update"
     )
-    views = models.PositiveIntegerField(default=0)  # Count page views
+    views = models.PositiveIntegerField(default=0) # Count page views
     previous_versions = models.JSONField(
         default=list,
         blank=True,
@@ -74,12 +74,12 @@ class WebsiteStaticPage(models.Model):
         is_new = self.pk is None
         super().save(*args, **kwargs)
 
-        if not is_new:  # Notify only for updates, not new pages
+        if not is_new: # Notify only for updates, not new pages
             send_mail(
                 subject="Static Page Updated",
                 message=f"The static page '{self.title}' was updated.",
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[admin.email for admin in User.objects.filter(is_superuser=True)],  # 🔥 Send to all superadmins
+                recipient_list=[admin.email for admin in User.objects.filter(is_superuser=True)], # Send to all superadmins
             )
 
     def __str__(self):

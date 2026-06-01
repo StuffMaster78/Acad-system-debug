@@ -20,7 +20,7 @@ class Result:
     """
 
     ok: bool
-    status: str  # executed | blocked | pending | rejected | approved | failed
+    status: str # executed | blocked | pending | rejected | approved | failed
 
     data: dict[str, Any] | None = None
     error: str | None = None

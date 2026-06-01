@@ -98,4 +98,3 @@ class LoginAlert(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.alert_type} @ {self.created_at}"
-    

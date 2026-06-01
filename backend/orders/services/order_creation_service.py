@@ -51,7 +51,7 @@ class OrderCreationService:
     ) -> Order:
         """
         Create a new order from validated payload and pricing-core result.
-        
+
         Args:
             website: The website/tenant for the order.
             client: The client placing the order.
@@ -385,9 +385,9 @@ class OrderCreationService:
         The items themselves are expected.
 
         Args:
-            pricing_result: 
+            pricing_result:
                 The raw output from pricing-core,
-                which may be in various formats. 
+                which may be in various formats.
 
         Returns:
             list[dict[str, Any]]:
@@ -422,10 +422,10 @@ class OrderCreationService:
                 pricing_result:
                     The raw output from pricing-core,
                     which may be in various formats.
-                key: 
+                key:
                     The key or attribute name to extract
                     from the pricing result.
-                default: 
+                default:
                     The default value to return if the
                     key/attribute is not found.
 
@@ -471,10 +471,10 @@ class OrderCreationService:
             pricing_result, type
         ):
             return cast(dict[str, Any], asdict(pricing_result))
-        
+
         if source_pricing_snapshot is not None:
             payload = model_to_dict(source_pricing_snapshot)
-            
+
             for key, value in list(payload.items()):
                 if isinstance(value, Decimal):
                     payload[key] = str(value)
@@ -514,7 +514,7 @@ class OrderCreationService:
         Args:
             order:
                 The order for which to create the timeline event.
-            actor: 
+            actor:
                 The user or system actor responsible for the order creation,
                 if available.
             metadata:
@@ -538,7 +538,7 @@ class OrderCreationService:
         Convert a value to Decimal, ensuring that strings and other types are handled.
          Args:
              value: The value to convert, which may be a Decimal, string, or other type.
-             
+
             Returns:
                 Decimal: The converted Decimal value.
         """

@@ -84,7 +84,7 @@ class SpecialOrderPaymentsProcessorBridge:
                 id=payable.id,
                 website=payable.website,
             )
-        
+
         metadata = payment_intent.metadata or {}
 
         payable_type = metadata.get("payable_type")

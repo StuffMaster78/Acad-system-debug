@@ -825,7 +825,7 @@ class OrderStaffingService:
             raise ValidationError(
                 "Cannot return an order to the pool without an assignment."
             )
-        
+
         current_assignment.status = ORDER_ASSIGNMENT_STATUS_RELEASED
         current_assignment.is_current = False
         current_assignment.released_at = timezone.now()
@@ -1091,7 +1091,7 @@ class OrderStaffingService:
             order.preferred_writer_status = (
                 PREFERRED_WRITER_STATUS_ACCEPTED
             )
-        
+
         order.save(
             update_fields=[
                 "status",
@@ -1391,7 +1391,7 @@ class OrderStaffingService:
             actor=actor,
             metadata=metadata,
         )
-    
+
     @classmethod
     def _get_pending_interest(
         cls,
@@ -1425,7 +1425,7 @@ class OrderStaffingService:
             queryset = queryset.filter(interest_type=interest_type)
 
         return queryset.first()
-    
+
 
     @staticmethod
     def _notify_assigned(*, order: Order, writer_user, actor) -> None:

@@ -17,7 +17,7 @@ class BaseTenantModel(models.Model):
     website = models.ForeignKey("websites.Website",
                                 on_delete=models.CASCADE, db_index=True)
     objects = TenantManager.from_queryset(TenantQuerySet)()
-    all_objects = models.Manager()  # escape hatch
+    all_objects = models.Manager() # escape hatch
 
     class Meta:
         abstract = True

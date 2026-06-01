@@ -33,7 +33,7 @@ class TestBlogPostCreation:
 
     def test_blog_post_toc(self, test_blog_post):
         toc = test_blog_post.toc
-        assert len(toc) >= 3  # Introduction, Step 1, Step 2
+        assert len(toc) >= 3 # Introduction, Step 1, Step 2
 
     def test_blog_post_requires_author(self, blog_index):
         from cms_blog.models import BlogPostPage

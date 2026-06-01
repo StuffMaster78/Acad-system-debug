@@ -5,10 +5,10 @@ Cached summary of a writer's current discipline status.
 
 SOURCE OF TRUTH vs CACHE
 -------------------------
-Source of truth:    WriterStrike, WriterWarning,
+Source of truth: WriterStrike, WriterWarning,
                     WriterSuspension, WriterBlacklist, WriterProbation
 
-This model:         Fast-read cache rebuilt from source records
+This model: Fast-read cache rebuilt from source records
                     by WriterStatusService.recompute()
 
 NEVER write to this model directly.
@@ -19,10 +19,10 @@ TWO SEPARATE COUNTERS
 ---------------------
 Strikes and warnings are counted differently — intentionally.
 
-    active_strike_count   = non-voided strikes (strikes never expire)
+    active_strike_count = non-voided strikes (strikes never expire)
     lifetime_strike_count = all strikes ever (for blacklist threshold)
 
-    active_warning_count  = non-voided, non-expired warnings
+    active_warning_count = non-voided, non-expired warnings
     lifetime_warning_count = all warnings ever
 
 The eligibility check and escalation logic read these cached counts —
@@ -30,7 +30,7 @@ no per-request queries against the source tables.
 
 ROUTING IMPACT
 --------------
-    is_suspended=True  → WriterCapacity.can_take_orders=False
+    is_suspended=True → WriterCapacity.can_take_orders=False
     is_blacklisted=True → WriterCapacity.can_take_orders=False
     is_on_probation=True → NO routing impact (probation is a flag only)
 

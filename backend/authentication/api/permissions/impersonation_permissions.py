@@ -28,7 +28,7 @@ class IsImpersonatingPermission(BasePermission):
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         return is_impersonating(request)
-    
+
 
 class IsStaffSecurityOperator(BasePermission):
     """

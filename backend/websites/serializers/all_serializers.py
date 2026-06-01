@@ -69,7 +69,7 @@ class WebsiteActionLogSerializer(serializers.ModelSerializer):
 
 class WebsiteStaticPageSerializer(serializers.ModelSerializer):
     """Serializer for managing static pages with full controls"""
-    
+
     views = serializers.IntegerField(read_only=True)
     previous_versions = serializers.ListField(child=serializers.JSONField(), read_only=True)
 
@@ -152,7 +152,7 @@ class WebsiteSEOUpdateSerializer(serializers.ModelSerializer):
 class WebsiteSoftDeleteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Website
-        fields = ['is_active']  # or use ['is_deleted'] if your model uses that
+        fields = ['is_active'] # or use ['is_deleted'] if your model uses that
 
     def update(self, instance, validated_data):
         instance.is_active = validated_data.get('is_active', False)

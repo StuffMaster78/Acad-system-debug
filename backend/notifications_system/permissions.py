@@ -13,7 +13,7 @@ class IsNotificationOwner(BasePermission):
     reading each other's notifications.
     """
 
-    def has_object_permission(self, request, view, obj) -> bool:  # type: ignore[override]
+    def has_object_permission(self, request, view, obj) -> bool: # type: ignore[override]
         return obj.user == request.user
 
 
@@ -23,7 +23,7 @@ class IsWebsiteScoped(BasePermission):
     Prevents cross-tenant data access.
     """
 
-    def has_object_permission(self, request, view, obj) -> bool:  # type: ignore[override]
+    def has_object_permission(self, request, view, obj) -> bool: # type: ignore[override]
         user_website = getattr(request.user, 'website', None)
         obj_website = getattr(obj, 'website', None)
         if not user_website or not obj_website:

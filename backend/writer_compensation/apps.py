@@ -10,7 +10,7 @@ class WriterCompensationConfig(AppConfig):
 
     def ready(self):
         try:
-            import writer_compensation.handlers.compensation_handlers  # noqa: F401
-            import writer_compensation.signals.reward_signals  # noqa: F401
+            import writer_compensation.handlers.compensation_handlers # noqa: F401
+            import writer_compensation.signals.reward_signals # noqa: F401
         except Exception:
             pass

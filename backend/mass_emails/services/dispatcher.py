@@ -1,7 +1,7 @@
 import logging
 
 from .base import PROVIDER_REGISTRY
-from .smtp import SMTPProvider  # Force registration of default
+from .smtp import SMTPProvider # Force registration of default
 
 
 def get_provider_client(campaign):
@@ -23,7 +23,7 @@ def get_provider_client(campaign):
     try:
         return provider_class(api_key=integration.api_key)
     except TypeError:
-        return provider_class()  # For SMTP, no args
+        return provider_class() # For SMTP, no args
     except Exception as e:
         logging.error(f"Provider init failed: {e}")
         raise

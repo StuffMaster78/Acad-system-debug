@@ -45,18 +45,18 @@ class FileDownloadService:
         Return a download URL after access and delivery guard checks.
 
         Args:
-            user:       Requesting user.
-            website:    Tenant website.
+            user: Requesting user.
+            website: Tenant website.
             attachment: File attachment to download.
             ip_address: Client IP for audit log.
             user_agent: Client agent for audit log.
-            order:      Domain order object, passed to the delivery guard
+            order: Domain order object, passed to the delivery guard
                         for balance checking. Required for guarded files.
 
         Raises:
-            FileAccessDenied:    User lacks role/visibility access.
+            FileAccessDenied: User lacks role/visibility access.
             FileDeliveryBlocked: Guard check failed (balance, scan, etc.).
-            FileNotAvailable:    File is quarantined or has no source.
+            FileNotAvailable: File is quarantined or has no source.
         """
         FileAccessService.ensure_can_access(
             user=user,

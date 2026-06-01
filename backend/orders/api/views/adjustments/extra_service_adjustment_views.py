@@ -46,7 +46,7 @@ class CreateExtraServiceAdjustmentView(GenericAPIView):
             pricing_result["progressive_delivery"] = {
                 "milestones": data["milestones"],
             }
-            
+
         source_pricing_snapshot = None
 
         adjustment = AdjustmentNegotiationService.create_extra_service_request(

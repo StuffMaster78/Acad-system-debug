@@ -54,7 +54,7 @@ class PredefinedSpecialOrderConfig(TimeStampedModel):
         related_name="created_special_order_configs",
     )
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("name",)
         constraints = [
             models.UniqueConstraint(
@@ -101,7 +101,7 @@ class PredefinedSpecialOrderDuration(TimeStampedModel):
     )
     is_active = models.BooleanField(default=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("duration_days",)
         constraints = [
             models.UniqueConstraint(
@@ -164,7 +164,7 @@ class EstimatedSpecialOrderSettings(TimeStampedModel):
     allow_external_payment = models.BooleanField(default=True)
     allow_discounts = models.BooleanField(default=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("website_id",)
         indexes = [
             models.Index(fields=["website"]),
@@ -199,7 +199,7 @@ class SpecialOrderMilestoneTemplate(TimeStampedModel):
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("name",)
         constraints = [
             models.UniqueConstraint(
@@ -242,7 +242,7 @@ class SpecialOrderMilestoneTemplateItem(TimeStampedModel):
     required_before_staffing = models.BooleanField(default=False)
     required_before_delivery = models.BooleanField(default=False)
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("sequence",)
         constraints = [
             models.UniqueConstraint(
@@ -292,7 +292,7 @@ class SpecialOrderWriterPayRule(TimeStampedModel):
         ],
     )
 
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         ordering = ("name",)
         constraints = [
             models.UniqueConstraint(

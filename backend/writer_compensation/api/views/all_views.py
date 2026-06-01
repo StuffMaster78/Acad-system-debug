@@ -20,7 +20,7 @@ def _get_website(request):
 
 
 class FinancialEventListView(generics.ListAPIView):
-    serializer_class   = CompensationEventSerializer
+    serializer_class = CompensationEventSerializer
     permission_classes = [IsFinanceStaff]
 
     def get_queryset(self):
@@ -34,7 +34,7 @@ class FinancialEventListView(generics.ListAPIView):
 
 
 class FinancialEventDetailView(generics.RetrieveAPIView):
-    serializer_class   = CompensationEventSerializer
+    serializer_class = CompensationEventSerializer
     permission_classes = [IsFinanceStaff]
 
     def get_queryset(self):
@@ -61,7 +61,7 @@ from writer_compensation.models.settlement_period import SettlementPeriod
 
 
 class SettlementListView(generics.ListAPIView):
-    serializer_class   = SettlementPeriodSerializer
+    serializer_class = SettlementPeriodSerializer
     permission_classes = [IsFinanceStaff]
 
     def get_queryset(self):
@@ -75,7 +75,7 @@ class SettlementListView(generics.ListAPIView):
 
 
 class SettlementDetailView(generics.RetrieveAPIView):
-    serializer_class   = SettlementPeriodSerializer
+    serializer_class = SettlementPeriodSerializer
     permission_classes = [IsFinanceStaff]
 
     def get_queryset(self):
@@ -114,10 +114,10 @@ class RunSettlementView(APIView):
     permission_classes = [IsAdminUser]
 
     def post(self, request):
-        website     = _get_website(request)
-        writer_id   = request.data.get("writer_id")
-        window_id   = request.data.get("window_id")
-        auto_fin    = request.data.get("auto_finalize", True)
+        website = _get_website(request)
+        writer_id = request.data.get("writer_id")
+        window_id = request.data.get("window_id")
+        auto_fin = request.data.get("auto_finalize", True)
 
         if not writer_id or not window_id:
             return _error("writer_id and window_id are required.", 400)
@@ -166,7 +166,7 @@ from writer_compensation.permissions.payout_permissions import CanViewPayouts
 
 
 class ExposureLedgerListView(generics.ListAPIView):
-    serializer_class   = ExposureLedgerSerializer
+    serializer_class = ExposureLedgerSerializer
     permission_classes = [CanViewPayouts]
 
     def get_queryset(self):
@@ -180,7 +180,7 @@ class ExposureLedgerListView(generics.ListAPIView):
 
 
 class ExposureLedgerDetailView(generics.RetrieveAPIView):
-    serializer_class   = ExposureLedgerSerializer
+    serializer_class = ExposureLedgerSerializer
     permission_classes = [CanViewPayouts]
 
     def get_queryset(self):
@@ -238,10 +238,10 @@ class RunReconciliationView(APIView):
     permission_classes = [CanReconcilePayouts]
 
     def post(self, request):
-        website    = _get_website(request)
+        website = _get_website(request)
         serializer = RunReconciliationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        validated  = serializer.validated_data
+        validated = serializer.validated_data
 
         try:
             batch = PayoutBatch.objects.get(
@@ -270,7 +270,7 @@ class ReconciliationReportListView(generics.ListAPIView):
     GET /reconciliation/
     All reconciliation reports for this site.
     """
-    serializer_class   = ReconciliationReportSerializer
+    serializer_class = ReconciliationReportSerializer
     permission_classes = [CanReconcilePayouts]
 
     def get_queryset(self):
@@ -300,7 +300,7 @@ from writer_compensation.permissions.permissions import IsAdminUser as _IsAdmin
 
 
 class WalletListView(generics.ListAPIView):
-    serializer_class   = WalletSerializer
+    serializer_class = WalletSerializer
     permission_classes = [_IsAdmin]
 
     def get_queryset(self):
@@ -309,7 +309,7 @@ class WalletListView(generics.ListAPIView):
 
 
 class WalletDetailView(generics.RetrieveAPIView):
-    serializer_class   = WalletSerializer
+    serializer_class = WalletSerializer
     permission_classes = [_IsAdmin]
 
     def get_queryset(self):
@@ -350,17 +350,17 @@ class SupportWriterEventsView(APIView):
 
         filters = {
             "event_type": request.query_params.get("event_type"),
-            "status":     request.query_params.get("status"),
-            "from_date":  request.query_params.get("from_date"),
-            "to_date":    request.query_params.get("to_date"),
+            "status": request.query_params.get("status"),
+            "from_date": request.query_params.get("from_date"),
+            "to_date": request.query_params.get("to_date"),
         }
 
-        events  = WriterSelectors.get_writer_events(writer, website, filters)
+        events = WriterSelectors.get_writer_events(writer, website, filters)
         summary = WriterSelectors.get_writer_lifetime_summary(writer, website)
 
         return Response({
             "summary": summary,
-            "events":  CompensationEventSerializer(events, many=True).data,
+            "events": CompensationEventSerializer(events, many=True).data,
         })
 
 
@@ -422,14 +422,14 @@ class WriterCurrentWindowView(APIView):
 
     def get(self, request):
         website = _get_website(request)
-        writer  = _get_writer_profile(request)
-        data    = WriterSelectors.get_writer_current_window_status(writer, website)
+        writer = _get_writer_profile(request)
+        data = WriterSelectors.get_writer_current_window_status(writer, website)
 
         if data["window"] is None:
             return Response({
-                "window":        None,
-                "net":           "0.00",
-                "count":         0,
+                "window": None,
+                "net": "0.00",
+                "count": 0,
                 "is_processing": False,
             })
 
@@ -441,14 +441,14 @@ class WriterEventListView(APIView):
 
     def get(self, request):
         website = _get_website(request)
-        writer  = _get_writer_profile(request)
+        writer = _get_writer_profile(request)
 
         filters = {
             "event_type": request.query_params.get("event_type"),
-            "status":     request.query_params.get("status"),
-            "window_id":  request.query_params.get("window_id"),
-            "from_date":  request.query_params.get("from_date"),
-            "to_date":    request.query_params.get("to_date"),
+            "status": request.query_params.get("status"),
+            "window_id": request.query_params.get("window_id"),
+            "from_date": request.query_params.get("from_date"),
+            "to_date": request.query_params.get("to_date"),
         }
 
         events = WriterSelectors.get_writer_events(writer, website, filters)
@@ -459,7 +459,7 @@ class WriterPayoutHistoryView(APIView):
     permission_classes = [IsWriter]
 
     def get(self, request):
-        writer  = _get_writer_profile(request)
+        writer = _get_writer_profile(request)
         records = PayoutSelectors.get_writer_payout_history(writer)
         return Response(WriterPayoutRecordSerializer(records, many=True).data)
 
@@ -469,7 +469,7 @@ class WriterLifetimeSummaryView(APIView):
 
     def get(self, request):
         website = _get_website(request)
-        writer  = _get_writer_profile(request)
+        writer = _get_writer_profile(request)
         summary = WriterSelectors.get_writer_lifetime_summary(writer, website)
         return Response(summary)
 
@@ -478,8 +478,8 @@ class WriterPayoutPreferenceView(APIView):
     permission_classes = [IsWriter]
 
     def get(self, request):
-        website    = _get_website(request)
-        writer     = _get_writer_profile(request)
+        website = _get_website(request)
+        writer = _get_writer_profile(request)
         preference = WriterSelectors.get_writer_payout_preference(writer, website)
         if not preference:
             return Response({"detail": "No preference set yet."}, 404)
@@ -489,7 +489,7 @@ class WriterPayoutPreferenceView(APIView):
         from writer_compensation.models.writer_payout_preference import WriterPayoutPreference
 
         website = _get_website(request)
-        writer  = _get_writer_profile(request)
+        writer = _get_writer_profile(request)
 
         existing = WriterSelectors.get_writer_payout_preference(writer, website)
         if existing and existing.locked:
@@ -515,15 +515,15 @@ class WriterCycleChangeRequestView(APIView):
 
     def get(self, request):
         website = _get_website(request)
-        writer  = _get_writer_profile(request)
+        writer = _get_writer_profile(request)
         pending = WriterSelectors.get_pending_cycle_change_request(writer, website)
         if not pending:
             return Response({"detail": "No pending cycle change request."}, 404)
         return Response(PaymentWindowChangeRequestSerializer(pending).data)
 
     def post(self, request):
-        website    = _get_website(request)
-        writer     = _get_writer_profile(request)
+        website = _get_website(request)
+        writer = _get_writer_profile(request)
         serializer = PaymentWindowChangeRequestCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -566,15 +566,15 @@ from writer_compensation.services.advance_payment_service import AdvancePaymentS
 
 class WriterAdvanceRequestView(APIView):
     """
-    GET  /advances/         — writer sees their own advance requests
-    POST /advances/         — writer submits an advance request
+    GET /advances/ — writer sees their own advance requests
+    POST /advances/ — writer submits an advance request
     """
     permission_classes = [IsWriter]
 
     def get(self, request):
         website = _get_website(request)
-        writer  = _get_writer_profile(request)
-        qs      = (
+        writer = _get_writer_profile(request)
+        qs = (
             AdvancePaymentRequest.objects
             .filter(writer=writer, website=website)
             .prefetch_related("recoveries")
@@ -583,8 +583,8 @@ class WriterAdvanceRequestView(APIView):
         return Response(AdvancePaymentRequestSerializer(qs, many=True).data)
 
     def post(self, request):
-        website    = _get_website(request)
-        writer     = _get_writer_profile(request)
+        website = _get_website(request)
+        writer = _get_writer_profile(request)
         serializer = RequestAdvanceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -623,7 +623,7 @@ class WriterAdvanceRequestView(APIView):
 
 class AdminAdvanceListView(generics.ListAPIView):
     """GET /admin/advances/ — all advance requests for this site."""
-    serializer_class   = AdvancePaymentRequestSerializer
+    serializer_class = AdvancePaymentRequestSerializer
     permission_classes = [IsAdminUser]
 
     def get_queryset(self):
@@ -676,11 +676,11 @@ class AdminAdvanceApproveView(APIView):
             return _error(str(e), 409)
 
         advance.approved_amount = validated["approved_amount"]
-        advance.admin_notes     = validated.get("admin_notes", "")
-        advance.status          = AdvancePaymentStatus.APPROVED
-        advance.reviewed_by     = request.user
+        advance.admin_notes = validated.get("admin_notes", "")
+        advance.status = AdvancePaymentStatus.APPROVED
+        advance.reviewed_by = request.user
         from django.utils import timezone
-        advance.reviewed_at     = timezone.now()
+        advance.reviewed_at = timezone.now()
         advance.save()
 
         return Response(AdvancePaymentRequestSerializer(advance).data)
@@ -701,7 +701,7 @@ class AdminAdvanceRejectView(APIView):
             return _error(f"Cannot reject — status is {advance.status}.", 409)
 
         from django.utils import timezone
-        advance.status      = AdvancePaymentStatus.REJECTED
+        advance.status = AdvancePaymentStatus.REJECTED
         advance.admin_notes = request.data.get("admin_notes", "")
         advance.reviewed_by = request.user
         advance.reviewed_at = timezone.now()

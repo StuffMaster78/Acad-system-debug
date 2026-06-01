@@ -92,7 +92,7 @@ class NotificationAdmin(admin.ModelAdmin):
             )
         except Exception:
             return str(obj.payload)
-    payload_pretty.short_description = 'Payload'  # type: ignore[attr-defined]
+    payload_pretty.short_description = 'Payload' # type: ignore[attr-defined]
 
     def rendered_pretty(self, obj):
         try:
@@ -103,7 +103,7 @@ class NotificationAdmin(admin.ModelAdmin):
             )
         except Exception:
             return str(obj.rendered)
-    rendered_pretty.short_description = 'Rendered'  # type: ignore[attr-defined]
+    rendered_pretty.short_description = 'Rendered' # type: ignore[attr-defined]
 
     @admin.action(description='Mark selected as sent')
     def mark_sent(self, request, queryset):
@@ -194,7 +194,7 @@ class DeliveryAdmin(admin.ModelAdmin):
             )
         except Exception:
             return str(obj.payload)
-    payload_pretty.short_description = 'Payload'  # type: ignore[attr-defined]
+    payload_pretty.short_description = 'Payload' # type: ignore[attr-defined]
 
     @admin.action(description='Retry failed deliveries')
     def retry_failed(self, request, queryset):
@@ -205,7 +205,7 @@ class DeliveryAdmin(admin.ModelAdmin):
         for delivery in queryset.filter(status=DeliveryStatus.FAILED):
             delivery.status = DeliveryStatus.QUEUED
             delivery.save(update_fields=['status'])
-            send_channel_notification.delay(delivery.pk)  # type: ignore[attr-defined]
+            send_channel_notification.delay(delivery.pk) # type: ignore[attr-defined]
             retried += 1
         self.message_user(request, f"Retried {retried} delivery/deliveries.")
 
@@ -273,7 +273,7 @@ class OutboxAdmin(admin.ModelAdmin):
 
         requeued = 0
         for outbox in queryset.filter(status='pending'):
-            process_outbox_entry.delay(outbox.id)  # type: ignore[attr-defined]
+            process_outbox_entry.delay(outbox.id) # type: ignore[attr-defined]
             requeued += 1
         self.message_user(request, f"Requeued {requeued} outbox entry/entries.")
 

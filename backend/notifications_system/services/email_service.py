@@ -135,8 +135,8 @@ class ConsoleEmailBackend:
             to, subject, from_name,
         )
         print(f"\n{'='*60}")
-        print(f"TO:      {to}")
-        print(f"FROM:    {from_name} <{from_address}>")
+        print(f"TO: {to}")
+        print(f"FROM: {from_name} <{from_address}>")
         print(f"SUBJECT: {subject}")
         print(f"{'─'*60}")
         print(body_text or body_html)

@@ -57,7 +57,7 @@ class PayoutSelectors:
             PayoutRecord.objects
             .filter(writer=writer)
             .select_related("batch__payment_window")
-            .order_by("-batch__payment_window__start_date") 
+            .order_by("-batch__payment_window__start_date")
         )
 
     @staticmethod
@@ -67,8 +67,8 @@ class PayoutSelectors:
             ).annotate(count=Count("id"))
         result = {row["status"]: row["count"] for row in qs}
         return {
-            "pending":   result.get(PayoutRecordStatus.PENDING,   0),
+            "pending": result.get(PayoutRecordStatus.PENDING, 0),
             "confirmed": result.get(PayoutRecordStatus.CONFIRMED, 0),
-            "paid":      result.get(PayoutRecordStatus.PAID,      0),
-            "held":      result.get(PayoutRecordStatus.HELD,      0),
+            "paid": result.get(PayoutRecordStatus.PAID, 0),
+            "held": result.get(PayoutRecordStatus.HELD, 0),
         }

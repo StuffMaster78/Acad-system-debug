@@ -24,11 +24,11 @@ class CommandReplayView(APIView):
         timeline = []
 
         # for a in audit_logs:
-        #     timeline.append({
-        #         "type": "audit",
-        #         "event": a.action,
-        #         "time": a.created_at,
-        #     })
+        # timeline.append({
+        # "type": "audit",
+        # "event": a.action,
+        # "time": a.created_at,
+        # })
 
         for d in decisions:
             timeline.append({

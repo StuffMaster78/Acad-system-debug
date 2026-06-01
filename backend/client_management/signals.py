@@ -32,8 +32,8 @@ def update_client_geolocation(sender, request, user, **kwargs):
     if user.role == "client":
         try:
             client_profile = user.client_profile
-            ip_address = get_client_ip(request)  # Fetch client IP address
-            geo_data = get_geolocation_from_ip(ip_address)  # Fetch geolocation data
+            ip_address = get_client_ip(request) # Fetch client IP address
+            geo_data = get_geolocation_from_ip(ip_address) # Fetch geolocation data
 
             if "error" not in geo_data:
                 detected_country = geo_data.get("country")
@@ -89,7 +89,7 @@ def send_location_alert(user, previous_country, current_country, ip_address):
     send_mail(
         subject,
         message,
-        "support@yourdomain.com",  # Replace with your support email
+        "support@yourdomain.com", # Replace with your support email
         [user.email],
         fail_silently=False,
     )

@@ -30,7 +30,7 @@ class NotificationEventOverride(models.Model):
     event_key = models.CharField(
         max_length=128,
         help_text="Denormalised from event_config.event_key for efficient filtering.",
-        editable=False,  # always set from event_config
+        editable=False, # always set from event_config
     )
 
     enabled = models.BooleanField(

@@ -32,8 +32,8 @@ class LimitedPagination(PageNumberPagination):
     """Custom pagination class with safety limits to prevent performance issues."""
     page_size = 100
     page_size_query_param = 'page_size'
-    max_page_size = 500  # Safety limit to prevent excessive data transfer
-    
+    max_page_size = 500 # Safety limit to prevent excessive data transfer
+
     def get_paginated_response(self, data):
         """Return paginated response with metadata."""
         from rest_framework.response import Response
@@ -58,33 +58,33 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
     search_fields = ['username', 'email', 'first_name', 'last_name']
     ordering_fields = ['date_joined', 'last_login', 'username', 'email']
     ordering = ['-date_joined']
-    pagination_class = LimitedPagination  # Paginated with safety limits
+    pagination_class = LimitedPagination # Paginated with safety limits
 
     def get_queryset(self):
         """Filter users based on admin's website if not superadmin."""
         # Optimize queryset with select_related to prevent N+1 queries
         queryset = User.objects.all().select_related(
-            'website',              # Frequently accessed in serializers
+            'website', # Frequently accessed in serializers
             'notification_profile', # Used in serializers
         ).prefetch_related(
-            'user_main_profile',    # OneToOne relationship
+            'user_main_profile', # OneToOne relationship
             'account_profiles',
         )
-        
+
         # Superadmins and admins can see all users
         # (Both should see all users - superadmin sees all, admin sees all from their website or all if no website filter needed)
         if self.request.user.role in ['superadmin', 'admin']:
             # For superadmin: return all users
             if self.request.user.role == 'superadmin':
                 return queryset
-            
+
             # For regular admin: see all users (no website filtering)
             # If you want admins to see only their website users, uncomment the lines below
             # website = getattr(self.request.user, 'website', None)
             # if website:
-            #     queryset = queryset.filter(website=website)
+            # queryset = queryset.filter(website=website)
             return queryset
-        
+
         return queryset
 
     def get_serializer_class(self):
@@ -108,15 +108,15 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         """List all users with filtering and pagination."""
         try:
             queryset = self.filter_queryset(self.get_queryset())
-            
+
             # Queryset is already optimized in get_queryset() with select_related/prefetch_related
             # No need to add it again here
-            
+
             # Role filter
             role = request.query_params.get('role')
             if role:
                 queryset = queryset.filter(role=role)
-            
+
             # Status filters
             if request.query_params.get('is_suspended') == 'true':
                 queryset = queryset.filter(
@@ -129,13 +129,13 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
 
                 blacklisted_emails = BlacklistedUser.objects.values("email")
                 queryset = queryset.filter(email__in=blacklisted_emails)
-            
+
             # Check if pagination is enabled (pagination_class might be None but DRF settings might have default)
             page = self.paginate_queryset(queryset)
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
                 return self.get_paginated_response(serializer.data)
-            
+
             # No pagination - return all users as array
             serializer = self.get_serializer(queryset, many=True)
             # Return as array directly (frontend handles both formats)
@@ -159,45 +159,45 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         """Create a new user (writer, editor, support, or client)."""
         serializer = CreateUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         role = serializer.validated_data.get('role')
         if not role:
             return Response(
                 {"error": "Role is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Admins cannot create superadmins
         if role == 'superadmin' and request.user.role != 'superadmin':
             return Response(
                 {"error": "Only superadmins can create superadmin users."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         # Admins cannot create other admins (only superadmins can)
         if role == 'admin' and request.user.role != 'superadmin':
             return Response(
                 {"error": "Only superadmins can create admin users."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         with transaction.atomic():
             user = serializer.save()
-            
+
             # Assign website if not provided
             if not user.website:
                 website = getattr(request.user, 'website', None)
                 if website:
                     user.website = website
                     user.save()
-            
+
             # Log activity
             AdminActivityLog.objects.create(
                 admin=request.user,
                 action=f"Created user {user.username} with role {role}",
                 details=f"Created user: {user.email}"
             )
-        
+
         return Response(
             UserDetailSerializer(user).data,
             status=status.HTTP_201_CREATED
@@ -207,16 +207,16 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         """Update user information."""
         import logging
         logger = logging.getLogger(__name__)
-        
+
         user = self.get_object()
-        
+
         # Prevent admins from modifying superadmins
         if user.role == 'superadmin' and request.user.role != 'superadmin':
             return Response(
                 {"error": "Cannot modify superadmin users.", "detail": "Cannot modify superadmin users."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         # Prevent role changes that aren't allowed
         if 'role' in request.data:
             new_role = request.data.get('role')
@@ -232,14 +232,14 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     {"error": "Cannot change superadmin role.", "detail": "Cannot change superadmin role."},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
         # Track changes for audit
         old_values = {}
         changed_fields = list(request.data.keys())
         for field in changed_fields:
             if hasattr(user, field):
                 old_values[field] = getattr(user, field)
-        
+
         try:
             serializer = UserUpdateSerializer(user, data=request.data, partial=False)
             serializer.is_valid(raise_exception=True)
@@ -258,18 +258,18 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             with transaction.atomic():
                 updated_user = serializer.save()
-                
+
                 # Create audit log with detailed changes
                 changes_summary = []
                 for field, old_value in old_values.items():
                     new_value = getattr(updated_user, field, None)
                     if old_value != new_value:
                         changes_summary.append(f"{field}: {old_value} → {new_value}")
-                
+
                 action_text = f"Updated user {updated_user.username} ({updated_user.email}). Changes: {', '.join(changes_summary) if changes_summary else 'No changes detected'}"
                 # Truncate to 255 characters (max_length of action field)
                 if len(action_text) > 255:
@@ -278,7 +278,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     admin=request.user,
                     action=action_text
                 )
-                
+
                 # Also log to UserAuditLog
                 from users.models import UserAuditLog
                 UserAuditLog.objects.create(
@@ -288,7 +288,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     ip_address=request.META.get('REMOTE_ADDR'),
                     user_agent=request.META.get('HTTP_USER_AGENT', '')
                 )
-            
+
             return Response(UserDetailSerializer(updated_user).data)
         except Exception as e:
             logger.error(f"Error updating user {user.id}: {e}", exc_info=True)
@@ -305,16 +305,16 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         """Partially update user information."""
         import logging
         logger = logging.getLogger(__name__)
-        
+
         user = self.get_object()
-        
+
         # Prevent admins from modifying superadmins
         if user.role == 'superadmin' and request.user.role != 'superadmin':
             return Response(
                 {"error": "Cannot modify superadmin users.", "detail": "Cannot modify superadmin users."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         # Prevent role changes that aren't allowed
         if 'role' in request.data:
             new_role = request.data.get('role')
@@ -330,14 +330,14 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     {"error": "Cannot change superadmin role.", "detail": "Cannot change superadmin role."},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
         # Track changes for audit
         old_values = {}
         changed_fields = list(request.data.keys())
         for field in changed_fields:
             if hasattr(user, field):
                 old_values[field] = getattr(user, field)
-        
+
         try:
             serializer = UserUpdateSerializer(user, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
@@ -356,18 +356,18 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             with transaction.atomic():
                 updated_user = serializer.save()
-                
+
                 # Create audit log with detailed changes
                 changes_summary = []
                 for field, old_value in old_values.items():
                     new_value = getattr(updated_user, field, None)
                     if old_value != new_value:
                         changes_summary.append(f"{field}: {old_value} → {new_value}")
-                
+
                 action_text = f"Partially updated user {updated_user.username} ({updated_user.email}). Changes: {', '.join(changes_summary) if changes_summary else 'No changes detected'}"
                 # Truncate to 255 characters (max_length of action field)
                 if len(action_text) > 255:
@@ -376,7 +376,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     admin=request.user,
                     action=action_text
                 )
-                
+
                 # Also log to UserAuditLog
                 from users.models import UserAuditLog
                 UserAuditLog.objects.create(
@@ -386,7 +386,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     ip_address=request.META.get('REMOTE_ADDR'),
                     user_agent=request.META.get('HTTP_USER_AGENT', '')
                 )
-            
+
             return Response(UserDetailSerializer(updated_user).data)
         except Exception as e:
             logger.error(f"Error updating user {user.id}: {e}", exc_info=True)
@@ -402,33 +402,33 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
     def destroy(self, request, pk=None):
         """Delete user (superadmin only)."""
         user = self.get_object()
-        
+
         # Cannot delete superadmin
         if user.role == 'superadmin':
             return Response(
                 {"error": "Cannot delete superadmin users."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         # Cannot delete yourself
         if user.id == request.user.id:
             return Response(
                 {"error": "Cannot delete your own account."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         username = user.username
         email = user.email
-        
+
         with transaction.atomic():
             user.delete()
-            
+
             AdminActivityLog.objects.create(
                 admin=request.user,
                 action=f"Deleted user {username}",
                 details=f"Deleted user: {email}"
             )
-        
+
         return Response(
             {"message": f"User {username} deleted successfully."},
             status=status.HTTP_200_OK
@@ -438,21 +438,21 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
     def suspend(self, request, pk=None):
         """Suspend a user."""
         user = self.get_object()
-        
+
         if user.role in ['superadmin', 'admin'] and request.user.role != 'superadmin':
             return Response(
                 {"error": "Cannot suspend admin/superadmin users."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         reason = request.data.get('reason', 'No reason provided')
         duration_days = request.data.get('duration_days', 30)
-        
+
         result = AdminManager.suspend_user(request.user, user, reason)
-        
+
         if 'error' in result:
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
-        
+
         return Response(result, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
@@ -475,13 +475,13 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
             reason=request.data.get("reason", "Account reactivated by admin."),
             metadata={"source": "admin_management.unsuspend"},
         )
-        
+
         AdminActivityLog.objects.create(
             admin=request.user,
             action=f"Unsuspended user {user.username}",
             details=f"Unsuspended user: {user.email}"
         )
-        
+
         return Response(
             {"message": f"User {user.username} has been unsuspended."},
             status=status.HTTP_200_OK
@@ -491,50 +491,50 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
     def blacklist(self, request, pk=None):
         """Blacklist a user (superadmin only)."""
         user = self.get_object()
-        
+
         if user.role in ['superadmin', 'admin']:
             return Response(
                 {"error": "Cannot blacklist admin/superadmin users."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         reason = request.data.get('reason', 'No reason provided')
         result = AdminManager.blacklist_user(request.user, user, reason)
-        
+
         return Response(result, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def place_on_probation(self, request, pk=None):
         """Place user on probation."""
         user = self.get_object()
-        
+
         if user.role == 'admin':
             return Response(
                 {"error": "Cannot place admins on probation."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         reason = request.data.get('reason', 'No reason provided')
         duration_days = int(request.data.get('duration_days', 30))
-        
+
         result = AdminManager.place_user_on_probation(
             request.user, user, reason, duration_days
         )
-        
+
         if 'error' in result:
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
-        
+
         return Response(result, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def remove_from_probation(self, request, pk=None):
         """Remove user from probation."""
         user = self.get_object()
-        
+
         result = AdminManager.remove_user_from_probation(request.user, user)
         if 'error' in result:
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
-        
+
         return Response(result, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], permission_classes=[IsSuperAdmin])
@@ -542,36 +542,36 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         """Change user's role (superadmin only)."""
         user = self.get_object()
         new_role = request.data.get('role')
-        
+
         if not new_role:
             return Response(
                 {"error": "Role is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if new_role not in ['client', 'writer', 'editor', 'support', 'admin']:
             return Response(
                 {"error": "Invalid role."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Cannot change superadmin role
         if user.role == 'superadmin':
             return Response(
                 {"error": "Cannot change superadmin role."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         old_role = user.role
         user.role = new_role
         user.save()
-        
+
         AdminActivityLog.objects.create(
             admin=request.user,
             action=f"Changed role of {user.username} from {old_role} to {new_role}",
             details=f"Changed role: {user.email}"
         )
-        
+
         return Response(
             {
                 "message": f"User {user.username} role changed from {old_role} to {new_role}.",
@@ -584,34 +584,34 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
     def promote_to_admin(self, request, pk=None):
         """Promote user to admin (superadmin only)."""
         user = self.get_object()
-        
+
         if user.role == 'superadmin':
             return Response(
                 {"error": "User is already a superadmin."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if user.role == 'admin':
             return Response(
                 {"error": "User is already an admin."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         old_role = user.role
         user.role = 'admin'
         user.is_staff = True
         user.save()
-        
+
         # Create admin profile
         from admin_management.models import AdminProfile
         AdminProfile.objects.get_or_create(user=user)
-        
+
         AdminActivityLog.objects.create(
             admin=request.user,
             action=f"Promoted {user.username} from {old_role} to admin",
             details=f"Promoted user: {user.email}"
         )
-        
+
         return Response(
             {
                 "message": f"User {user.username} promoted to admin.",
@@ -624,20 +624,20 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
     def reset_password(self, request, pk=None):
         """Reset user's password (admin generates new temp password)."""
         user = self.get_object()
-        
+
         import secrets
         import string
         temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
-        
+
         user.set_password(temp_password)
         user.save()
-        
+
         AdminActivityLog.objects.create(
             admin=request.user,
             action=f"Reset password for {user.username}",
             details=f"Password reset for: {user.email}"
         )
-        
+
         # Send email notification (optional)
         try:
             from django.core.mail import send_mail
@@ -651,11 +651,11 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
             )
         except Exception:
             pass
-        
+
         return Response(
             {
                 "message": f"Password reset for {user.username}. Temporary password sent to email.",
-                "temp_password": temp_password  # Only return in development
+                "temp_password": temp_password # Only return in development
             },
             status=status.HTTP_200_OK
         )
@@ -665,7 +665,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         """Get user statistics."""
         try:
             queryset = self.get_queryset()
-            
+
             stats = {
                 'total_users': queryset.count(),
                 'by_role': {
@@ -683,7 +683,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     account_profiles__writer_profile__discipline_state__is_on_probation=True,
                 ).distinct().count(),
             }
-            
+
             return Response(stats, status=status.HTTP_200_OK)
         except Exception as e:
             import logging
@@ -693,7 +693,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                 {"error": "Failed to retrieve user statistics", "detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     @action(detail=False, methods=['post'])
     def bulk_activate(self, request):
         """Bulk activate users."""
@@ -703,14 +703,14 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                 {"error": "No user IDs provided."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         queryset = self.get_queryset()
         users = queryset.filter(id__in=user_ids)
-        
+
         # Prevent activating superadmins unless current user is superadmin
         if request.user.role != 'superadmin':
             users = users.exclude(role='superadmin')
-        
+
         activated_count = 0
         activity_logs = []
         with transaction.atomic():
@@ -719,7 +719,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     user.is_active = True
                     user.save()
                     activated_count += 1
-                    
+
                     # Collect logs for bulk insert instead of individual creates
                     activity_logs.append(
                         AdminActivityLog(
@@ -727,36 +727,36 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                             action=f"Activated user {user.username} (Bulk: {user.email})"
                         )
                     )
-        
+
         # Bulk create all activity logs at once (much faster than individual creates)
         if activity_logs:
             AdminActivityLog.objects.bulk_create(activity_logs, batch_size=100)
-        
+
         return Response({
             "message": f"Activated {activated_count} user(s).",
             "activated_count": activated_count
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['post'])
     def bulk_suspend(self, request):
         """Bulk suspend users."""
         user_ids = request.data.get('user_ids', [])
         reason = request.data.get('reason', 'Bulk suspension')
         duration_days = request.data.get('duration_days', 30)
-        
+
         if not user_ids:
             return Response(
                 {"error": "No user IDs provided."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         queryset = self.get_queryset()
         users = queryset.filter(id__in=user_ids)
-        
+
         # Prevent suspending superadmins/admins unless current user is superadmin
         if request.user.role != 'superadmin':
             users = users.exclude(role__in=['superadmin', 'admin'])
-        
+
         suspended_count = 0
         with transaction.atomic():
             for user in users:
@@ -767,7 +767,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     result = AdminManager.suspend_user(request.user, user, reason)
                     if 'error' not in result:
                         suspended_count += 1
-        
+
         return Response({
             "message": f"Suspended {suspended_count} user(s).",
             "suspended_count": suspended_count

@@ -50,7 +50,7 @@ class CreateWriterRequestAction(BaseOrderAction):
 class ClientRespondToWriterRequestAction(BaseOrderAction):
     """
     Client approves/declines/counter-offers a writer request and logs it.
-    Expects params: 
+    Expects params:
         - user
         - request_id
         - response: 'approve', 'reject', or 'counter'
@@ -65,7 +65,7 @@ class ClientRespondToWriterRequestAction(BaseOrderAction):
     def execute(self) -> WriterRequest:
         user = self.params["user"]
         request_id = self.params["request_id"]
-        response = self.params.get("response", "approve")  # 'approve', 'reject', or 'counter'
+        response = self.params.get("response", "approve") # 'approve', 'reject', or 'counter'
         reason = self.params.get("reason")
         counter_offer = self.params.get("counter_offer")
 

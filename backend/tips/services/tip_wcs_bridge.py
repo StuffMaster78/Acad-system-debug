@@ -21,13 +21,13 @@ class TipWCSBridge:
         Creates a TIP CompensationEvent for a confirmed tip.
 
         Field mapping from Tip model:
-            tip.sender          → client (tipper) — User instance
-            tip.receiver        → writer recipient — User instance
+            tip.sender → client (tipper) — User instance
+            tip.receiver → writer recipient — User instance
             tip.receiver.writer_profile → WriterProfile (what WCS needs)
-            tip.gross_amount    → amount
-            tip.client_note     → notes
-            tip.source_type     → source_type
-            tip.sender.website  → website
+            tip.gross_amount → amount
+            tip.client_note → notes
+            tip.source_type → source_type
+            tip.sender.website → website
 
         Returns (event, created: bool).
         Raises NoOpenWindowError if no open window — caller handles FAILED.
@@ -57,7 +57,7 @@ class TipWCSBridge:
 
         return EventIntakeService.record(
             website=website,
-            writer=writer_profile,          # FIX 1: WriterProfile not User
+            writer=writer_profile, # FIX 1: WriterProfile not User
             event_type=EventType.TIP,
             amount=tip.gross_amount,
             source_type=tip.source_type or "",
@@ -78,9 +78,9 @@ class TipWCSBridge:
         Caller is responsible for calling tip.save() after this.
 
         Fields updated on tip:
-            tip.status          → TipStatus.CONFIRMED or TipStatus.FAILED
+            tip.status → TipStatus.CONFIRMED or TipStatus.FAILED
             tip.settlement_reference → WCS event PK (stored as string)
-            tip.paid_at         → timestamp of confirmation
+            tip.paid_at → timestamp of confirmation
 
         FIX 2: compensation_event is not a model field on Tip.
                 Storing the WCS event reference in settlement_reference.
@@ -115,14 +115,14 @@ class TipWCSBridge:
                 "TipWCSBridge: no open window for tip %s — marking FAILED",
                 tip.pk,
             )
-            tip.status = TipStatus.FAILED  # FIX 4
+            tip.status = TipStatus.FAILED # FIX 4
             return False
 
         except Exception:
             logger.exception(
                 "TipWCSBridge: unexpected error for tip %s", tip.pk,
             )
-            tip.status = TipStatus.FAILED  # FIX 4
+            tip.status = TipStatus.FAILED # FIX 4
             return False
 
 

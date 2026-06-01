@@ -133,7 +133,7 @@ class RewardEvaluationService:
             all_rewards.extend(rewards)
 
         return all_rewards
-    
+
 
 
     @classmethod

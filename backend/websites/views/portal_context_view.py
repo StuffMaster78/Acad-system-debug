@@ -32,7 +32,7 @@ class PortalContextView(APIView):
 
     authentication_classes = []
     permission_classes = []
-    throttle_classes = []  # no rate limit on a public boot endpoint
+    throttle_classes = [] # no rate limit on a public boot endpoint
 
     def get(self, request):
         portal = getattr(request, "portal", None)

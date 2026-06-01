@@ -15,7 +15,7 @@ class MarkOrderPaidAction(BaseOrderAction):
         # Get optional reference_id and payment_method from params
         reference_id = getattr(self, 'reference_id', None) or (self.params.get('reference_id') if hasattr(self, 'params') else None)
         payment_method = getattr(self, 'payment_method', None) or (self.params.get('payment_method') if hasattr(self, 'params') else None)
-        
+
         service = MarkOrderPaidService()
         result = service.mark_paid(
             self.order_id,

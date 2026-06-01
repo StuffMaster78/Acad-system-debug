@@ -10,9 +10,9 @@ from notifications_system.models.broadcast_notification import (
 
 
 class BroadcastNotificationSerializer(serializers.ModelSerializer):
-    is_expired           = serializers.BooleanField(read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
     acknowledgement_count = serializers.SerializerMethodField()
-    has_acknowledged     = serializers.SerializerMethodField()
+    has_acknowledged = serializers.SerializerMethodField()
 
     class Meta:
         model = BroadcastNotification

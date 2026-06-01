@@ -87,10 +87,10 @@ class WriterNoteService:
         Only the fields explicitly passed are updated.
 
         Args:
-            note:        WriterNote instance to update.
-            updated_by:  Admin User making the change.
+            note: WriterNote instance to update.
+            updated_by: Admin User making the change.
             new_content: New note text. None = no change.
-            is_pinned:   New pin state. None = no change.
+            is_pinned: New pin state. None = no change.
             is_sensitive: New sensitivity flag. None = no change.
 
         Returns:
@@ -135,7 +135,7 @@ class WriterNoteService:
         in the view layer, not here).
 
         Args:
-            note:       WriterNote instance to delete.
+            note: WriterNote instance to delete.
             deleted_by: Admin User performing the deletion.
         """
         writer_id = note.writer.pk

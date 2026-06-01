@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    PaperType, FormattingandCitationStyle, Subject, TypeOfWork, 
+    PaperType, FormattingandCitationStyle, Subject, TypeOfWork,
     EnglishType, WriterDeadlineConfig, EditingRequirementConfig,
     SubjectTemplate, PaperTypeTemplate, TypeOfWorkTemplate
 )
@@ -89,9 +89,9 @@ class EditingRequirementConfigAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ('created_at', 'updated_at')
-    
+
     def save_model(self, request, obj, form, change):
-        if not change:  # Only set on creation
+        if not change: # Only set on creation
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
@@ -115,13 +115,13 @@ class SubjectTemplateAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
     def subject_count(self, obj):
         return len(obj.subjects) if obj.subjects else 0
     subject_count.short_description = 'Subject Count'
-    
+
     def save_model(self, request, obj, form, change):
-        if not change:  # Only set on creation
+        if not change: # Only set on creation
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
@@ -145,13 +145,13 @@ class PaperTypeTemplateAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
     def paper_type_count(self, obj):
         return len(obj.paper_types) if obj.paper_types else 0
     paper_type_count.short_description = 'Paper Type Count'
-    
+
     def save_model(self, request, obj, form, change):
-        if not change:  # Only set on creation
+        if not change: # Only set on creation
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
@@ -175,12 +175,12 @@ class TypeOfWorkTemplateAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
     def type_count(self, obj):
         return len(obj.types_of_work) if obj.types_of_work else 0
     type_count.short_description = 'Type Count'
-    
+
     def save_model(self, request, obj, form, change):
-        if not change:  # Only set on creation
+        if not change: # Only set on creation
             obj.created_by = request.user
         super().save_model(request, obj, form, change)

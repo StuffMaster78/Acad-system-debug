@@ -1,4 +1,4 @@
-# fix_configs.py  (pure Python; no Django import)
+# fix_configs.py (pure Python; no Django import)
 import json, sys, os
 from pathlib import Path
 
@@ -18,7 +18,7 @@ def fix_one(path: Path, fn):
     backup = path.with_suffix(path.suffix + ".bak")
     backup.write_text(json.dumps(original, indent=2, ensure_ascii=False))
     path.write_text(json.dumps(normalized, indent=2, ensure_ascii=False))
-    print(f"[ok] fixed: {path}  (backup: {backup.name})")
+    print(f"[ok] fixed: {path} (backup: {backup.name})")
 
 def main(cfg_dir: str):
     d = Path(cfg_dir)

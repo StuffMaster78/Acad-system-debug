@@ -3,11 +3,11 @@
 Preference resolution for the notification system.
 
 Resolution order (highest to lowest priority):
-    1. NotificationEventPreference  — per-user, per-event override
-    2. NotificationPreference       — per-user master settings
-    3. RoleNotificationPreference   — per-role defaults
-    4. NotificationEventConfig      — event config defaults
-    5. In-app fallback              — always works
+    1. NotificationEventPreference — per-user, per-event override
+    2. NotificationPreference — per-user master settings
+    3. RoleNotificationPreference — per-role defaults
+    4. NotificationEventConfig — event config defaults
+    5. In-app fallback — always works
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from notifications_system.enums import NotificationChannel
 
 logger = logging.getLogger(__name__)
 
-PREF_CACHE_TTL = 3600  # 1 hour
+PREF_CACHE_TTL = 3600 # 1 hour
 
 
 class PreferenceService:

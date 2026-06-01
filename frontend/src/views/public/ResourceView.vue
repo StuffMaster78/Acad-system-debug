@@ -170,22 +170,22 @@ import { ArrowLeft, ArrowRight, CheckCircle, CreditCard, Download, Lock, Loader2
 import { cmsApi, type AttachmentSummary, type AccessCheckResult } from "@/api/cms";
 import { useMeta } from "@/composables/useMeta";
 
-const route       = useRoute();
-const isLoading   = ref(true);
-const notFound    = ref(false);
-const resource    = ref<AttachmentSummary | null>(null);
-const access      = ref<AccessCheckResult | null>(null);
+const route = useRoute();
+const isLoading = ref(true);
+const notFound = ref(false);
+const resource = ref<AttachmentSummary | null>(null);
+const access = ref<AccessCheckResult | null>(null);
 const isDownloading = ref(false);
 const downloadError = ref("");
-const email           = ref("");
+const email = ref("");
 const consentMarketing = ref(false);
 
 async function load() {
   const slug = route.params.slug as string;
-  isLoading.value   = true;
-  notFound.value    = false;
-  resource.value    = null;
-  access.value      = null;
+  isLoading.value = true;
+  notFound.value = false;
+  resource.value = null;
+  access.value = null;
 
   try {
     const [resRes, accessRes] = await Promise.all([
@@ -193,7 +193,7 @@ async function load() {
       cmsApi.checkAccess(slug),
     ]);
     resource.value = resRes.data;
-    access.value   = accessRes.data;
+    access.value = accessRes.data;
 
     useMeta({
       title: resource.value.title,
@@ -246,8 +246,8 @@ async function submitEmail() {
 }
 
 function gateBadgeClass(gate: string): string {
-  if (gate === "free")    return "bg-emerald-100 text-emerald-700";
-  if (gate === "email")   return "bg-amber-100 text-amber-700";
+  if (gate === "free") return "bg-emerald-100 text-emerald-700";
+  if (gate === "email") return "bg-amber-100 text-amber-700";
   if (gate === "account") return "bg-blue-100 text-blue-700";
   return "bg-rose-100 text-rose-700";
 }

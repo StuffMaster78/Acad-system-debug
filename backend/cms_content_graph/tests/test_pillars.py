@@ -16,7 +16,7 @@ class TestContentPillar:
     def test_pillar_spoke_posts(self, test_pillar, test_blog_post):
         # The hub post is excluded from spokes
         spokes = list(test_pillar.spoke_posts)
-        assert test_blog_post not in spokes  # hub is excluded
+        assert test_blog_post not in spokes # hub is excluded
 
 
 @pytest.mark.django_db
@@ -32,7 +32,7 @@ class TestBlogServiceLink:
             cta_text="Get your care plan written by an RN →",
             is_primary_route=True,
         )
-        assert link.ctr == 0.0  # no impressions yet
+        assert link.ctr == 0.0 # no impressions yet
 
     def test_ctr_calculation(self, test_blog_post, test_service_page):
         from cms_content_graph.models import BlogServiceLink

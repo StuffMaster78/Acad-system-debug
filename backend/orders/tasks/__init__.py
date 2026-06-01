@@ -1,4 +1,4 @@
-from . import (  # noqa: F401
+from . import ( # noqa: F401
     adjustment_tasks,
     order_adjustment_tasks,
     order_approval_tasks,

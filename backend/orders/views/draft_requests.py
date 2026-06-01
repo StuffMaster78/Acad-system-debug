@@ -26,19 +26,19 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
     """
     queryset = DraftRequest.objects.all()
     permission_classes = [IsAuthenticated]
-    
+
     def get_serializer_class(self):
         if self.action == 'create':
             return DraftRequestCreateSerializer
         return DraftRequestSerializer
-    
+
     def get_queryset(self):
         """Filter queryset based on user role."""
         user = self.request.user
         queryset = DraftRequest.objects.select_related(
             'order', 'requested_by', 'website'
         ).prefetch_related('files')
-        
+
         if user.role == 'client':
             # Clients can only see their own requests
             queryset = queryset.filter(requested_by=user)
@@ -51,24 +51,24 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
         else:
             # Other roles see nothing
             queryset = queryset.none()
-        
+
         # Filter by order if provided
         order_id = self.request.query_params.get('order_id')
         if order_id:
             queryset = queryset.filter(order_id=order_id)
-        
+
         # Filter by status if provided
         status_filter = self.request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-        
+
         return queryset
-    
+
     def perform_create(self, serializer):
         """Create a draft request (can be created by client or admin)."""
         order = serializer.validated_data['order']
         user = self.request.user
-        
+
         # Admins can create draft requests for any order
         # Clients can only create for their own orders (validated in serializer)
         serializer.save(
@@ -76,14 +76,14 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
             requested_by=user,
             status='pending'
         )
-    
+
     @action(detail=True, methods=['post'], url_path='upload-draft')
     def upload_draft(self, request, pk=None):
         """
         Writer uploads a draft file in response to a draft request.
         """
         draft_request = self.get_object()
-        
+
         # Check if user is the assigned writer or admin
         if request.user.role not in ['admin', 'superadmin', 'support']:
             if draft_request.order.assigned_writer != request.user:
@@ -91,14 +91,14 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
                     {"error": "Only the assigned writer can upload drafts"},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
         # Check if request is still pending or in progress
         if draft_request.status not in ['pending', 'in_progress']:
             return Response(
                 {"error": f"Cannot upload draft for {draft_request.status} request"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Get file from request
         file = request.FILES.get('file')
         if not file:
@@ -106,15 +106,15 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
                 {"error": "File is required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Validate file size (max 50MB)
-        max_size = 50 * 1024 * 1024  # 50MB
+        max_size = 50 * 1024 * 1024 # 50MB
         if file.size > max_size:
             return Response(
                 {"error": "File size exceeds 50MB limit"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             attachment = OrderFileService.writer_upload_draft(
                 order=draft_request.order,
@@ -138,25 +138,25 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
         attachment.metadata = metadata
         attachment.display_name = attachment.display_name or file.name
         attachment.save(update_fields=["metadata", "display_name", "updated_at"])
-        
+
         # Update draft request status
         if draft_request.status == 'pending':
             draft_request.status = 'in_progress'
             draft_request.save()
-        
+
         serializer = FileAttachmentDetailSerializer(
             attachment,
             context={'request': request},
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
     @action(detail=True, methods=['post'], url_path='mark-fulfilled')
     def mark_fulfilled(self, request, pk=None):
         """
         Mark draft request as fulfilled (typically done automatically when file is uploaded).
         """
         draft_request = self.get_object()
-        
+
         # Check permissions
         if request.user.role not in ['admin', 'superadmin', 'support']:
             if draft_request.order.assigned_writer != request.user:
@@ -164,25 +164,25 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
                     {"error": "Only the assigned writer or admin can mark as fulfilled"},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
         if draft_request.status == 'fulfilled':
             return Response(
                 {"error": "Request is already fulfilled"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         draft_request.fulfill(request.user)
-        
+
         serializer = self.get_serializer(draft_request)
         return Response(serializer.data)
-    
+
     @action(detail=True, methods=['post'], url_path='cancel')
     def cancel_request(self, request, pk=None):
         """
         Cancel a draft request (client or admin can cancel).
         """
         draft_request = self.get_object()
-        
+
         # Check permissions
         if request.user.role not in ['admin', 'superadmin', 'support']:
             if draft_request.requested_by != request.user:
@@ -190,21 +190,21 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
                     {"error": "Only the requester or admin can cancel"},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
         if draft_request.status in ['fulfilled', 'cancelled']:
             return Response(
                 {"error": f"Cannot cancel {draft_request.status} request"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         from django.utils import timezone
         draft_request.status = 'cancelled'
         draft_request.cancelled_at = timezone.now()
         draft_request.save()
-        
+
         serializer = self.get_serializer(draft_request)
         return Response(serializer.data)
-    
+
     @action(detail=False, methods=['get'], url_path='check-eligibility')
     def check_eligibility(self, request):
         """
@@ -216,7 +216,7 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
                 {"error": "order_id is required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             order = Order.objects.get(id=order_id)
         except Order.DoesNotExist:
@@ -224,14 +224,14 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
                 {"error": "Order not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Check if order belongs to user
         if order.client != request.user and request.user.role not in ['admin', 'superadmin', 'support']:
             return Response(
                 {"error": "You can only check eligibility for your own orders"},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         # Create temporary draft request to check eligibility
         draft_request = DraftRequest(
             website=order.website,
@@ -239,7 +239,7 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
             requested_by=request.user
         )
         can_request, reason = draft_request.can_request()
-        
+
         # Check if there's already a pending request (admins can create multiple)
         has_pending = False
         if request.user.role not in ['admin', 'superadmin', 'support']:
@@ -248,7 +248,7 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
                 requested_by=request.user,
                 status__in=['pending', 'in_progress']
             ).exists()
-        
+
         return Response({
             'can_request': can_request and not has_pending,
             'reason': reason if not can_request else None,
@@ -266,14 +266,14 @@ class DraftFileViewSet(viewsets.ModelViewSet):
     queryset = DraftFile.objects.all()
     serializer_class = DraftFileSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter queryset based on user role."""
         user = self.request.user
         queryset = DraftFile.objects.select_related(
             'draft_request', 'order', 'uploaded_by', 'website'
         )
-        
+
         if user.role == 'client':
             # Clients can see files for their draft requests
             queryset = queryset.filter(draft_request__requested_by=user)
@@ -285,26 +285,26 @@ class DraftFileViewSet(viewsets.ModelViewSet):
             pass
         else:
             queryset = queryset.none()
-        
+
         # Filter by draft_request if provided
         draft_request_id = self.request.query_params.get('draft_request_id')
         if draft_request_id:
             queryset = queryset.filter(draft_request_id=draft_request_id)
-        
+
         # Filter by order if provided
         order_id = self.request.query_params.get('order_id')
         if order_id:
             queryset = queryset.filter(order_id=order_id)
-        
+
         return queryset
-    
+
     @action(detail=True, methods=['get'], url_path='download')
     def download(self, request, pk=None):
         """
         Download a draft file.
         """
         draft_file = self.get_object()
-        
+
         # Check permissions
         if request.user.role not in ['admin', 'superadmin', 'support']:
             if request.user.role == 'client':
@@ -319,13 +319,13 @@ class DraftFileViewSet(viewsets.ModelViewSet):
                         {"error": "You can only download drafts you uploaded or for your assigned orders"},
                         status=status.HTTP_403_FORBIDDEN
                     )
-        
+
         if not draft_file.is_visible_to_client and request.user.role == 'client':
             return Response(
                 {"error": "This draft is not visible to clients"},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         from django.http import FileResponse
         response = FileResponse(
             draft_file.file.open(),

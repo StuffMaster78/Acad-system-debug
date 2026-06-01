@@ -83,22 +83,22 @@ __all__ = [
 ## Updated file tree
 """"
 notifications_system/serializers/
-├── __init__.py          re-exports everything — existing imports unchanged
-├── notifications.py     NotificationSerializer, NotificationListSerializer,
-│                        NotificationsUserStatusSerializer, UserNotificationMetaSerializer
-├── preferences.py       NotificationPreferenceSerializer,
-│                        NotificationEventPreferenceSerializer,
-│                        NotificationPreferenceProfileSerializer,
-│                        RoleNotificationPreferenceSerializer
-├── broadcasts.py        BroadcastNotificationSerializer,
-│                        BroadcastAcknowledgementSerializer,
-│                        BroadcastOverrideSerializer
-├── templates.py         NotificationEventSerializer,
-│                        NotificationTemplateSerializer,
-│                        NotificationTemplateCreateSerializer,
-│                        NotificationEventConfigSerializer,
-│                        NotificationEventOverrideSerializer
-├── delivery.py          DeliverySerializer,
-│                        NotificationLogSerializer
-└── digest.py            NotificationDigestSerializer
+├── __init__.py re-exports everything — existing imports unchanged
+├── notifications.py NotificationSerializer, NotificationListSerializer,
+│ NotificationsUserStatusSerializer, UserNotificationMetaSerializer
+├── preferences.py NotificationPreferenceSerializer,
+│ NotificationEventPreferenceSerializer,
+│ NotificationPreferenceProfileSerializer,
+│ RoleNotificationPreferenceSerializer
+├── broadcasts.py BroadcastNotificationSerializer,
+│ BroadcastAcknowledgementSerializer,
+│ BroadcastOverrideSerializer
+├── templates.py NotificationEventSerializer,
+│ NotificationTemplateSerializer,
+│ NotificationTemplateCreateSerializer,
+│ NotificationEventConfigSerializer,
+│ NotificationEventOverrideSerializer
+├── delivery.py DeliverySerializer,
+│ NotificationLogSerializer
+└── digest.py NotificationDigestSerializer
 """

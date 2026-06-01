@@ -21,7 +21,7 @@ urlpatterns = [
     ),
     path(
         "admin/<int:pk>/approve/",
-        AdminAdvanceApproveView.as_view(), 
+        AdminAdvanceApproveView.as_view(),
         name="admin-advance-approve",
     ),
     path(

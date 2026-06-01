@@ -29,7 +29,7 @@ class NotificationFeedViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Notification feed for the authenticated user.
 
-    list   → paginated feed (lightweight serializer)
+    list → paginated feed (lightweight serializer)
     detail → full notification with all fields
     """
     queryset = Notification.objects.all()
@@ -41,12 +41,12 @@ class NotificationFeedViewSet(viewsets.ReadOnlyModelViewSet):
             return NotificationListSerializer
         return NotificationSerializer
 
-    def get_queryset(self) -> QuerySet:  # type: ignore[override]
+    def get_queryset(self) -> QuerySet: # type: ignore[override]
         request = cast(Request, self.request)
         user = request.user
         website = getattr(user, 'website', None)
         qs = InAppService.get_feed(user, website)
-        
+
         # Validate queryset
         if qs is None:
             return Notification.objects.none()
@@ -111,7 +111,7 @@ class NotificationFeedViewSet(viewsets.ReadOnlyModelViewSet):
                     website=getattr(request.user, 'website', None),
                 )
                 # Cache by notification_id for O(1) lookup in serializer
-                request._notif_status_cache = {s.notification.id: s for s in statuses}  # type: ignore[attr-defined]
+                request._notif_status_cache = {s.notification.id: s for s in statuses} # type: ignore[attr-defined]
 
     @action(detail=False, methods=['get'])
     def unread_count(self, request: Request) -> Response:
@@ -186,12 +186,12 @@ class NotificationFeedViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = InAppService.get_pinned(request.user, website)
         if queryset is None:
             queryset = Notification.objects.none()
-        
+
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-        
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -202,11 +202,11 @@ class NotificationFeedViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = InAppService.get_critical(request.user, website)
         if queryset is None:
             queryset = Notification.objects.none()
-        
+
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-        
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

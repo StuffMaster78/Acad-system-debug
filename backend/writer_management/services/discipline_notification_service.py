@@ -96,12 +96,12 @@ class DisciplineNotificationService:
         Notify writer that a warning was issued against them.
 
         Template variables:
-            registration_id     — writer's stable ID
-            category            — warning category (human readable)
-            reason              — full reason text
-            issued_at           — ISO timestamp
-            expires_at          — ISO timestamp or null
-            days_remaining      — int or null
+            registration_id — writer's stable ID
+            category — warning category (human readable)
+            reason — full reason text
+            issued_at — ISO timestamp
+            expires_at — ISO timestamp or null
+            days_remaining — int or null
             active_warning_count — current active warning count
         """
         writer = warning.writer
@@ -118,15 +118,15 @@ class DisciplineNotificationService:
             recipient=user,
             website=warning.website,
             context={
-                "registration_id":     writer.registration_id,
-                "category":            warning.get_category_display(),
-                "reason":              warning.reason,
-                "issued_at":           warning.created_at.isoformat(),
-                "expires_at":          (
+                "registration_id": writer.registration_id,
+                "category": warning.get_category_display(),
+                "reason": warning.reason,
+                "issued_at": warning.created_at.isoformat(),
+                "expires_at": (
                     warning.expires_at.isoformat()
                     if warning.expires_at else None
                 ),
-                "days_remaining":      warning.days_remaining,
+                "days_remaining": warning.days_remaining,
                 "active_warning_count": WriterWarningService.get_active_count(writer),
             },
             triggered_by=triggered_by,
@@ -139,9 +139,9 @@ class DisciplineNotificationService:
 
         Template variables:
             registration_id — writer's stable ID
-            category        — warning category
-            void_reason     — why it was voided
-            voided_at       — ISO timestamp
+            category — warning category
+            void_reason — why it was voided
+            voided_at — ISO timestamp
         """
         writer = warning.writer
         user = DisciplineNotificationService._resolve_user(writer)
@@ -154,9 +154,9 @@ class DisciplineNotificationService:
             website=warning.website,
             context={
                 "registration_id": writer.registration_id,
-                "category":        warning.get_category_display(),
-                "void_reason":     warning.void_reason,
-                "voided_at":       warning.voided_at.isoformat() if warning.voided_at else None,
+                "category": warning.get_category_display(),
+                "void_reason": warning.void_reason,
+                "voided_at": warning.voided_at.isoformat() if warning.voided_at else None,
             },
             triggered_by=voided_by,
         )
@@ -175,10 +175,10 @@ class DisciplineNotificationService:
 
         Sent to ALL admin users on the website.
         Template variables:
-            registration_id      — writer's stable ID
+            registration_id — writer's stable ID
             active_warning_count — current count
-            threshold            — the threshold crossed
-            suggested_action     — what the system recommends
+            threshold — the threshold crossed
+            suggested_action — what the system recommends
         """
         admins = DisciplineNotificationService._get_admin_recipients(website)
 
@@ -188,10 +188,10 @@ class DisciplineNotificationService:
                 recipient=admin,
                 website=website,
                 context={
-                    "registration_id":      writer.registration_id,
+                    "registration_id": writer.registration_id,
                     "active_warning_count": active_warning_count,
-                    "threshold":            admin_alert_threshold,
-                    "suggested_action":     suggested_action,
+                    "threshold": admin_alert_threshold,
+                    "suggested_action": suggested_action,
                 },
                 triggered_by=triggered_by,
                 is_critical=True,
@@ -208,9 +208,9 @@ class DisciplineNotificationService:
 
         Template variables:
             registration_id — writer's stable ID
-            category        — strike category (human readable)
-            reason          — public-facing reason
-            issued_at       — ISO timestamp
+            category — strike category (human readable)
+            reason — public-facing reason
+            issued_at — ISO timestamp
         Note:
             evidence_notes is NOT included — internal only.
         """
@@ -225,9 +225,9 @@ class DisciplineNotificationService:
             website=strike.website,
             context={
                 "registration_id": writer.registration_id,
-                "category":        strike.get_category_display(),
-                "reason":          strike.reason,
-                "issued_at":       strike.issued_at.isoformat(),
+                "category": strike.get_category_display(),
+                "reason": strike.reason,
+                "issued_at": strike.issued_at.isoformat(),
             },
             triggered_by=triggered_by,
         )
@@ -239,8 +239,8 @@ class DisciplineNotificationService:
 
         Template variables:
             registration_id — writer's stable ID
-            category        — strike category
-            void_reason     — why it was voided
+            category — strike category
+            void_reason — why it was voided
         """
         writer = strike.writer
         user = DisciplineNotificationService._resolve_user(writer)
@@ -253,8 +253,8 @@ class DisciplineNotificationService:
             website=strike.website,
             context={
                 "registration_id": writer.registration_id,
-                "category":        strike.get_category_display(),
-                "void_reason":     strike.void_reason,
+                "category": strike.get_category_display(),
+                "void_reason": strike.void_reason,
             },
             triggered_by=voided_by,
         )
@@ -270,10 +270,10 @@ class DisciplineNotificationService:
 
         Template variables:
             registration_id — writer's stable ID
-            reason          — why they were suspended
-            end_date        — ISO date or null (null = indefinite)
-            auto_triggered  — bool (system vs admin)
-            duration_days   — int or null
+            reason — why they were suspended
+            end_date — ISO date or null (null = indefinite)
+            auto_triggered — bool (system vs admin)
+            duration_days — int or null
         """
         writer = suspension.writer
         user = DisciplineNotificationService._resolve_user(writer)
@@ -291,13 +291,13 @@ class DisciplineNotificationService:
             website=suspension.website,
             context={
                 "registration_id": writer.registration_id,
-                "reason":          suspension.reason,
-                "end_date":        (
+                "reason": suspension.reason,
+                "end_date": (
                     suspension.end_date.isoformat()
                     if suspension.end_date else None
                 ),
-                "auto_triggered":  suspension.auto_triggered,
-                "duration_days":   duration_days,
+                "auto_triggered": suspension.auto_triggered,
+                "duration_days": duration_days,
             },
             triggered_by=triggered_by,
         )
@@ -309,8 +309,8 @@ class DisciplineNotificationService:
 
         Template variables:
             registration_id — writer's stable ID
-            lift_reason     — why the suspension was lifted
-            lifted_at       — ISO timestamp
+            lift_reason — why the suspension was lifted
+            lifted_at — ISO timestamp
         """
         writer = suspension.writer
         user = DisciplineNotificationService._resolve_user(writer)
@@ -323,8 +323,8 @@ class DisciplineNotificationService:
             website=suspension.website,
             context={
                 "registration_id": writer.registration_id,
-                "lift_reason":     suspension.lift_reason,
-                "lifted_at":       (
+                "lift_reason": suspension.lift_reason,
+                "lifted_at": (
                     suspension.lifted_at.isoformat()
                     if suspension.lifted_at else None
                 ),
@@ -343,8 +343,8 @@ class DisciplineNotificationService:
 
         Template variables:
             registration_id — writer's stable ID
-            reason          — why they were blacklisted
-            auto_triggered  — bool
+            reason — why they were blacklisted
+            auto_triggered — bool
         Note:
             Blacklisting is severe. Template should reflect gravity.
         """
@@ -359,8 +359,8 @@ class DisciplineNotificationService:
             website=blacklist_entry.website,
             context={
                 "registration_id": writer.registration_id,
-                "reason":          blacklist_entry.reason,
-                "auto_triggered":  blacklist_entry.auto_triggered,
+                "reason": blacklist_entry.reason,
+                "auto_triggered": blacklist_entry.auto_triggered,
             },
             triggered_by=triggered_by,
             is_critical=True,
@@ -373,7 +373,7 @@ class DisciplineNotificationService:
 
         Template variables:
             registration_id — writer's stable ID
-            lift_reason     — why the blacklist was lifted
+            lift_reason — why the blacklist was lifted
         """
         writer = blacklist_entry.writer
         user = DisciplineNotificationService._resolve_user(writer)
@@ -386,7 +386,7 @@ class DisciplineNotificationService:
             website=blacklist_entry.website,
             context={
                 "registration_id": writer.registration_id,
-                "lift_reason":     blacklist_entry.lift_reason,
+                "lift_reason": blacklist_entry.lift_reason,
             },
             triggered_by=lifted_by,
         )
@@ -402,9 +402,9 @@ class DisciplineNotificationService:
 
         Template variables:
             registration_id — writer's stable ID
-            reason          — why they are on probation
-            end_date        — ISO date
-            auto_triggered  — bool
+            reason — why they are on probation
+            end_date — ISO date
+            auto_triggered — bool
         """
         writer = probation.writer
         user = DisciplineNotificationService._resolve_user(writer)
@@ -417,9 +417,9 @@ class DisciplineNotificationService:
             website=probation.website,
             context={
                 "registration_id": writer.registration_id,
-                "reason":          probation.reason,
-                "end_date":        probation.end_date.isoformat(),
-                "auto_triggered":  probation.auto_triggered,
+                "reason": probation.reason,
+                "end_date": probation.end_date.isoformat(),
+                "auto_triggered": probation.auto_triggered,
             },
             triggered_by=triggered_by,
         )
@@ -431,7 +431,7 @@ class DisciplineNotificationService:
 
         Template variables:
             registration_id — writer's stable ID
-            ended_at        — ISO timestamp
+            ended_at — ISO timestamp
         """
         writer = probation.writer
         user = DisciplineNotificationService._resolve_user(writer)
@@ -444,7 +444,7 @@ class DisciplineNotificationService:
             website=probation.website,
             context={
                 "registration_id": writer.registration_id,
-                "ended_at":        (
+                "ended_at": (
                     probation.ended_at.isoformat()
                     if probation.ended_at else None
                 ),
@@ -463,10 +463,10 @@ class DisciplineNotificationService:
 
         Template variables:
             registration_id — writer's stable ID
-            reason          — penalty reason (human readable)
+            reason — penalty reason (human readable)
             amount_deducted — formatted decimal string
-            order_id        — order PK or null
-            notes           — additional context (if not empty)
+            order_id — order PK or null
+            notes — additional context (if not empty)
         """
         writer = penalty.writer
         user = DisciplineNotificationService._resolve_user(writer)
@@ -479,10 +479,10 @@ class DisciplineNotificationService:
             website=penalty.website,
             context={
                 "registration_id": writer.registration_id,
-                "reason":          penalty.get_reason_display(),
+                "reason": penalty.get_reason_display(),
                 "amount_deducted": str(penalty.amount_deducted),
-                "order_id":        penalty.order_id,
-                "notes":           penalty.notes or None,
+                "order_id": penalty.order_id,
+                "notes": penalty.notes or None,
             },
             triggered_by=triggered_by,
         )

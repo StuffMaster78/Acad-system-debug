@@ -1,11 +1,11 @@
 from __future__ import annotations
- 
+
 from decimal import Decimal
- 
+
 from django.db import transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
- 
+
 from writer_compensation.enums.compensation_enums import (
     EventStatus,
     EventType,
@@ -25,22 +25,22 @@ from writer_compensation.models.compensation_event import (
 from writer_compensation.models.payment_window import (
     PaymentWindow,
 )
- 
- 
+
+
 class EventIntakeService:
     """
     The single entry point for ALL earning and deduction events.
- 
+
     No producer app should create a CompensationEvent directly.
     All creation goes through record().
- 
+
     Enforces:
     - Non-zero amount
     - Open window exists for this website
     - Window is not locked
     - Idempotency (get_or_create when key is provided)
     """
- 
+
     @staticmethod
     @transaction.atomic
     def record(
@@ -60,20 +60,20 @@ class EventIntakeService:
     ) -> tuple[CompensationEvent, bool]:
         """
         Create a CompensationEvent and assign it to the current open window.
- 
+
         Returns (event, created: bool).
- 
+
         For post-close adjustments pass related_window=<closed_window>.
         The event is still assigned to the next open window.
- 
+
         Raises:
-            ZeroAmountError          — amount is zero
-            NoOpenWindowError        — no OPEN window for this website
-            WindowLockedError        — open window is somehow locked (shouldn't happen)
+            ZeroAmountError — amount is zero
+            NoOpenWindowError — no OPEN window for this website
+            WindowLockedError — open window is somehow locked (shouldn't happen)
         """
         if amount == Decimal("0.00"):
             raise ZeroAmountError("Compensation event amount cannot be zero.")
- 
+
         open_window = (
             PaymentWindow.objects
             .filter(website=website, status=WindowStatus.OPEN)
@@ -84,12 +84,12 @@ class EventIntakeService:
             raise NoOpenWindowError(
                 f"No open compensation window for website {website.pk}."
             )
- 
+
         if open_window.is_locked:
             raise WindowLockedError(
                 f"Window {open_window.pk} is locked ({open_window.status})."
             )
- 
+
         defaults = dict(
             payment_window=open_window,
             event_type=event_type,
@@ -103,7 +103,7 @@ class EventIntakeService:
             created_by=created_by,
             related_window=related_window,
         )
- 
+
         if idempotency_key:
             event, created = CompensationEvent.objects.get_or_create(
                 website=website,
@@ -120,7 +120,7 @@ class EventIntakeService:
                 **defaults,
             )
             created = True
- 
+
         return event, created
 
     @staticmethod
@@ -128,7 +128,7 @@ class EventIntakeService:
     def mature_event(event: CompensationEvent) -> CompensationEvent:
         """
         PENDING_CONFIRMATION → MATURED.
- 
+
         A matured event is eligible for settlement aggregation.
         Called by admin review, or automatically when a window closes
         with auto_confirm_pending=True.
@@ -142,7 +142,7 @@ class EventIntakeService:
         event.matured_at = timezone.now()
         event.save(update_fields=["status", "matured_at"])
         return event
- 
+
     @staticmethod
     @transaction.atomic
     def void_event(
@@ -163,7 +163,7 @@ class EventIntakeService:
             event.notes = f"{event.notes}\n[VOIDED] {reason}".strip()
         event.save(update_fields=["status", "notes"])
         return event
- 
+
     @staticmethod
     @transaction.atomic
     def create_reversal(
@@ -180,7 +180,7 @@ class EventIntakeService:
             raise InvalidWindowTransitionError(
                 f"Event {original_event.pk} is already REVERSED."
             )
- 
+
         reversal, _ = EventIntakeService.record(
             website=original_event.website,
             writer=original_event.writer,
@@ -192,20 +192,20 @@ class EventIntakeService:
             notes=notes or f"Reversal of {original_event.event_type} #{original_event.pk}",
             created_by=created_by,
         )
- 
+
         # Link and stamp original.
         # reversal.related_event = original_event
         # reversal.save(update_fields=["related_event"])
         CompensationEvent.objects.filter(pk=reversal.pk).update(
             related_event=original_event,
         )
- 
+
         original_event.status = EventStatus.REVERSED
         original_event.reversed_at = timezone.now()
         original_event.save(update_fields=["status", "reversed_at"])
- 
+
         return reversal
- 
+
     @staticmethod
     @transaction.atomic
     def confirm_event(event: CompensationEvent) -> CompensationEvent:

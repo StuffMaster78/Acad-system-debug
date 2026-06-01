@@ -76,7 +76,7 @@ def notify_writer(order_id):
     except Exception as e:
         logger.error(f"Error in notify_writer task: {e}", exc_info=True)
         return f"Error in notify_writer task: {e}"
-    
+
 
 
 # Email notification to the client
@@ -95,18 +95,18 @@ def send_order_completion_email(client_email, client_username, order_id):
     except Exception as e:
         logger.error(f"Error sending order completion email: {e}", exc_info=True)
         return f"Error sending order completion email: {e}"
-    
+
 
 @shared_task
 def release_stale_preferred_orders():
     """
-    This task checks for orders that have been in the 'pending_preferred' status 
+    This task checks for orders that have been in the 'pending_preferred' status
     for too long and moves them back to the public pool (status = 'available').
 
-    This ensures that orders with no response from the preferred writer are 
+    This ensures that orders with no response from the preferred writer are
     re-opened to the pool after a specified time.
     """
-    stale_time = timedelta(hours=24)  # Orders older than 24 hours will be released
+    stale_time = timedelta(hours=24) # Orders older than 24 hours will be released
 
     # Find orders that are still in 'pending_preferred' and are stale
     stale_orders = Order.objects.filter(
@@ -115,8 +115,8 @@ def release_stale_preferred_orders():
     )
 
     for order in stale_orders:
-        order.status = 'available'  # Move to public pool
-        order.preferred_writer = None  # Remove the preferred writer
+        order.status = 'available' # Move to public pool
+        order.preferred_writer = None # Remove the preferred writer
         order.save()
 
         # Notify the client that their preferred writer did not respond
@@ -133,7 +133,7 @@ def release_stale_preferred_orders():
             )
 
         logger.info(f"Released Order #{order.id} back to the public pool after {stale_time} hours.")
-        
+
     print(f"Released {stale_orders.count()} stale preferred orders.")
 
 
@@ -214,7 +214,7 @@ def expire_stale_requests():
 
 @shared_task
 def archive_expired_orders():
-    timeout_days = 3  # or from settings
+    timeout_days = 3 # or from settings
     threshold = timezone.now() - timedelta(days=timeout_days)
 
     orders_to_archive = Order.objects.filter(
@@ -237,49 +237,49 @@ def archive_expired_orders():
 # Monthly Writer Reviews
 # @shared_task
 # def generate_monthly_review_summary():
-#     now = timezone.now()
-#     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-#     month_end = (month_start + timezone.timedelta(days=32)).replace(day=1)
+# now = timezone.now()
+# month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+# month_end = (month_start + timezone.timedelta(days=32)).replace(day=1)
 
-#     websites = Website.objects.all()
+# websites = Website.objects.all()
 
-#     for site in websites:
-#         reviews = OrderReview.objects.filter(
-#             website=site,
-#             created_at__gte=month_start,
-#             created_at__lt=month_end,
-#             status="approved"
-#         )
+# for site in websites:
+# reviews = OrderReview.objects.filter(
+# website=site,
+# created_at__gte=month_start,
+# created_at__lt=month_end,
+# status="approved"
+# )
 
-#         summary = (
-#             reviews
-#             .values('writer_id')
-#             .annotate(
-#                 avg_rating=Avg('rating'),
-#                 total_reviews=Count('id')
-#             )
-#         )
+# summary = (
+# reviews
+# .values('writer_id')
+# .annotate(
+# avg_rating=Avg('rating'),
+# total_reviews=Count('id')
+# )
+# )
 
-#         for item in summary:
-#             writer_id = item['writer_id']
-#             avg_rating = item['avg_rating']
-#             total_reviews = item['total_reviews']
+# for item in summary:
+# writer_id = item['writer_id']
+# avg_rating = item['avg_rating']
+# total_reviews = item['total_reviews']
 
-#             writer = User.objects.filter(id=writer_id).first()
-#             if writer:
-#                 AuditLogEntry.log(
-#                     actor=None,
-#                     target=writer,
-#                     action="monthly_review_summary",
-#                     website=site,
-#                     metadata={
-#                         "month": month_start.strftime("%B %Y"),
-#                         "avg_rating": avg_rating,
-#                         "total_reviews": total_reviews
-#                     }
-#                 )
+# writer = User.objects.filter(id=writer_id).first()
+# if writer:
+# AuditLogEntry.log(
+# actor=None,
+# target=writer,
+# action="monthly_review_summary",
+# website=site,
+# metadata={
+# "month": month_start.strftime("%B %Y"),
+# "avg_rating": avg_rating,
+# "total_reviews": total_reviews
+# }
+# )
 
-#     return f"Monthly review summary generated for {now.strftime('%B %Y')}"
+# return f"Monthly review summary generated for {now.strftime('%B %Y')}"
 
 
 

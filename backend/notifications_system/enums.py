@@ -18,32 +18,32 @@ class NotificationEvent(TextChoices):
     # Orders — most events have a client version and a writer version
     ORDER_CREATED = 'order.created', _('Order Created')
     ORDER_ASSIGNED = 'order.assigned', _(
-        'Order Assigned')                  # writer + client receive
+        'Order Assigned') # writer + client receive
     # writer + client receive
     ORDER_UPDATED = 'order.updated', _('Order Updated')
     ORDER_APPROVED = 'order.approved', _('Order Approved')
     ORDER_COMPLETED = 'order.completed', _(
-        'Order Completed')               # writer + client receive
+        'Order Completed') # writer + client receive
     ORDER_CANCELLED = 'order.cancelled', _(
-        'Order Cancelled')               # writer + client receive
+        'Order Cancelled') # writer + client receive
     ORDER_REJECTED = 'order.rejected', _('Order Rejected')
     ORDER_ON_HOLD = 'order.on_hold', _('Order On Hold')
     ORDER_REOPENED = 'order.reopened', _(
-        'Order Reopened')                  # writer + client receive
+        'Order Reopened') # writer + client receive
     ORDER_REASSIGNED = 'order.reassigned', _(
-        'Order Reassigned')            # writer receives
+        'Order Reassigned') # writer receives
     ORDER_REVISION_REQUESTED = 'order.revision_requested', _(
-        'Revision Requested')   # writer receives
+        'Revision Requested') # writer receives
     ORDER_REVISION_COMPLETED = 'order.revision_completed', _(
-        'Revision Completed')   # writer + client receive
+        'Revision Completed') # writer + client receive
     ORDER_DISPUTED = 'order.disputed', _(
-        'Order Disputed')                  # staff receives
+        'Order Disputed') # staff receives
     ORDER_DISPUTE_RESOLVED = 'order.dispute_resolved', _(
-        'Dispute Resolved')         # writer + client receive
+        'Dispute Resolved') # writer + client receive
     ORDER_DISPUTE_ESCALATED = 'order.dispute_escalated', _(
-        'Dispute Escalated')      # staff receives
+        'Dispute Escalated') # staff receives
     ORDER_DEADLINE_APPROACHING = 'order.deadline_approaching', _(
-        'Deadline Approaching')  # writer receives
+        'Deadline Approaching') # writer receives
     # writer receives
     ORDER_RATED = 'order.rated', _('Order Rated')
     ORDER_QA_REVIEW_READY = "order.qa_review_ready"
@@ -71,15 +71,15 @@ class NotificationEvent(TextChoices):
 
     # Payouts and compensation — writer-specific
     PAYOUT_REQUESTED = 'payout.requested', _(
-        'Payout Requested')           # staff receives
+        'Payout Requested') # staff receives
     PAYOUT_PROCESSING = 'payout.processing', _(
-        'Payout Processing')        # writer receives
+        'Payout Processing') # writer receives
     PAYOUT_COMPLETED = 'payout.completed', _(
-        'Payout Completed')           # writer receives
+        'Payout Completed') # writer receives
     PAYOUT_FAILED = 'payout.failed', _(
-        'Payout Failed')                    # writer receives
+        'Payout Failed') # writer receives
     PAYOUT_ROLLED_OVER = 'payout.rolled_over', _(
-        'Payout Rolled Over')     # writer receives
+        'Payout Rolled Over') # writer receives
     COMPENSATION_PAYMENT_PROCESSING = (
         'compensation.payment_processing',
         _('Compensation Payment Processing'),
@@ -118,18 +118,18 @@ class NotificationEvent(TextChoices):
 
     # Tickets — one version for user, one for staff
     TICKET_CREATED = 'ticket.created', _(
-        'Ticket Created')                 # staff receives
+        'Ticket Created') # staff receives
     TICKET_UPDATED = 'ticket.updated', _('Ticket Updated')
     TICKET_ASSIGNED = 'ticket.assigned', _(
-        'Ticket Assigned')              # staff receives
+        'Ticket Assigned') # staff receives
     TICKET_ESCALATED = 'ticket.escalated', _(
-        'Ticket Escalated')           # staff receives
+        'Ticket Escalated') # staff receives
     TICKET_RESOLVED = 'ticket.resolved', _(
-        'Ticket Resolved')              # user receives
+        'Ticket Resolved') # user receives
     TICKET_CLOSED = 'ticket.closed', _('Ticket Closed')
     TICKET_REOPENED = 'ticket.reopened', _('Ticket Reopened')
     TICKET_COMMENT_ADDED = 'ticket.comment_added', _(
-        'Comment Added')      # user + staff receive
+        'Comment Added') # user + staff receive
 
     # Account
     ACCOUNT_SUSPENDED = 'account.suspended', _('Account Suspended')

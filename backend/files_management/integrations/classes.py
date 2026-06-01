@@ -23,16 +23,16 @@ class ClassFileIntegrationService:
 
     File categories and their default visibility:
 
-        CLASS_SYLLABUS         — ORDER_PARTICIPANTS (client + writer + staff)
-        CLASS_RUBRIC           — ORDER_PARTICIPANTS
-        CLASS_ASSIGNMENT       — ORDER_PARTICIPANTS; optionally task-linked
-        CLASS_SUBMISSION       — WRITER_AND_STAFF by default; staff may
+        CLASS_SYLLABUS — ORDER_PARTICIPANTS (client + writer + staff)
+        CLASS_RUBRIC — ORDER_PARTICIPANTS
+        CLASS_ASSIGNMENT — ORDER_PARTICIPANTS; optionally task-linked
+        CLASS_SUBMISSION — WRITER_AND_STAFF by default; staff may
                                   widen to CLIENT_AND_STAFF after review
-        CLASS_SCREENSHOT       — STAFF_ONLY until approved; proof of work
-        CLASS_GRADE_EVIDENCE   — CLIENT_AND_STAFF
-        CLASS_CREDENTIAL       — STAFF_ONLY; treated as sensitive (vault
+        CLASS_SCREENSHOT — STAFF_ONLY until approved; proof of work
+        CLASS_GRADE_EVIDENCE — CLIENT_AND_STAFF
+        CLASS_CREDENTIAL — STAFF_ONLY; treated as sensitive (vault
                                   mode pending)
-        CLASS_FEEDBACK         — CLIENT_AND_STAFF
+        CLASS_FEEDBACK — CLIENT_AND_STAFF
 
     When a ClassTask is provided, its PK is stored in attachment metadata
     so task-level file grouping works in the UI without a separate FK.

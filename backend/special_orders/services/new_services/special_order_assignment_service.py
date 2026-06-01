@@ -87,11 +87,11 @@ class SpecialOrderAssignmentService:
                 },
             )
 
-        
+
 
         return special_order
 
-    @staticmethod 
+    @staticmethod
     def sync_special_order_writer_communications(
         *,
         special_order,
@@ -151,7 +151,7 @@ class SpecialOrderAssignmentService:
         SpecialOrderDeliveryGuardService.assert_can_start_work(
             special_order=special_order,
         )
-        
+
         return SpecialOrderStateService.transition(
             special_order=special_order,
             to_status=SpecialOrderStatus.IN_PROGRESS,

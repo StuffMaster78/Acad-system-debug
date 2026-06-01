@@ -18,18 +18,18 @@ from writer_compensation.api.serializers.compensation_event_serializers import (
 
 class WriterPayoutPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
-        model        = WriterPayoutPreference
-        fields       = ["id", "cycle_type", "locked", "created_at", "updated_at"]
+        model = WriterPayoutPreference
+        fields = ["id", "cycle_type", "locked", "created_at", "updated_at"]
         read_only_fields = fields
 
 
 class WriterEventSerializer(serializers.ModelSerializer):
-    is_positive  = serializers.SerializerMethodField()
+    is_positive = serializers.SerializerMethodField()
     window_label = serializers.SerializerMethodField()
     source_label = serializers.SerializerMethodField()
 
     class Meta:
-        model  = CompensationEvent
+        model = CompensationEvent
         fields = [
             "id",
             "event_type",
@@ -46,7 +46,7 @@ class WriterEventSerializer(serializers.ModelSerializer):
         return obj.amount > Decimal("0.00")
 
     def get_window_label(self, obj) -> str:
-        w = obj.payment_window          # FIX: was obj.window
+        w = obj.payment_window # FIX: was obj.window
         return f"{w.start_date} – {w.end_date}"
 
     def get_source_label(self, obj) -> str | None:
@@ -59,7 +59,7 @@ class WriterPayoutRecordSerializer(serializers.ModelSerializer):
     window_label = serializers.SerializerMethodField()
 
     class Meta:
-        model  = PayoutRecord
+        model = PayoutRecord
         fields = [
             "id",
             "total_amount",
@@ -70,21 +70,21 @@ class WriterPayoutRecordSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_window_label(self, obj) -> str:
-        w = obj.batch.payment_window    # FIX: was obj.batch.window
+        w = obj.batch.payment_window # FIX: was obj.batch.window
         return f"{w.start_date} – {w.end_date}"
 
 
 class WriterCurrentWindowSerializer(serializers.Serializer):
-    window        = PaymentWindowSerializer()
-    net           = serializers.DecimalField(max_digits=12, decimal_places=2)
-    count         = serializers.IntegerField()
+    window = PaymentWindowSerializer()
+    net = serializers.DecimalField(max_digits=12, decimal_places=2)
+    count = serializers.IntegerField()
     is_processing = serializers.BooleanField()
 
 
 class WriterWindowDetailSerializer(serializers.Serializer):
-    events     = CompensationEventSerializer(many=True)
-    gross      = serializers.DecimalField(max_digits=12, decimal_places=2)
+    events = CompensationEventSerializer(many=True)
+    gross = serializers.DecimalField(max_digits=12, decimal_places=2)
     deductions = serializers.DecimalField(max_digits=12, decimal_places=2)
-    net        = serializers.DecimalField(max_digits=12, decimal_places=2)
-    count      = serializers.IntegerField()
-    breakdown  = serializers.ListField(child=serializers.DictField())
+    net = serializers.DecimalField(max_digits=12, decimal_places=2)
+    count = serializers.IntegerField()
+    breakdown = serializers.ListField(child=serializers.DictField())

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta 
+from datetime import timedelta
 from decimal import Decimal
 
 from django.utils.timezone import now
@@ -27,8 +27,8 @@ class BonusService:
     }
 
     MILESTONE_BONUSES = [
-        (10,  Decimal("50.00")),
-        (50,  Decimal("150.00")),
+        (10, Decimal("50.00")),
+        (50, Decimal("150.00")),
         (100, Decimal("300.00")),
         (250, Decimal("750.00")),
         (500, Decimal("1500.00")),
@@ -84,7 +84,7 @@ class BonusService:
         except WriterPerformance.DoesNotExist:
             return []
 
-        completed  = perf.completed_orders
+        completed = perf.completed_orders
         new_bonuses = []
 
         for threshold, amount in BonusService.MILESTONE_BONUSES:
@@ -96,9 +96,9 @@ class BonusService:
 
                 if not already_awarded:
                     new_bonuses.append({
-                        "milestone":    threshold,
+                        "milestone": threshold,
                         "bonus_amount": amount,
-                        "reason":       f"Milestone: {threshold} orders completed",
+                        "reason": f"Milestone: {threshold} orders completed",
                     })
                     logger.info(
                         "Milestone bonus qualified: writer %s, %s orders, $%s",
@@ -145,7 +145,7 @@ class BonusService:
         event, _ = EventIntakeService.record(
             website=resolved_website,
             writer=writer,
-            event_type=EventType.MILESTONE_BONUS,          # FIX: enum not raw string
+            event_type=EventType.MILESTONE_BONUS, # FIX: enum not raw string
             amount=amount,
             title=f"Milestone bonus — {milestone} orders",
             notes=f"Milestone bonus: {milestone} orders completed",
@@ -188,7 +188,7 @@ class BonusService:
         event, _ = EventIntakeService.record(
             website=resolved_website,
             writer=writer,
-            event_type=EventType.PERFORMANCE_BONUS,       # FIX: enum value
+            event_type=EventType.PERFORMANCE_BONUS, # FIX: enum value
             amount=bonus_amount,
             source_type="order",
             source_id=order.pk,
@@ -248,7 +248,7 @@ class BonusService:
         event, _ = EventIntakeService.record(
             website=resolved_website,
             writer=writer,
-            event_type=EventType.RETENTION_BONUS,         # FIX: enum value
+            event_type=EventType.RETENTION_BONUS, # FIX: enum value
             amount=bonus,
             title=f"Retention bonus — {period_label}",
             notes=(
@@ -320,7 +320,7 @@ class BonusService:
             event, _ = EventIntakeService.record(
                 website=resolved_website,
                 writer=writer,
-                event_type=EventType.REFERRAL_BONUS,      # FIX: enum value
+                event_type=EventType.REFERRAL_BONUS, # FIX: enum value
                 amount=amount,
                 source_type="writer_referral",
                 source_id=referred_writer.pk,
@@ -362,7 +362,7 @@ class BonusService:
             CompensationEvent.objects.filter(
                 writer=writer,
                 event_type__in=[
-                    EventType.PERFORMANCE_BONUS,   # FIX: enum values
+                    EventType.PERFORMANCE_BONUS, # FIX: enum values
                     EventType.MILESTONE_BONUS,
                     EventType.REFERRAL_BONUS,
                     EventType.RETENTION_BONUS,

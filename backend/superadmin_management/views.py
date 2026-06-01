@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from django.shortcuts import render
 from django.db.models import Count, Sum, Q
 from django.contrib.auth import get_user_model
-from django.db import models  
+from django.db import models
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.pagination import PageNumberPagination
 
@@ -34,7 +34,7 @@ from writer_management.models.tipping import Tip
 
 User = get_user_model()
 
-### 🔹 1️⃣ Superadmin-Only View
+### Superadmin-Only View
 class SuperadminOnlyView(APIView):
     """An example view that only Superadmins can access."""
     permission_classes = [IsAuthenticated, IsSuperadmin]
@@ -81,27 +81,27 @@ class SuperadminProfileFilter(filters.FilterSet):
             user__account_profiles__status=AccountStatus.SUSPENDED,
         ).distinct()
 
-### 🔹 2️⃣ Superadmin Profile API
+### Superadmin Profile API
 class SuperadminProfileViewSet(viewsets.ModelViewSet):
     """API for managing Superadmin Profiles with pagination."""
     queryset = SuperadminProfile.objects.all().order_by("-created_at")
     serializer_class = SuperadminProfileSerializer
     permission_classes = [IsSuperadmin]
     filter_backends = [DjangoFilterBackend]
-    filterset_class = SuperadminProfileFilter  # Use correct filterset for SuperadminProfile
-    pagination_class = SuperadminPagination  # Enable pagination
+    filterset_class = SuperadminProfileFilter # Use correct filterset for SuperadminProfile
+    pagination_class = SuperadminPagination # Enable pagination
 
 
-### 🔹 3️⃣ User Management API (Now Uses `ReadOnlyModelViewSet`)
+### User Management API (Now Uses `ReadOnlyModelViewSet`)
 class UserManagementViewSet(viewsets.ReadOnlyModelViewSet):
     """API for Superadmins to manage users with pagination."""
     queryset = User.objects.all().order_by("-date_joined")
     serializer_class = UserSerializer
     permission_classes = [IsSuperadmin]
-    pagination_class = SuperadminPagination  # Enable pagination
+    pagination_class = SuperadminPagination # Enable pagination
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = UserFilter
-    search_fields = ["username", "email", "role"]  # Search enabled
+    search_fields = ["username", "email", "role"] # Search enabled
 
     @action(detail=False, methods=['post'], url_path='create_user')
     def create_user(self, request):
@@ -146,18 +146,18 @@ class UserManagementViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(result, status=status.HTTP_200_OK)
 
 
-### 🔹 4️⃣ Superadmin Logs API (Now Paginated)
+### Superadmin Logs API (Now Paginated)
 class SuperadminLogViewSet(viewsets.ModelViewSet):
     """API for retrieving Superadmin logs with pagination."""
     queryset = SuperadminLog.objects.all().order_by("-timestamp")
     serializer_class = SuperadminLogSerializer
     permission_classes = [IsSuperadmin]
-    pagination_class = SuperadminLogCursorPagination  # Now uses CursorPagination
+    pagination_class = SuperadminLogCursorPagination # Now uses CursorPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["action_type", "timestamp", "superadmin__username"]
 
 
-### 🔹 5️⃣ Superadmin Dashboard (Web Interface)
+### Superadmin Dashboard (Web Interface)
 
 class SuperadminDashboardViewSet(viewsets.ViewSet):
     """API view for Superadmin Dashboard statistics."""
@@ -172,13 +172,13 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             return Response(cached_data, status=status.HTTP_200_OK)
 
         data = self.generate_dashboard_data()
-        cache.set(cache_key, data, timeout=600)  # Cache for 10 minutes
+        cache.set(cache_key, data, timeout=600) # Cache for 10 minutes
         return Response(data, status=status.HTTP_200_OK)
 
     def generate_dashboard_data(self):
         """Generates comprehensive dashboard data."""
         from django.db.models import Avg, Max, Min
-        
+
         # User Statistics
         user_stats = User.objects.aggregate(
             total_users=Count("id"),
@@ -192,7 +192,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         user_stats["suspended_users"] = AccountProfile.objects.filter(
             status=AccountStatus.SUSPENDED,
         ).values("user_id").distinct().count()
-        
+
         # Financial Statistics
         financial_stats = PaymentIntent.objects.aggregate(
             total_revenue=Sum("amount", default=0),
@@ -200,9 +200,9 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             completed_payments=Sum("amount", filter=Q(status="succeeded"), default=0),
             failed_payments=Count("id", filter=Q(status="failed")),
         )
-        
+
         total_refunds = PaymentIntent.objects.filter(status="refunded").aggregate(Sum("amount"))["amount__sum"] or 0
-        
+
         # Order Statistics
         order_stats = Order.objects.aggregate(
             total_orders=Count("id"),
@@ -216,7 +216,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             avg_order_value=Avg("total_price", filter=Q(is_paid=True)),
             total_revenue_orders=Sum("total_price", filter=Q(is_paid=True), default=0),
         )
-        
+
         # Recent Orders (last 10)
         recent_orders = Order.objects.select_related('client', 'assigned_writer', 'website').order_by('-created_at')[:10]
         recent_orders_data = [
@@ -233,7 +233,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             }
             for order in recent_orders
         ]
-        
+
         # Top Performing Writers (by completed orders)
         top_writers = User.objects.filter(
             role="writer",
@@ -242,7 +242,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             completed_orders_count=Count("orders_as_writer", filter=Q(orders_as_writer__status="succeeded")),
             total_earnings=Sum("orders_as_writer__writer_compensation", filter=Q(orders_as_writer__status="succeeded"), default=0),
         ).order_by("-completed_orders_count")[:10]
-        
+
         top_writers_data = [
             {
                 "id": writer.id,
@@ -253,7 +253,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             }
             for writer in top_writers
         ]
-        
+
         # Top Spending Clients
         top_clients = User.objects.filter(
             role="client",
@@ -262,7 +262,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             total_spent=Sum("orders_as_client__total_price", filter=Q(orders_as_client__is_paid=True), default=0),
             order_count=Count("orders_as_client", filter=Q(orders_as_client__is_paid=True)),
         ).order_by("-total_spent")[:10]
-        
+
         top_clients_data = [
             {
                 "id": client.id,
@@ -273,14 +273,14 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             }
             for client in top_clients
         ]
-        
+
         # Website Statistics
         website_stats = Website.objects.annotate(
             order_count=Count("order"),
             user_count=Count("website_users"),
             total_revenue=Sum("order__total_price", filter=Q(order__is_paid=True), default=0),
         ).values("id", "name", "domain", "is_active", "order_count", "user_count", "total_revenue")[:10]
-        
+
         website_stats_data = [
             {
                 "id": ws["id"],
@@ -293,7 +293,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             }
             for ws in website_stats
         ]
-        
+
         # Revenue Trends (last 30 days)
         thirty_days_ago = timezone.now() - timedelta(days=30)
         revenue_trends = Order.objects.filter(
@@ -305,7 +305,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             revenue=Sum("total_price", default=0),
             order_count=Count("id"),
         ).order_by('day')
-        
+
         revenue_trends_data = [
             {
                 "date": item["day"].isoformat() if item["day"] else None,
@@ -314,7 +314,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             }
             for item in revenue_trends
         ]
-        
+
         # Dispute Statistics
         dispute_stats = Dispute.objects.aggregate(
             total_disputes=Count("id"),
@@ -322,26 +322,26 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             pending_disputes=Count("id", filter=Q(dispute_status="open")),
             in_progress_disputes=Count("id", filter=Q(dispute_status="in_review")),
         )
-        
+
         # Ticket Statistics
         ticket_stats = Ticket.objects.aggregate(
             total_tickets=Count("id"),
             open_tickets=Count("id", filter=Q(status__in=["open", "pending"])),
             closed_tickets=Count("id", filter=Q(status="closed")),
         )
-        
+
         # Tip Statistics
         tip_stats = Tip.objects.aggregate(
             total_tips=Count("id"),
             total_tip_amount=Sum("tip_amount", default=0),
             completed_tips=Count("id", filter=Q(payment_status="succeeded")),
         )
-        
+
         # System Health Metrics
         now = timezone.now()
         last_24h = now - timedelta(hours=24)
         last_7d = now - timedelta(days=7)
-        
+
         system_health = {
             "orders_last_24h": Order.objects.filter(created_at__gte=last_24h).count(),
             "orders_last_7d": Order.objects.filter(created_at__gte=last_7d).count(),
@@ -356,7 +356,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
                 status__in=["available", "pending"]
             ).count(),
         }
-        
+
         return {
             **user_stats,
             **financial_stats,
@@ -381,7 +381,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
 
     def superadmin_dashboard(request):
         """Superadmin Dashboard - Displays key system metrics."""
-        
+
         user_stats = User.objects.aggregate(
             total_users=Count("id"),
             total_admins=Count("id", filter=Q(role="admin")),
@@ -398,7 +398,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             total_revenue=Sum("amount", default=0),
             pending_payouts=Sum("amount", filter=Q(status="pending"), default=0)
         )
-        
+
         total_refunds = PaymentIntent.objects.filter(status="refunded").aggregate(Sum("amount"))["amount__sum"] or 0
 
 
@@ -431,7 +431,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         return render(request, "superadmin_dashboard.html", context)
 
 
-### 🔹 6️⃣ Appeal Management ViewSet
+### Appeal Management ViewSet
 class AppealViewSet(viewsets.ModelViewSet):
     """API for managing user appeals (probation, blacklist, suspension)."""
     queryset = Appeal.objects.all().select_related(
@@ -449,17 +449,17 @@ class AppealViewSet(viewsets.ModelViewSet):
     def approve(self, request, pk=None):
         """Approve an appeal."""
         appeal = self.get_object()
-        
+
         if appeal.status != 'pending':
             return Response(
                 {"error": "Appeal has already been reviewed."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         appeal.status = 'approved'
         appeal.reviewed_by = request.user
         appeal.save()
-        
+
         # Handle appeal type-specific actions
         if appeal.user.role == "writer":
             from writer_management.models import WriterProfile
@@ -490,14 +490,14 @@ class AppealViewSet(viewsets.ModelViewSet):
                         )
                 except Exception:
                     pass
-        
+
         # Log the action
         SuperadminLog.objects.create(
             superadmin=request.user,
             action_type="Appeal Approved",
             action_details=f"Approved {appeal.appeal_type} appeal for {appeal.user.username}"
         )
-        
+
         return Response(
             {"message": "Appeal approved successfully."},
             status=status.HTTP_200_OK
@@ -507,24 +507,24 @@ class AppealViewSet(viewsets.ModelViewSet):
     def reject(self, request, pk=None):
         """Reject an appeal."""
         appeal = self.get_object()
-        
+
         if appeal.status != 'pending':
             return Response(
                 {"error": "Appeal has already been reviewed."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         appeal.status = 'rejected'
         appeal.reviewed_by = request.user
         appeal.save()
-        
+
         # Log the action
         SuperadminLog.objects.create(
             superadmin=request.user,
             action_type="Appeal Rejected",
             action_details=f"Rejected {appeal.appeal_type} appeal for {appeal.user.username}"
         )
-        
+
         return Response(
             {"message": "Appeal rejected."},
             status=status.HTTP_200_OK

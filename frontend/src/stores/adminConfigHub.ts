@@ -71,12 +71,12 @@ export interface CollectionMeta {
 }
 
 export const COLLECTIONS: CollectionMeta[] = [
-  { key: "paper-types",        label: "Paper types",       description: "Essay, research paper, case study…" },
-  { key: "academic-levels",    label: "Academic levels",   description: "High school, undergraduate, masters…" },
-  { key: "subjects",           label: "Subjects",          description: "Business, nursing, literature…" },
-  { key: "types-of-work",      label: "Types of work",     description: "Writing, editing, rewriting…" },
-  { key: "formatting-styles",  label: "Formatting styles", description: "APA, MLA, Chicago, Harvard…" },
-  { key: "english-types",      label: "English types",     description: "US English, UK English…" },
+  { key: "paper-types", label: "Paper types", description: "Essay, research paper, case study…" },
+  { key: "academic-levels", label: "Academic levels", description: "High school, undergraduate, masters…" },
+  { key: "subjects", label: "Subjects", description: "Business, nursing, literature…" },
+  { key: "types-of-work", label: "Types of work", description: "Writing, editing, rewriting…" },
+  { key: "formatting-styles", label: "Formatting styles", description: "APA, MLA, Chicago, Harvard…" },
+  { key: "english-types", label: "English types", description: "US English, UK English…" },
 ];
 
 function normalizeList<T>(data: T[] | { results: T[] }): T[] {
@@ -92,12 +92,12 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
 
   // ── Order Options ─────────────────────────────────────────────────────────────
   const collectionItems = ref<Record<ConfigCollection, OrderConfigOption[]>>({
-    "paper-types":       [],
-    "academic-levels":   [],
-    "subjects":          [],
-    "types-of-work":     [],
+    "paper-types": [],
+    "academic-levels": [],
+    "subjects": [],
+    "types-of-work": [],
     "formatting-styles": [],
-    "english-types":     [],
+    "english-types": [],
   });
 
   const isLoadingCollection = ref(false);
@@ -149,12 +149,12 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     try {
       if (auth.isPreviewSession) {
         const samples: Record<ConfigCollection, string[]> = {
-          "paper-types":       ["Essay", "Research Paper", "Case Study", "Thesis", "Lab Report"],
-          "academic-levels":   ["High School", "Undergraduate", "Masters", "PhD", "Professional"],
-          "subjects":          ["Business", "Nursing", "Literature", "History", "Psychology"],
-          "types-of-work":     ["Writing", "Editing", "Rewriting", "Proofreading"],
+          "paper-types": ["Essay", "Research Paper", "Case Study", "Thesis", "Lab Report"],
+          "academic-levels": ["High School", "Undergraduate", "Masters", "PhD", "Professional"],
+          "subjects": ["Business", "Nursing", "Literature", "History", "Psychology"],
+          "types-of-work": ["Writing", "Editing", "Rewriting", "Proofreading"],
           "formatting-styles": ["APA 7", "MLA 9", "Chicago", "Harvard", "Turabian"],
-          "english-types":     ["US English", "UK English", "Australian English"],
+          "english-types": ["US English", "UK English", "Australian English"],
         };
         collectionItems.value[collection] = samples[collection].map((n, i) => ({
           ...previewItem(n),
@@ -317,7 +317,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
       if (auth.isPreviewSession) {
         specialDays.value = [
           { id: 1, name: "Black Friday", date: "2026-11-27", event_type: "seasonal", priority: "high", is_annual: true, is_international: true },
-          { id: 2, name: "New Year",     date: "2026-01-01", event_type: "holiday",  priority: "high", is_annual: true, is_international: true },
+          { id: 2, name: "New Year", date: "2026-01-01", event_type: "holiday", priority: "high", is_annual: true, is_international: true },
         ];
         return;
       }
@@ -415,8 +415,8 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
       if (auth.isPreviewSession) {
         discountCodes.value = [
           { id: 1, code: "WELCOME20", discount_type: "percentage", value: 20, max_uses: 100, uses_count: 34, expires_at: "2026-12-31", is_active: true },
-          { id: 2, code: "FLAT10",    discount_type: "fixed",      value: 10, max_uses: null, uses_count: 7, expires_at: null, is_active: true },
-          { id: 3, code: "SUMMER15",  discount_type: "percentage", value: 15, max_uses: 50, uses_count: 50, expires_at: "2026-08-31", is_active: false },
+          { id: 2, code: "FLAT10", discount_type: "fixed", value: 10, max_uses: null, uses_count: 7, expires_at: null, is_active: true },
+          { id: 3, code: "SUMMER15", discount_type: "percentage", value: 15, max_uses: 50, uses_count: 50, expires_at: "2026-08-31", is_active: false },
         ];
         return;
       }
@@ -458,11 +458,11 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     try {
       if (auth.isPreviewSession) {
         allUsers.value = [
-          { id: 1, username: "alice_w",    email: "alice@example.com",    role: "writer",     is_active: true,  date_joined: "2025-01-10" },
-          { id: 2, username: "bob_client", email: "bob@example.com",      role: "client",     is_active: true,  date_joined: "2025-03-05" },
-          { id: 3, username: "carol_ed",   email: "carol@example.com",    role: "editor",     is_active: true,  date_joined: "2025-02-20" },
-          { id: 4, username: "dan_sup",    email: "dan@example.com",      role: "support",    is_active: false, date_joined: "2024-11-01" },
-          { id: 5, username: "eva_admin",  email: "eva@example.com",      role: "admin",      is_active: true,  date_joined: "2024-08-15" },
+          { id: 1, username: "alice_w", email: "alice@example.com", role: "writer", is_active: true, date_joined: "2025-01-10" },
+          { id: 2, username: "bob_client", email: "bob@example.com", role: "client", is_active: true, date_joined: "2025-03-05" },
+          { id: 3, username: "carol_ed", email: "carol@example.com", role: "editor", is_active: true, date_joined: "2025-02-20" },
+          { id: 4, username: "dan_sup", email: "dan@example.com", role: "support", is_active: false, date_joined: "2024-11-01" },
+          { id: 5, username: "eva_admin", email: "eva@example.com", role: "admin", is_active: true, date_joined: "2024-08-15" },
         ];
         return;
       }
@@ -482,12 +482,12 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     try {
       if (auth.isPreviewSession) {
         roles.value = [
-          { id: 1, name: "Superadmin",  codename: "superadmin", user_count: 1 },
-          { id: 2, name: "Admin",       codename: "admin",      user_count: 3 },
-          { id: 3, name: "Editor",      codename: "editor",     user_count: 8 },
-          { id: 4, name: "Support",     codename: "support",    user_count: 12 },
-          { id: 5, name: "Writer",      codename: "writer",     user_count: 204 },
-          { id: 6, name: "Client",      codename: "client",     user_count: 1840 },
+          { id: 1, name: "Superadmin", codename: "superadmin", user_count: 1 },
+          { id: 2, name: "Admin", codename: "admin", user_count: 3 },
+          { id: 3, name: "Editor", codename: "editor", user_count: 8 },
+          { id: 4, name: "Support", codename: "support", user_count: 12 },
+          { id: 5, name: "Writer", codename: "writer", user_count: 204 },
+          { id: 6, name: "Client", codename: "client", user_count: 1840 },
         ];
         return;
       }
@@ -506,10 +506,10 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     try {
       if (auth.isPreviewSession) {
         blogCategories.value = [
-          { id: 1, name: "Academic Writing",  slug: "academic-writing",  post_count: 14, is_active: true },
-          { id: 2, name: "Study Tips",        slug: "study-tips",        post_count: 8,  is_active: true },
-          { id: 3, name: "Research Methods",  slug: "research-methods",  post_count: 5,  is_active: false },
-          { id: 4, name: "Career Advice",     slug: "career-advice",     post_count: 3,  is_active: true },
+          { id: 1, name: "Academic Writing", slug: "academic-writing", post_count: 14, is_active: true },
+          { id: 2, name: "Study Tips", slug: "study-tips", post_count: 8, is_active: true },
+          { id: 3, name: "Research Methods", slug: "research-methods", post_count: 5, is_active: false },
+          { id: 4, name: "Career Advice", slug: "career-advice", post_count: 3, is_active: true },
         ];
         return;
       }
@@ -555,7 +555,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     try {
       if (auth.isPreviewSession) {
         pricingConfigs.value = [
-          { id: 1, name: "Standard — WritePro",    website: "WritePro", is_active: true, updated_at: new Date().toISOString() },
+          { id: 1, name: "Standard — WritePro", website: "WritePro", is_active: true, updated_at: new Date().toISOString() },
           { id: 2, name: "Premium — EssayMasters", website: "EssayMasters", is_active: true, updated_at: new Date().toISOString() },
         ];
         return;

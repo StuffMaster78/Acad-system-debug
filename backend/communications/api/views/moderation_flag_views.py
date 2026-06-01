@@ -29,7 +29,7 @@ class CommunicationModerationFlagViewSet(ReadOnlyModelViewSet):
     serializer_class = CommunicationModerationFlagSerializer
     pagination_class = CommunicationDefaultPagePagination
 
-    def get_permissions(self):  # type: ignore[override]
+    def get_permissions(self): # type: ignore[override]
         """
         Return permissions by action.
         """
@@ -46,7 +46,7 @@ class CommunicationModerationFlagViewSet(ReadOnlyModelViewSet):
 
         return [permission() for permission in permission_classes]
 
-    def get_queryset(self):  # type: ignore[override]
+    def get_queryset(self): # type: ignore[override]
         """
         Return moderation flags visible to staff operators.
         """

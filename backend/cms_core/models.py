@@ -45,7 +45,7 @@ class TenantHomePage(Page):
         "cms_core.AuthorIndexPage",
         "cms_core.ResourceIndexPage",
     ]
-    parent_page_types = ["wagtailcore.Page"]  # Only under Wagtail root
+    parent_page_types = ["wagtailcore.Page"] # Only under Wagtail root
 
     api_fields = [
         APIField("intro"),

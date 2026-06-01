@@ -15,7 +15,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     queryset = User.objects.none()
 
-    def get_queryset(self) -> QuerySet:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def get_queryset(self) -> QuerySet: # pyright: ignore[reportIncompatibleMethodOverride]
         """
         Return users visible to the current request context.
         """

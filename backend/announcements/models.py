@@ -73,7 +73,7 @@ class Announcement(models.Model):
         indexes = [
             models.Index(fields=['category', '-created_at']),
             models.Index(fields=['-created_at']),
-            models.Index(fields=['broadcast']),  # For join optimization
+            models.Index(fields=['broadcast']), # For join optimization
         ]
 
     def __str__(self):
@@ -156,11 +156,11 @@ class AnnouncementView(models.Model):
         verbose_name = 'Announcement View'
         verbose_name_plural = 'Announcement Views'
         indexes = [
-            models.Index(fields=['user', 'announcement']),  # For unread count queries (most important)
+            models.Index(fields=['user', 'announcement']), # For unread count queries (most important)
             models.Index(fields=['announcement', 'viewed_at']),
             models.Index(fields=['user', 'viewed_at']),
             models.Index(fields=['announcement', 'acknowledged']),
-            models.Index(fields=['user', 'acknowledged']),  # For analytics
+            models.Index(fields=['user', 'acknowledged']), # For analytics
         ]
         ordering = ['-viewed_at']
 

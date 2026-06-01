@@ -81,7 +81,7 @@ def get_writer_profile_for_website(user, website) -> "WriterProfile | None":
     Returns None if not found. Never raises.
 
     Args:
-        user:    auth.User instance.
+        user: auth.User instance.
         website: Website instance.
 
     Returns:
@@ -150,7 +150,7 @@ def resolve_website_for_writer(writer_profile) -> "Website | None":
     Resolve the Website for a WriterProfile.
 
     Resolution order:
-        1. writer_profile.writer_level.website  (most reliable)
+        1. writer_profile.writer_level.website (most reliable)
         2. writer_profile.account_profile.website
 
     Returns None if neither resolves. Never raises.

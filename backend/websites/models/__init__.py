@@ -23,7 +23,7 @@ if _parent_models.exists():
         WebsiteTermsAcceptance = getattr(models_main, 'WebsiteTermsAcceptance', None)
         ExternalReviewLink = getattr(models_main, 'ExternalReviewLink', None)
         GuestAccessToken = getattr(models_main, 'GuestAccessToken', None)
-        User = getattr(models_main, 'User', None)  # User is an alias for AUTH_USER_MODEL
+        User = getattr(models_main, 'User', None) # User is an alias for AUTH_USER_MODEL
     else:
         Website = None
         WebsiteActionLog = None

@@ -7,12 +7,12 @@ from orders.models.legacy_models.writer_acknowledgment import WriterAssignmentAc
 
 class WriterAssignmentAcknowledgmentSerializer(serializers.ModelSerializer):
     """Serializer for Writer Assignment Acknowledgment"""
-    
+
     writer_username = serializers.CharField(source='writer.username', read_only=True)
     writer_email = serializers.EmailField(source='writer.email', read_only=True)
     order_id = serializers.IntegerField(source='order.id', read_only=True)
     order_title = serializers.CharField(source='order.title', read_only=True)
-    
+
     class Meta:
         model = WriterAssignmentAcknowledgment
         fields = [

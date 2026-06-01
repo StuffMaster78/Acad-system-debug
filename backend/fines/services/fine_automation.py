@@ -21,13 +21,13 @@ def auto_issue_late_fine(order):
     ).exclude(
         status__in=[FineStatus.VOIDED, FineStatus.WAIVED]
     ).exists():
-        return None  # Already fined for lateness
+        return None # Already fined for lateness
 
     # Calculate fine using progressive hourly service
     fine_amount, reason, rule = LateFineCalculationService.calculate_late_fine(order)
-    
+
     if fine_amount is None or fine_amount <= 0:
-        return None  # Not late or no fine applicable
+        return None # Not late or no fine applicable
 
     # Calculate hours late for progressive calculation
     deadline = order.client_deadline or order.writer_deadline
@@ -36,7 +36,7 @@ def auto_issue_late_fine(order):
         hours_late = delay.total_seconds() / 3600
     else:
         hours_late = 0
-    
+
     # Get system user for auto-issued fines
     from django.contrib.auth import get_user_model
     User = get_user_model()
@@ -44,7 +44,7 @@ def auto_issue_late_fine(order):
         system_user = User.objects.get(username='system') if hasattr(settings, 'SYSTEM_USER') else None
     except:
         system_user = None
-    
+
     # Use FineTypeService to issue fine
     try:
         fine = FineTypeService.issue_fine(
@@ -65,9 +65,9 @@ def auto_issue_late_fine(order):
             issued_by=system_user,
             status=FineStatus.ISSUED,
         )
-        
+
         # Adjust writer compensation
         from fines.services.compensation import adjust_writer_compensation
         adjust_writer_compensation(order, -fine_amount)
-        
+
         return fine

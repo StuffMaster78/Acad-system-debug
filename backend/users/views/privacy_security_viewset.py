@@ -14,12 +14,12 @@ class PrivacySecurityViewSet(viewsets.ViewSet):
     ViewSet for privacy and security information and SOPs.
     """
     permission_classes = [IsAuthenticated]
-    
+
     @action(detail=False, methods=['get'])
     def privacy_policy(self, request):
         """
         Get privacy policy information.
-        
+
         GET /api/users/privacy-security/privacy-policy/
         """
         return Response({
@@ -89,12 +89,12 @@ class PrivacySecurityViewSet(viewsets.ViewSet):
                 },
             ]
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'])
     def security_practices(self, request):
         """
         Get security practices and SOPs.
-        
+
         GET /api/users/privacy-security/security-practices/
         """
         return Response({
@@ -182,12 +182,12 @@ class PrivacySecurityViewSet(viewsets.ViewSet):
                 },
             ]
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'])
     def data_rights(self, request):
         """
         Get information about user data rights.
-        
+
         GET /api/users/privacy-security/data-rights/
         """
         return Response({
@@ -231,12 +231,12 @@ class PrivacySecurityViewSet(viewsets.ViewSet):
                 },
             ]
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'])
     def cookie_policy(self, request):
         """
         Get cookie policy information.
-        
+
         GET /api/users/privacy-security/cookie-policy/
         """
         return Response({
@@ -269,12 +269,12 @@ class PrivacySecurityViewSet(viewsets.ViewSet):
                 },
             ]
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'])
     def terms_of_service(self, request):
         """
         Get terms of service information.
-        
+
         GET /api/users/privacy-security/terms-of-service/
         """
         return Response({
@@ -323,12 +323,12 @@ class PrivacySecurityViewSet(viewsets.ViewSet):
                 },
             ]
         }, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['get'])
     def all(self, request):
         """
         Get all privacy and security information.
-        
+
         GET /api/users/privacy-security/all/
         """
         # This would call all the other endpoints and combine them

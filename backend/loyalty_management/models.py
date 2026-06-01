@@ -57,7 +57,7 @@ class LoyaltyTransaction(models.Model):
         ('deduct', _('Deduct')),
     )
     website = models.ForeignKey(
-        'websites.Website', 
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name="loyalty_transactions_for_website"
     )
@@ -208,7 +208,7 @@ class ClientBadge(models.Model):
 
     def __str__(self):
         return f"Badge: {self.badge_name} for {self.client.user.username}"
-    
+
 
 class LoyaltyPointsConversionConfig(models.Model):
     """
@@ -306,7 +306,7 @@ class RedemptionItem(models.Model):
         ('service', _('Service Credit')),
         ('voucher', _('Voucher/Code')),
     )
-    
+
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -334,7 +334,7 @@ class RedemptionItem(models.Model):
         default='discount',
         help_text="Type of redemption item"
     )
-    
+
     # Type-specific fields
     discount_code = models.CharField(
         max_length=50,
@@ -356,7 +356,7 @@ class RedemptionItem(models.Model):
         null=True,
         help_text="Discount percentage (for discount type)"
     )
-    
+
     # Inventory management
     stock_quantity = models.PositiveIntegerField(
         null=True,
@@ -367,7 +367,7 @@ class RedemptionItem(models.Model):
         default=0,
         help_text="Total number of times this item has been redeemed"
     )
-    
+
     # Limits
     max_per_client = models.PositiveIntegerField(
         default=1,
@@ -381,7 +381,7 @@ class RedemptionItem(models.Model):
         related_name="redemption_items_requiring_tier",
         help_text="Minimum loyalty tier required to redeem"
     )
-    
+
     # Status
     is_active = models.BooleanField(
         default=True,
@@ -392,7 +392,7 @@ class RedemptionItem(models.Model):
         null=True,
         help_text="Image URL for the redemption item"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -416,25 +416,25 @@ class RedemptionItem(models.Model):
         """Check if a client can redeem this item"""
         if not self.is_available():
             return False, "Item is not available"
-        
+
         if client_profile.loyalty_points < self.points_required:
             return False, f"Insufficient points. Required: {self.points_required}, Available: {client_profile.loyalty_points}"
-        
+
         if self.min_tier_level:
             client_tier = client_profile.tier
             if not client_tier or client_tier.threshold < self.min_tier_level.threshold:
                 return False, f"Requires {self.min_tier_level.name} tier or higher"
-        
+
         # Check redemption limit per client
         client_redemptions = RedemptionRequest.objects.filter(
             item=self,
             client=client_profile,
             status='fulfilled'
         ).count()
-        
+
         if client_redemptions >= self.max_per_client:
             return False, f"Maximum redemption limit ({self.max_per_client}) reached"
-        
+
         return True, "Can redeem"
 
 
@@ -449,7 +449,7 @@ class RedemptionRequest(models.Model):
         ('rejected', _('Rejected')),
         ('cancelled', _('Cancelled')),
     )
-    
+
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -474,7 +474,7 @@ class RedemptionRequest(models.Model):
         default='pending',
         help_text="Current status of the redemption request"
     )
-    
+
     # Fulfillment details
     fulfillment_code = models.CharField(
         max_length=100,
@@ -487,7 +487,7 @@ class RedemptionRequest(models.Model):
         blank=True,
         help_text="Additional fulfillment details (e.g., tracking number, delivery address)"
     )
-    
+
     # Admin tracking
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -510,7 +510,7 @@ class RedemptionRequest(models.Model):
         null=True,
         help_text="Reason for rejection if applicable"
     )
-    
+
     requested_at = models.DateTimeField(auto_now_add=True)
     approved_at = models.DateTimeField(null=True, blank=True)
     fulfilled_at = models.DateTimeField(null=True, blank=True)
@@ -539,11 +539,11 @@ class LoyaltyAnalytics(models.Model):
         on_delete=models.CASCADE,
         related_name="loyalty_analytics"
     )
-    
+
     # Date range for this analytics snapshot
     date_from = models.DateField()
     date_to = models.DateField()
-    
+
     # Overall metrics
     total_active_clients = models.PositiveIntegerField(
         default=0,
@@ -561,7 +561,7 @@ class LoyaltyAnalytics(models.Model):
         default=0,
         help_text="Total outstanding points balance"
     )
-    
+
     # Redemption metrics
     total_redemptions = models.PositiveIntegerField(
         default=0,
@@ -580,13 +580,13 @@ class LoyaltyAnalytics(models.Model):
         blank=True,
         related_name="analytics_as_popular"
     )
-    
+
     # Tier distribution
     bronze_count = models.PositiveIntegerField(default=0)
     silver_count = models.PositiveIntegerField(default=0)
     gold_count = models.PositiveIntegerField(default=0)
     platinum_count = models.PositiveIntegerField(default=0)
-    
+
     # Engagement metrics
     active_redemptions_ratio = models.DecimalField(
         max_digits=5,
@@ -599,7 +599,7 @@ class LoyaltyAnalytics(models.Model):
         decimal_places=2,
         default=0.0
     )
-    
+
     # Timestamps
     calculated_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -629,7 +629,7 @@ class DashboardWidget(models.Model):
         ('points_balance', 'Total Points Balance'),
         ('conversion_rate', 'Points to Wallet Conversion'),
     )
-    
+
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,

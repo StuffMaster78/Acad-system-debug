@@ -22,7 +22,7 @@ class AutoArchiveService:
             status (str): Order status to target. Default is 'approved'.
             website (Website, optional): Scope to a specific tenant.
             user (User, optional): User performing the archiving (for logging).
-        
+
         Returns:
             dict: Summary of archived orders.
         """
@@ -62,4 +62,4 @@ class AutoArchiveService:
 
         except Exception as e:
             logger.exception("Error during auto-archiving orders.")
-            raise  # Let upstream handle it
+            raise # Let upstream handle it

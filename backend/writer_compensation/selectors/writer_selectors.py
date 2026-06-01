@@ -69,9 +69,9 @@ class WriterSelectors:
 
         if not current_window:
             return {
-                "window":        None,
-                "net":           Decimal("0.00"),
-                "count":         0,
+                "window": None,
+                "net": Decimal("0.00"),
+                "count": 0,
                 "is_processing": False,
             }
 
@@ -81,9 +81,9 @@ class WriterSelectors:
         ).aggregate(net=Sum("amount"), count=Count("id"))
 
         return {
-            "window":        current_window,
-            "net":           totals["net"]   or Decimal("0.00"),
-            "count":         totals["count"] or 0,
+            "window": current_window,
+            "net": totals["net"] or Decimal("0.00"),
+            "count": totals["count"] or 0,
             "is_processing": current_window.status == WindowStatus.PROCESSING,
         }
 
