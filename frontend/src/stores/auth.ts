@@ -13,6 +13,7 @@ export class MfaRequiredError extends Error {
 const ACCESS_KEY = "writing_system.access";
 const REFRESH_KEY = "writing_system.refresh";
 const USER_KEY = "writing_system.user";
+const IMPERSONATION_ORIGIN_KEY = "writing_system.impersonation_origin";
 
 function readUser(): AuthUser | null {
   const raw = window.localStorage.getItem(USER_KEY);
@@ -34,6 +35,9 @@ export const useAuthStore = defineStore("auth", () => {
   const isAuthenticated = computed(() => Boolean(accessToken.value));
   const isPreviewSession = computed(() => accessToken.value.startsWith("dev-preview-"));
   const role = computed<UserRole | null>(() => user.value?.role ?? null);
+  const isImpersonating = computed(
+    () => Boolean(window.localStorage.getItem(IMPERSONATION_ORIGIN_KEY))
+  );
 
   function persist(tokens: { access?: string; refresh?: string }, nextUser?: AuthUser) {
     if (tokens.access) {
@@ -109,7 +113,30 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   function adoptSession(tokens: { access: string; refresh: string }, nextUser: AuthUser) {
+    // Snapshot the current session before switching so impersonation can be reversed.
+    if (!window.localStorage.getItem(IMPERSONATION_ORIGIN_KEY)) {
+      window.localStorage.setItem(
+        IMPERSONATION_ORIGIN_KEY,
+        JSON.stringify({
+          access: accessToken.value,
+          refresh: refresh.value,
+          user: user.value,
+        }),
+      );
+    }
     persist(tokens, nextUser);
+  }
+
+  function restoreFromImpersonation() {
+    const raw = window.localStorage.getItem(IMPERSONATION_ORIGIN_KEY);
+    if (!raw) return;
+    const origin = JSON.parse(raw) as {
+      access: string;
+      refresh: string;
+      user: AuthUser;
+    };
+    window.localStorage.removeItem(IMPERSONATION_ORIGIN_KEY);
+    persist({ access: origin.access, refresh: origin.refresh }, origin.user);
   }
 
   function previewAs(roleName: AuthUser["role"]) {
@@ -141,12 +168,14 @@ export const useAuthStore = defineStore("auth", () => {
     role,
     isAuthenticated,
     isPreviewSession,
+    isImpersonating,
     isLoading,
     login,
     loadMe,
     refreshToken,
     logout,
     adoptSession,
+    restoreFromImpersonation,
     clearSession,
     previewAs,
     updateUser,

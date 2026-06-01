@@ -17,7 +17,7 @@ from order_configs.models import (
     WriterDeadlineConfig,
 )
 from orders.models.orders import Order
-from orders.order_enums import OrderStatus, SpacingOptions
+from orders.order_enums import OrderStatus
 from websites.models.websites import Website
 
 
@@ -52,17 +52,19 @@ class Command(BaseCommand):
                 website=website,
                 **extra_fields,
             )
-            user.detected_country = DEFAULT_COUNTRY
-            user.detected_timezone = DEFAULT_TIMEZONE
+            if hasattr(user, "detected_country"):
+                user.detected_country = DEFAULT_COUNTRY
+            if hasattr(user, "detected_timezone"):
+                user.detected_timezone = DEFAULT_TIMEZONE
             user.set_password(password)
         else:
             user.username = username
             user.role = role
             if website and (user.website_id != website.id):
                 user.website = website
-            if not user.detected_country:
+            if hasattr(user, "detected_country") and not user.detected_country:
                 user.detected_country = DEFAULT_COUNTRY
-            if not user.detected_timezone:
+            if hasattr(user, "detected_timezone") and not user.detected_timezone:
                 user.detected_timezone = DEFAULT_TIMEZONE
             if extra_fields.get("is_staff"):
                 user.is_staff = True
@@ -294,11 +296,11 @@ class Command(BaseCommand):
                     client_deadline = timezone.now() + timedelta(days=days_offset)
                     writer_deadline = client_deadline - timedelta(days=1) if assigned_writer else None
                     
+                    total_price = Decimal(str(randint(100, 500)))
                     # Create order
                     order = Order.objects.create(
                         website=website,
                         client=client_user,
-                        assigned_writer=assigned_writer,
                         topic=f"Demo Order #{order_counter} - {status.replace('_', ' ').title()}",
                         paper_type=paper_type,
                         academic_level=academic_level,
@@ -306,17 +308,13 @@ class Command(BaseCommand):
                         subject=subject,
                         type_of_work=type_of_work,
                         english_type=english_type,
-                        number_of_pages=randint(5, 20),
-                        number_of_slides=0,
-                        number_of_refereces=randint(3, 10),
-                        spacing=choice([SpacingOptions.SINGLE.value, SpacingOptions.DOUBLE.value]),
                         status=status,
                         client_deadline=client_deadline,
                         writer_deadline=writer_deadline,
-                        writer_deadline_percentage=writer_deadline_cfg,
-                        total_price=Decimal(str(randint(100, 500))),
+                        total_price=total_price,
+                        amount_paid=total_price if is_paid else Decimal("0.00"),
+                        payment_status="paid" if is_paid else "unpaid",
                         writer_compensation=Decimal(str(randint(50, 300))),
-                        is_paid=is_paid,
                         order_instructions=f"This is a demo order with status '{status}'. Created for testing purposes.",
                     )
                     

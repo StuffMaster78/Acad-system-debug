@@ -48,6 +48,9 @@ export const specialOrdersApi = {
   cancel: (id: number | string, reason?: string) =>
     api.post(apiPath(`/special-orders/${id}/cancel/`), { reason }),
 
+  complete: (id: number | string) =>
+    api.post(apiPath(`/special-orders/${id}/complete/`), {}),
+
   assignWriter: (id: number | string, writerId: number) =>
     api.post(apiPath(`/special-orders/${id}/assign-writer/`), { writer_id: writerId }),
 

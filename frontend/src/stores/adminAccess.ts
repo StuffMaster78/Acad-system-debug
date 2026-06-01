@@ -546,6 +546,27 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     }
   }
 
+  async function endImpersonation(endReason = "Admin ended session") {
+    const auth = useAuthStore();
+    const ui = useUiStore();
+    isMutating.value = true;
+    try {
+      if (auth.isPreviewSession) {
+        auth.restoreFromImpersonation();
+        ui.toast("Preview impersonation ended.", "info");
+        return;
+      }
+      await adminAccessApi.endImpersonation(endReason);
+      auth.restoreFromImpersonation();
+      impersonationStatus.value = { is_impersonating: false, impersonator: null };
+      ui.toast("Impersonation ended. Your session has been restored.", "success");
+    } catch {
+      ui.toast("Unable to end impersonation.", "error");
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   return {
     users,
     stats,
@@ -579,5 +600,6 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     removeBlacklistedEmail,
     createImpersonationToken,
     startImpersonation,
+    endImpersonation,
   };
 });

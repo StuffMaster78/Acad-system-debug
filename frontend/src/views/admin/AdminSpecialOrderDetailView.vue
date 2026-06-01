@@ -86,14 +86,18 @@
               </button>
               <button
                 v-if="['in_progress'].includes(store.detail.status)"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
+                :disabled="store.isSaving"
+                @click="handleMarkComplete"
               >
                 <CheckCircle class="size-3.5" />
                 Mark Complete
               </button>
               <button
                 v-if="!['completed', 'cancelled'].includes(store.detail.status)"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
+                :disabled="store.isSaving"
+                @click="handleCancelOrder"
               >
                 <XCircle class="size-3.5" />
                 Cancel Order
@@ -430,5 +434,28 @@ function fmtDate(v: string): string {
 
 function fmtDateTime(v: string): string {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(v));
+}
+
+async function handleMarkComplete() {
+  if (!store.detail) return;
+  if (!confirm("Mark this special order as complete?")) return;
+  try {
+    await specialOrdersApi.complete(store.detail.id);
+    await store.loadDetail(store.detail.id);
+  } catch {
+    // errors surfaced by the store
+  }
+}
+
+async function handleCancelOrder() {
+  const reason = prompt("Reason for cancellation (required):");
+  if (!reason?.trim()) return;
+  if (!store.detail) return;
+  try {
+    await specialOrdersApi.cancel(store.detail.id, reason.trim());
+    await store.loadDetail(store.detail.id);
+  } catch {
+    // errors surfaced by the store
+  }
 }
 </script>

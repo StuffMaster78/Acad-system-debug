@@ -9,6 +9,7 @@ import NotificationBell from "@/components/layout/NotificationBell.vue";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
 import WalletBalancePill from "@/components/wallet/WalletBalancePill.vue";
 import HeaderContextPill from "@/components/layout/HeaderContextPill.vue";
+import ImpersonationBanner from "@/components/layout/ImpersonationBanner.vue";
 import { groupedNavigationByRole } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth";
 import { useUiStore } from "@/stores/ui";
@@ -81,6 +82,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
 
 <template>
   <div class="min-h-screen bg-slate-50 text-ink">
+    <!-- Impersonation warning bar — only visible when actively impersonating -->
+    <ImpersonationBanner />
 
     <!-- Mobile overlay -->
     <div
@@ -297,7 +300,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       :class="ui.sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-[220px]'"
     >
       <!-- Header -->
-      <header class="sticky top-0 z-10 flex items-center border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-0 backdrop-blur-sm lg:pl-6">
+      <header class="sticky top-0 z-10 flex items-center border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-4 backdrop-blur-sm lg:pl-6 lg:pr-6">
 
         <!-- Mobile burger -->
         <button
@@ -313,7 +316,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
         <GlobalSearch :role="role" class="min-w-0 flex-1" />
 
         <!-- Right group: all utilities + account pill, pushed to edge -->
-        <div class="ml-6 flex shrink-0 items-center gap-3.5 pr-1">
+        <div class="ml-6 flex shrink-0 items-center gap-3.5">
 
           <WalletBalancePill />
           <HeaderContextPill :role="role" />
