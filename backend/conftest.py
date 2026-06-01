@@ -397,18 +397,24 @@ def enable_db_access_for_all_tests(db):
 def order(client_user, website):
     """Create a test order."""
     from orders.models.orders import Order
+    from order_configs.models import PaperType
     from datetime import timedelta
     from django.utils import timezone
-    
+
+    paper_type, _ = PaperType.objects.get_or_create(
+        website=website,
+        name="Essay",
+    )
+
     return Order.objects.create(
         client=client_user,
         website=website,
-        topic='Test Order Topic',
-        number_of_pages=5,
-        total_price=Decimal('100.00'),
+        topic="Test Order Topic",
+        paper_type=paper_type,
+        total_price=Decimal("100.00"),
         client_deadline=timezone.now() + timedelta(days=7),
-        order_instructions='Test instructions',
-        status='draft'
+        order_instructions="Test instructions",
+        status="draft",
     )
 
 
@@ -509,10 +515,28 @@ def other_client(website):
     )
 
 
+def _ensure_wagtail_locale():
+    """Create the default Wagtail Locale if it doesn't exist yet."""
+    from wagtail.coreutils import get_supported_content_language_variant
+    from wagtail.models import Locale
+
+    try:
+        lang_code = get_supported_content_language_variant(
+            __import__("django.conf", fromlist=["settings"]).settings.LANGUAGE_CODE
+        )
+    except LookupError:
+        lang_code = "en"
+    Locale.objects.get_or_create(language_code=lang_code)
+
+
 @pytest.fixture
-def root_page():
-    """The Wagtail root page (always exists after migrations)."""
-    return Page.objects.filter(depth=1).first()
+def root_page(db):
+    """The Wagtail root page, created if migrations left none."""
+    _ensure_wagtail_locale()
+    root = Page.objects.filter(depth=1).first()
+    if root is None:
+        root = Page.add_root(title="Root", slug="root")
+    return root
 
 
 @pytest.fixture
@@ -523,6 +547,8 @@ def tenant_site(root_page):
         ResourceIndexPage,
         TenantHomePage,
     )
+
+    _ensure_wagtail_locale()
 
     home = TenantHomePage(title="Test Tenant", slug="test-tenant")
     root_page.add_child(instance=home)
@@ -558,7 +584,7 @@ def website(tenant_site):
     """A Website model instance linked to the test tenant site.
     Adjust this if your Website model has required fields beyond domain."""
     try:
-        from websites.models import Website
+        from websites.models.websites import Website
 
         w, _ = Website.objects.get_or_create(
             domain="test.localhost",

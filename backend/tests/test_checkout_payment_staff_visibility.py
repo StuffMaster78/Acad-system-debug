@@ -146,9 +146,13 @@ class TestCheckoutPaymentStaffVisibility:
     def _fund_wallet(self, client_user, website, amount=Decimal("500.00")):
         from wallets.services.client_wallet_service import ClientWalletService
         wallet = ClientWalletService.get_wallet(website=website, client=client_user)
-        wallet.balance = amount
-        wallet.save()
+        wallet.available_balance = amount
+        wallet.save(update_fields=["available_balance"])
         return wallet
+
+    def _ensure_ledger_accounts(self, website):
+        from tests.fixtures.payment_fixtures import _ensure_ledger_accounts
+        _ensure_ledger_accounts(website)
 
     def test_wallet_payment_updates_order_payment_status(
         self, api_client, client_user, website, order
@@ -156,6 +160,7 @@ class TestCheckoutPaymentStaffVisibility:
         """
         POSTing to pay/wallet/ with sufficient balance marks the order as paid.
         """
+        self._ensure_ledger_accounts(website)
         self._fund_wallet(client_user, website)
         api_client.credentials(**auth_header(client_user))
 
@@ -170,7 +175,7 @@ class TestCheckoutPaymentStaffVisibility:
         ), f"Unexpected status {response.status_code}: {response.data}"
 
         order.refresh_from_db()
-        assert order.is_paid is True or order.payment_status in (
+        assert order.is_fully_paid or order.payment_status in (
             "paid", "partially_paid", "completed"
         )
 
@@ -192,7 +197,7 @@ class TestCheckoutPaymentStaffVisibility:
         )
 
         order.refresh_from_db()
-        assert not order.is_paid
+        assert not order.is_fully_paid
 
     def test_payment_requires_authentication(self, api_client, order):
         """Unauthenticated request to pay/wallet/ is rejected."""

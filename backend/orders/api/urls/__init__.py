@@ -4,6 +4,7 @@ from django.urls import include
 from django.urls import path
 
 urlpatterns = [
+    path("", include("orders.api.urls.order_viewset_urls")),
     path("", include("orders.api.urls.staffing")),
     path("", include("orders.api.urls.reassignments")),
     path("", include("orders.api.urls.submissions")),

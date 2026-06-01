@@ -8,7 +8,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from ledger.models.journal_entry import JournalEntry
 from ledger.models.ledger_account import LedgerAccount
-from ledger.constants import LedgerAccountStatus
+from ledger.constants import LedgerAccountStatus, LedgerEntryType
 from ledger.services.journal_posting_service import (
     JournalLineInput,
     JournalPostingService,
@@ -256,7 +256,7 @@ class WalletLedgerIntegrationService:
 
         return WalletLedgerIntegrationService._post(
             website=website,
-            entry_type="wallet_topup",
+            entry_type=LedgerEntryType.CLIENT_WALLET_TOP_UP,
             wallet=wallet,
             amount=amount,
             description=description,
@@ -324,7 +324,7 @@ class WalletLedgerIntegrationService:
 
         return WalletLedgerIntegrationService._post(
             website=website,
-            entry_type="wallet_order_payment",
+            entry_type=LedgerEntryType.CLIENT_WALLET_SPEND,
             wallet=wallet,
             amount=amount,
             description=description,
@@ -459,7 +459,7 @@ class WalletLedgerIntegrationService:
 
         return WalletLedgerIntegrationService._post(
             website=website,
-            entry_type="writer_earning",
+            entry_type=LedgerEntryType.WRITER_EARNING_ACCRUAL,
             wallet=wallet,
             amount=amount,
             description=description,
@@ -595,7 +595,7 @@ class WalletLedgerIntegrationService:
 
         return WalletLedgerIntegrationService._post(
             website=website,
-            entry_type="writer_penalty",
+            entry_type=LedgerEntryType.WRITER_FINE,
             wallet=wallet,
             amount=amount,
             description=description,
@@ -662,7 +662,7 @@ class WalletLedgerIntegrationService:
 
         return WalletLedgerIntegrationService._post(
             website=website,
-            entry_type="admin_wallet_credit",
+            entry_type=LedgerEntryType.WRITER_MANUAL_INCREASE,
             wallet=wallet,
             amount=amount,
             description=description,
@@ -729,7 +729,7 @@ class WalletLedgerIntegrationService:
 
         return WalletLedgerIntegrationService._post(
             website=website,
-            entry_type="admin_wallet_debit",
+            entry_type=LedgerEntryType.WRITER_MANUAL_DECREASE,
             wallet=wallet,
             amount=amount,
             description=description,

@@ -28,8 +28,8 @@ class IsAdminOrSuperAdmin(BasePermission):
     Allow admins and superadmins to access.
     """
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in [
-            User.ADMIN, User.SUPERADMIN
+        return request.user.is_authenticated and getattr(request.user, "role", None) in [
+            "admin", "superadmin",
         ]
 
 

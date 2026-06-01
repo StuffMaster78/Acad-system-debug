@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from django.core.exceptions import ValidationError
 from orders.models.orders import Order
 from orders.order_enums import OrderFlags, OrderStatus
-from orders.permissions import IsOrderOwnerOrSupport
+from orders.permissions import IsAdminOrSuperAdmin, IsOrderOwnerOrSupport
 from orders.serializers.orders import OrderSerializer
 from payments_processor.models import PaymentIntent
 from orders.exceptions import InvalidTransitionError
@@ -254,56 +254,20 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             len([k for k in params.keys() if k not in ['page', 'page_size', 'ordering']]) <= 2
         )
 
-        # Optimize queryset with select_related and prefetch_related to prevent N+1 queries
-        # For list views, use minimal select_related to speed up queries significantly
-        if self.action == 'list':
-            if self._is_simple_query:
-                # Ultra-minimal queryset for simple count/check queries
-                # Only fetch what's absolutely necessary - no select_related overhead
-                qs = Order.objects.all().only(
-                    'id', 'status', 'is_paid', 'client_id', 'assigned_writer_id',
-                    'website_id', 'preferred_writer_id', 'created_at'
-                )
-            else:
-                # Minimal fields for list view - only what's needed for OrderListSerializer
-                # This dramatically reduces data transfer and query time
-                qs = Order.objects.all().select_related(
-                    'client',           # For client_username
-                    'website',          # For website filtering
-                    'assigned_writer',  # For writer_username
-                    'paper_type',       # For paper_type_name
-                    'academic_level',   # For academic_level_name
-                    'subject',          # For subject_name
-                ).only(
-                    # Only fetch fields used in OrderListSerializer - reduces data transfer by ~70%
-                    'id', 'topic', 'status', 'is_paid', 'total_price', 'writer_compensation',
-                    'client_deadline', 'writer_deadline', 'created_at', 'updated_at',
-                    'number_of_pages', 'number_of_slides', 'number_of_refereces',
-                    'spacing', 'discount_code_used', 'is_special_order', 'is_follow_up',
-                    'is_urgent', 'flags',
-                    # Foreign key IDs (needed for select_related to work)
-                    'client_id', 'assigned_writer_id', 'preferred_writer_id',
-                    'paper_type_id', 'academic_level_id', 'formatting_style_id',
-                    'type_of_work_id', 'english_type_id', 'subject_id', 'website_id',
-                )
-        else:
-            # Full select_related for detail views
-            qs = Order.objects.all().select_related(
-                'client',           # Used in serializer
-                'website',          # Used in serializer
-                'assigned_writer',  # Used in serializer (writer_username)
-                'preferred_writer', # Used in serializer
-                'paper_type',       # Used in serializer
-                'academic_level',   # Used in serializer
-                'formatting_style', # Used in serializer
-                'type_of_work',     # Used in serializer
-                'english_type',     # Used in serializer
-                'subject',          # Used in serializer
-                'previous_order',   # Used in serializer
-                'discount',         # Used in serializer
-            ).prefetch_related(
-                'extra_services',   # ManyToMany field used in serializer
-            )
+        # Select-related for valid FK fields only (writer assignment is via OrderAssignment model)
+        qs = Order.objects.all().select_related(
+            'client',
+            'website',
+            'preferred_writer',
+            'paper_type',
+            'academic_level',
+            'formatting_style',
+            'type_of_work',
+            'english_type',
+            'subject',
+            'previous_order',
+            'discount',
+        )
 
         # Role-based scoping
         # Both superadmin and admin should see all orders (no website filtering)
@@ -463,7 +427,6 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 )
             elif needs_attention == 'unassigned':
                 base_qs = base_qs.filter(
-                    assigned_writer__isnull=True,
                     status__in=[
                         OrderStatus.AVAILABLE.value,
                         OrderStatus.PENDING_WRITER_ASSIGNMENT.value,
@@ -508,10 +471,6 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 | Q(order_instructions__icontains=search_term)
                 | Q(client__username__icontains=search_term)
                 | Q(client__email__icontains=search_term)
-                | Q(assigned_writer__username__icontains=search_term)
-                | Q(assigned_writer__email__icontains=search_term)
-                | Q(external_contact_name__icontains=search_term)
-                | Q(external_contact_email__icontains=search_term)
                 | Q(subject__name__icontains=search_term)
             )
             if search_term.isdigit():
@@ -536,7 +495,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             'type_of_work_id': 'type_of_work_id',
             'english_type_id': 'english_type_id',
             'formatting_style_id': 'formatting_style_id',
-            'writer_id': 'assigned_writer_id',
+            'writer_id': 'preferred_writer_id',
             'preferred_writer_id': 'preferred_writer_id',
             'client_id': 'client_id',
         }
@@ -549,9 +508,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         writer_query = params.get('writer_query')
         if writer_query:
             base_qs = base_qs.filter(
-                Q(assigned_writer__username__icontains=writer_query)
-                | Q(assigned_writer__email__icontains=writer_query)
-                | Q(preferred_writer__username__icontains=writer_query)
+                Q(preferred_writer__username__icontains=writer_query)
                 | Q(preferred_writer__email__icontains=writer_query)
             )
 
@@ -764,7 +721,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         # This allows us to check permissions even if the queryset would exclude it
         try:
             order = Order.objects.select_related(
-                'client', 'assigned_writer', 'website', 'preferred_writer'
+                'client', 'website', 'preferred_writer'
             ).get(id=order_id)
         except Order.DoesNotExist:
             raise NotFound("No Order matches the given query.")
@@ -891,7 +848,12 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         cache.set(cache_key, payload, timeout=30)
         return Response(payload)
 
-    @decorators.action(detail=True, methods=["get"], url_path="payment-summary")
+    @decorators.action(
+        detail=True,
+        methods=["get"],
+        url_path="payment-summary",
+        permission_classes=[IsAuthenticated, IsAdminOrSuperAdmin],
+    )
     def payment_summary(self, request, pk=None):
         """
         Provide payment and installment summary for the order owner or staff.
@@ -1083,7 +1045,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     pass
 
             # Use pricing calculator service
-            from orders.services.pricing_calculator import PricingCalculatorService
+            from orders.services.old_services.pricing_calculator import PricingCalculatorService
             calculator = PricingCalculatorService(temp)
             breakdown = calculator.calculate_breakdown()
             total = calculator.calculate_total_price()
@@ -1166,42 +1128,32 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
     def pay_with_wallet(self, request, pk=None):
         """
         Process order payment using client's wallet balance.
-        
-        This endpoint:
-        1. Calculates the order total (including discounts)
-        2. Creates an OrderPayment record
-        3. Deducts the amount from the client's wallet
-        4. Marks the order as paid
-        
-        Requires client to own the order or staff privileges.
+
+        Requires the requesting user to be the order's client or a staff member.
         """
-        from django.db import transaction
-        from orders.services.pricing_calculator import PricingCalculatorService
         from wallets.services.client_wallet_service import ClientWalletService
 
         order = get_object_or_404(Order, pk=pk)
         user = request.user
 
-        if not (user.is_superuser or user.role in ["admin", "support"] or order.client_id == user.id):
+        user_role = getattr(user, "role", None)
+        if not (user.is_superuser or user_role in ["admin", "support"] or order.client_id == user.id):
             return Response({"detail": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
 
-        if order.is_paid:
+        if order.is_fully_paid:
             return Response({"detail": "Order already paid."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not order.client:
-            return Response({"detail": "Order does not have an associated client."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Order does not have an associated client."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         client = order.client
+        order_total = order.total_price
 
         try:
             with transaction.atomic():
-                calculator = PricingCalculatorService(order)
-                order_total = calculator.calculate_total_price()
-
-                if order.total_price != order_total:
-                    order.total_price = order_total
-                    order.save(update_fields=["total_price"])
-
                 wallet = ClientWalletService.get_wallet(website=order.website, client=client)
 
                 if wallet.available_balance < order_total:
@@ -1224,10 +1176,13 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     reference_id=str(order.id),
                     description=f"Wallet payment for order #{order.id}",
                 )
-                wallet.refresh_from_db()
 
-                order.is_paid = True
-                order.save(update_fields=["is_paid", "updated_at"])
+                # Mark paid by recording the amount and updating payment status.
+                order.amount_paid = order.amount_paid + order_total
+                order.payment_status = "paid"
+                order.save(update_fields=["amount_paid", "payment_status", "updated_at"])
+
+                wallet.refresh_from_db()
 
                 try:
                     from notifications_system.services.notification_service import NotificationService
@@ -1240,36 +1195,29 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                         is_critical=True,
                         priority="high",
                     )
-                except Exception as e:
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.error(f"Failed to send payment notification for order {order.id}: {e}")
+                except Exception:
+                    pass
 
-                return Response({
-                    "detail": "Order paid successfully using wallet.",
-                    "order": OrderSerializer(order, context={"request": request}).data,
-                    "payment": {
-                        "amount": float(order_total),
-                        "status": "succeeded",
-                        "method": "wallet",
+                return Response(
+                    {
+                        "detail": "Order paid successfully using wallet.",
+                        "payment": {
+                            "amount": float(order_total),
+                            "status": "succeeded",
+                            "method": "wallet",
+                        },
+                        "wallet_balance": float(wallet.available_balance),
                     },
-                    "wallet_balance": float(wallet.available_balance),
-                }, status=status.HTTP_200_OK)
-                
-        except ValueError as e:
-            # Handle insufficient funds or other validation errors
-            return Response(
-                {"detail": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+                    status=status.HTTP_200_OK,
+                )
+
         except InsufficientWalletBalanceError as e:
             return Response(
-                {
-                    "detail": "Insufficient wallet balance.",
-                    "message": str(e)
-                },
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Insufficient wallet balance.", "message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
             )
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except ValidationError as e:
             return Response(
                 {"detail": f"Payment validation error: {str(e)}"},
@@ -1318,7 +1266,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         try:
             with transaction.atomic():
                 # Calculate the cost for additional pages/slides
-                from orders.services.pricing_calculator import PricingCalculatorService
+                from orders.services.old_services.pricing_calculator import PricingCalculatorService
                 calculator = PricingCalculatorService(order)
                 
                 # Get pricing config
@@ -1457,7 +1405,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         try:
             with transaction.atomic():
                 from order_pricing_core.models import AdditionalService
-                from orders.services.pricing_calculator import PricingCalculatorService
+                from orders.services.old_services.pricing_calculator import PricingCalculatorService
                 
                 # Get the services
                 services = AdditionalService.objects.filter(
