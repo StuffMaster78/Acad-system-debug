@@ -12,6 +12,7 @@ export interface WorkItem {
   title: string;
   meta: string;
   status: string;
+  link?: string;
 }
 
 export interface DashboardDefinition {

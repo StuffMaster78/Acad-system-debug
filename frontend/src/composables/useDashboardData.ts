@@ -9,6 +9,7 @@ import { useOrderStore } from "@/stores/orders";
 import { useSupportWorkspaceStore } from "@/stores/supportWorkspace";
 import { useWalletStore } from "@/stores/wallets";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
+import { useSuperadminWorkspaceStore } from "@/stores/superadminWorkspace";
 
 function money(v: string | number | null | undefined): string {
   if (!v) return "$0.00";
@@ -25,6 +26,7 @@ export function useDashboardData(role: UserRole) {
   const editorWs = useEditorWorkspaceStore();
   const supportWs = useSupportWorkspaceStore();
   const adminWork = useAdminWorkStore();
+  const superadminWs = useSuperadminWorkspaceStore();
 
   // Client loyalty summary — loaded once on dashboard mount.
   const loyaltyTier = ref<string | null>(null);
@@ -35,6 +37,7 @@ export function useDashboardData(role: UserRole) {
     if (role === "writer") return writerWs.isLoading;
     if (role === "editor") return editorWs.isLoading;
     if (role === "support") return supportWs.isLoading;
+    if (role === "superadmin") return superadminWs.isLoading;
     return adminWork.isLoading;
   });
 
@@ -43,6 +46,7 @@ export function useDashboardData(role: UserRole) {
     if (role === "writer") return writerWs.error;
     if (role === "editor") return editorWs.error;
     if (role === "support") return supportWs.error;
+    if (role === "superadmin") return superadminWs.error;
     return adminWork.error;
   });
 
@@ -111,7 +115,16 @@ export function useDashboardData(role: UserRole) {
 
     if (role === "support") return supportWs.metrics as MetricDefinition[];
 
-    // admin and superadmin
+    if (role === "superadmin") {
+      return superadminWs.metrics.map((m) => ({
+        label: m.label,
+        value: String(m.value),
+        detail: m.detail,
+        tone: m.tone as MetricDefinition["tone"],
+      }));
+    }
+
+    // admin
     return adminWork.metrics.map((m) => ({
       label: m.label,
       value: String(m.value),
@@ -128,15 +141,14 @@ export function useDashboardData(role: UserRole) {
           ? `Due ${new Date(o.client_deadline).toLocaleDateString()}`
           : "No deadline set",
         status: o.payment_status !== "paid" ? "Awaiting payment" : o.status,
+        link: `/client/orders/${o.id}`,
       }));
     }
 
     if (role === "writer") {
       const items = writerWs.assignments.length ? writerWs.assignments : [];
       return items.slice(0, 3).map((order) => {
-        const deadline = order.client_deadline
-          ? new Date(order.client_deadline)
-          : null;
+        const deadline = order.client_deadline ? new Date(order.client_deadline) : null;
         const hoursLeft = deadline
           ? Math.round((deadline.getTime() - Date.now()) / 3600000)
           : null;
@@ -152,6 +164,7 @@ export function useDashboardData(role: UserRole) {
           title: order.topic ?? `Order #${order.id}`,
           meta: dueMeta,
           status: hoursLeft !== null && hoursLeft < 0 ? "Overdue" : order.status ?? "In progress",
+          link: `/writer/orders/${order.id}`,
         };
       });
     }
@@ -162,15 +175,12 @@ export function useDashboardData(role: UserRole) {
           ? Math.round((new Date(task.order_deadline).getTime() - Date.now()) / 3600000)
           : null;
         const dueMeta =
-          diffH == null
-            ? "No deadline"
-            : diffH < 0
-              ? `${Math.abs(diffH)}h overdue`
-              : `${diffH}h left`;
+          diffH == null ? "No deadline" : diffH < 0 ? `${Math.abs(diffH)}h overdue` : `${diffH}h left`;
         return {
           title: task.order_topic || `Order #${task.order_id}`,
           meta: dueMeta,
           status: task.review_status ?? "pending",
+          link: `/editor/qa`,
         };
       });
     }
@@ -180,14 +190,25 @@ export function useDashboardData(role: UserRole) {
         title: ticket.title,
         meta: ticket.category ?? "support",
         status: ticket.priority,
+        link: `/support/tickets`,
       }));
     }
 
-    // admin and superadmin
+    if (role === "superadmin") {
+      return superadminWs.activeTenants.slice(0, 3).map((tenant) => ({
+        title: tenant.name ?? tenant.domain,
+        meta: `${tenant.domain} · ${tenant.total_users ?? 0} users`,
+        status: tenant.is_active === false ? "Inactive" : "Active",
+        link: `/superadmin/tenants`,
+      }));
+    }
+
+    // admin
     return adminWork.filteredItems.slice(0, 3).map((item) => ({
       title: `${item.reference} ${item.title}`,
       meta: `${item.website} · ${item.client}`,
       status: item.status,
+      link: `/admin/orders`,
     }));
   });
 
@@ -225,6 +246,8 @@ export function useDashboardData(role: UserRole) {
       await editorWs.hydrate();
     } else if (role === "support") {
       await supportWs.hydrate();
+    } else if (role === "superadmin") {
+      await superadminWs.hydrate();
     } else {
       await adminWork.refresh();
     }

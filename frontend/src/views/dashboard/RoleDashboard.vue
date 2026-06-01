@@ -172,22 +172,28 @@ function metricIcon(label: string): Component | undefined {
         </div>
 
         <div v-else-if="workItems.length" class="divide-y divide-slate-100">
-          <article
+          <component
+            :is="item.link ? 'RouterLink' : 'article'"
             v-for="(item, i) in workItems"
             :key="i"
+            :to="item.link"
             class="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-slate-50"
+            :class="item.link ? 'group cursor-pointer' : ''"
           >
             <div class="flex min-w-0 items-center gap-3">
               <span class="shrink-0 text-xs font-medium tabular-nums text-slate-400">{{ String(i + 1).padStart(2, '0') }}</span>
               <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-ink">{{ item.title }}</p>
+                <p class="truncate text-sm font-medium text-ink" :class="item.link ? 'group-hover:text-berry' : ''">{{ item.title }}</p>
                 <p class="mt-0.5 truncate text-xs text-graphite">{{ item.meta }}</p>
               </div>
             </div>
-            <span class="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium" :class="workStatusClass(item.status)">
-              {{ item.status }}
-            </span>
-          </article>
+            <div class="flex shrink-0 items-center gap-2">
+              <span class="rounded px-1.5 py-0.5 text-xs font-medium" :class="workStatusClass(item.status)">
+                {{ item.status }}
+              </span>
+              <ArrowRight v-if="item.link" class="h-3 w-3 text-slate-300 group-hover:text-slate-500" aria-hidden="true" />
+            </div>
+          </component>
         </div>
 
         <div v-else class="px-4 py-10 text-center">

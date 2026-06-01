@@ -268,9 +268,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { adminCommsApi } from "@/api/adminComms";
 import type { EmailProvider, CampaignRecipient } from "@/api/adminComms";
+import { useWebsitesStore } from "@/stores/websites";
+import { usePortalContextStore } from "@/stores/portalContext";
 
 const tabs = [
   { key: "providers", label: "Providers" },
@@ -281,6 +283,10 @@ const tabs = [
 const activeTab = ref("providers");
 
 // ── Providers ──────────────────────────────────────────────────────────────
+const websites = useWebsitesStore();
+const portalCtx = usePortalContextStore();
+const defaultWebsiteId = computed(() => portalCtx.website?.id ?? websites.list[0]?.id ?? null);
+
 const providers = ref<EmailProvider[]>([]);
 const loadingProviders = ref(false);
 const showProviderForm = ref(false);
@@ -294,7 +300,7 @@ const providerForm = reactive({
   sender_name: "",
   sender_email: "",
   is_active: true,
-  website: 1,
+  website: defaultWebsiteId.value,
 });
 
 function openEditProvider(prov: EmailProvider) {
@@ -313,7 +319,7 @@ function openEditProvider(prov: EmailProvider) {
 function closeProviderForm() {
   showProviderForm.value = false;
   editingProvider.value = null;
-  Object.assign(providerForm, { provider_name: "sendgrid", api_key: "", sender_name: "", sender_email: "", is_active: true, website: 1 });
+  Object.assign(providerForm, { provider_name: "sendgrid", api_key: "", sender_name: "", sender_email: "", is_active: true, website: defaultWebsiteId.value });
 }
 
 function confirmDeleteProvider(id: number) {
@@ -466,6 +472,7 @@ function recipientStatusClass(status: string) {
 }
 
 onMounted(() => {
+  websites.ensure();
   loadProviders();
   loadRecipients();
 });

@@ -21,8 +21,11 @@ import EmptyState from "@/components/ui/EmptyState.vue";
 import MetricTile from "@/components/ui/MetricTile.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminPaymentsStore } from "@/stores/adminPayments";
+import { useWebsitesStore } from "@/stores/websites";
 
 const finance = useAdminPaymentsStore();
+const websitesStore = useWebsitesStore();
+onMounted(() => websitesStore.ensure());
 
 const filterOptions = [
   { key: "all", label: "All" },
@@ -566,7 +569,7 @@ onMounted(() => {
                   </span>
                 </div>
                 <p class="mt-1 text-sm text-graphite">
-                  {{ payment.website || `Site #${payment.website_id || "n/a"}` }}
+                  {{ payment.website || websitesStore.nameById(payment.website_id) }}
                   · {{ payment.number_of_orders ?? payment.order_count ?? 0 }} order(s)
                   <span v-if="Number(payment.tips) > 0"> · {{ formatAmount(payment.tips) }} tips</span>
                   <span v-if="Number(payment.fines) > 0"> · {{ formatAmount(payment.fines) }} fines</span>

@@ -807,7 +807,7 @@ async function savePage(publish: boolean) {
       blocks: packBody(editingPage.value.body_html ?? ""),
       is_published: publish,
       publish_date: publish ? (editingPage.value.publish_date ?? null) : null,
-      website: websiteId.value ?? (pages.value[0]?.website ?? 1),
+      website: websiteId.value ?? pages.value[0]?.website ?? null,
     };
     if (editingPage.value.id) {
       await adminPublishingApi.updateSeoPage(editingPage.value.id, payload);
