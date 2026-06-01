@@ -54,6 +54,8 @@ class SecurityEvent(models.Model):
         on_delete=models.CASCADE,
         related_name="security_events",
         help_text=_("Website this event occurred on."),
+        null=True,
+        blank=True,
     )
     event_type = models.CharField(
         max_length=50,

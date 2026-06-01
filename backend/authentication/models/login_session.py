@@ -30,6 +30,8 @@ class LoginSession(models.Model):
         "websites.Website",
         on_delete=models.CASCADE,
         related_name="login_sessions",
+        null=True,
+        blank=True,
     )
     token_hash = models.CharField(
         max_length=255,

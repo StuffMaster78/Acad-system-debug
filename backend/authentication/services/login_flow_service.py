@@ -91,13 +91,21 @@ class LoginFlowService:
             website=website,
         )
 
-        fingerprint = DeviceFingerprintService.resolve_or_create(
-            user=user,
-            website=website,
-            request=request,
-        )
-
-        is_trusted_device = bool(fingerprint.is_trusted)
+        # Device fingerprinting and session limits are website-scoped.
+        # Skip both for platform staff logging in without a website context.
+        if website is not None:
+            fingerprint = DeviceFingerprintService.resolve_or_create(
+                user=user,
+                website=website,
+                request=request,
+            )
+            is_trusted_device = bool(fingerprint.is_trusted)
+            fingerprint_device_name = getattr(fingerprint, "device_name", None)
+            fingerprint_hash = getattr(fingerprint, "fingerprint_hash", None)
+        else:
+            is_trusted_device = True  # staff on their own portal are trusted
+            fingerprint_device_name = None
+            fingerprint_hash = None
 
         geo = GeoService.get_geo(ip_address) if ip_address else {}
 
@@ -115,30 +123,21 @@ class LoginFlowService:
             website=website,
             ip=ip_address,
             user_agent=user_agent,
-            device_info={
-                "device_name": getattr(
-                    fingerprint,
-                    "device_name",
-                    None,
-                ),
-            },
-            fingerprint_hash=getattr(
-                fingerprint,
-                "fingerprint_hash",
-                None,
-            ),
+            device_info={"device_name": fingerprint_device_name},
+            fingerprint_hash=fingerprint_hash,
         )
         refresh = RefreshToken.for_user(user)
         refresh["session_id"] = session.pk
-        refresh["website_id"] = website.pk
+        refresh["website_id"] = website.pk if website is not None else None
 
-        SessionLimitService(
-            user=user,
-            website=website,
-        ).enforce_session_limit(
-            new_session=session,
-            is_trusted_device=is_trusted_device,
-        )
+        if website is not None:
+            SessionLimitService(
+                user=user,
+                website=website,
+            ).enforce_session_limit(
+                new_session=session,
+                is_trusted_device=is_trusted_device,
+            )
 
         location_parts = [
             geo.get("city"),
@@ -156,19 +155,15 @@ class LoginFlowService:
             ip_address=ip_address,
             user_agent=user_agent,
             location=location,
-            device=getattr(fingerprint, "device_name", None),
+            device=fingerprint_device_name,
             metadata={
                 "session_id": session.pk,
                 "trusted_device": is_trusted_device,
-                "fingerprint_hash": getattr(
-                    fingerprint,
-                    "fingerprint_hash",
-                    None,
-                ),
+                "fingerprint_hash": fingerprint_hash,
             },
         )
 
-        if not is_trusted_device:
+        if not is_trusted_device and website is not None:
             AuthNotificationBridgeService.send_suspicious_login_notification(
                 user=user,
                 website=website,
@@ -200,10 +195,19 @@ class LoginFlowService:
         from django.contrib.auth import get_user_model
 
         User = get_user_model()
-        return User.objects.filter(
-            email=email,
-            website=website,
-        ).first()
+
+        if website is not None:
+            # Tenant-scoped lookup: user must belong to this website, OR be
+            # a platform-level user (website=None) such as staff/admin.
+            user = User.objects.filter(email=email, website=website).first()
+            if user is None:
+                user = User.objects.filter(email=email, website=None).first()
+            return user
+
+        # No website resolved (localhost / staff portal / unknown host):
+        # find the user by email alone so all roles are reachable in dev
+        # and from the staff/writer portal domains.
+        return User.objects.filter(email=email).first()
 
     @staticmethod
     def _requires_mfa(

@@ -56,10 +56,8 @@ class LoginSessionService:
             ValueError: If website is missing.
             ValidationError: If session_type is invalid.
         """
-        if website is None:
-            raise ValueError(
-                "Website context is required to create a login session."
-            )
+        # website may be None for platform staff (admin/superadmin/support)
+        # accessing via the staff portal domain which has no Website record.
 
         valid_session_types = {
             choice[0] for choice in LoginSession.SessionType.choices
