@@ -224,6 +224,8 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     ]},
     { label: "Work", items: [
       { label: "Orders", to: "/superadmin/orders", icon: ClipboardList },
+      { label: "Classes", to: "/superadmin/classes", icon: BookOpen },
+      { label: "Special Orders", to: "/superadmin/special-orders", icon: Sparkles },
       { label: "Writers", to: "/superadmin/writers", icon: Users },
       { label: "Clients", to: "/superadmin/clients", icon: Users },
     ]},
