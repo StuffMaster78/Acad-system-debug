@@ -17,7 +17,7 @@ const writerId = ref("");
 const note = ref("");
 
 const canAct = computed(
-  () => props.role === "admin" || props.role === "superadmin" || auth.user?.is_superuser,
+  () => props.role === "admin" || props.role === "superadmin",
 );
 const needsNote = computed(() => note.value.trim().length >= 10);
 
@@ -64,37 +64,37 @@ async function run(action: () => Promise<unknown>) {
     <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
       <button
         class="focus-ring h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-50"
-        :disabled="ops.isSaving"
+        :disabled="ops.isMutating"
         @click="run(() => ops.routeToStaffing(orderId))"
       >Route to staffing</button>
 
       <button
         class="focus-ring h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-50"
-        :disabled="ops.isSaving || !Number(writerId)"
+        :disabled="ops.isMutating || !Number(writerId)"
         @click="run(() => ops.assignDirect(orderId, Number(writerId), note))"
       >Assign writer</button>
 
       <button
         class="focus-ring h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-50"
-        :disabled="ops.isSaving"
+        :disabled="ops.isMutating"
         @click="run(() => ops.releaseToPool(orderId, note))"
       >Release to pool</button>
 
       <button
         class="focus-ring h-9 rounded-md border border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-800 disabled:opacity-50"
-        :disabled="ops.isSaving"
+        :disabled="ops.isMutating"
         @click="run(() => ops.approveForDelivery(orderId, note))"
       >Approve delivery</button>
 
       <button
         class="focus-ring h-9 rounded-md border border-amber-200 bg-white px-3 text-xs font-semibold text-amber-900 disabled:opacity-50"
-        :disabled="ops.isSaving || !needsNote"
+        :disabled="ops.isMutating || !needsNote"
         @click="run(() => ops.returnToWriter(orderId, note))"
       >Return to writer</button>
 
       <button
         class="focus-ring h-9 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-800 disabled:opacity-50"
-        :disabled="ops.isSaving || !needsNote"
+        :disabled="ops.isMutating || !needsNote"
         @click="run(() => ops.cancel(orderId, note))"
       >Cancel order</button>
     </div>

@@ -33,12 +33,13 @@ class PaymentCheckoutView(APIView):
         metadata = cast(dict[str, Any], validated_data.get("metadata", {}))
 
         result = PaymentIntentService.create_intent(
-            customer=request.user,
+            client=request.user,
             provider=provider,
             purpose=purpose,
             amount=amount,
             currency=currency,
             metadata=metadata,
+            website=getattr(request, "website", None),
         )
 
         payment_intent = result["payment_intent"]

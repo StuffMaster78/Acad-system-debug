@@ -21,7 +21,7 @@ const notice = ref("");
 const error = ref("");
 
 const isSuperadmin = computed(
-  () => auth.role === "superadmin" || auth.user?.is_superuser,
+  () => auth.role === "superadmin",
 );
 
 const client = computed<AdminClient | null>(
@@ -111,8 +111,8 @@ async function doResetPassword() {
               <p class="text-sm text-graphite">{{ client.email }}</p>
               <div class="mt-1 flex flex-wrap gap-1.5">
                 <StatusPill :label="client.isSuspended ? 'Suspended' : client.isActive ? 'Active' : 'Inactive'"
-                  :tone="client.isSuspended ? 'risk' : client.isActive ? 'good' : 'warn'" />
-                <StatusPill v-if="client.isBlacklisted" label="Blacklisted" tone="risk" />
+                  :tone="client.isSuspended ? 'danger' : client.isActive ? 'success' : 'warning'" />
+                <StatusPill v-if="client.isBlacklisted" label="Blacklisted" tone="danger" />
                 <StatusPill v-if="client.loyaltyTier" :label="client.loyaltyTier" tone="neutral" />
               </div>
             </div>
@@ -216,14 +216,14 @@ async function doResetPassword() {
               <dt class="flex items-center gap-1.5 text-graphite"><Shield class="h-3.5 w-3.5" />Status</dt>
               <dd>
                 <StatusPill :label="client.isSuspended ? 'Suspended' : client.isActive ? 'Active' : 'Inactive'"
-                  :tone="client.isSuspended ? 'risk' : client.isActive ? 'good' : 'warn'" />
+                  :tone="client.isSuspended ? 'danger' : client.isActive ? 'success' : 'warning'" />
               </dd>
             </div>
             <div class="flex justify-between gap-3">
               <dt class="flex items-center gap-1.5 text-graphite"><ShieldOff class="h-3.5 w-3.5" />Blacklisted</dt>
               <dd>
                 <StatusPill :label="client.isBlacklisted ? 'Yes' : 'No'"
-                  :tone="client.isBlacklisted ? 'risk' : 'good'" />
+                  :tone="client.isBlacklisted ? 'danger' : 'success'" />
               </dd>
             </div>
           </dl>

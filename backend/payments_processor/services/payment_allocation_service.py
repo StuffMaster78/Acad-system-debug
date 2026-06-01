@@ -98,6 +98,7 @@ class PaymentAllocationService:
                 payable=payable,
                 metadata=metadata,
                 reference_prefix="pay",
+                website=getattr(client, "website", None),
             )
             payment_intent = intent_result["payment_intent"]
 

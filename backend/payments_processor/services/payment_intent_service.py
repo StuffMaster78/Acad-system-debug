@@ -39,6 +39,7 @@ class PaymentIntentService:
         payable=None,
         metadata: dict[str, Any] | None = None,
         reference_prefix: str = "pay",
+        website=None,
     ) -> dict[str, Any]:
         """
         Create a payment intent and initialize it with the provider.
@@ -84,9 +85,17 @@ class PaymentIntentService:
             minutes=PAYMENT_INTENT_EXPIRY_MINUTES
         )
 
+        resolved_website = website or getattr(client, "website", None)
+        if resolved_website is None:
+            raise ValueError(
+                "website is required to create a PaymentIntent. "
+                "Pass website= or ensure client.website is set."
+            )
+
         payment_intent = PaymentIntent.objects.create(
             reference=reference,
             client=client,
+            website=resolved_website,
             purpose=purpose,
             provider=provider,
             status=PaymentIntentStatus.CREATED,

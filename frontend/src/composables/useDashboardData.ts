@@ -196,8 +196,8 @@ export function useDashboardData(role: UserRole) {
 
     if (role === "superadmin") {
       return superadminWs.activeTenants.slice(0, 3).map((tenant) => ({
-        title: tenant.name ?? tenant.domain,
-        meta: `${tenant.domain} · ${tenant.total_users ?? 0} users`,
+        title: tenant.name ?? tenant.domain ?? `Tenant #${tenant.id}`,
+        meta: `${tenant.domain} · ${tenant.user_count ?? 0} users`,
         status: tenant.is_active === false ? "Inactive" : "Active",
         link: `/superadmin/tenants`,
       }));
