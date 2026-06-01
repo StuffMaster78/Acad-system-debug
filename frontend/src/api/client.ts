@@ -74,12 +74,10 @@ api.interceptors.response.use(
       original._retry = true;
       const refreshed = await auth.refreshToken();
       if (refreshed) return api(original);
-      // Refresh failed — clear session and redirect via router (no full-page reload)
+      // Refresh failed — clear session and redirect to login
       auth.clearSession();
-      // Lazy import to avoid circular dep: api → router → stores → api
-      import("@/router").then(({ router }) => {
-        router.push({ name: "login" }).catch(() => undefined);
-      });
+      // Use location.replace so Back button doesn't loop; SPA shell reloads cleanly
+      window.location.replace("/auth/login");
       return new Promise(() => {}); // halt the rejection chain
     }
 

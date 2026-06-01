@@ -900,13 +900,18 @@ router.beforeEach((to) => {
   const auth = useAuthStore();
   const portalCtx = usePortalContextStore();
 
-  // Surface guard: only enforce when the host resolved to a registered portal or
-  // website. On localhost / unregistered hosts both portal and website are null,
-  // which means we're in dev or an unknown domain — allow all routes through so
-  // staff can reach every portal without separate domain setup.
+  // Surface guard: enforce tenant isolation in production only.
+  // Skip when: no portal/website resolved (dev/localhost), user is authenticated
+  // (staff logging in from any domain), or running on localhost.
   const routeSurface = to.meta.surface as string | undefined;
   const hostIsRegistered = portalCtx.portal !== null || portalCtx.website !== null;
-  if (routeSurface && hostIsRegistered && routeSurface !== portalCtx.surface) {
+  const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
+  if (
+    routeSurface &&
+    hostIsRegistered &&
+    !isLocalhost &&
+    routeSurface !== portalCtx.surface
+  ) {
     return portalCtx.homeRoute;
   }
 
