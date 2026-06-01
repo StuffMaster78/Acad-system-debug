@@ -77,16 +77,15 @@ if CELERY_AVAILABLE:
         # non-fatal; you still have explicit broker/backends above
         pass
 
-# Autodiscover tasks from all installed apps
-# This will automatically find tasks.py files in each installed app
-# By default, it looks for 'tasks' modules in all installed Django apps
+# Autodiscover tasks from all installed apps.
+# autodiscover_tasks() only loads tasks/__init__.py, not sub-modules.
+# Sub-module registration is handled via CELERY_IMPORTS in Django settings
+# (see settings/base.py), which Celery processes at worker startup AFTER
+# Django apps are fully loaded.  Do NOT import sub-modules here — this code
+# runs before Django setup and would leave broken stubs in sys.modules,
+# preventing the CELERY_IMPORTS mechanism from re-importing them.
 if CELERY_AVAILABLE:
     app.autodiscover_tasks()
-    # Also explicitly tell it to look in notifications_system
-    try:
-        app.autodiscover_tasks(['notifications_system'])
-    except Exception:
-        pass  # If it fails, autodiscover should have already found it
 
 @app.task(bind=True)
 def debug_task(self):
