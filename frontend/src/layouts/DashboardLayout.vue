@@ -13,6 +13,7 @@ import ImpersonationBanner from "@/components/layout/ImpersonationBanner.vue";
 import { groupedNavigationByRole } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth";
 import { useUiStore } from "@/stores/ui";
+import { usePortalContextStore } from "@/stores/portalContext";
 import { useNotificationActions } from "@/composables/useNotificationActions";
 import { useNotifications } from "@/composables/useNotifications";
 import type { UserRole } from "@/types/roles";
@@ -22,6 +23,15 @@ const props = defineProps<{ role: UserRole }>();
 const route = useRoute();
 const auth = useAuthStore();
 const ui = useUiStore();
+const portalCtx = usePortalContextStore();
+
+const brandName = computed(() => portalCtx.branding?.brand_name || "WritingSystem");
+const brandInitials = computed(() => {
+  const words = brandName.value.trim().split(/\s+/);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return brandName.value.slice(0, 2).toUpperCase();
+});
+const brandLogo = computed(() => portalCtx.branding?.logo_url || "");
 const { isConnected } = useNotifications();
 useNotificationActions();
 const navGroups = computed(() => groupedNavigationByRole[props.role]);
@@ -124,11 +134,12 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       >
         <div ref="brandMenuRoot" class="relative">
           <button
-            class="flex h-7 w-7 items-center justify-center rounded bg-white/[0.12] text-[10px] font-bold text-white transition-colors hover:bg-white/[0.2]"
+            class="flex h-7 w-7 items-center justify-center overflow-hidden rounded bg-white/[0.12] text-[10px] font-bold text-white transition-colors hover:bg-white/[0.2]"
             type="button"
             @click="brandMenuOpen = !brandMenuOpen"
           >
-            WS
+            <img v-if="brandLogo" :src="brandLogo" :alt="brandName" class="h-full w-full object-contain" />
+            <span v-else>{{ brandInitials }}</span>
           </button>
 
           <Transition
@@ -144,7 +155,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
               class="absolute left-0 top-9 z-50 w-52 overflow-hidden rounded-lg border border-slate-600 bg-slate-700 shadow-xl"
             >
               <div class="border-b border-slate-600 px-3.5 py-3">
-                <p class="text-sm font-semibold text-white">WritingSystem</p>
+                <p class="text-sm font-semibold text-white">{{ brandName }}</p>
                 <p class="mt-0.5 text-xs text-slate-400">{{ theme.label }}</p>
               </div>
               <div class="p-1">

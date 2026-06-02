@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { onErrorCaptured, ref } from "vue";
+import { onErrorCaptured, ref, watchEffect } from "vue";
 import { RouterView, useRouter } from "vue-router";
 import ToastContainer from "@/components/ui/ToastContainer.vue";
+import { usePortalContextStore } from "@/stores/portalContext";
 
 const router = useRouter();
 const fatalError = ref<{ message: string } | null>(null);
+const portalCtx = usePortalContextStore();
+
+watchEffect(() => {
+  const brand = portalCtx.branding?.brand_name;
+  if (brand) document.title = brand;
+});
 
 onErrorCaptured((err: unknown) => {
   const e = err as Error;

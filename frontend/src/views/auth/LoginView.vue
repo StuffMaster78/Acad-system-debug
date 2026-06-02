@@ -4,12 +4,18 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 import { Loader2, Mail, ShieldCheck } from "@lucide/vue";
 import { roleHome } from "@/config/navigation";
 import { useAuthStore, MfaRequiredError } from "@/stores/auth";
+import { usePortalContextStore } from "@/stores/portalContext";
 import { authApi } from "@/api/auth";
 import type { UserRole } from "@/types/roles";
 
 const auth = useAuthStore();
+const portalCtx = usePortalContextStore();
 const route = useRoute();
 const router = useRouter();
+
+const isBranded = computed(() => !!(portalCtx.portal || portalCtx.website));
+const brandName = computed(() => portalCtx.branding?.brand_name || "");
+const brandLogo = computed(() => portalCtx.branding?.logo_url || "");
 
 type Tab = "password" | "magic";
 const tab = ref<Tab>("password");
@@ -69,9 +75,19 @@ async function preview(role: UserRole) {
       <div class="rounded-lg border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/60">
         <!-- Header -->
         <div class="mb-6">
-          <h1 class="text-2xl font-semibold tracking-tight text-ink">Sign in</h1>
+          <!-- Brand identity (shown when on a registered tenant domain) -->
+          <div v-if="isBranded" class="mb-4 flex items-center gap-3">
+            <img v-if="brandLogo" :src="brandLogo" :alt="brandName" class="h-9 w-auto object-contain" />
+            <span v-else class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-sm font-bold text-ink">
+              {{ brandName.slice(0, 2).toUpperCase() }}
+            </span>
+            <span class="text-base font-semibold text-ink">{{ brandName }}</span>
+          </div>
+          <h1 class="text-2xl font-semibold tracking-tight text-ink">
+            {{ isBranded ? `Sign in to ${brandName}` : "Sign in" }}
+          </h1>
           <p class="mt-1.5 text-sm text-graphite">
-            Use your platform account to open the correct workspace.
+            {{ isBranded ? "Use your account email and password to continue." : "Use your platform account to open the correct workspace." }}
           </p>
         </div>
 
