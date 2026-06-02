@@ -275,6 +275,184 @@ CONFIG_REGISTRY: dict[str, ConfigDefinition] = {
         enable_rollout=False,
         cache_ttl_seconds=60,
     ),
+
+    # =========================================================
+    # ORDERS (additional)
+    # =========================================================
+
+    "orders.deadline_min_hours": ConfigDefinition(
+        key="orders.deadline_min_hours",
+        config_type=ConfigType.INT,
+        default=3,
+        description="Minimum allowed deadline in hours from now.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    "orders.auto_archive_days": ConfigDefinition(
+        key="orders.auto_archive_days",
+        config_type=ConfigType.INT,
+        default=30,
+        description="Days after completion before an order is auto-archived.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    "orders.allow_guest_checkout": ConfigDefinition(
+        key="orders.allow_guest_checkout",
+        config_type=ConfigType.BOOL,
+        default=False,
+        description="Allow unregistered clients to place orders with email only.",
+        is_runtime_editable=True,
+        enable_rollout=True,
+    ),
+
+    "orders.require_payment_before_start": ConfigDefinition(
+        key="orders.require_payment_before_start",
+        config_type=ConfigType.BOOL,
+        default=True,
+        description="Block writer from starting until payment is received.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    # =========================================================
+    # WRITER
+    # =========================================================
+
+    "writer.max_active_orders": ConfigDefinition(
+        key="writer.max_active_orders",
+        config_type=ConfigType.INT,
+        default=5,
+        description="Maximum concurrent active orders per writer.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    "writer.payout_minimum_amount": ConfigDefinition(
+        key="writer.payout_minimum_amount",
+        config_type=ConfigType.INT,
+        default=20,
+        description="Minimum payout request amount in USD.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    "writer.allow_self_assignment": ConfigDefinition(
+        key="writer.allow_self_assignment",
+        config_type=ConfigType.BOOL,
+        default=False,
+        description="Allow writers to claim available orders without admin assignment.",
+        is_runtime_editable=True,
+        enable_rollout=True,
+    ),
+
+    "writer.bid_window_hours": ConfigDefinition(
+        key="writer.bid_window_hours",
+        config_type=ConfigType.INT,
+        default=2,
+        description="Hours a new order is visible in the bid pool before auto-assignment.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    # =========================================================
+    # WALLET
+    # =========================================================
+
+    "wallet.min_topup_amount": ConfigDefinition(
+        key="wallet.min_topup_amount",
+        config_type=ConfigType.INT,
+        default=10,
+        description="Minimum wallet top-up amount in USD.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    "wallet.max_balance": ConfigDefinition(
+        key="wallet.max_balance",
+        config_type=ConfigType.INT,
+        default=5000,
+        description="Maximum wallet balance allowed per client in USD.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    # =========================================================
+    # FEATURES (platform-level feature flags)
+    # =========================================================
+
+    "feature.loyalty_enabled": ConfigDefinition(
+        key="feature.loyalty_enabled",
+        config_type=ConfigType.BOOL,
+        default=True,
+        description="Enable the loyalty points and rewards system.",
+        is_runtime_editable=True,
+        enable_rollout=True,
+        cache_ttl_seconds=60,
+    ),
+
+    "feature.tips_enabled": ConfigDefinition(
+        key="feature.tips_enabled",
+        config_type=ConfigType.BOOL,
+        default=True,
+        description="Allow clients to send tips to writers.",
+        is_runtime_editable=True,
+        enable_rollout=True,
+        cache_ttl_seconds=60,
+    ),
+
+    "feature.special_orders_enabled": ConfigDefinition(
+        key="feature.special_orders_enabled",
+        config_type=ConfigType.BOOL,
+        default=True,
+        description="Enable the special/quoted orders workflow.",
+        is_runtime_editable=True,
+        enable_rollout=True,
+        cache_ttl_seconds=60,
+    ),
+
+    "feature.class_orders_enabled": ConfigDefinition(
+        key="feature.class_orders_enabled",
+        config_type=ConfigType.BOOL,
+        default=True,
+        description="Enable the class portal orders workflow.",
+        is_runtime_editable=True,
+        enable_rollout=True,
+        cache_ttl_seconds=60,
+    ),
+
+    "feature.referrals_enabled": ConfigDefinition(
+        key="feature.referrals_enabled",
+        config_type=ConfigType.BOOL,
+        default=True,
+        description="Enable the client referral invitation system.",
+        is_runtime_editable=True,
+        enable_rollout=True,
+        cache_ttl_seconds=60,
+    ),
+
+    # =========================================================
+    # SECURITY (runtime tunables)
+    # =========================================================
+
+    "security.magic_link_ttl_minutes": ConfigDefinition(
+        key="security.magic_link_ttl_minutes",
+        config_type=ConfigType.INT,
+        default=15,
+        description="Magic link / passwordless login expiry in minutes.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
+
+    "security.password_reset_ttl_minutes": ConfigDefinition(
+        key="security.password_reset_ttl_minutes",
+        config_type=ConfigType.INT,
+        default=60,
+        description="Password reset link expiry in minutes.",
+        is_runtime_editable=True,
+        enable_rollout=False,
+    ),
 }
 
 

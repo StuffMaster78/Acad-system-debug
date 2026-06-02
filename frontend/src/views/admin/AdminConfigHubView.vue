@@ -5,14 +5,20 @@ import ConfigSidebar from "@/components/config/ConfigSidebar.vue";
 import ConfigSectionCard from "@/components/config/ConfigSectionCard.vue";
 import ConfigCollectionPanel from "@/components/config/ConfigCollectionPanel.vue";
 import ConfigAuditDrawer from "@/components/config/ConfigAuditDrawer.vue";
+import RuntimeConfigPanel from "@/components/config/RuntimeConfigPanel.vue";
 import { useAdminMasterConfigStore } from "@/stores/adminMasterConfig";
 import { useAdminConfigHubStore } from "@/stores/adminConfigHub";
+import { useRuntimeConfigStore } from "@/stores/runtimeConfig";
 import { getDomain } from "@/config/configDefinitions";
 
 const config = useAdminMasterConfigStore();
 const hub = useAdminConfigHubStore();
+const runtime = useRuntimeConfigStore();
 
-onMounted(() => config.loadConfigValues());
+onMounted(() => {
+  config.loadConfigValues();
+  runtime.load();
+});
 
 // Active domain sections to render
 const activeDomainMeta = computed(() => getDomain(config.activeDomain));
@@ -81,6 +87,11 @@ watch(
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Runtime Controls — live backend registry -->
+        <div v-else-if="config.activeDomain === 'system'" class="p-6">
+          <RuntimeConfigPanel />
         </div>
 
         <!-- Normal domain view -->

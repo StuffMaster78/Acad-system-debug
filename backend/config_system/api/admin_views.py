@@ -31,7 +31,10 @@ class IsConfigAdmin(permissions.BasePermission):
             view: Any
         ) -> bool:
         user = request.user
-        return bool(user and user.is_authenticated and (user.is_staff or user.is_superuser))
+        if not user or not user.is_authenticated:
+            return False
+        role = getattr(user, "role", "")
+        return bool(user.is_staff or user.is_superuser or role in ("superadmin", "admin"))
 
 
 # ============================================================
