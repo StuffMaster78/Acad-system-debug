@@ -240,6 +240,51 @@
         </table>
       </div>
 
+      <!-- Data table -->
+      <figure v-else-if="block.type === 'table'" class="my-6 overflow-x-auto">
+        <table class="min-w-full rounded-xl border border-slate-200 bg-white text-sm">
+          <thead v-if="(block.value as TableValue).table?.first_row_is_table_header && (block.value as TableValue).table?.data?.length">
+            <tr class="border-b border-slate-200 bg-slate-50">
+              <th
+                v-for="(cell, ci) in (block.value as TableValue).table.data[0]"
+                :key="ci"
+                class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-graphite"
+              >{{ cell }}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr
+              v-for="(row, ri) in tableBodyRows(block.value as TableValue)"
+              :key="ri"
+              class="hover:bg-slate-50"
+            >
+              <td
+                v-for="(cell, ci) in row"
+                :key="ci"
+                class="px-4 py-3 text-graphite"
+                :class="(block.value as TableValue).table?.first_col_is_header && ci === 0 ? 'font-semibold text-ink' : ''"
+              >{{ cell }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <figcaption
+          v-if="(block.value as TableValue).caption"
+          class="mt-2 text-center text-xs text-graphite"
+        >{{ (block.value as TableValue).caption }}</figcaption>
+      </figure>
+
+      <!-- Chart -->
+      <figure v-else-if="block.type === 'chart'" class="my-6">
+        <p v-if="(block.value as ChartValue).title" class="mb-2 text-center text-sm font-semibold text-ink">
+          {{ (block.value as ChartValue).title }}
+        </p>
+        <AppChart :option="buildChartOption(block.value as ChartValue)" height="300px" />
+        <figcaption
+          v-if="(block.value as ChartValue).caption"
+          class="mt-2 text-center text-xs text-graphite"
+        >{{ (block.value as ChartValue).caption }}</figcaption>
+      </figure>
+
       <!-- Fallback: raw JSON for unknown blocks (dev only) -->
       <details v-else class="rounded-lg border border-dashed border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
         <summary class="cursor-pointer font-mono font-semibold">Unknown block: {{ block.type }}</summary>
@@ -252,6 +297,8 @@
 
 <script setup lang="ts">
 import { ArrowRight, CheckCircle, ChevronDown, ShieldCheck, Star } from "@lucide/vue";
+import type { EChartsOption } from "echarts";
+import AppChart from "@/components/ui/AppChart.vue";
 import type { WagtailBlock } from "@/api/cms";
 
 defineProps<{ blocks: WagtailBlock[] }>();
@@ -272,6 +319,56 @@ interface CodeValue { code: string; language?: string }
 interface HowItWorksValue { heading?: string; steps: { title: string; body: string }[] }
 interface GuaranteesValue { items: { title: string; body: string }[] }
 interface ComparisonValue { columns: string[]; rows: { feature: string; values: (string | boolean)[] }[] }
+interface TableInner { data: string[][]; first_row_is_table_header: boolean; first_col_is_header: boolean }
+interface TableValue { caption?: string; table: TableInner }
+interface ChartDataset { label: string; values: string; color?: string }
+interface ChartValue { chart_type: string; title?: string; caption?: string; x_labels: string; datasets: ChartDataset[] }
+
+function tableBodyRows(v: TableValue): string[][] {
+  const rows = v.table?.data ?? [];
+  return v.table?.first_row_is_table_header ? rows.slice(1) : rows;
+}
+
+const CHART_PALETTE = ["#7c3aed", "#0ea5e9", "#10b981", "#f59e0b", "#f43f5e"];
+
+function buildChartOption(v: ChartValue): EChartsOption {
+  const labels = v.x_labels?.split(",").map((s) => s.trim()) ?? [];
+  const isPie = v.chart_type === "pie" || v.chart_type === "doughnut";
+
+  if (isPie) {
+    const ds = v.datasets?.[0];
+    const nums = ds?.values?.split(",").map((s) => Number(s.trim())) ?? [];
+    const pieData = labels.map((name, i) => ({ name, value: nums[i] ?? 0 }));
+    return {
+      tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+      series: [{
+        type: v.chart_type === "doughnut" ? "pie" : "pie",
+        radius: v.chart_type === "doughnut" ? ["40%", "70%"] : "60%",
+        data: pieData,
+        itemStyle: { borderRadius: 4 },
+      }],
+    };
+  }
+
+  const series = (v.datasets ?? []).map((ds, i) => ({
+    name: ds.label,
+    type: (v.chart_type === "area" ? "line" : v.chart_type) as "bar" | "line",
+    data: ds.values?.split(",").map((s) => Number(s.trim())) ?? [],
+    smooth: v.chart_type === "line" || v.chart_type === "area",
+    areaStyle: v.chart_type === "area" ? { opacity: 0.15 } : undefined,
+    itemStyle: { color: ds.color || CHART_PALETTE[i % CHART_PALETTE.length] },
+    lineStyle: ds.color ? { color: ds.color } : undefined,
+  }));
+
+  return {
+    tooltip: { trigger: "axis" },
+    legend: series.length > 1 ? { bottom: 0, data: series.map((s) => s.name) } : undefined,
+    grid: { left: 50, right: 20, top: 10, bottom: series.length > 1 ? 36 : 20 },
+    xAxis: { type: "category", data: labels, axisLabel: { rotate: labels.length > 6 ? 30 : 0 } },
+    yAxis: { type: "value" },
+    series,
+  };
+}
 
 function calloutClass(type?: string): string {
   if (type === "warning") return "border-amber-200 bg-amber-50 text-amber-900";

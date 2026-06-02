@@ -377,8 +377,38 @@ class ContentImporter:
 
         # --- Tables ---
         if tag == "table":
-            # Tables become paragraphs with the raw HTML preserved
-            # (our block library doesn't have a generic table block for blogs)
+            # Parse the HTML table into the TableBlock data structure:
+            # {"data": [["H1","H2"], ["v1","v2"]], "first_row_is_table_header": bool}
+            try:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(html, "html.parser")
+                rows = []
+                first_row_is_header = False
+                for i, tr in enumerate(soup.find_all("tr")):
+                    cells = []
+                    is_header_row = bool(tr.find("th"))
+                    if i == 0 and is_header_row:
+                        first_row_is_header = True
+                    for cell in tr.find_all(["th", "td"]):
+                        cells.append(cell.get_text(strip=True))
+                    if cells:
+                        rows.append(cells)
+                if rows:
+                    return {
+                        "type": "table",
+                        "value": {
+                            "caption": "",
+                            "table": {
+                                "data": rows,
+                                "first_row_is_table_header": first_row_is_header,
+                                "first_col_is_header": False,
+                                "table_header_choice": "row" if first_row_is_header else "neither",
+                            },
+                        },
+                    }
+            except Exception:
+                pass
+            # Fallback: flatten to paragraph text
             return {
                 "type": "paragraph",
                 "value": f"<p>{strip_tags(html).strip()}</p>",

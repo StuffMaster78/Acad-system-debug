@@ -28,6 +28,7 @@ from wagtail.blocks import (
     DecimalBlock,
     PageChooserBlock,
 )
+from wagtail.contrib.table_block.blocks import TableBlock
 from wagtail.images.blocks import ImageChooserBlock
 from wagtail.snippets.blocks import SnippetChooserBlock
 
@@ -211,6 +212,100 @@ class DividerBlock(StaticBlock):
         label = "Divider"
         admin_text = "--- Divider ---"
         template = "cms_core/blocks/divider.html"
+
+
+# ===========================================================================
+# DATA TABLE BLOCK (shared)
+# ===========================================================================
+
+class TableDataBlock(StructBlock):
+    """
+    Editable data table with an optional caption.
+
+    The inner TableBlock is backed by Handsontable in the Wagtail admin.
+    Editors can set whether the first row and/or first column are headers.
+    Data is stored as a 2-D array of strings.
+    """
+    caption = CharBlock(
+        required=False,
+        max_length=255,
+        help_text="Optional caption displayed below the table.",
+    )
+    table = TableBlock(
+        table_options={
+            "minSpareRows": 1,
+            "startRows": 4,
+            "startCols": 3,
+            "colHeaders": False,
+            "rowHeaders": False,
+            "contextMenu": True,
+        },
+        help_text="Enter data. Use Table → Options to mark header rows/columns.",
+    )
+
+    class Meta:
+        icon = "table"
+        label = "Data Table"
+        template = "cms_core/blocks/table.html"
+
+
+# ===========================================================================
+# CHART BLOCK (shared)
+# ===========================================================================
+
+class ChartDatasetBlock(StructBlock):
+    """One data series inside a chart."""
+    label = CharBlock(max_length=100, help_text="Series name, e.g. 'Revenue'")
+    values = CharBlock(
+        help_text="Comma-separated numbers matching the x-axis labels, e.g. 10,20,30,15",
+    )
+    color = CharBlock(
+        required=False,
+        max_length=30,
+        help_text="Hex color code, e.g. #7c3aed. Leave blank for auto.",
+    )
+
+    class Meta:
+        icon = "list-ul"
+        label = "Dataset"
+
+
+class ChartBlock(StructBlock):
+    """
+    Inline data chart. Renders via ECharts on the frontend.
+
+    Bar and line charts support multiple datasets. Pie/doughnut use
+    only the first dataset.
+    """
+    chart_type = ChoiceBlock(
+        choices=[
+            ("bar", "Bar chart"),
+            ("line", "Line chart"),
+            ("pie", "Pie chart"),
+            ("doughnut", "Doughnut chart"),
+        ],
+        default="bar",
+    )
+    title = CharBlock(max_length=255)
+    caption = CharBlock(
+        required=False,
+        max_length=255,
+        help_text="Optional caption displayed below the chart.",
+    )
+    x_labels = CharBlock(
+        help_text="Category labels (comma-separated), e.g. Jan,Feb,Mar,Apr",
+    )
+    datasets = ListBlock(
+        ChartDatasetBlock(),
+        min_num=1,
+        max_num=5,
+        help_text="Add one dataset per series. Pie/doughnut uses the first dataset only.",
+    )
+
+    class Meta:
+        icon = "media"
+        label = "Chart"
+        template = "cms_core/blocks/chart.html"
 
 
 # ===========================================================================
@@ -428,6 +523,8 @@ BLOG_BLOCKS = StreamBlock([
     ("cta", CTABlock()),
     ("internal_link", InternalLinkCardBlock()),
     ("attachment", AttachmentReferenceBlock()),
+    ("table", TableDataBlock()),
+    ("chart", ChartBlock()),
     ("divider", DividerBlock()),
     ("video", VideoEmbedBlock()),
     ("sources", SourcesListBlock()),
@@ -450,6 +547,8 @@ SERVICE_PAGE_BLOCKS = StreamBlock([
     ("guarantees", GuaranteesBlock()),
     ("faq", FAQItemBlock()),
     ("cta", CTABlock()),
+    ("table", TableDataBlock()),
+    ("chart", ChartBlock()),
     ("attachment", AttachmentReferenceBlock()),
     ("internal_link", InternalLinkCardBlock()),
     ("divider", DividerBlock()),
