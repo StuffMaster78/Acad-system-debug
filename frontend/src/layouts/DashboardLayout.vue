@@ -31,6 +31,7 @@ const userMenuRoot = ref<HTMLElement | null>(null);
 const brandMenuOpen = ref(false);
 const brandMenuRoot = ref<HTMLElement | null>(null);
 const openGroups = ref<Set<string>>(new Set());
+const navRef = ref<HTMLElement | null>(null);
 
 const roleLabel: Record<UserRole, string> = {
   client: "Client portal",
@@ -53,7 +54,22 @@ watch(
   () => route.path,
   () => {
     navGroups.value.forEach((group) => {
-      if (group.items.some((item) => isActive(item.to))) openGroups.value.add(group.label);
+      if (group.items.some((item) => isActive(item.to))) {
+        openGroups.value.add(group.label);
+        // Scroll the active link into the visible area of the nav
+        setTimeout(() => {
+          if (!navRef.value) return;
+          // Find the rendered active anchor inside the nav
+          const active = navRef.value.querySelector("a.bg-white\\/\\[0\\.12\\]") as HTMLElement | null;
+          if (active) {
+            active.scrollIntoView({ block: "center", behavior: "smooth" });
+          } else {
+            // Fallback: scroll to the group header
+            const group_el = navRef.value.querySelector(`[data-group="${group.label}"]`) as HTMLElement | null;
+            if (group_el) group_el.scrollIntoView({ block: "start", behavior: "smooth" });
+          }
+        }, 100);
+      }
     });
   },
   { immediate: true },
@@ -166,6 +182,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
 
       <!-- Scrollable nav -->
       <nav
+        ref="navRef"
         class="flex-1 overflow-y-auto py-2"
         :class="ui.sidebarCollapsed ? 'px-1.5' : 'px-2'"
         aria-label="Main navigation"
@@ -202,7 +219,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
 
         <!-- Expanded: grouped accordion -->
         <template v-else>
-          <div v-for="group in navGroups" :key="group.label" class="mb-3">
+          <div v-for="group in navGroups" :key="group.label" :data-group="group.label" class="mb-3">
             <button
               type="button"
               class="flex w-full items-center px-2.5 py-1"
@@ -241,10 +258,11 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
         </template>
       </nav>
 
-      <!-- Sidebar chart — admin / superadmin only, expanded only -->
+      <!-- Sidebar chart — admin / superadmin only, expanded only, hidden on short screens -->
       <SidebarChart
         v-if="(role === 'admin' || role === 'superadmin') && !ui.sidebarCollapsed"
         :role="role"
+        class="shrink-0 hidden lg:block"
       />
 
       <!-- Footer -->
