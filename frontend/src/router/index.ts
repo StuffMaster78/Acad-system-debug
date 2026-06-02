@@ -455,6 +455,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/editor/EditorOrderDetailView.vue"),
       },
       {
+        path: "writers/:id",
+        name: "editor-writer-profile",
+        component: () => import("@/views/admin/AdminWriterProfileView.vue"),
+      },
+      {
         path: "publishing",
         name: "editor-publishing",
         component: () => import("@/views/admin/AdminPublishingView.vue"),
@@ -526,6 +531,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "orders/:id",
         name: "support-order-detail",
         component: () => import("@/views/support/SupportOrderDetailView.vue"),
+      },
+      {
+        path: "writers/:id",
+        name: "support-writer-profile",
+        component: () => import("@/views/admin/AdminWriterProfileView.vue"),
       },
       {
         path: "publishing",
@@ -629,6 +639,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "writers",
         name: "superadmin-writers",
         component: () => import("@/views/admin/AdminWritersView.vue"),
+      },
+      {
+        path: "writers/:id",
+        name: "superadmin-writer-profile",
+        component: () => import("@/views/admin/AdminWriterProfileView.vue"),
       },
       {
         path: "clients",
