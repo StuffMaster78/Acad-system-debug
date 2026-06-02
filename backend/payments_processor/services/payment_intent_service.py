@@ -94,6 +94,12 @@ class PaymentIntentService:
 
         _branding = getattr(resolved_website, "public_branding", None)
         _descriptor = getattr(_branding, "payment_statement_descriptor", "") or ""
+        _processor = getattr(_branding, "payment_processor_name", "") or ""
+        _disclosure_text = (
+            f"Your payment is securely processed by {_processor}. "
+            f"Your card or bank statement may show: {_descriptor or _processor}."
+            if _processor else ""
+        )
 
         payment_intent = PaymentIntent.objects.create(
             reference=reference,
@@ -108,6 +114,8 @@ class PaymentIntentService:
             metadata=metadata or {},
             expires_at=expires_at,
             statement_descriptor_snapshot=_descriptor,
+            client_disclosure_text=_disclosure_text,
+            disclosure_shown_at=timezone.now() if _disclosure_text else None,
         )
 
         provider_adapter = get_provider(provider)

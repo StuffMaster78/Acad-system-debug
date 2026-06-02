@@ -267,6 +267,12 @@ class InvoiceService:
 
         _branding = getattr(website, "public_branding", None)
         _descriptor = getattr(_branding, "payment_statement_descriptor", "") or ""
+        _processor = getattr(_branding, "payment_processor_name", "") or ""
+        _disclosure_text = (
+            f"Your payment is securely processed by {_processor}. "
+            f"Your card or bank statement may show: {_descriptor or _processor}."
+            if _processor else ""
+        )
 
         return Invoice.objects.create(
             website=website,
@@ -287,6 +293,7 @@ class InvoiceService:
             custom_payment_link=custom_payment_link,
             status=InvoiceStatus.DRAFT,
             statement_descriptor_snapshot=_descriptor,
+            client_disclosure_text=_disclosure_text,
         )
 
     @staticmethod

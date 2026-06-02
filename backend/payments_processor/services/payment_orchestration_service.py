@@ -216,6 +216,13 @@ class PaymentOrchestrationService:
                 timezone.now(),
             )
 
+        if hasattr(payment_intent, "disclosure_accepted_at") and getattr(payment_intent, "client_disclosure_text", ""):
+            PaymentOrchestrationService._set(
+                payment_intent,
+                "disclosure_accepted_at",
+                timezone.now(),
+            )
+
         fields = ["status", "updated_at"]
 
         if provider_transaction_id:
@@ -226,6 +233,9 @@ class PaymentOrchestrationService:
 
         if hasattr(payment_intent, "paid_at"):
             fields.append("paid_at")
+
+        if hasattr(payment_intent, "disclosure_accepted_at") and getattr(payment_intent, "client_disclosure_text", ""):
+            fields.append("disclosure_accepted_at")
 
         PaymentOrchestrationService._save(payment_intent, fields)
 
