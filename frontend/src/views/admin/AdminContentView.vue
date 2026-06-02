@@ -527,6 +527,55 @@
 
       </div>
     </template>
+
+    <!-- ── Blog & Authors ────────────────────────────────────────────────────── -->
+    <template v-else-if="tab === 'blog'">
+      <div class="space-y-5">
+        <p class="text-sm text-graphite">
+          Blog posts, categories, tags, and author profiles are managed in Wagtail CMS.
+          Use the links below to jump directly to each section.
+        </p>
+
+        <!-- Wagtail quick-links -->
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <a
+            v-for="link in blogLinks"
+            :key="link.href"
+            :href="link.href"
+            target="_blank"
+            rel="noopener"
+            class="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-signal hover:bg-slate-50 group"
+          >
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-lg group-hover:bg-signal/10">
+              {{ link.emoji }}
+            </span>
+            <div class="min-w-0">
+              <p class="font-semibold text-ink group-hover:text-signal">{{ link.label }}</p>
+              <p class="mt-0.5 text-xs text-graphite">{{ link.detail }}</p>
+            </div>
+            <ExternalLink class="ml-auto h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-signal" />
+          </a>
+        </div>
+
+        <!-- CMS admin home link -->
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p class="text-sm font-semibold text-ink">Wagtail admin</p>
+            <p class="text-xs text-graphite mt-0.5">Full CMS — create, edit, and publish all page types.</p>
+          </div>
+          <a
+            href="/cms-admin/"
+            target="_blank"
+            rel="noopener"
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+          >
+            Open CMS
+            <ExternalLink class="h-3 w-3" />
+          </a>
+        </div>
+      </div>
+    </template>
+
   </div>
 </template>
 
@@ -547,12 +596,22 @@ const TABS = [
   { key: "legal" as const, label: "Legal documents" },
   { key: "help" as const, label: "Help center" },
   { key: "pages" as const, label: "Static pages" },
+  { key: "blog" as const, label: "Blog & authors" },
 ];
-const tab = ref<"legal" | "help" | "pages">("legal");
+const tab = ref<"legal" | "help" | "pages" | "blog">("legal");
 const auth = useAuthStore();
 const isSuperAdmin = (auth.user as Record<string, unknown>)?.role === "superadmin"
   || !!(auth.user as Record<string, unknown>)?.is_superuser;
 const websiteId = ref<number | null>(null);
+
+const blogLinks = [
+  { emoji: "✍️", label: "Blog posts", href: "/cms-admin/pages/", detail: "Create and publish blog articles." },
+  { emoji: "🏷️", label: "Categories", href: "/cms-admin/snippets/cms_core/blogcategory/", detail: "Manage blog category names and slugs." },
+  { emoji: "🔖", label: "Tags", href: "/cms-admin/snippets/cms_core/blogtag/", detail: "Manage tags used across posts." },
+  { emoji: "👤", label: "Authors", href: "/cms-admin/snippets/cms_authors/cmsauthor/", detail: "Writer bios, credentials, and profiles." },
+  { emoji: "📄", label: "Service pages", href: "/cms-admin/pages/", detail: "Landing pages for individual services." },
+  { emoji: "🖼️", label: "Media library", href: "/cms-admin/images/", detail: "Upload and manage images for CMS content." },
+];
 
 // Build website_id param for API calls (superadmin only)
 function wsParam() {

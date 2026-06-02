@@ -453,6 +453,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "writer-special-order-detail",
         component: () => import("@/views/writer/WriterSpecialOrderDetailView.vue"),
       },
+      {
+        path: "resources",
+        name: "writer-resources",
+        component: () => import("@/views/writer/WriterResourcesView.vue"),
+      },
     );
   }
 
