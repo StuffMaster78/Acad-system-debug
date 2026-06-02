@@ -281,9 +281,13 @@ export const adminPaymentsApi = {
     api.get<FinanceDashboardResponse>(
       apiPath("/admin-management/tips/dashboard/"),
     ),
-  tipList: () =>
+  tipList: (params?: Record<string, unknown>) =>
     api.get<QueueResponse>(
       apiPath("/admin-management/tips/list_tips/"),
-      { params: { limit: 20 } },
+      { params: { limit: 25, ...params } },
     ),
+  finesDashboard: (params?: Record<string, unknown>) =>
+    api.get(apiPath("/admin-management/fines/dashboard/"), { params }),
+  finesList: (params?: Record<string, unknown>) =>
+    api.get(apiPath("/admin-management/fines/pending/"), { params }),
 };
