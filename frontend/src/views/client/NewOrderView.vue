@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { Calculator, Loader2, Paperclip, RefreshCw, Send, X } from "@lucide/vue";
+import { Calculator, CheckCircle2, Clock, FileText, Loader2, Paperclip, RefreshCw, Send, X } from "@lucide/vue";
 import ConfigSelect from "@/components/forms/ConfigSelect.vue";
 import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector.vue";
 import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
@@ -23,7 +23,6 @@ const success = ref("");
 const paymentMethod = ref<PaymentMethod>("wallet");
 const couponCode = ref("");
 const couponApplied = ref(false);
-const showAdvanced = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const attempted = ref(false);
 const touched = reactive(new Set<string>());
@@ -65,10 +64,10 @@ const form = reactive({
   work_type_code: "writing",
   subject_code: "general",
   academic_level_code: "undergraduate",
-  paper_type_id: 1,
-  type_of_work_id: 1,
-  subject_id: 1,
-  academic_level_id: 1,
+  paper_type_id: null as number | null,
+  type_of_work_id: null as number | null,
+  subject_id: null as number | null,
+  academic_level_id: null as number | null,
   formatting_style_id: null as number | null,
   english_type_id: null as number | null,
   writer_level_id: null as number | null,
@@ -100,13 +99,70 @@ const wordRange = computed(() => {
 });
 
 const canQuote = computed(
-  () => form.topic.trim().length > 2 && form.order_instructions.trim().length > 10,
+  () =>
+    form.topic.trim().length > 2 &&
+    form.order_instructions.trim().length > 10 &&
+    Boolean(form.paper_type_id && form.type_of_work_id && form.academic_level_id),
 );
+
+const configSelectionError = computed(() => {
+  if (form.paper_type_id && form.type_of_work_id && form.academic_level_id) return "";
+  return "Choose paper type, type of work, and academic level.";
+});
 
 function optionCode(collection: keyof typeof config.collections, id: number | null) {
   const option = config.collections[collection].find((item) => item.id === id);
   return String(option?.code || (option as { slug?: string })?.slug || option?.name || "").trim();
 }
+
+function selectedOption(collection: keyof typeof config.collections, id: number | null) {
+  return config.collections[collection].find((item) => item.id === id) ?? null;
+}
+
+function optionDescription(collection: keyof typeof config.collections, id: number | null) {
+  const option = selectedOption(collection, id);
+  return String(option?.description || option?.help_text || option?.short_description || "");
+}
+
+function applyConfigDefaults() {
+  form.paper_type_id ??= config.collections.paperTypes[0]?.id ?? null;
+  form.type_of_work_id ??= config.collections.typesOfWork[0]?.id ?? null;
+  form.subject_id ??= config.collections.subjects[0]?.id ?? null;
+  form.academic_level_id ??= config.collections.academicLevels[0]?.id ?? null;
+  form.formatting_style_id ??= config.collections.formattingStyles[0]?.id ?? null;
+  form.english_type_id ??= config.collections.englishTypes[0]?.id ?? null;
+  form.writer_level_id ??= config.collections.writerLevels[0]?.id ?? null;
+}
+
+const selectedBrief = computed(() => [
+  {
+    label: "Paper type",
+    value: selectedOption("paperTypes", form.paper_type_id)?.name || "Not selected",
+    detail: optionDescription("paperTypes", form.paper_type_id),
+  },
+  {
+    label: "Work type",
+    value: selectedOption("typesOfWork", form.type_of_work_id)?.name || "Not selected",
+    detail: optionDescription("typesOfWork", form.type_of_work_id),
+  },
+  {
+    label: "Subject",
+    value: selectedOption("subjects", form.subject_id)?.name || "General",
+    detail: optionDescription("subjects", form.subject_id),
+  },
+  {
+    label: "Academic level",
+    value: selectedOption("academicLevels", form.academic_level_id)?.name || "Not selected",
+    detail: optionDescription("academicLevels", form.academic_level_id),
+  },
+]);
+
+const readinessItems = computed(() => [
+  { label: "Topic added", done: !topicError.value },
+  { label: "Instructions are clear", done: !instructionsError.value },
+  { label: "Order category selected", done: !configSelectionError.value },
+  { label: "Deadline set", done: Boolean(form.client_deadline) },
+]);
 
 function quotePayload(): PaperQuotePayload {
   return {
@@ -127,6 +183,7 @@ async function loadConfig() {
   error.value = "";
   try {
     await config.fetchAll();
+    applyConfigDefaults();
   } catch {
     // error surfaced via config.error
   }
@@ -145,7 +202,8 @@ async function calculate() {
 
 async function submit() {
   attempted.value = true;
-  if (topicError.value || instructionsError.value) return;
+  if (topicError.value || instructionsError.value || configSelectionError.value) return;
+  if (!form.paper_type_id || !form.academic_level_id || !form.type_of_work_id) return;
   error.value = "";
   success.value = "";
   try {
@@ -293,8 +351,17 @@ onMounted(loadConfig);
             </div>
           </div>
 
-          <div v-else-if="config.error && !config.hasLiveOptions" class="mt-4 rounded-md border border-dashed border-slate-200 py-8 text-center text-sm text-graphite">
-            Options unavailable — use the retry button above to reload.
+          <div v-else-if="config.error && !config.hasLiveOptions" class="mt-4 flex flex-col items-center gap-3 rounded-md border border-dashed border-slate-200 py-8 text-center text-sm text-graphite">
+            <p>Could not load paper options. Check your connection and try again.</p>
+            <button
+              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-graphite hover:bg-slate-50 disabled:opacity-50"
+              type="button"
+              :disabled="config.isLoading"
+              @click="loadConfig"
+            >
+              <RefreshCw class="h-3.5 w-3.5" :class="config.isLoading ? 'animate-spin' : ''" />
+              Retry
+            </button>
           </div>
 
           <div v-else class="mt-4 grid gap-4 sm:grid-cols-2">
@@ -304,6 +371,7 @@ onMounted(loadConfig);
               label="Paper type"
               placeholder="Select paper type"
               :options="config.collections.paperTypes"
+              help="Choose the format that best matches your assignment brief."
               required
             />
             <ConfigSelect
@@ -311,6 +379,7 @@ onMounted(loadConfig);
               label="Type of work"
               placeholder="Select type of work"
               :options="config.collections.typesOfWork"
+              help="This helps us route the order to the right workflow."
               required
             />
             <ConfigSelect
@@ -318,12 +387,14 @@ onMounted(loadConfig);
               label="Subject / discipline"
               placeholder="Select subject"
               :options="config.collections.subjects"
+              help="Pick the closest subject area so the work can be matched properly."
             />
             <ConfigSelect
               v-model="form.academic_level_id"
               label="Academic level"
               placeholder="Select academic level"
               :options="config.collections.academicLevels"
+              help="Select the level expected by your institution."
               required
             />
             <!-- Advanced fields -->
@@ -332,12 +403,14 @@ onMounted(loadConfig);
               label="Formatting / citation style"
               placeholder="None required"
               :options="config.collections.formattingStyles"
+              help="Use the style required in your instructions or rubric."
             />
             <ConfigSelect
               v-model="form.english_type_id"
               label="English variant"
               placeholder="Any"
               :options="config.collections.englishTypes"
+              help="Choose a language variant only if your assignment requires one."
             />
             <ConfigSelect
               v-if="config.collections.writerLevels.length"
@@ -345,8 +418,16 @@ onMounted(loadConfig);
               label="Writer level"
               placeholder="Standard (any level)"
               :options="config.collections.writerLevels"
+              help="Higher levels may affect availability and price."
             />
           </div>
+          <p
+            v-if="fieldErr('config', configSelectionError)"
+            class="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+            role="alert"
+          >
+            {{ configSelectionError }}
+          </p>
         </section>
 
         <!-- Scope and deadline -->
@@ -444,52 +525,29 @@ onMounted(loadConfig);
           </p>
         </section>
 
-        <!-- Advanced options -->
-        <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <button
-            class="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-graphite"
-            type="button"
-            @click="showAdvanced = !showAdvanced"
-          >
-            Advanced options
-            <span class="text-xs font-normal">{{ showAdvanced ? "Hide" : "Show" }}</span>
-          </button>
+        <!-- Order summary -->
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex items-start gap-3">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600">
+              <FileText class="h-4 w-4" />
+            </div>
+            <div>
+              <h2 class="text-base font-semibold text-ink">Order summary</h2>
+              <p class="mt-0.5 text-xs leading-5 text-graphite">
+                Review the visible choices before calculating the price.
+              </p>
+            </div>
+          </div>
 
-          <div v-if="showAdvanced" class="border-t border-slate-100 px-5 pb-5 pt-4 space-y-4">
-            <p class="text-xs text-graphite">These codes are sent to the pricing engine. They update automatically when you change the dropdowns above.</p>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div>
-                <span class="text-xs font-medium uppercase tracking-wide text-graphite">Paper type</span>
-                <p class="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-ink">
-                  {{ config.collections.paperTypes.find(o => o.id === form.paper_type_id)?.name || form.paper_type_code || "—" }}
-                </p>
-                <p class="mt-0.5 text-xs text-graphite">code: <code class="font-mono">{{ form.paper_type_code }}</code></p>
-              </div>
-              <div>
-                <span class="text-xs font-medium uppercase tracking-wide text-graphite">Type of work</span>
-                <p class="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-ink">
-                  {{ config.collections.typesOfWork.find(o => o.id === form.type_of_work_id)?.name || form.work_type_code || "—" }}
-                </p>
-                <p class="mt-0.5 text-xs text-graphite">code: <code class="font-mono">{{ form.work_type_code }}</code></p>
-              </div>
-              <div>
-                <span class="text-xs font-medium uppercase tracking-wide text-graphite">Subject</span>
-                <p class="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-ink">
-                  {{ config.collections.subjects.find(o => o.id === form.subject_id)?.name || form.subject_code || "—" }}
-                </p>
-                <p class="mt-0.5 text-xs text-graphite">code: <code class="font-mono">{{ form.subject_code }}</code></p>
-              </div>
-              <div>
-                <span class="text-xs font-medium uppercase tracking-wide text-graphite">Academic level</span>
-                <p class="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-ink">
-                  {{ config.collections.academicLevels.find(o => o.id === form.academic_level_id)?.name || form.academic_level_code || "—" }}
-                </p>
-                <p class="mt-0.5 text-xs text-graphite">code: <code class="font-mono">{{ form.academic_level_code }}</code></p>
-              </div>
-              <div>
-                <span class="text-xs font-medium uppercase tracking-wide text-graphite">Service code</span>
-                <input v-model="form.service_code" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
-              </div>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <div
+              v-for="item in selectedBrief"
+              :key="item.label"
+              class="rounded-md border border-slate-100 bg-slate-50 px-3 py-2.5"
+            >
+              <p class="text-[11px] font-semibold uppercase text-graphite">{{ item.label }}</p>
+              <p class="mt-1 text-sm font-semibold text-ink">{{ item.value }}</p>
+              <p v-if="item.detail" class="mt-1 text-xs leading-5 text-graphite">{{ item.detail }}</p>
             </div>
           </div>
         </section>
@@ -503,7 +561,7 @@ onMounted(loadConfig);
             class="inline-flex shrink-0 items-center gap-1.5 rounded border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:opacity-50"
             type="button"
             :disabled="config.isLoading"
-            @click="config.fetchAll()"
+            @click="loadConfig"
           >
             <RefreshCw class="h-3 w-3" :class="config.isLoading ? 'animate-spin' : ''" />
             Retry
@@ -526,6 +584,17 @@ onMounted(loadConfig);
           </div>
           <p v-else class="mt-3 text-sm text-graphite">Fill in the order details and calculate a price.</p>
 
+          <div class="mt-3 space-y-2 rounded-md border border-slate-100 bg-white px-3 py-2.5">
+            <div class="flex items-center gap-2 text-xs font-semibold text-graphite">
+              <Clock class="h-3.5 w-3.5" />
+              Deadline window
+            </div>
+            <p class="text-sm font-semibold text-ink">{{ deadlineLabel }}</p>
+            <p class="text-xs leading-5 text-graphite">
+              {{ deadlineHours <= 24 ? "This will be treated as urgent." : "There is enough lead time for normal routing." }}
+            </p>
+          </div>
+
           <button
             class="focus-ring mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="!canQuote || orders.isLoading"
@@ -536,6 +605,21 @@ onMounted(loadConfig);
             <Calculator v-else class="h-4 w-4" />
             {{ orders.isLoading ? "Calculating…" : "Calculate price" }}
           </button>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 class="text-base font-semibold text-ink">Readiness</h2>
+          <div class="mt-3 space-y-2">
+            <div
+              v-for="item in readinessItems"
+              :key="item.label"
+              class="flex items-center gap-2 text-sm"
+              :class="item.done ? 'text-emerald-700' : 'text-graphite'"
+            >
+              <CheckCircle2 class="h-4 w-4 shrink-0" :class="item.done ? 'text-emerald-500' : 'text-slate-300'" />
+              <span>{{ item.label }}</span>
+            </div>
+          </div>
         </section>
 
         <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">

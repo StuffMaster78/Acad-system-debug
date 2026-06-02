@@ -1,7 +1,6 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { orderConfigApi } from "@/api/orderConfig";
-import { usePortalContextStore } from "@/stores/portalContext";
 import type { OrderConfigCollections } from "@/types/config";
 
 export const useOrderConfigStore = defineStore("order-config", () => {
@@ -25,10 +24,9 @@ export const useOrderConfigStore = defineStore("order-config", () => {
     isLoading.value = true;
     error.value = "";
     try {
-      // Use the resolved portal website if not explicitly provided
-      const portalCtx = usePortalContextStore();
-      const wid = websiteId ?? portalCtx.website?.id ?? undefined;
-      const params = wid ? { website_id: wid } : undefined;
+      // Only pass website_id when explicitly provided (admin cross-site switching).
+      // For regular users the backend middleware scopes configs from the Host header.
+      const params = websiteId != null ? { website_id: websiteId } : undefined;
 
       const [
         academicLevels,

@@ -29,7 +29,12 @@ from websites.models.websites import Website
 class AcademicLevelViewSet(viewsets.ModelViewSet):
     queryset = AcademicLevel.objects.all()
     serializer_class = AcademicLevelSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         """Filter by website if specified."""
@@ -43,7 +48,12 @@ class AcademicLevelViewSet(viewsets.ModelViewSet):
 class PaperTypeViewSet(viewsets.ModelViewSet):
     queryset = PaperType.objects.all()
     serializer_class = PaperTypeSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         """Filter by website if specified."""
@@ -57,7 +67,12 @@ class PaperTypeViewSet(viewsets.ModelViewSet):
 class FormattingStyleViewSet(viewsets.ModelViewSet):
     queryset = FormattingandCitationStyle.objects.all()
     serializer_class = FormattingStyleSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         """Filter by website if specified."""
@@ -71,7 +86,12 @@ class FormattingStyleViewSet(viewsets.ModelViewSet):
 class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         """Filter by website if specified."""
@@ -322,10 +342,14 @@ class TypeOfWorkTemplateViewSet(viewsets.ModelViewSet):
 class TypeOfWorkViewSet(viewsets.ModelViewSet):
     queryset = TypeOfWork.objects.all()
     serializer_class = TypeOfWorkSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        """Filter by website if specified."""
         queryset = super().get_queryset()
         website_id = self.request.query_params.get('website_id')
         if website_id:
@@ -336,10 +360,14 @@ class TypeOfWorkViewSet(viewsets.ModelViewSet):
 class EnglishTypeViewSet(viewsets.ModelViewSet):
     queryset = EnglishType.objects.all()
     serializer_class = EnglishTypeSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        """Filter by website if specified."""
         queryset = super().get_queryset()
         website_id = self.request.query_params.get('website_id')
         if website_id:
