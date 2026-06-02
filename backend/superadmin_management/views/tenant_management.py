@@ -14,7 +14,7 @@ from django.shortcuts import get_object_or_404
 
 from superadmin_management.permissions import IsSuperadmin
 from websites.models.websites import Website
-from websites.serializers import WebsiteSerializer
+from websites.serializers.all_serializers import WebsiteSerializer
 from orders.models.orders import Order
 from orders.models.legacy_models.order_disputes import Dispute
 from orders.order_enums import OrderStatus
@@ -216,7 +216,7 @@ class SuperadminTenantManagementViewSet(viewsets.ViewSet):
             select={'day': "DATE(created_at)"}
         ).values('day').annotate(
             count=Count('id'),
-            revenue=Sum('total_price', filter=Q(is_paid=True))
+            revenue=Sum('total_price', filter=Q(payment_status="paid"))
         ).order_by('day')
 
         # Revenue breakdown
@@ -225,27 +225,27 @@ class SuperadminTenantManagementViewSet(viewsets.ViewSet):
             created_at__gte=date_from
         ).values('status').annotate(
             count=Count('id'),
-            revenue=Sum('total_price', filter=Q(is_paid=True))
+            revenue=Sum('total_price', filter=Q(payment_status="paid"))
         )
 
         # Top clients
         top_clients = User.objects.filter(
             website=website,
             role='client',
-            orders_as_client__is_paid=True
+            orders_as_client__payment_status="paid"
         ).annotate(
-            total_spent=Sum('orders_as_client__total_price', filter=Q(orders_as_client__is_paid=True)),
-            order_count=Count('orders_as_client', filter=Q(orders_as_client__is_paid=True))
+            total_spent=Sum('orders_as_client__total_price', filter=Q(orders_as_client__payment_status="paid")),
+            order_count=Count('orders_as_client', filter=Q(orders_as_client__payment_status="paid"))
         ).order_by('-total_spent')[:10]
 
         # Top writers
         top_writers = User.objects.filter(
             website=website,
             role='writer',
-            orders_as_writer__status=OrderStatus.COMPLETED.value
+            assigned_orders__status=OrderStatus.COMPLETED.value
         ).annotate(
-            completed_orders=Count('orders_as_writer', filter=Q(orders_as_writer__status=OrderStatus.COMPLETED.value)),
-            total_earnings=Sum('orders_as_writer__writer_compensation', filter=Q(orders_as_writer__status=OrderStatus.COMPLETED.value))
+            completed_orders=Count('assigned_orders', filter=Q(assigned_orders__status=OrderStatus.COMPLETED.value)),
+            total_earnings=Sum('assigned_orders__total_price', filter=Q(assigned_orders__status=OrderStatus.COMPLETED.value))
         ).order_by('-completed_orders')[:10]
 
         return Response({
@@ -370,7 +370,7 @@ class SuperadminTenantManagementViewSet(viewsets.ViewSet):
             ).aggregate(total=Sum('amount'))['total'] or 0
 
             # Average order value
-            avg_order_value = orders.filter(is_paid=True).aggregate(
+            avg_order_value = orders.filter(payment_status="paid").aggregate(
                 avg=Avg('total_price')
             )['avg'] or 0
 

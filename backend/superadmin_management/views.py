@@ -213,21 +213,21 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             pending=Count("id", filter=Q(status="pending")),
             submitted=Count("id", filter=Q(status="submitted")),
             available=Count("id", filter=Q(status="available")),
-            avg_order_value=Avg("total_price", filter=Q(is_paid=True)),
-            total_revenue_orders=Sum("total_price", filter=Q(is_paid=True), default=0),
+            avg_order_value=Avg("total_price", filter=Q(payment_status="paid")),
+            total_revenue_orders=Sum("total_price", filter=Q(payment_status="paid"), default=0),
         )
 
         # Recent Orders (last 10)
-        recent_orders = Order.objects.select_related('client', 'assigned_writer', 'website').order_by('-created_at')[:10]
+        recent_orders = Order.objects.select_related('client', 'website').order_by('-created_at')[:10]
         recent_orders_data = [
             {
                 "id": order.id,
                 "topic": order.topic[:50] + "..." if len(order.topic) > 50 else order.topic,
                 "client": order.client.username if order.client else "N/A",
-                "writer": order.assigned_writer.username if order.assigned_writer else "Unassigned",
+                "writer": "Unassigned",
                 "status": order.status,
                 "total_price": float(order.total_price) if order.total_price else 0.0,
-                "is_paid": order.is_paid,
+                "is_paid": order.payment_status == "paid",
                 "created_at": order.created_at.isoformat() if order.created_at else None,
                 "website": order.website.name if order.website else "N/A",
             }
@@ -237,10 +237,9 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         # Top Performing Writers (by completed orders)
         top_writers = User.objects.filter(
             role="writer",
-            orders_as_writer__status="succeeded"
+            assigned_orders__status="succeeded"
         ).annotate(
-            completed_orders_count=Count("orders_as_writer", filter=Q(orders_as_writer__status="succeeded")),
-            total_earnings=Sum("orders_as_writer__writer_compensation", filter=Q(orders_as_writer__status="succeeded"), default=0),
+            completed_orders_count=Count("assigned_orders", filter=Q(assigned_orders__status="succeeded")),
         ).order_by("-completed_orders_count")[:10]
 
         top_writers_data = [
@@ -249,7 +248,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
                 "username": writer.username,
                 "email": writer.email,
                 "completed_orders": writer.completed_orders_count,
-                "total_earnings": float(writer.total_earnings) if writer.total_earnings else 0.0,
+                "total_earnings": 0.0,
             }
             for writer in top_writers
         ]
@@ -257,10 +256,10 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         # Top Spending Clients
         top_clients = User.objects.filter(
             role="client",
-            orders_as_client__is_paid=True
+            orders_as_client__payment_status="paid"
         ).annotate(
-            total_spent=Sum("orders_as_client__total_price", filter=Q(orders_as_client__is_paid=True), default=0),
-            order_count=Count("orders_as_client", filter=Q(orders_as_client__is_paid=True)),
+            total_spent=Sum("orders_as_client__total_price", filter=Q(orders_as_client__payment_status="paid"), default=0),
+            order_count=Count("orders_as_client", filter=Q(orders_as_client__payment_status="paid")),
         ).order_by("-total_spent")[:10]
 
         top_clients_data = [
@@ -276,9 +275,9 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
 
         # Website Statistics
         website_stats = Website.objects.annotate(
-            order_count=Count("order"),
-            user_count=Count("website_users"),
-            total_revenue=Sum("order__total_price", filter=Q(order__is_paid=True), default=0),
+            order_count=Count("orders"),
+            user_count=Count("users"),
+            total_revenue=Sum("orders__total_price", filter=Q(orders__payment_status="paid"), default=0),
         ).values("id", "name", "domain", "is_active", "order_count", "user_count", "total_revenue")[:10]
 
         website_stats_data = [
@@ -298,7 +297,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         thirty_days_ago = timezone.now() - timedelta(days=30)
         revenue_trends = Order.objects.filter(
             created_at__gte=thirty_days_ago,
-            is_paid=True
+            payment_status="paid"
         ).extra(
             select={'day': "DATE(created_at)"}
         ).values('day').annotate(
@@ -333,8 +332,8 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         # Tip Statistics
         tip_stats = Tip.objects.aggregate(
             total_tips=Count("id"),
-            total_tip_amount=Sum("tip_amount", default=0),
-            completed_tips=Count("id", filter=Q(payment_status="succeeded")),
+            total_tip_amount=Sum("gross_amount", default=0),
+            completed_tips=Count("id", filter=Q(status="succeeded")),
         )
 
         # System Health Metrics
@@ -352,9 +351,9 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
                 status__in=["in_progress", "pending", "available"]
             ).count(),
             "unassigned_orders": Order.objects.filter(
-                assigned_writer__isnull=True,
+                assignments__isnull=True,
                 status__in=["available", "pending"]
-            ).count(),
+            ).distinct().count(),
         }
 
         return {

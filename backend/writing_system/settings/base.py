@@ -726,6 +726,7 @@ REST_FRAMEWORK = {
         "class_two_factor": "6/min",
         "class_payment_prepare": "20/hour",
         "class_proposal_action": "30/hour",
+        "notification_poll": "60/minute",
     },
     "EXCEPTION_HANDLER": (
         "authentication.exceptions.custom_exception_handler"

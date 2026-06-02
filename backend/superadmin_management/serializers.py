@@ -2,7 +2,6 @@ from rest_framework import serializers
 from .models import SuperadminProfile, SuperadminLog, Appeal
 from django.contrib.auth import get_user_model
 from accounts.enums import AccountStatus
-from superadmin_management.models import Probation # Import at the top to avoid circular import
 
 User = get_user_model()
 
@@ -61,14 +60,12 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "email", "date_joined"] # Prevent modification of ID & email
 
     def get_is_on_probation(self, obj):
-        """Check if the user is currently on probation."""
-        if Probation.objects.filter(user=obj, is_active=True).exists():
-            return True
+        """Check if the user is currently on probation via discipline state."""
         try:
             discipline = obj.writer_profile.discipline_state
+            return bool(getattr(discipline, "is_on_probation", False))
         except Exception:
             return False
-        return bool(getattr(discipline, "is_on_probation", False))
 
     def get_is_suspended(self, obj):
         """Check the canonical account status for suspended users."""
