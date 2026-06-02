@@ -26,12 +26,28 @@ function getDeviceFingerprint(): string {
 
 const DEVICE_FINGERPRINT = getDeviceFingerprint();
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
 const apiPrefix = import.meta.env.VITE_API_PREFIX || "/api/v1";
 const ordersPrefix = import.meta.env.VITE_ORDERS_API_PREFIX || "/api/v1/orders";
 
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, "");
+}
+
+function normalizeApiOrigin(value: string): string {
+  const trimmed = trimTrailingSlash(value.trim());
+  if (!trimmed) return "";
+  if (trimmed.endsWith(apiPrefix)) return trimTrailingSlash(trimmed.slice(0, -apiPrefix.length));
+  return trimmed;
+}
+
+export const apiBaseOrigin = rawApiBaseUrl.trim()
+  ? normalizeApiOrigin(rawApiBaseUrl)
+  : "http://localhost:8000";
+export const apiBasePrefix = apiPrefix;
+
 export const api: AxiosInstance = axios.create({
-  baseURL,
+  baseURL: apiBaseOrigin,
   headers: {
     "Content-Type": "application/json",
   },
@@ -40,7 +56,7 @@ export const api: AxiosInstance = axios.create({
 export function apiPath(path: string): string {
   if (path.startsWith("http")) return path;
   if (path.startsWith("/api/")) return path;
-  return `${apiPrefix}${path.startsWith("/") ? path : `/${path}`}`;
+  return `${apiBasePrefix}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 export function ordersApiPath(path: string): string {

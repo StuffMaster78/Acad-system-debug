@@ -1,4 +1,5 @@
 import axios from "axios";
+import { apiBaseOrigin, apiPath } from "./client";
 
 export interface PortalBranding {
   brand_name: string;
@@ -26,9 +27,7 @@ export interface PortalContext {
   allowed_roles: string[];
 }
 
-const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
-
 export async function fetchPortalContext(): Promise<PortalContext> {
-  const { data } = await axios.get<PortalContext>(`${BASE}/api/v1/portal-context/`);
+  const { data } = await axios.get<PortalContext>(`${apiBaseOrigin}${apiPath("/portal-context/")}`);
   return data;
 }
