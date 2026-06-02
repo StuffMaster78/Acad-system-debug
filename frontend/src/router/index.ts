@@ -946,6 +946,11 @@ export const router = createRouter({
       name: "reset-password",
       component: () => import("@/views/auth/ResetPasswordView.vue"),
     },
+    {
+      path: "/auth/magic-link",
+      name: "magic-link",
+      component: () => import("@/views/auth/MagicLinkView.vue"),
+    },
     roleRoute("client"),
     roleRoute("writer"),
     roleRoute("editor"),

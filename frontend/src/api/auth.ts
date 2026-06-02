@@ -34,6 +34,24 @@ export interface ChangePasswordPayload {
   new_password: string;
 }
 
+export interface MagicLinkConfirmResponse extends LoginResponse {}
+
+export interface AdminMagicLinkResponse {
+  success: boolean;
+  user_id: number;
+  magic_url: string;
+  expires_minutes: number;
+}
+
+export interface AdminPasswordResetLinkResponse {
+  success: boolean;
+  user_id: number;
+  reset_link: string;
+  otp_code: string;
+  token: string;
+  expires_hours: number;
+}
+
 export const authApi = {
   login: (payload: LoginPayload) =>
     api.post<LoginResponse>(apiPath("/auth/login/"), payload),
@@ -48,6 +66,16 @@ export const authApi = {
     api.post(apiPath("/auth/password/reset/request/"), { email }),
   resetPassword: (token: string, otpCode: string, newPassword: string) =>
     api.post(apiPath("/auth/password/reset/confirm/"), { token, otp_code: otpCode, new_password: newPassword }),
+  // Magic link: user self-service (request + confirm)
+  requestMagicLink: (email: string) =>
+    api.post(apiPath("/auth/magic-link/request/"), { email }),
+  confirmMagicLink: (token: string) =>
+    api.post<MagicLinkConfirmResponse>(apiPath("/auth/magic-link/confirm/"), { token }),
+  // Admin tools: generate auth links for a target user
+  adminGenerateMagicLink: (userId: number) =>
+    api.post<AdminMagicLinkResponse>(apiPath(`/auth/admin/users/${userId}/magic-link/`), {}),
+  adminGeneratePasswordResetLink: (userId: number) =>
+    api.post<AdminPasswordResetLinkResponse>(apiPath(`/auth/admin/users/${userId}/password-reset-link/`), {}),
   uploadAvatar: (file: File) => {
     const form = new FormData();
     form.append("avatar", file);

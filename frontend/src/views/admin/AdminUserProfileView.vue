@@ -6,8 +6,10 @@ import {
   ArrowLeft,
   Ban,
   CheckCircle2,
+  ClipboardCopy,
   CreditCard,
   KeyRound,
+  Link,
   LogOut,
   Package,
   RefreshCw,
@@ -24,6 +26,7 @@ import { useAdminAccessStore } from "@/stores/adminAccess";
 import { useAuthStore } from "@/stores/auth";
 import { useUiStore } from "@/stores/ui";
 import { api, apiPath } from "@/api/client";
+import { authApi, type AdminMagicLinkResponse, type AdminPasswordResetLinkResponse } from "@/api/auth";
 import type { AdminManagedUser } from "@/types/adminAccess";
 import type { UserRole } from "@/types/roles";
 
@@ -49,6 +52,68 @@ const newRole = ref<UserRole>("support");
 const reason = ref("Admin support review from access console.");
 
 const isMutating = ref(false);
+
+// Link generation state
+const generatedMagicLink = ref<AdminMagicLinkResponse | null>(null);
+const generatedResetLink = ref<AdminPasswordResetLinkResponse | null>(null);
+const linkGenerating = ref<"magic" | "reset" | null>(null);
+const linkError = ref("");
+
+async function generateMagicLink() {
+  if (!user.value) return;
+  linkGenerating.value = "magic";
+  linkError.value = "";
+  generatedMagicLink.value = null;
+  try {
+    if (auth.isPreviewSession) {
+      generatedMagicLink.value = {
+        success: true,
+        user_id: user.value.id,
+        magic_url: `${window.location.origin}/auth/magic-link?token=preview-token-abc123`,
+        expires_minutes: 15,
+      };
+      return;
+    }
+    const { data } = await authApi.adminGenerateMagicLink(user.value.id);
+    generatedMagicLink.value = data;
+    ui.toast("Magic link generated. Share it securely.", "success");
+  } catch {
+    linkError.value = "Failed to generate magic link.";
+  } finally {
+    linkGenerating.value = null;
+  }
+}
+
+async function generateResetLink() {
+  if (!user.value) return;
+  linkGenerating.value = "reset";
+  linkError.value = "";
+  generatedResetLink.value = null;
+  try {
+    if (auth.isPreviewSession) {
+      generatedResetLink.value = {
+        success: true,
+        user_id: user.value.id,
+        reset_link: `${window.location.origin}/auth/reset-password?token=preview-reset-abc123`,
+        otp_code: "482910",
+        token: "preview-reset-abc123",
+        expires_hours: 24,
+      };
+      return;
+    }
+    const { data } = await authApi.adminGeneratePasswordResetLink(user.value.id);
+    generatedResetLink.value = data;
+    ui.toast("Password reset link generated.", "success");
+  } catch {
+    linkError.value = "Failed to generate password reset link.";
+  } finally {
+    linkGenerating.value = null;
+  }
+}
+
+function copyToClipboard(text: string, label = "Copied") {
+  navigator.clipboard.writeText(text).then(() => ui.toast(`${label} copied to clipboard.`, "success"));
+}
 
 const roleOptions = computed<UserRole[]>(() => {
   const base: UserRole[] = ["client", "writer", "editor", "support", "admin"];
@@ -688,10 +753,10 @@ onMounted(async () => {
             </div>
           </section>
 
-          <!-- Impersonation (admin/superadmin) -->
+          <!-- Impersonation -->
           <section class="rounded-md border border-slate-200 bg-white p-4">
             <h2 class="text-sm font-semibold text-ink">Impersonation</h2>
-            <p class="mt-1 text-xs text-graphite">Generate a short-lived token to open a support session as this user.</p>
+            <p class="mt-1 text-xs text-graphite">Open a support session signed in as this user.</p>
             <div class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
               Use only for support, QA, or account rescue.
             </div>
@@ -718,6 +783,98 @@ onMounted(async () => {
             >
               Start session
             </button>
+          </section>
+
+          <!-- Support auth links -->
+          <section class="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+            <div>
+              <h2 class="text-sm font-semibold text-ink">Support auth links</h2>
+              <p class="mt-1 text-xs text-graphite">
+                Generate a one-click login or password reset link to share with the user. Never send these in public channels.
+              </p>
+            </div>
+
+            <p v-if="linkError" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              {{ linkError }}
+            </p>
+
+            <!-- Magic link -->
+            <div class="space-y-2">
+              <button
+                class="focus-ring inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-60"
+                type="button"
+                :disabled="linkGenerating !== null"
+                @click="generateMagicLink"
+              >
+                <Link class="h-3.5 w-3.5" />
+                {{ linkGenerating === 'magic' ? 'Generating…' : 'Generate magic login link' }}
+              </button>
+              <div v-if="generatedMagicLink" class="rounded-md border border-slate-200 bg-slate-50 p-2">
+                <p class="text-xs font-semibold text-graphite mb-1">
+                  Magic link · expires in {{ generatedMagicLink.expires_minutes }} min · single-use
+                </p>
+                <div class="flex gap-1.5">
+                  <input
+                    :value="generatedMagicLink.magic_url"
+                    class="min-w-0 flex-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-mono text-graphite"
+                    readonly
+                  />
+                  <button
+                    class="focus-ring shrink-0 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold hover:bg-slate-50"
+                    type="button"
+                    @click="copyToClipboard(generatedMagicLink!.magic_url, 'Magic link')"
+                  >
+                    <ClipboardCopy class="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Password reset link -->
+            <div class="space-y-2">
+              <button
+                class="focus-ring inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-60"
+                type="button"
+                :disabled="linkGenerating !== null"
+                @click="generateResetLink"
+              >
+                <KeyRound class="h-3.5 w-3.5" />
+                {{ linkGenerating === 'reset' ? 'Generating…' : 'Generate password reset link' }}
+              </button>
+              <div v-if="generatedResetLink" class="rounded-md border border-slate-200 bg-slate-50 p-2 space-y-2">
+                <p class="text-xs font-semibold text-graphite">
+                  Reset link · expires in {{ generatedResetLink.expires_hours }}h
+                </p>
+                <div class="flex gap-1.5">
+                  <input
+                    :value="generatedResetLink.reset_link"
+                    class="min-w-0 flex-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-mono text-graphite"
+                    readonly
+                  />
+                  <button
+                    class="focus-ring shrink-0 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold hover:bg-slate-50"
+                    type="button"
+                    @click="copyToClipboard(generatedResetLink!.reset_link, 'Reset link')"
+                  >
+                    <ClipboardCopy class="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div class="flex items-center justify-between gap-2 rounded border border-amber-200 bg-amber-50 px-2 py-1.5">
+                  <div>
+                    <p class="text-xs font-semibold text-amber-900">OTP code</p>
+                    <p class="font-mono text-base font-bold tracking-widest text-amber-900">{{ generatedResetLink.otp_code }}</p>
+                  </div>
+                  <button
+                    class="focus-ring shrink-0 rounded border border-amber-300 bg-white px-2 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-50"
+                    type="button"
+                    @click="copyToClipboard(generatedResetLink!.otp_code, 'OTP code')"
+                  >
+                    <ClipboardCopy class="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <p class="text-xs text-graphite">Share the link AND the OTP code with the user. Both are required to set a new password.</p>
+              </div>
+            </div>
           </section>
         </aside>
       </div>

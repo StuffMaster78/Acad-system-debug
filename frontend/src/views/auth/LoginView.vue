@@ -1,24 +1,32 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import { Loader2, ShieldCheck } from "@lucide/vue";
+import { Loader2, Mail, ShieldCheck } from "@lucide/vue";
 import { roleHome } from "@/config/navigation";
 import { useAuthStore, MfaRequiredError } from "@/stores/auth";
+import { authApi } from "@/api/auth";
 import type { UserRole } from "@/types/roles";
 
 const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
+
+type Tab = "password" | "magic";
+const tab = ref<Tab>("password");
+
 const error = ref("");
 const mfaRequired = ref(false);
-const form = reactive({
-  email: "",
-  password: "",
-});
+const form = reactive({ email: "", password: "" });
+
+const magicEmail = ref("");
+const magicState = ref<"idle" | "sending" | "sent">("idle");
+const magicError = ref("");
+
 const isDev = import.meta.env.DEV;
 const previewRoles: UserRole[] = ["client", "writer", "editor", "support", "admin", "superadmin"];
 
 const canSubmit = computed(() => form.email.length > 3 && form.password.length > 0 && !auth.isLoading);
+const canSendMagic = computed(() => magicEmail.value.includes("@") && magicState.value !== "sending");
 
 async function submit() {
   error.value = "";
@@ -36,6 +44,18 @@ async function submit() {
   }
 }
 
+async function sendMagicLink() {
+  magicError.value = "";
+  magicState.value = "sending";
+  try {
+    await authApi.requestMagicLink(magicEmail.value);
+    magicState.value = "sent";
+  } catch {
+    magicError.value = "Could not send the link. Please check the email address and try again.";
+    magicState.value = "idle";
+  }
+}
+
 async function preview(role: UserRole) {
   auth.previewAs(role);
   await router.push(roleHome[role]);
@@ -48,14 +68,35 @@ async function preview(role: UserRole) {
       <!-- Card -->
       <div class="rounded-lg border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/60">
         <!-- Header -->
-        <div class="mb-7">
+        <div class="mb-6">
           <h1 class="text-2xl font-semibold tracking-tight text-ink">Sign in</h1>
           <p class="mt-1.5 text-sm text-graphite">
             Use your platform account to open the correct workspace.
           </p>
         </div>
 
-        <form class="space-y-4" @submit.prevent="submit">
+        <!-- Tab switcher -->
+        <div class="mb-6 flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <button
+            class="flex-1 rounded-md py-2 text-xs font-semibold transition-all"
+            :class="tab === 'password' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+            type="button"
+            @click="tab = 'password'; error = ''; mfaRequired = false"
+          >
+            Password
+          </button>
+          <button
+            class="flex-1 rounded-md py-2 text-xs font-semibold transition-all"
+            :class="tab === 'magic' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+            type="button"
+            @click="tab = 'magic'; magicState = 'idle'; magicError = ''"
+          >
+            Magic link
+          </button>
+        </div>
+
+        <!-- Password tab -->
+        <form v-if="tab === 'password'" class="space-y-4" @submit.prevent="submit">
           <div>
             <label class="mb-1.5 block text-sm font-medium text-ink" for="email">Email</label>
             <input
@@ -87,7 +128,6 @@ async function preview(role: UserRole) {
             />
           </div>
 
-          <!-- Error banner -->
           <Transition
             enter-active-class="transition-all duration-200"
             enter-from-class="opacity-0 -translate-y-1"
@@ -104,7 +144,6 @@ async function preview(role: UserRole) {
             </div>
           </Transition>
 
-          <!-- MFA banner -->
           <div
             v-if="mfaRequired"
             class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm"
@@ -128,6 +167,61 @@ async function preview(role: UserRole) {
             {{ auth.isLoading ? "Signing in…" : "Sign in" }}
           </button>
         </form>
+
+        <!-- Magic link tab -->
+        <div v-else class="space-y-4">
+          <template v-if="magicState !== 'sent'">
+            <p class="text-sm text-graphite">
+              Enter your email and we'll send a one-click sign-in link. No password needed. Links expire in 15 minutes and work once only.
+            </p>
+            <div>
+              <label class="mb-1.5 block text-sm font-medium text-ink" for="magic-email">Email</label>
+              <input
+                id="magic-email"
+                v-model="magicEmail"
+                class="focus-ring h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
+                autocomplete="email"
+                type="email"
+                placeholder="you@example.com"
+                @keydown.enter.prevent="canSendMagic && sendMagicLink()"
+              />
+            </div>
+            <div
+              v-if="magicError"
+              class="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800"
+              role="alert"
+            >
+              {{ magicError }}
+            </div>
+            <button
+              class="focus-ring inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="!canSendMagic"
+              type="button"
+              @click="sendMagicLink"
+            >
+              <Loader2 v-if="magicState === 'sending'" class="h-4 w-4 animate-spin" />
+              <Mail v-else class="h-4 w-4" />
+              {{ magicState === 'sending' ? 'Sending…' : 'Send magic link' }}
+            </button>
+          </template>
+
+          <template v-else>
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-center">
+              <Mail class="mx-auto h-8 w-8 text-emerald-500" />
+              <p class="mt-3 font-semibold text-emerald-900">Check your inbox</p>
+              <p class="mt-1 text-sm text-emerald-800">
+                A sign-in link was sent to <strong>{{ magicEmail }}</strong>. Click it to sign in — it works once and expires in 15 minutes.
+              </p>
+            </div>
+            <button
+              class="w-full text-center text-xs text-graphite hover:text-ink hover:underline"
+              type="button"
+              @click="magicState = 'idle'; magicError = ''"
+            >
+              Try a different email
+            </button>
+          </template>
+        </div>
       </div>
 
       <!-- Dev preview panel -->

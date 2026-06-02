@@ -169,6 +169,18 @@ export const useAuthStore = defineStore("auth", () => {
     window.localStorage.setItem(USER_KEY, JSON.stringify(user.value));
   }
 
+  async function loginWithMagicLink(token: string) {
+    isLoading.value = true;
+    try {
+      const { data } = await authApi.confirmMagicLink(token);
+      if (!data.access_token) throw new Error("No access token in magic link response");
+      persist({ access: data.access_token, refresh: data.refresh_token });
+      await loadMe();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   return {
     accessToken,
     refresh,
@@ -187,5 +199,6 @@ export const useAuthStore = defineStore("auth", () => {
     clearSession,
     previewAs,
     updateUser,
+    loginWithMagicLink,
   };
 });
