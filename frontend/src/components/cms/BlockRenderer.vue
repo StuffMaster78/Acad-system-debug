@@ -6,6 +6,7 @@
       <component
         v-if="block.type === 'heading'"
         :is="(block.value as HeadingValue).level || 'h2'"
+        :id="headingId((block.value as HeadingValue).text)"
         class="font-bold text-ink"
         :class="{
           'text-3xl mt-10': (block.value as HeadingValue).level === 'h2',
@@ -564,6 +565,10 @@ interface DefinitionValue { term: string; definition: string; example?: string }
 interface TimelineEntry { date_label: string; title: string; description: string }
 interface TimelineValue { heading?: string; entries: TimelineEntry[] }
 interface EmbedValue { embed_url: string; height?: number; caption?: string }
+
+function headingId(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 60);
+}
 
 function tableBodyRows(v: TableValue): string[][] {
   const rows = v.table?.data ?? [];

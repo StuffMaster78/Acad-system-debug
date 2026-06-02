@@ -263,13 +263,13 @@ def generate_toc(body):
             if isinstance(value, dict):
                 text = value.get("text", "")
                 level = value.get("level", "h2")
-                anchor_id = re.sub(
+                anchor = re.sub(
                     r"[^a-z0-9-]", "",
                     text.lower().replace(" ", "-")
                 )[:60]
                 toc.append({
                     "level": level,
                     "text": text,
-                    "anchor_id": anchor_id,
+                    "anchor": anchor,
                 })
     return toc
