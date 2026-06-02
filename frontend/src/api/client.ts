@@ -65,6 +65,12 @@ api.interceptors.response.use(
       | undefined;
 
     if (error.response?.status === 401 && original && !original._retry) {
+      // Never intercept 401s from the login endpoint — those are credential failures
+      // and must propagate to the login form so the error message can render.
+      if (original.url?.includes("/auth/login") || original.url?.includes("/auth/auth/login")) {
+        return Promise.reject(error);
+      }
+
       // Preview sessions use fake tokens that always 401. Never clear them —
       // the whole point is to browse the app with mock data without a real backend session.
       if (auth.isPreviewSession) {
