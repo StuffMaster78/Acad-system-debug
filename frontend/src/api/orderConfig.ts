@@ -9,6 +9,9 @@ export interface ConfigOptionPayload {
   website?: number | null;
   is_active?: boolean;
   description?: string;
+  category?: string;
+  is_technical?: boolean;
+  display_order?: number;
 }
 
 function normalizeList<T>(payload: T[] | PaginatedResponse<T>): T[] {

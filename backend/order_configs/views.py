@@ -94,12 +94,30 @@ class SubjectViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        """Filter by website if specified."""
+        """Filter by website, category, and active status."""
         queryset = super().get_queryset()
-        website_id = self.request.query_params.get('website_id')
-        if website_id:
-            queryset = queryset.filter(website_id=website_id)
+        params = self.request.query_params
+        if params.get('website_id'):
+            queryset = queryset.filter(website_id=params['website_id'])
+        if params.get('category'):
+            queryset = queryset.filter(category=params['category'])
+        # Clients see only active subjects by default; admins can see all
+        user = self.request.user
+        role = getattr(user, 'role', '')
+        if role not in ('admin', 'superadmin', 'editor', 'support') and not user.is_staff:
+            queryset = queryset.filter(is_active=True)
+        elif params.get('is_active') is not None:
+            queryset = queryset.filter(is_active=params['is_active'].lower() == 'true')
         return queryset.select_related('website')
+
+    @action(detail=False, methods=['get'])
+    def categories(self, request):
+        """Return list of available subject categories."""
+        from order_configs.models import Subject as SubjectModel
+        return Response([
+            {'value': k, 'label': v}
+            for k, v in SubjectModel.CATEGORY_CHOICES
+        ])
 
 
 class SubjectTemplateViewSet(viewsets.ModelViewSet):

@@ -105,6 +105,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
 
   const showCreateForm = ref(false);
   const editingId = ref<number | null>(null);
+  const categoryFilter = ref<string>("");
 
   const createForm = reactive<ConfigOptionPayload>({
     name: "",
@@ -131,6 +132,9 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
       code: item.code ?? "",
       website: item.website ?? null,
       is_active: item.is_active ?? true,
+      category: (item as Record<string, unknown>).category ?? "general",
+      is_technical: (item as Record<string, unknown>).is_technical ?? false,
+      display_order: (item as Record<string, unknown>).display_order ?? 0,
     });
   }
 
@@ -163,7 +167,11 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
         }));
         return;
       }
-      const { data } = await orderConfigApi.listCollection(collection);
+      const params: Record<string, unknown> = {};
+      if (collection === "subjects" && categoryFilter.value) {
+        params.category = categoryFilter.value;
+      }
+      const { data } = await orderConfigApi.listCollection(collection, Object.keys(params).length ? params : undefined);
       collectionItems.value[collection] = normalizeList(data as OrderConfigOption[] | { results: OrderConfigOption[] });
     } catch {
       ui.toast("Failed to load config items.", "error");
@@ -577,6 +585,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     isSaving,
     showCreateForm,
     editingId,
+    categoryFilter,
     createForm,
     editForm,
     loadCollection,

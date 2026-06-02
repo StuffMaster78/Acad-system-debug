@@ -185,7 +185,26 @@ class FormattingandCitationStyle(models.Model):
 class Subject(models.Model):
     """
     Represents the subject of the order (e.g., Nursing, Physics).
+    Tenant-scoped — each website manages its own subject list.
     """
+
+    CATEGORY_CHOICES = [
+        ('general', 'General'),
+        ('humanities', 'Humanities & Arts'),
+        ('sciences', 'Natural Sciences'),
+        ('health_sciences', 'Health Sciences'),
+        ('nursing', 'Nursing & Healthcare'),
+        ('computing', 'Computing & Technology'),
+        ('engineering', 'Engineering'),
+        ('business', 'Business & Economics'),
+        ('education', 'Education'),
+        ('social_sciences', 'Social Sciences'),
+        ('law', 'Law & Legal Studies'),
+        ('theology', 'Theology & Religion'),
+        ('mathematics', 'Mathematics & Statistics'),
+        ('environment', 'Environment & Earth Sciences'),
+    ]
+
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -195,16 +214,30 @@ class Subject(models.Model):
         max_length=100,
         help_text="Subject (e.g., Nursing, Physics)."
     )
+    category = models.CharField(
+        max_length=30,
+        choices=CATEGORY_CHOICES,
+        default='general',
+        help_text="Discipline category — used to filter and organise subjects.",
+    )
     is_technical = models.BooleanField(
         default=False,
-        help_text="Is this subject technical?"
+        help_text="Is this subject technical (affects pricing or writer routing)?"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Inactive subjects are hidden from clients."
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Lower numbers appear first within the same category."
     )
 
     def __str__(self):
         return self.name
 
     class Meta:
-        ordering = ['name']
+        ordering = ['category', 'display_order', 'name']
         verbose_name = "Subject"
         verbose_name_plural = "Subjects"
         unique_together = ('website', 'name')
