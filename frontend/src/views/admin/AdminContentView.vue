@@ -628,8 +628,10 @@ const docSaveError = ref("");
 const activating = ref<number | null>(null);
 
 async function loadDocVersions() {
-  const { data } = await legalApi.admin.listDocuments({ doc_type: selectedDocType.value, ...wsParam() });
-  docVersions.value = data;
+  try {
+    const { data } = await legalApi.admin.listDocuments({ doc_type: selectedDocType.value, ...wsParam() });
+    docVersions.value = data;
+  } catch { docVersions.value = []; }
 }
 
 async function loadActiveVersions() {
@@ -715,14 +717,18 @@ const isSavingArticle = ref(false);
 const articleSaveError = ref("");
 
 async function loadCategories() {
-  const { data } = await legalApi.admin.listCategories();
-  categories.value = data;
+  try {
+    const { data } = await legalApi.admin.listCategories();
+    categories.value = data;
+  } catch { categories.value = []; }
 }
 
 async function loadArticles() {
-  const params = selectedCategory.value ? { category: selectedCategory.value.id } : undefined;
-  const { data } = await legalApi.admin.listArticles({ ...params, ...wsParam() });
-  articles.value = data;
+  try {
+    const params = selectedCategory.value ? { category: selectedCategory.value.id } : undefined;
+    const { data } = await legalApi.admin.listArticles({ ...params, ...wsParam() });
+    articles.value = data;
+  } catch { articles.value = []; }
 }
 
 function selectCategory(cat: HelpCategory) {
