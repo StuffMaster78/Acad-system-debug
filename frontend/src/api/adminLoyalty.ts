@@ -188,6 +188,10 @@ export const adminLoyaltyApi = {
     }),
 
   // ── Analytics ──────────────────────────────────────────────────────────────
-  analytics: () =>
-    api.get<Record<string, unknown>>(apiPath("/loyalty-management/analytics/")),
+  analyticsCalculate: (params?: Record<string, unknown>) =>
+    api.get<Record<string, unknown>>(apiPath("/loyalty-management/analytics/calculate/"), { params }),
+  analyticsTrend: (params?: Record<string, unknown>) =>
+    api.get<Array<Record<string, unknown>>>(apiPath("/loyalty-management/analytics/points_trend/"), { params }),
+  analyticsTopItems: (params?: Record<string, unknown>) =>
+    api.get<Array<Record<string, unknown>>>(apiPath("/loyalty-management/analytics/top_items/"), { params }),
 };

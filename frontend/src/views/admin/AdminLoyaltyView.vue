@@ -13,6 +13,7 @@ import {
   Settings,
   Tag,
   Trash2,
+  TrendingUp,
   X,
   XCircle,
   Zap,
@@ -31,7 +32,7 @@ import type {
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type Tab = "redemptions" | "operations" | "catalog" | "config";
+type Tab = "redemptions" | "operations" | "catalog" | "config" | "analytics";
 const activeTab = ref<Tab>("redemptions");
 
 // ── Redemption Queue ──────────────────────────────────────────────────────────
@@ -364,6 +365,31 @@ async function saveConfig(id: number) {
   }
 }
 
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+const analyticsData = ref<Record<string, unknown> | null>(null);
+const analyticsTrend = ref<Array<Record<string, unknown>>>([]);
+const analyticsTopItems = ref<Array<Record<string, unknown>>>([]);
+const analyticsLoading = ref(false);
+
+async function loadAnalytics() {
+  analyticsLoading.value = true;
+  try {
+    const params: Record<string, unknown> = {};
+    if (selectedWebsiteId.value) params.website = selectedWebsiteId.value;
+    const [calcRes, trendRes, topRes] = await Promise.allSettled([
+      adminLoyaltyApi.analyticsCalculate(params),
+      adminLoyaltyApi.analyticsTrend(params),
+      adminLoyaltyApi.analyticsTopItems(params),
+    ]);
+    if (calcRes.status === "fulfilled") analyticsData.value = calcRes.value.data;
+    if (trendRes.status === "fulfilled") analyticsTrend.value = Array.isArray(trendRes.value.data) ? trendRes.value.data : [];
+    if (topRes.status === "fulfilled") analyticsTopItems.value = Array.isArray(topRes.value.data) ? topRes.value.data : [];
+  } finally {
+    analyticsLoading.value = false;
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function requestStatusTone(s: string): "success" | "warning" | "danger" | "neutral" {
@@ -388,8 +414,14 @@ function reloadAll() {
   loadConfig();
 }
 
-watch(selectedWebsiteId, () => reloadAll());
+watch(selectedWebsiteId, () => {
+  reloadAll();
+  if (activeTab.value === "analytics") loadAnalytics();
+});
 watch(requestsFilter, () => loadRequests());
+watch(activeTab, (t) => {
+  if (t === "analytics" && !analyticsData.value) loadAnalytics();
+});
 
 onMounted(async () => {
   await Promise.all([loadRequests(), loadTiers(), loadMilestones(), loadCatalog(), loadConfig()]);
@@ -424,6 +456,7 @@ onMounted(async () => {
           { key: 'operations', label: 'Point Operations', icon: Zap },
           { key: 'catalog', label: 'Tiers & Catalog', icon: Tag },
           { key: 'config', label: 'Config', icon: Settings },
+          { key: 'analytics', label: 'Analytics', icon: TrendingUp },
         ]"
         :key="tab.key"
         class="flex items-center gap-1.5 pb-3 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap"
@@ -894,5 +927,105 @@ onMounted(async () => {
         </div>
       </div>
     </template>
+
+    <!-- ── ANALYTICS ──────────────────────────────────────────────────────────── -->
+    <template v-if="activeTab === 'analytics'">
+      <div v-if="analyticsLoading" class="p-8 flex justify-center">
+        <Loader2 class="size-7 text-neutral-300 animate-spin" />
+      </div>
+
+      <div v-else class="space-y-6">
+        <!-- KPI tiles -->
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-xl border border-slate-200 bg-white p-5">
+            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Total points issued</p>
+            <p class="mt-3 text-2xl font-bold text-ink">
+              {{ (analyticsData?.total_points_issued as number ?? 0).toLocaleString() }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white p-5">
+            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Points redeemed</p>
+            <p class="mt-3 text-2xl font-bold text-ink">
+              {{ (analyticsData?.total_points_redeemed as number ?? 0).toLocaleString() }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white p-5">
+            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Active clients</p>
+            <p class="mt-3 text-2xl font-bold text-ink">
+              {{ (analyticsData?.active_clients as number ?? 0).toLocaleString() }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-5">
+            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Redemption rate</p>
+            <p class="mt-3 text-2xl font-bold text-ink">
+              {{ analyticsData?.redemption_rate != null ? `${Number(analyticsData.redemption_rate).toFixed(1)}%` : '—' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Points trend -->
+        <div class="rounded-xl border border-slate-200 bg-white">
+          <div class="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+            <TrendingUp class="h-4 w-4 text-signal" />
+            <h2 class="text-sm font-semibold text-ink">Points trend</h2>
+          </div>
+          <div v-if="!analyticsTrend.length" class="px-4 py-8 text-center text-sm text-graphite">
+            No trend data available for the selected period.
+          </div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
+                <tr>
+                  <th class="px-4 py-3 text-left">Period</th>
+                  <th class="px-4 py-3 text-right">Points earned</th>
+                  <th class="px-4 py-3 text-right">Points redeemed</th>
+                  <th class="px-4 py-3 text-right">Net</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr v-for="(row, i) in analyticsTrend" :key="i" class="hover:bg-slate-50">
+                  <td class="px-4 py-3 font-medium text-ink">{{ row.period ?? row.date ?? '—' }}</td>
+                  <td class="px-4 py-3 text-right text-emerald-700">+{{ Number(row.points_earned ?? 0).toLocaleString() }}</td>
+                  <td class="px-4 py-3 text-right text-rose-600">-{{ Number(row.points_redeemed ?? 0).toLocaleString() }}</td>
+                  <td class="px-4 py-3 text-right font-semibold text-ink">
+                    {{ (Number(row.points_earned ?? 0) - Number(row.points_redeemed ?? 0)).toLocaleString() }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Top redemption items -->
+        <div class="rounded-xl border border-slate-200 bg-white">
+          <div class="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+            <Gift class="h-4 w-4 text-signal" />
+            <h2 class="text-sm font-semibold text-ink">Top redemption items</h2>
+          </div>
+          <div v-if="!analyticsTopItems.length" class="px-4 py-8 text-center text-sm text-graphite">
+            No redemption data available yet.
+          </div>
+          <div v-else class="divide-y divide-slate-100">
+            <div
+              v-for="(item, i) in analyticsTopItems"
+              :key="i"
+              class="flex items-center justify-between px-4 py-3"
+            >
+              <div class="flex items-center gap-3">
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-graphite">
+                  {{ i + 1 }}
+                </span>
+                <p class="text-sm font-medium text-ink">{{ item.name ?? item.item_name ?? `Item #${item.id}` }}</p>
+              </div>
+              <div class="flex items-center gap-4 text-xs text-graphite">
+                <span>{{ Number(item.total_redemptions ?? item.count ?? 0).toLocaleString() }} redemptions</span>
+                <span class="font-semibold text-ink">{{ Number(item.points_required ?? 0).toLocaleString() }} pts</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
   </div>
 </template>

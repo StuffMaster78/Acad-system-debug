@@ -877,61 +877,73 @@ export const router = createRouter({
         {
           path: "services",
           name: "services",
+          meta: { surface: "client" },
           component: () => import("@/views/public/ServicesView.vue"),
         },
         {
           path: "services/:slug",
           name: "service-page",
+          meta: { surface: "client" },
           component: () => import("@/views/public/ServicePageView.vue"),
         },
         {
           path: "blog",
           name: "blog",
+          meta: { surface: "client" },
           component: () => import("@/views/public/BlogIndexView.vue"),
         },
         {
           path: "blog/:slug",
           name: "blog-post",
+          meta: { surface: "client" },
           component: () => import("@/views/public/BlogPostView.vue"),
         },
         {
           path: "lp/:slug",
           name: "landing-page",
+          meta: { surface: "client" },
           component: () => import("@/views/public/LandingPageView.vue"),
         },
         {
           path: "authors",
           name: "authors",
+          meta: { surface: "client" },
           component: () => import("@/views/public/AuthorsView.vue"),
         },
         {
           path: "authors/:slug",
           name: "author",
+          meta: { surface: "client" },
           component: () => import("@/views/public/AuthorView.vue"),
         },
         {
           path: "resources",
           name: "resources",
+          meta: { surface: "client" },
           component: () => import("@/views/public/ResourcesView.vue"),
         },
         {
           path: "resources/:slug",
           name: "resource",
+          meta: { surface: "client" },
           component: () => import("@/views/public/ResourceView.vue"),
         },
         {
           path: "help",
           name: "help-center",
+          meta: { surface: "client" },
           component: () => import("@/views/public/HelpCenterView.vue"),
         },
         {
           path: "help/articles/:slug",
           name: "help-article",
+          meta: { surface: "client" },
           component: () => import("@/views/public/HelpArticleView.vue"),
         },
         {
           path: "help/category/:slug",
           name: "help-category",
+          meta: { surface: "client" },
           component: () => import("@/views/public/HelpCenterView.vue"),
         },
         {
