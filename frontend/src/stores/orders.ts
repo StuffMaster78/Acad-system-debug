@@ -100,8 +100,8 @@ export const useOrderStore = defineStore("orders", () => {
       if (Array.isArray(data)) {
         orders.value = data;
       } else {
-        orders.value = data.results;
-        pagination.value = { ...pagination.value, page, count: data.count };
+        orders.value = Array.isArray(data.results) ? data.results : [];
+        pagination.value = { ...pagination.value, page, count: data.count ?? 0 };
       }
     } catch (caught) {
       error.value = "Unable to load orders.";
