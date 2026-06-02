@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { adminWalletsApi } from "@/api/adminWallets";
 import { useAuthStore } from "@/stores/auth";
 import { useUiStore } from "@/stores/ui";
+import { usePortalContextStore } from "@/stores/portalContext";
 import type {
   AdminWalletAdjustmentPayload,
   AdminWalletEntryRecord,
@@ -155,6 +156,11 @@ function previewHolds(walletId: number): AdminWalletHoldRecord[] {
   ];
 }
 
+function resolvedWebsiteParams(extra: Record<string, unknown> = {}) {
+  const portalCtx = usePortalContextStore();
+  return portalCtx.website?.id ? { ...extra, website_id: portalCtx.website.id } : extra;
+}
+
 export const useAdminWalletsStore = defineStore("admin-wallets", () => {
   const wallets = ref<AdminWalletRecord[]>([]);
   const entries = ref<AdminWalletEntryRecord[]>([]);
@@ -266,7 +272,7 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
         return;
       }
 
-      const { data } = await adminWalletsApi.wallets({ page_size: 100 });
+      const { data } = await adminWalletsApi.wallets(resolvedWebsiteParams({ page_size: 100 }));
       wallets.value = normalizeList(data);
       if (!selectedWalletId.value || !wallets.value.some((wallet) => wallet.id === selectedWalletId.value)) {
         selectedWalletId.value = wallets.value[0]?.id ?? null;
@@ -296,8 +302,8 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
       }
 
       const [entryRes, holdRes] = await Promise.all([
-        adminWalletsApi.entries(walletId, { page_size: 50 }),
-        adminWalletsApi.holds(walletId, { page_size: 25 }),
+        adminWalletsApi.entries(walletId, resolvedWebsiteParams({ page_size: 50 })),
+        adminWalletsApi.holds(walletId, resolvedWebsiteParams({ page_size: 25 })),
       ]);
       entries.value = normalizeList(entryRes.data);
       holds.value = normalizeList(holdRes.data);

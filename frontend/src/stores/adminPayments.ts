@@ -12,6 +12,7 @@ import {
   type WriterPayoutRequestRecord,
 } from "@/api/adminPayments";
 import { useAuthStore } from "@/stores/auth";
+import { usePortalContextStore } from "@/stores/portalContext";
 import type {
   AdminPaymentFeedItem,
   AdminPaymentMetric,
@@ -67,6 +68,11 @@ function recordsFromQueue(data: QueueResponse, keys: string[]) {
     if (records.length) return records;
   }
   return asRecords(data.results);
+}
+
+function resolvedWebsiteParams(extra: Record<string, unknown> = {}) {
+  const portalCtx = usePortalContextStore();
+  return portalCtx.website?.id ? { ...extra, website_id: portalCtx.website.id } : extra;
 }
 
 function previewWallets(): AdminWalletRecord[] {
@@ -511,10 +517,11 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
         return;
       }
 
+      const scopedParams = resolvedWebsiteParams();
       const [walletRes, payoutRes, refundRes] = await Promise.allSettled([
-        adminPaymentsApi.wallets({ page_size: 50 }),
-        adminPaymentsApi.payoutRequests(),
-        adminPaymentsApi.refunds(),
+        adminPaymentsApi.wallets(resolvedWebsiteParams({ page_size: 50 })),
+        adminPaymentsApi.payoutRequests(scopedParams),
+        adminPaymentsApi.refunds(scopedParams),
       ]);
 
       if (walletRes.status === "fulfilled") wallets.value = normalizeList(walletRes.value.data);
@@ -523,7 +530,7 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
 
       const entryResponses = await Promise.allSettled(
         wallets.value.slice(0, 12).map((wallet) =>
-          adminPaymentsApi.walletEntries(wallet.id, { page_size: 25 }),
+          adminPaymentsApi.walletEntries(wallet.id, resolvedWebsiteParams({ page_size: 25 })),
         ),
       );
       walletEntries.value = entryResponses.flatMap((response) =>
@@ -709,16 +716,16 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
       tipDashRes,
       tipsRes,
     ] = await Promise.allSettled([
-      adminPaymentsApi.financialOverview(),
-      adminPaymentsApi.allWriterPayments({ page_size: 100 }),
-      adminPaymentsApi.refundDashboard(),
-      adminPaymentsApi.pendingRefunds(),
-      adminPaymentsApi.disputeDashboard(),
-      adminPaymentsApi.pendingDisputes(),
-      adminPaymentsApi.classPaymentMilestones(),
-      adminPaymentsApi.pendingClassDeposits(),
-      adminPaymentsApi.tipDashboard(),
-      adminPaymentsApi.tipList(),
+      adminPaymentsApi.financialOverview(resolvedWebsiteParams()),
+      adminPaymentsApi.allWriterPayments(resolvedWebsiteParams({ page_size: 100 })),
+      adminPaymentsApi.refundDashboard(resolvedWebsiteParams()),
+      adminPaymentsApi.pendingRefunds(resolvedWebsiteParams()),
+      adminPaymentsApi.disputeDashboard(resolvedWebsiteParams()),
+      adminPaymentsApi.pendingDisputes(resolvedWebsiteParams()),
+      adminPaymentsApi.classPaymentMilestones(resolvedWebsiteParams()),
+      adminPaymentsApi.pendingClassDeposits(resolvedWebsiteParams()),
+      adminPaymentsApi.tipDashboard(resolvedWebsiteParams()),
+      adminPaymentsApi.tipList(resolvedWebsiteParams()),
     ]);
     if (overviewRes.status === "fulfilled") financialOverview.value = overviewRes.value.data;
     if (writerPaymentsRes.status === "fulfilled") {
