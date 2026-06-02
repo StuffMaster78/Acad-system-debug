@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import {
   ArrowLeftRight,
   CheckCircle2,
@@ -51,6 +51,7 @@ async function loadRequests() {
   try {
     const params: Record<string, unknown> = {};
     if (requestsFilter.value) params.status = requestsFilter.value;
+    if (selectedWebsiteId.value) params.website = selectedWebsiteId.value;
     const { data } = await adminLoyaltyApi.redemptionRequests(params);
     requests.value = Array.isArray(data) ? data : (data as { results: RedemptionRequest[] }).results ?? [];
   } finally {
@@ -164,7 +165,9 @@ const tierError = ref("");
 async function loadTiers() {
   tiersLoading.value = true;
   try {
-    const { data } = await adminLoyaltyApi.tiers();
+    const params: Record<string, unknown> = {};
+    if (selectedWebsiteId.value) params.website = selectedWebsiteId.value;
+    const { data } = await adminLoyaltyApi.tiers(params);
     tiers.value = Array.isArray(data) ? data : (data as { results: LoyaltyTier[] }).results ?? [];
   } finally {
     tiersLoading.value = false;
@@ -216,7 +219,9 @@ const milestoneError = ref("");
 async function loadMilestones() {
   milestonesLoading.value = true;
   try {
-    const { data } = await adminLoyaltyApi.milestones();
+    const params: Record<string, unknown> = {};
+    if (selectedWebsiteId.value) params.website = selectedWebsiteId.value;
+    const { data } = await adminLoyaltyApi.milestones(params);
     milestones.value = Array.isArray(data) ? data : (data as { results: Milestone[] }).results ?? [];
   } finally {
     milestonesLoading.value = false;
@@ -273,9 +278,11 @@ const itemError = ref("");
 async function loadCatalog() {
   catalogLoading.value = true;
   try {
+    const params: Record<string, unknown> = {};
+    if (selectedWebsiteId.value) params.website = selectedWebsiteId.value;
     const [catRes, itemRes] = await Promise.all([
-      adminLoyaltyApi.redemptionCategories(),
-      adminLoyaltyApi.redemptionItems(),
+      adminLoyaltyApi.redemptionCategories(params),
+      adminLoyaltyApi.redemptionItems(params),
     ]);
     categories.value = Array.isArray(catRes.data) ? catRes.data : (catRes.data as { results: RedemptionCategory[] }).results ?? [];
     catalogItems.value = Array.isArray(itemRes.data) ? itemRes.data : (itemRes.data as { results: RedemptionItem[] }).results ?? [];
@@ -331,7 +338,9 @@ const configEdits = ref<Record<number, Partial<LoyaltyConversionConfig>>>({});
 async function loadConfig() {
   configLoading.value = true;
   try {
-    const { data } = await adminLoyaltyApi.conversionConfigs();
+    const params: Record<string, unknown> = {};
+    if (selectedWebsiteId.value) params.website = selectedWebsiteId.value;
+    const { data } = await adminLoyaltyApi.conversionConfigs(params);
     configs.value = Array.isArray(data) ? data : (data as { results: LoyaltyConversionConfig[] }).results ?? [];
   } finally {
     configLoading.value = false;
@@ -371,6 +380,17 @@ function fmt(v: string | null | undefined): string {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 
+function reloadAll() {
+  loadRequests();
+  loadTiers();
+  loadMilestones();
+  loadCatalog();
+  loadConfig();
+}
+
+watch(selectedWebsiteId, () => reloadAll());
+watch(requestsFilter, () => loadRequests());
+
 onMounted(async () => {
   await Promise.all([loadRequests(), loadTiers(), loadMilestones(), loadCatalog(), loadConfig()]);
 });
@@ -379,19 +399,22 @@ onMounted(async () => {
 <template>
   <div class="space-y-4">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-end justify-between">
       <div>
         <h1 class="text-xl font-semibold text-neutral-900">Loyalty Management</h1>
         <p class="text-sm text-neutral-500 mt-0.5">Redemption queue, point operations, tier rules, and conversion config</p>
       </div>
       <button
         class="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
-        @click="loadRequests(); loadTiers(); loadMilestones(); loadCatalog(); loadConfig()"
+        @click="reloadAll()"
       >
         <RefreshCw class="size-4" />
         Refresh
       </button>
     </div>
+
+    <!-- Website selector — filters all sections -->
+    <WebsiteSelectorBar v-model="selectedWebsiteId" label="Viewing website:" />
 
     <!-- Tabs -->
     <div class="flex border-b border-neutral-200 gap-6 overflow-x-auto">
@@ -523,11 +546,6 @@ onMounted(async () => {
 
     <!-- ── POINT OPERATIONS ───────────────────────────────────────────────────── -->
     <template v-if="activeTab === 'operations'">
-      <WebsiteSelectorBar
-        v-model="selectedWebsiteId"
-        label="Operating on website:"
-        class="mb-4"
-      />
       <!-- Mode selector -->
       <div class="flex rounded-lg border border-neutral-200 overflow-hidden text-sm w-fit">
         <button

@@ -131,8 +131,8 @@ export const adminLoyaltyApi = {
     api.delete(apiPath(`/loyalty-management/milestones/${id}/`)),
 
   // ── Conversion config ──────────────────────────────────────────────────────
-  conversionConfigs: () =>
-    api.get<PageResponse<LoyaltyConversionConfig>>(apiPath("/loyalty-management/loyalty-points-conversion-config/")),
+  conversionConfigs: (params?: Record<string, unknown>) =>
+    api.get<PageResponse<LoyaltyConversionConfig>>(apiPath("/loyalty-management/loyalty-points-conversion-config/"), { params }),
   updateConversionConfig: (id: number, payload: Partial<LoyaltyConversionConfig>) =>
     api.patch<LoyaltyConversionConfig>(apiPath(`/loyalty-management/loyalty-points-conversion-config/${id}/`), payload),
   adminConversionConfig: () =>

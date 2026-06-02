@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
-import { CheckCircle2, Loader2, RefreshCw, Star } from "@lucide/vue";
+import { computed, onMounted, ref } from "vue";
+import { CheckCircle2, Clock, Loader2, RefreshCw, Star, TrendingUp, Wallet } from "@lucide/vue";
 import { api, apiPath } from "@/api/client";
 
 interface LoyaltySummary {
@@ -8,6 +8,14 @@ interface LoyaltySummary {
   wallet_balance: string;
   tier: string;
   conversion_rate: string;
+}
+
+interface LoyaltyTransaction {
+  id: number;
+  points: number;
+  transaction_type: string;
+  reason: string | null;
+  timestamp: string;
 }
 
 interface RedemptionItem {
@@ -22,7 +30,7 @@ interface RedemptionItem {
 
 const loyalty = ref<LoyaltySummary | null>(null);
 const loyaltyLoading = ref(false);
-const activeTab = ref<"convert" | "redeem">("convert");
+const activeTab = ref<"convert" | "redeem" | "history">("convert");
 
 const convertPoints = ref("");
 const convertError = ref("");
@@ -34,6 +42,21 @@ const redemptionLoading = ref(false);
 const redeemingId = ref<number | null>(null);
 const redeemError = ref("");
 const redeemSuccess = ref<string | null>(null);
+
+const history = ref<LoyaltyTransaction[]>([]);
+const historyLoading = ref(false);
+const historyPage = ref(1);
+const historyTotal = ref(0);
+const HISTORY_PAGE_SIZE = 20;
+const historyTotalPages = computed(() => Math.max(1, Math.ceil(historyTotal.value / HISTORY_PAGE_SIZE)));
+
+const tierColor = computed(() => {
+  const t = (loyalty.value?.tier ?? "").toLowerCase();
+  if (t.includes("gold") || t.includes("platinum") || t.includes("elite")) return "text-amber-600 bg-amber-50 border-amber-200";
+  if (t.includes("silver") || t.includes("pro")) return "text-slate-600 bg-slate-100 border-slate-300";
+  if (t.includes("diamond") || t.includes("vip")) return "text-violet-600 bg-violet-50 border-violet-200";
+  return "text-emerald-700 bg-emerald-50 border-emerald-200";
+});
 
 async function fetchLoyalty() {
   loyaltyLoading.value = true;
@@ -61,17 +84,34 @@ async function fetchRedemptionItems() {
   }
 }
 
+async function fetchHistory() {
+  historyLoading.value = true;
+  try {
+    const { data } = await api.get<LoyaltyTransaction[] | { count: number; results: LoyaltyTransaction[] }>(
+      apiPath("/loyalty-management/loyalty/transactions/"),
+      { params: { page: historyPage.value, page_size: HISTORY_PAGE_SIZE } },
+    );
+    if (Array.isArray(data)) {
+      history.value = data;
+      historyTotal.value = data.length;
+    } else {
+      history.value = data.results ?? [];
+      historyTotal.value = data.count ?? 0;
+    }
+  } catch {
+    // non-critical
+  } finally {
+    historyLoading.value = false;
+  }
+}
+
 async function convertLoyaltyPoints() {
   convertError.value = "";
   convertSuccess.value = null;
   const pts = parseInt(convertPoints.value, 10);
-  if (!pts || pts <= 0) {
-    convertError.value = "Enter a valid number of points.";
-    return;
-  }
+  if (!pts || pts <= 0) { convertError.value = "Enter a valid number of points."; return; }
   if (loyalty.value && pts > loyalty.value.loyalty_points) {
-    convertError.value = "You don't have that many points.";
-    return;
+    convertError.value = "You don't have that many points."; return;
   }
   convertSubmitting.value = true;
   try {
@@ -106,6 +146,16 @@ async function redeemItem(itemId: number) {
   }
 }
 
+function fmtDate(v: string) {
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(v));
+}
+
+function onTabChange(tab: "convert" | "redeem" | "history") {
+  activeTab.value = tab;
+  if (tab === "history" && !history.value.length) fetchHistory();
+  if (tab === "redeem" && !redemptionItems.value.length) fetchRedemptionItems();
+}
+
 onMounted(() => {
   fetchLoyalty();
   fetchRedemptionItems();
@@ -118,9 +168,7 @@ onMounted(() => {
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-signal">Client</p>
         <h1 class="mt-2 text-3xl font-semibold text-ink">Loyalty & Rewards</h1>
-        <p class="mt-2 max-w-2xl text-sm text-graphite">
-          Your loyalty points balance, tier, and available rewards.
-        </p>
+        <p class="mt-2 max-w-2xl text-sm text-graphite">Your points balance, tier, and available rewards.</p>
       </div>
       <button
         class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
@@ -145,31 +193,45 @@ onMounted(() => {
     </div>
 
     <template v-else>
-      <!-- Summary tiles -->
-      <section class="grid gap-4 sm:grid-cols-3">
-        <div class="rounded-lg border border-slate-200 bg-white p-5">
-          <div class="flex items-center gap-2">
-            <Star class="h-4 w-4 text-saffron" />
-            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Points balance</p>
+      <!-- Hero summary card -->
+      <section class="rounded-xl border border-slate-200 bg-white p-6">
+        <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
+          <!-- Points -->
+          <div class="flex items-center gap-4">
+            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-saffron/10">
+              <Star class="h-7 w-7 text-saffron" />
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Points balance</p>
+              <p class="mt-0.5 text-3xl font-bold text-ink">{{ loyalty.loyalty_points.toLocaleString() }}</p>
+            </div>
           </div>
-          <p class="mt-3 text-3xl font-semibold text-ink">{{ loyalty.loyalty_points.toLocaleString() }}</p>
-          <p class="mt-1 text-xs text-graphite">available to use</p>
-        </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-5">
-          <div class="flex items-center gap-2">
-            <Star class="h-4 w-4 text-saffron" />
-            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Tier</p>
+
+          <div class="hidden h-12 w-px bg-slate-200 sm:block" />
+
+          <!-- Tier badge -->
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Current tier</p>
+            <span
+              class="mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold"
+              :class="tierColor"
+            >
+              <Star class="h-3.5 w-3.5" />
+              {{ loyalty.tier }}
+            </span>
           </div>
-          <p class="mt-3 text-2xl font-semibold text-ink">{{ loyalty.tier }}</p>
-          <p class="mt-1 text-xs text-graphite">current loyalty tier</p>
-        </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-5">
-          <div class="flex items-center gap-2">
-            <Star class="h-4 w-4 text-saffron" />
+
+          <div class="hidden h-12 w-px bg-slate-200 sm:block" />
+
+          <!-- Conversion rate -->
+          <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Conversion rate</p>
+            <div class="mt-1 flex items-center gap-1.5">
+              <Wallet class="h-4 w-4 text-signal" />
+              <span class="text-sm font-semibold text-ink">{{ loyalty.conversion_rate }} pts = $1.00</span>
+            </div>
+            <p class="mt-0.5 text-xs text-graphite">wallet credit</p>
           </div>
-          <p class="mt-3 text-2xl font-semibold text-ink">{{ loyalty.conversion_rate }} pts</p>
-          <p class="mt-1 text-xs text-graphite">per $1.00 wallet credit</p>
         </div>
       </section>
 
@@ -180,7 +242,7 @@ onMounted(() => {
             class="rounded-md px-4 py-2 text-sm font-semibold transition-colors"
             :class="activeTab === 'convert' ? 'bg-slate-100 text-ink' : 'text-graphite hover:text-ink'"
             type="button"
-            @click="activeTab = 'convert'"
+            @click="onTabChange('convert')"
           >
             Convert to credits
           </button>
@@ -188,14 +250,22 @@ onMounted(() => {
             class="rounded-md px-4 py-2 text-sm font-semibold transition-colors"
             :class="activeTab === 'redeem' ? 'bg-slate-100 text-ink' : 'text-graphite hover:text-ink'"
             type="button"
-            @click="activeTab = 'redeem'"
+            @click="onTabChange('redeem')"
           >
             Redeem rewards
+          </button>
+          <button
+            class="rounded-md px-4 py-2 text-sm font-semibold transition-colors"
+            :class="activeTab === 'history' ? 'bg-slate-100 text-ink' : 'text-graphite hover:text-ink'"
+            type="button"
+            @click="onTabChange('history')"
+          >
+            Points history
           </button>
         </div>
 
         <!-- Convert tab -->
-        <div v-if="activeTab === 'convert'" class="p-6 space-y-4">
+        <div v-if="activeTab === 'convert'" class="space-y-4 p-6">
           <p class="text-sm text-graphite">
             Convert loyalty points directly into wallet credits. {{ loyalty.conversion_rate }} points = $1.00.
           </p>
@@ -221,32 +291,28 @@ onMounted(() => {
           </div>
           <p v-if="convertError" class="text-sm text-berry">{{ convertError }}</p>
           <p v-if="convertSuccess" class="text-sm font-semibold text-signal">
-            Converted {{ convertSuccess.converted }} pts → ${{ convertSuccess.amount }} added to wallet
+            Converted {{ convertSuccess.converted }} pts &#8594; ${{ convertSuccess.amount }} added to wallet
           </p>
         </div>
 
         <!-- Redeem tab -->
-        <div v-else class="p-6 space-y-4">
+        <div v-else-if="activeTab === 'redeem'" class="space-y-4 p-6">
           <p v-if="redeemError" class="text-sm text-berry">{{ redeemError }}</p>
           <p v-if="redeemSuccess" class="text-sm font-semibold text-signal">{{ redeemSuccess }}</p>
 
           <div v-if="redemptionLoading" class="flex items-center justify-center py-8">
             <Loader2 class="h-6 w-6 animate-spin text-slate-400" />
           </div>
-
           <div v-else-if="!redemptionItems.length" class="rounded-lg border border-slate-200 bg-slate-50 py-10 text-center">
             <Star class="mx-auto h-7 w-7 text-slate-300" />
             <p class="mt-3 text-sm text-graphite">No reward items available right now.</p>
           </div>
-
           <div v-else class="grid gap-4 sm:grid-cols-2">
             <div
               v-for="item in redemptionItems"
               :key="item.id"
               class="rounded-lg border p-4 transition-colors"
-              :class="item.can_redeem?.can_redeem
-                ? 'border-slate-200 bg-white'
-                : 'border-slate-100 bg-slate-50 opacity-70'"
+              :class="item.can_redeem?.can_redeem ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50 opacity-70'"
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
@@ -274,6 +340,68 @@ onMounted(() => {
                   Redeem
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History tab -->
+        <div v-else class="p-6">
+          <div v-if="historyLoading && !history.length" class="flex items-center justify-center py-8">
+            <Loader2 class="h-6 w-6 animate-spin text-slate-400" />
+          </div>
+          <div v-else-if="!history.length" class="rounded-lg border border-slate-100 bg-slate-50 py-10 text-center">
+            <TrendingUp class="mx-auto h-7 w-7 text-slate-300" />
+            <p class="mt-3 text-sm text-graphite">No point transactions yet.</p>
+          </div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
+                <tr>
+                  <th class="px-4 py-3 text-left">Type</th>
+                  <th class="px-4 py-3 text-left">Reason</th>
+                  <th class="px-4 py-3 text-right">Points</th>
+                  <th class="px-4 py-3 text-right">Date</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr v-for="tx in history" :key="tx.id" class="hover:bg-slate-50">
+                  <td class="px-4 py-3">
+                    <span
+                      class="rounded-full px-2 py-0.5 text-xs font-medium"
+                      :class="tx.points > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'"
+                    >
+                      {{ tx.transaction_type.replace(/_/g, " ") }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-graphite">{{ tx.reason || "—" }}</td>
+                  <td class="px-4 py-3 text-right font-semibold" :class="tx.points > 0 ? 'text-emerald-700' : 'text-rose-600'">
+                    {{ tx.points > 0 ? "+" : "" }}{{ tx.points.toLocaleString() }}
+                  </td>
+                  <td class="px-4 py-3 text-right text-graphite">
+                    <span class="flex items-center justify-end gap-1">
+                      <Clock class="h-3 w-3 shrink-0" />
+                      {{ fmtDate(tx.timestamp) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="historyTotalPages > 1" class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+            <p class="text-xs text-graphite">Page {{ historyPage }} of {{ historyTotalPages }}</p>
+            <div class="flex gap-2">
+              <button
+                class="focus-ring inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white disabled:opacity-40"
+                :disabled="historyPage <= 1"
+                @click="historyPage--; fetchHistory()"
+              >&#8592;</button>
+              <button
+                class="focus-ring inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white disabled:opacity-40"
+                :disabled="historyPage >= historyTotalPages"
+                @click="historyPage++; fetchHistory()"
+              >&#8594;</button>
             </div>
           </div>
         </div>
