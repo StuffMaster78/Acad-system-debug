@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   Ban,
@@ -103,10 +103,40 @@ function openProfile(userId: number) {
   router.push(`${routePrefix.value}/users/${userId}`);
 }
 
+const pageTitle = computed(() => {
+  const f = access.filter;
+  if (f === "editor") return "Editors";
+  if (f === "support") return "Support Staff";
+  if (f === "writer") return "Writers";
+  if (f === "client") return "Clients";
+  if (f === "admin") return "Admins";
+  if (f === "superadmin") return "Superadmins";
+  return "User directory";
+});
+
+const pageDescription = computed(() => {
+  const f = access.filter;
+  if (f === "editor") return "All editor accounts. Click a row to open the full profile.";
+  if (f === "support") return "All support staff accounts. Click a row to open the full profile.";
+  if (f === "writer") return "All writer accounts. Click a row to open the full profile.";
+  if (f === "client") return "All client accounts. Click a row to open the full profile.";
+  if (f === "admin") return "All admin accounts. Click a row to open the full profile.";
+  return "Browse all users across every role. Click any row to open the full profile.";
+});
+
+function applyRouteFilter() {
+  const roleFilter = route.meta?.roleFilter as string | undefined;
+  access.filter = (roleFilter ?? "all") as typeof access.filter;
+  page.value = 1;
+}
+
 onMounted(() => {
+  applyRouteFilter();
   access.hydrate().catch(() => undefined);
   access.hydrateLifecycle().catch(() => undefined);
 });
+
+watch(() => route.meta?.roleFilter, applyRouteFilter);
 </script>
 
 <template>
@@ -115,11 +145,9 @@ onMounted(() => {
     <!-- Page header -->
     <section class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
-        <p class="text-sm font-semibold uppercase text-signal">Admin security</p>
-        <h1 class="mt-2 text-3xl font-semibold">User directory</h1>
-        <p class="mt-2 max-w-3xl text-sm leading-6 text-graphite">
-          Browse all users across every role. Click any row to open the full profile with orders, payments, discipline controls, and account history.
-        </p>
+        <p class="text-sm font-semibold uppercase text-signal">People</p>
+        <h1 class="mt-2 text-3xl font-semibold">{{ pageTitle }}</h1>
+        <p class="mt-2 max-w-3xl text-sm leading-6 text-graphite">{{ pageDescription }}</p>
       </div>
       <button
         class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold"
@@ -162,7 +190,7 @@ onMounted(() => {
         <div class="flex items-center gap-2">
           <UsersRound class="h-5 w-5 text-signal" />
           <div>
-            <h2 class="text-base font-semibold">All users</h2>
+            <h2 class="text-base font-semibold">{{ pageTitle }}</h2>
             <p class="text-sm text-graphite">{{ access.filteredUsers.length }} matching. Click a row to open the full profile.</p>
           </div>
         </div>

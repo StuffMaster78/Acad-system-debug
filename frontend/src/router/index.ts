@@ -194,6 +194,18 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminClientProfileView.vue"),
       },
       {
+        path: "editors",
+        name: "admin-editors",
+        component: () => import("@/views/admin/AdminAccessView.vue"),
+        meta: { roleFilter: "editor" },
+      },
+      {
+        path: "support-staff",
+        name: "admin-support-staff",
+        component: () => import("@/views/admin/AdminAccessView.vue"),
+        meta: { roleFilter: "support" },
+      },
+      {
         path: "payments",
         name: "admin-payments",
         component: () => import("@/views/admin/AdminPaymentsView.vue"),
@@ -679,6 +691,18 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "clients/:id",
         name: "superadmin-client-profile",
         component: () => import("@/views/admin/AdminClientProfileView.vue"),
+      },
+      {
+        path: "editors",
+        name: "superadmin-editors",
+        component: () => import("@/views/admin/AdminAccessView.vue"),
+        meta: { roleFilter: "editor" },
+      },
+      {
+        path: "support-staff",
+        name: "superadmin-support-staff",
+        component: () => import("@/views/admin/AdminAccessView.vue"),
+        meta: { roleFilter: "support" },
       },
       {
         path: "payments",
