@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { computed, onMounted } from "vue";
 import {
   CheckCircle2,
   LifeBuoy,
@@ -14,8 +14,11 @@ import Pagination from "@/components/ui/Pagination.vue";
 import RichTextEditor from "@/components/forms/RichTextEditor.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminSupportStore } from "@/stores/adminSupport";
+import { useAuthStore } from "@/stores/auth";
 
 const support = useAdminSupportStore();
+const auth = useAuthStore();
+const isSuperAdmin = computed(() => auth.role === "superadmin");
 
 const metricToneClasses = {
   neutral: "border-slate-200 bg-white",
@@ -108,83 +111,99 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(380px,0.8fr)]">
-      <div class="rounded-md border border-slate-200 bg-white">
-        <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div class="flex items-center gap-2">
-              <LifeBuoy class="h-5 w-5 text-signal" />
-              <h2 class="text-base font-semibold">Ticket queue</h2>
+      <div class="rounded-xl border border-slate-200 bg-white">
+        <!-- Header row -->
+        <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div class="flex items-center gap-2">
+            <LifeBuoy class="h-5 w-5 text-signal" />
+            <div>
+              <h2 class="text-base font-semibold text-ink">Ticket queue</h2>
+              <p class="text-xs text-graphite">Triage client, writer, billing, order, and technical support.</p>
             </div>
-            <p class="mt-1 text-sm text-graphite">
-              Triage client, writer, billing, order, and technical support work.
-            </p>
           </div>
+          <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-graphite">
+            {{ support.filteredTickets.length }} ticket{{ support.filteredTickets.length !== 1 ? 's' : '' }}
+          </span>
+        </div>
 
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div class="inline-flex rounded-md border border-slate-200 bg-slate-50 p-1">
-              <button
-                v-for="option in filterOptions"
-                :key="option.key"
-                class="focus-ring min-h-9 rounded px-3 text-xs font-semibold"
-                :class="support.filter === option.key ? 'bg-white text-ink shadow-sm' : 'text-graphite'"
-                type="button"
-                @click="support.filter = option.key"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-            <label class="relative block min-w-64">
-              <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
-              <input
-                v-model="support.query"
-                class="focus-ring h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm"
-                type="search"
-                placeholder="Search tickets"
-              >
-            </label>
+        <!-- Filters + search row -->
+        <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
+          <div class="flex flex-wrap gap-1">
+            <button
+              v-for="option in filterOptions"
+              :key="option.key"
+              class="focus-ring h-8 rounded-lg px-3 text-xs font-semibold transition-colors"
+              :class="support.filter === option.key
+                ? 'bg-ink text-white shadow-sm'
+                : 'bg-white border border-slate-200 text-graphite hover:border-slate-300 hover:text-ink'"
+              type="button"
+              @click="support.filter = option.key"
+            >
+              {{ option.label }}
+            </button>
           </div>
+          <label class="relative ml-auto block w-56">
+            <Search class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              v-model="support.query"
+              class="focus-ring h-8 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs"
+              type="search"
+              placeholder="Search tickets…"
+            />
+          </label>
         </div>
 
         <div v-if="support.filteredTickets.length" class="divide-y divide-slate-100">
           <article
             v-for="ticket in support.filteredTickets"
             :key="ticket.id"
-            class="grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_auto]"
+            class="px-5 py-4"
           >
-            <div>
-              <div class="flex flex-wrap items-center gap-2">
+            <!-- Top row: title + pills + actions -->
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex min-w-0 flex-wrap items-center gap-2">
                 <p class="font-semibold text-ink">{{ ticket.title }}</p>
                 <StatusPill :label="ticket.status" :tone="statusTone(ticket.status)" />
                 <StatusPill :label="ticket.priority" :tone="statusTone(ticket.priority)" />
                 <StatusPill v-if="ticket.is_escalated" label="escalated" tone="danger" />
                 <StatusPill v-if="ticket.has_sla" label="SLA" tone="warning" />
               </div>
-              <p class="mt-2 max-w-3xl text-sm leading-6 text-graphite">
-                {{ ticket.description || "No description" }}
-              </p>
-              <p class="mt-2 text-xs text-graphite">
-                {{ ticket.category || "general" }} · client {{ ticket.created_by_name || ticket.created_by || "unknown" }} · assigned {{ ticket.assigned_to_name || ticket.assigned_to || "unassigned" }} · {{ formatDate(ticket.created_at) }}
-              </p>
+              <div class="flex shrink-0 items-center gap-2">
+                <button
+                  class="focus-ring inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-graphite hover:bg-slate-50 disabled:opacity-50"
+                  type="button"
+                  :disabled="support.isMutating || ticket.status === 'closed'"
+                  @click="support.closeTicket(ticket.id).catch(() => undefined)"
+                >
+                  <CheckCircle2 class="h-3.5 w-3.5 text-signal" />
+                  Close
+                </button>
+                <!-- Escalate: hidden for superadmin — they ARE the escalation ceiling -->
+                <button
+                  v-if="!isSuperAdmin"
+                  class="focus-ring inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                  type="button"
+                  :disabled="support.isMutating || ticket.is_escalated"
+                  @click="support.escalateTicket(ticket.id).catch(() => undefined)"
+                >
+                  <Siren class="h-3.5 w-3.5" />
+                  Escalate
+                </button>
+              </div>
             </div>
-            <div class="flex flex-wrap items-start gap-2 lg:justify-end">
-              <button
-                class="focus-ring inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold"
-                type="button"
-                :disabled="support.isMutating || ticket.status === 'closed'"
-                @click="support.closeTicket(ticket.id).catch(() => undefined)"
-              >
-                <CheckCircle2 class="h-4 w-4" />
-                Close
-              </button>
-              <button
-                class="focus-ring inline-flex h-9 items-center justify-center gap-2 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700"
-                type="button"
-                :disabled="support.isMutating"
-                @click="support.escalateTicket(ticket.id).catch(() => undefined)"
-              >
-                <Siren class="h-4 w-4" />
-                Escalate
-              </button>
+            <!-- Description -->
+            <p v-if="ticket.description" class="mt-2 text-sm leading-6 text-graphite line-clamp-2">
+              {{ ticket.description }}
+            </p>
+            <!-- Meta row -->
+            <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+              <span class="capitalize">{{ ticket.category || "general" }}</span>
+              <span>·</span>
+              <span>Client: <span class="text-graphite">{{ ticket.created_by_name || ticket.created_by || "—" }}</span></span>
+              <span>·</span>
+              <span>Assigned: <span class="text-graphite">{{ ticket.assigned_to_name || ticket.assigned_to || "unassigned" }}</span></span>
+              <span>·</span>
+              <span>{{ formatDate(ticket.created_at) }}</span>
             </div>
           </article>
         </div>

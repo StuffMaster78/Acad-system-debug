@@ -165,38 +165,36 @@ onMounted(() => {
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.85fr)]">
       <div class="space-y-4">
-        <section class="rounded-md border border-slate-200 bg-white">
-          <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div class="flex items-center gap-2">
-              <WalletCards class="h-5 w-5 text-signal" />
-              <div>
-                <h2 class="text-base font-semibold">Wallet registry</h2>
-                <p class="text-sm text-graphite">Client, writer, and system wallets visible to the current tenant.</p>
-              </div>
+        <section class="rounded-xl border border-slate-200 bg-white">
+          <div class="flex items-center gap-2 border-b border-slate-200 px-5 py-4">
+            <WalletCards class="h-5 w-5 text-signal" />
+            <div>
+              <h2 class="text-base font-semibold text-ink">Wallet registry</h2>
+              <p class="text-xs text-graphite">Client, writer, and system wallets.</p>
             </div>
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div class="inline-flex rounded-md border border-slate-200 bg-slate-50 p-1">
-                <button
-                  v-for="option in filterOptions"
-                  :key="option.key"
-                  class="focus-ring min-h-9 rounded px-3 text-xs font-semibold"
-                  :class="wallets.filter === option.key ? 'bg-white text-ink shadow-sm' : 'text-graphite'"
-                  type="button"
-                  @click="wallets.filter = option.key"
-                >
-                  {{ option.label }}
-                </button>
-              </div>
-              <label class="relative block min-w-64">
-                <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
-                <input
-                  v-model="wallets.query"
-                  class="focus-ring h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm"
-                  type="search"
-                  placeholder="Search wallet, user, site"
-                >
-              </label>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
+            <div class="flex flex-wrap gap-1">
+              <button
+                v-for="option in filterOptions"
+                :key="option.key"
+                class="focus-ring h-8 rounded-lg px-3 text-xs font-semibold transition-colors"
+                :class="wallets.filter === option.key ? 'bg-ink text-white shadow-sm' : 'bg-white border border-slate-200 text-graphite hover:border-slate-300 hover:text-ink'"
+                type="button"
+                @click="wallets.filter = option.key"
+              >
+                {{ option.label }}
+              </button>
             </div>
+            <label class="relative ml-auto block w-52">
+              <Search class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                v-model="wallets.query"
+                class="focus-ring h-8 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs"
+                type="search"
+                placeholder="Search wallets…"
+              />
+            </label>
           </div>
 
           <div v-if="wallets.isLoading" class="p-6">

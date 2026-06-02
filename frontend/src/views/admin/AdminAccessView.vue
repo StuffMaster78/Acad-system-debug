@@ -183,43 +183,39 @@ watch(() => route.meta?.roleFilter, applyRouteFilter);
     </section>
 
     <!-- User table -->
-    <section class="rounded-md border border-slate-200 bg-white">
-
-      <!-- Table header: filters + search -->
-      <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+    <section class="rounded-xl border border-slate-200 bg-white">
+      <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
         <div class="flex items-center gap-2">
           <UsersRound class="h-5 w-5 text-signal" />
           <div>
-            <h2 class="text-base font-semibold">{{ pageTitle }}</h2>
-            <p class="text-sm text-graphite">{{ access.filteredUsers.length }} matching. Click a row to open the full profile.</p>
+            <h2 class="text-base font-semibold text-ink">{{ pageTitle }}</h2>
+            <p class="text-xs text-graphite">{{ access.filteredUsers.length }} matching — click a row to open the full profile.</p>
           </div>
         </div>
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <!-- Role filter tabs -->
-          <div class="flex max-w-full gap-1 overflow-x-auto rounded-md border border-slate-200 bg-slate-50 p-1">
-            <button
-              v-for="option in roleFilters"
-              :key="option.key"
-              class="focus-ring min-h-9 shrink-0 rounded px-3 text-xs font-semibold"
-              :class="access.filter === option.key ? 'bg-white text-ink shadow-sm' : 'text-graphite'"
-              type="button"
-              @click="setFilter(option.key)"
-            >
-              {{ option.label }}
-            </button>
-          </div>
-          <!-- Search -->
-          <label class="relative block min-w-64">
-            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
-            <input
-              :value="access.query"
-              class="focus-ring h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm"
-              type="search"
-              placeholder="Search by name, email, username…"
-              @input="setQuery(($event.target as HTMLInputElement).value)"
-            >
-          </label>
+      </div>
+      <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
+        <div class="flex flex-wrap gap-1">
+          <button
+            v-for="option in roleFilters"
+            :key="option.key"
+            class="focus-ring h-8 shrink-0 rounded-lg px-3 text-xs font-semibold transition-colors"
+            :class="access.filter === option.key ? 'bg-ink text-white shadow-sm' : 'bg-white border border-slate-200 text-graphite hover:border-slate-300 hover:text-ink'"
+            type="button"
+            @click="setFilter(option.key)"
+          >
+            {{ option.label }}
+          </button>
         </div>
+        <label class="relative ml-auto block w-52">
+          <Search class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <input
+            :value="access.query"
+            class="focus-ring h-8 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs"
+            type="search"
+            placeholder="Search by name, email…"
+            @input="setQuery(($event.target as HTMLInputElement).value)"
+          />
+        </label>
       </div>
 
       <!-- Loading -->

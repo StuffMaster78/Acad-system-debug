@@ -310,23 +310,23 @@ onMounted(() => {
 
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(380px,0.8fr)]">
       <div class="space-y-4">
-        <section class="rounded-md border border-slate-200 bg-white">
-          <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 md:flex-row md:items-center md:justify-between">
+        <section class="rounded-xl border border-slate-200 bg-white">
+          <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <div class="flex items-center gap-2">
               <MessageSquare class="h-5 w-5 text-signal" />
               <div>
-                <h2 class="text-base font-semibold">Message command queue</h2>
-                <p class="text-sm text-graphite">Threads across orders, special orders, classes, and support work.</p>
+                <h2 class="text-base font-semibold text-ink">Message command queue</h2>
+                <p class="text-xs text-graphite">Threads across orders, special orders, classes, and support.</p>
               </div>
             </div>
-            <label class="relative block min-w-64">
-              <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
+            <label class="relative block w-52">
+              <Search class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <input
                 v-model="comms.query"
-                class="focus-ring h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm"
+                class="focus-ring h-8 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs"
                 type="search"
-                placeholder="Search messages"
-              >
+                placeholder="Search messages…"
+              />
             </label>
           </div>
 
