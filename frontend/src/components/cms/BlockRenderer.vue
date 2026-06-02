@@ -240,6 +240,94 @@
         </table>
       </div>
 
+      <!-- Key Takeaways -->
+      <div
+        v-else-if="block.type === 'key_takeaways'"
+        class="my-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5"
+      >
+        <div class="flex items-center gap-2 text-emerald-800">
+          <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-sm font-semibold uppercase tracking-wide">
+            {{ (block.value as KeyTakeawaysValue).heading || 'Key Takeaways' }}
+          </p>
+        </div>
+        <ul class="mt-3 space-y-2">
+          <li
+            v-for="(item, i) in (block.value as KeyTakeawaysValue).items"
+            :key="i"
+            class="flex items-start gap-2.5 text-sm leading-6 text-emerald-900"
+          >
+            <svg class="mt-0.5 size-4 shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            {{ item }}
+          </li>
+        </ul>
+      </div>
+
+      <!-- Table of Contents -->
+      <nav
+        v-else-if="block.type === 'toc'"
+        class="my-6 rounded-xl border border-slate-200 bg-slate-50 p-5"
+        aria-label="Table of contents"
+      >
+        <p class="text-sm font-semibold text-ink">
+          {{ (block.value as TocValue).heading || 'In This Article' }}
+        </p>
+        <ol class="mt-3 space-y-1.5">
+          <li
+            v-for="(entry, i) in (block.value as TocValue).entries"
+            :key="i"
+            class="flex items-baseline gap-2 text-sm"
+          >
+            <span class="min-w-[1.25rem] text-xs font-semibold text-slate-400">{{ i + 1 }}.</span>
+            <a
+              :href="`#${entry.anchor}`"
+              class="text-signal hover:underline"
+            >{{ entry.label }}</a>
+          </li>
+        </ol>
+      </nav>
+
+      <!-- Author Review Badge -->
+      <div
+        v-else-if="block.type === 'author_review'"
+        class="my-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"
+      >
+        <img
+          v-if="(block.value as AuthorReviewValue).photo?.meta?.download_url"
+          :src="(block.value as AuthorReviewValue).photo!.meta!.download_url"
+          :alt="(block.value as AuthorReviewValue).reviewer_name"
+          class="size-10 shrink-0 rounded-full object-cover"
+        />
+        <div
+          v-else
+          class="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-graphite"
+        >
+          {{ (block.value as AuthorReviewValue).reviewer_name.charAt(0) }}
+        </div>
+        <div class="min-w-0 text-xs leading-5 text-graphite">
+          <span class="text-slate-400">Reviewed by </span>
+          <component
+            :is="(block.value as AuthorReviewValue).reviewer_url ? 'a' : 'span'"
+            :href="(block.value as AuthorReviewValue).reviewer_url || undefined"
+            class="font-semibold text-ink hover:underline"
+          >{{ (block.value as AuthorReviewValue).reviewer_name }}</component>
+          <span class="mx-1 text-slate-300">·</span>
+          <span>{{ (block.value as AuthorReviewValue).credentials }}</span>
+          <span class="mx-1 text-slate-300">·</span>
+          <time class="text-slate-400">Updated {{ (block.value as AuthorReviewValue).review_date }}</time>
+        </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div
+        v-else-if="block.type === 'disclaimer'"
+        class="my-6 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm leading-6"
+        :class="disclaimerClass((block.value as DisclaimerValue).style)"
+      >
+        <span class="mt-0.5 shrink-0 text-base leading-none">{{ disclaimerIcon((block.value as DisclaimerValue).style) }}</span>
+        <div class="prose-sm" v-html="(block.value as DisclaimerValue).text" />
+      </div>
+
       <!-- Data table -->
       <figure v-else-if="block.type === 'table'" class="my-6 overflow-x-auto">
         <table class="min-w-full rounded-xl border border-slate-200 bg-white text-sm">
@@ -323,6 +411,11 @@ interface TableInner { data: string[][]; first_row_is_table_header: boolean; fir
 interface TableValue { caption?: string; table: TableInner }
 interface ChartDataset { label: string; values: string; color?: string }
 interface ChartValue { chart_type: string; title?: string; caption?: string; x_labels: string; datasets: ChartDataset[] }
+interface KeyTakeawaysValue { heading?: string; items: string[] }
+interface TocEntry { label: string; anchor: string }
+interface TocValue { heading?: string; entries: TocEntry[] }
+interface AuthorReviewValue { reviewer_name: string; credentials: string; review_date: string; photo?: { meta?: { download_url?: string } }; reviewer_url?: string }
+interface DisclaimerValue { style: string; text: string }
 
 function tableBodyRows(v: TableValue): string[][] {
   const rows = v.table?.data ?? [];
@@ -368,6 +461,20 @@ function buildChartOption(v: ChartValue): EChartsOption {
     yAxis: { type: "value" },
     series,
   };
+}
+
+function disclaimerClass(style: string): string {
+  if (style === "academic_integrity") return "border-amber-200 bg-amber-50 text-amber-900";
+  if (style === "medical") return "border-blue-200 bg-blue-50 text-blue-900";
+  if (style === "copyright") return "border-slate-200 bg-slate-50 text-slate-700";
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function disclaimerIcon(style: string): string {
+  if (style === "academic_integrity") return "⚠️";
+  if (style === "medical") return "🩺";
+  if (style === "copyright") return "©";
+  return "ℹ️";
 }
 
 function calloutClass(type?: string): string {

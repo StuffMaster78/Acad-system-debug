@@ -215,6 +215,130 @@ class DividerBlock(StaticBlock):
 
 
 # ===========================================================================
+# KEY TAKEAWAYS BLOCK (shared)
+# ===========================================================================
+
+class KeyTakeawaysBlock(StructBlock):
+    """
+    'Key Takeaways' summary box — typically placed just after the intro.
+
+    Signals to Google what the post covers; frequently pulled into
+    featured snippets. Each item should be one clear, standalone sentence.
+    """
+    heading = CharBlock(max_length=100, default="Key Takeaways")
+    items = ListBlock(
+        CharBlock(max_length=300),
+        min_num=2,
+        max_num=8,
+        help_text="Each item becomes one bullet. Keep to one sentence per takeaway.",
+    )
+
+    class Meta:
+        icon = "list-ul"
+        label = "Key Takeaways"
+        template = "cms_core/blocks/key_takeaways.html"
+
+
+# ===========================================================================
+# TABLE OF CONTENTS BLOCK (shared)
+# ===========================================================================
+
+class TocEntryBlock(StructBlock):
+    """One entry in the table of contents."""
+    label = CharBlock(max_length=200, help_text="Visible link text, e.g. 'Introduction'")
+    anchor = CharBlock(
+        max_length=100,
+        help_text="Heading ID without the #, e.g. 'introduction'. Must match a heading id on the page.",
+    )
+
+    class Meta:
+        icon = "link"
+        label = "TOC Entry"
+
+
+class TableOfContentsBlock(StructBlock):
+    """
+    Manual table of contents with anchor links.
+
+    Place near the top of long posts. Google uses TOC blocks to generate
+    jump-link rich results under the page title in search.
+    Anchor values must match heading IDs on the rendered page.
+    """
+    heading = CharBlock(max_length=100, default="In This Article", required=False)
+    entries = ListBlock(TocEntryBlock(), min_num=2, max_num=20)
+
+    class Meta:
+        icon = "list-ol"
+        label = "Table of Contents"
+        template = "cms_core/blocks/toc.html"
+
+
+# ===========================================================================
+# AUTHOR REVIEW BADGE BLOCK (shared)
+# ===========================================================================
+
+class AuthorReviewBadgeBlock(StructBlock):
+    """
+    Expert review attribution badge — inline E-E-A-T signal.
+
+    Different from the page-level primary_author field. Use this to
+    surface the reviewing expert mid-article or in a sidebar position.
+    Outputs ReviewedBy schema markup.
+    """
+    reviewer_name = CharBlock(max_length=100, help_text="Full name of the reviewing expert.")
+    credentials = CharBlock(
+        max_length=255,
+        help_text="E.g. 'PhD in Clinical Psychology, Harvard University'",
+    )
+    review_date = CharBlock(
+        max_length=50,
+        help_text="Display date, e.g. 'June 2026' or '2026-06-01'.",
+    )
+    photo = ImageChooserBlock(required=False)
+    reviewer_url = URLBlock(
+        required=False,
+        help_text="Link to the reviewer's author bio page.",
+    )
+
+    class Meta:
+        icon = "user"
+        label = "Expert Review Badge"
+        template = "cms_core/blocks/author_review_badge.html"
+
+
+# ===========================================================================
+# DISCLAIMER BLOCK (shared)
+# ===========================================================================
+
+class DisclaimerBlock(StructBlock):
+    """
+    Legal or academic notice block.
+
+    The 'academic_integrity' style is the most important for a writing
+    services platform — it must appear on any post that could be
+    misconstrued as contract cheating promotion.
+    """
+    style = ChoiceBlock(
+        choices=[
+            ("academic_integrity", "Academic Integrity"),
+            ("copyright", "Copyright Notice"),
+            ("medical", "Medical / Health"),
+            ("general", "General Notice"),
+        ],
+        default="academic_integrity",
+    )
+    text = RichTextBlock(
+        features=["bold", "italic", "link"],
+        help_text="The full disclaimer text. Keep factual and plain.",
+    )
+
+    class Meta:
+        icon = "warning"
+        label = "Disclaimer / Notice"
+        template = "cms_core/blocks/disclaimer.html"
+
+
+# ===========================================================================
 # DATA TABLE BLOCK (shared)
 # ===========================================================================
 
@@ -513,12 +637,16 @@ class GuaranteesBlock(StructBlock):
 # ===========================================================================
 
 BLOG_BLOCKS = StreamBlock([
+    ("key_takeaways", KeyTakeawaysBlock()),
+    ("toc", TableOfContentsBlock()),
     ("heading", HeadingBlock()),
     ("paragraph", ParagraphBlock()),
     ("image", ImageBlock()),
     ("list", ListBlock_()),
     ("quote", QuoteBlock()),
     ("callout", CalloutBlock()),
+    ("author_review", AuthorReviewBadgeBlock()),
+    ("disclaimer", DisclaimerBlock()),
     ("faq", FAQItemBlock()),
     ("cta", CTABlock()),
     ("internal_link", InternalLinkCardBlock()),
@@ -545,6 +673,8 @@ SERVICE_PAGE_BLOCKS = StreamBlock([
     ("comparison_table", ComparisonTableBlock()),
     ("testimonials", TestimonialGroupBlock()),
     ("guarantees", GuaranteesBlock()),
+    ("author_review", AuthorReviewBadgeBlock()),
+    ("disclaimer", DisclaimerBlock()),
     ("faq", FAQItemBlock()),
     ("cta", CTABlock()),
     ("table", TableDataBlock()),
