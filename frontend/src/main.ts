@@ -16,8 +16,11 @@ async function bootstrap() {
   const portalStore = usePortalContextStore();
   await portalStore.init();
 
-  // Pre-load website list so nameById() resolves everywhere without extra fetches.
-  useWebsitesStore().ensure().catch(() => undefined);
+  // NOTE: websites.ensure() is intentionally NOT called here.
+  // Calling it at boot with no auth token hits /websites/ → 401 → the 401
+  // interceptor calls window.location.replace('/auth/login') → infinite reload
+  // loop (153 navigations per 8 seconds observed). Instead, each authenticated
+  // view calls websites.ensure() after login when a token is present.
 
   app.use(router).mount("#app");
 }

@@ -10,7 +10,10 @@ export const useWebsitesStore = defineStore("websites", () => {
   async function ensure() {
     if (loaded.value) return;
     const auth = useAuthStore();
-    if (auth.isPreviewSession) { loaded.value = true; return; }
+    // Skip entirely when not authenticated — calling /websites/ with no token
+    // returns 401, which the interceptor turns into window.location.replace('/auth/login'),
+    // creating an infinite reload loop on the login page.
+    if (!auth.isAuthenticated || auth.isPreviewSession) { loaded.value = true; return; }
     try {
       const { data } = await websitesApi.list({ is_active: true, limit: 100 });
       list.value = Array.isArray(data) ? data : (data as { results: Website[] }).results ?? [];
