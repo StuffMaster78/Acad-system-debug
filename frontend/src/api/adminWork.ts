@@ -104,7 +104,7 @@ type ListResponse<T> = T[] | { results: T[] };
 
 export const adminWorkApi = {
   orders: (params?: Record<string, unknown>) =>
-    api.get<ListResponse<OrderSummary>>(apiPath("/orders/"), { params }),
+    api.get<ListResponse<OrderSummary>>(apiPath("/orders/orders/"), { params }),
   specialOrders: (params?: Record<string, unknown>) =>
     api.get<ListResponse<SpecialOrderListRecord>>(
       apiPath("/special-orders/"),

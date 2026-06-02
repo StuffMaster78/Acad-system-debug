@@ -89,7 +89,8 @@ export type ConfigCollection =
   | "formattingStyles"
   | "subjects"
   | "typesOfWork"
-  | "englishTypes";
+  | "englishTypes"
+  | "writerLevels";
 
 export interface OrderConfigCollections {
   academicLevels: OrderConfigOption[];
@@ -98,4 +99,5 @@ export interface OrderConfigCollections {
   subjects: OrderConfigOption[];
   typesOfWork: OrderConfigOption[];
   englishTypes: OrderConfigOption[];
+  writerLevels: OrderConfigOption[];
 }

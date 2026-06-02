@@ -298,21 +298,24 @@ onMounted(loadConfig);
           </div>
 
           <div v-else class="mt-4 grid gap-4 sm:grid-cols-2">
+            <!-- Core fields -->
             <ConfigSelect
               v-model="form.paper_type_id"
               label="Paper type"
               placeholder="Select paper type"
               :options="config.collections.paperTypes"
+              required
             />
             <ConfigSelect
               v-model="form.type_of_work_id"
               label="Type of work"
               placeholder="Select type of work"
               :options="config.collections.typesOfWork"
+              required
             />
             <ConfigSelect
               v-model="form.subject_id"
-              label="Subject"
+              label="Subject / discipline"
               placeholder="Select subject"
               :options="config.collections.subjects"
             />
@@ -321,18 +324,27 @@ onMounted(loadConfig);
               label="Academic level"
               placeholder="Select academic level"
               :options="config.collections.academicLevels"
+              required
             />
+            <!-- Advanced fields -->
             <ConfigSelect
               v-model="form.formatting_style_id"
               label="Formatting / citation style"
-              placeholder="None"
+              placeholder="None required"
               :options="config.collections.formattingStyles"
             />
             <ConfigSelect
               v-model="form.english_type_id"
-              label="English type"
+              label="English variant"
               placeholder="Any"
               :options="config.collections.englishTypes"
+            />
+            <ConfigSelect
+              v-if="config.collections.writerLevels.length"
+              v-model="form.writer_level_id"
+              label="Writer level"
+              placeholder="Standard (any level)"
+              :options="config.collections.writerLevels"
             />
           </div>
         </section>

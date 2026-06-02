@@ -29,6 +29,7 @@ export const orderConfigApi = {
   subjects: (params?: Record<string, unknown>) => list("/order-configs/subjects/", params),
   typesOfWork: (params?: Record<string, unknown>) => list("/order-configs/types-of-work/", params),
   englishTypes: (params?: Record<string, unknown>) => list("/order-configs/english-types/", params),
+  writerLevels: (params?: Record<string, unknown>) => list("/writer-management/level-settings/", params),
 
   listCollection: (collection: ConfigCollection, params?: Record<string, unknown>) =>
     api.get<OrderConfigOption[] | PaginatedResponse<OrderConfigOption>>(

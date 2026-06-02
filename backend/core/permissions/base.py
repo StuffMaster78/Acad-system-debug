@@ -26,6 +26,10 @@ class BasePlatformPermission(BasePermission):
         if not user or not user.is_authenticated:
             return False
 
+        # Superadmins and Django superusers bypass all portal/tenant/permission checks
+        if user.is_superuser or getattr(user, "role", None) == "superadmin":
+            return True
+
         website = getattr(request, "website", None)
         if website is None:
             website = getattr(user, "website", None)

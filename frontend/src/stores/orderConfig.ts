@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { orderConfigApi } from "@/api/orderConfig";
+import { usePortalContextStore } from "@/stores/portalContext";
 import type { OrderConfigCollections } from "@/types/config";
 
 export const useOrderConfigStore = defineStore("order-config", () => {
@@ -11,6 +12,7 @@ export const useOrderConfigStore = defineStore("order-config", () => {
     subjects: [],
     typesOfWork: [],
     englishTypes: [],
+    writerLevels: [],
   });
   const isLoading = ref(false);
   const error = ref("");
@@ -19,10 +21,15 @@ export const useOrderConfigStore = defineStore("order-config", () => {
     Object.values(collections.value).some((items) => items.length > 0),
   );
 
-  async function fetchAll() {
+  async function fetchAll(websiteId?: number | null) {
     isLoading.value = true;
     error.value = "";
     try {
+      // Use the resolved portal website if not explicitly provided
+      const portalCtx = usePortalContextStore();
+      const wid = websiteId ?? portalCtx.website?.id ?? undefined;
+      const params = wid ? { website_id: wid } : undefined;
+
       const [
         academicLevels,
         paperTypes,
@@ -30,13 +37,15 @@ export const useOrderConfigStore = defineStore("order-config", () => {
         subjects,
         typesOfWork,
         englishTypes,
+        writerLevelsRes,
       ] = await Promise.all([
-        orderConfigApi.academicLevels(),
-        orderConfigApi.paperTypes(),
-        orderConfigApi.formattingStyles(),
-        orderConfigApi.subjects(),
-        orderConfigApi.typesOfWork(),
-        orderConfigApi.englishTypes(),
+        orderConfigApi.academicLevels(params),
+        orderConfigApi.paperTypes(params),
+        orderConfigApi.formattingStyles(params),
+        orderConfigApi.subjects(params),
+        orderConfigApi.typesOfWork(params),
+        orderConfigApi.englishTypes(params),
+        orderConfigApi.writerLevels(params).catch(() => []),
       ]);
 
       collections.value = {
@@ -46,6 +55,7 @@ export const useOrderConfigStore = defineStore("order-config", () => {
         subjects,
         typesOfWork,
         englishTypes,
+        writerLevels: writerLevelsRes,
       };
     } catch (caught) {
       error.value = "Order options couldn't be loaded from the server. Check your connection and try again.";
