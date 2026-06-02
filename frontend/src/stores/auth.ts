@@ -97,6 +97,12 @@ export const useAuthStore = defineStore("auth", () => {
     window.localStorage.removeItem(ACCESS_KEY);
     window.localStorage.removeItem(REFRESH_KEY);
     window.localStorage.removeItem(USER_KEY);
+    window.localStorage.removeItem(IMPERSONATION_ORIGIN_KEY);
+    // Remove dashboard first-visit markers so they don't leak between sessions
+    // (preview uses id=0 which would otherwise persist as ws-visited-0)
+    Object.keys(window.localStorage)
+      .filter((k) => k.startsWith("ws-visited-"))
+      .forEach((k) => window.localStorage.removeItem(k));
   }
 
   async function logout() {
