@@ -214,9 +214,10 @@ export const adminPaymentsApi = {
       apiPath(`/wallets/admin/wallets/${walletId}/entries/`),
       { params },
     ),
-  payoutRequests: () =>
+  payoutRequests: (params?: Record<string, unknown>) =>
     api.get<ListResponse<WriterPayoutRequestRecord>>(
       apiPath("/wallets/admin/payout-requests/"),
+      { params },
     ),
   approvePayout: (holdId: number, review_notes = "") =>
     api.post(apiPath(`/wallets/admin/payout-requests/${holdId}/approve/`), {
@@ -247,39 +248,44 @@ export const adminPaymentsApi = {
     api.get<ListResponse<RefundLogRecord>>(apiPath("/refunds/refund-logs/"), { params }),
   refundReceipts: (params?: Record<string, unknown>) =>
     api.get<ListResponse<RefundReceiptRecord>>(apiPath("/refunds/refund-receipts/"), { params }),
-  refundDashboard: () =>
+  refundDashboard: (params?: Record<string, unknown>) =>
     api.get<FinanceDashboardResponse>(
       apiPath("/admin-management/refunds/dashboard/dashboard/"),
+      { params },
     ),
-  pendingRefunds: () =>
+  pendingRefunds: (params?: Record<string, unknown>) =>
     api.get<QueueResponse>(
       apiPath("/admin-management/refunds/dashboard/pending/"),
+      { params },
     ),
-  disputeDashboard: () =>
+  disputeDashboard: (params?: Record<string, unknown>) =>
     api.get<FinanceDashboardResponse>(
       apiPath("/admin-management/disputes/dashboard/"),
+      { params },
     ),
-  pendingDisputes: () =>
+  pendingDisputes: (params?: Record<string, unknown>) =>
     api.get<QueueResponse>(
       apiPath("/admin-management/disputes/pending/"),
+      { params },
     ),
   resolveDispute: (disputeId: number | string, resolution: string) =>
     api.post(ordersApiPath(`/disputes/${disputeId}/resolve/`), { resolution }),
   closeDispute: (disputeId: number | string, notes = "") =>
     api.post(ordersApiPath(`/disputes/${disputeId}/close/`), { notes }),
-  classPaymentMilestones: () =>
+  classPaymentMilestones: (params?: Record<string, unknown>) =>
     api.get<QueueResponse>(
       apiPath("/admin-management/class-bundles/payment-milestones/"),
-      { params: { limit: 20, status: "unpaid" } },
+      { params: { limit: 20, status: "unpaid", ...params } },
     ),
-  pendingClassDeposits: () =>
+  pendingClassDeposits: (params?: Record<string, unknown>) =>
     api.get<QueueResponse>(
       apiPath("/admin-management/class-bundles/deposit-pending/"),
-      { params: { limit: 20 } },
+      { params: { limit: 20, ...params } },
     ),
-  tipDashboard: () =>
+  tipDashboard: (params?: Record<string, unknown>) =>
     api.get<FinanceDashboardResponse>(
       apiPath("/admin-management/tips/dashboard/"),
+      { params },
     ),
   tipList: (params?: Record<string, unknown>) =>
     api.get<QueueResponse>(
