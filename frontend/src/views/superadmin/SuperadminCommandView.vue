@@ -183,23 +183,23 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[1fr_1fr]">
-      <div class="rounded-lg border border-slate-200 bg-white">
-        <div class="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div class="flex items-center gap-2">
-              <UserCog class="h-5 w-5 text-signal" />
+      <div class="rounded-xl border border-slate-200 bg-white">
+        <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div class="flex items-center gap-2">
+            <UserCog class="h-5 w-5 text-signal" />
+            <div>
               <h2 class="text-base font-semibold text-ink">User governance</h2>
+              <p class="text-xs text-graphite">Suspend, reactivate, and adjust platform roles.</p>
             </div>
-            <p class="mt-1 text-sm text-graphite">Suspend, reactivate, and adjust platform roles.</p>
           </div>
-          <label class="relative block min-w-64">
-            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
+          <label class="relative block w-52">
+            <Search class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input
               v-model="workspace.query"
-              class="focus-ring h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm"
+              class="focus-ring h-8 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs"
               type="search"
-              placeholder="Search users"
-            >
+              placeholder="Search users…"
+            />
           </label>
         </div>
 
