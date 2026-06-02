@@ -329,11 +329,11 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       :class="ui.sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-[220px]'"
     >
       <!-- Header -->
-      <header class="sticky top-0 z-10 flex items-center border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-4 backdrop-blur-sm lg:pl-6 lg:pr-6">
+      <header class="sticky top-0 z-10 flex min-w-0 items-center gap-3 border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-3 backdrop-blur-sm lg:pl-6 lg:pr-4">
 
         <!-- Mobile burger -->
         <button
-          class="focus-ring mr-3 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-slate-200 text-graphite hover:bg-slate-50 lg:hidden"
+          class="focus-ring inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-slate-200 text-graphite hover:bg-slate-50 lg:hidden"
           type="button"
           title="Open navigation"
           @click="ui.toggleSidebar()"
@@ -344,8 +344,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
         <!-- Search — expands to fill all available space -->
         <GlobalSearch :role="role" class="min-w-0 flex-1" />
 
-        <!-- Right group: all utilities + account pill, pushed to edge -->
-        <div class="ml-6 flex shrink-0 items-center gap-3.5">
+        <!-- Right utilities stay compact so the account control can anchor the edge. -->
+        <div class="hidden shrink-0 items-center gap-2 md:flex lg:gap-3">
 
           <WalletBalancePill />
           <HeaderContextPill :role="role" />
@@ -363,22 +363,26 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
             {{ isConnected ? "Live" : "Offline" }}
           </span>
 
-          <!-- Thin separator -->
-          <div class="h-5 w-px shrink-0 bg-slate-200" />
+        </div>
 
-          <!-- Account pill -->
-          <div ref="userMenuRoot" class="relative shrink-0">
+        <div class="flex shrink-0 items-center gap-2 md:hidden">
+          <NotificationBell />
+        </div>
+
+        <!-- Account control: pinned to the far right of the header. -->
+        <div ref="userMenuRoot" class="relative ml-auto shrink-0">
           <button
-            class="focus-ring flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-[13px] font-medium text-graphite transition-colors hover:border-slate-200 hover:bg-slate-50"
+            class="focus-ring flex h-9 items-center gap-2 rounded-md border border-transparent px-1.5 text-[13px] font-medium text-graphite transition-colors hover:border-slate-200 hover:bg-slate-50 lg:px-2"
             type="button"
+            title="Account menu"
             @click="userMenuOpen = !userMenuOpen"
           >
             <UserAvatar :user="auth.user" size="xs" />
-            <span class="hidden max-w-[120px] truncate lg:block">
+            <span class="hidden max-w-[112px] truncate xl:block">
               {{ auth.user?.full_name?.split(" ")[0] || auth.user?.email?.split("@")[0] || "Account" }}
             </span>
             <ChevronDown
-              class="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150"
+              class="hidden h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150 sm:block"
               :class="userMenuOpen ? 'rotate-180' : ''"
             />
           </button>
@@ -419,11 +423,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
                 </button>
               </div>
           </Transition>
-          </div>
-          <!-- end account pill -->
-
         </div>
-        <!-- end right group -->
 
       </header>
 

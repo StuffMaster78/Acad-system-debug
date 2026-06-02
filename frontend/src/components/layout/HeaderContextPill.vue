@@ -6,14 +6,12 @@ import {
   ShieldCheck,
   FileEdit,
 } from "@lucide/vue";
-import { useAuthStore } from "@/stores/auth";
-import { useWebsitesStore } from "@/stores/websites";
+import { usePortalContextStore } from "@/stores/portalContext";
 import type { UserRole } from "@/types/roles";
 
 const props = defineProps<{ role: UserRole }>();
 
-const auth = useAuthStore();
-const sites = useWebsitesStore();
+const portalCtx = usePortalContextStore();
 
 const STAFF_ROLES: UserRole[] = ["admin", "superadmin", "editor", "support"];
 const shouldShow = computed(() => STAFF_ROLES.includes(props.role));
@@ -29,9 +27,7 @@ const label = computed(() => {
   if (props.role === "superadmin") return "Platform";
   if (props.role === "editor") return "Editor desk";
   if (props.role === "support") return "Support desk";
-  // admin: try to show the active website name
-  const website = sites.list[0];
-  return website?.name ?? "Admin console";
+  return portalCtx.branding?.brand_name || portalCtx.website?.name || portalCtx.portal?.name || "Admin console";
 });
 
 const colorClass = computed(() => {
