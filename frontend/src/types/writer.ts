@@ -3,6 +3,7 @@ export interface WriterProfile {
   registration_id?: string;
   display_name?: string;
   email?: string;
+  phone_number?: string | null;
   writer_level?: string | { name?: string; label?: string };
   rating?: number | string;
   status?: string;

@@ -16,6 +16,7 @@ export interface AdminWriterSummary {
 
 export interface AdminWriterDetail extends AdminWriterSummary {
   email?: string;
+  phone_number?: string | null;
   bio?: string;
   years_of_experience?: number | null;
   timezone?: string;

@@ -187,6 +187,10 @@ const levelColor = computed(() => {
                 <span class="font-medium text-ink">{{ writer.full_name || "—" }}</span>
               </div>
               <div class="flex justify-between">
+                <span class="text-graphite">Phone</span>
+                <span class="font-medium text-ink">{{ writer.phone_number || "—" }}</span>
+              </div>
+              <div class="flex justify-between">
                 <span class="text-graphite">Verification</span>
                 <span class="font-medium" :class="writer.is_verified ? 'text-emerald-600' : 'text-amber-600'">
                   {{ writer.verification_status }}

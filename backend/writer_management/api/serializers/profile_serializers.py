@@ -111,6 +111,7 @@ class WriterProfileDetailSerializer(serializers.ModelSerializer):
     level_id = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
+    phone_number = serializers.SerializerMethodField()
     # Capacity summary (inline — avoids extra request)
     can_take_orders = serializers.SerializerMethodField()
     is_accepting_orders = serializers.SerializerMethodField()
@@ -131,6 +132,7 @@ class WriterProfileDetailSerializer(serializers.ModelSerializer):
             "pen_name",
             "full_name",
             "email",
+            "phone_number",
             "bio",
             "qualifications",
             "years_of_experience",
@@ -178,6 +180,12 @@ class WriterProfileDetailSerializer(serializers.ModelSerializer):
             return obj.account_profile.user.email
         except Exception:
             return ""
+
+    def get_phone_number(self, obj) -> str | None:
+        try:
+            return obj.account_profile.user.phone_number or None
+        except Exception:
+            return None
 
     def _capacity(self, obj):
         try:
