@@ -385,7 +385,9 @@ onMounted(async () => {
                 </div>
                 <div class="rounded-md border border-slate-200 bg-white p-4">
                   <p class="text-xs font-semibold uppercase text-graphite">Total spend</p>
-                  <p class="mt-2 text-3xl font-bold text-ink">{{ money(summary.orders_as_client?.total_spend) }}</p>
+                  <p class="mt-2 min-w-0 truncate text-xl font-bold text-ink" :title="money(summary.orders_as_client?.total_spend)">
+                    {{ money(summary.orders_as_client?.total_spend) }}
+                  </p>
                   <p class="mt-1 text-xs text-graphite">Across all orders</p>
                 </div>
                 <div class="rounded-md border border-slate-200 bg-white p-4">
@@ -408,7 +410,9 @@ onMounted(async () => {
                 </div>
                 <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4">
                   <p class="text-xs font-semibold uppercase text-graphite">Total earned</p>
-                  <p class="mt-2 text-3xl font-bold text-ink">{{ money(summary.orders_as_writer.total_earned) }}</p>
+                  <p class="mt-2 min-w-0 truncate text-xl font-bold text-ink" :title="money(summary.orders_as_writer.total_earned)">
+                    {{ money(summary.orders_as_writer.total_earned) }}
+                  </p>
                 </div>
                 <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4">
                   <p class="text-xs font-semibold uppercase text-graphite">Active assignments</p>
