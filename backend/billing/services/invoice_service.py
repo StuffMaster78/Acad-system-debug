@@ -292,8 +292,10 @@ class InvoiceService:
             currency=currency,
             custom_payment_link=custom_payment_link,
             status=InvoiceStatus.DRAFT,
+            processor_display_name=_processor,
             statement_descriptor_snapshot=_descriptor,
             client_disclosure_text=_disclosure_text,
+            disclosure_shown_at=timezone.now() if _disclosure_text else None,
         )
 
     @staticmethod

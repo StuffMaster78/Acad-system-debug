@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Any, cast
 
 from django.db import transaction
+from django.utils import timezone
 
 from wallets.services.wallet_hold_service import WalletHoldService
 from payments_processor.models.payment_intent import PaymentIntent
@@ -102,6 +103,12 @@ class TipPaymentRouterService:
         _tip_website = getattr(contract.sender, "website", None)
         _tip_branding = getattr(_tip_website, "public_branding", None)
         _tip_descriptor = getattr(_tip_branding, "payment_statement_descriptor", "") or ""
+        _tip_processor = getattr(_tip_branding, "payment_processor_name", "") or ""
+        _tip_disclosure_text = (
+            f"Your payment is securely processed by {_tip_processor}. "
+            f"Your card or bank statement may show: {_tip_descriptor or _tip_processor}."
+            if _tip_processor else ""
+        )
 
         payment_intent = PaymentIntent.objects.create(
             website=_tip_website,
@@ -112,7 +119,10 @@ class TipPaymentRouterService:
             payable=tip,
             wallet_hold=wallet_hold,
             status="created",
+            processor_display_name=_tip_processor,
             statement_descriptor_snapshot=_tip_descriptor,
+            client_disclosure_text=_tip_disclosure_text,
+            disclosure_shown_at=timezone.now() if _tip_disclosure_text else None,
         )
 
         checkout = PaymentProviderService.create_payment(payment_intent)

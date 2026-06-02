@@ -113,6 +113,7 @@ class PaymentIntentService:
             payable=payable,
             metadata=metadata or {},
             expires_at=expires_at,
+            processor_display_name=_processor,
             statement_descriptor_snapshot=_descriptor,
             client_disclosure_text=_disclosure_text,
             disclosure_shown_at=timezone.now() if _disclosure_text else None,

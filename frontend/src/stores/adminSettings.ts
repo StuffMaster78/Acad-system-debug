@@ -11,6 +11,7 @@ import {
 } from "@/api/adminSettings";
 import { useUiStore } from "@/stores/ui";
 import { useAuthStore } from "@/stores/auth";
+import { usePortalContextStore } from "@/stores/portalContext";
 import type {
   AdminConfigGroup,
   AdminSettingsMetric,
@@ -47,7 +48,7 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
   const query = ref("");
   const screenedWordDraft = ref("spamword, payment outside platform, external contact");
   const defaultPopulationForm = ref({
-    website_id: 1,
+    website_id: null as number | null,
     default_set: "",
   });
   const specialDayForm = ref({
@@ -149,10 +150,15 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
 
   async function hydrate() {
     const auth = useAuthStore();
+    const portal = usePortalContextStore();
     isLoading.value = true;
     error.value = "";
 
     try {
+      if (defaultPopulationForm.value.website_id == null && portal.website?.id) {
+        defaultPopulationForm.value.website_id = portal.website.id;
+      }
+
       if (auth.isPreviewSession) {
         pricingConfigs.value = [previewConfig("Academic writing USD"), previewConfig("Urgent deadline matrix")];
         writerConfigs.value = [previewConfig("Default writer eligibility"), previewConfig("Probation thresholds")];
@@ -308,6 +314,11 @@ export const useAdminSettingsStore = defineStore("admin-settings", () => {
       if (auth.isPreviewSession) {
         notice.value = "Preview default set populated.";
         ui.toast(notice.value, "success");
+        return;
+      }
+      if (!defaultPopulationForm.value.website_id) {
+        error.value = "Choose a website before populating defaults.";
+        ui.toast(error.value, "error");
         return;
       }
       await adminSettingsApi.populateDefaults(
