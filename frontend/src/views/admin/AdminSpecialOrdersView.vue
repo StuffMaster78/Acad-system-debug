@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { Sparkles, Search } from "@lucide/vue";
 import { useSpecialOrdersStore } from "@/stores/specialOrders";
 import type { SpecialOrderStatus } from "@/types/specialOrders";
 
 const store = useSpecialOrdersStore();
 const router = useRouter();
+const route = useRoute();
+const routePrefix = computed(() => {
+  const p = route.path;
+  if (p.startsWith("/superadmin")) return "/superadmin";
+  if (p.startsWith("/support")) return "/support";
+  return "/admin";
+});
 
 onMounted(() => store.loadOrders());
 
@@ -110,7 +117,7 @@ function progress(total: number, done: number) {
               v-for="order in filtered"
               :key="order.id"
               class="cursor-pointer hover:bg-slate-50 transition-colors"
-              @click="router.push(`/admin/special-orders/${order.id}`)"
+              @click="router.push(`${routePrefix}/special-orders/${order.id}`)"
             >
               <td class="px-3 py-2 font-mono text-xs text-graphite">{{ order.reference }}</td>
               <td class="px-3 py-2 font-medium text-ink max-w-xs truncate">{{ order.title }}</td>

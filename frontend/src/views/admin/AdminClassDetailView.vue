@@ -61,8 +61,8 @@
               </div>
             </div>
 
-            <!-- Lifecycle actions -->
-            <div class="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+            <!-- Lifecycle actions (admin/superadmin only — support is view-only) -->
+            <div v-if="canManage" class="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
               <button
                 v-if="!store.detail.writer_username"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
@@ -297,11 +297,18 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { AlertCircle, ArrowLeft, Award, Calendar, Check, ExternalLink, Globe, UserCheck, UserPlus, XCircle } from "@lucide/vue";
 import { useClassesStore } from "@/stores/classes";
+import { useAuthStore } from "@/stores/auth";
 import type { ClassStatus, ClassTaskStatus, InstallmentStatus } from "@/types/classes";
 
 const route = useRoute();
 const router = useRouter();
 const store = useClassesStore();
+const auth = useAuthStore();
+
+// Support can view but cannot assign writers or modify the class — ops are admin-only.
+const canManage = computed(() =>
+  auth.role === "admin" || auth.role === "superadmin" || auth.isPreviewSession,
+);
 
 onMounted(() => store.loadDetail(route.params.id as string));
 

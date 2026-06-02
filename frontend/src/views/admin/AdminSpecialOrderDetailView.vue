@@ -65,8 +65,8 @@
               </div>
             </div>
 
-            <!-- Admin lifecycle actions -->
-            <div class="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+            <!-- Admin lifecycle actions (hidden from support/editor who are view-only) -->
+            <div v-if="canManage" class="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
               <button
                 v-if="!store.detail.writer_username"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
@@ -342,6 +342,11 @@ const route = useRoute();
 const router = useRouter();
 const store = useSpecialOrdersStore();
 const auth = useAuthStore();
+
+// Support can view but cannot assign, approve, or cancel — ops are admin-only.
+const canManage = computed(() =>
+  auth.role === "admin" || auth.role === "superadmin" || auth.isPreviewSession,
+);
 
 onMounted(() => store.loadDetail(route.params.id as string));
 

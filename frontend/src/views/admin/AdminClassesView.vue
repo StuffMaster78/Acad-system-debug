@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { BookOpen, Search } from "@lucide/vue";
 import { useClassesStore } from "@/stores/classes";
 import type { ClassStatus } from "@/types/classes";
 
 const store = useClassesStore();
 const router = useRouter();
+const route = useRoute();
+const routePrefix = computed(() => {
+  const p = route.path;
+  if (p.startsWith("/superadmin")) return "/superadmin";
+  if (p.startsWith("/support")) return "/support";
+  return "/admin";
+});
 
 onMounted(() => store.loadOrders());
 
@@ -112,7 +119,7 @@ function progress(total: number, done: number) {
               v-for="cls in filtered"
               :key="cls.id"
               class="cursor-pointer hover:bg-slate-50 transition-colors"
-              @click="router.push(`/admin/classes/${cls.id}`)"
+              @click="router.push(`${routePrefix}/classes/${cls.id}`)"
             >
               <td class="px-3 py-2 font-mono text-xs text-graphite">{{ cls.reference }}</td>
               <td class="px-3 py-2 font-medium text-ink max-w-xs truncate">{{ cls.title }}</td>
