@@ -328,6 +328,144 @@
         <div class="prose-sm" v-html="(block.value as DisclaimerValue).text" />
       </div>
 
+      <!-- Checklist -->
+      <div v-else-if="block.type === 'checklist'" class="my-6 rounded-xl border border-slate-200 bg-white p-5">
+        <p class="font-semibold text-ink">{{ (block.value as ChecklistValue).title }}</p>
+        <ul class="mt-4 space-y-3">
+          <li
+            v-for="(item, i) in (block.value as ChecklistValue).items"
+            :key="i"
+            class="flex items-start gap-3"
+          >
+            <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border-2 border-slate-300 bg-white">
+              <svg class="size-3 text-transparent" fill="none" viewBox="0 0 12 12" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2 6l3 3 5-5"/></svg>
+            </span>
+            <div>
+              <p class="text-sm leading-6 text-ink">{{ item.text }}</p>
+              <p v-if="item.detail" class="mt-0.5 text-xs text-graphite">{{ item.detail }}</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Stats Highlight -->
+      <div v-else-if="block.type === 'stats_highlight'" class="my-6">
+        <div class="grid gap-4" :class="`sm:grid-cols-${Math.min((block.value as StatsHighlightValue).stats.length, 4)}`">
+          <div
+            v-for="(stat, i) in (block.value as StatsHighlightValue).stats"
+            :key="i"
+            class="rounded-xl border border-slate-200 bg-white p-5 text-center"
+          >
+            <p class="text-3xl font-extrabold text-ink">{{ stat.value }}</p>
+            <p class="mt-1 text-sm text-graphite">{{ stat.label }}</p>
+          </div>
+        </div>
+        <p v-if="(block.value as StatsHighlightValue).supporting_text" class="mt-3 text-center text-xs text-graphite">
+          {{ (block.value as StatsHighlightValue).supporting_text }}
+        </p>
+      </div>
+
+      <!-- Before & After -->
+      <div v-else-if="block.type === 'before_after'" class="my-6">
+        <p v-if="(block.value as BeforeAfterValue).heading" class="mb-3 font-semibold text-ink">
+          {{ (block.value as BeforeAfterValue).heading }}
+        </p>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="rounded-xl border border-rose-200 bg-rose-50">
+            <div class="rounded-t-xl bg-rose-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-rose-700">
+              {{ (block.value as BeforeAfterValue).label_before }}
+            </div>
+            <div class="px-4 py-4 text-sm leading-7 text-ink prose-sm" v-html="(block.value as BeforeAfterValue).content_before" />
+          </div>
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50">
+            <div class="rounded-t-xl bg-emerald-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+              {{ (block.value as BeforeAfterValue).label_after }}
+            </div>
+            <div class="px-4 py-4 text-sm leading-7 text-ink prose-sm" v-html="(block.value as BeforeAfterValue).content_after" />
+          </div>
+        </div>
+        <p v-if="(block.value as BeforeAfterValue).caption" class="mt-2 text-center text-xs text-graphite">
+          {{ (block.value as BeforeAfterValue).caption }}
+        </p>
+      </div>
+
+      <!-- Sample Excerpt -->
+      <div v-else-if="block.type === 'sample_excerpt'" class="my-6 rounded-xl border border-slate-200 bg-white">
+        <div class="flex flex-wrap items-center gap-2 border-b border-slate-100 px-5 py-3">
+          <p v-if="(block.value as SampleExcerptValue).title" class="text-sm font-semibold text-ink">
+            {{ (block.value as SampleExcerptValue).title }}
+          </p>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-graphite">
+            {{ FORMATTING_LABELS[(block.value as SampleExcerptValue).formatting_style] ?? (block.value as SampleExcerptValue).formatting_style }}
+          </span>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-graphite">
+            {{ LEVEL_LABELS[(block.value as SampleExcerptValue).academic_level] ?? (block.value as SampleExcerptValue).academic_level }}
+          </span>
+        </div>
+        <div class="px-5 py-4 font-serif text-sm leading-7 text-ink" v-html="(block.value as SampleExcerptValue).excerpt" />
+        <div v-if="(block.value as SampleExcerptValue).attachment" class="border-t border-slate-100 px-5 py-3">
+          <a
+            :href="`/resources/${(block.value as SampleExcerptValue).attachment!.slug}`"
+            class="inline-flex items-center gap-1.5 text-sm font-semibold text-signal hover:underline"
+          >
+            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            {{ (block.value as SampleExcerptValue).download_cta || 'Download Full Sample' }}
+          </a>
+        </div>
+      </div>
+
+      <!-- Definition -->
+      <div v-else-if="block.type === 'definition'" class="my-4 rounded-xl border-l-4 border-signal bg-white px-5 py-4">
+        <p class="text-sm font-bold text-ink">
+          {{ (block.value as DefinitionValue).term }}
+          <span class="ml-1 text-xs font-normal italic text-graphite">n.</span>
+        </p>
+        <div class="mt-1 text-sm leading-6 text-graphite" v-html="(block.value as DefinitionValue).definition" />
+        <p v-if="(block.value as DefinitionValue).example" class="mt-2 text-xs italic text-slate-400">
+          "{{ (block.value as DefinitionValue).example }}"
+        </p>
+      </div>
+
+      <!-- Timeline -->
+      <div v-else-if="block.type === 'timeline'" class="my-6">
+        <p v-if="(block.value as TimelineValue).heading" class="mb-4 text-lg font-bold text-ink">
+          {{ (block.value as TimelineValue).heading }}
+        </p>
+        <ol class="relative border-l-2 border-slate-200 space-y-6 pl-6">
+          <li
+            v-for="(entry, i) in (block.value as TimelineValue).entries"
+            :key="i"
+            class="relative"
+          >
+            <span class="absolute -left-[1.4375rem] flex size-5 items-center justify-center rounded-full border-2 border-signal bg-white text-xs font-bold text-signal ring-4 ring-white">
+              {{ i + 1 }}
+            </span>
+            <p class="text-xs font-semibold uppercase tracking-wide text-signal">{{ entry.date_label }}</p>
+            <p class="mt-0.5 font-semibold text-ink">{{ entry.title }}</p>
+            <div class="mt-1 text-sm leading-6 text-graphite" v-html="entry.description" />
+          </li>
+        </ol>
+      </div>
+
+      <!-- Embed -->
+      <figure v-else-if="block.type === 'embed'" class="my-6">
+        <iframe
+          v-if="safeEmbedUrl((block.value as EmbedValue).embed_url)"
+          :src="safeEmbedUrl((block.value as EmbedValue).embed_url)!"
+          :height="`${(block.value as EmbedValue).height ?? 480}`"
+          class="w-full rounded-xl border border-slate-200"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+        />
+        <div v-else class="flex h-32 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-sm text-graphite">
+          Embed domain not allowed.
+        </div>
+        <figcaption v-if="(block.value as EmbedValue).caption" class="mt-2 text-center text-xs text-graphite">
+          {{ (block.value as EmbedValue).caption }}
+        </figcaption>
+      </figure>
+
       <!-- Data table -->
       <figure v-else-if="block.type === 'table'" class="my-6 overflow-x-auto">
         <table class="min-w-full rounded-xl border border-slate-200 bg-white text-sm">
@@ -416,6 +554,16 @@ interface TocEntry { label: string; anchor: string }
 interface TocValue { heading?: string; entries: TocEntry[] }
 interface AuthorReviewValue { reviewer_name: string; credentials: string; review_date: string; photo?: { meta?: { download_url?: string } }; reviewer_url?: string }
 interface DisclaimerValue { style: string; text: string }
+interface ChecklistItem { text: string; detail?: string }
+interface ChecklistValue { title: string; items: ChecklistItem[] }
+interface StatItem { value: string; label: string }
+interface StatsHighlightValue { stats: StatItem[]; supporting_text?: string }
+interface BeforeAfterValue { heading?: string; label_before: string; content_before: string; label_after: string; content_after: string; caption?: string }
+interface SampleExcerptValue { title?: string; formatting_style: string; academic_level: string; excerpt: string; attachment?: { title?: string; slug?: string }; download_cta?: string }
+interface DefinitionValue { term: string; definition: string; example?: string }
+interface TimelineEntry { date_label: string; title: string; description: string }
+interface TimelineValue { heading?: string; entries: TimelineEntry[] }
+interface EmbedValue { embed_url: string; height?: number; caption?: string }
 
 function tableBodyRows(v: TableValue): string[][] {
   const rows = v.table?.data ?? [];
@@ -461,6 +609,27 @@ function buildChartOption(v: ChartValue): EChartsOption {
     yAxis: { type: "value" },
     series,
   };
+}
+
+const FORMATTING_LABELS: Record<string, string> = {
+  apa7: "APA 7th",  mla9: "MLA 9th",  chicago: "Chicago",
+  harvard: "Harvard",  ieee: "IEEE",  none: "General",
+};
+const LEVEL_LABELS: Record<string, string> = {
+  high_school: "High School",  undergraduate: "Undergraduate",
+  graduate: "Graduate",  phd: "PhD",
+};
+
+function safeEmbedUrl(url: string): string | null {
+  const ALLOWED = [
+    "docs.google.com", "sheets.google.com", "slides.google.com",
+    "public.tableau.com", "app.flourish.studio", "datawrapper.dwcdn.net",
+    "www.canva.com", "canva.com", "prezi.com", "airtable.com", "app.powerbi.com",
+  ];
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return ALLOWED.some((d) => host === d || host.endsWith("." + d)) ? url : null;
+  } catch { return null; }
 }
 
 function disclaimerClass(style: string): string {

@@ -215,6 +215,293 @@ class DividerBlock(StaticBlock):
 
 
 # ===========================================================================
+# CHECKLIST BLOCK (shared)
+# ===========================================================================
+
+class ChecklistItemBlock(StructBlock):
+    """Single item in a checklist."""
+    text = CharBlock(max_length=300)
+    detail = CharBlock(
+        required=False,
+        max_length=500,
+        help_text="Optional supporting detail shown below the item.",
+    )
+
+    class Meta:
+        icon = "tick-inverse"
+        label = "Checklist Item"
+
+
+class ChecklistBlock(StructBlock):
+    """
+    Actionable checklist with optional per-item detail.
+
+    Use for 'how-to' posts: 'thesis writing checklist',
+    'APA formatting checklist'. High engagement and bookmark rate.
+    """
+    title = CharBlock(max_length=200)
+    items = ListBlock(ChecklistItemBlock(), min_num=2, max_num=20)
+
+    class Meta:
+        icon = "tasks"
+        label = "Checklist"
+        template = "cms_core/blocks/checklist.html"
+
+
+# ===========================================================================
+# STATS HIGHLIGHT BLOCK (shared)
+# ===========================================================================
+
+class StatItemBlock(StructBlock):
+    """A single stat — big number + short label."""
+    value = CharBlock(
+        max_length=50,
+        help_text="The headline figure, e.g. '98%' or '50,000+' or '4.8★'",
+    )
+    label = CharBlock(
+        max_length=100,
+        help_text="What the figure means, e.g. 'on-time delivery'",
+    )
+
+    class Meta:
+        icon = "pick"
+        label = "Stat"
+
+
+class StatsHighlightBlock(StructBlock):
+    """
+    Row of headline stats — trust signals at a glance.
+
+    Use on service pages and top-of-funnel posts.
+    2–6 stats render as a responsive grid.
+    """
+    stats = ListBlock(StatItemBlock(), min_num=2, max_num=6)
+    supporting_text = CharBlock(
+        required=False,
+        max_length=255,
+        help_text="Optional small-print below the stats row.",
+    )
+
+    class Meta:
+        icon = "pick"
+        label = "Stats Highlight"
+        template = "cms_core/blocks/stats_highlight.html"
+
+
+# ===========================================================================
+# BEFORE / AFTER BLOCK (shared)
+# ===========================================================================
+
+class BeforeAfterBlock(StructBlock):
+    """
+    Side-by-side writing comparison.
+
+    Show a weak draft alongside an improved version.
+    Highly effective for writing guides and highly shareable.
+    """
+    heading = CharBlock(max_length=255, required=False, default="Before & After")
+    label_before = CharBlock(max_length=50, default="Before")
+    content_before = RichTextBlock(
+        features=["bold", "italic"],
+        help_text="The weak/original version.",
+    )
+    label_after = CharBlock(max_length=50, default="After")
+    content_after = RichTextBlock(
+        features=["bold", "italic"],
+        help_text="The improved version.",
+    )
+    caption = CharBlock(required=False, max_length=255)
+
+    class Meta:
+        icon = "arrows-up-down"
+        label = "Before & After"
+        template = "cms_core/blocks/before_after.html"
+
+
+# ===========================================================================
+# SAMPLE EXCERPT BLOCK (blog-preferred, available everywhere)
+# ===========================================================================
+
+class SampleExcerptBlock(StructBlock):
+    """
+    Formatted preview of academic writing.
+
+    Shows a styled excerpt that looks like a real paper, with
+    formatting style and academic level badges. Links to a full
+    downloadable sample via an Attachment snippet.
+    """
+    title = CharBlock(
+        max_length=255,
+        required=False,
+        help_text="E.g. 'Sample APA Research Paper Introduction'",
+    )
+    formatting_style = ChoiceBlock(
+        choices=[
+            ("apa7", "APA 7th Edition"),
+            ("mla9", "MLA 9th Edition"),
+            ("chicago", "Chicago / Turabian"),
+            ("harvard", "Harvard"),
+            ("ieee", "IEEE"),
+            ("none", "None / General"),
+        ],
+        default="apa7",
+    )
+    academic_level = ChoiceBlock(
+        choices=[
+            ("high_school", "High School"),
+            ("undergraduate", "Undergraduate"),
+            ("graduate", "Graduate / Masters"),
+            ("phd", "PhD / Doctoral"),
+        ],
+        default="undergraduate",
+    )
+    excerpt = RichTextBlock(
+        features=["bold", "italic"],
+        help_text="The excerpt text. Style as you would a real paper excerpt.",
+    )
+    attachment = SnippetChooserBlock(
+        "cms_attachments.Attachment",
+        required=False,
+        help_text="Full downloadable sample linked to this excerpt.",
+    )
+    download_cta = CharBlock(
+        max_length=100,
+        default="Download Full Sample",
+        required=False,
+    )
+
+    class Meta:
+        icon = "doc-full"
+        label = "Sample Excerpt"
+        template = "cms_core/blocks/sample_excerpt.html"
+
+
+# ===========================================================================
+# DEFINITION BLOCK (shared)
+# ===========================================================================
+
+class DefinitionBlock(StructBlock):
+    """
+    Inline term definition.
+
+    Academic content is terminology-heavy. Use this to define
+    jargon in-line without breaking the prose flow.
+    Outputs DefinedTerm schema markup.
+    """
+    term = CharBlock(max_length=200)
+    definition = RichTextBlock(features=["bold", "italic", "link"])
+    example = CharBlock(
+        required=False,
+        max_length=500,
+        help_text="Optional usage example in plain text.",
+    )
+
+    class Meta:
+        icon = "search"
+        label = "Definition"
+        template = "cms_core/blocks/definition.html"
+
+
+# ===========================================================================
+# TIMELINE BLOCK (shared)
+# ===========================================================================
+
+class TimelineEntryBlock(StructBlock):
+    """One entry in a timeline."""
+    date_label = CharBlock(
+        max_length=100,
+        help_text="Date or step label, e.g. '1929', 'Step 3', or 'Ancient Rome'",
+    )
+    title = CharBlock(max_length=255)
+    description = RichTextBlock(features=["bold", "italic", "link"])
+
+    class Meta:
+        icon = "time"
+        label = "Timeline Entry"
+
+
+class TimelineBlock(StructBlock):
+    """
+    Vertical timeline of events or steps.
+
+    Use for history posts ('History of APA citation') or long
+    step-by-step guides that exceed the 6-item limit of HowItWorksBlock.
+    """
+    heading = CharBlock(max_length=255, required=False)
+    entries = ListBlock(TimelineEntryBlock(), min_num=2, max_num=15)
+
+    class Meta:
+        icon = "time"
+        label = "Timeline"
+        template = "cms_core/blocks/timeline.html"
+
+
+# ===========================================================================
+# EMBED BLOCK (shared)
+# ===========================================================================
+
+ALLOWED_EMBED_DOMAINS = [
+    "docs.google.com",
+    "sheets.google.com",
+    "slides.google.com",
+    "public.tableau.com",
+    "app.flourish.studio",
+    "datawrapper.dwcdn.net",
+    "www.canva.com",
+    "prezi.com",
+    "airtable.com",
+    "app.powerbi.com",
+]
+
+
+class EmbedBlock(StructBlock):
+    """
+    Sandboxed iframe embed for third-party data tools.
+
+    Accepted sources: Google Sheets/Slides/Docs, Tableau,
+    Flourish, Datawrapper, Canva, Prezi, Airtable, Power BI.
+    Domain is validated on save — arbitrary iframes are rejected.
+    """
+    embed_url = URLBlock(
+        help_text=(
+            "Embed URL from the share/publish dialog. "
+            "Accepted: Google Sheets/Docs/Slides, Tableau, Flourish, "
+            "Datawrapper, Canva, Prezi, Airtable, Power BI."
+        ),
+    )
+    height = IntegerBlock(
+        default=480,
+        min_value=200,
+        max_value=1200,
+        help_text="Height in pixels (200–1200).",
+    )
+    caption = CharBlock(required=False, max_length=255)
+
+    class Meta:
+        icon = "code"
+        label = "Embed (chart / sheet / slides)"
+        template = "cms_core/blocks/embed.html"
+
+    def clean(self, value):
+        value = super().clean(value)
+        url = str(value.get("embed_url", ""))
+        from urllib.parse import urlparse
+        try:
+            host = urlparse(url).netloc.lower().lstrip("www.")
+        except Exception:
+            host = ""
+        allowed = {d.lstrip("www.") for d in ALLOWED_EMBED_DOMAINS}
+        if url and not any(host == d or host.endswith("." + d) for d in allowed):
+            from wagtail.blocks import StreamBlockValidationError
+            from django.core.exceptions import ValidationError
+            raise ValidationError(
+                f"Embed domain '{host}' is not allowed. "
+                f"Accepted: {', '.join(sorted(allowed))}"
+            )
+        return value
+
+
+# ===========================================================================
 # KEY TAKEAWAYS BLOCK (shared)
 # ===========================================================================
 
@@ -643,8 +930,14 @@ BLOG_BLOCKS = StreamBlock([
     ("paragraph", ParagraphBlock()),
     ("image", ImageBlock()),
     ("list", ListBlock_()),
+    ("checklist", ChecklistBlock()),
     ("quote", QuoteBlock()),
     ("callout", CalloutBlock()),
+    ("stats_highlight", StatsHighlightBlock()),
+    ("before_after", BeforeAfterBlock()),
+    ("sample_excerpt", SampleExcerptBlock()),
+    ("definition", DefinitionBlock()),
+    ("timeline", TimelineBlock()),
     ("author_review", AuthorReviewBadgeBlock()),
     ("disclaimer", DisclaimerBlock()),
     ("faq", FAQItemBlock()),
@@ -653,6 +946,7 @@ BLOG_BLOCKS = StreamBlock([
     ("attachment", AttachmentReferenceBlock()),
     ("table", TableDataBlock()),
     ("chart", ChartBlock()),
+    ("embed", EmbedBlock()),
     ("divider", DividerBlock()),
     ("video", VideoEmbedBlock()),
     ("sources", SourcesListBlock()),
@@ -667,8 +961,13 @@ SERVICE_PAGE_BLOCKS = StreamBlock([
     ("paragraph", ParagraphBlock()),
     ("image", ImageBlock()),
     ("list", ListBlock_()),
+    ("checklist", ChecklistBlock()),
     ("feature_grid", FeatureGridBlock()),
     ("how_it_works", HowItWorksBlock()),
+    ("stats_highlight", StatsHighlightBlock()),
+    ("before_after", BeforeAfterBlock()),
+    ("definition", DefinitionBlock()),
+    ("timeline", TimelineBlock()),
     ("pricing_table", PricingTableBlock()),
     ("comparison_table", ComparisonTableBlock()),
     ("testimonials", TestimonialGroupBlock()),
@@ -679,6 +978,7 @@ SERVICE_PAGE_BLOCKS = StreamBlock([
     ("cta", CTABlock()),
     ("table", TableDataBlock()),
     ("chart", ChartBlock()),
+    ("embed", EmbedBlock()),
     ("attachment", AttachmentReferenceBlock()),
     ("internal_link", InternalLinkCardBlock()),
     ("divider", DividerBlock()),
