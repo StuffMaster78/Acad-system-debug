@@ -126,15 +126,17 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
 
   function startEdit(item: OrderConfigOption) {
     editingId.value = item.id;
+    const raw = item as Record<string, unknown>;
     Object.assign(editForm, {
       id: item.id,
       name: item.name,
       code: item.code ?? "",
+      description: raw.description ?? "",
       website: item.website ?? null,
       is_active: item.is_active ?? true,
-      category: (item as Record<string, unknown>).category ?? "general",
-      is_technical: (item as Record<string, unknown>).is_technical ?? false,
-      display_order: (item as Record<string, unknown>).display_order ?? 0,
+      display_order: raw.display_order ?? 0,
+      category: raw.category ?? "general",
+      is_technical: raw.is_technical ?? false,
     });
   }
 

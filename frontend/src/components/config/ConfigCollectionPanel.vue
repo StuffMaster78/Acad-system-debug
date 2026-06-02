@@ -119,41 +119,61 @@ load();
             <td :colspan="isSubjects ? 6 : 4" class="py-8 text-center text-graphite">No items yet.</td>
           </tr>
           <tr v-for="item in items" :key="item.id" class="group">
-            <!-- Edit row -->
+            <!-- Edit row — spans full width -->
             <template v-if="hub.editingId === item.id">
-              <td class="px-5 py-2">
-                <input v-model="hub.editForm.name" class="w-full rounded border border-slate-200 px-2 py-1 text-sm focus-ring" />
-              </td>
-              <td v-if="isSubjects" class="px-5 py-2">
-                <select
-                  v-model="(hub.editForm as Record<string,unknown>).category"
-                  class="focus-ring h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
-                >
-                  <option v-for="opt in CATEGORY_OPTIONS.slice(1)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                </select>
-              </td>
-              <td class="px-5 py-2">
-                <input v-model="hub.editForm.code" class="w-28 rounded border border-slate-200 px-2 py-1 text-sm focus-ring font-mono text-xs" />
-              </td>
-              <td v-if="isSubjects" class="px-5 py-2 text-center">
-                <input v-model="(hub.editForm as Record<string,unknown>).is_technical" type="checkbox" class="rounded" />
-              </td>
-              <td class="px-5 py-2 text-center">
-                <input v-model="hub.editForm.is_active" type="checkbox" class="rounded" />
-              </td>
-              <td class="px-5 py-2">
-                <div class="flex items-center justify-end gap-1.5">
-                  <button class="rounded bg-berry px-2 py-1 text-xs font-medium text-white hover:bg-berry/90 disabled:opacity-60" :disabled="hub.isSaving" @click="hub.saveEdit()">
-                    <Check class="size-3 inline" /> Save
-                  </button>
-                  <button class="rounded border border-slate-200 px-2 py-1 text-xs text-graphite hover:text-ink" @click="hub.cancelEdit()">Cancel</button>
+              <td :colspan="isSubjects ? 6 : 4" class="px-5 py-3 bg-slate-50">
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <label class="block">
+                    <span class="text-xs font-medium text-graphite">Name *</span>
+                    <input v-model="hub.editForm.name" class="focus-ring mt-1 h-8 w-full rounded-md border border-slate-200 px-2 text-sm" />
+                  </label>
+                  <label class="block">
+                    <span class="text-xs font-medium text-graphite">Code</span>
+                    <input v-model="hub.editForm.code" class="focus-ring mt-1 h-8 w-full rounded-md border border-slate-200 px-2 text-sm font-mono" />
+                  </label>
+                  <label class="block">
+                    <span class="text-xs font-medium text-graphite">Sort order</span>
+                    <input v-model.number="(hub.editForm as Record<string,unknown>).display_order" type="number" min="0" class="focus-ring mt-1 h-8 w-full rounded-md border border-slate-200 px-2 text-sm" />
+                  </label>
+                  <label class="block sm:col-span-2">
+                    <span class="text-xs font-medium text-graphite">Description</span>
+                    <input v-model="(hub.editForm as Record<string,unknown>).description" placeholder="Optional — shown to clients" class="focus-ring mt-1 h-8 w-full rounded-md border border-slate-200 px-2 text-sm" />
+                  </label>
+                  <!-- Subjects-only fields -->
+                  <label v-if="isSubjects" class="block">
+                    <span class="text-xs font-medium text-graphite">Category</span>
+                    <select v-model="(hub.editForm as Record<string,unknown>).category" class="focus-ring mt-1 h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs">
+                      <option v-for="opt in CATEGORY_OPTIONS.slice(1)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="mt-3 flex flex-wrap items-center gap-4">
+                  <label class="flex items-center gap-2 text-xs text-graphite">
+                    <input v-model="hub.editForm.is_active" type="checkbox" class="rounded" />
+                    Active (visible to clients)
+                  </label>
+                  <label v-if="isSubjects" class="flex items-center gap-2 text-xs text-graphite">
+                    <input v-model="(hub.editForm as Record<string,unknown>).is_technical" type="checkbox" class="rounded" />
+                    Technical subject
+                  </label>
+                  <div class="ml-auto flex items-center gap-2">
+                    <button class="rounded bg-berry px-3 py-1.5 text-xs font-medium text-white hover:bg-berry/90 disabled:opacity-60" :disabled="hub.isSaving" @click="hub.saveEdit()">
+                      <Check class="size-3 inline mr-1" />Save
+                    </button>
+                    <button class="rounded border border-slate-200 px-3 py-1.5 text-xs text-graphite hover:text-ink" @click="hub.cancelEdit()">Cancel</button>
+                  </div>
                 </div>
               </td>
             </template>
 
             <!-- View row -->
             <template v-else>
-              <td class="px-5 py-2.5 font-medium text-ink">{{ item.name }}</td>
+              <td class="px-5 py-2.5">
+                <p class="font-medium text-ink">{{ item.name }}</p>
+                <p v-if="(item as Record<string,unknown>).description" class="mt-0.5 text-xs text-graphite truncate max-w-xs">
+                  {{ (item as Record<string,unknown>).description }}
+                </p>
+              </td>
               <td v-if="isSubjects" class="px-5 py-2.5">
                 <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-graphite capitalize">
                   {{ CATEGORY_OPTIONS.find(o => o.value === (item as Record<string,unknown>).category)?.label ?? 'General' }}

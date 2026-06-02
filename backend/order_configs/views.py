@@ -37,11 +37,16 @@ class AcademicLevelViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        """Filter by website if specified."""
         queryset = super().get_queryset()
-        website_id = self.request.query_params.get('website_id')
-        if website_id:
-            queryset = queryset.filter(website_id=website_id)
+        params = self.request.query_params
+        if params.get('website_id'):
+            queryset = queryset.filter(website_id=params['website_id'])
+        user = self.request.user
+        role = getattr(user, 'role', '')
+        if role not in ('admin', 'superadmin', 'editor', 'support') and not user.is_staff:
+            queryset = queryset.filter(is_active=True)
+        elif params.get('is_active') is not None:
+            queryset = queryset.filter(is_active=params['is_active'].lower() == 'true')
         return queryset.select_related('website')
 
 
@@ -56,11 +61,16 @@ class PaperTypeViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        """Filter by website if specified."""
         queryset = super().get_queryset()
-        website_id = self.request.query_params.get('website_id')
-        if website_id:
-            queryset = queryset.filter(website_id=website_id)
+        params = self.request.query_params
+        if params.get('website_id'):
+            queryset = queryset.filter(website_id=params['website_id'])
+        user = self.request.user
+        role = getattr(user, 'role', '')
+        if role not in ('admin', 'superadmin', 'editor', 'support') and not user.is_staff:
+            queryset = queryset.filter(is_active=True)
+        elif params.get('is_active') is not None:
+            queryset = queryset.filter(is_active=params['is_active'].lower() == 'true')
         return queryset.select_related('website')
 
 
@@ -75,11 +85,16 @@ class FormattingStyleViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        """Filter by website if specified."""
         queryset = super().get_queryset()
-        website_id = self.request.query_params.get('website_id')
-        if website_id:
-            queryset = queryset.filter(website_id=website_id)
+        params = self.request.query_params
+        if params.get('website_id'):
+            queryset = queryset.filter(website_id=params['website_id'])
+        user = self.request.user
+        role = getattr(user, 'role', '')
+        if role not in ('admin', 'superadmin', 'editor', 'support') and not user.is_staff:
+            queryset = queryset.filter(is_active=True)
+        elif params.get('is_active') is not None:
+            queryset = queryset.filter(is_active=params['is_active'].lower() == 'true')
         return queryset.select_related('website')
 
 
@@ -387,9 +402,15 @@ class EnglishTypeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        website_id = self.request.query_params.get('website_id')
-        if website_id:
-            queryset = queryset.filter(website_id=website_id)
+        params = self.request.query_params
+        if params.get('website_id'):
+            queryset = queryset.filter(website_id=params['website_id'])
+        user = self.request.user
+        role = getattr(user, 'role', '')
+        if role not in ('admin', 'superadmin', 'editor', 'support') and not user.is_staff:
+            queryset = queryset.filter(is_active=True)
+        elif params.get('is_active') is not None:
+            queryset = queryset.filter(is_active=params['is_active'].lower() == 'true')
         return queryset.select_related('website')
 
 

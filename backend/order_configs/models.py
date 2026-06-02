@@ -113,7 +113,9 @@ class EditingRequirementConfig(models.Model):
 
 class AcademicLevel(models.Model):
     """
-    Represents types of Academic Levels, tied to specific Websites.
+    Represents academic levels tied to a website.
+    display_order controls client-facing sort (lowest = first);
+    use it to set the natural progression: High School → PhD.
     """
     website = models.ForeignKey(
         Website,
@@ -122,11 +124,25 @@ class AcademicLevel(models.Model):
     )
     name = models.CharField(
         max_length=100,
-        help_text="Academic Level (e.g., University, College, Masters, BSN, etc)."
+        help_text="Academic level label shown to clients (e.g. Undergraduate, Masters)."
+    )
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Short clarification shown to clients.",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Inactive levels are hidden from clients.",
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Sort position — lower numbers appear first.",
     )
 
     class Meta:
         unique_together = ('website', 'name')
+        ordering = ['display_order', 'name']
         verbose_name = 'Academic Level'
         verbose_name_plural = 'Academic Levels'
 
@@ -136,7 +152,8 @@ class AcademicLevel(models.Model):
 
 class PaperType(models.Model):
     """
-    Represents types of papers (e.g., Essay, Report).
+    Represents types of papers (e.g., Essay, Research Paper).
+    Tenant-scoped so each site can offer a curated subset.
     """
     website = models.ForeignKey(
         Website,
@@ -145,14 +162,27 @@ class PaperType(models.Model):
     )
     name = models.CharField(
         max_length=100,
-        help_text="Type of paper (e.g., Essay, Report)."
+        help_text="Paper type label shown to clients (e.g. Essay, Case Study)."
+    )
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Short description shown to clients.",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Inactive types are hidden from clients.",
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Sort position — lower numbers appear first.",
     )
 
     def __str__(self):
         return self.name
 
     class Meta:
-        ordering = ['name']
+        ordering = ['display_order', 'name']
         verbose_name = "Paper Type"
         verbose_name_plural = "Paper Types"
         unique_together = ('website', 'name')
@@ -160,7 +190,8 @@ class PaperType(models.Model):
 
 class FormattingandCitationStyle(models.Model):
     """
-    Represents formatting and citation styles (e.g., APA, MLA).
+    Represents formatting and citation styles (e.g., APA 7, MLA 9).
+    Tenant-scoped — a nursing-focused site can surface APA and AMA only.
     """
     website = models.ForeignKey(
         Website,
@@ -169,14 +200,27 @@ class FormattingandCitationStyle(models.Model):
     )
     name = models.CharField(
         max_length=50,
-        help_text="Formatting style (e.g., APA, MLA)."
+        help_text="Style name shown to clients (e.g. APA 7th Edition)."
+    )
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Short note about when to use this style.",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Inactive styles are hidden from clients.",
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Sort position — lower numbers appear first.",
     )
 
     def __str__(self):
         return self.name
 
     class Meta:
-        ordering = ['name']
+        ordering = ['display_order', 'name']
         unique_together = ('website', 'name')
         verbose_name = "Formatting and Citation Style"
         verbose_name_plural = "Formatting and Citation Styles"
@@ -245,7 +289,7 @@ class Subject(models.Model):
 
 class TypeOfWork(models.Model):
     """
-    Represents types of work (e.g., Writing, Editing).
+    Represents types of work (e.g., Writing, Editing, Proofreading).
     """
     website = models.ForeignKey(
         Website,
@@ -254,14 +298,27 @@ class TypeOfWork(models.Model):
     )
     name = models.CharField(
         max_length=50,
-        help_text="Type of work (e.g., Writing, Editing)."
+        help_text="Work type shown to clients (e.g. Writing, Editing)."
+    )
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Short description shown to clients.",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Inactive types are hidden from clients.",
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Sort position — lower numbers appear first.",
     )
 
     def __str__(self):
         return self.name
 
     class Meta:
-        ordering = ['name']
+        ordering = ['display_order', 'name']
         verbose_name = "Type of Work"
         verbose_name_plural = "Types of Work"
         unique_together = ('website', 'name')
@@ -269,7 +326,7 @@ class TypeOfWork(models.Model):
 
 class EnglishType(models.Model):
     """
-    Represents English types (e.g., US English, UK English).
+    Represents English variants (e.g., US English, UK English).
     """
     website = models.ForeignKey(
         Website,
@@ -278,18 +335,26 @@ class EnglishType(models.Model):
     )
     name = models.CharField(
         max_length=50,
-        help_text="English type (e.g., US English, UK English)."
+        help_text="English variant label shown to clients."
     )
     code = models.CharField(
         max_length=10,
-        help_text="Short code (e.g., US, UK)."
+        help_text="Short code (e.g., US, UK, AU)."
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Inactive types are hidden from clients.",
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Sort position — lower numbers appear first.",
     )
 
     def __str__(self):
         return self.name
 
     class Meta:
-        ordering = ['name']
+        ordering = ['display_order', 'name']
         verbose_name = "English Type"
         verbose_name_plural = "English Types"
         unique_together = ('website', 'name', 'code')
