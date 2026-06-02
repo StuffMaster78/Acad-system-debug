@@ -29,6 +29,8 @@ class CanViewOrderLifecycle(BasePlatformPermission):
         obj: Any,
     ):
         user = request.user
+        if user.is_superuser or getattr(user, "role", None) == "superadmin":
+            return True
         website = getattr(request, "website", None)
 
         if getattr(obj, "website_id", None) != getattr(website, "id", None):

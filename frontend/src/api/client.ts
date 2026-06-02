@@ -28,7 +28,7 @@ const DEVICE_FINGERPRINT = getDeviceFingerprint();
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const apiPrefix = import.meta.env.VITE_API_PREFIX || "/api/v1";
-const ordersPrefix = import.meta.env.VITE_ORDERS_API_PREFIX || "/api/v1";
+const ordersPrefix = import.meta.env.VITE_ORDERS_API_PREFIX || "/api/v1/orders";
 
 export const api: AxiosInstance = axios.create({
   baseURL,

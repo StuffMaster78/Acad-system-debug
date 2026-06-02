@@ -64,8 +64,6 @@ class OrderSerializer(serializers.ModelSerializer):
     client_registration_id = serializers.SerializerMethodField(read_only=True)
     # Subject specialty information
     subject_is_technical = serializers.SerializerMethodField(read_only=True)
-    # Writer deadline percentage config
-    writer_deadline_percentage = serializers.SerializerMethodField(read_only=True)
     # Revision eligibility info for clients
     revision_eligibility = serializers.SerializerMethodField(read_only=True)
     # Style reference files uploaded by client
@@ -138,18 +136,6 @@ class OrderSerializer(serializers.ModelSerializer):
         """Get whether subject is technical"""
         if obj.subject:
             return getattr(obj.subject, 'is_technical', False)
-        return None
-
-    def get_writer_deadline_percentage(self, obj):
-        """Get writer deadline percentage config"""
-        if obj.writer_deadline_percentage:
-            config = obj.writer_deadline_percentage
-            label = getattr(config, 'label', None)
-            return {
-                'id': config.id,
-                'writer_deadline_percentage': config.writer_deadline_percentage,
-                'label': label or f"{config.writer_deadline_percentage}%"
-            }
         return None
 
     def get_revision_eligibility(self, obj):

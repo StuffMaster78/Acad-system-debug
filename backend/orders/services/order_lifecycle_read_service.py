@@ -170,7 +170,7 @@ class OrderLifecycleReadService:
                 is_current=True,
             )
             .select_related("writer")
-            .order_by("-created_at")
+            .order_by("-assigned_at")
             .first()
         )
 
@@ -188,7 +188,7 @@ class OrderLifecycleReadService:
                 order=order,
                 status="active",
             )
-            .order_by("-created_at")
+            .order_by("-placed_at")
             .first()
         )
 

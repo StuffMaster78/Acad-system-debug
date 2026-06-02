@@ -55,18 +55,25 @@ class SpecialOrderListView(APIView):
 
     def get(self, request):
         user = request.user
-        website = user.website
+        website = getattr(request, "website", None) or user.website
+        role = getattr(user, "role", "")
 
-        if getattr(user, "role", "") == "writer":
+        if role == "writer":
             queryset = SpecialOrderSelector.list_for_writer(
                 website=website,
                 writer=user,
             )
-        elif getattr(user, "role", "") == "client":
+        elif role == "client":
             queryset = SpecialOrderSelector.list_for_client(
                 website=website,
                 client=user,
             )
+        elif user.is_superuser or role == "superadmin":
+            # Superadmin sees all special orders across all websites
+            from special_orders.models import SpecialOrder
+            queryset = SpecialOrder.objects.select_related(
+                "website", "client", "writer"
+            ).order_by("-created_at")
         else:
             queryset = SpecialOrderSelector.list_for_staff(
                 website=website,

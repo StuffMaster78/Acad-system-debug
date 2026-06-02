@@ -16,8 +16,8 @@ import type {
 
 export const ordersApi = {
   list: (params?: Record<string, unknown>) =>
-    api.get<OrderSummary[] | { count: number; next: string | null; previous: string | null; results: OrderSummary[] }>(apiPath("/orders/"), { params }),
-  get: (id: number | string) => api.get<OrderSummary>(apiPath(`/orders/${id}/`)),
+    api.get<OrderSummary[] | { count: number; next: string | null; previous: string | null; results: OrderSummary[] }>(ordersApiPath("/orders/"), { params }),
+  get: (id: number | string) => api.get<OrderSummary>(ordersApiPath(`/orders/${id}/`)),
   create: (payload: CreateOrderPayload) =>
     api.post<CreateOrderResponse>(ordersApiPath("/orders/create/"), payload),
   lifecycle: (id: number | string) =>

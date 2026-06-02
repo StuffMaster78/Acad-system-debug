@@ -58,12 +58,7 @@ class OrderLifecycleView(GenericAPIView):
         order_id: int,
     ) -> Order:
         user = cast(Any, request.user)
-        return get_object_or_404(
-            Order.objects.select_related(
-                "website",
-                "client",
-                "preferred_writer",
-            ),
-            pk=order_id,
-            website=user.website,
-        )
+        qs = Order.objects.select_related("website", "client", "preferred_writer")
+        if user.is_superuser or getattr(user, 'role', None) == 'superadmin':
+            return get_object_or_404(qs, pk=order_id)
+        return get_object_or_404(qs, pk=order_id, website=user.website)

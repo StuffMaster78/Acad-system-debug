@@ -47,7 +47,12 @@ class ClassOrderViewSet(ClassTenantViewMixin, viewsets.ModelViewSet):
         website = self.get_website()
         user = self.request.user
 
-        if user.is_superuser or user.is_staff:
+        if user.is_superuser or getattr(user, 'role', None) == 'superadmin':
+            return ClassOrder.objects.select_related(
+                "website", "client", "assigned_writer"
+            ).order_by("-created_at")
+
+        if user.is_staff:
             return ClassOrderSelector.for_website(website=website)
 
         writer_qs = ClassOrderSelector.for_writer(

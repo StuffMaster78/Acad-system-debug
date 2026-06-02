@@ -1,4 +1,4 @@
-import { api, apiPath } from "./client";
+import { api, apiPath, ordersApiPath } from "./client";
 
 export type FilePurpose =
   | "order_instruction"
@@ -129,7 +129,7 @@ const PURPOSE_ENDPOINT: Record<string, string> = {
 };
 
 function orderFilePath(orderId: number | string, sub = "") {
-  return apiPath(`/orders/${orderId}/files/${sub}`);
+  return ordersApiPath(`/orders/${orderId}/files/${sub}`);
 }
 
 export const filesApi = {

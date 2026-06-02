@@ -36,12 +36,15 @@ class OrderFileBaseView(APIView):
     def get_order(self, request, order_id: int) -> Order:
         """
         Return an order scoped to the authenticated user's website.
+        Superadmins and superusers bypass website scoping.
         """
-
+        user = request.user
+        if user.is_superuser or getattr(user, 'role', None) == 'superadmin':
+            return get_object_or_404(Order, id=order_id)
         return get_object_or_404(
             Order,
             id=order_id,
-            website=request.user.website,
+            website=user.website,
         )
 
     def ensure_client_or_staff(self, *, order, user) -> None:
