@@ -694,7 +694,7 @@ async function activateDoc(id: number) {
     await legalApi.admin.activateDocument(id);
     await loadDocVersions();
     await loadActiveVersions();
-  } finally {
+  } catch { /* non-fatal */ } finally {
     activating.value = null;
   }
 }

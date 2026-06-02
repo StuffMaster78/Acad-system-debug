@@ -19,9 +19,8 @@ export const useReputationStore = defineStore("reputation", () => {
       const res = await reputationApi.leaderboard(limit);
       leaderboard.value = res.data.results;
       leaderboardTotal.value = res.data.count;
-    } finally {
-      isLoadingLeaderboard.value = false;
-    }
+    } catch { leaderboard.value = []; }
+    finally { isLoadingLeaderboard.value = false; }
   }
 
   // ── Derived stats ────────────────────────────────────────────────────────────

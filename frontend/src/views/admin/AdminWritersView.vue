@@ -100,7 +100,7 @@ async function bulkSuspend() {
     }
     bulkNotice.value = `Suspended ${ids.length} writer(s).`;
     clearSelection();
-  } finally {
+  } catch { /* non-fatal */ } finally {
     isBulkLoading.value = false;
   }
 }

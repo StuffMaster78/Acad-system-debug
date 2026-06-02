@@ -355,7 +355,7 @@ async function saveConfig(id: number) {
     const idx = configs.value.findIndex((c) => c.id === id);
     if (idx !== -1) configs.value[idx] = updated.data;
     delete configEdits.value[id];
-  } finally {
+  } catch { /* non-fatal */ } finally {
     savingConfigId.value = null;
   }
 }
@@ -380,7 +380,7 @@ async function loadAnalytics() {
     if (calcRes.status === "fulfilled") analyticsData.value = calcRes.value.data;
     if (trendRes.status === "fulfilled") analyticsTrend.value = Array.isArray(trendRes.value.data) ? trendRes.value.data : [];
     if (topRes.status === "fulfilled") analyticsTopItems.value = Array.isArray(topRes.value.data) ? topRes.value.data : [];
-  } finally {
+  } catch { /* non-fatal */ } finally {
     analyticsLoading.value = false;
   }
 }

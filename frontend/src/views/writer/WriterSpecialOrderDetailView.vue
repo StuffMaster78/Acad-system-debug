@@ -184,9 +184,8 @@ onMounted(async () => {
     const { data } = await specialOrdersApi.get(orderId);
     order.value = data;
     await loadMilestones();
-  } finally {
-    isLoading.value = false;
-  }
+  } catch { /* show empty state */ }
+  finally { isLoading.value = false; }
 });
 
 async function loadMilestones() {
@@ -194,9 +193,8 @@ async function loadMilestones() {
   try {
     const { data } = await specialOrdersApi.milestones.list(orderId);
     milestones.value = Array.isArray(data) ? data : (data as { results: SpecialOrderMilestone[] }).results ?? [];
-  } finally {
-    milestonesLoading.value = false;
-  }
+  } catch { milestones.value = []; }
+  finally { milestonesLoading.value = false; }
 }
 
 const milestonePct = computed(() => {

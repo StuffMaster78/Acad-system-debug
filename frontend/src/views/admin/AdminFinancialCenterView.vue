@@ -97,9 +97,8 @@ async function loadOverview() {
       ...(dash.status === "fulfilled" ? dash.value.data : {}),
       tips_total: tipDash.status === "fulfilled" ? (tipDash.value.data as any)?.total_amount : null,
     };
-  } finally {
-    overviewLoading.value = false;
-  }
+  } catch { overview.value = null; }
+  finally { overviewLoading.value = false; }
 }
 
 // ── Client Transactions ───────────────────────────────────────────────────────
@@ -142,9 +141,8 @@ async function loadInvoices() {
     const { data } = await billingApi.invoices(params);
     invoices.value = Array.isArray(data) ? data : (data as any).results ?? [];
     invoiceTotal.value = Array.isArray(data) ? data.length : (data as any).count ?? 0;
-  } finally {
-    invoiceLoading.value = false;
-  }
+  } catch { invoices.value = []; invoiceTotal.value = 0; }
+  finally { invoiceLoading.value = false; }
 }
 
 const pagedInvoices = computed(() =>
@@ -191,9 +189,8 @@ async function loadWindows() {
     const { data } = await adminCompensationApi.windows(params);
     windows.value = Array.isArray(data) ? data : (data as any).results ?? [];
     windowsTotal.value = Array.isArray(data) ? data.length : (data as any).count ?? 0;
-  } finally {
-    windowsLoading.value = false;
-  }
+  } catch { windows.value = []; windowsTotal.value = 0; }
+  finally { windowsLoading.value = false; }
 }
 
 async function toggleWindow(id: number) {
@@ -257,9 +254,8 @@ async function loadTips() {
     const { data } = await adminPaymentsApi.tipList(params);
     tips.value = Array.isArray(data) ? data : (data as any).results ?? [];
     tipTotal.value = Array.isArray(data) ? data.length : (data as any).count ?? 0;
-  } finally {
-    tipsLoading.value = false;
-  }
+  } catch { tips.value = []; tipTotal.value = 0; }
+  finally { tipsLoading.value = false; }
 }
 
 watch([tipStatus, tipWebsite, tipPage], loadTips);
@@ -295,9 +291,8 @@ async function loadFines() {
     const { data } = await adminPaymentsApi.finesList(params);
     fines.value = Array.isArray(data) ? data : (data as any).results ?? [];
     fineTotal.value = Array.isArray(data) ? data.length : (data as any).count ?? 0;
-  } finally {
-    finesLoading.value = false;
-  }
+  } catch { fines.value = []; fineTotal.value = 0; }
+  finally { finesLoading.value = false; }
 }
 
 watch([fineStatus, finePage], loadFines);
@@ -339,9 +334,8 @@ async function loadWallets() {
     const { data } = await adminWalletsApi.wallets(params);
     wallets.value = Array.isArray(data) ? data : (data as any).results ?? [];
     walletTotal.value = Array.isArray(data) ? data.length : (data as any).count ?? 0;
-  } finally {
-    walletsLoading.value = false;
-  }
+  } catch { wallets.value = []; walletTotal.value = 0; }
+  finally { walletsLoading.value = false; }
 }
 
 watch([walletType, walletSearch, walletWebsite, walletPage], loadWallets);
@@ -377,9 +371,8 @@ async function loadAdvances() {
     const { data } = await adminCompensationApi.advances(params);
     advances.value = Array.isArray(data) ? data : (data as any).results ?? [];
     advanceTotal.value = Array.isArray(data) ? data.length : (data as any).count ?? 0;
-  } finally {
-    advancesLoading.value = false;
-  }
+  } catch { advances.value = []; advanceTotal.value = 0; }
+  finally { advancesLoading.value = false; }
 }
 
 watch([advanceStatus, advancePage], loadAdvances);

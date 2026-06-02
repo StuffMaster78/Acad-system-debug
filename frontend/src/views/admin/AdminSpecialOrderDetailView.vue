@@ -428,7 +428,7 @@ async function handleApprove(milestoneId: number) {
   approvingId.value = milestoneId;
   try {
     await store.approveMilestone(store.detail.id, milestoneId);
-  } finally {
+  } catch { /* non-fatal */ } finally {
     approvingId.value = null;
   }
 }

@@ -122,7 +122,7 @@ async function generateDiscount(id: number) {
     await holidaysApi.generateDiscount(id);
     await loadCampaigns();
     activeTab.value = "campaigns";
-  } finally {
+  } catch { /* non-fatal */ } finally {
     generatingDiscountFor.value = null;
   }
 }
@@ -161,7 +161,7 @@ async function markSent(id: number) {
   try {
     await holidaysApi.markReminderSent(id);
     await loadReminders();
-  } finally {
+  } catch { /* non-fatal */ } finally {
     markingId.value = null;
   }
 }
@@ -172,7 +172,7 @@ async function createReminderDiscount(id: number) {
     const { data } = await holidaysApi.createReminderDiscount(id);
     reminderFeedback.value = `Discount created: ${data.discount_code}`;
     await loadReminders();
-  } finally {
+  } catch { /* non-fatal */ } finally {
     discountCreatingId.value = null;
   }
 }
@@ -184,7 +184,7 @@ async function checkAndCreate() {
     const { data } = await holidaysApi.checkAndCreateReminders();
     reminderFeedback.value = data.message;
     await loadReminders();
-  } finally {
+  } catch { /* non-fatal */ } finally {
     checkingReminders.value = false;
   }
 }
@@ -195,7 +195,7 @@ async function notifyAdmins() {
   try {
     const { data } = await holidaysApi.notifyAdmins();
     reminderFeedback.value = data.message;
-  } finally {
+  } catch { /* non-fatal */ } finally {
     notifyingAdmins.value = false;
   }
 }
