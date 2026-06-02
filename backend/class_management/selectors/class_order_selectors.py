@@ -12,11 +12,14 @@ class ClassOrderSelector:
 
     @staticmethod
     def for_website(*, website) -> QuerySet[ClassOrder]:
-        return (
-            ClassOrder.objects.filter(website=website)
+        qs = (
+            ClassOrder.objects
             .select_related("client", "assigned_writer", "website")
             .prefetch_related("scope_items", "tasks", "timeline_events")
         )
+        if website is not None:
+            qs = qs.filter(website=website)
+        return qs
 
     @classmethod
     def for_client(cls, *, website, client) -> QuerySet[ClassOrder]:

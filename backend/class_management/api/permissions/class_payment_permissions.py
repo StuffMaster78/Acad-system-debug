@@ -8,6 +8,14 @@ class ClassPaymentPermission(BasePermission):
     Permission for class payment records.
     """
 
+    def has_permission(self, request, view) -> bool: # type: ignore[override]
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser or getattr(user, "role", None) in ("superadmin", "admin", "support", "editor"):
+            return True
+        return True  # object-level check handles scoping
+
     def has_object_permission( # type: ignore[override]
             self,
             request,

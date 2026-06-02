@@ -15,25 +15,29 @@ class ClassTenantViewMixin:
     def get_website(self):
         """
         Return middleware injected website safely.
+        Superadmins return None to signal cross-website access.
         """
         view = cast(Any, self)
+        user = getattr(view.request, "user", None)
+        if user and (user.is_superuser or getattr(user, "role", None) == "superadmin"):
+            return None
         return getattr(view.request, "website")
 
     def get_class_order(self) -> ClassOrder:
         """
-        Return class order scoped to the current website.
+        Return class order. Superadmins bypass website scoping.
         """
         view = cast(Any, self)
         class_order_pk = view.kwargs.get("class_order_pk")
         pk = view.kwargs.get("pk")
-
         lookup_pk = class_order_pk or pk
 
-        class_order = ClassOrder.objects.filter(
-            website=self.get_website(),
-            pk=lookup_pk,
-        ).first()
+        website = self.get_website()
+        qs = ClassOrder.objects.filter(pk=lookup_pk)
+        if website is not None:
+            qs = qs.filter(website=website)
 
+        class_order = qs.first()
         if class_order is None:
             raise NotFound("Class order not found.")
 

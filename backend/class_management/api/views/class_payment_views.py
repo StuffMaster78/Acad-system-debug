@@ -43,7 +43,9 @@ class ClassPaymentViewSet(ClassTenantViewMixin, viewsets.GenericViewSet):
             website=self.get_website(),
             class_order_id=self.kwargs["class_order_pk"],
         )
-        self.check_object_permissions(self.request, class_order)
+        user = self.request.user
+        if not (user.is_superuser or getattr(user, "role", None) == "superadmin"):
+            self.check_object_permissions(self.request, class_order)
         return class_order
 
     @action(detail=False, methods=["get"])
