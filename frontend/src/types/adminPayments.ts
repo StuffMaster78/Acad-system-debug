@@ -13,6 +13,7 @@ export interface AdminPaymentFeedItem {
   amount: string | number;
   status: string;
   date?: string | null;
+  website_id?: number | null;
 }
 
 export type FinanceOpsSource = "refund" | "dispute" | "milestone" | "deposit" | "tip";

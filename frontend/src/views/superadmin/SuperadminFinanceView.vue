@@ -25,6 +25,13 @@ import { useWebsitesStore } from "@/stores/websites";
 
 const finance = useAdminPaymentsStore();
 const websitesStore = useWebsitesStore();
+
+const activityWebsite = ref<number | "">("");
+const websiteFilteredFeed = computed(() => {
+  if (!activityWebsite.value) return finance.feed;
+  return finance.feed.filter((item) => item.website_id === activityWebsite.value);
+});
+
 onMounted(() => websitesStore.ensure());
 
 const filterOptions = [
@@ -236,6 +243,7 @@ onMounted(() => {
               <tr>
                 <th class="px-3 py-2">Work item</th>
                 <th class="px-3 py-2">Source</th>
+                <th class="px-3 py-2">Website</th>
                 <th class="px-3 py-2">Amount</th>
                 <th class="px-3 py-2">Status</th>
                 <th class="px-3 py-2">Updated</th>
@@ -257,6 +265,11 @@ onMounted(() => {
                   </div>
                 </td>
                 <td class="px-3 py-2.5 capitalize text-graphite">{{ sourceLabel(item.source) }}</td>
+                <td class="px-3 py-2.5">
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                    {{ websitesStore.nameById(item.meta?.website as number | undefined ?? item.meta?.website_id as number | undefined) }}
+                  </span>
+                </td>
                 <td class="px-3 py-2.5 font-semibold text-ink">{{ item.amount === undefined ? "Not set" : formatAmount(item.amount) }}</td>
                 <td class="px-3 py-2.5">
                   <StatusPill :label="item.status" :tone="statusTone(item.status)" />
@@ -354,6 +367,10 @@ onMounted(() => {
                 {{ option.label }}
               </button>
             </div>
+            <select v-model="activityWebsite" class="focus-ring h-10 rounded-md border border-slate-200 bg-white px-2 text-sm">
+              <option value="">All websites</option>
+              <option v-for="ws in websitesStore.list" :key="ws.id" :value="ws.id">{{ ws.name || ws.domain }}</option>
+            </select>
             <label class="relative block min-w-64">
               <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
               <input
@@ -366,24 +383,30 @@ onMounted(() => {
           </div>
         </div>
 
-        <div v-if="finance.feed.length" class="overflow-x-auto">
+        <div v-if="websiteFilteredFeed.length" class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-graphite">
               <tr>
                 <th class="px-3 py-2">Record</th>
                 <th class="px-3 py-2">Type</th>
+                <th class="px-3 py-2">Website</th>
                 <th class="px-3 py-2">Amount</th>
                 <th class="px-3 py-2">Status</th>
                 <th class="px-3 py-2">Date</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-              <tr v-for="item in finance.feed" :key="item.id">
+              <tr v-for="item in websiteFilteredFeed" :key="item.id">
                 <td class="px-3 py-2.5">
                   <p class="font-semibold text-ink">{{ item.title }}</p>
                   <p class="mt-1 text-xs text-graphite">{{ item.subtitle }}</p>
                 </td>
                 <td class="px-3 py-2.5 capitalize text-graphite">{{ item.source }}</td>
+                <td class="px-3 py-2.5">
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                    {{ websitesStore.nameById(item.website_id) }}
+                  </span>
+                </td>
                 <td class="px-3 py-2.5 font-semibold text-ink">{{ formatAmount(item.amount) }}</td>
                 <td class="px-3 py-2.5">
                   <StatusPill :label="item.status" :tone="statusTone(item.status)" />
@@ -444,6 +467,9 @@ onMounted(() => {
                 <div>
                   <p class="font-semibold text-ink">{{ payout.writer_email || `Writer #${payout.writer_id}` }}</p>
                   <p class="mt-1 text-sm text-graphite">{{ payout.reason || payout.reference || "Payout request" }}</p>
+                  <span v-if="payout.website_id" class="mt-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                    {{ websitesStore.nameById(payout.website_id) }}
+                  </span>
                 </div>
                 <p class="font-semibold text-ink">{{ formatAmount(payout.amount) }}</p>
               </div>

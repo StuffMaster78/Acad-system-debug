@@ -14,8 +14,10 @@ import { adminCompensationApi } from "@/api/adminCompensation";
 import { adminWalletsApi } from "@/api/adminWallets";
 import { billingApi } from "@/api/billing";
 import { useAuthStore } from "@/stores/auth";
+import { useWebsitesStore } from "@/stores/websites";
 
 const auth = useAuthStore();
+const websitesStore = useWebsitesStore();
 const route = useRoute();
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -106,6 +108,7 @@ const invoiceLoading = ref(false);
 const invoiceStatus = ref("");
 const invoicePurpose = ref("");
 const invoiceSearch = ref("");
+const invoiceWebsite = ref<number | "">("");
 const invoicePage = ref(1);
 const invoiceTotal = ref(0);
 const invoiceTotalPages = computed(() => Math.max(1, Math.ceil(invoiceTotal.value / PAGE_SIZE)));
@@ -135,6 +138,7 @@ async function loadInvoices() {
     if (invoiceStatus.value) params.status = invoiceStatus.value;
     if (invoicePurpose.value) params.purpose = invoicePurpose.value;
     if (invoiceSearch.value) params.search = invoiceSearch.value;
+    if (invoiceWebsite.value) params.website_id = invoiceWebsite.value;
     const { data } = await billingApi.invoices(params);
     invoices.value = Array.isArray(data) ? data : (data as any).results ?? [];
     invoiceTotal.value = Array.isArray(data) ? data.length : (data as any).count ?? 0;
@@ -149,7 +153,7 @@ const pagedInvoices = computed(() =>
     : invoices.value
 );
 
-watch([invoiceStatus, invoicePurpose, invoiceSearch], () => { invoicePage.value = 1; loadInvoices(); });
+watch([invoiceStatus, invoicePurpose, invoiceSearch, invoiceWebsite], () => { invoicePage.value = 1; loadInvoices(); });
 watch(invoicePage, loadInvoices);
 
 // ── Writer Payments (bi-weekly windows) ───────────────────────────────────────
@@ -222,6 +226,7 @@ watch([windowFilter, windowsPage], loadWindows);
 const tips = ref<any[]>([]);
 const tipsLoading = ref(false);
 const tipStatus = ref("");
+const tipWebsite = ref<number | "">("");
 const tipPage = ref(1);
 const tipTotal = ref(0);
 const tipTotalPages = computed(() => Math.max(1, Math.ceil(tipTotal.value / PAGE_SIZE)));
@@ -248,6 +253,7 @@ async function loadTips() {
     }
     const params: Record<string, unknown> = { page: tipPage.value, page_size: PAGE_SIZE };
     if (tipStatus.value) params.status = tipStatus.value;
+    if (tipWebsite.value) params.website_id = tipWebsite.value;
     const { data } = await adminPaymentsApi.tipList(params);
     tips.value = Array.isArray(data) ? data : (data as any).results ?? [];
     tipTotal.value = Array.isArray(data) ? data.length : (data as any).count ?? 0;
@@ -256,7 +262,7 @@ async function loadTips() {
   }
 }
 
-watch([tipStatus, tipPage], loadTips);
+watch([tipStatus, tipWebsite, tipPage], loadTips);
 
 // ── Fines ─────────────────────────────────────────────────────────────────────
 const fines = ref<any[]>([]);
@@ -301,6 +307,7 @@ const wallets = ref<any[]>([]);
 const walletsLoading = ref(false);
 const walletType = ref("all");
 const walletSearch = ref("");
+const walletWebsite = ref<number | "">("");
 const walletPage = ref(1);
 const walletTotal = ref(0);
 const walletTotalPages = computed(() => Math.max(1, Math.ceil(walletTotal.value / PAGE_SIZE)));
@@ -328,6 +335,7 @@ async function loadWallets() {
     const params: Record<string, unknown> = { page: walletPage.value, page_size: PAGE_SIZE };
     if (walletType.value !== "all") params.wallet_type = walletType.value;
     if (walletSearch.value) params.search = walletSearch.value;
+    if (walletWebsite.value) params.website_id = walletWebsite.value;
     const { data } = await adminWalletsApi.wallets(params);
     wallets.value = Array.isArray(data) ? data : (data as any).results ?? [];
     walletTotal.value = Array.isArray(data) ? data.length : (data as any).count ?? 0;
@@ -336,7 +344,7 @@ async function loadWallets() {
   }
 }
 
-watch([walletType, walletSearch, walletPage], loadWallets);
+watch([walletType, walletSearch, walletWebsite, walletPage], loadWallets);
 
 // ── Advances ──────────────────────────────────────────────────────────────────
 const advances = ref<any[]>([]);
@@ -386,7 +394,7 @@ watch(tab, (t) => {
   if (t === "advances" && !advances.value.length) loadAdvances();
 });
 
-onMounted(() => { loadOverview(); });
+onMounted(() => { websitesStore.ensure(); loadOverview(); });
 
 // ── Purpose label ─────────────────────────────────────────────────────────────
 const purposeLabel: Record<string, string> = {
@@ -542,6 +550,10 @@ const purposeLabel: Record<string, string> = {
               <option value="SPECIAL_ORDER">Special Order</option>
               <option value="ADVANCE_REPAYMENT">Advance Repayment</option>
             </select>
+            <select v-model="invoiceWebsite" class="focus-ring h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs">
+              <option value="">All websites</option>
+              <option v-for="ws in websitesStore.list" :key="ws.id" :value="ws.id">{{ ws.name || ws.domain }}</option>
+            </select>
             <button class="focus-ring h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs" @click="loadInvoices">
               <RefreshCw class="h-3.5 w-3.5" />
             </button>
@@ -558,6 +570,7 @@ const purposeLabel: Record<string, string> = {
               <tr>
                 <th class="whitespace-nowrap px-4 py-3 text-left">Reference</th>
                 <th class="whitespace-nowrap px-4 py-3 text-left">Client</th>
+                <th class="whitespace-nowrap px-4 py-3 text-left">Website</th>
                 <th class="whitespace-nowrap px-4 py-3 text-left">Type</th>
                 <th class="whitespace-nowrap px-4 py-3 text-right">Amount</th>
                 <th class="whitespace-nowrap px-4 py-3 text-center">Status</th>
@@ -570,6 +583,11 @@ const purposeLabel: Record<string, string> = {
                 <td class="px-4 py-3">
                   <p class="font-medium text-ink">{{ inv.client_username || inv.client_email }}</p>
                   <p v-if="inv.client_email && inv.client_username" class="text-xs text-graphite">{{ inv.client_email }}</p>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                    {{ inv.website_name || websitesStore.nameById(inv.website_id) }}
+                  </span>
                 </td>
                 <td class="px-4 py-3 text-graphite">{{ purposeLabel[inv.purpose] || inv.purpose || '—' }}</td>
                 <td class="px-4 py-3 text-right font-semibold text-ink">{{ money(inv.amount) }}</td>
@@ -696,6 +714,10 @@ const purposeLabel: Record<string, string> = {
               <option value="PENDING">Pending</option>
               <option value="FAILED">Failed</option>
             </select>
+            <select v-model="tipWebsite" class="focus-ring h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs">
+              <option value="">All websites</option>
+              <option v-for="ws in websitesStore.list" :key="ws.id" :value="ws.id">{{ ws.name || ws.domain }}</option>
+            </select>
             <button class="focus-ring h-9 rounded-lg border border-slate-200 bg-white px-2" @click="loadTips">
               <RefreshCw class="h-3.5 w-3.5" />
             </button>
@@ -710,6 +732,7 @@ const purposeLabel: Record<string, string> = {
               <tr>
                 <th class="whitespace-nowrap px-4 py-3 text-left">From</th>
                 <th class="whitespace-nowrap px-4 py-3 text-left">To (writer)</th>
+                <th class="whitespace-nowrap px-4 py-3 text-left">Website</th>
                 <th class="whitespace-nowrap px-4 py-3 text-left">Source</th>
                 <th class="whitespace-nowrap px-4 py-3 text-right">Gross</th>
                 <th class="whitespace-nowrap px-4 py-3 text-right">Writer share</th>
@@ -723,6 +746,11 @@ const purposeLabel: Record<string, string> = {
               <tr v-for="tip in tips" :key="tip.id" class="hover:bg-slate-50">
                 <td class="px-4 py-3 text-graphite">@{{ tip.sender_username || tip.sender?.username || '—' }}</td>
                 <td class="px-4 py-3 font-medium text-ink">@{{ tip.receiver_username || tip.receiver?.username || '—' }}</td>
+                <td class="px-4 py-3">
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                    {{ tip.website_name || websitesStore.nameById(tip.website_id) }}
+                  </span>
+                </td>
                 <td class="px-4 py-3 text-xs text-graphite">{{ tip.source_type || '—' }}</td>
                 <td class="px-4 py-3 text-right font-semibold text-ink">{{ money(tip.gross_amount) }}</td>
                 <td class="px-4 py-3 text-right text-emerald-700">{{ tip.writer_share_cents != null ? money(tip.writer_share_cents / 100) : '—' }}</td>
@@ -834,6 +862,10 @@ const purposeLabel: Record<string, string> = {
               <option value="writer">Writer</option>
               <option value="system">System</option>
             </select>
+            <select v-model="walletWebsite" class="focus-ring h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs">
+              <option value="">All websites</option>
+              <option v-for="ws in websitesStore.list" :key="ws.id" :value="ws.id">{{ ws.name || ws.domain }}</option>
+            </select>
             <button class="focus-ring h-9 rounded-lg border border-slate-200 bg-white px-2" @click="loadWallets">
               <RefreshCw class="h-3.5 w-3.5" />
             </button>
@@ -847,6 +879,7 @@ const purposeLabel: Record<string, string> = {
             <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
               <tr>
                 <th class="whitespace-nowrap px-4 py-3 text-left">Owner</th>
+                <th class="whitespace-nowrap px-4 py-3 text-left">Website</th>
                 <th class="whitespace-nowrap px-4 py-3 text-left">Type</th>
                 <th class="whitespace-nowrap px-4 py-3 text-right">Available</th>
                 <th class="whitespace-nowrap px-4 py-3 text-right">Pending</th>
@@ -860,6 +893,11 @@ const purposeLabel: Record<string, string> = {
                 <td class="px-4 py-3">
                   <p class="font-medium text-ink">{{ w.owner_username || w.owner?.username || '—' }}</p>
                   <p class="text-xs text-graphite">{{ w.owner_email || w.owner?.email || '' }}</p>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                    {{ w.website_name || websitesStore.nameById(w.website_id) }}
+                  </span>
                 </td>
                 <td class="px-4 py-3">
                   <StatusPill :label="(w.wallet_type || '—').toLowerCase()" :tone="w.wallet_type === 'client' ? 'success' : w.wallet_type === 'writer' ? 'neutral' : 'warning'" />

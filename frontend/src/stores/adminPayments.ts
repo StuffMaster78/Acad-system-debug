@@ -261,6 +261,7 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
         amount: entry.amount,
         status: entry.status || "posted",
         date: entry.created_at,
+        website_id: entry.website_id ?? null,
       })),
       ...payouts.value.map((payout) => ({
         id: `payout-${payout.id}`,
@@ -270,6 +271,7 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
         amount: payout.amount,
         status: payout.workflow_status || payout.status,
         date: payout.created_at,
+        website_id: payout.website_id ?? null,
       })),
       ...refunds.value.map((refund) => ({
         id: `refund-${refund.id}`,
@@ -279,6 +281,7 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
         amount: refund.total_amount ?? refund.wallet_amount ?? refund.external_amount ?? 0,
         status: refund.status,
         date: refund.created_at,
+        website_id: refund.website ?? null,
       })),
     ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 
