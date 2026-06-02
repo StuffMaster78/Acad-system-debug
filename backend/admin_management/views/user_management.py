@@ -772,3 +772,102 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
             "message": f"Suspended {suspended_count} user(s).",
             "suspended_count": suspended_count
         }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'])
+    def summary(self, request, pk=None):
+        """Return a lightweight activity summary for any user: order counts, spend, wallet."""
+        from django.db.models import Sum, Count, Q
+        user = self.get_object()
+
+        # Orders as client
+        try:
+            from orders.models.legacy_models.orders import Order
+            client_orders = Order.objects.filter(client=user)
+            orders_as_client = {
+                'total': client_orders.count(),
+                'active': client_orders.filter(status__in=['pending', 'in_progress', 'revision']).count(),
+                'completed': client_orders.filter(status='completed').count(),
+                'total_spend': str(client_orders.aggregate(s=Sum('total_price'))['s'] or 0),
+                'recent': list(
+                    client_orders.order_by('-created_at')[:5].values(
+                        'id', 'reference', 'status', 'total_price', 'created_at'
+                    )
+                ),
+            }
+        except Exception:
+            orders_as_client = {}
+
+        # Orders as writer
+        try:
+            from orders.models.legacy_models.orders import Order
+            writer_orders = Order.objects.filter(assigned_writer=user)
+            orders_as_writer = {
+                'total': writer_orders.count(),
+                'active': writer_orders.filter(status__in=['in_progress', 'revision']).count(),
+                'completed': writer_orders.filter(status='completed').count(),
+                'total_earned': str(writer_orders.aggregate(s=Sum('writer_compensation'))['s'] or 0),
+                'recent': list(
+                    writer_orders.order_by('-created_at')[:5].values(
+                        'id', 'reference', 'status', 'writer_compensation', 'created_at'
+                    )
+                ),
+            }
+        except Exception:
+            orders_as_writer = {}
+
+        # Special orders as client
+        try:
+            from orders.models.special_orders import SpecialOrder
+            special_orders = {
+                'total': SpecialOrder.objects.filter(client=user).count(),
+                'active': SpecialOrder.objects.filter(
+                    client=user, status__in=['pending', 'in_progress']
+                ).count(),
+            }
+        except Exception:
+            special_orders = {}
+
+        # Class bundles as client
+        try:
+            from orders.models.class_bundles import ClassBundle
+            class_orders = {
+                'total': ClassBundle.objects.filter(client=user).count(),
+                'active': ClassBundle.objects.filter(
+                    client=user, status__in=['pending', 'active']
+                ).count(),
+            }
+        except Exception:
+            class_orders = {}
+
+        # Wallet balances
+        wallets = []
+        try:
+            from wallets.models.wallet import Wallet
+            for w in Wallet.objects.filter(owner_user=user).values(
+                'wallet_type', 'available_balance', 'pending_balance', 'currency'
+            ):
+                wallets.append(w)
+        except Exception:
+            pass
+
+        # Recent audit log
+        audit = []
+        try:
+            from users.models import UserAuditLog
+            for entry in UserAuditLog.objects.filter(user=user).order_by('-created_at')[:15].values(
+                'action', 'details', 'ip_address', 'created_at'
+            ):
+                audit.append(entry)
+        except Exception:
+            pass
+
+        return Response({
+            'user_id': user.id,
+            'role': user.role,
+            'orders_as_client': orders_as_client,
+            'orders_as_writer': orders_as_writer,
+            'special_orders': special_orders,
+            'class_orders': class_orders,
+            'wallets': wallets,
+            'audit_log': audit,
+        })

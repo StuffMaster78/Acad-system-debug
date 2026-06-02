@@ -40,6 +40,7 @@ function previewLifecycle(id: number | string): OrderLifecycle {
     client_id: 0,
     current_assignment_id: 42,
     current_writer_id: 108,
+    current_writer_registration_id: "WR-0108",
     has_current_assignment: true,
     active_hold_id: null,
     has_active_hold: false,

@@ -219,6 +219,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminAccessView.vue"),
       },
       {
+        path: "users/:id",
+        name: "admin-user-profile",
+        component: () => import("@/views/admin/AdminUserProfileView.vue"),
+      },
+      {
         path: "communications",
         name: "admin-communications",
         component: () => import("@/views/admin/AdminCommsView.vue"),
@@ -699,6 +704,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "access",
         name: "superadmin-access",
         component: () => import("@/views/admin/AdminAccessView.vue"),
+      },
+      {
+        path: "users/:id",
+        name: "superadmin-user-profile",
+        component: () => import("@/views/admin/AdminUserProfileView.vue"),
       },
       {
         path: "communications",
