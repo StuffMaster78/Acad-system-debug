@@ -34,17 +34,16 @@ class OrderListSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'id', 'topic', 'paper_type', 'paper_type_name', 'academic_level', 'academic_level_name',
-            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages',
-            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'writer_deadline',
-            'client', 'client_username', 'assigned_writer', 'writer_username',
+            'formatting_style', 'type_of_work', 'english_type', 'base_quantity',
+            'client_deadline', 'writer_deadline',
+            'client', 'client_username', 'writer_username',
             'preferred_writer', 'total_price', 'writer_compensation',
-            'subject', 'subject_name', 'discount_code_used', 'is_paid',
-            'status', 'flags', 'created_at', 'updated_at',
-            'is_special_order', 'is_follow_up', 'is_urgent', 'website'
+            'subject', 'subject_name', 'status', 'flags', 'created_at', 'updated_at',
+            'is_follow_up', 'is_urgent', 'website'
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_price',
-            'writer_compensation', 'is_paid', 'created_at', 'updated_at',
+            'writer_compensation', 'created_at', 'updated_at',
             'flags', 'writer_deadline'
         ]
 
@@ -76,20 +75,19 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'id', 'topic', 'order_instructions', 'paper_type', 'academic_level',
-            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages',
-            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'writer_deadline',
-            'client', 'client_username', 'client_email', 'client_registration_id', 'assigned_writer', 'writer_username',
+            'formatting_style', 'type_of_work', 'english_type', 'base_quantity',
+            'client_deadline', 'writer_deadline',
+            'client', 'client_username', 'client_email', 'client_registration_id', 'writer_username',
             'preferred_writer', 'total_price', 'writer_compensation',
-            'extra_services', 'subject', 'subject_is_technical', 'discount_code_used', 'is_paid',
-            'status', 'flags', 'created_at', 'updated_at',
-            'created_by_admin', 'is_special_order', 'is_follow_up',
+            'subject', 'subject_is_technical', 'status', 'flags', 'created_at', 'updated_at',
+            'created_by_admin', 'is_follow_up',
             'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent',
             'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',
-            'allow_unpaid_access', 'writer_deadline_percentage', 'revision_eligibility', 'style_reference_files'
+            'allow_unpaid_access', 'revision_eligibility', 'style_reference_files'
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_price',
-            'writer_compensation', 'is_paid', 'created_at', 'updated_at',
+            'writer_compensation', 'created_at', 'updated_at',
             'flags', 'writer_deadline', 'editing_skip_reason'
         ]
 
@@ -285,9 +283,8 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'topic', 'order_instructions', 'paper_type', 'academic_level',
-            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages',
-            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'extra_services',
-            'discount_code_used', 'client', 'preferred_writer'
+            'formatting_style', 'type_of_work', 'english_type', 'base_quantity',
+            'client_deadline', 'client', 'preferred_writer'
         ]
 
     def validate_deadline(self, value):
@@ -454,7 +451,7 @@ class ResolveReassignmentSerializer(serializers.Serializer):
                 "Either request_id or order_id must be provided."
             )
 
-        writer_id = data.get('assigned_writer')
+        writer_id = data.get()
         if writer_id:
             try:
                 User.objects.get(id=writer_id, role='writer', is_active=True)
@@ -536,12 +533,12 @@ class WriterRequestSerializer(serializers.ModelSerializer):
             'id', 'website', 'order', 'request_type', 'requested_by_writer',
             'new_deadline', 'additional_pages', 'additional_slides',
             'request_reason', 'status', 'client_approval', 'estimated_cost',
-            'final_cost', 'admin_approval', 'is_paid', 'requires_payment',
+            'final_cost', 'admin_approval', 'requires_payment',
             'payment_pending', 'status_display', 'created_at', 'updated_at',
             'client_counter_pages', 'client_counter_slides', 'client_counter_cost',
             'client_counter_reason', 'has_counter_offer'
         ]
-        read_only_fields = ['status', 'client_approval', 'admin_approval', 'is_paid']
+        read_only_fields = ['status', 'client_approval', 'admin_approval']
 
     def validate(self, attrs):
         req_type = attrs.get('request_type')
@@ -567,7 +564,7 @@ class WriterRequestSerializer(serializers.ModelSerializer):
         # Only allow system-side fields to be updated if explicitly permitted
         for field in [
             'status', 'client_approval',
-            'admin_approval', 'is_paid'
+            'admin_approval'
         ]:
             if field in validated_data:
                 setattr(instance, field, validated_data[field])
@@ -630,7 +627,7 @@ class OrderMinimalSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Order
-        fields = ['id', 'title', 'status', 'writer_id']
+        fields = ['id', 'status']
 
 
 class DeadlineExtensionSerializer(serializers.Serializer):

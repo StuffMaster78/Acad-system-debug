@@ -104,21 +104,25 @@ class WriterReassignmentLog(models.Model):
         return f"Order #{self.order.id} reassigned to {self.new_writer}"
 
 
-class OrderPricingSnapshot(models.Model):
+class LegacyOrderPricingSnapshot(models.Model):
     """
-    Captures a snapshot of the order's pricing details at a specific time.
-    This is useful for auditing and historical reference.
+    Legacy stub — superseded by orders.models.orders.order_pricing_snapshot.OrderPricingSnapshot.
+    Kept as a class alias to avoid breaking old imports. Do not use directly.
     """
     order = models.OneToOneField(
-        "orders.Order", on_delete=models.CASCADE, related_name="pricing_snapshot"
+        "orders.Order", on_delete=models.CASCADE, related_name="legacy_pricing_snapshot"
     )
     pricing_data = models.JSONField()
     calculated_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Pricing Snapshot for Order #{self.order.id} at {self.calculated_at}"
+        return f"Legacy Pricing Snapshot for Order #{self.order.id}"
 
     class Meta:
-        verbose_name = "Order Pricing Snapshot"
-        verbose_name_plural = "Order Pricing Snapshots"
-        ordering = ["-calculated_at"]
+        app_label = "orders"
+        managed = False
+        db_table = "orders_legacyorderpricingsnapshot"
+
+
+# Alias for backwards-compat imports
+OrderPricingSnapshot = LegacyOrderPricingSnapshot
