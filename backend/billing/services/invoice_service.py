@@ -265,6 +265,9 @@ class InvoiceService:
             class_purchase_id=getattr(class_purchase, "id", None),
         )
 
+        _branding = getattr(website, "public_branding", None)
+        _descriptor = getattr(_branding, "payment_statement_descriptor", "") or ""
+
         return Invoice.objects.create(
             website=website,
             title=title,
@@ -283,6 +286,7 @@ class InvoiceService:
             currency=currency,
             custom_payment_link=custom_payment_link,
             status=InvoiceStatus.DRAFT,
+            statement_descriptor_snapshot=_descriptor,
         )
 
     @staticmethod

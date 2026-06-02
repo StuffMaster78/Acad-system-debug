@@ -99,8 +99,12 @@ class TipPaymentRouterService:
         # -------------------------------------------------------- #
         # 3. EXTERNAL CHECKOUT FLOW
         # -------------------------------------------------------- #
+        _tip_website = getattr(contract.sender, "website", None)
+        _tip_branding = getattr(_tip_website, "public_branding", None)
+        _tip_descriptor = getattr(_tip_branding, "payment_statement_descriptor", "") or ""
+
         payment_intent = PaymentIntent.objects.create(
-            website=getattr(contract.sender, "website", None),
+            website=_tip_website,
             client=contract.sender,
             amount=remaining,
             purpose=PaymentIntentPurpose.TIP,
@@ -108,6 +112,7 @@ class TipPaymentRouterService:
             payable=tip,
             wallet_hold=wallet_hold,
             status="created",
+            statement_descriptor_snapshot=_tip_descriptor,
         )
 
         checkout = PaymentProviderService.create_payment(payment_intent)

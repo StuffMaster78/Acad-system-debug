@@ -586,7 +586,7 @@ const purposeLabel: Record<string, string> = {
                 </td>
                 <td class="px-4 py-3">
                   <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                    {{ inv.website_name || websitesStore.nameById(inv.website_id) }}
+                    {{ inv.website_name || websitesStore.nameById(inv.website_id ?? inv.website) }}
                   </span>
                 </td>
                 <td class="px-4 py-3 text-graphite">{{ purposeLabel[inv.purpose] || inv.purpose || '—' }}</td>

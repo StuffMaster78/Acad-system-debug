@@ -92,6 +92,9 @@ class PaymentIntentService:
                 "Pass website= or ensure client.website is set."
             )
 
+        _branding = getattr(resolved_website, "public_branding", None)
+        _descriptor = getattr(_branding, "payment_statement_descriptor", "") or ""
+
         payment_intent = PaymentIntent.objects.create(
             reference=reference,
             client=client,
@@ -104,6 +107,7 @@ class PaymentIntentService:
             payable=payable,
             metadata=metadata or {},
             expires_at=expires_at,
+            statement_descriptor_snapshot=_descriptor,
         )
 
         provider_adapter = get_provider(provider)

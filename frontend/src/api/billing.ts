@@ -70,8 +70,10 @@ export interface AdminInvoice {
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
+  website?: number | null;
   website_id?: number | null;
   website_name?: string | null;
+  statement_descriptor_snapshot?: string;
 }
 
 export interface CreateInvoicePayload {
