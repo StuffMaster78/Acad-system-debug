@@ -19,8 +19,8 @@
                 <div class="flex flex-wrap items-center gap-2">
                   <span
                     class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                    :class="statusClass[store.detail.status]"
-                  >{{ statusLabel[store.detail.status] }}</span>
+                    :class="statusClass(store.detail.status)"
+                  >{{ statusLabel(store.detail.status) }}</span>
                   <span class="font-mono text-xs text-graphite">{{ store.detail.reference }}</span>
                 </div>
                 <h1 class="mt-2 text-xl font-bold text-ink">{{ store.detail.title }}</h1>
@@ -112,8 +112,8 @@
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
                   <span class="font-mono text-xs text-graphite">#{{ task.sequence }}</span>
-                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="taskStatusClass[task.status]">
-                    {{ taskStatusLabel[task.status] }}
+                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="taskStatusClass(task.status)">
+                    {{ taskStatusLabel(task.status) }}
                   </span>
                 </div>
                 <h3 class="mt-1.5 font-semibold text-ink">{{ task.title }}</h3>
@@ -200,6 +200,7 @@
           <div v-if="!store.detail.installments.length" class="py-14 text-center text-sm text-graphite">
             No payment schedule set yet.
           </div>
+          <PaymentDisclosureBanner v-else class="m-4 mb-0" />
           <div class="overflow-x-auto">
           <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
@@ -216,8 +217,8 @@
                 <td class="px-3 py-2.5 text-graphite">{{ fmtDate(inst.due_date) }}</td>
                 <td class="px-3 py-2.5 text-right font-bold text-ink">${{ inst.amount }}</td>
                 <td class="px-3 py-2.5 text-center">
-                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="installmentStatusClass[inst.status]">
-                    {{ installmentStatusLabel[inst.status] }}
+                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="installmentStatusClass(inst.status)">
+                    {{ installmentStatusLabel(inst.status) }}
                   </span>
                 </td>
               </tr>
@@ -271,8 +272,15 @@
           </div>
           <div v-else class="py-12 text-center">
             <Globe class="mx-auto mb-3 size-8 text-slate-300" />
-            <p class="text-sm text-graphite">No portal access has been configured for this class.</p>
-            <p class="mt-1 text-xs text-graphite">If your course uses an LMS, please contact support.</p>
+            <p class="text-sm text-graphite">Portal access is not currently loaded for this class.</p>
+            <p class="mt-1 text-xs text-graphite">Access details are retrieved only when you request them.</p>
+            <button
+              class="focus-ring mt-4 inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
+              :disabled="store.isSaving"
+              @click="store.loadPortalAccess(store.detail.id).catch(() => undefined)"
+            >
+              {{ store.isSaving ? "Loading..." : "View access details" }}
+            </button>
           </div>
         </div>
 
@@ -294,6 +302,7 @@ import { useRoute, useRouter } from "vue-router";
 import { ArrowLeft, Calendar, CheckCircle, Clock, CreditCard, ExternalLink, Globe, Loader2, Send } from "@lucide/vue";
 import { classesApi } from "@/api/classes";
 import { useClassesStore } from "@/stores/classes";
+import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
 import type { ClassStatus, ClassTaskStatus, InstallmentStatus } from "@/types/classes";
 
 const route = useRoute();
@@ -309,55 +318,117 @@ const tabs = [
 ];
 const activeTab = ref("tasks");
 
-const statusLabel: Record<ClassStatus, string> = {
+const statusLabels: Partial<Record<ClassStatus, string>> = {
+  draft: "Draft",
+  submitted: "Submitted",
+  needs_client_info: "Needs Info",
+  under_review: "Under Review",
+  price_proposed: "Price Proposed",
+  negotiating: "Negotiating",
+  accepted: "Accepted",
+  pending_payment: "Pending Payment",
+  partially_paid: "Partially Paid",
+  paid: "Paid",
+  assigned: "Assigned",
+  in_progress: "In Progress",
   pending: "Pending Review",
   active: "Active",
   paused: "Paused",
+  quality_review: "Quality Review",
   completed: "Completed",
   cancelled: "Cancelled",
+  archived: "Archived",
 };
 
-const statusClass: Record<ClassStatus, string> = {
+const statusClasses: Partial<Record<ClassStatus, string>> = {
+  draft: "bg-slate-100 text-graphite",
+  submitted: "bg-blue-100 text-blue-700",
+  needs_client_info: "bg-amber-100 text-amber-700",
+  under_review: "bg-violet-100 text-violet-700",
+  price_proposed: "bg-blue-100 text-blue-700",
+  negotiating: "bg-amber-100 text-amber-700",
+  accepted: "bg-emerald-100 text-emerald-700",
+  pending_payment: "bg-amber-100 text-amber-700",
+  partially_paid: "bg-amber-100 text-amber-700",
+  paid: "bg-emerald-100 text-emerald-700",
+  assigned: "bg-blue-100 text-blue-700",
+  in_progress: "bg-berry/10 text-berry",
   pending: "bg-amber-100 text-amber-700",
   active: "bg-emerald-100 text-emerald-700",
   paused: "bg-slate-100 text-graphite",
+  quality_review: "bg-purple-100 text-purple-700",
   completed: "bg-blue-100 text-blue-700",
   cancelled: "bg-rose-100 text-rose-700",
+  archived: "bg-slate-100 text-slate-400",
 };
 
-const taskStatusLabel: Record<ClassTaskStatus, string> = {
+const taskStatusLabels: Partial<Record<ClassTaskStatus, string>> = {
   pending: "Pending",
   assigned: "Assigned",
   in_progress: "In Progress",
   submitted: "Submitted",
   revision_requested: "Revision",
   approved: "Approved",
+  completed: "Completed",
   cancelled: "Cancelled",
 };
 
-const taskStatusClass: Record<ClassTaskStatus, string> = {
+const taskStatusClasses: Partial<Record<ClassTaskStatus, string>> = {
   pending: "bg-slate-100 text-graphite",
   assigned: "bg-blue-100 text-blue-700",
   in_progress: "bg-amber-100 text-amber-700",
   submitted: "bg-purple-100 text-purple-700",
   revision_requested: "bg-rose-100 text-rose-700",
   approved: "bg-emerald-100 text-emerald-700",
+  completed: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-slate-100 text-slate-400",
 };
 
-const installmentStatusLabel: Record<InstallmentStatus, string> = {
+const installmentStatusLabels: Partial<Record<InstallmentStatus, string>> = {
   pending: "Pending",
+  due: "Due",
   paid: "Paid",
   overdue: "Overdue",
   waived: "Waived",
+  cancelled: "Cancelled",
 };
 
-const installmentStatusClass: Record<InstallmentStatus, string> = {
+const installmentStatusClasses: Partial<Record<InstallmentStatus, string>> = {
   pending: "bg-amber-100 text-amber-700",
+  due: "bg-amber-100 text-amber-700",
   paid: "bg-emerald-100 text-emerald-700",
   overdue: "bg-rose-100 text-rose-700",
   waived: "bg-slate-100 text-graphite",
+  cancelled: "bg-slate-100 text-slate-400",
 };
+
+function labelize(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function statusLabel(status: ClassStatus): string {
+  return statusLabels[status] ?? labelize(status);
+}
+
+function statusClass(status: ClassStatus): string {
+  return statusClasses[status] ?? "bg-slate-100 text-graphite";
+}
+
+function taskStatusLabel(status: ClassTaskStatus): string {
+  return taskStatusLabels[status] ?? labelize(status);
+}
+
+function taskStatusClass(status: ClassTaskStatus): string {
+  return taskStatusClasses[status] ?? "bg-slate-100 text-graphite";
+}
+
+function installmentStatusLabel(status: InstallmentStatus): string {
+  return installmentStatusLabels[status] ?? labelize(status);
+}
+
+function installmentStatusClass(status: InstallmentStatus): string {
+  return installmentStatusClasses[status] ?? "bg-slate-100 text-graphite";
+}
 
 const progressPct = computed(() => {
   const d = store.detail;
@@ -380,10 +451,12 @@ const nextDue = computed(() => {
 });
 
 function fmtDate(v: string): string {
+  if (!v) return "Not set";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(v));
 }
 
 function fmtDateTime(v: string): string {
+  if (!v) return "Not set";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(v));
 }
 

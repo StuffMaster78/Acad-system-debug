@@ -20,21 +20,83 @@ onMounted(() => store.loadOrders());
 const search = ref("");
 const statusFilter = ref<ClassStatus | "">("");
 
-const statusLabel: Record<ClassStatus, string> = {
+const classStatuses: ClassStatus[] = [
+  "draft",
+  "submitted",
+  "needs_client_info",
+  "under_review",
+  "price_proposed",
+  "negotiating",
+  "accepted",
+  "pending_payment",
+  "partially_paid",
+  "paid",
+  "assigned",
+  "in_progress",
+  "pending",
+  "active",
+  "paused",
+  "quality_review",
+  "completed",
+  "cancelled",
+  "archived",
+];
+
+const statusLabels: Partial<Record<ClassStatus, string>> = {
+  draft: "Draft",
+  submitted: "Submitted",
+  needs_client_info: "Needs Info",
+  under_review: "Under Review",
+  price_proposed: "Price Proposed",
+  negotiating: "Negotiating",
+  accepted: "Accepted",
+  pending_payment: "Pending Payment",
+  partially_paid: "Partially Paid",
+  paid: "Paid",
+  assigned: "Assigned",
+  in_progress: "In Progress",
   pending: "Pending",
   active: "Active",
   paused: "Paused",
+  quality_review: "Quality Review",
   completed: "Completed",
   cancelled: "Cancelled",
+  archived: "Archived",
 };
 
-const statusClass: Record<ClassStatus, string> = {
+const statusClasses: Partial<Record<ClassStatus, string>> = {
+  draft: "bg-slate-100 text-graphite",
+  submitted: "bg-blue-100 text-blue-700",
+  needs_client_info: "bg-amber-100 text-amber-700",
+  under_review: "bg-violet-100 text-violet-700",
+  price_proposed: "bg-blue-100 text-blue-700",
+  negotiating: "bg-amber-100 text-amber-700",
+  accepted: "bg-emerald-100 text-emerald-700",
+  pending_payment: "bg-amber-100 text-amber-700",
+  partially_paid: "bg-amber-100 text-amber-700",
+  paid: "bg-emerald-100 text-emerald-700",
+  assigned: "bg-blue-100 text-blue-700",
+  in_progress: "bg-berry/10 text-berry",
   pending: "bg-amber-100 text-amber-700",
   active: "bg-emerald-100 text-emerald-700",
   paused: "bg-slate-100 text-graphite",
+  quality_review: "bg-purple-100 text-purple-700",
   completed: "bg-blue-100 text-blue-700",
   cancelled: "bg-rose-100 text-rose-700",
+  archived: "bg-slate-100 text-slate-400",
 };
+
+function labelize(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function statusLabel(status: ClassStatus): string {
+  return statusLabels[status] ?? labelize(status);
+}
+
+function statusClass(status: ClassStatus): string {
+  return statusClasses[status] ?? "bg-slate-100 text-graphite";
+}
 
 const filtered = computed(() => {
   let list = store.orders;
@@ -84,8 +146,8 @@ function progress(total: number, done: number) {
           class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-graphite focus-ring"
         >
           <option value="">All statuses</option>
-          <option v-for="s in ['pending','active','paused','completed','cancelled']" :key="s" :value="s">
-            {{ statusLabel[s as ClassStatus] }}
+          <option v-for="s in classStatuses" :key="s" :value="s">
+            {{ statusLabel(s) }}
           </option>
         </select>
       </div>
@@ -138,8 +200,8 @@ function progress(total: number, done: number) {
               </td>
               <td class="px-3 py-2 text-right font-semibold text-ink">${{ cls.total_price }}</td>
               <td class="px-3 py-2 text-center">
-                <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass[cls.status]">
-                  {{ statusLabel[cls.status] }}
+                <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass(cls.status)">
+                  {{ statusLabel(cls.status) }}
                 </span>
               </td>
             </tr>

@@ -1,9 +1,23 @@
 export type ClassStatus =
+  | "draft"
+  | "submitted"
+  | "needs_client_info"
+  | "under_review"
+  | "price_proposed"
+  | "negotiating"
+  | "accepted"
+  | "pending_payment"
+  | "partially_paid"
+  | "paid"
+  | "assigned"
+  | "in_progress"
   | "pending"
   | "active"
   | "paused"
+  | "quality_review"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "archived";
 
 export type ClassTaskStatus =
   | "pending"
@@ -12,9 +26,10 @@ export type ClassTaskStatus =
   | "submitted"
   | "revision_requested"
   | "approved"
+  | "completed"
   | "cancelled";
 
-export type InstallmentStatus = "pending" | "paid" | "overdue" | "waived";
+export type InstallmentStatus = "pending" | "due" | "paid" | "overdue" | "waived" | "cancelled";
 
 export interface ClassOrder {
   id: number;

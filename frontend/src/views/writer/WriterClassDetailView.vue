@@ -10,25 +10,39 @@ const store = useClassesStore();
 
 onMounted(() => store.loadDetail(route.params.id as string));
 
-const taskStatusLabel: Record<ClassTaskStatus, string> = {
+const taskStatusLabels: Partial<Record<ClassTaskStatus, string>> = {
   pending: "Pending",
   assigned: "Assigned",
   in_progress: "In Progress",
   submitted: "Submitted",
   revision_requested: "Revision Needed",
   approved: "Approved",
+  completed: "Completed",
   cancelled: "Cancelled",
 };
 
-const taskStatusClass: Record<ClassTaskStatus, string> = {
+const taskStatusClasses: Partial<Record<ClassTaskStatus, string>> = {
   pending: "bg-slate-100 text-graphite",
   assigned: "bg-blue-100 text-blue-700",
   in_progress: "bg-amber-100 text-amber-700",
   submitted: "bg-purple-100 text-purple-700",
   revision_requested: "bg-rose-100 text-rose-700",
   approved: "bg-emerald-100 text-emerald-700",
+  completed: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-slate-100 text-slate-400",
 };
+
+function labelize(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function taskStatusLabel(status: ClassTaskStatus): string {
+  return taskStatusLabels[status] ?? labelize(status);
+}
+
+function taskStatusClass(status: ClassTaskStatus): string {
+  return taskStatusClasses[status] ?? "bg-slate-100 text-graphite";
+}
 
 const submittingTaskId = ref<number | null>(null);
 const submissionNotes = ref("");
@@ -88,8 +102,8 @@ async function confirmSubmit(taskId: number) {
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
                   <span class="text-xs font-mono text-graphite">#{{ task.sequence }}</span>
-                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="taskStatusClass[task.status]">
-                    {{ taskStatusLabel[task.status] }}
+                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="taskStatusClass(task.status)">
+                    {{ taskStatusLabel(task.status) }}
                   </span>
                 </div>
                 <h3 class="mt-1 font-semibold text-ink">{{ task.title }}</h3>

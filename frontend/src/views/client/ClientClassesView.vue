@@ -10,21 +10,61 @@ const router = useRouter();
 
 onMounted(() => store.loadOrders());
 
-const statusLabel: Record<ClassStatus, string> = {
+const statusLabels: Partial<Record<ClassStatus, string>> = {
+  draft: "Draft",
+  submitted: "Submitted",
+  needs_client_info: "Needs Info",
+  under_review: "Under Review",
+  price_proposed: "Price Proposed",
+  negotiating: "Negotiating",
+  accepted: "Accepted",
+  pending_payment: "Pending Payment",
+  partially_paid: "Partially Paid",
+  paid: "Paid",
+  assigned: "Assigned",
+  in_progress: "In Progress",
   pending: "Pending",
   active: "Active",
   paused: "Paused",
+  quality_review: "Quality Review",
   completed: "Completed",
   cancelled: "Cancelled",
+  archived: "Archived",
 };
 
-const statusClass: Record<ClassStatus, string> = {
+const statusClasses: Partial<Record<ClassStatus, string>> = {
+  draft: "bg-slate-100 text-graphite",
+  submitted: "bg-blue-100 text-blue-700",
+  needs_client_info: "bg-amber-100 text-amber-700",
+  under_review: "bg-violet-100 text-violet-700",
+  price_proposed: "bg-blue-100 text-blue-700",
+  negotiating: "bg-amber-100 text-amber-700",
+  accepted: "bg-emerald-100 text-emerald-700",
+  pending_payment: "bg-amber-100 text-amber-700",
+  partially_paid: "bg-amber-100 text-amber-700",
+  paid: "bg-emerald-100 text-emerald-700",
+  assigned: "bg-blue-100 text-blue-700",
+  in_progress: "bg-berry/10 text-berry",
   pending: "bg-amber-100 text-amber-700",
   active: "bg-emerald-100 text-emerald-700",
   paused: "bg-slate-100 text-graphite",
+  quality_review: "bg-purple-100 text-purple-700",
   completed: "bg-blue-100 text-blue-700",
   cancelled: "bg-rose-100 text-rose-700",
+  archived: "bg-slate-100 text-slate-400",
 };
+
+function labelize(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function statusLabel(status: ClassStatus): string {
+  return statusLabels[status] ?? labelize(status);
+}
+
+function statusClass(status: ClassStatus): string {
+  return statusClasses[status] ?? "bg-slate-100 text-graphite";
+}
 
 const activeClasses = computed(() => store.orders.filter((o) => o.status === "active"));
 const otherClasses = computed(() => store.orders.filter((o) => o.status !== "active"));
@@ -87,8 +127,8 @@ function open(id: number) {
               <div class="flex items-start justify-between gap-4">
                 <div class="min-w-0">
                   <div class="flex items-center gap-2">
-                    <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass[cls.status]">
-                      {{ statusLabel[cls.status] }}
+                    <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass(cls.status)">
+                      {{ statusLabel(cls.status) }}
                     </span>
                     <span class="text-xs text-graphite font-mono">{{ cls.reference }}</span>
                   </div>
@@ -144,8 +184,8 @@ function open(id: number) {
               class="flex cursor-pointer items-center gap-4 rounded-lg border border-slate-200 bg-white px-5 py-3 hover:shadow-md transition-shadow"
               @click="open(cls.id)"
             >
-              <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass[cls.status]">
-                {{ statusLabel[cls.status] }}
+              <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass(cls.status)">
+                {{ statusLabel(cls.status) }}
               </span>
               <div class="min-w-0 flex-1">
                 <p class="truncate font-medium text-ink">{{ cls.title }}</p>

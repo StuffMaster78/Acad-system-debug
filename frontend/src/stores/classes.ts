@@ -212,12 +212,36 @@ export const useClassesStore = defineStore("classes", () => {
         detail.value = PREVIEW_DETAIL;
         return;
       }
-      const res = await classesApi.get(id);
-      detail.value = res.data;
+      const [classRes, tasksRes, installmentsRes] = await Promise.all([
+        classesApi.get(id),
+        classesApi.tasks.list(id).catch(() => ({ data: [] as ClassTask[] })),
+        classesApi.installments.list(id).catch(() => ({ data: [] as ClassInstallment[] })),
+      ]);
+      detail.value = {
+        ...classRes.data,
+        tasks: tasksRes.data,
+        installments: installmentsRes.data,
+        portal_access: null,
+        portal_access_enabled: classRes.data.portal_access_enabled,
+      };
     } catch {
       error.value = "Failed to load class detail.";
     } finally {
       isLoadingDetail.value = false;
+    }
+  }
+
+  async function loadPortalAccess(classId: number | string) {
+    const auth = useAuthStore();
+    if (!detail.value) return;
+    isSaving.value = true;
+    try {
+      if (auth.isPreviewSession) return;
+      const res = await classesApi.portalAccess.get(classId);
+      detail.value.portal_access = res.data;
+      detail.value.portal_access_enabled = res.data.enabled;
+    } finally {
+      isSaving.value = false;
     }
   }
 
@@ -279,6 +303,30 @@ export const useClassesStore = defineStore("classes", () => {
     }
   }
 
+  async function cancelClass(classId: number | string, reason = "Cancelled from staff portal") {
+    const auth = useAuthStore();
+    isSaving.value = true;
+    try {
+      if (auth.isPreviewSession) {
+        const o = orders.value.find((o) => o.id === Number(classId));
+        if (o) o.status = "cancelled";
+        if (detail.value?.id === Number(classId)) detail.value.status = "cancelled";
+        return;
+      }
+      const res = await classesApi.cancel(classId, reason);
+      if (detail.value?.id === Number(classId)) {
+        detail.value = {
+          ...detail.value,
+          ...res.data,
+        };
+      }
+      const idx = orders.value.findIndex((o) => o.id === Number(classId));
+      if (idx !== -1) orders.value[idx] = res.data;
+    } finally {
+      isSaving.value = false;
+    }
+  }
+
   function reset() {
     orders.value = [];
     detail.value = null;
@@ -302,6 +350,8 @@ export const useClassesStore = defineStore("classes", () => {
     submitTask,
     gradeTask,
     assignWriter,
+    cancelClass,
+    loadPortalAccess,
     reset,
   };
 });
