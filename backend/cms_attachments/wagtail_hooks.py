@@ -21,8 +21,10 @@ class AttachmentCategorySnippetViewSet(SnippetViewSet):
     search_fields = ["name"]
 
     def get_queryset(self, request=None):
-        qs = super().get_queryset()
-        return filter_queryset_by_user_sites(qs, self.request.user)
+        qs = super().get_queryset(request)
+        if not request:
+            return qs
+        return filter_queryset_by_user_sites(qs, request.user)
 
 
 class AttachmentSnippetViewSet(SnippetViewSet):
@@ -54,8 +56,10 @@ class AttachmentSnippetViewSet(SnippetViewSet):
     ordering = ["-is_featured", "-download_count"]
 
     def get_queryset(self, request=None):
-        qs = super().get_queryset()
-        return filter_queryset_by_user_sites(qs, self.request.user)
+        qs = super().get_queryset(request)
+        if not request:
+            return qs
+        return filter_queryset_by_user_sites(qs, request.user)
 
 
 # Re-register with custom viewsets

@@ -35,8 +35,10 @@ class AuthorSnippetViewSet(SnippetViewSet):
     ordering = ["display_order", "name"]
 
     def get_queryset(self, request=None):
-        qs = super().get_queryset()
-        return filter_queryset_by_user_sites(qs, self.request.user)
+        qs = super().get_queryset(request)
+        if not request:
+            return qs
+        return filter_queryset_by_user_sites(qs, request.user)
 
 
 # Re-register with the custom viewset
