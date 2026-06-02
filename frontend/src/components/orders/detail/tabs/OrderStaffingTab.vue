@@ -9,8 +9,17 @@
       <dl class="grid gap-px bg-slate-100 sm:grid-cols-2">
         <div class="bg-white px-5 py-3">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Assigned writer</dt>
-          <dd class="mt-1 font-mono text-sm text-ink">
-            {{ lifecycle?.has_current_assignment ? maskedWriter(lifecycle.current_writer_id) : "Unassigned" }}
+          <dd class="mt-1 flex items-center justify-between gap-2">
+            <span class="font-mono text-sm text-ink">
+              {{ lifecycle?.has_current_assignment ? maskedWriter(lifecycle.current_writer_id) : "Unassigned" }}
+            </span>
+            <button
+              v-if="writerProfileRoute && lifecycle?.has_current_assignment"
+              class="inline-flex items-center gap-1 text-xs font-semibold text-signal hover:underline"
+              @click="router.push(writerProfileRoute)"
+            >
+              <ExternalLink class="h-3 w-3" /> Profile
+            </button>
           </dd>
         </div>
         <div class="bg-white px-5 py-3">
@@ -106,7 +115,8 @@
 
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
-import { RefreshCw, Users } from "@lucide/vue";
+import { useRouter } from "vue-router";
+import { ExternalLink, RefreshCw, Users } from "@lucide/vue";
 import type { OrderSummary, OrderLifecycle, OrderInterestRecord } from "@/types/orders";
 import type { UserRole } from "@/types/roles";
 import { ordersApi } from "@/api/orders";
@@ -123,6 +133,18 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: "refresh"): void }>();
 
 const auth = useAuthStore();
+const router = useRouter();
+
+const writerProfileRoute = computed(() => {
+  const rid = props.lifecycle?.current_writer_registration_id;
+  if (!rid) return null;
+  const prefix: Record<string, string> = {
+    admin: '/admin', superadmin: '/superadmin',
+    support: '/support', editor: '/editor',
+  };
+  const base = prefix[props.role];
+  return base ? `${base}/writers/${rid}` : null;
+});
 const interests = ref<OrderInterestRecord[]>([]);
 const loadingInterests = ref(false);
 const assigning = ref<number | null>(null);

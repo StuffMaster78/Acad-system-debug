@@ -80,9 +80,18 @@
       <div class="mt-4 grid gap-3 sm:grid-cols-2">
         <div class="rounded-md border border-slate-100 p-3">
           <p class="text-xs font-semibold text-graphite">Assignment</p>
-          <p class="mt-1 text-sm text-ink">
-            {{ lifecycle?.has_current_assignment ? maskedWriter(lifecycle.current_writer_id) : "Awaiting assignment" }}
-          </p>
+          <div class="mt-1 flex items-center justify-between gap-2">
+            <p class="text-sm text-ink">
+              {{ lifecycle?.has_current_assignment ? maskedWriter(lifecycle.current_writer_id) : "Awaiting assignment" }}
+            </p>
+            <button
+              v-if="writerProfileRoute && lifecycle?.has_current_assignment"
+              class="inline-flex items-center gap-1 text-xs font-semibold text-signal hover:underline"
+              @click="router.push(writerProfileRoute)"
+            >
+              <ExternalLink class="h-3 w-3" /> Profile
+            </button>
+          </div>
         </div>
         <div class="rounded-md border border-slate-100 p-3">
           <p class="text-xs font-semibold text-graphite">Hold</p>
@@ -320,7 +329,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { AlertTriangle, Gift, LifeBuoy, Loader2, Pin, Plus, RefreshCw, Star, X, XCircle } from "@lucide/vue";
+import { useRouter } from "vue-router";
+import { AlertTriangle, ExternalLink, Gift, LifeBuoy, Loader2, Pin, Plus, RefreshCw, Star, X, XCircle } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderNote, OrderSummary, OrderLifecycle } from "@/types/orders";
 import type { Review } from "@/types/reviews";
@@ -338,9 +348,22 @@ const props = defineProps<{
   role: UserRole;
 }>();
 
+const router = useRouter();
 const orders = useOrderStore();
 const isMutating = computed(() => orders.isMutating);
 const isStaffRole = computed(() => isStaff(props.role));
+
+// Writer profile link — available to all staff roles that can see the order detail
+const writerProfileRoute = computed(() => {
+  const rid = props.lifecycle?.current_writer_registration_id;
+  if (!rid) return null;
+  const prefix: Record<string, string> = {
+    admin: '/admin', superadmin: '/superadmin',
+    support: '/support', editor: '/editor',
+  };
+  const base = prefix[props.role];
+  return base ? `${base}/writers/${rid}` : null;
+});
 
 const TERMINAL = ["completed", "reviewed", "rated", "approved", "archived", "cancelled"];
 const isTerminal = computed(() => TERMINAL.includes(props.order.status ?? ""));

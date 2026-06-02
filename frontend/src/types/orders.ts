@@ -53,6 +53,7 @@ export interface OrderLifecycle {
   client_id: number | null;
   current_assignment_id: number | null;
   current_writer_id: number | null;
+  current_writer_registration_id: string | null;
   has_current_assignment: boolean;
   active_hold_id: number | null;
   has_active_hold: boolean;

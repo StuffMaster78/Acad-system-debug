@@ -15,6 +15,7 @@ class OrderLifecycleSnapshotSerializer(serializers.Serializer):
 
     current_assignment_id = serializers.IntegerField(allow_null=True)
     current_writer_id = serializers.IntegerField(allow_null=True)
+    current_writer_registration_id = serializers.CharField(allow_null=True)
     has_current_assignment = serializers.BooleanField()
 
     active_hold_id = serializers.IntegerField(allow_null=True)

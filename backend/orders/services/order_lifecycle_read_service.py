@@ -37,6 +37,7 @@ class OrderLifecycleSnapshot:
 
     current_assignment_id: Optional[int]
     current_writer_id: Optional[int]
+    current_writer_registration_id: Optional[str]
     has_current_assignment: bool
 
     active_hold_id: Optional[int]
@@ -103,6 +104,11 @@ class OrderLifecycleReadService:
             ),
             current_writer_id=(
                 cls._safe_fk_pk(current_assignment, "writer")
+                if current_assignment is not None
+                else None
+            ),
+            current_writer_registration_id=(
+                cls._resolve_writer_registration_id(current_assignment)
                 if current_assignment is not None
                 else None
             ),
@@ -334,6 +340,20 @@ class OrderLifecycleReadService:
             "client",
             "preferred_writer",
         )
+
+    @staticmethod
+    def _resolve_writer_registration_id(assignment: Any) -> Optional[str]:
+        """Return the assigned writer's WriterProfile.registration_id, or None."""
+        try:
+            writer = getattr(assignment, "writer", None)
+            if writer is None:
+                return None
+            profile = getattr(writer, "writerprofile", None)
+            if profile is None:
+                return None
+            return getattr(profile, "registration_id", None)
+        except Exception:
+            return None
 
     @staticmethod
     def _safe_fk_pk(instance: Any, attr_name: str) -> Optional[int]:
