@@ -69,11 +69,10 @@ class SpecialOrderPortalPermission(BasePermission):
     @staticmethod
     def same_website(user, obj) -> bool:
         """
-        Defensive tenant check.
-
-        Core should enforce tenancy, but object-level permissions should
-        still guard against accidental cross-tenant access.
+        Defensive tenant check. Superadmins bypass this check entirely.
         """
+        if user.is_superuser or getattr(user, "role", None) == "superadmin":
+            return True
         user_website_id = getattr(user, "website_id", None)
         object_website_id = getattr(obj, "website_id", None)
 

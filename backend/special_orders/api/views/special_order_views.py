@@ -91,10 +91,21 @@ class SpecialOrderDetailView(APIView):
     permission_classes = [CanViewSpecialOrder]
 
     def get(self, request, special_order_id: int):
-        special_order = SpecialOrderSelector.get_by_id(
-            website=request.user.website,
-            special_order_id=special_order_id,
-        )
+        user = request.user
+        if user.is_superuser or getattr(user, "role", None) == "superadmin":
+            from special_orders.models import SpecialOrder
+            try:
+                special_order = SpecialOrder.objects.select_related(
+                    "website", "client", "writer"
+                ).get(pk=special_order_id)
+            except SpecialOrder.DoesNotExist:
+                from rest_framework.exceptions import NotFound
+                raise NotFound("Special order not found.")
+        else:
+            special_order = SpecialOrderSelector.get_by_id(
+                website=user.website,
+                special_order_id=special_order_id,
+            )
 
         self.check_object_permissions(request, special_order)
 

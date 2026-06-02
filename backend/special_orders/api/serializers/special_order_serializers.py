@@ -102,10 +102,23 @@ class SpecialOrderListSerializer(serializers.ModelSerializer):
 
 
 class SpecialOrderDetailSerializer(serializers.ModelSerializer):
+    client_username = serializers.SerializerMethodField()
+    client_email = serializers.SerializerMethodField()
+    writer_username = serializers.SerializerMethodField()
+    website_name = serializers.SerializerMethodField()
+    milestones = serializers.SerializerMethodField()
+    quotes = serializers.SerializerMethodField()
+    total_milestones = serializers.SerializerMethodField()
+    completed_milestones = serializers.SerializerMethodField()
+    attachments_count = serializers.SerializerMethodField()
+    quoted_price = serializers.SerializerMethodField()
+    reference = serializers.SerializerMethodField()
+
     class Meta:
         model = SpecialOrder
         fields = [
             "id",
+            "reference",
             "title",
             "inquiry_details",
             "admin_notes",
@@ -117,12 +130,22 @@ class SpecialOrderDetailSerializer(serializers.ModelSerializer):
             "origin",
             "priority",
             "client",
+            "client_username",
+            "client_email",
             "writer",
+            "writer_username",
+            "website_name",
             "predefined_config",
             "predefined_duration",
             "writer_pay_rule",
             "accepted_quote",
             "converted_order",
+            "milestones",
+            "quotes",
+            "total_milestones",
+            "completed_milestones",
+            "attachments_count",
+            "quoted_price",
             "assigned_at",
             "started_at",
             "completed_at",
@@ -130,3 +153,85 @@ class SpecialOrderDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def get_client_username(self, obj):
+        return getattr(getattr(obj, "client", None), "username", None)
+
+    def get_client_email(self, obj):
+        return getattr(getattr(obj, "client", None), "email", None)
+
+    def get_writer_username(self, obj):
+        return getattr(getattr(obj, "writer", None), "username", None)
+
+    def get_website_name(self, obj):
+        w = getattr(obj, "website", None)
+        return getattr(w, "name", None) or getattr(w, "domain", None)
+
+    def get_reference(self, obj):
+        return f"SO-{obj.id:06d}"
+
+    def get_milestones(self, obj):
+        try:
+            milestones = obj.funding_milestones.all().order_by("sequence_number")
+            return [
+                {
+                    "id": m.id,
+                    "label": getattr(m, "label", f"Milestone {m.id}"),
+                    "amount": str(getattr(m, "amount", 0) or 0),
+                    "status": getattr(m, "status", "pending"),
+                    "due_date": str(getattr(m, "due_date", "") or ""),
+                }
+                for m in milestones
+            ]
+        except Exception:
+            return []
+
+    def get_quotes(self, obj):
+        try:
+            from special_orders.models.quotes import SpecialOrderQuote
+            quotes = SpecialOrderQuote.objects.filter(special_order=obj).order_by("-created_at")
+            return [
+                {
+                    "id": q.id,
+                    "status": q.status,
+                    "total_amount": str(q.total_amount or 0),
+                    "currency": q.currency,
+                    "milestones_preview": [],
+                    "created_at": q.created_at.isoformat() if q.created_at else None,
+                }
+                for q in quotes
+            ]
+        except Exception:
+            return []
+
+    def get_total_milestones(self, obj):
+        try:
+            return obj.funding_milestones.count()
+        except Exception:
+            return 0
+
+    def get_completed_milestones(self, obj):
+        try:
+            return obj.funding_milestones.filter(status="released").count()
+        except Exception:
+            return 0
+
+    def get_attachments_count(self, obj):
+        try:
+            from files_management.models import FileAttachment
+            return FileAttachment.objects.filter(
+                content_type__model="specialorder",
+                object_id=obj.id,
+            ).count()
+        except Exception:
+            return 0
+
+    def get_quoted_price(self, obj):
+        try:
+            from special_orders.models.quotes import SpecialOrderQuote
+            q = SpecialOrderQuote.objects.filter(
+                special_order=obj, status__in=["accepted", "pending"]
+            ).order_by("-created_at").first()
+            return str(q.total_amount) if q and q.total_amount else None
+        except Exception:
+            return None

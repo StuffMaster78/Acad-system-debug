@@ -228,7 +228,15 @@ export const useSpecialOrdersStore = defineStore("specialOrders", () => {
         return;
       }
       const res = await specialOrdersApi.get(id);
-      detail.value = res.data;
+      // Ensure required array/count fields always exist
+      detail.value = {
+        milestones: [],
+        quotes: [],
+        total_milestones: 0,
+        completed_milestones: 0,
+        attachments_count: 0,
+        ...res.data,
+      };
     } catch {
       error.value = "Failed to load special order detail.";
     } finally {
