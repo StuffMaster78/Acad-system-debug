@@ -46,9 +46,8 @@ async function loadQueue() {
     if (queueFilter.value !== "all") params.status = queueFilter.value;
     const { data } = await adminPaymentsApi.refunds(params);
     refunds.value = Array.isArray(data) ? data : (data as { results: RefundRecord[] }).results ?? [];
-  } finally {
-    queueLoading.value = false;
-  }
+  } catch { refunds.value = []; }
+  finally { queueLoading.value = false; }
 }
 
 const filteredRefunds = computed(() => {
@@ -131,9 +130,8 @@ async function loadLogs() {
   try {
     const { data } = await adminPaymentsApi.refundLogs();
     logs.value = Array.isArray(data) ? data : (data as { results: RefundLogRecord[] }).results ?? [];
-  } finally {
-    logsLoading.value = false;
-  }
+  } catch { logs.value = []; }
+  finally { logsLoading.value = false; }
 }
 
 // ── Receipts ──────────────────────────────────────────────────────────────────
@@ -146,9 +144,8 @@ async function loadReceipts() {
   try {
     const { data } = await adminPaymentsApi.refundReceipts();
     receipts.value = Array.isArray(data) ? data : (data as { results: RefundReceiptRecord[] }).results ?? [];
-  } finally {
-    receiptsLoading.value = false;
-  }
+  } catch { receipts.value = []; }
+  finally { receiptsLoading.value = false; }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

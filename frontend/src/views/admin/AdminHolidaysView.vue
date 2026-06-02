@@ -64,14 +64,15 @@ async function loadSpecialDays() {
     if (filterUpcoming.value) params.upcoming = "true";
     const { data } = await holidaysApi.specialDays(params);
     specialDays.value = Array.isArray(data) ? data : (data as { results: SpecialDay[] }).results ?? [];
-  } finally {
-    specialDaysLoading.value = false;
-  }
+  } catch { specialDays.value = []; }
+  finally { specialDaysLoading.value = false; }
 }
 
 async function loadUpcoming() {
-  const { data } = await holidaysApi.upcomingSpecialDays(60);
-  upcomingSpecialDays.value = data;
+  try {
+    const { data } = await holidaysApi.upcomingSpecialDays(60);
+    upcomingSpecialDays.value = data;
+  } catch { upcomingSpecialDays.value = []; }
 }
 
 async function submitCreateSpecialDay() {
@@ -151,9 +152,8 @@ async function loadReminders() {
     if (filterReminderStatus.value) params.status = filterReminderStatus.value;
     const { data } = await holidaysApi.reminders(params);
     reminders.value = Array.isArray(data) ? data : (data as { results: HolidayReminder[] }).results ?? [];
-  } finally {
-    remindersLoading.value = false;
-  }
+  } catch { reminders.value = []; }
+  finally { remindersLoading.value = false; }
 }
 
 async function markSent(id: number) {
@@ -221,9 +221,8 @@ async function loadCampaigns() {
     if (filterCampaignActive.value !== "") params.is_active = filterCampaignActive.value;
     const { data } = await holidaysApi.campaigns(params);
     campaigns.value = Array.isArray(data) ? data : (data as { results: HolidayDiscountCampaign[] }).results ?? [];
-  } finally {
-    campaignsLoading.value = false;
-  }
+  } catch { campaigns.value = []; }
+  finally { campaignsLoading.value = false; }
 }
 
 // ── Upcoming banner data ──────────────────────────────────────────────────────

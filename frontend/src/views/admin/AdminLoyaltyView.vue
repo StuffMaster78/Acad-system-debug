@@ -55,9 +55,8 @@ async function loadRequests() {
     if (selectedWebsiteId.value) params.website = selectedWebsiteId.value;
     const { data } = await adminLoyaltyApi.redemptionRequests(params);
     requests.value = Array.isArray(data) ? data : (data as { results: RedemptionRequest[] }).results ?? [];
-  } finally {
-    requestsLoading.value = false;
-  }
+  } catch { requests.value = []; }
+  finally { requestsLoading.value = false; }
 }
 
 async function approve(id: number) {
@@ -170,9 +169,8 @@ async function loadTiers() {
     if (selectedWebsiteId.value) params.website = selectedWebsiteId.value;
     const { data } = await adminLoyaltyApi.tiers(params);
     tiers.value = Array.isArray(data) ? data : (data as { results: LoyaltyTier[] }).results ?? [];
-  } finally {
-    tiersLoading.value = false;
-  }
+  } catch { tiers.value = []; }
+  finally { tiersLoading.value = false; }
 }
 
 async function submitTier() {
@@ -224,9 +222,8 @@ async function loadMilestones() {
     if (selectedWebsiteId.value) params.website = selectedWebsiteId.value;
     const { data } = await adminLoyaltyApi.milestones(params);
     milestones.value = Array.isArray(data) ? data : (data as { results: Milestone[] }).results ?? [];
-  } finally {
-    milestonesLoading.value = false;
-  }
+  } catch { milestones.value = []; }
+  finally { milestonesLoading.value = false; }
 }
 
 async function submitMilestone() {
@@ -287,9 +284,8 @@ async function loadCatalog() {
     ]);
     categories.value = Array.isArray(catRes.data) ? catRes.data : (catRes.data as { results: RedemptionCategory[] }).results ?? [];
     catalogItems.value = Array.isArray(itemRes.data) ? itemRes.data : (itemRes.data as { results: RedemptionItem[] }).results ?? [];
-  } finally {
-    catalogLoading.value = false;
-  }
+  } catch { categories.value = []; catalogItems.value = []; }
+  finally { catalogLoading.value = false; }
 }
 
 async function submitItem() {
@@ -343,9 +339,8 @@ async function loadConfig() {
     if (selectedWebsiteId.value) params.website = selectedWebsiteId.value;
     const { data } = await adminLoyaltyApi.conversionConfigs(params);
     configs.value = Array.isArray(data) ? data : (data as { results: LoyaltyConversionConfig[] }).results ?? [];
-  } finally {
-    configLoading.value = false;
-  }
+  } catch { configs.value = []; }
+  finally { configLoading.value = false; }
 }
 
 function editConfig(id: number, field: keyof LoyaltyConversionConfig, value: unknown) {
