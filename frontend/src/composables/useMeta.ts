@@ -13,6 +13,8 @@ export interface MetaOptions {
   image?: string;
   url?: string;
   type?: "website" | "article";
+  // Pass multiple schemas — injected as @graph array
+  schemas?: Record<string, unknown>[];
   siteName?: string;
   publishedAt?: string;
   author?: string;
@@ -64,9 +66,12 @@ function apply(opts: MetaOptions) {
   // Canonical
   setLink("canonical", url);
 
-  // JSON-LD
-  if (opts.schema) {
-    injectJsonLd(opts.schema);
+  // JSON-LD — supports single schema or multi-schema @graph
+  const schemas = opts.schemas ?? (opts.schema ? [opts.schema] : []);
+  if (schemas.length === 1) {
+    injectJsonLd(schemas[0]);
+  } else if (schemas.length > 1) {
+    injectJsonLd({ "@context": "https://schema.org", "@graph": schemas.map(s => ({ ...s, "@context": undefined })) });
   } else {
     removeJsonLd();
   }
@@ -178,5 +183,147 @@ export function webPageSchema(opts: {
     description: opts.description,
     url: opts.url,
     isPartOf: { "@type": "WebSite", name: opts.siteName ?? DEFAULT_SITE_NAME },
+  };
+}
+
+// ── Item 4: FAQPage ────────────────────────────────────────────────────────
+
+export function faqPageSchema(items: { question: string; answer: string }[]) {
+  if (!items.length) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map(({ question, answer }) => ({
+      "@type": "Question",
+      name: question,
+      acceptedAnswer: { "@type": "Answer", text: answer },
+    })),
+  };
+}
+
+/** Extract FAQ items from a Wagtail StreamField body block array. */
+export function extractFaqItems(
+  blocks: Array<{ type: string; value: unknown }>,
+): { question: string; answer: string }[] {
+  const items: { question: string; answer: string }[] = [];
+  for (const block of blocks ?? []) {
+    if (block.type === "faq") {
+      const val = block.value as { items?: Array<{ question?: string; answer?: string }> };
+      for (const item of val?.items ?? []) {
+        if (item.question && item.answer) {
+          // Strip HTML tags from answer for plain-text Schema.org
+          items.push({ question: item.question, answer: item.answer.replace(/<[^>]*>/g, "") });
+        }
+      }
+    }
+  }
+  return items;
+}
+
+// ── Item 5: HowTo ──────────────────────────────────────────────────────────
+
+export function howToSchema(opts: {
+  name: string;
+  description?: string;
+  steps: { title: string; text: string }[];
+}) {
+  if (!opts.steps.length) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: opts.name,
+    description: opts.description,
+    step: opts.steps.map((s, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: s.title,
+      text: s.text,
+    })),
+  };
+}
+
+/** Extract HowTo steps from a how_it_works block. */
+export function extractHowToSteps(
+  blocks: Array<{ type: string; value: unknown }>,
+): { title: string; text: string }[] {
+  for (const block of blocks ?? []) {
+    if (block.type === "how_it_works") {
+      const val = block.value as { steps?: Array<{ title?: string; body?: string }> };
+      if (val?.steps?.length) {
+        return val.steps
+          .filter(s => s.title)
+          .map(s => ({ title: s.title!, text: (s.body ?? "").replace(/<[^>]*>/g, "") }));
+      }
+    }
+  }
+  return [];
+}
+
+// ── Item 6: BreadcrumbList ─────────────────────────────────────────────────
+
+export function breadcrumbSchema(items: { name: string; url: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+}
+
+// ── Item 8: Rich Person (author expertise signals) ─────────────────────────
+
+export function personSchema(opts: {
+  name: string;
+  url?: string;
+  bio?: string;
+  image?: string;
+  jobTitle?: string;
+  credentials?: string;
+  degrees?: Array<{ degree?: string; institution?: string } | string>;
+  areasOfExpertise?: string;
+  yearsExperience?: number;
+  orcidId?: string;
+  googleScholarUrl?: string;
+  linkedinUrl?: string;
+  personalWebsite?: string;
+}) {
+  const sameAs = [
+    opts.orcidId ? `https://orcid.org/${opts.orcidId}` : null,
+    opts.googleScholarUrl,
+    opts.linkedinUrl,
+    opts.personalWebsite,
+  ].filter(Boolean);
+
+  const alumniOf = (opts.degrees ?? []).map(d => {
+    if (typeof d === "string") return { "@type": "EducationalOrganization", name: d };
+    return {
+      "@type": "OrganizationRole",
+      alumniOf: { "@type": "EducationalOrganization", name: d.institution ?? "" },
+      roleName: d.degree ?? "",
+    };
+  }).filter(d => (typeof d === "object" && (d as Record<string, unknown>).alumniOf));
+
+  const knowsAbout = opts.areasOfExpertise
+    ? opts.areasOfExpertise.split(/[,;]/).map(a => a.trim()).filter(Boolean)
+    : [];
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: opts.name,
+    url: opts.url,
+    description: opts.bio,
+    image: opts.image,
+    jobTitle: opts.jobTitle,
+    hasCredential: opts.credentials
+      ? { "@type": "EducationalOccupationalCredential", name: opts.credentials }
+      : undefined,
+    alumniOf: alumniOf.length ? alumniOf : undefined,
+    knowsAbout: knowsAbout.length ? knowsAbout : undefined,
+    sameAs: sameAs.length ? sameAs : undefined,
   };
 }

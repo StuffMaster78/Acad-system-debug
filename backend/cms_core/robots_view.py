@@ -12,6 +12,7 @@ from django.http import HttpResponse
 
 
 _ROBOTS_TEMPLATE = """\
+# Standard crawlers
 User-agent: *
 Allow: /
 Disallow: /api/
@@ -21,6 +22,74 @@ Disallow: /client/
 Disallow: /writer/
 Disallow: /auth/
 Disallow: /search/
+
+# ── AI / LLM crawlers — explicitly allowed on public content ─────────────────
+# These crawlers power Perplexity, ChatGPT, Claude, Gemini answer engines.
+# Allowing them on public content improves GEO (Generative Engine Optimisation)
+# discoverability — your content can be cited as a source in AI answers.
+
+User-agent: GPTBot
+Allow: /blog/
+Allow: /services/
+Allow: /authors/
+Allow: /resources/
+Allow: /help/
+Disallow: /api/
+Disallow: /cms-admin/
+Disallow: /client/
+Disallow: /writer/
+Disallow: /auth/
+
+User-agent: PerplexityBot
+Allow: /blog/
+Allow: /services/
+Allow: /authors/
+Allow: /resources/
+Allow: /help/
+Disallow: /api/
+Disallow: /cms-admin/
+Disallow: /client/
+Disallow: /writer/
+Disallow: /auth/
+
+User-agent: anthropic-ai
+Allow: /blog/
+Allow: /services/
+Allow: /authors/
+Allow: /resources/
+Allow: /help/
+Disallow: /api/
+Disallow: /cms-admin/
+Disallow: /client/
+Disallow: /writer/
+Disallow: /auth/
+
+User-agent: ClaudeBot
+Allow: /blog/
+Allow: /services/
+Allow: /authors/
+Allow: /resources/
+Allow: /help/
+Disallow: /api/
+Disallow: /cms-admin/
+Disallow: /client/
+Disallow: /writer/
+Disallow: /auth/
+
+User-agent: Google-Extended
+Allow: /blog/
+Allow: /services/
+Allow: /authors/
+Allow: /resources/
+Allow: /help/
+Disallow: /api/
+Disallow: /cms-admin/
+Disallow: /client/
+Disallow: /writer/
+Disallow: /auth/
+
+User-agent: Bytespider
+Disallow: /
 
 Sitemap: {sitemap_url}
 """

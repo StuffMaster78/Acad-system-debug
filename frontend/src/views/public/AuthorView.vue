@@ -131,7 +131,7 @@ import { onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { ArrowLeft, Award, GraduationCap } from "@lucide/vue";
 import { cmsApi, type BlogPostSummary, type CMSAuthor } from "@/api/cms";
-import { useMeta } from "@/composables/useMeta";
+import { useMeta, personSchema, breadcrumbSchema } from "@/composables/useMeta";
 
 const route = useRoute();
 const isLoading = ref(true);
@@ -154,25 +154,34 @@ async function load() {
     author.value = authorRes.data;
     posts.value = Array.isArray(postsRes.data) ? postsRes.data : [];
 
+    const a = author.value;
     useMeta({
-      title: author.value.name,
-      description: author.value.bio ?? `Articles and expertise by ${author.value.name}.`,
-      image: author.value.profile_photo?.meta?.download_url,
-      url: window.location.href,
-      schema: {
-        "@context": "https://schema.org",
-        "@type": "Person",
-        name: author.value.name,
-        description: author.value.bio,
-        image: author.value.profile_photo?.meta?.download_url,
-        sameAs: [
-          author.value.orcid_id ? `https://orcid.org/${author.value.orcid_id}` : null,
-          author.value.google_scholar_url,
-          author.value.linkedin_url,
-          author.value.personal_website,
-        ].filter(Boolean),
-        jobTitle: author.value.role?.replace(/_/g, " "),
-      },
+      title:       a.name,
+      description: a.bio ?? `Articles and expertise by ${a.name}.`,
+      image:       a.profile_photo?.meta?.download_url,
+      url:         window.location.href,
+      schemas: [
+        personSchema({
+          name:             a.name,
+          url:              window.location.href,
+          bio:              a.bio,
+          image:            a.profile_photo?.meta?.download_url,
+          jobTitle:         a.role?.replace(/_/g, " "),
+          credentials:      a.credentials,
+          degrees:          a.degrees,
+          areasOfExpertise: a.areas_of_expertise,
+          yearsExperience:  a.years_experience,
+          orcidId:          a.orcid_id,
+          googleScholarUrl: a.google_scholar_url,
+          linkedinUrl:      a.linkedin_url,
+          personalWebsite:  a.personal_website,
+        }),
+        breadcrumbSchema([
+          { name: "Home",    url: window.location.origin + "/" },
+          { name: "Authors", url: window.location.origin + "/authors" },
+          { name: a.name,    url: window.location.href },
+        ]),
+      ],
     });
   } catch {
     notFound.value = true;

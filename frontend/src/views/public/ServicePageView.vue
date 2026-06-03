@@ -65,7 +65,10 @@ import { onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { ArrowLeft, ArrowRight, Clock } from "@lucide/vue";
 import { cmsApi, type ServicePage } from "@/api/cms";
-import { useMeta, serviceSchema } from "@/composables/useMeta";
+import {
+  useMeta, serviceSchema, breadcrumbSchema, faqPageSchema, howToSchema,
+  extractFaqItems, extractHowToSteps,
+} from "@/composables/useMeta";
 import BlockRenderer from "@/components/cms/BlockRenderer.vue";
 
 const route = useRoute();
@@ -89,15 +92,31 @@ async function load() {
     if (!data.items.length) { notFound.value = true; return; }
     page.value = data.items[0];
 
-    useMeta({
-      title: page.value.title,
-      description: `${page.value.title} — from $${page.value.pricing_from ?? "12"} per page. ${page.value.turnaround_hours_fastest ? `Delivery from ${formatTurnaround(page.value.turnaround_hours_fastest)}.` : ""}`,
-      url: window.location.href,
-      schema: serviceSchema({
-        name: page.value.title,
-        url: window.location.href,
+    const faqItems   = extractFaqItems(page.value.body ?? []);
+    const howToSteps = extractHowToSteps(page.value.body ?? []);
+    const description = `${page.value.title} — from $${page.value.pricing_from ?? "12"} per page. ${page.value.turnaround_hours_fastest ? `Delivery from ${formatTurnaround(page.value.turnaround_hours_fastest)}.` : ""}`;
+
+    const schemas = [
+      serviceSchema({
+        name:        page.value.title,
+        description,
+        url:         window.location.href,
         pricingFrom: page.value.pricing_from ?? undefined,
       }),
+      breadcrumbSchema([
+        { name: "Home",     url: window.location.origin + "/" },
+        { name: "Services", url: window.location.origin + "/services" },
+        { name: page.value.title, url: window.location.href },
+      ]),
+      ...(faqItems.length   ? [faqPageSchema(faqItems)!] : []),
+      ...(howToSteps.length ? [howToSchema({ name: page.value.title, steps: howToSteps })!] : []),
+    ].filter(Boolean) as Record<string, unknown>[];
+
+    useMeta({
+      title: page.value.title,
+      description,
+      url:  window.location.href,
+      schemas,
     });
   } catch {
     notFound.value = true;

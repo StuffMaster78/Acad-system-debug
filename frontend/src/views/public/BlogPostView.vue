@@ -54,6 +54,12 @@
             </div>
             <div class="flex flex-wrap gap-3 text-xs text-graphite">
               <span v-if="post.meta.first_published_at">{{ fmtDate(post.meta.first_published_at) }}</span>
+              <span
+                v-if="post.last_substantive_update && post.last_substantive_update !== post.meta.first_published_at"
+                class="text-signal font-medium"
+              >
+                · Updated {{ fmtDate(post.last_substantive_update) }}
+              </span>
               <span v-if="post.reading_time">· {{ post.reading_time }} min read</span>
               <span v-if="post.word_count">· {{ post.word_count.toLocaleString() }} words</span>
             </div>
@@ -157,7 +163,10 @@ import { onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { ArrowLeft, ArrowRight } from "@lucide/vue";
 import { cmsApi, type BlogPost, type Citation } from "@/api/cms";
-import { useMeta, articleSchema } from "@/composables/useMeta";
+import {
+  useMeta, articleSchema, breadcrumbSchema, faqPageSchema,
+  extractFaqItems, personSchema,
+} from "@/composables/useMeta";
 import BlockRenderer from "@/components/cms/BlockRenderer.vue";
 import CitationList from "@/components/cms/CitationList.vue";
 
@@ -189,23 +198,52 @@ async function load() {
       } catch { citations.value = []; }
     }
 
-    useMeta({
-      title: post.value.title,
-      description: post.value.excerpt ?? "",
-      image: post.value.featured_image?.meta?.download_url,
-      url: window.location.href,
-      type: "article",
-      publishedAt: post.value.meta.first_published_at ?? undefined,
-      author: post.value.primary_author?.name,
-      schema: articleSchema({
-        title: post.value.title,
+    const faqItems = extractFaqItems(post.value.body ?? []);
+    const author   = post.value.primary_author;
+
+    const schemas = [
+      articleSchema({
+        title:       post.value.title,
         description: post.value.excerpt,
-        url: window.location.href,
-        image: post.value.featured_image?.meta?.download_url,
+        url:         window.location.href,
+        image:       post.value.featured_image?.meta?.download_url,
         publishedAt: post.value.meta.first_published_at ?? undefined,
-        updatedAt: post.value.last_substantive_update ?? undefined,
-        authorName: post.value.primary_author?.name,
+        updatedAt:   post.value.last_substantive_update ?? undefined,
+        authorName:  author?.name,
+        authorUrl:   author ? `${window.location.origin}/authors/${post.value.meta?.slug?.split("/")[0] ?? ""}` : undefined,
       }),
+      breadcrumbSchema([
+        { name: "Home",   url: window.location.origin + "/" },
+        { name: "Blog",   url: window.location.origin + "/blog" },
+        { name: post.value.title, url: window.location.href },
+      ]),
+      ...(faqItems.length ? [faqPageSchema(faqItems)!] : []),
+      ...(author ? [personSchema({
+        name:              author.name,
+        url:               `${window.location.origin}/authors/${author.slug ?? ""}`,
+        bio:               author.bio,
+        image:             author.profile_photo?.meta?.download_url,
+        jobTitle:          author.role?.replace(/_/g, " "),
+        credentials:       author.credentials,
+        degrees:           author.degrees,
+        areasOfExpertise:  author.areas_of_expertise,
+        yearsExperience:   author.years_experience,
+        orcidId:           author.orcid_id,
+        googleScholarUrl:  author.google_scholar_url,
+        linkedinUrl:       author.linkedin_url,
+        personalWebsite:   author.personal_website,
+      })] : []),
+    ].filter(Boolean) as Record<string, unknown>[];
+
+    useMeta({
+      title:       post.value.title,
+      description: post.value.excerpt ?? "",
+      image:       post.value.featured_image?.meta?.download_url,
+      url:         window.location.href,
+      type:        "article",
+      publishedAt: post.value.meta.first_published_at ?? undefined,
+      author:      author?.name,
+      schemas,
     });
   } catch {
     notFound.value = true;
