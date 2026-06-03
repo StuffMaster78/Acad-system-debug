@@ -293,6 +293,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminAnalyticsView.vue"),
       },
       {
+        path: "seo-intelligence",
+        name: "admin-seo-intelligence",
+        component: () => import("@/views/admin/AdminSeoIntelligenceView.vue"),
+      },
+      {
         path: "charts",
         name: "admin-charts",
         component: () => import("@/views/admin/AdminChartsView.vue"),
@@ -880,6 +885,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "analytics",
         name: "superadmin-analytics",
         component: () => import("@/views/admin/AdminAnalyticsView.vue"),
+      },
+      {
+        path: "seo-intelligence",
+        name: "superadmin-seo-intelligence",
+        component: () => import("@/views/admin/AdminSeoIntelligenceView.vue"),
       },
       {
         path: "charts",

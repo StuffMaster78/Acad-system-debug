@@ -135,6 +135,11 @@
           </div>
         </div>
 
+        <!-- Ask Widget -->
+        <div class="mt-10">
+          <AskWidget :placeholder="`Ask a question about '${post?.title ?? 'this topic'}'…`" />
+        </div>
+
         <!-- CTA -->
         <div class="mt-10 rounded-2xl bg-gradient-to-br from-ink to-slate-700 p-8 text-center text-white">
           <h3 class="text-2xl font-bold">Need help with your assignment?</h3>
@@ -169,6 +174,7 @@ import {
 } from "@/composables/useMeta";
 import BlockRenderer from "@/components/cms/BlockRenderer.vue";
 import CitationList from "@/components/cms/CitationList.vue";
+import AskWidget from "@/components/ui/AskWidget.vue";
 
 const route = useRoute();
 const isLoading = ref(true);

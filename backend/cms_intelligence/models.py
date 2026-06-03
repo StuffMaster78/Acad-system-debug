@@ -424,3 +424,109 @@ class TaskSyncLog(models.Model):
     def __str__(self) -> str:
         site_name = self.site.site_name if self.site_id else "all sites"
         return f"{self.task} | {site_name} | {self.status} @ {self.ran_at:%Y-%m-%d %H:%M}"
+
+
+# ===========================================================================
+# 8. Site Search Log — on-site query analytics for AI answer engine
+# ===========================================================================
+
+class SiteSearchLog(models.Model):
+    """
+    One row per on-site search query.
+    Logged by the public AskWidget when a visitor searches.
+    Used for analytics (what are visitors asking?) and to seed the RAG corpus.
+    """
+
+    site = models.ForeignKey(
+        "wagtailcore.Site",
+        on_delete=models.CASCADE,
+        related_name="search_logs",
+    )
+    query = models.CharField(max_length=500, db_index=True)
+    results_count = models.PositiveSmallIntegerField(default=0)
+    # Top result returned (for CTR tracking)
+    top_result_url = models.CharField(max_length=500, blank=True)
+    top_result_title = models.CharField(max_length=255, blank=True)
+    # Optional: session or user hint (no PII)
+    session_key = models.CharField(max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["site", "created_at"]),
+            models.Index(fields=["site", "query"]),
+        ]
+
+    def __str__(self) -> str:
+        return f'"{self.query}" ({self.results_count} results) @ {self.created_at:%Y-%m-%d}'
+
+
+# ===========================================================================
+# 9. Personalization Rules — UTM-based copy variants for public pages
+# ===========================================================================
+
+class PersonalizationRule(models.Model):
+    """
+    Maps a visitor persona (derived from UTM signals) to custom headline/CTA copy.
+    Applied by the frontend usePersonalization composable.
+    Admins configure these in the SEO & Intelligence portal.
+    """
+
+    site = models.ForeignKey(
+        "wagtailcore.Site",
+        on_delete=models.CASCADE,
+        related_name="personalization_rules",
+    )
+
+    # Persona identifier — matches the channel derived in useUtm.ts
+    PERSONA_CHOICES = [
+        ("organic_search",  "Organic Search (Google, Bing)"),
+        ("paid_search",     "Paid Search (Google Ads, Bing Ads)"),
+        ("social",          "Social Media (Facebook, Instagram, TikTok)"),
+        ("email",           "Email Campaign"),
+        ("referral",        "Referral / Partner"),
+        ("direct",          "Direct / Brand"),
+        ("affiliate",       "Affiliate"),
+        ("custom",          "Custom UTM match"),
+    ]
+    persona = models.CharField(max_length=30, choices=PERSONA_CHOICES, db_index=True)
+
+    # Fine-grained UTM match (optional — null = match all traffic for this persona)
+    utm_source  = models.CharField(max_length=100, blank=True,
+        help_text="Match exact utm_source value (leave blank = any)")
+    utm_medium  = models.CharField(max_length=100, blank=True)
+    utm_campaign = models.CharField(max_length=200, blank=True)
+
+    # Copy variants
+    hero_headline = models.CharField(
+        max_length=200, blank=True,
+        help_text="Overrides the default hero headline for this persona",
+    )
+    hero_subheadline = models.CharField(max_length=300, blank=True)
+    cta_label = models.CharField(
+        max_length=80, blank=True,
+        help_text="CTA button label override (e.g. 'Claim your 10% off')",
+    )
+    cta_url = models.CharField(max_length=500, blank=True)
+    trust_badge = models.CharField(
+        max_length=200, blank=True,
+        help_text="Short trust line shown below the CTA (e.g. 'Used by 12,000+ students')",
+    )
+
+    is_active = models.BooleanField(default=True)
+    priority = models.PositiveSmallIntegerField(
+        default=10,
+        help_text="Higher = checked first. First matching active rule wins.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-priority", "persona"]
+        indexes = [
+            models.Index(fields=["site", "persona", "is_active"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_persona_display()} — {self.hero_headline[:60] or '(no headline)'}"
