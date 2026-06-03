@@ -53,6 +53,10 @@ const addonTotal = computed(() =>
     .reduce((s, a) => s + Number(a.flat_amount), 0),
 );
 const couponApplied = ref(false);
+const couponError = ref("");
+const applyingCoupon = ref(false);
+interface DiscountPreview { code: string; amount: number; final: number }
+const discountPreview = ref<DiscountPreview | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const attempted = ref(false);
 const touched = reactive(new Set<string>());
@@ -224,12 +228,46 @@ async function loadConfig() {
 async function calculate() {
   error.value = "";
   success.value = "";
+  discountPreview.value = null;
+  couponApplied.value = false;
   try {
     await orders.pricePaperOrder(quotePayload());
-    // Fire begin_checkout once user has a real price (top of purchase funnel)
     if (quotedPrice.value != null) beginCheckout(quotedPrice.value);
   } catch {
     error.value = "Pricing failed. Check your order details and try again.";
+  }
+}
+
+async function applyDiscount() {
+  if (!couponCode.value.trim() || quotedPrice.value == null) return;
+  applyingCoupon.value = true;
+  couponError.value = "";
+  discountPreview.value = null;
+  try {
+    const { api, apiPath } = await import("@/api/client");
+    const { data } = await api.post<{ discount: { discount_code: string; discount_amount: string; final_amount: string } | null }>(
+      apiPath("/discounts/client/preview/"),
+      {
+        subtotal: quotedPrice.value.toFixed(2),
+        payable_type: "order",
+        entered_code: couponCode.value.trim().toUpperCase(),
+        has_prior_paid_purchase: false,
+      },
+    );
+    if (data.discount) {
+      discountPreview.value = {
+        code: data.discount.discount_code,
+        amount: Number(data.discount.discount_amount),
+        final: Number(data.discount.final_amount),
+      };
+      couponApplied.value = true;
+    } else {
+      couponError.value = "Code not valid for this order.";
+    }
+  } catch {
+    couponError.value = "Could not validate code. Please try again.";
+  } finally {
+    applyingCoupon.value = false;
   }
 }
 
@@ -619,7 +657,18 @@ watch(() => form.service_code, loadAddons);
 
           <div v-if="orders.latestQuote" class="mt-3 rounded-md bg-slate-50 p-3">
             <p class="text-xs text-graphite">Calculated total</p>
-            <p class="mt-1 text-2xl font-semibold text-ink">
+            <template v-if="discountPreview">
+              <p class="mt-1 text-sm text-graphite line-through">
+                {{ orders.latestQuote.currency }} {{ orders.latestQuote.calculated_price }}
+              </p>
+              <p class="text-2xl font-semibold text-emerald-700">
+                {{ orders.latestQuote.currency }} {{ discountPreview.final.toFixed(2) }}
+              </p>
+              <p class="mt-0.5 text-xs text-emerald-600">
+                Code <strong>{{ discountPreview.code }}</strong> saves {{ orders.latestQuote.currency }} {{ discountPreview.amount.toFixed(2) }}
+              </p>
+            </template>
+            <p v-else class="mt-1 text-2xl font-semibold text-ink">
               {{ orders.latestQuote.currency }} {{ orders.latestQuote.calculated_price }}
             </p>
             <p class="mt-1 text-xs text-graphite">
@@ -675,21 +724,31 @@ watch(() => form.service_code, loadAddons);
               v-model.trim="couponCode"
               type="text"
               placeholder="Enter promo or discount code"
-              class="focus-ring min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono uppercase"
-              :class="couponApplied ? 'border-emerald-400 bg-emerald-50' : ''"
-              @input="couponApplied = false"
+              class="focus-ring min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm font-mono uppercase"
+              :class="couponApplied ? 'border-emerald-400 bg-emerald-50' : couponError ? 'border-red-300' : 'border-slate-200'"
+              @input="couponApplied = false; couponError = ''; discountPreview = null"
+              @keydown.enter.prevent="applyDiscount"
             />
+            <button
+              v-if="couponCode && !couponApplied"
+              type="button"
+              :disabled="applyingCoupon || quotedPrice == null"
+              class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+              @click="applyDiscount"
+            >{{ applyingCoupon ? "…" : "Apply" }}</button>
             <button
               v-if="couponCode"
               type="button"
               class="rounded-lg border border-slate-200 px-3 py-2 text-xs text-graphite hover:bg-slate-50"
-              @click="couponCode = ''; couponApplied = false"
+              @click="couponCode = ''; couponApplied = false; couponError = ''; discountPreview = null"
             >Clear</button>
           </div>
-          <p v-if="couponApplied" class="mt-1.5 text-xs text-emerald-700">
-             Code applied — discount will be calculated at checkout.
+          <p v-if="couponApplied && discountPreview" class="mt-1.5 text-xs text-emerald-700 font-medium">
+            ✓ Code applied — price updated above.
           </p>
-          <p class="mt-1.5 text-xs text-graphite">Applied at checkout if valid for your order.</p>
+          <p v-else-if="couponError" class="mt-1.5 text-xs text-red-600">{{ couponError }}</p>
+          <p v-else-if="couponCode && quotedPrice == null" class="mt-1.5 text-xs text-graphite">Calculate a price first, then apply your code.</p>
+          <p v-else class="mt-1.5 text-xs text-graphite">Applied at checkout if valid for your order.</p>
         </section>
 
         <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
