@@ -252,6 +252,13 @@ app.conf.beat_schedule = { # type: ignore[attr-defined]
             "task": "orders.tasks.order_monitoring_tasks.send_operational_writer_reminders",
             "schedule": crontab(minute="*/15"),
     },
+    # Notify writers at 24 h, 6 h, and 1 h before their deadline.
+    # Runs every 30 min; NotificationService cooldown (3600 s) prevents
+    # duplicate sends within the same tier window.
+    "orders-check-deadline-approaching-every-30-minutes": {
+        "task": "orders.tasks.check_order_deadlines",
+        "schedule": crontab(minute="*/30"),
+    },
     # Close windows at 23:50 every night.
     # Runs just before midnight so end_date == today is still true.
     # auto_confirm_pending=True so no events are excluded.

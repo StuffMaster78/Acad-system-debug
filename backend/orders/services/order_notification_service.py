@@ -242,6 +242,19 @@ class OrderNotificationService:
             },
         )
 
+    @classmethod
+    def notify_order_deadline_approaching(
+        cls, *, order, hours_remaining: int
+    ) -> None:
+        writer_user = cls._resolve_writer_user(order)
+        cls._notify(
+            event_key="order.deadline_approaching",
+            order=order,
+            recipient=writer_user,
+            context={"hours_remaining": hours_remaining},
+            priority="high",
+        )
+
     @staticmethod
     def _resolve_writer_user(order) -> Optional[Any]:
         try:
