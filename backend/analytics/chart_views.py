@@ -16,8 +16,9 @@ to ECharts without any transformation:
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from math import ceil
 
 from django.contrib.auth import get_user_model
 from django.db.models import Count, DecimalField, Q, Sum
@@ -71,6 +72,52 @@ def _quarter_label(d: date) -> str:
     q = (d.month - 1) // 3 + 1
     return f"Q{q} {d.year}"
 
+def _safe_int(value, default: int, *, minimum: int = 1, maximum: int = 36) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(minimum, min(parsed, maximum))
+
+def _add_months(d: date, months: int) -> date:
+    month_index = d.month - 1 + months
+    year = d.year + month_index // 12
+    month = month_index % 12 + 1
+    return date(year, month, 1)
+
+def _month_start(d: date) -> date:
+    return date(d.year, d.month, 1)
+
+def _quarter_start(d: date) -> date:
+    month = ((d.month - 1) // 3) * 3 + 1
+    return date(d.year, month, 1)
+
+def _as_aware_start(d: date):
+    return timezone.make_aware(
+        datetime.combine(d, time.min),
+        timezone.get_current_timezone(),
+    )
+
+def _period_buckets(*, months: int, period: str = "month") -> tuple[list[date], object]:
+    today = timezone.localdate()
+    if period == "quarter":
+        count = max(1, ceil(months / 3))
+        current = _quarter_start(today)
+        buckets = [_add_months(current, (idx - count + 1) * 3) for idx in range(count)]
+    else:
+        current = _month_start(today)
+        buckets = [_add_months(current, idx - months + 1) for idx in range(months)]
+    return buckets, _as_aware_start(buckets[0])
+
+def _chart_summary(data: list[float | int], labels: list[str]) -> dict:
+    if len(data) < 2:
+        return {}
+    return {
+        "current": {"label": labels[-1], "value": data[-1]},
+        "previous": {"label": labels[-2], "value": data[-2]},
+        "change_pct": _pct_change(float(data[-1]), float(data[-2])),
+    }
+
 def _pct_change(current: float, previous: float) -> float | None:
     if not previous:
         return None
@@ -120,13 +167,12 @@ class RevenueTrendView(APIView):
     def get(self, request):
         from orders.models.orders import Order
 
-        months = min(int(request.query_params.get("months", 12)), 36)
+        months = _safe_int(request.query_params.get("months"), 12, maximum=36)
         period = request.query_params.get("period", "month")
+        if period not in {"month", "quarter"}:
+            period = "month"
         wf = _website_filter(request)
-
-        start = (timezone.now() - timedelta(days=months * 31)).replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
+        buckets, start = _period_buckets(months=months, period=period)
 
         trunc = TruncQuarter if period == "quarter" else TruncMonth
         label_fn = _quarter_label if period == "quarter" else _month_label
@@ -142,11 +188,11 @@ class RevenueTrendView(APIView):
             .order_by("period")
         )
 
-        labels = [label_fn(r["period"].date()) for r in rows]
-        revenue_data = [float(r["revenue"] or 0) for r in rows]
-        orders_data = [r["orders"] for r in rows]
-
-        summary = self._summary(revenue_data, labels)
+        row_map = {label_fn(r["period"].date()): r for r in rows}
+        labels = [label_fn(bucket) for bucket in buckets]
+        revenue_data = [float((row_map.get(label) or {}).get("revenue") or 0) for label in labels]
+        orders_data = [int((row_map.get(label) or {}).get("orders") or 0) for label in labels]
+        summary = _chart_summary(revenue_data, labels)
 
         return Response(
             {
@@ -158,16 +204,6 @@ class RevenueTrendView(APIView):
                 "summary": summary,
             }
         )
-
-    def _summary(self, data: list, labels: list) -> dict:
-        if len(data) < 2:
-            return {}
-        return {
-            "current": {"label": labels[-1], "value": data[-1]},
-            "previous": {"label": labels[-2], "value": data[-2]},
-            "change_pct": _pct_change(data[-1], data[-2]),
-        }
-
 
 # ── Orders by status ──────────────────────────────────────────────────────────
 
@@ -188,12 +224,9 @@ class OrdersTrendView(APIView):
     def get(self, request):
         from orders.models.orders import Order
 
-        months = min(int(request.query_params.get("months", 12)), 36)
+        months = _safe_int(request.query_params.get("months"), 12, maximum=36)
         wf = _website_filter(request)
-
-        start = (timezone.now() - timedelta(days=months * 31)).replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
+        buckets, start = _period_buckets(months=months)
 
         rows = (
             Order.objects.filter(wf, created_at__gte=start)
@@ -203,17 +236,16 @@ class OrdersTrendView(APIView):
             .order_by("month", "status")
         )
 
-        # Build month labels
-        months_set: dict[str, dict[str, int]] = {}
+        labels = [_month_label(bucket) for bucket in buckets]
+        months_set: dict[str, dict[str, int]] = {
+            label: {s: 0 for s in self.TRACKED_STATUSES}
+            for label in labels
+        }
         for r in rows:
             label = _month_label(r["month"].date())
-            if label not in months_set:
-                months_set[label] = {s: 0 for s in self.TRACKED_STATUSES}
             status = r["status"]
-            if status in months_set[label]:
+            if label in months_set and status in months_set[label]:
                 months_set[label][status] += r["count"]
-
-        labels = list(months_set.keys())
 
         series = [
             {
@@ -226,13 +258,7 @@ class OrdersTrendView(APIView):
         ]
 
         total_by_month = [sum(months_set[lbl].values()) for lbl in labels]
-        summary = {}
-        if len(total_by_month) >= 2:
-            summary = {
-                "current": {"label": labels[-1], "value": total_by_month[-1]},
-                "previous": {"label": labels[-2], "value": total_by_month[-2]},
-                "change_pct": _pct_change(total_by_month[-1], total_by_month[-2]),
-            }
+        summary = _chart_summary(total_by_month, labels)
 
         return Response({"labels": labels, "series": series, "summary": summary})
 
@@ -251,12 +277,9 @@ class ClientGrowthView(APIView):
     permission_classes = [IsStaffOrAdmin]
 
     def get(self, request):
-        months = min(int(request.query_params.get("months", 12)), 36)
+        months = _safe_int(request.query_params.get("months"), 12, maximum=36)
         wf = _website_filter(request)
-
-        start = (timezone.now() - timedelta(days=months * 31)).replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
+        buckets, start = _period_buckets(months=months)
 
         qs = User.objects.filter(wf, role="client", date_joined__gte=start)
 
@@ -267,8 +290,9 @@ class ClientGrowthView(APIView):
             .order_by("month")
         )
 
-        labels = [_month_label(r["month"].date()) for r in rows]
-        new_data = [r["new_clients"] for r in rows]
+        row_map = {_month_label(r["month"].date()): r["new_clients"] for r in rows}
+        labels = [_month_label(bucket) for bucket in buckets]
+        new_data = [int(row_map.get(label, 0)) for label in labels]
 
         # Cumulative running total
         cumulative = []
@@ -278,13 +302,7 @@ class ClientGrowthView(APIView):
             running += n
             cumulative.append(running)
 
-        summary: dict = {}
-        if len(new_data) >= 2:
-            summary = {
-                "current": {"label": labels[-1], "value": new_data[-1]},
-                "previous": {"label": labels[-2], "value": new_data[-2]},
-                "change_pct": _pct_change(new_data[-1], new_data[-2]),
-            }
+        summary = _chart_summary(new_data, labels)
 
         return Response(
             {
@@ -316,9 +334,11 @@ class DailySparklineView(APIView):
         from orders.models.orders import Order
         from django.db.models.functions import TruncDay
 
-        days = min(int(request.query_params.get("days", 14)), 30)
+        days = _safe_int(request.query_params.get("days"), 14, maximum=30)
         wf = _website_filter(request)
-        start = timezone.now() - timedelta(days=days)
+        today = timezone.localdate()
+        buckets = [today - timedelta(days=idx) for idx in range(days - 1, -1, -1)]
+        start = _as_aware_start(buckets[0])
 
         rows = (
             Order.objects.filter(wf, payment_status='paid', created_at__gte=start)
@@ -331,9 +351,10 @@ class DailySparklineView(APIView):
             .order_by("day")
         )
 
-        labels = [r["day"].strftime("%-d %b") for r in rows]
-        revenue_data = [float(r["revenue"] or 0) for r in rows]
-        orders_data = [r["orders"] for r in rows]
+        row_map = {r["day"].date(): r for r in rows}
+        labels = [f"{bucket.day} {bucket:%b}" for bucket in buckets]
+        revenue_data = [float((row_map.get(bucket) or {}).get("revenue") or 0) for bucket in buckets]
+        orders_data = [int((row_map.get(bucket) or {}).get("orders") or 0) for bucket in buckets]
 
         total_revenue = sum(revenue_data)
         total_orders = sum(orders_data)
@@ -371,7 +392,11 @@ class PeriodComparisonView(APIView):
         from orders.models.orders import Order
 
         metric = request.query_params.get("metric", "revenue")
+        if metric not in {"revenue", "orders", "clients"}:
+            metric = "revenue"
         compare = request.query_params.get("compare", "mom")
+        if compare not in {"mom", "qoq", "yoy"}:
+            compare = "mom"
         wf = _website_filter(request)
         now = timezone.now()
 
@@ -402,15 +427,42 @@ class PeriodComparisonView(APIView):
             label_prev = prev_start.strftime("%b %Y")
 
         if metric == "clients":
-            cur_val = User.objects.filter(wf, role="client", date_joined__gte=cur_start, date_joined__lte=cur_end).count()
-            prev_val = User.objects.filter(wf, role="client", date_joined__gte=prev_start, date_joined__lte=prev_end).count()
+            cur_val = User.objects.filter(
+                wf,
+                role="client",
+                date_joined__gte=cur_start,
+                date_joined__lt=cur_end,
+            ).count()
+            prev_val = User.objects.filter(
+                wf,
+                role="client",
+                date_joined__gte=prev_start,
+                date_joined__lt=prev_end,
+            ).count()
         elif metric == "orders":
-            cur_val = Order.objects.filter(wf, created_at__gte=cur_start, created_at__lte=cur_end).count()
-            prev_val = Order.objects.filter(wf, created_at__gte=prev_start, created_at__lte=prev_end).count()
+            cur_val = Order.objects.filter(
+                wf,
+                created_at__gte=cur_start,
+                created_at__lt=cur_end,
+            ).count()
+            prev_val = Order.objects.filter(
+                wf,
+                created_at__gte=prev_start,
+                created_at__lt=prev_end,
+            ).count()
         else: # revenue
-            from django.db.models import Sum, DecimalField
-            cur_val = float(Order.objects.filter(wf, payment_status='paid', created_at__gte=cur_start, created_at__lte=cur_end).aggregate(v=Sum("total_price", output_field=DecimalField()))["v"] or 0)
-            prev_val = float(Order.objects.filter(wf, payment_status='paid', created_at__gte=prev_start, created_at__lte=prev_end).aggregate(v=Sum("total_price", output_field=DecimalField()))["v"] or 0)
+            cur_val = float(Order.objects.filter(
+                wf,
+                payment_status='paid',
+                created_at__gte=cur_start,
+                created_at__lt=cur_end,
+            ).aggregate(v=Sum("total_price", output_field=DecimalField()))["v"] or 0)
+            prev_val = float(Order.objects.filter(
+                wf,
+                payment_status='paid',
+                created_at__gte=prev_start,
+                created_at__lt=prev_end,
+            ).aggregate(v=Sum("total_price", output_field=DecimalField()))["v"] or 0)
 
         return Response({
             "metric": metric,
@@ -441,10 +493,8 @@ class WriterEarningsTrendView(APIView):
     def get(self, request):
         from wallets.models import WalletEntry
 
-        months = min(int(request.query_params.get("months", 12)), 36)
-        start = (timezone.now() - timedelta(days=months * 31)).replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
+        months = _safe_int(request.query_params.get("months"), 12, maximum=36)
+        buckets, start = _period_buckets(months=months)
 
         rows = (
             WalletEntry.objects.filter(
@@ -458,17 +508,12 @@ class WriterEarningsTrendView(APIView):
             .order_by("month")
         )
 
-        labels = [_month_label(r["month"].date()) for r in rows]
-        earnings_data = [float(r["earnings"] or 0) for r in rows]
-        events_data = [r["events"] for r in rows]
+        row_map = {_month_label(r["month"].date()): r for r in rows}
+        labels = [_month_label(bucket) for bucket in buckets]
+        earnings_data = [float((row_map.get(label) or {}).get("earnings") or 0) for label in labels]
+        events_data = [int((row_map.get(label) or {}).get("events") or 0) for label in labels]
 
-        summary: dict = {}
-        if len(earnings_data) >= 2:
-            summary = {
-                "current": {"label": labels[-1], "value": earnings_data[-1]},
-                "previous": {"label": labels[-2], "value": earnings_data[-2]},
-                "change_pct": _pct_change(earnings_data[-1], earnings_data[-2]),
-            }
+        summary = _chart_summary(earnings_data, labels)
 
         return Response(
             {
@@ -496,10 +541,8 @@ class ClientSpendingTrendView(APIView):
     def get(self, request):
         from orders.models.orders import Order
 
-        months = min(int(request.query_params.get("months", 12)), 36)
-        start = (timezone.now() - timedelta(days=months * 31)).replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
+        months = _safe_int(request.query_params.get("months"), 12, maximum=36)
+        buckets, start = _period_buckets(months=months)
 
         rows = (
             Order.objects.filter(client=request.user, payment_status='paid', created_at__gte=start)
@@ -512,17 +555,12 @@ class ClientSpendingTrendView(APIView):
             .order_by("month")
         )
 
-        labels = [_month_label(r["month"].date()) for r in rows]
-        spend_data = [float(r["spend"] or 0) for r in rows]
-        orders_data = [r["orders"] for r in rows]
+        row_map = {_month_label(r["month"].date()): r for r in rows}
+        labels = [_month_label(bucket) for bucket in buckets]
+        spend_data = [float((row_map.get(label) or {}).get("spend") or 0) for label in labels]
+        orders_data = [int((row_map.get(label) or {}).get("orders") or 0) for label in labels]
 
-        summary: dict = {}
-        if len(spend_data) >= 2:
-            summary = {
-                "current": {"label": labels[-1], "value": spend_data[-1]},
-                "previous": {"label": labels[-2], "value": spend_data[-2]},
-                "change_pct": _pct_change(spend_data[-1], spend_data[-2]),
-            }
+        summary = _chart_summary(spend_data, labels)
 
         return Response(
             {
@@ -553,8 +591,8 @@ class RevenueByWebsiteView(APIView):
         if getattr(request.user, "role", None) not in ("superadmin",) and not request.user.is_superuser:
             return Response({"detail": "Superadmin only."}, status=403)
 
-        months = min(int(request.query_params.get("months", 12)), 36)
-        top = min(int(request.query_params.get("top", 10)), 20)
+        months = _safe_int(request.query_params.get("months"), 12, maximum=36)
+        top = _safe_int(request.query_params.get("top"), 10, maximum=20)
         start = timezone.now() - timedelta(days=months * 31)
 
         rows = (
