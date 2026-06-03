@@ -527,7 +527,7 @@ class OperationsCommandCenterViewSet(ViewSet):
     def _writer_review_items(self, website: Website | None) -> list[CommandItem]:
         qs = (
             WriterTestAttempt.objects.filter(status=AttemptStatus.PENDING_REVIEW)
-            .select_related("quiz", "quiz__website", "writer", "writer__user")
+            .select_related("quiz", "quiz__website", "writer", "writer__account_profile")
             .order_by("submitted_at", "started_at")[:25]
         )
         if website is not None:
