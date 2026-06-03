@@ -1,0 +1,47 @@
+{% extends "notifications/emails/base.html" %}
+{% block title %}QA Review Required — Order #{{ order_id }}{% endblock %}
+{% block tagline %}<div class="tagline">Staff Action Required</div>{% endblock %}
+
+{% block content %}
+<h1>Order ready for QA review</h1>
+<p class="lead">Order <strong>#{{ order_id }}</strong> has been submitted and is waiting in the QA review queue.</p>
+
+{% if is_urgent %}
+<div class="info-box danger">
+    <div class="label">Priority</div>
+    <div class="value">URGENT</div>
+</div>
+{% else %}
+<div class="info-box">
+    <div class="label">Order</div>
+    <div class="value">#{{ order_id }}</div>
+</div>
+{% endif %}
+
+<table class="detail-table">
+    <tr>
+        <td>Order ID</td>
+        <td>#{{ order_id }}</td>
+    </tr>
+    {% if order_topic %}
+    <tr>
+        <td>Topic</td>
+        <td>{{ order_topic }}</td>
+    </tr>
+    {% endif %}
+    {% if total_price %}
+    <tr>
+        <td>Value</td>
+        <td>{{ total_price }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <td>Status</td>
+        <td>Pending QA Review</td>
+    </tr>
+</table>
+
+<div class="btn-wrapper">
+    <a href="{{ order_url|default:"#" }}" class="btn">Review Now</a>
+</div>
+{% endblock %}

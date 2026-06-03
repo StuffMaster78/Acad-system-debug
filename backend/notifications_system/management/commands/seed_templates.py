@@ -928,6 +928,485 @@ DEFAULT_TEMPLATES = {
             ],
         },
     },
+
+    # Orders — additional events
+    'order.updated': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Order #{{order_id}} has been updated',
+            'body_html': 'notifications/emails/order_status_update.html',
+            'body_text': 'Order #{{order_id}} has been updated.',
+            'available_variables': ['order_id', 'order_topic', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Order #{{order_id}} updated',
+            'message': 'Your order has been updated.',
+            'available_variables': ['order_id'],
+        },
+    },
+    'order.approved': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Order #{{order_id}} has been approved',
+            'body_html': 'notifications/emails/order_status_update.html',
+            'body_text': 'Order #{{order_id}} has been approved.',
+            'available_variables': ['order_id', 'order_topic', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Order #{{order_id}} approved',
+            'message': 'Your order has been approved.',
+            'available_variables': ['order_id'],
+        },
+    },
+    'order.rejected': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Order #{{order_id}} was not approved',
+            'body_html': 'notifications/emails/order_cancelled.html',
+            'body_text': 'Order #{{order_id}} was not approved. Reason: {{reason}}.',
+            'available_variables': ['order_id', 'order_topic', 'reason', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Order #{{order_id}} rejected',
+            'message': 'Your order was not approved.',
+            'available_variables': ['order_id', 'reason'],
+        },
+    },
+    'order.reassigned': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Order #{{order_id}} has been reassigned',
+            'body_html': 'notifications/emails/order_assigned.html',
+            'body_text': 'Order #{{order_id}} has been reassigned to {{writer_name}}.',
+            'available_variables': ['order_id', 'writer_name', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Order #{{order_id}} reassigned',
+            'message': 'Order #{{order_id}} has been reassigned.',
+            'available_variables': ['order_id', 'writer_name'],
+        },
+    },
+    'order.revision_completed': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Revision complete for Order #{{order_id}}',
+            'body_html': 'notifications/emails/revision_completed.html',
+            'body_text': 'The revision for order #{{order_id}} has been completed.',
+            'available_variables': ['order_id', 'order_topic', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Revision complete',
+            'message': 'The revision for order #{{order_id}} is ready.',
+            'available_variables': ['order_id'],
+        },
+    },
+    'order.dispute_resolved': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Dispute resolved for Order #{{order_id}}',
+            'body_html': 'notifications/emails/dispute_resolved.html',
+            'body_text': 'The dispute for order #{{order_id}} has been resolved.',
+            'available_variables': [
+                'order_id', 'resolution', 'resolved_by', 'resolution_notes', 'user_name',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Dispute resolved',
+            'message': 'The dispute for order #{{order_id}} has been resolved.',
+            'available_variables': ['order_id', 'resolution'],
+        },
+    },
+    'order.dispute_escalated': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Dispute escalated for Order #{{order_id}}',
+            'body_html': 'notifications/emails/ticket_escalated.html',
+            'body_text': 'The dispute for order #{{order_id}} has been escalated.',
+            'available_variables': ['order_id', 'reason'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Dispute escalated',
+            'message': 'The dispute for order #{{order_id}} requires priority attention.',
+            'available_variables': ['order_id', 'reason'],
+        },
+    },
+    'order.rated': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your order has been rated',
+            'body_html': 'notifications/emails/rating_request.html',
+            'body_text': 'Order #{{order_id}} has received a rating.',
+            'available_variables': ['order_id', 'rating', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Order rated',
+            'message': 'Order #{{order_id}} received a {{rating}}-star rating.',
+            'available_variables': ['order_id', 'rating'],
+        },
+    },
+
+    # Wallet — additional events
+    'wallet.tx_failed': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Transaction failed',
+            'body_html': 'notifications/emails/payment_failed.html',
+            'body_text': 'A transaction failed on your account. Reason: {{reason}}.',
+            'available_variables': ['amount', 'reason', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Transaction failed',
+            'message': 'A transaction of {{amount}} failed.',
+            'available_variables': ['amount', 'reason'],
+        },
+    },
+    'wallet.refund_initiated': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your refund has been initiated',
+            'body_html': 'notifications/emails/payment_reminder.html',
+            'body_text': 'A refund of {{amount}} has been initiated and will be processed shortly.',
+            'available_variables': ['amount', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Refund initiated',
+            'message': 'A refund of {{amount}} has been initiated.',
+            'available_variables': ['amount'],
+        },
+    },
+    'wallet.client.funded': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your wallet has been funded',
+            'body_html': 'notifications/emails/wallet_funded.html',
+            'body_text': (
+                'Your wallet has been funded with {{amount}}. '
+                '{{client_disclosure_text}}'
+            ),
+            'available_variables': [
+                'amount', 'user_name', 'website_name',
+                'transaction_id', 'payment_date', 'new_balance',
+                'client_disclosure_text', 'statement_descriptor',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Wallet funded',
+            'message': 'Your wallet has been credited with {{amount}}.',
+            'available_variables': ['amount'],
+        },
+    },
+    'wallet.client.debited': {
+        NotificationChannel.IN_APP: {
+            'title': 'Wallet debited',
+            'message': '{{amount}} was deducted from your wallet for order #{{order_id}}.',
+            'available_variables': ['amount', 'order_id'],
+        },
+    },
+    'wallet.client.refunded': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your refund has been processed',
+            'body_html': 'notifications/emails/refund_processed.html',
+            'body_text': 'A refund of {{amount}} has been returned to your wallet.',
+            'available_variables': ['amount', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Refund processed',
+            'message': '{{amount}} has been returned to your wallet.',
+            'available_variables': ['amount'],
+        },
+    },
+
+    # Payouts — additional events
+    'payout.requested': {
+        NotificationChannel.EMAIL: {
+            'subject': 'New payout request from {{writer_name}}',
+            'body_html': 'notifications/emails/approval_request.html',
+            'body_text': '{{writer_name}} has requested a payout of {{amount}}.',
+            'available_variables': ['writer_name', 'amount', 'payout_id'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Payout requested',
+            'message': '{{writer_name}} requested a payout of {{amount}}.',
+            'available_variables': ['writer_name', 'amount', 'payout_id'],
+        },
+    },
+    'payout.processing': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your payout is being processed',
+            'body_html': 'notifications/emails/compensation_processing.html',
+            'body_text': 'Your payout of {{amount}} is being processed.',
+            'available_variables': ['amount', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Payout processing',
+            'message': 'Your payout of {{amount}} is being processed.',
+            'available_variables': ['amount'],
+        },
+    },
+    'payout.rolled_over': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your payout has been rolled over',
+            'body_html': 'notifications/emails/payment_reminder.html',
+            'body_text': 'Your payout of {{amount}} was rolled over to the next payment window.',
+            'available_variables': ['amount', 'user_name', 'reason'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Payout rolled over',
+            'message': 'Your payout of {{amount}} was rolled to the next window.',
+            'available_variables': ['amount', 'reason'],
+        },
+    },
+
+    # Writer management — additional events
+    'writer.suspended': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your writer account has been suspended',
+            'body_html': 'notifications/emails/account_suspended.html',
+            'body_text': 'Your writer account has been suspended. Reason: {{reason}}.',
+            'available_variables': ['user_name', 'reason'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Account suspended',
+            'message': 'Your writer account has been suspended.',
+            'available_variables': ['reason'],
+        },
+    },
+    'writer.reinstated': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your writer account has been reinstated',
+            'body_html': 'notifications/emails/account_reactivated.html',
+            'body_text': 'Your writer account has been reinstated.',
+            'available_variables': ['user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Account reinstated',
+            'message': 'Your writer account has been reinstated.',
+            'available_variables': [],
+        },
+    },
+    'writer.banned': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your writer account has been banned',
+            'body_html': 'notifications/emails/account_suspended.html',
+            'body_text': 'Your writer account has been permanently banned. Reason: {{reason}}.',
+            'available_variables': ['user_name', 'reason'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Account banned',
+            'message': 'Your writer account has been banned.',
+            'available_variables': ['reason'],
+        },
+    },
+    'writer.unbanned': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your writer account ban has been lifted',
+            'body_html': 'notifications/emails/account_reactivated.html',
+            'body_text': 'Your writer account ban has been lifted.',
+            'available_variables': ['user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Ban lifted',
+            'message': 'Your writer account ban has been lifted.',
+            'available_variables': [],
+        },
+    },
+    'writer.striked': {
+        NotificationChannel.EMAIL: {
+            'subject': 'You have received a strike',
+            'body_html': 'notifications/emails/security_alert.html',
+            'body_text': 'You have received a strike on your writer account. Reason: {{reason}}.',
+            'available_variables': ['user_name', 'reason', 'strike_count'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Strike issued',
+            'message': 'You have received a strike. Strikes: {{strike_count}}.',
+            'available_variables': ['reason', 'strike_count'],
+        },
+    },
+    'writer.probation': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your account has been placed on probation',
+            'body_html': 'notifications/emails/account_suspended.html',
+            'body_text': 'Your writer account has been placed on probation. Reason: {{reason}}.',
+            'available_variables': ['user_name', 'reason'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Account on probation',
+            'message': 'Your account has been placed on probation.',
+            'available_variables': ['reason'],
+        },
+    },
+    'writer.promoted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'You have been promoted!',
+            'body_html': 'notifications/emails/milestone_achieved.html',
+            'body_text': 'Congratulations! You have been promoted to {{new_level}}.',
+            'available_variables': ['user_name', 'new_level'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Promoted!',
+            'message': 'You have been promoted to {{new_level}}.',
+            'available_variables': ['new_level'],
+        },
+    },
+    'writer.demoted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your writer level has changed',
+            'body_html': 'notifications/emails/security_alert.html',
+            'body_text': 'Your writer level has been changed to {{new_level}}.',
+            'available_variables': ['user_name', 'new_level', 'reason'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Level changed',
+            'message': 'Your writer level has changed to {{new_level}}.',
+            'available_variables': ['new_level', 'reason'],
+        },
+    },
+    'writer.reward.issued': {
+        NotificationChannel.EMAIL: {
+            'subject': 'You have received a reward',
+            'body_html': 'notifications/rewards/reward_issued.html',
+            'body_text': 'You have received a reward: {{reward_label}}.',
+            'available_variables': ['user_name', 'reward_label', 'reward_type'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Reward issued',
+            'message': 'You received: {{reward_label}}.',
+            'available_variables': ['reward_label', 'reward_type'],
+        },
+    },
+    'writer.reward.revoked': {
+        NotificationChannel.EMAIL: {
+            'subject': 'A reward has been revoked',
+            'body_html': 'notifications/rewards/reward_revoked.html',
+            'body_text': 'A reward has been revoked from your account. Reason: {{reason}}.',
+            'available_variables': ['user_name', 'reward_label', 'reason'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Reward revoked',
+            'message': '{{reward_label}} has been revoked.',
+            'available_variables': ['reward_label', 'reason'],
+        },
+    },
+
+    # Account — additional events
+    'account.blacklisted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Important notice about your account',
+            'body_html': 'notifications/emails/account_suspended.html',
+            'body_text': 'Your account has been flagged. Please contact support.',
+            'available_variables': ['user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Account flagged',
+            'message': 'Your account has been flagged. Contact support.',
+            'available_variables': [],
+        },
+    },
+    'account.deletion_requested': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Account deletion request received',
+            'body_html': 'notifications/emails/account_deletion.html',
+            'body_text': (
+                'We received a request to delete your account. '
+                'If this was a mistake you can cancel at {{undo_url}}.'
+            ),
+            'available_variables': ['user_name', 'deletion_date', 'undo_url'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Deletion request received',
+            'message': 'Your account deletion request is being processed.',
+            'available_variables': ['undo_url'],
+        },
+    },
+    'account.verified': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your account has been verified',
+            'body_html': 'notifications/emails/account_activation.html',
+            'body_text': 'Your account has been verified. You can now access all features.',
+            'available_variables': ['user_name', 'website_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Account verified',
+            'message': 'Your account has been verified.',
+            'available_variables': [],
+        },
+    },
+    'account.email_changed': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your email address has been changed',
+            'body_html': 'notifications/emails/email_changed.html',
+            'body_text': 'Your email address has been changed.',
+            'available_variables': ['user_name', 'new_email'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Email address changed',
+            'message': 'Your account email has been updated.',
+            'available_variables': ['new_email'],
+        },
+    },
+    'account.2fa_enabled': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Two-factor authentication enabled',
+            'body_html': 'notifications/emails/mfa_setup.html',
+            'body_text': 'Two-factor authentication has been enabled on your account.',
+            'available_variables': ['user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': '2FA enabled',
+            'message': 'Two-factor authentication is now active on your account.',
+            'available_variables': [],
+        },
+    },
+    'account.2fa_disabled': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Two-factor authentication disabled',
+            'body_html': 'notifications/emails/mfa_disabled.html',
+            'body_text': 'Two-factor authentication has been disabled on your account.',
+            'available_variables': ['user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': '2FA disabled',
+            'message': 'Two-factor authentication has been disabled.',
+            'available_variables': [],
+        },
+    },
+
+    # Files — additional events
+    'file.updated': {
+        NotificationChannel.IN_APP: {
+            'title': 'File updated on Order #{{order_id}}',
+            'message': 'A file was updated on order #{{order_id}}.',
+            'available_variables': ['order_id', 'attachment_id'],
+        },
+    },
+    'file.deleted': {
+        NotificationChannel.IN_APP: {
+            'title': 'File removed from Order #{{order_id}}',
+            'message': 'A file was removed from order #{{order_id}}.',
+            'available_variables': ['order_id', 'attachment_id'],
+        },
+    },
+    'file.infected_detected': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Security alert: infected file detected',
+            'body_html': 'notifications/emails/security_alert.html',
+            'body_text': (
+                'An infected file was detected and quarantined for '
+                'order #{{order_id}}.'
+            ),
+            'available_variables': ['order_id', 'attachment_id', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Infected file detected',
+            'message': 'A file on order #{{order_id}} was quarantined.',
+            'available_variables': ['order_id', 'attachment_id'],
+        },
+    },
+
+    # System — additional events
+    'system.announcement': {
+        NotificationChannel.EMAIL: {
+            'subject': '{{title}}',
+            'body_html': 'notifications/emails/feature_announcement.html',
+            'body_text': '{{message}}',
+            'available_variables': ['title', 'message', 'website_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': '{{title}}',
+            'message': '{{message}}',
+            'available_variables': ['title', 'message'],
+        },
+    },
 }
 
 

@@ -38,6 +38,16 @@
     </a>
   </div>
   {% endif %}
+
+  {% if client_disclosure_text %}
+  <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 16px 20px; border-radius: 6px; margin: 24px 0;">
+    <p style="margin: 0 0 6px 0; color: #6b7280; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">Payment Disclosure</p>
+    <p style="margin: 0; font-size: 13px; color: #6b7280; line-height: 1.6;">{{ client_disclosure_text }}</p>
+    {% if statement_descriptor %}
+    <p style="margin: 8px 0 0 0; font-size: 12px; color: #9ca3af;">Statement descriptor: <strong>{{ statement_descriptor }}</strong></p>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
 

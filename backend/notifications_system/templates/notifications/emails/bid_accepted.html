@@ -1,0 +1,36 @@
+{% extends "notifications/emails/base.html" %}
+{% block title %}Bid Accepted — Order #{{ order_id }}{% endblock %}
+{% block tagline %}<div class="tagline">Writer Update</div>{% endblock %}
+
+{% block content %}
+<h1>Your bid was accepted!</h1>
+<p class="lead">Congratulations, {{ user_name|default:"there" }}! Your bid on order <strong>#{{ order_id }}</strong> has been accepted and the order is now assigned to you.</p>
+
+<div class="info-box success">
+    <div class="label">Order Assigned</div>
+    <div class="value">#{{ order_id }}</div>
+</div>
+
+<table class="detail-table">
+    <tr>
+        <td>Order ID</td>
+        <td>#{{ order_id }}</td>
+    </tr>
+    {% if order_topic %}
+    <tr>
+        <td>Topic</td>
+        <td>{{ order_topic }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <td>Status</td>
+        <td>Assigned to you</td>
+    </tr>
+</table>
+
+<p>Please review the order details carefully and get started. Make sure to meet the deadline.</p>
+
+<div class="btn-wrapper">
+    <a href="{{ order_url|default:"#" }}" class="btn btn-success">View Order</a>
+</div>
+{% endblock %}

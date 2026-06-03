@@ -1,0 +1,40 @@
+{% extends "notifications/emails/base.html" %}
+{% block title %}Order #{{ order_id }} Reopened{% endblock %}
+{% block tagline %}<div class="tagline">Order Update</div>{% endblock %}
+
+{% block content %}
+<h1>Order is back in progress</h1>
+<p class="lead">Hi {{ user_name|default:"there" }}, order <strong>#{{ order_id }}</strong> has been reopened and is now back in progress.</p>
+
+<div class="info-box success">
+    <div class="label">Order</div>
+    <div class="value">#{{ order_id }}</div>
+</div>
+
+<table class="detail-table">
+    <tr>
+        <td>Order ID</td>
+        <td>#{{ order_id }}</td>
+    </tr>
+    {% if order_topic %}
+    <tr>
+        <td>Topic</td>
+        <td>{{ order_topic }}</td>
+    </tr>
+    {% endif %}
+    {% if reason %}
+    <tr>
+        <td>Reason</td>
+        <td>{{ reason }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <td>Status</td>
+        <td>In Progress</td>
+    </tr>
+</table>
+
+<div class="btn-wrapper">
+    <a href="{{ order_url|default:"#" }}" class="btn">View Order</a>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "notifications/emails/base.html" %}
+{% block title %}Delivery Files Unlocked — Order #{{ order_id }}{% endblock %}
+{% block tagline %}<div class="tagline">Files Ready</div>{% endblock %}
+
+{% block content %}
+<h1>Your files are ready to download</h1>
+<p class="lead">Hi {{ client_name|default:"there" }}, the delivery files for order <strong>#{{ order_id }}</strong> are now unlocked and available for download.</p>
+
+<div class="info-box success">
+    <div class="label">Files Unlocked</div>
+    <div class="value">#{{ order_id }}</div>
+</div>
+
+<table class="detail-table">
+    <tr>
+        <td>Order ID</td>
+        <td>#{{ order_id }}</td>
+    </tr>
+    {% if order_topic %}
+    <tr>
+        <td>Topic</td>
+        <td>{{ order_topic }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <td>Status</td>
+        <td>Files available for download</td>
+    </tr>
+</table>
+
+<div class="btn-wrapper">
+    <a href="{{ download_url|default:order_url|default:"#" }}" class="btn btn-success">Download Files</a>
+</div>
+
+<hr class="divider">
+<p style="font-size:13px; color:#888;">
+    If you are satisfied with the work, please take a moment to leave a rating.
+    Your feedback helps maintain quality on {{ website_name|default:"our platform" }}.
+</p>
+{% endblock %}

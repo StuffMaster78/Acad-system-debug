@@ -17,6 +17,21 @@ logger = logging.getLogger(__name__)
 TEMPLATE_CACHE_TTL = 300 # 5 minutes
 
 
+def _is_template_path(text: str) -> bool:
+    """
+    Returns True if text looks like a Django template file path
+    (e.g. 'notifications/emails/order_confirmation.html') rather than
+    inline HTML or an inline template string.
+    """
+    stripped = text.strip()
+    return (
+        stripped.endswith('.html')
+        and '\n' not in stripped
+        and not stripped.startswith('<')
+        and not stripped.startswith('{%')
+    )
+
+
 class TemplateService:
     """
     Resolves and renders notification templates.
@@ -154,6 +169,9 @@ class TemplateService:
             if not text:
                 return ''
             try:
+                if _is_template_path(text):
+                    from django.template.loader import render_to_string
+                    return render_to_string(text, context or {})
                 return Template(text).render(ctx)
             except Exception as exc:
                 logger.warning(

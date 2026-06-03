@@ -1,0 +1,43 @@
+{% extends "notifications/emails/base.html" %}
+{% block title %}Dispute Resolved — Order #{{ order_id }}{% endblock %}
+{% block tagline %}<div class="tagline">Order Update</div>{% endblock %}
+
+{% block content %}
+<h1>Dispute resolved</h1>
+<p class="lead">Hi {{ user_name|default:"there" }}, the dispute for order <strong>#{{ order_id }}</strong> has been resolved.</p>
+
+<div class="info-box success">
+    <div class="label">Resolution</div>
+    <div class="value">Dispute Closed</div>
+</div>
+
+<table class="detail-table">
+    <tr>
+        <td>Order ID</td>
+        <td>#{{ order_id }}</td>
+    </tr>
+    {% if resolution %}
+    <tr>
+        <td>Resolution</td>
+        <td>{{ resolution }}</td>
+    </tr>
+    {% endif %}
+    {% if resolved_by %}
+    <tr>
+        <td>Resolved by</td>
+        <td>{{ resolved_by }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+{% if resolution_notes %}
+<div class="info-box">
+    <div class="label">Notes</div>
+    <p style="margin:0; font-size:14px;">{{ resolution_notes }}</p>
+</div>
+{% endif %}
+
+<div class="btn-wrapper">
+    <a href="{{ order_url|default:"#" }}" class="btn">View Order</a>
+</div>
+{% endblock %}

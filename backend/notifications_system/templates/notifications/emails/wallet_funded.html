@@ -1,0 +1,51 @@
+{% extends "notifications/emails/base.html" %}
+{% block title %}Wallet Funded — {{ website_name|default:"Platform" }}{% endblock %}
+{% block tagline %}<div class="tagline">Payment Receipt</div>{% endblock %}
+
+{% block content %}
+<h1>Payment received</h1>
+<p class="lead">Hi {{ user_name|default:"there" }}, your wallet has been funded successfully.</p>
+
+<div class="info-box success">
+    <div class="label">Amount Credited</div>
+    <div class="value">{{ amount }}</div>
+</div>
+
+<table class="detail-table">
+    {% if transaction_id %}
+    <tr>
+        <td>Transaction ID</td>
+        <td><code style="font-size:13px;">{{ transaction_id }}</code></td>
+    </tr>
+    {% endif %}
+    {% if payment_date %}
+    <tr>
+        <td>Date</td>
+        <td>{{ payment_date }}</td>
+    </tr>
+    {% endif %}
+    {% if new_balance %}
+    <tr>
+        <td>New Balance</td>
+        <td>{{ new_balance }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+{% if cta_url %}
+<div class="btn-wrapper">
+    <a href="{{ cta_url }}" class="btn btn-success">{{ cta_label|default:"View Wallet" }}</a>
+</div>
+{% endif %}
+
+{% if client_disclosure_text %}
+<hr class="divider">
+<div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 16px 20px; border-radius: 6px; margin: 16px 0;">
+    <p style="margin: 0 0 6px 0; color: #6b7280; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">Payment Disclosure</p>
+    <p style="margin: 0; font-size: 13px; color: #6b7280; line-height: 1.6;">{{ client_disclosure_text }}</p>
+    {% if statement_descriptor %}
+    <p style="margin: 8px 0 0 0; font-size: 12px; color: #9ca3af;">Statement descriptor: <strong>{{ statement_descriptor }}</strong></p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
