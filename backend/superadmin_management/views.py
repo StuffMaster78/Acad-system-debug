@@ -487,8 +487,16 @@ class AppealViewSet(viewsets.ModelViewSet):
                             lifted_by=request.user,
                             reason="Appeal approved",
                         )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    import logging
+                    logging.getLogger(__name__).exception(
+                        "Appeal approval: discipline action failed for appeal=%s: %s",
+                        appeal.pk, exc,
+                    )
+                    return Response(
+                        {"detail": f"Appeal marked approved but discipline action failed: {exc}"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
 
         # Log the action
         SuperadminLog.objects.create(

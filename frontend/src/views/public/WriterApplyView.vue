@@ -78,9 +78,9 @@ async function submit() {
     if (resumeFile.value)  body.append("resume",      resumeFile.value);
     if (sampleFile.value)  body.append("sample_work", sampleFile.value);
 
-    await api.post(apiPath("/writer-management/applications/submit/"), body, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    // Do NOT set Content-Type manually — axios detects FormData and adds
+    // the correct multipart boundary automatically. Explicit header breaks it.
+    await api.post(apiPath("/writer-management/applications/submit/"), body);
 
     step.value = "success";
   } catch (err: unknown) {

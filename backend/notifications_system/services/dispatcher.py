@@ -304,7 +304,7 @@ class NotificationDispatcher:
         # At runtime this would also fail. Correct form is task.delay(*args)
         # with no preceding call parens on the task reference itself.
         from notifications_system.tasks.send import send_channel_notification
-        send_channel_notification().delay(delivery_id=delivery.pk)
+        send_channel_notification.delay(delivery_id=delivery.pk)
 
         logger.info(
             "_queue_channel_delivery() queued: "

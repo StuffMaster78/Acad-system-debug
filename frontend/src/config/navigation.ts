@@ -254,6 +254,8 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     ]},
     { label: "People", items: [
       { label: "Writers", to: "/superadmin/writers", icon: Users },
+      { label: "Applications", to: "/superadmin/writer-applications", icon: FileText },
+      { label: "Vetting", to: "/superadmin/writer-vetting", icon: GraduationCap },
       { label: "Clients", to: "/superadmin/clients", icon: Users },
       { label: "Editors", to: "/superadmin/editors", icon: FileEdit },
       { label: "Support Staff", to: "/superadmin/support-staff", icon: Headphones },
@@ -282,6 +284,8 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Email", to: "/superadmin/email", icon: Mail },
       { label: "Holidays", to: "/superadmin/holidays", icon: CalendarDays },
       { label: "Publishing", to: "/superadmin/publishing", icon: Newspaper },
+      { label: "Newsletters", to: "/superadmin/newsletters", icon: Mail },
+      { label: "Guides", to: "/superadmin/guides", icon: BookOpen },
       { label: "Content", to: "/superadmin/content", icon: FileEdit },
       { label: "Content Graph", to: "/superadmin/content-graph", icon: GitBranch },
       { label: "Files", to: "/superadmin/files", icon: FolderOpen },
@@ -311,6 +315,8 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     ]},
     { label: "People", items: [
       { label: "Writers", to: "/admin/writers", icon: Users },
+      { label: "Applications", to: "/admin/writer-applications", icon: FileText },
+      { label: "Vetting", to: "/admin/writer-vetting", icon: GraduationCap },
       { label: "Clients", to: "/admin/clients", icon: Users },
       { label: "Editors", to: "/admin/editors", icon: FileEdit },
       { label: "Support Staff", to: "/admin/support-staff", icon: Headphones },
@@ -340,6 +346,8 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     { label: "Platform", items: [
       { label: "Holidays", to: "/admin/holidays", icon: CalendarDays },
       { label: "Publishing", to: "/admin/publishing", icon: Newspaper },
+      { label: "Newsletters", to: "/admin/newsletters", icon: Mail },
+      { label: "Guides", to: "/admin/guides", icon: BookOpen },
       { label: "Content", to: "/admin/content", icon: FileEdit },
       { label: "Content Graph", to: "/admin/content-graph", icon: GitBranch },
       { label: "Files", to: "/admin/files", icon: FolderOpen },
