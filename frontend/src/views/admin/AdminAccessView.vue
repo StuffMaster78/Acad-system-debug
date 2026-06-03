@@ -348,8 +348,16 @@ watch(() => route.meta?.roleFilter, applyRouteFilter);
                 </select>
               </label>
               <label class="block">
-                <span class="text-xs font-semibold uppercase text-graphite">Website ID</span>
-                <input v-model.number="access.createUserForm.website" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" min="1" placeholder="Current website" type="number" />
+                <span class="text-xs font-semibold uppercase text-graphite">Website</span>
+                <select
+                  v-model.number="access.createUserForm.website"
+                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+                >
+                  <option :value="null">— select website —</option>
+                  <option v-for="site in access.websites" :key="site.id" :value="site.id">
+                    {{ site.name }}{{ site.domain ? ` (${site.domain})` : '' }}
+                  </option>
+                </select>
               </label>
             </div>
             <label class="block">
@@ -436,14 +444,19 @@ watch(() => route.meta?.roleFilter, applyRouteFilter);
                 <option value="high">High</option>
               </select>
               <button
-                class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold"
+                class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold disabled:opacity-50"
                 type="button"
-                @click="access.hydrateLifecycle().catch(() => undefined)"
+                :disabled="access.isDuplicatesLoading"
+                @click="access.scanDuplicates().catch(() => undefined)"
               >
-                <RefreshCw class="h-4 w-4" /> Scan
+                <RefreshCw class="h-4 w-4" :class="access.isDuplicatesLoading ? 'animate-spin' : ''" />
+                {{ access.isDuplicatesLoading ? 'Scanning…' : 'Scan' }}
               </button>
             </div>
           </div>
+          <p v-if="access.duplicatesError" class="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+            {{ access.duplicatesError }}
+          </p>
           <div class="mt-4 space-y-3">
             <article
               v-for="group in access.duplicateGroups"

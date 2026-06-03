@@ -138,13 +138,26 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     limit: 10,
   });
   const isLoading = ref(false);
+  const isDuplicatesLoading = ref(false);
   const isMutating = ref(false);
   const error = ref("");
+  const duplicatesError = ref("");
   const notice = ref("");
 
   const selectedUser = computed(() =>
     users.value.find((user) => user.id === selectedUserId.value) ?? null,
   );
+
+  // Unique websites derived from loaded users — used for the website selector
+  const websites = computed(() => {
+    const seen = new Map<number, { id: number; name: string; domain?: string }>();
+    for (const user of users.value) {
+      if (user.website?.id && !seen.has(user.website.id)) {
+        seen.set(user.website.id, user.website);
+      }
+    }
+    return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
+  });
 
   const filteredUsers = computed(() => {
     const needle = query.value.trim().toLowerCase();
@@ -313,6 +326,57 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     } catch (caught) {
       error.value = "Unable to load lifecycle operations data.";
       throw caught;
+    }
+  }
+
+  async function scanDuplicates() {
+    const auth = useAuthStore();
+    isDuplicatesLoading.value = true;
+    duplicatesError.value = "";
+
+    try {
+      if (auth.isPreviewSession) {
+        await new Promise((r) => setTimeout(r, 600));
+        duplicateGroups.value = [
+          {
+            user_ids: [101, 204],
+            users: [previewUsers()[1], previewUsers()[3]].map((user) => ({
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              role: user.role,
+              website: user.website,
+              is_active: user.is_active,
+              is_suspended: user.is_suspended,
+              is_blacklisted: user.is_blacklisted,
+            })),
+            confidence: "high",
+            signals: ["shared payment fingerprint", "similar email pattern"],
+            detection_types: ["payment", "email"],
+            match_count: 2,
+          },
+        ];
+        return;
+      }
+
+      // Strip empty-string role so the backend doesn't filter on ""
+      const params: Record<string, unknown> = {
+        min_confidence: duplicateFilters.value.min_confidence,
+        limit: duplicateFilters.value.limit,
+      };
+      if (duplicateFilters.value.role) {
+        params.role = duplicateFilters.value.role;
+      }
+
+      const { data } = await adminAccessApi.detectDuplicates(params);
+      // Backend returns { count, results } or plain array
+      duplicateGroups.value = Array.isArray(data)
+        ? data
+        : (data as { results?: typeof duplicateGroups.value }).results ?? [];
+    } catch {
+      duplicatesError.value = "Scan failed. Check backend logs for details.";
+    } finally {
+      isDuplicatesLoading.value = false;
     }
   }
 
@@ -577,6 +641,7 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     blacklistedEmails,
     selectedUserId,
     selectedUser,
+    websites,
     query,
     filter,
     reason,
@@ -586,14 +651,17 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     blacklistForm,
     duplicateFilters,
     isLoading,
+    isDuplicatesLoading,
     isMutating,
     error,
+    duplicatesError,
     notice,
     filteredUsers,
     metrics,
     lifecycleMetrics,
     hydrate,
     hydrateLifecycle,
+    scanDuplicates,
     runUserAction,
     createUser,
     addBlacklistedEmail,
