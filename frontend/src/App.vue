@@ -1,12 +1,30 @@
 <script setup lang="ts">
-import { onErrorCaptured, ref, watchEffect } from "vue";
+import { onErrorCaptured, ref, watch, watchEffect } from "vue";
 import { RouterView, useRouter } from "vue-router";
 import ToastContainer from "@/components/ui/ToastContainer.vue";
 import { usePortalContextStore } from "@/stores/portalContext";
+import { injectGa4Script, useAnalytics } from "@/composables/useAnalytics";
+import { captureUtmFromUrl } from "@/composables/useUtm";
 
 const router = useRouter();
 const fatalError = ref<{ message: string } | null>(null);
 const portalCtx = usePortalContextStore();
+const { pageView } = useAnalytics();
+
+// Capture UTM params from landing URL on every cold load
+captureUtmFromUrl();
+
+// Inject GA4 once we know the measurement ID
+watch(
+  () => portalCtx.ga4MeasurementId,
+  (id) => { if (id) injectGa4Script(id); },
+  { immediate: true },
+);
+
+// Track SPA route changes as page views
+router.afterEach((to) => {
+  pageView(to.fullPath, to.meta?.title as string | undefined);
+});
 
 watchEffect(() => {
   const brand = portalCtx.branding?.brand_name;

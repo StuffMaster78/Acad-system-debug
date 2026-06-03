@@ -4,6 +4,9 @@ import { RouterLink } from "vue-router";
 import { ArrowRight, CheckCircle2, Upload, X } from "@lucide/vue";
 import { api, apiPath } from "@/api/client";
 import { usePortalContextStore } from "@/stores/portalContext";
+import { useAnalytics } from "@/composables/useAnalytics";
+
+const { writerApplicationSubmitted } = useAnalytics();
 
 const portalCtx = usePortalContextStore();
 
@@ -83,6 +86,7 @@ async function submit() {
     await api.post(apiPath("/writer-management/applications/submit/"), body);
 
     step.value = "success";
+    writerApplicationSubmitted();
   } catch (err: unknown) {
     const detail = (err as { response?: { data?: { detail?: string } } })
       ?.response?.data?.detail;

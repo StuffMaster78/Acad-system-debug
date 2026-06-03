@@ -104,6 +104,23 @@ class RegistrationRequestView(APIView):
             is_active=False,
         )
 
+        # Persist campaign / UTM attribution if provided
+        try:
+            from accounts.models.user_acquisition import UserAcquisition
+            utm_fields = {
+                "utm_source":   validated_data.get("utm_source", ""),
+                "utm_medium":   validated_data.get("utm_medium", ""),
+                "utm_campaign": validated_data.get("utm_campaign", ""),
+                "utm_content":  validated_data.get("utm_content", ""),
+                "utm_term":     validated_data.get("utm_term", ""),
+                "referrer":     validated_data.get("referrer", ""),
+                "landing_page": validated_data.get("landing_page", ""),
+            }
+            if any(utm_fields.values()):
+                UserAcquisition.objects.create(user=user, website=website, **utm_fields)
+        except Exception:
+            pass  # attribution is best-effort — never block registration
+
         token_service = RegistrationTokenService(
             user=user,
             website=website,

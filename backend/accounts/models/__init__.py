@@ -9,6 +9,7 @@ from .role_permission import RolePermission
 from .portal_definition import PortalDefinition
 from .portal_access import PortalAccess
 from .tenant_access import TenantAccess
+from .user_acquisition import UserAcquisition
 __all__ = [
     "AccountAuditLog",
     "AccountProfile",
@@ -21,4 +22,5 @@ __all__ = [
     "PortalDefinition",
     "PortalAccess",
     "TenantAccess",
+    "UserAcquisition",
 ]

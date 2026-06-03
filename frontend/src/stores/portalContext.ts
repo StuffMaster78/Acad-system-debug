@@ -11,6 +11,7 @@ export const usePortalContextStore = defineStore("portalContext", () => {
   const branding = ref<PortalBranding | null>(null);
   const paymentDisclosure = ref<PaymentDisclosure | null>(null);
   const allowedRoles = ref<string[]>([]);
+  const ga4MeasurementId = ref<string | null>(null);
   const ready = ref(false);
 
   const homeRoute = ref<{ name: string }>({ name: "home" });
@@ -24,6 +25,7 @@ export const usePortalContextStore = defineStore("portalContext", () => {
       branding.value = ctx.branding;
       paymentDisclosure.value = ctx.payment_disclosure;
       allowedRoles.value = ctx.allowed_roles;
+      ga4MeasurementId.value = ctx.ga4_measurement_id ?? null;
 
       homeRoute.value =
         ctx.surface === "writer"
@@ -63,6 +65,7 @@ export const usePortalContextStore = defineStore("portalContext", () => {
     branding,
     paymentDisclosure,
     allowedRoles,
+    ga4MeasurementId,
     ready,
     homeRoute,
     init,

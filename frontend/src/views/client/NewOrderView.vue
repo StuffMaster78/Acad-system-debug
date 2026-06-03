@@ -11,6 +11,9 @@ import { useOrderConfigStore } from "@/stores/orderConfig";
 import { useOrderStore } from "@/stores/orders";
 import { useWalletStore } from "@/stores/wallets";
 import type { PaperQuotePayload } from "@/types/orders";
+import { useAnalytics } from "@/composables/useAnalytics";
+
+const { purchase, beginCheckout } = useAnalytics();
 
 const router = useRouter();
 const orders = useOrderStore();
@@ -223,6 +226,8 @@ async function calculate() {
   success.value = "";
   try {
     await orders.pricePaperOrder(quotePayload());
+    // Fire begin_checkout once user has a real price (top of purchase funnel)
+    if (orders.quotedPrice) beginCheckout(Number(orders.quotedPrice));
   } catch {
     error.value = "Pricing failed. Check your order details and try again.";
   }
@@ -267,6 +272,14 @@ async function submit() {
         return;
       }
     }
+
+    // GA4 purchase event
+    purchase({
+      transaction_id: String(created.order.id),
+      value:          Number(orders.quotedPrice ?? 0),
+      currency:       "USD",
+      coupon:         couponCode.value.trim() || undefined,
+    });
 
     await router.push(`/client/orders/${created.order.id}`);
   } catch {

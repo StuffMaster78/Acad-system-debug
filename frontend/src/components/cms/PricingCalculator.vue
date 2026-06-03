@@ -13,6 +13,9 @@
  */
 import { computed, onMounted, ref, watch } from "vue";
 import { ArrowRight, Calculator, RefreshCw } from "@lucide/vue";
+import { useAnalytics } from "@/composables/useAnalytics";
+
+const { beginCheckout } = useAnalytics();
 import { pricingApi, type ConfigOption, type DeadlineConfig } from "@/api/pricing";
 import type { PaperQuoteStartResponse, PaperQuoteUpdateResponse, PriceLine } from "@/types/orders";
 
@@ -146,6 +149,7 @@ async function getExactPrice() {
     const { data } = await pricingApi.updatePaperQuote(sessionId.value, buildPayload());
     breakdown.value = data;
     showBreakdown.value = true;
+    if (data.calculated_price) beginCheckout(Number(data.calculated_price));
   } catch {
     quoteError.value = "Could not calculate price. Please try again.";
   } finally {

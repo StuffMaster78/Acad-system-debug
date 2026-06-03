@@ -109,6 +109,21 @@ class PortalContextView(APIView):
                     ),
                 }
 
+        # Resolve GA4 measurement ID from TenantSEOSettings (Wagtail site setting)
+        ga4_measurement_id = None
+        if website:
+            try:
+                from wagtail.models import Site as WagtailSite
+                from cms_core.models import TenantSEOSettings
+                wagtail_site = WagtailSite.objects.filter(
+                    hostname__iexact=website.domain.replace("https://", "").replace("http://", "").split("/")[0]
+                ).first()
+                if wagtail_site:
+                    seo_settings = TenantSEOSettings.for_site(wagtail_site)
+                    ga4_measurement_id = getattr(seo_settings, "google_analytics_id", None) or None
+            except Exception:
+                pass
+
         return Response(
             {
                 "surface": surface,
@@ -117,5 +132,6 @@ class PortalContextView(APIView):
                 "branding": branding_data,
                 "payment_disclosure": payment_disclosure,
                 "allowed_roles": allowed_roles,
+                "ga4_measurement_id": ga4_measurement_id,
             }
         )

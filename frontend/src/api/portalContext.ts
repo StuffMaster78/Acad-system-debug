@@ -29,6 +29,7 @@ export interface PortalContext {
   branding: PortalBranding | null;
   payment_disclosure: PaymentDisclosure | null;
   allowed_roles: string[];
+  ga4_measurement_id: string | null;
 }
 
 export async function fetchPortalContext(): Promise<PortalContext> {
