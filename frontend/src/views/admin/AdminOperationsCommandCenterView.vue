@@ -164,8 +164,26 @@ const domainIcons = {
   special_orders: Sparkles,
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  route_to_staffing:  "Route to Staffing",
+  assign_writer:      "Assign Writer",
+  release_to_pool:    "Release to Pool",
+  submit_for_qa:      "Submit to QA",
+  approve_delivery:   "Approve Delivery",
+  return_to_writer:   "Return to Writer",
+  approve_order:      "Approve Order",
+  request_revision:   "Request Revision",
+  raise_dispute:      "Raise Dispute",
+  cancel_order:       "Cancel",
+  archive_order:      "Archive",
+};
+
 function domainLabel(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function actionLabel(action: string) {
+  return ACTION_LABELS[action] ?? action.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 function dateLabel(value: string | null) {
@@ -452,6 +470,15 @@ onMounted(async () => {
                   </span>
                   <span class="rounded-md bg-slate-50 px-2.5 py-1 text-xs text-slate-700">
                     Score: {{ item.score }}
+                  </span>
+                </div>
+                <div v-if="item.available_actions?.length" class="mt-2 flex flex-wrap gap-1.5">
+                  <span
+                    v-for="action in item.available_actions"
+                    :key="`${item.id}-action-${action}`"
+                    class="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700"
+                  >
+                    {{ actionLabel(action) }}
                   </span>
                 </div>
               </div>

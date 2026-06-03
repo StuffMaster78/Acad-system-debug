@@ -47,6 +47,7 @@ export interface OperationsCommandItem {
   due_at: string | null;
   meta: OperationsMeta[];
   state: OperationsCommandState;
+  available_actions: string[];
 }
 
 export interface OperationsCommandEvent {

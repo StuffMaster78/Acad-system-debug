@@ -28,6 +28,8 @@ from websites.models.websites import Website
 from writer_vetting.models import AttemptStatus, WriterTestAttempt
 
 
+from orders.services.order_available_actions_service import OrderAvailableActionsService
+
 STAFF_ROLES = {"superadmin", "admin", "editor", "support"}
 
 
@@ -57,6 +59,7 @@ class CommandItem:
     due_at: str | None = None
     meta: list[dict[str, str]] = field(default_factory=list)
     state: dict[str, Any] | None = None
+    available_actions: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -74,7 +77,21 @@ class CommandItem:
             "due_at": self.due_at,
             "meta": self.meta,
             "state": self.state,
+            "available_actions": self.available_actions,
         }
+
+
+def _order_actions(order: Any, user: Any) -> list[str]:
+    if user is None:
+        return []
+    try:
+        return OrderAvailableActionsService.build_actions(
+            order=order,
+            user=user,
+            lifecycle=None,
+        )
+    except Exception:
+        return []
 
 
 def _website_dict(website: Website | None) -> dict[str, Any] | None:
@@ -125,8 +142,8 @@ class OperationsCommandCenterViewSet(ViewSet):
         scope_website = self._scope_website(request)
         items: list[CommandItem] = []
 
-        items.extend(self._order_deadline_items(scope_website))
-        items.extend(self._order_payment_items(scope_website))
+        items.extend(self._order_deadline_items(scope_website, request.user))
+        items.extend(self._order_payment_items(scope_website, request.user))
         items.extend(self._writer_review_items(scope_website))
         items.extend(self._class_order_items(scope_website))
         items.extend(self._special_order_items(scope_website))
@@ -394,7 +411,7 @@ class OperationsCommandCenterViewSet(ViewSet):
             },
         )
 
-    def _order_deadline_items(self, website: Website | None) -> list[CommandItem]:
+    def _order_deadline_items(self, website: Website | None, user=None) -> list[CommandItem]:
         now = timezone.now()
         soon = now + timedelta(hours=24)
         closed = [
@@ -435,6 +452,7 @@ class OperationsCommandCenterViewSet(ViewSet):
                         {"label": "Status", "value": _display(order.status)},
                         {"label": "Client deadline", "value": _iso(order.client_deadline) or "Not set"},
                     ],
+                    available_actions=_order_actions(order, user),
                 )
             )
 
@@ -467,11 +485,12 @@ class OperationsCommandCenterViewSet(ViewSet):
                     created_at=_iso(order.created_at),
                     due_at=_iso(order.writer_deadline),
                     meta=[{"label": "Status", "value": _display(order.status)}],
+                    available_actions=_order_actions(order, user),
                 )
             )
         return items
 
-    def _order_payment_items(self, website: Website | None) -> list[CommandItem]:
+    def _order_payment_items(self, website: Website | None, user=None) -> list[CommandItem]:
         orders = (
             Order.objects.filter(self._website_filter(website), total_price__gt=0)
             .exclude(payment_status__in=[OrderPaymentStatus.FULLY_PAID, OrderPaymentStatus.REFUNDED])
@@ -500,6 +519,7 @@ class OperationsCommandCenterViewSet(ViewSet):
                         {"label": "Paid", "value": _money(order.amount_paid, order.currency)},
                         {"label": "Total", "value": _money(order.total_price, order.currency)},
                     ],
+                    available_actions=_order_actions(order, user),
                 )
             )
         return items
