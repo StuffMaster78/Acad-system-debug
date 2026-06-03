@@ -94,6 +94,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/client/NewOrderView.vue"),
       },
       {
+        path: "writers/:uuid",
+        name: "client-writer-profile",
+        component: () => import("@/views/client/WriterPublicProfileView.vue"),
+      },
+      {
         path: "messages",
         name: "client-messages",
         component: () => import("@/views/client/ClientMessagesView.vue"),

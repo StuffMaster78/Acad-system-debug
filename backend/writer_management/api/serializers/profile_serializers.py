@@ -34,10 +34,13 @@ class WriterProfilePublicSerializer(serializers.ModelSerializer):
     """
     Public writer card — shown to clients during assignment selection.
 
-    No earnings, no ratings, no internal stats.
+    No earnings, no internal stats. Includes aggregated review data.
     """
 
     level_name = serializers.SerializerMethodField()
+    rating_average = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+    completed_orders_count = serializers.SerializerMethodField()
 
     class Meta:
         model = WriterProfile
@@ -52,12 +55,43 @@ class WriterProfilePublicSerializer(serializers.ModelSerializer):
             "level_name",
             "is_verified",
             "joined_at",
+            "rating_average",
+            "review_count",
+            "completed_orders_count",
         ]
         read_only_fields = fields
 
     def get_level_name(self, obj) -> str | None:
         level = obj.writer_level
         return level.name if level is not None else None
+
+    def get_rating_average(self, obj) -> float | None:
+        try:
+            from django.db.models import Avg
+            from reviews.models import Review
+            result = Review.objects.filter(
+                writer=obj, is_hidden=False
+            ).aggregate(avg=Avg("rating"))["avg"]
+            return round(result, 2) if result is not None else None
+        except Exception:
+            return None
+
+    def get_review_count(self, obj) -> int:
+        try:
+            from reviews.models import Review
+            return Review.objects.filter(writer=obj, is_hidden=False).count()
+        except Exception:
+            return 0
+
+    def get_completed_orders_count(self, obj) -> int:
+        try:
+            from orders.models.orders.order_assignment import OrderAssignment
+            return OrderAssignment.objects.filter(
+                writer=obj,
+                order__status="completed",
+            ).count()
+        except Exception:
+            return 0
 
 
 class WriterProfileSummarySerializer(serializers.ModelSerializer):
