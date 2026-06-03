@@ -125,14 +125,7 @@ class IsAdminOrReadOnly(BasePermission):
 # ----------------------------------------------------------------
 
 def _has_admin_role(user, request) -> bool:
-    try:
-        website = _resolve_website(request)
-        if website is None:
-            return False
-        profile = user.account_profiles.get(website=website)
-        return getattr(profile, "role", None) in ("admin", "superadmin")
-    except Exception:
-        return False
+    return getattr(user, "role", None) in ("admin", "superadmin")
 
 
 def _resolve_website(request):
