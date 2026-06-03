@@ -306,6 +306,10 @@ class NotificationDispatcher:
         from notifications_system.tasks.send import send_channel_notification
         send_channel_notification.delay(delivery_id=delivery.pk)
 
+        # Real-time push for in_app channel — best-effort, never raises
+        if channel == "in_app":
+            _push_ws(notification, rendered)
+
         logger.info(
             "_queue_channel_delivery() queued: "
             "delivery=%s channel=%s notification=%s.",
@@ -313,3 +317,35 @@ class NotificationDispatcher:
             channel,
             notification.id,
         )
+
+def _push_ws(notification, rendered: dict) -> None:
+    """
+    Best-effort WebSocket push to the user's channel layer group.
+    Failures are logged and swallowed — the polling fallback covers them.
+    """
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        group = f"notifications_{notification.user_id}"
+        payload = {
+            "id": notification.pk,
+            "event_key": notification.event_key,
+            "category": notification.category or "info",
+            "priority": notification.priority or "normal",
+            "title": rendered.get("title") or "",
+            "message": rendered.get("body") or rendered.get("message") or "",
+            "is_read": False,
+            "is_critical": notification.is_critical,
+            "created_at": notification.created_at.isoformat() if notification.created_at else None,
+        }
+        async_to_sync(channel_layer.group_send)(
+            group,
+            {"type": "notification.push", "payload": payload},
+        )
+    except Exception as exc:
+        logger.debug("_push_ws failed: %s", exc)
