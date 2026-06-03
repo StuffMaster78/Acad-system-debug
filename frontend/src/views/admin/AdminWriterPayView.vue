@@ -7,9 +7,11 @@ import StatusPill from "@/components/ui/StatusPill.vue";
 import { api, apiPath } from "@/api/client";
 import { useAuthStore } from "@/stores/auth";
 import { usePortalContextStore } from "@/stores/portalContext";
+import { useWebsitesStore } from "@/stores/websites";
 
 const auth    = useAuthStore();
 const portal  = usePortalContextStore();
+const websites = useWebsitesStore();
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 type Tab = "levels" | "tips";
@@ -20,6 +22,19 @@ function toast(type: "success" | "error", msg: string) {
   notice.value = { type, msg };
   setTimeout(() => { notice.value = null; }, 4000);
 }
+
+const isSuperadmin = computed(() => auth.role === "superadmin");
+const selectedWebsiteId = ref<number | null>(null);
+const websiteParams = computed(() =>
+  isSuperadmin.value && selectedWebsiteId.value ? { website_id: selectedWebsiteId.value } : undefined,
+);
+const selectedWebsiteLabel = computed(() => {
+  if (selectedWebsiteId.value) return websites.labelById(selectedWebsiteId.value);
+  if (portal.website) return `${portal.website.name} (${portal.website.domain})`;
+  if (isSuperadmin.value) return "Select a website";
+  return "Current website";
+});
+const needsWebsiteSelection = computed(() => isSuperadmin.value && !selectedWebsiteId.value);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WRITER LEVELS
@@ -69,11 +84,17 @@ const levelForm      = ref(false);
 const deleteConfirm  = ref<number | null>(null);
 
 async function loadLevels() {
+  if (needsWebsiteSelection.value) {
+    levels.value = [];
+    allSettings.value = [];
+    selectedLevel.value = null;
+    return;
+  }
   levelsLoading.value = true;
   try {
     const [lr, sr] = await Promise.all([
-      api.get<WriterLevel[]>(apiPath("/writer-management/levels/")),
-      api.get<LevelSettings[]>(apiPath("/writer-management/level-settings/")),
+      api.get<WriterLevel[]>(apiPath("/writer-management/levels/"), { params: websiteParams.value }),
+      api.get<LevelSettings[]>(apiPath("/writer-management/level-settings/"), { params: websiteParams.value }),
     ]);
     levels.value = Array.isArray(lr.data) ? lr.data : (lr.data as any).results ?? [];
     allSettings.value = Array.isArray(sr.data) ? sr.data : (sr.data as any).results ?? [];
@@ -89,6 +110,10 @@ function selectLevel(level: WriterLevel) {
 }
 
 function openNewLevel() {
+  if (needsWebsiteSelection.value) {
+    toast("error", "Select a website before creating writer levels.");
+    return;
+  }
   editingLevelId.value = null;
   Object.assign(levelDraft, {
     name: "", description: "",
@@ -109,10 +134,14 @@ async function saveLevel() {
   savingLevel.value = true;
   try {
     if (editingLevelId.value) {
-      await api.patch(apiPath(`/writer-management/levels/${editingLevelId.value}/`), levelDraft);
+      await api.patch(apiPath(`/writer-management/levels/${editingLevelId.value}/`), levelDraft, {
+        params: websiteParams.value,
+      });
       toast("success", `"${levelDraft.name}" updated.`);
     } else {
-      await api.post(apiPath("/writer-management/levels/"), levelDraft);
+      await api.post(apiPath("/writer-management/levels/"), levelDraft, {
+        params: websiteParams.value,
+      });
       toast("success", `"${levelDraft.name}" created.`);
     }
     levelForm.value = false;
@@ -125,7 +154,7 @@ async function saveLevel() {
 
 async function deleteLevel(id: number) {
   try {
-    await api.delete(apiPath(`/writer-management/levels/${id}/`));
+    await api.delete(apiPath(`/writer-management/levels/${id}/`), { params: websiteParams.value });
     deleteConfirm.value = null;
     if (selectedLevel.value?.id === id) selectedLevel.value = null;
     await loadLevels();
@@ -138,11 +167,17 @@ async function deleteLevel(id: number) {
 }
 
 async function saveSettings() {
+  if (needsWebsiteSelection.value) {
+    toast("error", "Select a website before saving writer pay settings.");
+    return;
+  }
   const s = selectedSettings.value;
   if (!s) return;
   savingSettings.value = true;
   try {
-    await api.patch(apiPath(`/writer-management/level-settings/${s.id}/`), settingsDraft);
+    await api.patch(apiPath(`/writer-management/level-settings/${s.id}/`), settingsDraft, {
+      params: websiteParams.value,
+    });
     await loadLevels();
     toast("success", "Settings saved.");
   } catch { toast("error", "Failed to save settings."); }
@@ -253,8 +288,17 @@ async function activatePolicy(id: number) {
   finally { activating.value = null; }
 }
 
+async function switchWebsite() {
+  selectedLevel.value = null;
+  await loadLevels();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
-onMounted(loadLevels);
+onMounted(async () => {
+  await websites.ensure();
+  selectedWebsiteId.value = portal.website?.id ?? (isSuperadmin.value ? null : websites.list[0]?.id ?? null);
+  await loadLevels();
+});
 watch(activeTab, (t) => { if (t === "tips" && !policies.value.length) loadPolicies(); });
 </script>
 
@@ -263,11 +307,25 @@ watch(activeTab, (t) => { if (t === "tips" && !policies.value.length) loadPolici
 
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 px-6 py-5">
-      <div class="flex items-start justify-between">
+      <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 class="text-xl font-semibold text-gray-900">Writer Pay &amp; Levels</h1>
           <p class="text-sm text-gray-500 mt-0.5">Manage writer tier hierarchy, pay rates, capacity limits, and tip splits.</p>
+          <p class="mt-1 text-xs font-medium text-gray-500">Website: {{ selectedWebsiteLabel }}</p>
         </div>
+        <label v-if="isSuperadmin" class="min-w-72 text-xs font-medium text-gray-500">
+          Manage website
+          <select
+            v-model.number="selectedWebsiteId"
+            class="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            @change="switchWebsite"
+          >
+            <option :value="null" disabled>Select a website</option>
+            <option v-for="site in websites.options" :key="site.value" :value="site.value">
+              {{ site.label }}
+            </option>
+          </select>
+        </label>
       </div>
 
       <!-- Tabs -->
@@ -296,7 +354,11 @@ watch(activeTab, (t) => { if (t === "tips" && !policies.value.length) loadPolici
       <div class="w-64 border-r border-gray-200 bg-white overflow-y-auto flex-shrink-0">
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tiers</span>
-          <button class="text-xs text-indigo-600 hover:underline flex items-center gap-1" @click="openNewLevel">
+          <button
+            class="text-xs text-indigo-600 hover:underline flex items-center gap-1 disabled:cursor-not-allowed disabled:text-gray-300 disabled:no-underline"
+            :disabled="needsWebsiteSelection"
+            @click="openNewLevel"
+          >
             <Plus class="w-3.5 h-3.5" /> Add
           </button>
         </div>

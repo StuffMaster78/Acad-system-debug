@@ -24,6 +24,29 @@ def _resolve_website(request):
         return None
 
 
+def _is_superadmin(request) -> bool:
+    return getattr(request.user, "role", None) == "superadmin" or request.user.is_superuser
+
+
+def _resolve_requested_website(request):
+    """
+    Resolve the website scope for writer level configuration.
+
+    Superadmin may pass ?website_id=... for cross-site management. Admins are
+    always constrained to their resolved request/user website.
+    """
+    website = _resolve_website(request)
+    if _is_superadmin(request):
+        website_id = request.query_params.get("website_id") or request.data.get("website_id")
+        if website_id:
+            from websites.models.websites import Website
+            try:
+                return Website.objects.get(pk=website_id)
+            except Website.DoesNotExist:
+                return None
+    return website
+
+
 # ── Serializers ───────────────────────────────────────────────────────────────
 
 class WriterLevelSerializer(serializers.ModelSerializer):
@@ -87,7 +110,9 @@ class WriterLevelListCreateView(APIView):
         if not _require_staff(request):
             return Response({"detail": "Forbidden."}, status=403)
         from writer_management.models.writer_level import WriterLevel
-        website = _resolve_website(request)
+        website = _resolve_requested_website(request)
+        if website is None:
+            return Response({"detail": "Website context required."}, status=400)
         qs = WriterLevel.objects.filter(website=website).order_by("display_order", "name")
         return Response(WriterLevelSerializer(qs, many=True).data)
 
@@ -96,7 +121,9 @@ class WriterLevelListCreateView(APIView):
             return Response({"detail": "Forbidden."}, status=403)
         from writer_management.models.writer_level import WriterLevel
         from writer_management.models.writer_level_settings import WriterLevelSettings
-        website = _resolve_website(request)
+        website = _resolve_requested_website(request)
+        if website is None:
+            return Response({"detail": "Website context required."}, status=400)
         s = WriterLevelSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         level = WriterLevel.objects.create(website=website, **s.validated_data)
@@ -113,17 +140,20 @@ class WriterLevelDetailView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    def _get(self, pk):
+    def _get(self, pk, website):
         from writer_management.models.writer_level import WriterLevel
         try:
-            return WriterLevel.objects.get(pk=pk)
+            return WriterLevel.objects.get(pk=pk, website=website)
         except WriterLevel.DoesNotExist:
             return None
 
     def get(self, request, pk: int):
         if not _require_staff(request):
             return Response({"detail": "Forbidden."}, status=403)
-        obj = self._get(pk)
+        website = _resolve_requested_website(request)
+        if website is None:
+            return Response({"detail": "Website context required."}, status=400)
+        obj = self._get(pk, website)
         if obj is None:
             return Response({"detail": "Not found."}, status=404)
         return Response(WriterLevelSerializer(obj).data)
@@ -131,7 +161,10 @@ class WriterLevelDetailView(APIView):
     def patch(self, request, pk: int):
         if not _require_staff(request):
             return Response({"detail": "Forbidden."}, status=403)
-        obj = self._get(pk)
+        website = _resolve_requested_website(request)
+        if website is None:
+            return Response({"detail": "Website context required."}, status=400)
+        obj = self._get(pk, website)
         if obj is None:
             return Response({"detail": "Not found."}, status=404)
         s = WriterLevelSerializer(obj, data=request.data, partial=True)
@@ -148,7 +181,10 @@ class WriterLevelDetailView(APIView):
     def delete(self, request, pk: int):
         if not _require_staff(request):
             return Response({"detail": "Forbidden."}, status=403)
-        obj = self._get(pk)
+        website = _resolve_requested_website(request)
+        if website is None:
+            return Response({"detail": "Website context required."}, status=400)
+        obj = self._get(pk, website)
         if obj is None:
             return Response({"detail": "Not found."}, status=404)
         if obj.is_default:
@@ -170,7 +206,12 @@ class WriterLevelSettingsListView(APIView):
         if not _require_staff(request):
             return Response({"detail": "Forbidden."}, status=403)
         from writer_management.models.writer_level_settings import WriterLevelSettings
-        qs = WriterLevelSettings.objects.select_related("writer_level").all()
+        website = _resolve_requested_website(request)
+        if website is None:
+            return Response({"detail": "Website context required."}, status=400)
+        qs = WriterLevelSettings.objects.select_related("writer_level").filter(
+            writer_level__website=website,
+        )
         return Response(WriterLevelSettingsSerializer(qs, many=True).data)
 
 
@@ -181,17 +222,23 @@ class WriterLevelSettingsDetailView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    def _get(self, pk):
+    def _get(self, pk, website):
         from writer_management.models.writer_level_settings import WriterLevelSettings
         try:
-            return WriterLevelSettings.objects.select_related("writer_level").get(pk=pk)
+            return WriterLevelSettings.objects.select_related("writer_level").get(
+                pk=pk,
+                writer_level__website=website,
+            )
         except WriterLevelSettings.DoesNotExist:
             return None
 
     def get(self, request, pk: int):
         if not _require_staff(request):
             return Response({"detail": "Forbidden."}, status=403)
-        obj = self._get(pk)
+        website = _resolve_requested_website(request)
+        if website is None:
+            return Response({"detail": "Website context required."}, status=400)
+        obj = self._get(pk, website)
         if obj is None:
             return Response({"detail": "Not found."}, status=404)
         return Response(WriterLevelSettingsSerializer(obj).data)
@@ -199,7 +246,10 @@ class WriterLevelSettingsDetailView(APIView):
     def patch(self, request, pk: int):
         if not _require_staff(request):
             return Response({"detail": "Forbidden."}, status=403)
-        obj = self._get(pk)
+        website = _resolve_requested_website(request)
+        if website is None:
+            return Response({"detail": "Website context required."}, status=400)
+        obj = self._get(pk, website)
         if obj is None:
             return Response({"detail": "Not found."}, status=404)
         s = WriterLevelSettingsSerializer(obj, data=request.data, partial=True)

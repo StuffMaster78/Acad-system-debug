@@ -19,6 +19,7 @@ export interface LoginResponse {
   refresh_token?: string;
   session_id?: number;
   user_id?: number;
+  user?: AuthUser;
 }
 
 export interface UpdateMePayload {

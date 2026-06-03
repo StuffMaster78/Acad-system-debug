@@ -141,6 +141,8 @@ export interface AttemptAnswer {
   question_id: number;
   selected_choice_id?: number | null;
   essay_response?: string;
+  essay_file_id?: string;
+  essay_file_name?: string;
 }
 
 export const writerVettingApi = {

@@ -24,6 +24,7 @@ function mockContext(overrides = {}) {
       pre_payment_notice: "EssayBrand uses OrderBridge Payments.",
     },
     allowed_roles: ["client"],
+    ga4_measurement_id: null,
     ...overrides,
   };
 }

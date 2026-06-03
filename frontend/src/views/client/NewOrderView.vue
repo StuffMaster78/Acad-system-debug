@@ -227,7 +227,7 @@ async function calculate() {
   try {
     await orders.pricePaperOrder(quotePayload());
     // Fire begin_checkout once user has a real price (top of purchase funnel)
-    if (orders.quotedPrice) beginCheckout(Number(orders.quotedPrice));
+    if (quotedPrice.value != null) beginCheckout(quotedPrice.value);
   } catch {
     error.value = "Pricing failed. Check your order details and try again.";
   }
@@ -276,7 +276,7 @@ async function submit() {
     // GA4 purchase event
     purchase({
       transaction_id: String(created.order.id),
-      value:          Number(orders.quotedPrice ?? 0),
+      value:          quotedPrice.value ?? 0,
       currency:       "USD",
       coupon:         couponCode.value.trim() || undefined,
     });
