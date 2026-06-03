@@ -123,8 +123,18 @@ export interface PredefinedConfigDuration {
   is_active: boolean;
 }
 
+export interface PredefinedConfigDurationPayload {
+  id?: number;
+  duration_days: number;
+  price: string;
+  is_active: boolean;
+}
+
 export interface PredefinedConfig {
   id: number;
+  website?: number;
+  website_name?: string | null;
+  website_domain?: string | null;
   name: string;
   slug: string;
   description: string;
@@ -134,6 +144,54 @@ export interface PredefinedConfig {
   allow_external_payment: boolean;
   allow_discounts: boolean;
   durations: PredefinedConfigDuration[];
+}
+
+export interface PredefinedConfigPayload {
+  website_id?: number;
+  name?: string;
+  slug?: string;
+  description?: string;
+  is_active?: boolean;
+  requires_full_payment?: boolean;
+  allow_wallet_payment?: boolean;
+  allow_external_payment?: boolean;
+  allow_discounts?: boolean;
+  durations?: PredefinedConfigDurationPayload[];
+}
+
+export interface SpecialOrderQuoteSettings {
+  id: number;
+  default_deposit_percentage: string;
+  minimum_deposit_amount: string;
+  allow_installments: boolean;
+  require_deposit_before_staffing: boolean;
+  require_full_payment_before_delivery: boolean;
+  quote_expiry_hours: number;
+  allow_wallet_payment: boolean;
+  allow_external_payment: boolean;
+  allow_discounts: boolean;
+}
+
+export interface SpecialOrderMilestoneTemplateItem {
+  id: number;
+  sequence: number;
+  label: string;
+  percentage: string;
+  required_before_staffing: boolean;
+  required_before_delivery: boolean;
+}
+
+export interface SpecialOrderMilestoneTemplate {
+  id: number;
+  name: string;
+  description: string;
+  is_active: boolean;
+  items: SpecialOrderMilestoneTemplateItem[];
+}
+
+export interface SpecialOrderQuoteConfig {
+  settings: SpecialOrderQuoteSettings;
+  milestone_templates: SpecialOrderMilestoneTemplate[];
 }
 
 export interface FixedPricePreview {

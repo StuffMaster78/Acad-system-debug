@@ -7,6 +7,8 @@ from django.db.models import QuerySet
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -25,6 +27,7 @@ from class_management.api.serializers.class_order_serializers import (
     ClassOrderListSerializer,
 )
 from class_management.models.class_order import ClassOrder
+from class_management.models import ClassServiceConfig
 from class_management.selectors import ClassOrderSelector
 from class_management.services.class_order_service import (
     ClassOrderService,
@@ -103,9 +106,40 @@ class ClassOrderViewSet(ClassTenantViewMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         data = cast(dict[str, Any], serializer.validated_data)
+        website = self.get_website()
+        if website is None:
+            website = getattr(request.user, "website", None)
+
+        class_config = None
+        pricing_snapshot: dict[str, Any] = {}
+        complexity_level = ""
+
+        config_id = data.get("class_config_id")
+        if config_id:
+            class_config = ClassServiceConfig.objects.filter(
+                id=int(config_id),
+                website=website,
+                is_active=True,
+            ).first()
+            if class_config is None:
+                raise NotFound("Class service config not found.")
+            pricing_snapshot = self._build_config_snapshot(
+                class_config=class_config,
+                duration_key=str(data.get("duration_key", "")),
+                workload_key=str(data.get("workload_key", "")),
+                selected_task_keys=list(data.get("selected_task_keys", [])),
+                portal_access_enabled=bool(
+                    data.get(
+                        "portal_access_enabled",
+                        class_config.requires_portal_access,
+                    )
+                ),
+            )
+            workload = pricing_snapshot.get("selected_workload") or {}
+            complexity_level = str(workload.get("complexity", ""))
 
         class_order = ClassOrderService.create_draft(
-            website=self.get_website(),
+            website=website,
             client=request.user,
             created_by=request.user,
             title=data["title"],
@@ -119,6 +153,20 @@ class ClassOrderViewSet(ClassTenantViewMixin, viewsets.ModelViewSet):
             ends_on=data.get("ends_on"),
             initial_client_notes=data.get("initial_client_notes", ""),
         )
+        if class_config is not None:
+            update_fields = [
+                "class_config",
+                "pricing_snapshot",
+                "currency",
+                "updated_at",
+            ]
+            class_order.class_config = class_config
+            class_order.pricing_snapshot = pricing_snapshot
+            class_order.currency = class_config.currency
+            if complexity_level:
+                class_order.complexity_level = complexity_level
+                update_fields.append("complexity_level")
+            class_order.save(update_fields=update_fields)
 
         output = ClassOrderDetailSerializer(class_order)
 
@@ -250,3 +298,108 @@ class ClassOrderViewSet(ClassTenantViewMixin, viewsets.ModelViewSet):
         """
         related_obj = getattr(obj, field_name, None)
         return getattr(related_obj, "pk", None)
+
+    @staticmethod
+    def _find_option(options: list[Any], key: str) -> dict[str, Any] | None:
+        for option in options:
+            if isinstance(option, dict) and str(option.get("key", "")) == key:
+                return option
+        return None
+
+    @staticmethod
+    def _option_keys(options: list[Any]) -> set[str]:
+        return {
+            str(option.get("key", ""))
+            for option in options
+            if isinstance(option, dict) and option.get("key")
+        }
+
+    @classmethod
+    def _build_config_snapshot(
+        cls,
+        *,
+        class_config: ClassServiceConfig,
+        duration_key: str,
+        workload_key: str,
+        selected_task_keys: list[str],
+        portal_access_enabled: bool,
+    ) -> dict[str, Any]:
+        duration_options = list(class_config.duration_options or [])
+        workload_options = list(class_config.workload_options or [])
+        task_options = list(class_config.task_options or [])
+
+        selected_task_key_set = {
+            str(key)
+            for key in selected_task_keys
+            if str(key).strip()
+        }
+        required_task_keys = {
+            str(option.get("key"))
+            for option in task_options
+            if isinstance(option, dict)
+            and option.get("key")
+            and bool(option.get("required", False))
+        }
+        selected_task_key_set.update(required_task_keys)
+
+        if duration_options and not duration_key:
+            raise ValidationError({"duration_key": "Select a valid class duration."})
+
+        if workload_options and not workload_key:
+            raise ValidationError({"workload_key": "Select a valid workload."})
+
+        selected_duration = cls._find_option(
+            duration_options,
+            duration_key,
+        )
+        selected_workload = cls._find_option(
+            workload_options,
+            workload_key,
+        )
+
+        if duration_options and selected_duration is None:
+            raise ValidationError({"duration_key": "Selected class duration is not available."})
+
+        if workload_options and selected_workload is None:
+            raise ValidationError({"workload_key": "Selected workload is not available."})
+
+        valid_task_keys = cls._option_keys(task_options)
+        invalid_task_keys = selected_task_key_set - valid_task_keys
+        if invalid_task_keys:
+            raise ValidationError(
+                {
+                    "selected_task_keys": (
+                        "One or more selected tasks are not available for this class preset."
+                    )
+                }
+            )
+
+        selected_tasks = [
+            option
+            for option in task_options
+            if isinstance(option, dict)
+            and str(option.get("key", "")) in selected_task_key_set
+        ]
+
+        return {
+            "source": "class_service_config",
+            "config_id": class_config.pk,
+            "config_name": class_config.name,
+            "config_slug": class_config.slug,
+            "service_type": class_config.service_type,
+            "pricing_mode": class_config.pricing_mode,
+            "base_price": str(class_config.base_price),
+            "currency": class_config.currency,
+            "payment_policy": {
+                "allow_installments": class_config.allow_installments,
+                "require_deposit_before_start": (
+                    class_config.require_deposit_before_start
+                ),
+                "deposit_percentage": str(class_config.deposit_percentage),
+                "quote_expiry_hours": class_config.quote_expiry_hours,
+            },
+            "selected_duration": selected_duration,
+            "selected_workload": selected_workload,
+            "selected_tasks": selected_tasks,
+            "portal_access_enabled": portal_access_enabled,
+        }

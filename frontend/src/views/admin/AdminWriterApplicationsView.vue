@@ -9,16 +9,20 @@ import StatusPill from "@/components/ui/StatusPill.vue";
 import { useWriterApplicationsStore } from "@/stores/writerApplications";
 
 const apps = useWriterApplicationsStore();
+type StatusPillTone = "neutral" | "success" | "warning" | "danger";
+type StatusFilter = "all" | "pending" | "under_review" | "approved" | "rejected" | "withdrawn";
+
+const STATUS_FILTERS: StatusFilter[] = ["all", "pending", "under_review", "approved", "rejected", "withdrawn"];
 
 onMounted(() => apps.load());
 
 // ── Status helpers ─────────────────────────────────────────────────────────
-const STATUS_TONE: Record<string, string> = {
-  pending: "yellow",
-  under_review: "blue",
-  approved: "green",
-  rejected: "red",
-  withdrawn: "gray",
+const STATUS_TONE: Record<string, StatusPillTone> = {
+  pending: "warning",
+  under_review: "neutral",
+  approved: "success",
+  rejected: "danger",
+  withdrawn: "neutral",
 };
 
 function statusLabel(s: string) {
@@ -36,6 +40,10 @@ function dateLabel(v?: string | null) {
   return new Intl.DateTimeFormat("en", {
     month: "short", day: "numeric", year: "numeric",
   }).format(new Date(v));
+}
+
+function countForStatus(status: StatusFilter) {
+  return apps.counts[status as keyof typeof apps.counts] ?? apps.counts.all;
 }
 
 // ── Detail panel ────────────────────────────────────────────────────────────
@@ -110,7 +118,7 @@ const canReject = computed(
       <!-- Count chips -->
       <div class="flex gap-2 mt-4 flex-wrap">
         <button
-          v-for="s in ['all','pending','under_review','approved','rejected','withdrawn']"
+          v-for="s in STATUS_FILTERS"
           :key="s"
           class="px-3 py-1 text-xs font-medium rounded-full border transition-colors"
           :class="apps.statusFilter === s
@@ -119,7 +127,7 @@ const canReject = computed(
           @click="apps.statusFilter = s"
         >
           {{ statusLabel(s === 'all' ? 'all' : s) }}
-          <span class="ml-1 opacity-75">({{ apps.counts[s as keyof typeof apps.counts] ?? apps.counts.all }})</span>
+          <span class="ml-1 opacity-75">({{ countForStatus(s) }})</span>
         </button>
       </div>
     </div>

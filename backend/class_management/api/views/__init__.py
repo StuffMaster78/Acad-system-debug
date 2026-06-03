@@ -1,5 +1,6 @@
 from .class_access_views import ClassAccessViewSet
 from .class_assignment_views import ClassAssignmentViewSet
+from .class_config_views import ClassServiceConfigDetailView, ClassServiceConfigListView
 from .class_order_views import ClassOrderViewSet
 from .class_payment_views import ClassPaymentViewSet
 from .class_pricing_views import ClassPriceProposalViewSet
@@ -16,6 +17,8 @@ from .class_writer_compensation_views import (
 __all__ = [
     "ClassAccessViewSet",
     "ClassAssignmentViewSet",
+    "ClassServiceConfigListView",
+    "ClassServiceConfigDetailView",
     "ClassOrderViewSet",
     "ClassPaymentViewSet",
     "ClassPriceProposalViewSet",

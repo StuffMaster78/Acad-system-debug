@@ -64,8 +64,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         """Filter users based on admin's website if not superadmin."""
         # Optimize queryset with select_related to prevent N+1 queries
         queryset = User.objects.all().select_related(
-            'website', # Frequently accessed in serializers
-            'notification_profile', # Used in serializers
+            'website',  # Frequently accessed in serializers
         ).prefetch_related(
             'user_main_profile', # OneToOne relationship
             'account_profiles',

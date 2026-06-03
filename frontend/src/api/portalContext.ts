@@ -13,7 +13,11 @@ export interface PortalBranding {
 
 export interface PaymentDisclosure {
   processor_name: string;
+  processor_display_name?: string;
   statement_descriptor: string;
+  client_disclosure_text?: string;
+  support_contact?: string;
+  requires_acknowledgement?: boolean;
   text: string;
   pre_payment_notice: string;
 }

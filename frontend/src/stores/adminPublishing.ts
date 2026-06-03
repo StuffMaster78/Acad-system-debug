@@ -346,8 +346,12 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
 
   function buildSeoPayload(publish = false): SeoPagePayload {
     const now = new Date().toISOString();
+    if (!draft.value.website) {
+      throw new Error("Select a website before creating an SEO landing page.");
+    }
+
     return {
-      website: draft.value.website ?? 1,
+      website: draft.value.website,
       title: draft.value.title,
       slug: draft.value.slug,
       meta_title: draft.value.title,
@@ -399,7 +403,6 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
 
     try {
       const now = new Date().toISOString();
-      const payload = buildSeoPayload(publish);
 
       if (draft.value.type !== "seo") {
         if (auth.isPreviewSession) {
@@ -421,6 +424,8 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
         window.open(data.edit_url, "_blank", "noopener");
         return;
       }
+
+      const payload = buildSeoPayload(publish);
 
       if (auth.isPreviewSession) {
         items.value = [
@@ -446,7 +451,7 @@ export const useAdminPublishingStore = defineStore("admin-publishing", () => {
       notice.value = publish ? "SEO landing page published." : "SEO landing page draft created.";
       await hydrate();
     } catch (caught) {
-      error.value = "Unable to create publishing draft.";
+      error.value = caught instanceof Error ? caught.message : "Unable to create publishing draft.";
       throw caught;
     } finally {
       isMutating.value = false;

@@ -140,6 +140,59 @@
           </div>
         </div>
 
+        <section v-if="pricingSnapshot" class="rounded-lg border border-slate-200 bg-white p-5">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Scope & pricing preset</p>
+              <h2 class="mt-1 text-base font-semibold text-ink">{{ pricingSnapshot.config_name || "Configured class request" }}</h2>
+              <p class="mt-1 text-sm text-graphite">
+                {{ snapshotPricingLabel }}
+              </p>
+            </div>
+            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-graphite">
+              {{ labelize(String(pricingSnapshot.pricing_mode || "quote")) }}
+            </span>
+          </div>
+
+          <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+              <p class="text-xs text-graphite">Duration</p>
+              <p class="mt-1 font-semibold text-ink">{{ pricingSnapshot.selected_duration?.label || "Not selected" }}</p>
+              <p v-if="pricingSnapshot.selected_duration?.description" class="mt-1 text-xs text-graphite">{{ pricingSnapshot.selected_duration.description }}</p>
+            </div>
+            <div class="rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+              <p class="text-xs text-graphite">Workload</p>
+              <p class="mt-1 font-semibold text-ink">{{ pricingSnapshot.selected_workload?.label || "Not selected" }}</p>
+              <p v-if="pricingSnapshot.selected_workload?.description" class="mt-1 text-xs text-graphite">{{ pricingSnapshot.selected_workload.description }}</p>
+            </div>
+            <div class="rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+              <p class="text-xs text-graphite">Deposit</p>
+              <p class="mt-1 font-semibold text-ink">{{ pricingSnapshot.payment_policy?.deposit_percentage || "0.00" }}%</p>
+              <p class="mt-1 text-xs text-graphite">{{ pricingSnapshot.payment_policy?.require_deposit_before_start ? "Required before start" : "Flexible start policy" }}</p>
+            </div>
+            <div class="rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+              <p class="text-xs text-graphite">Portal access</p>
+              <p class="mt-1 font-semibold" :class="pricingSnapshot.portal_access_enabled ? 'text-emerald-700' : 'text-graphite'">
+                {{ pricingSnapshot.portal_access_enabled ? "Expected" : "Not expected" }}
+              </p>
+              <p class="mt-1 text-xs text-graphite">{{ pricingSnapshot.payment_policy?.allow_installments ? "Installments allowed" : "No installments" }}</p>
+            </div>
+          </div>
+
+          <div v-if="snapshotTasks.length" class="mt-4 border-t border-slate-100 pt-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Selected work</p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <span
+                v-for="task in snapshotTasks"
+                :key="task.key"
+                class="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-graphite"
+              >
+                {{ task.label }}<span v-if="task.required"> · required</span>
+              </span>
+            </div>
+          </div>
+        </section>
+
         <!-- Tabs -->
         <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
           <button
@@ -309,7 +362,7 @@ import { AlertCircle, ArrowLeft, Award, Calendar, Check, ExternalLink, Globe, Us
 import { useClassesStore } from "@/stores/classes";
 import { useAuthStore } from "@/stores/auth";
 import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
-import type { ClassStatus, ClassTaskStatus, InstallmentStatus } from "@/types/classes";
+import type { ClassConfigOption, ClassPricingSnapshot, ClassStatus, ClassTaskStatus, InstallmentStatus } from "@/types/classes";
 
 const route = useRoute();
 const router = useRouter();
@@ -429,10 +482,42 @@ function installmentStatusClass(status: InstallmentStatus): string {
   return installmentStatusClasses[status] ?? "bg-slate-100 text-graphite";
 }
 
+function formatMoney(amount: string | number, currency = "USD"): string {
+  const numeric = Number(amount);
+  if (!Number.isFinite(numeric)) return `${currency} ${amount}`;
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(numeric);
+}
+
 const progressPct = computed(() => {
   const d = store.detail;
   if (!d || !d.total_tasks) return 0;
   return Math.round((d.completed_tasks / d.total_tasks) * 100);
+});
+
+const pricingSnapshot = computed<ClassPricingSnapshot | null>(() => {
+  const snapshot = store.detail?.pricing_snapshot;
+  return snapshot && Object.keys(snapshot).length ? snapshot : null;
+});
+
+const snapshotTasks = computed<ClassConfigOption[]>(() =>
+  pricingSnapshot.value?.selected_tasks ?? [],
+);
+
+const snapshotPricingLabel = computed(() => {
+  const snapshot = pricingSnapshot.value;
+  if (!snapshot) return "";
+  const currency = snapshot.currency || store.detail?.currency || "USD";
+  const basePrice = Number(snapshot.base_price || 0);
+  const quoteHours = snapshot.payment_policy?.quote_expiry_hours;
+  if (snapshot.pricing_mode === "package" && basePrice > 0) {
+    return `Package estimate starts at ${formatMoney(basePrice, currency)}.`;
+  }
+  if (quoteHours) return `Quote after review, valid for ${quoteHours} hours.`;
+  return "Quote after review.";
 });
 
 // Grading

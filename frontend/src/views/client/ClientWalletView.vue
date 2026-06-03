@@ -37,6 +37,7 @@ const topup = reactive({
 });
 const topupError = ref("");
 const previewSuccess = ref(false);
+const paymentDisclosureAccepted = ref(false);
 
 const topupAmount = () => {
   if (topup.preset !== null) return topup.preset;
@@ -56,6 +57,11 @@ function onCustomInput() {
 async function checkout() {
   topupError.value = "";
   previewSuccess.value = false;
+
+  if (!paymentDisclosureAccepted.value) {
+    topupError.value = "Please acknowledge the billing statement notice before checkout.";
+    return;
+  }
 
   const amount = topupAmount();
   if (!amount) {
@@ -521,11 +527,11 @@ onMounted(() => {
               {{ topupError }}
             </p>
 
-            <PaymentDisclosureBanner />
+            <PaymentDisclosureBanner v-model="paymentDisclosureAccepted" context="wallet_topup" />
             <button
               class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
               type="button"
-              :disabled="wallets.isMutating"
+              :disabled="wallets.isMutating || !paymentDisclosureAccepted"
               @click="checkout"
             >
               <Loader2 v-if="wallets.isMutating" class="h-4 w-4 animate-spin" />

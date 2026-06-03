@@ -66,6 +66,65 @@ export interface QuestionPayload {
   choices?: VettingChoice[];
 }
 
+// ── Writer-facing types ───────────────────────────────────────────────────────
+
+export interface WriterQuizChoice {
+  id: number;
+  text: string;
+  order: number;
+}
+
+export interface WriterQuizQuestion {
+  id: number;
+  question_type: QuestionType;
+  text: string;
+  order: number;
+  points: number;
+  choices: WriterQuizChoice[];
+}
+
+export interface WriterQuizCard {
+  id: number;
+  quiz_type: QuizType;
+  title: string;
+  description: string;
+  instructions: string;
+  pass_score: number;
+  time_limit_minutes: number;
+  max_attempts: number;
+  question_count: number;
+  latest_attempt: WriterAttempt | null;
+  attempts_used: number;
+  can_attempt: boolean;
+}
+
+export type AttemptStatus = "in_progress" | "submitted" | "passed" | "failed" | "pending_review";
+
+export interface WriterAttempt {
+  id: number;
+  quiz: number;
+  quiz_title: string;
+  quiz_type: QuizType;
+  pass_score: number;
+  attempt_number: number;
+  status: AttemptStatus;
+  score: string | null;
+  passed: boolean | null;
+  started_at: string;
+  submitted_at: string | null;
+  reviewer_notes: string;
+  quiz_detail?: {
+    id: number; title: string; instructions: string;
+    questions: WriterQuizQuestion[];
+  };
+}
+
+export interface AttemptAnswer {
+  question_id: number;
+  selected_choice_id?: number | null;
+  essay_response?: string;
+}
+
 export const writerVettingApi = {
   // Quizzes
   quizzes: (params?: Record<string, unknown>) =>
@@ -95,4 +154,20 @@ export const writerVettingApi = {
 
   deleteQuestion: (id: number) =>
     api.delete(apiPath(`${BASE}/questions/${id}/`)),
+
+  // ── Writer-facing ─────────────────────────────────────────────────────────
+  myQuizzes: () =>
+    api.get<WriterQuizCard[]>(apiPath(`${BASE}/my/quizzes/`)),
+
+  myAttempts: () =>
+    api.get<WriterAttempt[]>(apiPath(`${BASE}/my/attempts/`)),
+
+  startAttempt: (quizId: number) =>
+    api.post<WriterAttempt>(apiPath(`${BASE}/quizzes/${quizId}/start/`)),
+
+  submitAttempt: (attemptId: number, answers: AttemptAnswer[]) =>
+    api.post<WriterAttempt>(apiPath(`${BASE}/attempts/${attemptId}/submit/`), { answers }),
+
+  attemptDetail: (attemptId: number) =>
+    api.get<WriterAttempt>(apiPath(`${BASE}/attempts/${attemptId}/`)),
 };

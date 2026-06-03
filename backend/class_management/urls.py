@@ -5,6 +5,8 @@ from django.urls import path
 from class_management.api.views import (
     ClassAccessViewSet,
     ClassAssignmentViewSet,
+    ClassServiceConfigDetailView,
+    ClassServiceConfigListView,
     ClassOrderViewSet,
     ClassPaymentViewSet,
     ClassPriceProposalViewSet,
@@ -160,6 +162,8 @@ price_proposal_detail = ClassPriceProposalViewSet.as_view({
 })
 
 urlpatterns = [
+    path("configs/", ClassServiceConfigListView.as_view(), name="class-config-list"),
+    path("configs/<int:pk>/", ClassServiceConfigDetailView.as_view(), name="class-config-detail"),
     path("classes/", class_order_list, name="class-order-list"),
     path("classes/<int:pk>/", class_order_detail, name="class-order-detail"),
     path(

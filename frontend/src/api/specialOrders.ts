@@ -9,6 +9,8 @@ import type {
   CreateFixedSpecialOrderPayload,
   FixedPricePreview,
   PredefinedConfig,
+  PredefinedConfigPayload,
+  SpecialOrderQuoteConfig,
   SubmitQuotePayload,
   DeliverMilestonePayload,
 } from "@/types/specialOrders";
@@ -39,8 +41,20 @@ export const specialOrdersApi = {
   previewFixedPrice: (payload: { predefined_config_id: number; predefined_duration_id: number; currency?: string; platform?: string; writer_level?: string; coupon_code?: string }) =>
     api.post<FixedPricePreview>(apiPath("/special-orders/fixed/preview-price/"), payload),
 
-  listPredefinedConfigs: () =>
-    api.get<PredefinedConfig[]>(apiPath("/special-orders/predefined-configs/")),
+  listPredefinedConfigs: (params?: Record<string, unknown>) =>
+    api.get<PredefinedConfig[]>(apiPath("/special-orders/predefined-configs/"), { params }),
+
+  quoteConfig: (params?: Record<string, unknown>) =>
+    api.get<SpecialOrderQuoteConfig>(apiPath("/special-orders/quote-config/"), { params }),
+
+  createPredefinedConfig: (payload: PredefinedConfigPayload, params?: Record<string, unknown>) =>
+    api.post<PredefinedConfig>(apiPath("/special-orders/predefined-configs/"), payload, { params }),
+
+  updatePredefinedConfig: (id: number | string, payload: PredefinedConfigPayload, params?: Record<string, unknown>) =>
+    api.patch<PredefinedConfig>(apiPath(`/special-orders/predefined-configs/${id}/`), payload, { params }),
+
+  updateQuoteConfig: (payload: Partial<SpecialOrderQuoteConfig["settings"]>, params?: Record<string, unknown>) =>
+    api.patch<SpecialOrderQuoteConfig>(apiPath("/special-orders/quote-config/"), payload, { params }),
 
   update: (id: number | string, payload: Partial<CreateSpecialOrderPayload>) =>
     api.patch<SpecialOrder>(apiPath(`/special-orders/${id}/`), payload),

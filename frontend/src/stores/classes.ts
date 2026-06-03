@@ -64,6 +64,40 @@ const PREVIEW_ORDERS: ClassOrder[] = [
 
 const PREVIEW_DETAIL: ClassOrderDetail = {
   ...PREVIEW_ORDERS[0],
+  pricing_snapshot: {
+    source: "class_service_config",
+    config_id: 1,
+    config_name: "Full class management",
+    config_slug: "full-class-management",
+    service_type: "full_class",
+    pricing_mode: "quote",
+    base_price: "0.00",
+    currency: "USD",
+    payment_policy: {
+      allow_installments: true,
+      require_deposit_before_start: true,
+      deposit_percentage: "50.00",
+      quote_expiry_hours: 72,
+    },
+    selected_duration: {
+      key: "semester",
+      label: "Full semester",
+      weeks: 16,
+      description: "End-to-end class support through the full term.",
+    },
+    selected_workload: {
+      key: "standard",
+      label: "Standard",
+      complexity: "medium",
+      description: "Typical weekly assignments, quizzes, and discussion posts.",
+    },
+    selected_tasks: [
+      { key: "assignments", label: "Assignments", required: true },
+      { key: "discussions", label: "Discussion posts" },
+      { key: "quizzes", label: "Quizzes" },
+    ],
+    portal_access_enabled: true,
+  },
   tasks: [
     {
       id: 1,

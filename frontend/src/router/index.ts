@@ -348,6 +348,21 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminConfigHubView.vue"),
       },
       {
+        path: "class-config",
+        name: "admin-class-config",
+        component: () => import("@/views/admin/AdminClassConfigView.vue"),
+      },
+      {
+        path: "special-order-config",
+        name: "admin-special-order-config",
+        component: () => import("@/views/admin/AdminSpecialOrderConfigView.vue"),
+      },
+      {
+        path: "payment-disclosure",
+        name: "admin-payment-disclosure",
+        component: () => import("@/views/admin/AdminPaymentDisclosureView.vue"),
+      },
+      {
         path: "bids",
         name: "admin-bids",
         component: () => import("@/views/admin/AdminBidsView.vue"),
@@ -484,6 +499,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "resources",
         name: "writer-resources",
         component: () => import("@/views/writer/WriterResourcesView.vue"),
+      },
+      {
+        path: "vetting",
+        name: "writer-vetting",
+        component: () => import("@/views/writer/WriterVettingView.vue"),
       },
     );
   }
@@ -695,6 +715,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminClassesView.vue"),
       },
       {
+        path: "class-config",
+        name: "superadmin-class-config",
+        component: () => import("@/views/admin/AdminClassConfigView.vue"),
+      },
+      {
         path: "classes/:id",
         name: "superadmin-class-detail",
         component: () => import("@/views/admin/AdminClassDetailView.vue"),
@@ -703,6 +728,16 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "special-orders",
         name: "superadmin-special-orders",
         component: () => import("@/views/admin/AdminSpecialOrdersView.vue"),
+      },
+      {
+        path: "special-order-config",
+        name: "superadmin-special-order-config",
+        component: () => import("@/views/admin/AdminSpecialOrderConfigView.vue"),
+      },
+      {
+        path: "payment-disclosure",
+        name: "superadmin-payment-disclosure",
+        component: () => import("@/views/admin/AdminPaymentDisclosureView.vue"),
       },
       {
         path: "special-orders/:id",

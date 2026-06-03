@@ -112,6 +112,27 @@ export interface WebsiteIntegrationConfig {
   created_by: number | null;
 }
 
+export interface PaymentDisclosureConfig {
+  id: number;
+  website: number;
+  website_name: string | null;
+  website_domain: string | null;
+  brand_name: string;
+  processor_display_name: string;
+  statement_descriptor: string;
+  client_disclosure_text: string;
+  support_contact: string;
+  requires_acknowledgement: boolean;
+  updated_at: string;
+}
+
+export interface PaymentDisclosureAckPayload {
+  event: "shown" | "acknowledged";
+  context?: string;
+  reference_type?: string;
+  reference_id?: string | number;
+}
+
 export interface CreateIntegrationPayload {
   website: number;
   integration_type: string;
@@ -179,4 +200,11 @@ export const websitesApi = {
     api.patch<WebsiteIntegrationConfig>(apiPath(`/websites/integrations/${id}/`), payload),
   deleteIntegration: (id: number) =>
     api.delete(apiPath(`/websites/integrations/${id}/`)),
+
+  paymentDisclosure: (params?: Record<string, unknown>) =>
+    api.get<PaymentDisclosureConfig>(apiPath("/websites/payment-disclosure/"), { params }),
+  updatePaymentDisclosure: (payload: Partial<PaymentDisclosureConfig>, params?: Record<string, unknown>) =>
+    api.patch<PaymentDisclosureConfig>(apiPath("/websites/payment-disclosure/"), payload, { params }),
+  acknowledgePaymentDisclosure: (payload: PaymentDisclosureAckPayload) =>
+    api.post(apiPath("/websites/payment-disclosure/acknowledge/"), payload),
 };

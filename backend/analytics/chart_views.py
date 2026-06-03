@@ -42,6 +42,26 @@ class IsStaffOrAdmin(permissions.BasePermission):
         return role in _STAFF_ROLES or getattr(request.user, "is_superuser", False)
 
 
+class IsClientOrStaff(permissions.BasePermission):
+    """Allow clients to read their own chart data while staff retain tenant-scoped access."""
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        role = getattr(request.user, "role", None)
+        return role == "client" or role in _STAFF_ROLES or getattr(request.user, "is_superuser", False)
+
+
+class IsWriterOrStaff(permissions.BasePermission):
+    """Allow writers to read their own chart data while staff retain tenant-scoped access."""
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        role = getattr(request.user, "role", None)
+        return role == "writer" or role in _STAFF_ROLES or getattr(request.user, "is_superuser", False)
+
+
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def _month_label(d: date) -> str:
@@ -232,18 +252,13 @@ class ClientGrowthView(APIView):
 
     def get(self, request):
         months = min(int(request.query_params.get("months", 12)), 36)
-        website_id = request.query_params.get("website_id")
-        website = getattr(request, "website", None)
+        wf = _website_filter(request)
 
         start = (timezone.now() - timedelta(days=months * 31)).replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
 
-        qs = User.objects.filter(role="client", date_joined__gte=start)
-        if website_id:
-            qs = qs.filter(website_id=website_id)
-        elif website:
-            qs = qs.filter(website=website)
+        qs = User.objects.filter(wf, role="client", date_joined__gte=start)
 
         rows = (
             qs.annotate(month=TruncMonth("date_joined"))
@@ -257,11 +272,7 @@ class ClientGrowthView(APIView):
 
         # Cumulative running total
         cumulative = []
-        base = User.objects.filter(role="client", date_joined__lt=start)
-        if website_id:
-            base = base.filter(website_id=website_id)
-        elif website:
-            base = base.filter(website=website)
+        base = User.objects.filter(wf, role="client", date_joined__lt=start)
         running = base.count()
         for n in new_data:
             running += n
@@ -391,8 +402,8 @@ class PeriodComparisonView(APIView):
             label_prev = prev_start.strftime("%b %Y")
 
         if metric == "clients":
-            cur_val = User.objects.filter(role="client", date_joined__gte=cur_start, date_joined__lte=cur_end).count()
-            prev_val = User.objects.filter(role="client", date_joined__gte=prev_start, date_joined__lte=prev_end).count()
+            cur_val = User.objects.filter(wf, role="client", date_joined__gte=cur_start, date_joined__lte=cur_end).count()
+            prev_val = User.objects.filter(wf, role="client", date_joined__gte=prev_start, date_joined__lte=prev_end).count()
         elif metric == "orders":
             cur_val = Order.objects.filter(wf, created_at__gte=cur_start, created_at__lte=cur_end).count()
             prev_val = Order.objects.filter(wf, created_at__gte=prev_start, created_at__lte=prev_end).count()
@@ -425,27 +436,27 @@ class WriterEarningsTrendView(APIView):
     Scoped to the authenticated writer automatically.
     """
 
-    permission_classes = [IsStaffOrAdmin]
+    permission_classes = [IsWriterOrStaff]
 
     def get(self, request):
-        from wallets.models import Wallet
+        from wallets.models import WalletEntry
 
         months = min(int(request.query_params.get("months", 12)), 36)
         start = (timezone.now() - timedelta(days=months * 31)).replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
 
-        try:
-            wallet = Wallet.objects.get(user=request.user)
-            rows = (
-                wallet.entries.filter(created_at__gte=start, direction="credit")
-                .annotate(month=TruncMonth("created_at"))
-                .values("month")
-                .annotate(earnings=Sum("amount", output_field=DecimalField()), events=Count("id"))
-                .order_by("month")
+        rows = (
+            WalletEntry.objects.filter(
+                wallet__owner_user=request.user,
+                direction="credit",
+                created_at__gte=start,
             )
-        except Exception:
-            rows = []
+            .annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(earnings=Sum("amount", output_field=DecimalField()), events=Count("id"))
+            .order_by("month")
+        )
 
         labels = [_month_label(r["month"].date()) for r in rows]
         earnings_data = [float(r["earnings"] or 0) for r in rows]
@@ -480,7 +491,7 @@ class ClientSpendingTrendView(APIView):
     Scoped to the authenticated client automatically.
     """
 
-    permission_classes = [IsStaffOrAdmin]
+    permission_classes = [IsClientOrStaff]
 
     def get(self, request):
         from orders.models.orders import Order

@@ -6,6 +6,8 @@ from special_orders.models import (
     EstimatedSpecialOrderSettings,
     PredefinedSpecialOrderConfig,
     PredefinedSpecialOrderDuration,
+    SpecialOrderMilestoneTemplate,
+    SpecialOrderMilestoneTemplateItem,
 )
 
 
@@ -18,9 +20,12 @@ class PredefinedSpecialOrderDurationSerializer(serializers.ModelSerializer):
             "price",
             "is_active",
         ]
+        read_only_fields = ["id"]
 
 
 class PredefinedSpecialOrderConfigSerializer(serializers.ModelSerializer):
+    website_name = serializers.CharField(source="website.name", read_only=True)
+    website_domain = serializers.CharField(source="website.domain", read_only=True)
     durations = PredefinedSpecialOrderDurationSerializer(
         many=True,
         read_only=True,
@@ -30,6 +35,9 @@ class PredefinedSpecialOrderConfigSerializer(serializers.ModelSerializer):
         model = PredefinedSpecialOrderConfig
         fields = [
             "id",
+            "website",
+            "website_name",
+            "website_domain",
             "name",
             "slug",
             "description",
@@ -39,6 +47,14 @@ class PredefinedSpecialOrderConfigSerializer(serializers.ModelSerializer):
             "allow_external_payment",
             "allow_discounts",
             "durations",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "website",
+            "website_name",
+            "website_domain",
             "created_at",
             "updated_at",
         ]
@@ -60,4 +76,36 @@ class EstimatedSpecialOrderSettingsSerializer(serializers.ModelSerializer):
             "allow_discounts",
             "created_at",
             "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class SpecialOrderMilestoneTemplateItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SpecialOrderMilestoneTemplateItem
+        fields = [
+            "id",
+            "sequence",
+            "label",
+            "percentage",
+            "required_before_staffing",
+            "required_before_delivery",
+        ]
+
+
+class SpecialOrderMilestoneTemplateSerializer(serializers.ModelSerializer):
+    items = SpecialOrderMilestoneTemplateItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SpecialOrderMilestoneTemplate
+        fields = [
+            "id",
+            "name",
+            "description",
+            "is_active",
+            "items",
         ]

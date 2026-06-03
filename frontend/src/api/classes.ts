@@ -4,6 +4,7 @@ import type {
   ClassOrderDetail,
   ClassTask,
   ClassInstallment,
+  ClassServiceConfig,
   PortalAccess,
   CreateClassOrderPayload,
   SubmitTaskPayload,
@@ -124,6 +125,11 @@ function normalizePortalAccess(raw: unknown): PortalAccess {
 
 function classCreatePayload(payload: CreateClassOrderPayload): ApiRecord {
   return {
+    class_config_id: payload.class_config_id ?? null,
+    duration_key: payload.duration_key ?? "",
+    workload_key: payload.workload_key ?? "",
+    selected_task_keys: payload.selected_task_keys ?? [],
+    portal_access_enabled: Boolean(payload.portal_access_enabled),
     title: payload.title,
     class_subject: payload.subject,
     academic_level: payload.academic_level,
@@ -159,6 +165,15 @@ function normalizeListResponse<T>(data: unknown[] | ApiPage<unknown>, mapper: (i
 }
 
 export const classesApi = {
+  configs: (params?: Record<string, unknown>) =>
+    api.get<ClassServiceConfig[]>(base("/configs/"), { params }),
+
+  createConfig: (payload: Partial<ClassServiceConfig>, params?: Record<string, unknown>) =>
+    api.post<ClassServiceConfig>(base("/configs/"), payload, { params }),
+
+  updateConfig: (id: number | string, payload: Partial<ClassServiceConfig>, params?: Record<string, unknown>) =>
+    api.patch<ClassServiceConfig>(base(`/configs/${id}/`), payload, { params }),
+
   list: (params?: Record<string, unknown>) =>
     api.get<unknown[] | ApiPage<unknown>>(
       base("/classes/"),
@@ -174,6 +189,7 @@ export const classesApi = {
           tasks: [],
           installments: [],
           portal_access: null,
+          pricing_snapshot: asRecord(asRecord(res.data).pricing_snapshot),
         } satisfies ClassOrderDetail,
       })),
 

@@ -30,11 +30,17 @@
           <p class="mb-3 text-sm font-semibold text-ink">Pay remaining balance</p>
           <div v-if="payError" class="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-berry">{{ payError }}</div>
           <div v-if="paySuccess" class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-signal">{{ paySuccess }}</div>
-          <PaymentDisclosureBanner class="mb-3" />
+          <PaymentDisclosureBanner
+            v-model="paymentDisclosureAccepted"
+            class="mb-3"
+            context="order_balance_payment"
+            reference-type="order"
+            :reference-id="orderId"
+          />
           <div class="flex flex-wrap gap-2">
             <button
               class="focus-ring inline-flex items-center gap-2 rounded-md bg-signal px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-              :disabled="isPaying"
+              :disabled="isPaying || !paymentDisclosureAccepted"
               @click="payWithWallet"
             >
               <Loader2 v-if="isPaying" class="h-4 w-4 animate-spin" />
@@ -223,12 +229,17 @@ const wallets = useWalletStore();
 const isPaying = ref(false);
 const payError = ref("");
 const paySuccess = ref("");
+const paymentDisclosureAccepted = ref(false);
 
 const walletBalance = computed(() =>
   `${wallets.currency} ${wallets.availableBalance.toFixed(2)}`
 );
 
 async function payWithWallet() {
+  if (!paymentDisclosureAccepted.value) {
+    payError.value = "Please acknowledge the billing statement notice before paying.";
+    return;
+  }
   isPaying.value = true;
   payError.value = "";
   paySuccess.value = "";

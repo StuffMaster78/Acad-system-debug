@@ -19,6 +19,8 @@ from special_orders.api.views.special_order_views import (
     CreateFixedSpecialOrderView,
     CreateQuotedSpecialOrderView,
     ListPredefinedSpecialOrderConfigsView,
+    PredefinedSpecialOrderConfigDetailView,
+    SpecialOrderQuoteConfigView,
     SpecialOrderDetailView,
     SpecialOrderListView,
 )
@@ -313,5 +315,15 @@ urlpatterns = [
         "predefined-configs/",
         ListPredefinedSpecialOrderConfigsView.as_view(),
         name="special-order-predefined-configs",
+    ),
+    path(
+        "predefined-configs/<int:pk>/",
+        PredefinedSpecialOrderConfigDetailView.as_view(),
+        name="special-order-predefined-config-detail",
+    ),
+    path(
+        "quote-config/",
+        SpecialOrderQuoteConfigView.as_view(),
+        name="special-order-quote-config",
     ),
 ]

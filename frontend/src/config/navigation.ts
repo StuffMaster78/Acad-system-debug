@@ -80,6 +80,8 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Orders", to: "/superadmin/orders", icon: ClipboardList },
     { label: "Classes", to: "/superadmin/classes", icon: BookOpen },
     { label: "Special Orders", to: "/superadmin/special-orders", icon: Sparkles },
+    { label: "Class Management", to: "/superadmin/class-config", icon: Settings },
+    { label: "Special Order Mgmt", to: "/superadmin/special-order-config", icon: Wrench },
     { label: "Writers", to: "/superadmin/writers", icon: Users },
     { label: "Applications", to: "/superadmin/writer-applications", icon: FileText },
     { label: "Vetting", to: "/superadmin/writer-vetting", icon: GraduationCap },
@@ -89,6 +91,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "All Users", to: "/superadmin/access", icon: UserCog },
     { label: "Finance", to: "/superadmin/finance", icon: CreditCard },
     { label: "Payments", to: "/superadmin/payments", icon: CreditCard },
+    { label: "Payment Disclosure", to: "/superadmin/payment-disclosure", icon: Receipt },
     { label: "Refunds", to: "/superadmin/refunds", icon: RotateCcw },
     { label: "Compensation", to: "/superadmin/compensation", icon: TrendingUp },
     { label: "Wallets", to: "/superadmin/wallets", icon: Wallet },
@@ -125,6 +128,8 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Bids", to: "/admin/bids", icon: DollarSign },
     { label: "Classes", to: "/admin/classes", icon: BookOpen },
     { label: "Special Orders", to: "/admin/special-orders", icon: Sparkles },
+    { label: "Class Management", to: "/admin/class-config", icon: Settings },
+    { label: "Special Order Mgmt", to: "/admin/special-order-config", icon: Wrench },
     { label: "Disputes", to: "/admin/disputes", icon: ShieldAlert },
     { label: "Reviews", to: "/admin/reviews", icon: Star },
     { label: "Writers", to: "/admin/writers", icon: Users },
@@ -135,6 +140,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Support Staff", to: "/admin/support-staff", icon: Headphones },
     { label: "All Users", to: "/admin/access", icon: UserCog },
     { label: "Payments", to: "/admin/payments", icon: CreditCard },
+    { label: "Payment Disclosure", to: "/admin/payment-disclosure", icon: Receipt },
     { label: "Refunds", to: "/admin/refunds", icon: RotateCcw },
     { label: "Compensation", to: "/admin/compensation", icon: TrendingUp },
     { label: "Wallets", to: "/admin/wallets", icon: Wallet },
@@ -176,6 +182,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Bids", to: "/writer/bids", icon: Send },
     { label: "Fines", to: "/writer/fines", icon: AlertTriangle },
     { label: "Resources", to: "/writer/resources", icon: FolderOpen },
+    { label: "Vetting", to: "/writer/vetting", icon: GraduationCap },
     { label: "Messages", to: "/writer/messages", icon: MessageSquare },
     { label: "Announcements", to: "/writer/announcements", icon: Megaphone },
     { label: "Notifications", to: "/writer/notifications", icon: Bell },
@@ -264,6 +271,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     { label: "Finance", items: [
       { label: "Finance", to: "/superadmin/finance", icon: CreditCard },
       { label: "Payments", to: "/superadmin/payments", icon: CreditCard },
+      { label: "Payment Disclosure", to: "/superadmin/payment-disclosure", icon: Receipt },
       { label: "Refunds", to: "/superadmin/refunds", icon: RotateCcw },
       { label: "Compensation", to: "/superadmin/compensation", icon: TrendingUp },
       { label: "Wallets", to: "/superadmin/wallets", icon: Wallet },
@@ -295,6 +303,8 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     ]},
     { label: "Config", items: [
       { label: "Settings", to: "/superadmin/settings", icon: Settings },
+      { label: "Class Management", to: "/superadmin/class-config", icon: BookOpen },
+      { label: "Special Order Management", to: "/superadmin/special-order-config", icon: Sparkles },
       { label: "Support", to: "/superadmin/support", icon: LifeBuoy },
       { label: "Config Hub", to: "/superadmin/config", icon: Wrench },
     ]},
@@ -324,6 +334,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     ]},
     { label: "Finance", items: [
       { label: "Payments", to: "/admin/payments", icon: CreditCard },
+      { label: "Payment Disclosure", to: "/admin/payment-disclosure", icon: Receipt },
       { label: "Refunds", to: "/admin/refunds", icon: RotateCcw },
       { label: "Compensation", to: "/admin/compensation", icon: TrendingUp },
       { label: "Wallets", to: "/admin/wallets", icon: Wallet },
@@ -357,6 +368,8 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     ]},
     { label: "Config", items: [
       { label: "Settings", to: "/admin/settings", icon: Settings },
+      { label: "Class Management", to: "/admin/class-config", icon: BookOpen },
+      { label: "Special Order Management", to: "/admin/special-order-config", icon: Sparkles },
       { label: "Support", to: "/admin/support", icon: LifeBuoy },
       { label: "Config Hub", to: "/admin/config", icon: Wrench },
     ]},
@@ -371,6 +384,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     { label: "Learning", items: [
       { label: "Classes", to: "/writer/classes", icon: BookOpen },
       { label: "Resources", to: "/writer/resources", icon: FolderOpen },
+      { label: "Vetting", to: "/writer/vetting", icon: GraduationCap },
     ]},
     { label: "Finance", items: [
       { label: "Earnings", to: "/writer/earnings", icon: Wallet },

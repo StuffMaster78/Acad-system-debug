@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -36,23 +38,29 @@ class FixedSpecialOrderPricingPreviewView(APIView):
 
         data = cast(dict[str, Any], serializer.validated_data)
 
-        config = PredefinedSpecialOrderConfig.objects.get(
-            id=int(data["predefined_config_id"]),
-            website=request.user.website,
-        )
+        try:
+            config = PredefinedSpecialOrderConfig.objects.get(
+                id=int(data["predefined_config_id"]),
+                website=request.user.website,
+            )
 
-        duration = PredefinedSpecialOrderDuration.objects.get(
-            id=int(data["predefined_duration_id"]),
-            website=request.user.website,
-        )
+            duration = PredefinedSpecialOrderDuration.objects.get(
+                id=int(data["predefined_duration_id"]),
+                website=request.user.website,
+            )
+        except ObjectDoesNotExist as exc:
+            raise NotFound("Special order config or duration not found.") from exc
 
-        gross_quote = SpecialOrderFixedPricingService.calculate_gross_price(
-            predefined_config=config,
-            predefined_duration=duration,
-            currency=str(data.get("currency", "USD")),
-            platform=str(data.get("platform", "")),
-            writer_level=str(data.get("writer_level", "")),
-        )
+        try:
+            gross_quote = SpecialOrderFixedPricingService.calculate_gross_price(
+                predefined_config=config,
+                predefined_duration=duration,
+                currency=str(data.get("currency", "USD")),
+                platform=str(data.get("platform", "")),
+                writer_level=str(data.get("writer_level", "")),
+            )
+        except ValueError as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
 
         discount_result = SpecialOrderDiscountBridge.apply_discount(
             website=request.user.website,

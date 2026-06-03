@@ -145,3 +145,145 @@ class VettingChoice(models.Model):
     def __str__(self) -> str:
         tick = "✓" if self.is_correct else "✗"
         return f"{tick} {self.text[:60]}"
+
+
+class AttemptStatus(models.TextChoices):
+    IN_PROGRESS     = "in_progress",     _("In progress")
+    SUBMITTED       = "submitted",       _("Submitted — awaiting review")
+    PASSED          = "passed",          _("Passed")
+    FAILED          = "failed",          _("Failed")
+    PENDING_REVIEW  = "pending_review",  _("Pending manual review (essay)")
+
+
+class WriterTestAttempt(models.Model):
+    """
+    One attempt by a writer to complete a VettingQuiz.
+
+    MCQ/true-false quizzes are auto-scored on submission.
+    Essay quizzes go to PENDING_REVIEW for staff to grade manually.
+    """
+
+    quiz = models.ForeignKey(
+        VettingQuiz,
+        on_delete=models.CASCADE,
+        related_name="attempts",
+    )
+    writer = models.ForeignKey(
+        "writer_management.WriterProfile",
+        on_delete=models.CASCADE,
+        related_name="quiz_attempts",
+    )
+    attempt_number = models.PositiveSmallIntegerField(default=1)
+    status = models.CharField(
+        max_length=20,
+        choices=AttemptStatus.choices,
+        default=AttemptStatus.IN_PROGRESS,
+    )
+
+    # Score (set on submission for auto-scored quizzes)
+    score = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        null=True, blank=True,
+        help_text="Percentage score 0–100. Null until graded.",
+    )
+    passed = models.BooleanField(
+        null=True, blank=True,
+        help_text="Null until scored.",
+    )
+
+    # Manual review (essay quizzes)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_attempts",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewer_notes = models.TextField(blank=True)
+
+    started_at = models.DateTimeField(auto_now_add=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+        unique_together = [["quiz", "writer", "attempt_number"]]
+        verbose_name = "Writer Test Attempt"
+        indexes = [
+            models.Index(fields=["writer", "status"]),
+            models.Index(fields=["quiz", "status"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.writer} — {self.quiz.title} attempt #{self.attempt_number}"
+
+    def auto_score(self) -> None:
+        """
+        Score all MCQ / true-false answers and set score + passed + status.
+        Call after all WriterTestAnswer rows are saved.
+        Does nothing for essay quizzes (those require manual review).
+        """
+        if self.quiz.quiz_type == QuizType.ESSAY:
+            self.status = AttemptStatus.PENDING_REVIEW
+            self.save(update_fields=["status", "updated_at"])
+            return
+
+        answers = self.answers.select_related("question", "selected_choice")
+        total_points = sum(a.question.points for a in answers if a.question.is_active)
+        if total_points == 0:
+            self.score = 0
+            self.passed = False
+            self.status = AttemptStatus.FAILED
+            self.save(update_fields=["score", "passed", "status", "updated_at"])
+            return
+
+        earned = sum(
+            a.question.points
+            for a in answers
+            if a.is_correct and a.question.is_active
+        )
+        pct = (earned / total_points) * 100
+        self.score = round(pct, 2)
+        self.passed = pct >= self.quiz.pass_score
+        self.status = AttemptStatus.PASSED if self.passed else AttemptStatus.FAILED
+        self.save(update_fields=["score", "passed", "status", "updated_at"])
+
+
+class WriterTestAnswer(models.Model):
+    """One question's answer within a WriterTestAttempt."""
+
+    attempt = models.ForeignKey(
+        WriterTestAttempt,
+        on_delete=models.CASCADE,
+        related_name="answers",
+    )
+    question = models.ForeignKey(
+        VettingQuestion,
+        on_delete=models.PROTECT,
+        related_name="answers",
+    )
+    # MCQ / true-false: writer picks a choice
+    selected_choice = models.ForeignKey(
+        VettingChoice,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="answers",
+    )
+    # Essay: writer types a response
+    essay_response = models.TextField(blank=True)
+
+    # Auto-set for MCQ/T-F; set by reviewer for essay
+    is_correct = models.BooleanField(null=True, blank=True)
+    points_earned = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        default=0,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [["attempt", "question"]]
+        verbose_name = "Writer Test Answer"
+
+    def __str__(self) -> str:
+        return f"Attempt {self.attempt_id} Q{self.question_id}"

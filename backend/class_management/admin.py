@@ -7,6 +7,7 @@ from class_management.models import (
     ClassAccessGrant,
     ClassAccessLog,
     ClassAssignment,
+    ClassServiceConfig,
     ClassInstallment,
     ClassInstallmentPlan,
     ClassInvoiceLink,
@@ -23,6 +24,93 @@ from class_management.models import (
     ClassTwoFactorWindow,
     ClassWriterCompensation,
 )
+
+
+@admin.register(ClassServiceConfig)
+class ClassServiceConfigAdmin(admin.ModelAdmin):
+    """
+    Admin-managed catalog of class service options shown to clients.
+    """
+
+    list_display = [
+        "id",
+        "name",
+        "website",
+        "service_type",
+        "pricing_mode",
+        "base_price",
+        "currency",
+        "is_active",
+        "display_order",
+    ]
+    list_filter = [
+        "website",
+        "service_type",
+        "pricing_mode",
+        "is_active",
+        "currency",
+    ]
+    search_fields = [
+        "name",
+        "slug",
+        "description",
+        "website__name",
+    ]
+    prepopulated_fields = {"slug": ("name",)}
+    autocomplete_fields = ["website", "created_by"]
+    readonly_fields = ["created_at", "updated_at"]
+    fieldsets = [
+        (
+            "Client-Facing",
+            {
+                "fields": [
+                    "website",
+                    "name",
+                    "slug",
+                    "description",
+                    "service_type",
+                    "is_active",
+                    "display_order",
+                ]
+            },
+        ),
+        (
+            "Pricing & Payment Policy",
+            {
+                "fields": [
+                    "pricing_mode",
+                    "base_price",
+                    "currency",
+                    "requires_portal_access",
+                    "allow_installments",
+                    "require_deposit_before_start",
+                    "deposit_percentage",
+                    "quote_expiry_hours",
+                ]
+            },
+        ),
+        (
+            "Option Sets",
+            {
+                "fields": [
+                    "duration_options",
+                    "workload_options",
+                    "task_options",
+                    "required_fields",
+                ]
+            },
+        ),
+        (
+            "Audit",
+            {
+                "fields": [
+                    "created_by",
+                    "created_at",
+                    "updated_at",
+                ]
+            },
+        ),
+    ]
 
 
 class ClassTwoFactorWindowInline(admin.TabularInline):
@@ -153,6 +241,7 @@ class ClassOrderAdmin(admin.ModelAdmin):
                     "website",
                     "client",
                     "assigned_writer",
+                    "class_config",
                     "title",
                     "status",
                     "payment_status",

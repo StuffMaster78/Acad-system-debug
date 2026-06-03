@@ -81,14 +81,28 @@ class PortalContextView(APIView):
             descriptor = getattr(branding, "payment_statement_descriptor", "")
             if processor:
                 brand_name = getattr(branding, "brand_name", website.name)
+                disclosure_text = getattr(
+                    branding,
+                    "payment_client_disclosure_text",
+                    "",
+                )
+                short_text = disclosure_text or (
+                    f"Your payment is securely processed by {processor}. "
+                    f"Your card or bank statement may show: {descriptor or processor}."
+                )
                 payment_disclosure = {
                     "processor_name": processor,
+                    "processor_display_name": processor,
                     "statement_descriptor": descriptor,
-                    "text": (
-                        f"Your payment is securely processed by {processor}. "
-                        f"Your card or bank statement may show: {descriptor or processor}."
+                    "client_disclosure_text": disclosure_text,
+                    "support_contact": getattr(branding, "payment_support_contact", ""),
+                    "requires_acknowledgement": getattr(
+                        branding,
+                        "payment_requires_acknowledgement",
+                        True,
                     ),
-                    "pre_payment_notice": (
+                    "text": short_text,
+                    "pre_payment_notice": disclosure_text or (
                         f"You are placing this order with {brand_name}. "
                         f"Payments are securely processed by {processor}, our billing partner. "
                         f"Your card statement may show {descriptor or processor}."

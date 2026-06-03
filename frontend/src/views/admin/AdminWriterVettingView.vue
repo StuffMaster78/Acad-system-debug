@@ -18,6 +18,7 @@ const activeQuiz = ref<VettingQuizDetail | null>(null);
 const loading    = ref(false);
 const saving     = ref(false);
 const notice     = ref<{ type: "success" | "error"; msg: string } | null>(null);
+type StatusPillTone = "neutral" | "success" | "warning" | "danger";
 
 const typeFilter = ref<QuizType | "all">("all");
 
@@ -234,8 +235,8 @@ async function deleteQuestion(q: VettingQuestion) {
 const QUIZ_TYPE_LABELS: Record<QuizType, string> = {
   grammar: "Grammar", subject: "Subject knowledge", essay: "Essay prompt",
 };
-const QUIZ_TYPE_TONES: Record<QuizType, string> = {
-  grammar: "blue", subject: "green", essay: "yellow",
+const QUIZ_TYPE_TONES: Record<QuizType, StatusPillTone> = {
+  grammar: "neutral", subject: "success", essay: "warning",
 };
 const Q_TYPE_LABELS: Record<QuestionType, string> = {
   multiple_choice: "Multiple choice", true_false: "True / False", essay: "Essay",
@@ -350,7 +351,7 @@ onMounted(loadQuizzes);
                 />
                 <StatusPill
                   :status="activeQuiz.is_active ? 'active' : 'inactive'"
-                  :tone="activeQuiz.is_active ? 'green' : 'gray'"
+                  :tone="activeQuiz.is_active ? 'success' : 'neutral'"
                   :label="activeQuiz.is_active ? 'Active' : 'Inactive'"
                 />
               </div>

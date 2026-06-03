@@ -180,11 +180,15 @@
 
             <div v-if="error" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error }}</div>
 
-            <PaymentDisclosureBanner class="mb-1" />
+            <PaymentDisclosureBanner
+              v-model="paymentDisclosureAccepted"
+              class="mb-1"
+              context="express_special_order"
+            />
             <div class="flex gap-3 pt-1">
               <button
                 class="flex-1 rounded-lg bg-berry px-5 py-3 text-sm font-semibold text-white hover:bg-berry/90 disabled:opacity-60 transition-colors"
-                :disabled="isSaving || !form.inquiry_details.trim()"
+                :disabled="isSaving || !form.inquiry_details.trim() || !paymentDisclosureAccepted"
                 @click="submit"
               >
                 <span v-if="isSaving">Placing order…</span>
@@ -224,6 +228,7 @@ const loadingPreview = ref(false);
 const couponCode = ref("");
 const isSaving = ref(false);
 const error = ref<string | null>(null);
+const paymentDisclosureAccepted = ref(false);
 
 const form = ref({
   title: "",
@@ -274,6 +279,10 @@ async function fetchPreview() {
 
 async function submit() {
   if (!selectedConfig.value || !selectedDuration.value) return;
+  if (!paymentDisclosureAccepted.value) {
+    error.value = "Please acknowledge the billing statement notice before placing your order.";
+    return;
+  }
   isSaving.value = true;
   error.value = null;
   try {

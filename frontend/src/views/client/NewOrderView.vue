@@ -21,6 +21,7 @@ const files = useFilesStore();
 const error = ref("");
 const success = ref("");
 const paymentMethod = ref<PaymentMethod>("wallet");
+const paymentDisclosureAccepted = ref(false);
 const couponCode = ref("");
 const couponApplied = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
@@ -204,6 +205,10 @@ async function submit() {
   attempted.value = true;
   if (topicError.value || instructionsError.value || configSelectionError.value) return;
   if (!form.paper_type_id || !form.academic_level_id || !form.type_of_work_id) return;
+  if (!paymentDisclosureAccepted.value) {
+    error.value = "Please acknowledge the billing statement notice before placing your order.";
+    return;
+  }
   error.value = "";
   success.value = "";
   try {
@@ -654,10 +659,10 @@ onMounted(loadConfig);
         </section>
 
         <div class="space-y-2">
-          <PaymentDisclosureBanner />
+          <PaymentDisclosureBanner v-model="paymentDisclosureAccepted" context="new_order_checkout" />
           <button
             class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="!canQuote || orders.isCreating"
+            :disabled="!canQuote || orders.isCreating || !paymentDisclosureAccepted"
             type="submit"
           >
             <Loader2 v-if="orders.isCreating" class="h-4 w-4 animate-spin" />

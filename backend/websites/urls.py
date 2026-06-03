@@ -5,6 +5,10 @@ from .views.all_views import (
     WebsiteIntegrationConfigViewSet
 )
 from .views.tenant_features import TenantFeatureToggleViewSet, TenantBrandingViewSet
+from .views.payment_disclosure import (
+    PaymentDisclosureAcknowledgementView,
+    PaymentDisclosureConfigView,
+)
 
 # Register Website Routes with DefaultRouter
 router = DefaultRouter()
@@ -18,6 +22,8 @@ router.register(r'integrations', WebsiteIntegrationConfigViewSet, basename='webs
 urlpatterns = [
     # Website Management API
     path("", include(router.urls)),
+    path("payment-disclosure/", PaymentDisclosureConfigView.as_view(), name="payment-disclosure-config"),
+    path("payment-disclosure/acknowledge/", PaymentDisclosureAcknowledgementView.as_view(), name="payment-disclosure-acknowledge"),
 
     # SEO & Analytics Management (Admins & Superadmins Only)
     path("websites/<int:pk>/update_seo_settings/", WebsiteViewSet.as_view({"patch": "update_seo_settings"}), name="update-seo-settings"),

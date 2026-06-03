@@ -95,10 +95,67 @@ export interface PortalAccess {
   last_accessed_at: string | null;
 }
 
+export interface ClassConfigOption {
+  key: string;
+  label: string;
+  description?: string;
+  weeks?: number;
+  complexity?: string;
+  price_hint?: string;
+  required?: boolean;
+}
+
+export interface ClassServiceConfig {
+  id: number;
+  website?: number;
+  website_name?: string | null;
+  website_domain?: string | null;
+  name: string;
+  slug: string;
+  description: string;
+  service_type: string;
+  pricing_mode: "quote" | "package";
+  base_price: string;
+  currency: string;
+  duration_options: ClassConfigOption[];
+  workload_options: ClassConfigOption[];
+  task_options: ClassConfigOption[];
+  required_fields: string[];
+  requires_portal_access: boolean;
+  allow_installments: boolean;
+  require_deposit_before_start: boolean;
+  deposit_percentage: string;
+  quote_expiry_hours: number;
+  is_active: boolean;
+  display_order: number;
+}
+
+export interface ClassPricingSnapshot {
+  source?: string;
+  config_id?: number;
+  config_name?: string;
+  config_slug?: string;
+  service_type?: string;
+  pricing_mode?: "quote" | "package" | string;
+  base_price?: string;
+  currency?: string;
+  payment_policy?: {
+    allow_installments?: boolean;
+    require_deposit_before_start?: boolean;
+    deposit_percentage?: string;
+    quote_expiry_hours?: number;
+  };
+  selected_duration?: ClassConfigOption | null;
+  selected_workload?: ClassConfigOption | null;
+  selected_tasks?: ClassConfigOption[];
+  portal_access_enabled?: boolean;
+}
+
 export interface ClassOrderDetail extends ClassOrder {
   tasks: ClassTask[];
   installments: ClassInstallment[];
   portal_access: PortalAccess | null;
+  pricing_snapshot?: ClassPricingSnapshot;
 }
 
 export interface CreateClassOrderPayload {
@@ -109,6 +166,10 @@ export interface CreateClassOrderPayload {
   end_date: string;
   notes?: string;
   portal_access_enabled?: boolean;
+  class_config_id?: number;
+  duration_key?: string;
+  workload_key?: string;
+  selected_task_keys?: string[];
 }
 
 export interface SubmitTaskPayload {

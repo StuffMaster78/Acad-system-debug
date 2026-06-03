@@ -41,6 +41,13 @@ class ClassOrder(models.Model):
         blank=True,
         related_name="assigned_class_orders",
     )
+    class_config = models.ForeignKey(
+        "class_management.ClassServiceConfig",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="class_orders",
+    )
 
     title = models.CharField(max_length=255)
     institution_name = models.CharField(max_length=255, blank=True)
@@ -165,6 +172,7 @@ class ClassOrder(models.Model):
             models.Index(fields=["website", "status"]),
             models.Index(fields=["website", "client"]),
             models.Index(fields=["website", "assigned_writer"]),
+            models.Index(fields=["website", "class_config"]),
             models.Index(fields=["payment_status"]),
         ]
         constraints = [

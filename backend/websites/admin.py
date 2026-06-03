@@ -1,5 +1,9 @@
 from django.contrib import admin
 from websites.models.websites import Website
+from websites.models.website_branding import (
+    PaymentDisclosureAcknowledgement,
+    WebsiteBranding,
+)
 from websites.models.website_settings import (
     WebsiteStaticPage, WebsiteSettings,
     WebsiteTermsAcceptance, ExternalReviewLink
@@ -106,6 +110,64 @@ class WebsiteStaticPageAdmin(admin.ModelAdmin):
 
 admin.site.register(WebsiteSettings) # assuming you don't have a custom admin
 admin.site.register(WebsiteStaticPage, WebsiteStaticPageAdmin)
+
+
+@admin.register(WebsiteBranding)
+class WebsiteBrandingAdmin(admin.ModelAdmin):
+    list_display = (
+        "website",
+        "brand_name",
+        "payment_processor_name",
+        "payment_statement_descriptor",
+        "payment_requires_acknowledgement",
+        "updated_at",
+    )
+    list_filter = ("payment_requires_acknowledgement", "is_public")
+    search_fields = (
+        "website__name",
+        "website__domain",
+        "brand_name",
+        "payment_processor_name",
+        "payment_statement_descriptor",
+    )
+
+
+@admin.register(PaymentDisclosureAcknowledgement)
+class PaymentDisclosureAcknowledgementAdmin(admin.ModelAdmin):
+    list_display = (
+        "website",
+        "user",
+        "statement_descriptor",
+        "context",
+        "reference_type",
+        "reference_id",
+        "shown_at",
+        "acknowledged_at",
+    )
+    list_filter = ("website", "context", "reference_type", "shown_at", "acknowledged_at")
+    search_fields = (
+        "user__email",
+        "user__username",
+        "website__name",
+        "statement_descriptor",
+        "reference_id",
+    )
+    readonly_fields = (
+        "website",
+        "user",
+        "processor_display_name",
+        "statement_descriptor",
+        "client_disclosure_text",
+        "support_contact",
+        "context",
+        "reference_type",
+        "reference_id",
+        "shown_at",
+        "acknowledged_at",
+        "ip_address",
+        "user_agent",
+        "created_at",
+    )
 
 
 @admin.register(WebsiteTermsAcceptance)

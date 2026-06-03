@@ -9,6 +9,7 @@ import { useAdminNewslettersStore } from "@/stores/adminNewsletters";
 
 const nl = useAdminNewslettersStore();
 const activeTab = ref<"overview" | "subscribers" | "campaigns">("overview");
+type StatusPillTone = "neutral" | "success" | "warning" | "danger";
 
 onMounted(async () => {
   await nl.loadStats();
@@ -18,12 +19,12 @@ onMounted(async () => {
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const STATUS_TONE: Record<string, string> = {
-  draft: "gray",
-  scheduled: "yellow",
-  sending: "blue",
-  sent: "green",
-  failed: "red",
+const STATUS_TONE: Record<string, StatusPillTone> = {
+  draft: "neutral",
+  scheduled: "warning",
+  sending: "neutral",
+  sent: "success",
+  failed: "danger",
 };
 
 function pct(n: number, d: number) {
@@ -267,7 +268,7 @@ async function createCat() {
               <td class="px-6 py-3">
                 <StatusPill
                   :status="sub.is_active ? 'active' : 'inactive'"
-                  :tone="sub.is_active ? 'green' : 'gray'"
+                  :tone="sub.is_active ? 'success' : 'neutral'"
                   :label="sub.is_active ? 'Active' : 'Inactive'"
                 />
               </td>

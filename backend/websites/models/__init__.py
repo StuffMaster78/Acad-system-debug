@@ -41,8 +41,9 @@ except ImportError:
     TenantFeatureToggle = None
 
 try:
-    from .website_branding import WebsiteBranding
+    from .website_branding import PaymentDisclosureAcknowledgement, WebsiteBranding
 except ImportError:
+    PaymentDisclosureAcknowledgement = None
     WebsiteBranding = None
 
 __all__ = [
@@ -57,5 +58,5 @@ __all__ = [
     'TenantBranding',
     'TenantFeatureToggle',
     'WebsiteBranding',
+    'PaymentDisclosureAcknowledgement',
 ]
-

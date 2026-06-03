@@ -49,6 +49,7 @@ class ClassOrderDetailSerializer(serializers.ModelSerializer):
             "website",
             "client",
             "assigned_writer",
+            "class_config",
             "title",
             "institution_name",
             "institution_state",
@@ -88,6 +89,7 @@ class ClassOrderDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "website",
+            "class_config",
             "status",
             "payment_status",
             "quoted_amount",
@@ -111,6 +113,23 @@ class ClassOrderDetailSerializer(serializers.ModelSerializer):
 
 
 class ClassOrderCreateSerializer(serializers.Serializer):
+    class_config_id = serializers.IntegerField(required=False, allow_null=True)
+    duration_key = serializers.CharField(
+        max_length=80,
+        required=False,
+        allow_blank=True,
+    )
+    workload_key = serializers.CharField(
+        max_length=80,
+        required=False,
+        allow_blank=True,
+    )
+    selected_task_keys = serializers.ListField(
+        child=serializers.CharField(max_length=80),
+        required=False,
+        allow_empty=True,
+    )
+    portal_access_enabled = serializers.BooleanField(required=False)
     title = serializers.CharField(max_length=255)
     institution_name = serializers.CharField(
         max_length=255,

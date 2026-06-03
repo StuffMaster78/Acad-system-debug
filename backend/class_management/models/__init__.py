@@ -6,6 +6,7 @@ from .class_access import (
     ClassTwoFactorWindow,
 )
 from .class_assignment import ClassAssignment
+from .class_configs import ClassServiceConfig
 from .class_installments import (
     ClassInstallment,
     ClassInstallmentPlan,
@@ -47,6 +48,7 @@ __all__ = [
     "ClassPriceCounterOffer",
     "ClassPriceProposal",
     "ClassScopeAssessment",
+    "ClassServiceConfig",
     "ClassScopeItem",
     "ClassTask",
     "ClassTimelineEvent",
