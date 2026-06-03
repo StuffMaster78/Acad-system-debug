@@ -512,6 +512,21 @@
         >{{ (block.value as ChartValue).caption }}</figcaption>
       </figure>
 
+      <!-- Pricing Calculator (interactive, calls pricing API) -->
+      <PricingCalculator
+        v-else-if="block.type === 'calculator'"
+        :title="(block.value as CalculatorValue).title || undefined"
+        :subtitle="(block.value as CalculatorValue).subtitle || undefined"
+        :service-code="(block.value as CalculatorValue).service_code || 'standard_paper'"
+        :default-pages="(block.value as CalculatorValue).default_pages ?? 1"
+        :default-deadline-hours="(block.value as CalculatorValue).default_deadline_hours ?? 48"
+        :default-academic-level-code="(block.value as CalculatorValue).default_academic_level_code || ''"
+        :default-paper-type-code="(block.value as CalculatorValue).default_paper_type_code || ''"
+        :show-line-breakdown="(block.value as CalculatorValue).show_line_breakdown !== 'no'"
+        :cta-text="(block.value as CalculatorValue).cta_text || 'Place Order'"
+        :cta-url="(block.value as CalculatorValue).cta_url || '/auth/register'"
+      />
+
       <!-- Fallback: raw JSON for unknown blocks (dev only) -->
       <details v-else class="rounded-lg border border-dashed border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
         <summary class="cursor-pointer font-mono font-semibold">Unknown block: {{ block.type }}</summary>
@@ -526,6 +541,7 @@
 import { ArrowRight, CheckCircle, ChevronDown, ShieldCheck, Star } from "@lucide/vue";
 import type { EChartsOption } from "echarts";
 import AppChart from "@/components/ui/AppChart.vue";
+import PricingCalculator from "@/components/cms/PricingCalculator.vue";
 import type { WagtailBlock } from "@/api/cms";
 
 defineProps<{ blocks: WagtailBlock[] }>();
@@ -565,6 +581,12 @@ interface DefinitionValue { term: string; definition: string; example?: string }
 interface TimelineEntry { date_label: string; title: string; description: string }
 interface TimelineValue { heading?: string; entries: TimelineEntry[] }
 interface EmbedValue { embed_url: string; height?: number; caption?: string }
+interface CalculatorValue {
+  title?: string; subtitle?: string; service_code?: string;
+  default_pages?: number; default_deadline_hours?: number;
+  default_academic_level_code?: string; default_paper_type_code?: string;
+  show_line_breakdown?: "yes" | "no"; cta_text?: string; cta_url?: string;
+}
 
 function headingId(text: string): string {
   return text.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 60);

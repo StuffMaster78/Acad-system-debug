@@ -923,6 +923,86 @@ class GuaranteesBlock(StructBlock):
 # COMPOSED STREAMBLOCKS — the two exports other apps use
 # ===========================================================================
 
+class CalculatorBlock(StructBlock):
+    """
+    Embeds an interactive pricing calculator widget inside a service page or
+    blog post. The frontend renders this as a Vue component that calls the
+    pricing quote API in real time — no page reload needed.
+
+    Admin fields configure the pre-selected defaults so each embed is
+    contextually relevant (e.g., a nursing essay page defaults to nursing
+    subject and standard deadline).
+    """
+
+    title = CharBlock(
+        required=False,
+        max_length=120,
+        help_text="Heading shown above the calculator (e.g. 'Get your instant price').",
+    )
+    subtitle = CharBlock(
+        required=False,
+        max_length=255,
+        help_text="Optional supporting line beneath the heading.",
+    )
+    service_code = ChoiceBlock(
+        choices=[
+            ("standard_paper", "Standard Paper (essay, research paper, etc.)"),
+            ("design",         "Design / Presentation (slides, infographic)"),
+            ("diagram",        "Diagram / Chart"),
+        ],
+        default="standard_paper",
+        help_text="Which pricing service this calculator quotes.",
+    )
+    default_pages = IntegerBlock(
+        required=False,
+        default=1,
+        min_value=1,
+        max_value=500,
+        help_text="Pre-selected page count when the widget loads.",
+    )
+    default_deadline_hours = IntegerBlock(
+        required=False,
+        default=48,
+        min_value=1,
+        help_text="Pre-selected deadline (hours) when the widget loads.",
+    )
+    default_academic_level_code = CharBlock(
+        required=False,
+        max_length=50,
+        help_text="Pre-selected academic level code (e.g. 'undergraduate'). Leave blank for no default.",
+    )
+    default_paper_type_code = CharBlock(
+        required=False,
+        max_length=50,
+        help_text="Pre-selected paper type code (e.g. 'essay'). Leave blank for no default.",
+    )
+    show_line_breakdown = ChoiceBlock(
+        choices=[
+            ("yes", "Yes — show full price breakdown"),
+            ("no",  "No — show final price only"),
+        ],
+        default="yes",
+        help_text="Whether to show the line-item breakdown after calculation.",
+    )
+    cta_text = CharBlock(
+        required=False,
+        default="Place Order",
+        max_length=60,
+        help_text="CTA button label.",
+    )
+    cta_url = CharBlock(
+        required=False,
+        default="/auth/register",
+        max_length=255,
+        help_text="Where the CTA sends the user (default: registration).",
+    )
+
+    class Meta:
+        icon = "calculator"
+        label = "Pricing Calculator"
+        template = None  # Rendered entirely client-side by Vue
+
+
 BLOG_BLOCKS = StreamBlock([
     ("key_takeaways", KeyTakeawaysBlock()),
     ("toc", TableOfContentsBlock()),
@@ -949,6 +1029,7 @@ BLOG_BLOCKS = StreamBlock([
     ("embed", EmbedBlock()),
     ("divider", DividerBlock()),
     ("video", VideoEmbedBlock()),
+    ("calculator", CalculatorBlock()),
     ("sources", SourcesListBlock()),
     ("related_posts", RelatedPostsBlock()),
     ("code", CodeBlock()),
@@ -981,5 +1062,6 @@ SERVICE_PAGE_BLOCKS = StreamBlock([
     ("embed", EmbedBlock()),
     ("attachment", AttachmentReferenceBlock()),
     ("internal_link", InternalLinkCardBlock()),
+    ("calculator", CalculatorBlock()),
     ("divider", DividerBlock()),
 ])
