@@ -427,3 +427,73 @@ class AdminPendingReviewView(APIView):
             quiz__website=website, status="pending_review"
         ).select_related("quiz", "writer").order_by("started_at")
         return Response(WriterAttemptSerializer(attempts, many=True).data)
+
+
+class AdminApplicationQuizStatusView(APIView):
+    """
+    GET /vetting/admin/application-status/?email=<email>&website_id=<id>
+    Returns required quizzes and the applicant's best attempt for each.
+    Used by the applications view to show pass/fail before approving.
+    """
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        email      = request.query_params.get("email", "").strip()
+        website_id = request.query_params.get("website_id")
+        website    = _resolve_website(request)
+
+        if website_id:
+            from websites.models.websites import Website
+            try:
+                website = Website.objects.get(pk=website_id)
+            except Website.DoesNotExist:
+                pass
+
+        required_quizzes = VettingQuiz.objects.filter(
+            website=website,
+            is_active=True,
+            is_required_for_approval=True,
+        )
+
+        result = []
+        applicant = None
+        if email:
+            from django.contrib.auth import get_user_model
+            _User = get_user_model()
+            try:
+                applicant = _User.objects.get(email__iexact=email)
+            except _User.DoesNotExist:
+                pass
+
+        for quiz in required_quizzes:
+            best_attempt = None
+            if applicant:
+                attempt = WriterTestAttempt.objects.filter(
+                    quiz=quiz,
+                    writer__account_profile__user=applicant,
+                ).order_by("-started_at").first()
+                if attempt:
+                    best_attempt = {
+                        "id":         attempt.id,
+                        "status":     attempt.status,
+                        "score":      str(attempt.score) if attempt.score is not None else None,
+                        "passed":     attempt.passed,
+                        "submitted_at": attempt.submitted_at.isoformat() if attempt.submitted_at else None,
+                    }
+
+            result.append({
+                "quiz_id":    quiz.id,
+                "quiz_title": quiz.title,
+                "quiz_type":  quiz.quiz_type,
+                "pass_score": quiz.pass_score,
+                "required":   True,
+                "passed":     best_attempt.get("passed") if best_attempt else None,
+                "attempt":    best_attempt,
+            })
+
+        all_passed = all(r["passed"] for r in result) if result else True
+        return Response({
+            "required_quizzes": result,
+            "all_required_passed": all_passed,
+            "has_required_quizzes": bool(result),
+        })

@@ -271,6 +271,9 @@ class WriterApplicationService:
                 "Only pending or under_review applications can be approved."
             )
 
+        # Step 1b: Quiz gate — block approval if required quizzes are not passed
+        WriterApplicationService._check_required_quizzes(application)
+
         from accounts.exceptions import AccountProfileAlreadyExistsError
         from accounts.models import AccountProfile
         from accounts.services.account_creation_service import (
@@ -780,4 +783,60 @@ class WriterApplicationService:
                 event_key,
                 email,
                 exc,
+            )
+    @staticmethod
+    def _check_required_quizzes(application) -> None:
+        """
+        Raise ValueError if any website-scoped quiz marked is_required_for_approval
+        does not have a passing attempt from this applicant's email.
+
+        Called at the top of approve() so the gate runs before any DB writes.
+        """
+        try:
+            from writer_vetting.models import VettingQuiz, WriterTestAttempt
+            from users.models.user import User as _User
+
+            required = VettingQuiz.objects.filter(
+                website=application.website,
+                is_active=True,
+                is_required_for_approval=True,
+            )
+            if not required.exists():
+                return  # no required quizzes — gate open
+
+            # Find the applicant's User if they already have an account
+            try:
+                applicant = _User.objects.get(email=application.email)
+            except _User.DoesNotExist:
+                # No account yet → no attempts → fail all required quizzes
+                titles = ", ".join(q.title for q in required)
+                raise ValueError(
+                    f"Applicant has not taken the required quiz(es): {titles}. "
+                    "They must create an account and pass all required quizzes first."
+                )
+
+            # Check each required quiz for a passing attempt by this writer
+            failed_quizzes = []
+            for quiz in required:
+                passed = WriterTestAttempt.objects.filter(
+                    quiz=quiz,
+                    status="passed",
+                ).filter(
+                    writer__account_profile__user=applicant
+                ).exists()
+                if not passed:
+                    failed_quizzes.append(quiz.title)
+
+            if failed_quizzes:
+                raise ValueError(
+                    f"Cannot approve application — the following required quiz(es) "
+                    f"have not been passed: {', '.join(failed_quizzes)}."
+                )
+        except ValueError:
+            raise
+        except Exception as exc:
+            import logging as _log
+            _log.getLogger(__name__).warning(
+                "Quiz gate check error for application=%s: %s — skipping gate.",
+                application.pk, exc,
             )

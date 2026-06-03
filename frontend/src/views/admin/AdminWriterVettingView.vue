@@ -62,6 +62,7 @@ const quizDraft = reactive({
   pass_score: 75,
   time_limit_minutes: 30,
   max_attempts: 3,
+  is_required_for_approval: false,
 });
 
 function openNewQuiz() {
@@ -69,6 +70,7 @@ function openNewQuiz() {
   Object.assign(quizDraft, {
     quiz_type: "grammar", title: "", description: "", instructions: "",
     pass_score: 75, time_limit_minutes: 30, max_attempts: 3,
+    is_required_for_approval: false,
   });
   quizForm.value = true;
 }
@@ -80,6 +82,7 @@ function openEditQuiz(q: VettingQuizSummary) {
     instructions: (activeQuiz.value?.instructions ?? ""),
     pass_score: q.pass_score, time_limit_minutes: q.time_limit_minutes,
     max_attempts: q.max_attempts,
+    is_required_for_approval: q.is_required_for_approval ?? false,
   });
   quizForm.value = true;
 }
@@ -521,6 +524,14 @@ onMounted(loadQuizzes);
               <input v-model.number="quizDraft.max_attempts" type="number" min="0" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </label>
           </div>
+          <!-- Required for approval toggle -->
+          <label class="flex items-start gap-3 cursor-pointer rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <input v-model="quizDraft.is_required_for_approval" type="checkbox" class="mt-0.5 rounded border-gray-300 text-indigo-600" />
+            <div>
+              <p class="text-sm font-semibold text-gray-800">Required for application approval</p>
+              <p class="text-xs text-gray-500 mt-0.5">Writers must pass this quiz before their application can be approved. The Approve button will be locked until they pass.</p>
+            </div>
+          </label>
         </div>
         <div class="flex gap-2 justify-end px-6 py-4 border-t border-gray-100">
           <button class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50" @click="quizForm = false">Cancel</button>

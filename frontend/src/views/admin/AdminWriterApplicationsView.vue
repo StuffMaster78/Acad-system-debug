@@ -3,10 +3,11 @@ import { computed, onMounted, ref, reactive } from "vue";
 import {
   CheckCircle, XCircle, Eye, Clock, RefreshCw,
   FileText, User, Globe, GraduationCap, Briefcase,
-  ChevronRight, Download,
+  ChevronRight, Download, AlertTriangle,
 } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useWriterApplicationsStore } from "@/stores/writerApplications";
+import { writerVettingApi, type ApplicationQuizStatusResponse } from "@/api/writerVetting";
 
 const apps = useWriterApplicationsStore();
 type StatusPillTone = "neutral" | "success" | "warning" | "danger";
@@ -48,10 +49,20 @@ function countForStatus(status: StatusFilter) {
 
 // ── Detail panel ────────────────────────────────────────────────────────────
 const panelOpen = ref(false);
+const quizStatus = ref<ApplicationQuizStatusResponse | null>(null);
 
 async function openDetail(id: number) {
   await apps.select(id);
   panelOpen.value = true;
+  quizStatus.value = null;
+  // Fetch quiz status for this applicant
+  const email = apps.selectedApplication?.email;
+  if (email) {
+    try {
+      const { data } = await writerVettingApi.applicationQuizStatus(email);
+      quizStatus.value = data;
+    } catch { /* non-fatal */ }
+  }
 }
 
 function closePanel() {
@@ -89,8 +100,12 @@ async function submitReject() {
 
 const selected = computed(() => apps.selectedApplication);
 const canReview = computed(() => selected.value?.status === "pending");
+const quizGatePassed = computed(() =>
+  !quizStatus.value?.has_required_quizzes || quizStatus.value?.all_required_passed,
+);
 const canApprove = computed(
-  () => selected.value?.status === "pending" || selected.value?.status === "under_review",
+  () => (selected.value?.status === "pending" || selected.value?.status === "under_review")
+    && quizGatePassed.value,
 );
 const canReject = computed(
   () => selected.value?.status === "pending" || selected.value?.status === "under_review",
@@ -331,6 +346,31 @@ const canReject = computed(
                 <p v-if="selected.admin_notes" class="text-gray-500 italic text-xs">
                   Notes: {{ selected.admin_notes }}
                 </p>
+              </div>
+            </div>
+
+            <!-- Quiz gate status -->
+            <div v-if="quizStatus?.has_required_quizzes" class="space-y-1.5">
+              <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Required quizzes</h3>
+              <div
+                v-for="q in quizStatus.required_quizzes"
+                :key="q.quiz_id"
+                class="flex items-center justify-between rounded-lg px-3 py-2 text-sm"
+                :class="q.passed === true ? 'bg-green-50 border border-green-200' : q.passed === false ? 'bg-red-50 border border-red-200' : 'bg-gray-50 border border-gray-200'"
+              >
+                <span class="font-medium text-gray-700 truncate">{{ q.quiz_title }}</span>
+                <span class="flex items-center gap-1 text-xs font-semibold ml-2 shrink-0"
+                  :class="q.passed === true ? 'text-green-700' : q.passed === false ? 'text-red-700' : 'text-gray-500'"
+                >
+                  <CheckCircle v-if="q.passed" class="w-3.5 h-3.5" />
+                  <XCircle v-else-if="q.passed === false" class="w-3.5 h-3.5" />
+                  <Clock v-else class="w-3.5 h-3.5" />
+                  {{ q.passed === true ? `Passed (${q.attempt?.score}%)` : q.passed === false ? `Failed (${q.attempt?.score}%)` : 'Not taken' }}
+                </span>
+              </div>
+              <div v-if="!quizGatePassed" class="flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                <AlertTriangle class="w-3.5 h-3.5 shrink-0" />
+                Approve is locked until all required quizzes are passed.
               </div>
             </div>
 

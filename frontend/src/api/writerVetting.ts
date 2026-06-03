@@ -35,6 +35,7 @@ export interface VettingQuizSummary {
   time_limit_minutes: number;
   max_attempts: number;
   is_active: boolean;
+  is_required_for_approval: boolean;
   question_count: number;
   created_at: string;
   updated_at: string;
@@ -43,6 +44,22 @@ export interface VettingQuizSummary {
 export interface VettingQuizDetail extends VettingQuizSummary {
   instructions: string;
   questions: VettingQuestion[];
+}
+
+export interface ApplicationQuizStatus {
+  quiz_id: number;
+  quiz_title: string;
+  quiz_type: QuizType;
+  pass_score: number;
+  required: boolean;
+  passed: boolean | null;
+  attempt: { id: number; status: string; score: string | null; passed: boolean | null; submitted_at: string | null } | null;
+}
+
+export interface ApplicationQuizStatusResponse {
+  required_quizzes: ApplicationQuizStatus[];
+  all_required_passed: boolean;
+  has_required_quizzes: boolean;
 }
 
 export interface QuizPayload {
@@ -54,6 +71,7 @@ export interface QuizPayload {
   time_limit_minutes?: number;
   max_attempts?: number;
   is_active?: boolean;
+  is_required_for_approval?: boolean;
 }
 
 export interface QuestionPayload {
@@ -170,4 +188,10 @@ export const writerVettingApi = {
 
   attemptDetail: (attemptId: number) =>
     api.get<WriterAttempt>(apiPath(`${BASE}/attempts/${attemptId}/`)),
+
+  // Admin: quiz status for a specific applicant (by email)
+  applicationQuizStatus: (email: string, websiteId?: number) =>
+    api.get<ApplicationQuizStatusResponse>(apiPath(`${BASE}/admin/application-status/`), {
+      params: { email, ...(websiteId ? { website_id: websiteId } : {}) },
+    }),
 };

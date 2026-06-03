@@ -48,15 +48,10 @@ from order_pricing_core.api.views.pricing_config_views import (
 )
 from order_pricing_core.api.views.service_catalog_views import (
     ServiceAddonDetailView,
-)
-from order_pricing_core.api.views.service_catalog_views import (
     ServiceAddonListCreateView,
-)
-from order_pricing_core.api.views.service_catalog_views import (
     ServiceCatalogItemDetailView,
-)
-from order_pricing_core.api.views.service_catalog_views import (
     ServiceCatalogItemListCreateView,
+    PublicServiceAddonListView,
 )
 
 urlpatterns = [
@@ -151,4 +146,10 @@ urlpatterns = [
         name="admin-service-addon-detail",
     ),
 
+    # ── Public — available addons for a service (order creation) ──────────
+    path(
+        "public/addons/",
+        PublicServiceAddonListView.as_view(),
+        name="public-service-addon-list",
+    ),
 ]

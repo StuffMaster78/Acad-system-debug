@@ -276,3 +276,52 @@ class ServiceAddonDetailView(APIView):
         )
         addon.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class PublicServiceAddonListView(APIView):
+    """
+    GET /pricing/public/addons/?service_code=<code>&website_id=<id>
+    Public read-only endpoint — returns active, public addons for a website.
+    Used by the order creation form to show available add-ons.
+    """
+    permission_classes = []
+    authentication_classes = []
+
+    def get(self, request):
+        from websites.models.websites import Website
+
+        website = getattr(request, "website", None)
+        website_id = request.query_params.get("website_id")
+        if website_id and not website:
+            try:
+                website = Website.objects.get(pk=website_id)
+            except Website.DoesNotExist:
+                pass
+
+        if not website:
+            return Response([])
+
+        qs = ServiceAddon.objects.filter(
+            website=website,
+            is_active=True,
+            is_public=True,
+        ).order_by("sort_order")
+
+        service_code = request.query_params.get("service_code")
+        if service_code:
+            from order_pricing_core.models.service_catalog import ServiceAddonApplicability
+            addon_ids = ServiceAddonApplicability.objects.filter(
+                addon__website=website,
+                service__service_code=service_code,
+            ).values_list("addon_id", flat=True)
+            qs = qs.filter(id__in=addon_ids)
+
+        return Response([
+            {
+                "id":          a.id,
+                "addon_code":  a.addon_code,
+                "name":        a.name,
+                "description": a.description,
+                "flat_amount": str(a.flat_amount),
+            }
+            for a in qs
+        ])

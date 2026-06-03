@@ -348,6 +348,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminConfigHubView.vue"),
       },
       {
+        path: "service-catalog",
+        name: "admin-service-catalog",
+        component: () => import("@/views/admin/AdminServiceCatalogView.vue"),
+      },
+      {
         path: "class-config",
         name: "admin-class-config",
         component: () => import("@/views/admin/AdminClassConfigView.vue"),
@@ -930,6 +935,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "discounts",
         name: "superadmin-discounts",
         component: () => import("@/views/admin/AdminDiscountsView.vue"),
+      },
+      {
+        path: "service-catalog",
+        name: "superadmin-service-catalog",
+        component: () => import("@/views/admin/AdminServiceCatalogView.vue"),
       },
       {
         path: "config",

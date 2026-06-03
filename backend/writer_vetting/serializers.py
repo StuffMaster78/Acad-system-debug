@@ -29,7 +29,8 @@ class VettingQuizListSerializer(serializers.ModelSerializer):
         fields = [
             "id", "quiz_type", "title", "description",
             "pass_score", "time_limit_minutes", "max_attempts",
-            "is_active", "question_count", "created_at", "updated_at",
+            "is_active", "is_required_for_approval",
+            "question_count", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 

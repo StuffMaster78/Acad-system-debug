@@ -18,7 +18,8 @@ urlpatterns = [
     path("attempts/<int:pk>/",                 views.WriterAttemptDetailView.as_view(), name="attempt-detail"),
     path("attempts/<int:pk>/submit/",          views.WriterSubmitAttemptView.as_view(), name="submit-attempt"),
 
-    # ── Admin — review essay attempts ────────────────────────────────────────
-    path("admin/pending-reviews/",             views.AdminPendingReviewView.as_view(),  name="pending-reviews"),
-    path("admin/attempts/<int:pk>/review/",    views.AdminReviewAttemptView.as_view(),  name="review-attempt"),
+    # ── Admin — review essay attempts + application quiz status ──────────────
+    path("admin/pending-reviews/",             views.AdminPendingReviewView.as_view(),         name="pending-reviews"),
+    path("admin/attempts/<int:pk>/review/",    views.AdminReviewAttemptView.as_view(),          name="review-attempt"),
+    path("admin/application-status/",          views.AdminApplicationQuizStatusView.as_view(), name="application-quiz-status"),
 ]

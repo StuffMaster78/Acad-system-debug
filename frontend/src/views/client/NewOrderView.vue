@@ -23,6 +23,32 @@ const success = ref("");
 const paymentMethod = ref<PaymentMethod>("wallet");
 const paymentDisclosureAccepted = ref(false);
 const couponCode = ref("");
+
+// ── Add-ons ───────────────────────────────────────────────────────────────────
+interface AddonOption { id: number; addon_code: string; name: string; description: string; flat_amount: string }
+const availableAddons   = ref<AddonOption[]>([]);
+const selectedAddonCodes = ref<string[]>([]);
+
+async function loadAddons() {
+  try {
+    const { data } = await import("@/api/client").then(({ api, apiPath }) =>
+      api.get<AddonOption[]>(apiPath(`/pricing/public/addons/?service_code=${form.service_code}`))
+    );
+    availableAddons.value = Array.isArray(data) ? data : [];
+  } catch { availableAddons.value = []; }
+}
+
+function toggleAddon(code: string) {
+  const idx = selectedAddonCodes.value.indexOf(code);
+  if (idx === -1) selectedAddonCodes.value = [...selectedAddonCodes.value, code];
+  else selectedAddonCodes.value = selectedAddonCodes.value.filter(c => c !== code);
+}
+
+const addonTotal = computed(() =>
+  availableAddons.value
+    .filter(a => selectedAddonCodes.value.includes(a.addon_code))
+    .reduce((s, a) => s + Number(a.flat_amount), 0),
+);
 const couponApplied = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const attempted = ref(false);
@@ -177,6 +203,7 @@ function quotePayload(): PaperQuotePayload {
     academic_level_code: optionCode("academicLevels", form.academic_level_id) || form.academic_level_code,
     topic: form.topic,
     instructions: form.order_instructions,
+    selected_addon_codes: selectedAddonCodes.value.length ? selectedAddonCodes.value : undefined,
   };
 }
 
@@ -281,7 +308,8 @@ watch(() => form.academic_level_id, (id) => {
   if (code) form.academic_level_code = code;
 });
 
-onMounted(loadConfig);
+onMounted(() => { loadConfig(); loadAddons(); });
+watch(() => form.service_code, loadAddons);
 </script>
 
 <template>
@@ -656,6 +684,37 @@ onMounted(loadConfig);
           <div class="mt-3">
             <PaymentMethodSelector v-model="paymentMethod" :price="quotedPrice" />
           </div>
+        </section>
+
+        <!-- ── Add-ons ──────────────────────────────────────────────────── -->
+        <section v-if="availableAddons.length" class="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 class="text-sm font-semibold text-ink">Optional Add-ons</h2>
+          <p class="mt-0.5 text-xs text-graphite">Enhance your order with one or more add-ons.</p>
+          <div class="mt-3 space-y-2">
+            <label
+              v-for="addon in availableAddons"
+              :key="addon.addon_code"
+              class="flex items-start gap-3 cursor-pointer rounded-lg border p-3 transition-colors"
+              :class="selectedAddonCodes.includes(addon.addon_code)
+                ? 'border-berry/60 bg-berry/5'
+                : 'border-slate-200 hover:border-slate-300'"
+            >
+              <input
+                type="checkbox"
+                :checked="selectedAddonCodes.includes(addon.addon_code)"
+                class="mt-0.5 rounded accent-berry"
+                @change="toggleAddon(addon.addon_code)"
+              />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-ink">{{ addon.name }}</p>
+                <p v-if="addon.description" class="text-xs text-graphite mt-0.5">{{ addon.description }}</p>
+              </div>
+              <span class="text-sm font-semibold text-ink shrink-0">+${{ addon.flat_amount }}</span>
+            </label>
+          </div>
+          <p v-if="addonTotal > 0" class="mt-2 text-xs text-graphite text-right">
+            Add-ons: <strong class="text-ink">${{ addonTotal.toFixed(2) }}</strong>
+          </p>
         </section>
 
         <div class="space-y-2">
