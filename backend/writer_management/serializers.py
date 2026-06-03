@@ -70,8 +70,51 @@ class WriterPaymentViewSerializer(serializers.Serializer):
         except Exception:
             return []
 
+    def _has_any_compensation_events(self, writer_profile) -> bool:
+        try:
+            from writer_compensation.models.compensation_event import CompensationEvent
+            return CompensationEvent.objects.filter(writer=writer_profile).exists()
+        except Exception:
+            return False
+
+    def _order_earnings_fallback(self, writer_profile) -> list:
+        """
+        Synthesise order earnings from completed Order rows when no
+        CompensationEvent rows exist yet (pre-Celery history).
+        """
+        try:
+            from orders.models.orders.order_assignment import OrderAssignment
+            assignments = (
+                OrderAssignment.objects
+                .filter(writer=writer_profile, is_current=True)
+                .select_related("order")
+                .filter(order__status="completed")
+                .order_by("-order__completed_at")[:50]
+            )
+            results = []
+            for a in assignments:
+                order = a.order
+                amount = order.writer_compensation or 0
+                if not amount:
+                    continue
+                results.append({
+                    "id":         None,
+                    "amount":     str(amount),
+                    "title":      f"Order #{order.pk}",
+                    "reference":  str(order.pk),
+                    "source_id":  order.pk,
+                    "created_at": order.completed_at.isoformat() if order.completed_at else None,
+                    "status":     "matured",
+                })
+            return results
+        except Exception:
+            return []
+
     def get_order_earnings(self, obj):
-        return self._events_for_type(obj, "ORDER_EARNING")
+        events = self._events_for_type(obj, "ORDER_EARNING")
+        if not events and not self._has_any_compensation_events(obj):
+            return self._order_earnings_fallback(obj)
+        return events
 
     def get_special_order_earnings(self, obj):
         return self._events_for_type(obj, "SPECIAL_ORDER_EARNING")
