@@ -318,6 +318,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Support", to: "/superadmin/support", icon: LifeBuoy },
       { label: "Service Catalog", to: "/superadmin/service-catalog", icon: Receipt },
       { label: "Config Hub", to: "/superadmin/config", icon: Wrench },
+      { label: "Portal Definitions", to: "/superadmin/portal-definitions", icon: Globe },
     ]},
   ],
   admin: [

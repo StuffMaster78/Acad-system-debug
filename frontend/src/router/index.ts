@@ -971,6 +971,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "superadmin-config",
         component: () => import("@/views/admin/AdminConfigHubView.vue"),
       },
+      {
+        path: "portal-definitions",
+        name: "superadmin-portal-definitions",
+        component: () => import("@/views/admin/AdminPortalDefinitionsView.vue"),
+      },
     );
   }
 
