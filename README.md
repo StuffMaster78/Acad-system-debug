@@ -25,15 +25,16 @@ Each surface runs on its **own domain** and is isolated by the portal context sy
 
 | Layer | Tech |
 |-------|------|
-| Backend API | Django 5.2 · Django REST Framework · Celery · Channels (SSE) |
-| CMS | Wagtail 5 (tenant-scoped pages, SEO, sitemap) |
+| Backend API | Django 5.2 · Django REST Framework · Celery · Django Channels (WebSocket) |
+| CMS | Wagtail 7 (tenant-scoped pages, SEO, sitemap) |
 | Database | PostgreSQL 15 |
-| Cache / Broker | Redis 7 |
+| Cache / Broker / Channels | Redis 7 (DB 0: cache/broker · DB 2: comms · DB 3: channel layer) |
 | Frontend | Vue 3 · Vite · Pinia · TypeScript · Tailwind CSS |
 | Auth | JWT (SimpleJWT) · MFA-ready · device fingerprinting · session limits |
 | Payments | Stripe (webhook-driven) · platform wallet · per-tenant billing |
-| Storage | S3 (production) · local (dev) |
-| Deployment | Docker Compose (dev) · nginx + Certbot (prod) |
+| Storage | S3 / DigitalOcean Spaces (production) · local (dev) |
+| Server | Daphne (ASGI — HTTP + WebSocket) |
+| Deployment | Docker Compose (dev) · nginx + Certbot + Daphne (prod) |
 
 ---
 
@@ -134,6 +135,12 @@ writing_project/
 ├── docker-compose.prod.yml    # Production overlay (nginx, Certbot, S3)
 └── Makefile                   # Dev commands
 ```
+
+---
+
+## Architecture & Diagrams
+
+Full architecture diagrams (system overview, order lifecycle state machine, notification pipeline, compensation flow, authentication sequence, and more) are in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ---
 
@@ -300,16 +307,24 @@ The `deploy-production.yml` GitHub Action runs CI then deploys via SSH. The `doc
 
 | Area | Status |
 |------|--------|
-| Core order lifecycle | Production-ready |
-| Payments + wallet | Production-ready |
-| Special orders | Production-ready |
-| Classes | Production-ready |
-| Notifications | Production-ready |
-| Analytics | Production-ready |
-| CMS / SEO pages | Production-ready |
-| Multi-domain portal | Architecture in place, DNS/nginx config needed |
-| Payment disclosure audit trail | Planned — snapshot fields not yet on payment records |
-| Stripe live keys | Replace `sk_test_` keys before go-live |
+| Core order lifecycle | ✅ Production-ready |
+| Payments + wallet | ✅ Production-ready |
+| Special orders | ✅ Production-ready |
+| Classes | ✅ Production-ready |
+| Notifications (in-app + email + WebSocket) | ✅ Production-ready |
+| Analytics + chart views | ✅ Production-ready |
+| CMS / SEO / publishing | ✅ Production-ready |
+| Multi-domain portal (surface routing) | ✅ Production-ready |
+| Writer pay + compensation events | ✅ Production-ready |
+| Writer vetting + quiz gate | ✅ Production-ready |
+| Dispute resolution workflow | ✅ Production-ready |
+| Coupon / discount checkout | ✅ Production-ready |
+| Real-time WebSocket notifications | ✅ Production-ready (requires Daphne) |
+| Operations Command Center | ✅ Production-ready |
+| Writer public profiles | ✅ Production-ready |
+| Stripe live keys | ⚙️ Set `STRIPE_SECRET_KEY` etc. in `.env` before go-live |
+| DNS / nginx domain | ⚙️ Replace `YOUR_DOMAIN` in `nginx/nginx.conf` |
+| SSL certificate | ⚙️ Run Certbot after DNS is pointed |
 
 ---
 

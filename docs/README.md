@@ -1,23 +1,18 @@
 # Documentation Index
 
-This directory is now treated as living backend and product documentation.
+## Architecture & Diagrams
 
-Some older role guides and deployment notes may still describe the removed
-legacy frontend. Keep them as reference material only until each document is
-reviewed against the redesigned backend and the upcoming fresh frontend.
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** — System overview, order lifecycle state machine, notification pipeline, compensation flow, authentication sequence, multi-tenant portal routing, and ER diagram. All diagrams use Mermaid.
 
-## Current Planning Docs
+## Reference Docs
 
-- [Packaging Strategy](./PACKAGING_STRATEGY.md) - target repo/package split and
-  near-term cleanup rules
-- [API Documentation](./API/API_DOCUMENTATION.md) - API reference material
-- [Developer Guide](./DEVELOPER/DEVELOPER_GUIDE.md) - backend development notes
-- [Deployment Guide](./DEPLOYMENT/DEPLOYMENT_GUIDE.md) - deployment reference
+- [API Documentation](./API/API_DOCUMENTATION.md) — API contract and endpoint reference
+- [Developer Guide](./DEVELOPER/DEVELOPER_GUIDE.md) — Backend development notes, conventions, testing
+- [Deployment Guide](./DEPLOYMENT/DEPLOYMENT_GUIDE.md) — Production deployment (Docker, nginx, SSL, Stripe)
+- [Uptime Kuma Setup](./DEPLOYMENT/UPTIME_KUMA_SETUP.md) — Monitoring configuration
+- [Admin Workflows](./ADMIN_WORKFLOWS.md) — Staff operation playbooks
 
-## Role Guides
-
-These guides should be rewritten once the new portals and dashboards are
-designed:
+## User Guides
 
 - [Client User Guide](./USER_GUIDES/CLIENT_USER_GUIDE.md)
 - [Writer User Guide](./USER_GUIDES/WRITER_USER_GUIDE.md)
@@ -26,16 +21,10 @@ designed:
 - [Admin User Guide](./USER_GUIDES/ADMIN_USER_GUIDE.md)
 - [Superadmin User Guide](./USER_GUIDES/SUPERADMIN_USER_GUIDE.md)
 
-## Interactive API Docs
+## Interactive API Docs (live server)
 
-When the backend is running:
-
-- Swagger UI: `/api/v1/docs/swagger/`
-- ReDoc: `/api/v1/docs/redoc/`
-- OpenAPI Schema: `/api/v1/schema/`
-
-## Documentation Rule
-
-New docs should describe the backend as it exists now or the frontend as it is
-being newly designed. Avoid documenting deleted frontend behavior as if it were
-still part of the active system.
+| URL | Tool |
+|-----|------|
+| `/api/v1/docs/swagger/` | Swagger UI |
+| `/api/v1/docs/redoc/` | ReDoc |
+| `/api/v1/schema/` | OpenAPI schema (JSON) |

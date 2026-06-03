@@ -1,433 +1,190 @@
 # Deployment Guide
 
-**Version**: 1.0  
----
-
-## Required GitHub Secrets
-
-PROD_SSH_HOST, PROD_SSH_USER, PROD_SSH_KEY, PROD_DEPLOY_PATH, PROD_ENV_FILE (secrets)
-PROD_DOMAIN (variable, not secret)
-SLACK_WEBHOOK_URL (optional, for uptime alerts)
-
-## SSL Certificate Setup
-
-Initial issuance (run once after first deploy):
-  docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d yourdomain.com --email admin@yourdomain.com --agree-tos --non-interactive
-
-Auto-renewal crontab entry:
-  0 0,12 * * * /opt/writing-system/nginx/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
-
-## Uptime Monitoring
-
-Uptime Kuma: https://yourdomain.com/status/ (configure monitors in UI after first boot)
-GitHub Actions uptime ping: every 5 minutes via .github/workflows/uptime-check.yml
+**Last updated:** June 2026
 
 ---
 
-**Last Updated**: May 2026
+## Overview
+
+Production stack: **nginx → Daphne (ASGI)** serving both HTTP and WebSocket, backed by PostgreSQL 15, Redis 7, and Celery workers. Static/media files served from S3-compatible storage.
+
+```
+Internet → nginx (SSL, rate-limit) → Daphne:8000 (HTTP + WebSocket)
+                                    → Celery worker (async tasks)
+                                    → Celery beat (scheduled tasks)
+```
 
 ---
 
-## 📋 Table of Contents
+## Pre-Deploy Checklist
 
-1. [Pre-Deployment Checklist](#pre-deployment-checklist)
-2. [Environment Setup](#environment-setup)
-3. [Database Setup](#database-setup)
-4. [Backend Deployment](#backend-deployment)
-5. [Frontend Boundary](#frontend-boundary)
-6. [SSL/HTTPS Configuration](#sslhttps-configuration)
-7. [Monitoring & Logging](#monitoring--logging)
-8. [Backup & Recovery](#backup--recovery)
-9. [Troubleshooting](#troubleshooting)
+- [ ] All tests passing (`pytest` backend, `vue-tsc --noEmit` frontend)
+- [ ] `.env` populated (see below)
+- [ ] `YOUR_DOMAIN` replaced in `nginx/nginx.conf`
+- [ ] DNS A record pointing to server IP
+- [ ] Stripe live keys set
+- [ ] `DEBUG=False` confirmed
 
 ---
 
-## ✅ Pre-Deployment Checklist
-
-### Code Preparation
-
-- [ ] All tests passing
-- [ ] Code reviewed and approved
-- [ ] Environment variables documented
-- [ ] Database migrations ready
-- [ ] Static files collected
-- [ ] Security audit completed
-
-### Configuration
-
-- [ ] `DEBUG = False` in production
-- [ ] `ALLOWED_HOSTS` configured
-- [ ] `SECRET_KEY` set (not in code)
-- [ ] Database credentials configured
-- [ ] Email backend configured
-- [ ] CORS settings configured
-
-### Infrastructure
-
-- [ ] Server provisioned
-- [ ] Domain name configured
-- [ ] SSL certificate ready
-- [ ] Database server ready
-- [ ] Backup system configured
-
----
-
-## 🌍 Environment Setup
-
-### Environment Variables
-
-Create `.env` file for production:
+## Environment Variables (`.env`)
 
 ```bash
-# Django Settings
+# Core
+SECRET_KEY=<long random string>
 DEBUG=False
-SECRET_KEY=your-production-secret-key-here
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+DJANGO_SETTINGS_MODULE=writing_system.settings
 
 # Database
-DATABASE_URL=postgresql://user:password@host:5432/dbname
+POSTGRES_DB_NAME=writing_system_db
+POSTGRES_USER_NAME=postgres
+POSTGRES_PASSWORD=<strong password>
+
+# Redis (single host, different DBs)
+REDIS_PASSWORD=<strong password>
+REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+COMMUNICATIONS_REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/2
+CHANNEL_REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/3
+
+# Stripe
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PUBLISHABLE_KEY=pk_live_...
+
+# Storage (S3 / DigitalOcean Spaces)
+USE_S3=True
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_STORAGE_BUCKET_NAME=...
+AWS_S3_ENDPOINT_URL=https://nyc3.digitaloceanspaces.com
+AWS_S3_REGION_NAME=nyc3
 
 # Email
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-app-password
-EMAIL_USE_TLS=True
+SENDGRID_API_KEY=SG....
+DEFAULT_FROM_EMAIL=noreply@yourdomain.com
 
-# Redis (if using)
-REDIS_URL=redis://localhost:6379/0
+# Security
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+CSRF_TRUSTED_ORIGINS=https://yourdomain.com
+FIELD_ENCRYPTION_KEY=<fernet key>
+TOKEN_ENCRYPTION_KEY=<fernet key>
 
-# AWS S3 (if using)
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
-AWS_STORAGE_BUCKET_NAME=your-bucket-name
-```
-
-### Python Environment
-
-```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-pip install gunicorn  # Production WSGI server
+# Optional
+SENTRY_DSN=https://...@sentry.io/...
+WAGTAILADMIN_BASE_URL=https://yourdomain.com
 ```
 
 ---
 
-## 🗄️ Database Setup
-
-### PostgreSQL Setup
-
-1. **Install PostgreSQL**
-   ```bash
-   sudo apt-get install postgresql postgresql-contrib
-   ```
-
-2. **Create Database**
-   ```sql
-   CREATE DATABASE writing_system;
-   CREATE USER writing_user WITH PASSWORD 'secure_password';
-   GRANT ALL PRIVILEGES ON DATABASE writing_system TO writing_user;
-   ```
-
-3. **Run Migrations**
-   ```bash
-   python manage.py migrate
-   ```
-
-4. **Create Superuser**
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-### Database Backup
+## First Deploy
 
 ```bash
-# Backup
-pg_dump -U writing_user writing_system > backup.sql
+# 1. Configure nginx domain
+sed -i 's/YOUR_DOMAIN/yourdomain.com/g' nginx/nginx.conf
 
-# Restore
-psql -U writing_user writing_system < backup.sql
+# 2. Start stack (HTTP only first, for Certbot ACME challenge)
+docker compose -f docker-compose.prod.yml up -d
+
+# 3. Issue SSL certificate
+docker compose -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d yourdomain.com -d www.yourdomain.com \
+  --email admin@yourdomain.com \
+  --agree-tos --non-interactive
+
+# 4. Restart nginx to pick up the cert
+docker compose -f docker-compose.prod.yml restart nginx
+
+# 5. Run migrations and seed data
+docker compose -f docker-compose.prod.yml exec web python manage.py migrate
+docker compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
+docker compose -f docker-compose.prod.yml exec web python manage.py seed_dev_data
+
+# 6. Backfill compensation events (if migrating from an older environment)
+docker compose -f docker-compose.prod.yml exec web \
+  python manage.py backfill_compensation_events --dry-run
+docker compose -f docker-compose.prod.yml exec web \
+  python manage.py backfill_compensation_events
 ```
 
 ---
 
-## 🔧 Backend Deployment
+## WebSocket Support
 
-### Using Gunicorn
+The server uses **Daphne** (ASGI), not Gunicorn (WSGI). This is required for WebSocket notifications.
 
-1. **Install Gunicorn**
-   ```bash
-   pip install gunicorn
-   ```
-
-2. **Create Gunicorn Config**
-   ```python
-   # gunicorn_config.py
-   bind = "0.0.0.0:8000"
-   workers = 4
-   worker_class = "sync"
-   timeout = 120
-   keepalive = 5
-   ```
-
-3. **Run Gunicorn**
-   ```bash
-   gunicorn writing_system.wsgi:application --config gunicorn_config.py
-   ```
-
-### Using Systemd Service
-
-Create `/etc/systemd/system/writing-system.service`:
-
-```ini
-[Unit]
-Description=Writing System Gunicorn
-After=network.target
-
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/path/to/writing_project/backend
-Environment="PATH=/path/to/venv/bin"
-ExecStart=/path/to/venv/bin/gunicorn writing_system.wsgi:application --config gunicorn_config.py
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Start service:
-```bash
-sudo systemctl start writing-system
-sudo systemctl enable writing-system
-```
-
-### Nginx Configuration
+nginx is already configured to proxy `/ws/` routes:
 
 ```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /static/ {
-        alias /path/to/writing_project/backend/staticfiles/;
-    }
-
-    location /media/ {
-        alias /path/to/writing_project/backend/media/;
-    }
+location /ws/ {
+    proxy_pass http://django;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
 }
 ```
 
----
-
-## Frontend Boundary
-
-There is no active frontend deployment in this repository. The next frontend
-will be created from scratch and should ship from its own package or
-repository.
-
-For now, deploy this repository as the backend API only. When the new frontend
-exists, document its build, environment variables, hosting, and reverse-proxy
-rules in that frontend package or in a dedicated infrastructure repository.
+The Content-Security-Policy header allows `wss:` in `connect-src` for secure WebSocket connections.
 
 ---
 
-## 🔒 SSL/HTTPS Configuration
+## Scaling
 
-### Using Let's Encrypt
-
-1. **Install Certbot**
-   ```bash
-   sudo apt-get install certbot python3-certbot-nginx
-   ```
-
-2. **Get Certificate**
-   ```bash
-   sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
-   ```
-
-3. **Auto-Renewal**
-   ```bash
-   sudo certbot renew --dry-run
-   ```
-
-### Nginx SSL Configuration
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name yourdomain.com;
-
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-
-    # SSL configuration
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers on;
-
-    # ... rest of configuration
-}
-```
-
----
-
-## 📊 Monitoring & Logging
-
-### Application Logging
-
-Configure logging in `settings.py`:
-
-```python
-LOGGING = {
-    'version': 1,
-    'handlers': {
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': '/var/log/writing-system/app.log',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['file'],
-            'level': 'INFO',
-        },
-    },
-}
-```
-
-### Monitoring Tools
-
-- **Sentry** - Error tracking
-- **DataDog** - Application monitoring
-- **New Relic** - Performance monitoring
-- **Prometheus** - Metrics collection
-
----
-
-## 💾 Backup & Recovery
-
-### Automated Backups
-
-Create backup script:
+Daphne runs as a single async process by default. For high traffic, scale horizontally:
 
 ```bash
-#!/bin/bash
-# backup.sh
-
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/backups"
-DB_NAME="writing_system"
-DB_USER="writing_user"
-
-# Database backup
-pg_dump -U $DB_USER $DB_NAME > $BACKUP_DIR/db_$DATE.sql
-
-# Media files backup
-tar -czf $BACKUP_DIR/media_$DATE.tar.gz /path/to/media
-
-# Keep only last 7 days
-find $BACKUP_DIR -name "*.sql" -mtime +7 -delete
-find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete
+# Run 3 web replicas
+docker compose -f docker-compose.prod.yml up -d --scale web=3
 ```
 
-Schedule with cron:
+The Redis channel layer handles WebSocket group broadcasts across all replicas automatically.
+
+---
+
+## SSL Renewal
+
+Certbot auto-renews via the cron container in `docker-compose.prod.yml`. Manual renewal:
+
 ```bash
-0 2 * * * /path/to/backup.sh
+docker compose -f docker-compose.prod.yml run --rm certbot renew
+docker compose -f docker-compose.prod.yml restart nginx
 ```
 
-### Recovery Procedure
+---
 
-1. **Stop Services**
-   ```bash
-   sudo systemctl stop writing-system
-   ```
+## GitHub Secrets (CI/CD)
 
-2. **Restore Database**
-   ```bash
-   psql -U writing_user writing_system < backup.sql
-   ```
-
-3. **Restore Media**
-   ```bash
-   tar -xzf media_backup.tar.gz -C /path/to/media
-   ```
-
-4. **Start Services**
-   ```bash
-   sudo systemctl start writing-system
-   ```
+| Secret | Value |
+|--------|-------|
+| `PROD_SSH_HOST` | Server IP or hostname |
+| `PROD_SSH_USER` | Deploy user |
+| `PROD_SSH_KEY` | Private SSH key |
+| `PROD_DEPLOY_PATH` | e.g. `/opt/writing-system` |
+| `PROD_ENV_FILE` | Full contents of production `.env` |
+| `PROD_DOMAIN` | (variable, not secret) `yourdomain.com` |
 
 ---
 
-## 🔧 Troubleshooting
+## Monitoring
 
-### Common Issues
-
-**Database Connection Error**
-- Check database credentials
-- Verify database is running
-- Check firewall rules
-
-**Static Files Not Loading**
-- Run `python manage.py collectstatic`
-- Check Nginx configuration
-- Verify file permissions
-
-**502 Bad Gateway**
-- Check Gunicorn is running
-- Check application logs
-- Verify port configuration
-
-**SSL Certificate Issues**
-- Check certificate expiration
-- Verify domain configuration
-- Check Nginx SSL settings
+- **Uptime Kuma**: `https://yourdomain.com/status/` — restricted to trusted IPs in nginx config
+- **Sentry**: set `SENTRY_DSN` in `.env` for error tracking
+- **Health endpoint**: `GET /health/live/` — returns `{"status": "ok"}` (used by Docker healthcheck)
 
 ---
 
-## 📞 Support
+## Troubleshooting
 
-For deployment assistance:
-- Check logs: `/var/log/writing-system/`
-- Review documentation
-- Contact DevOps team
-
----
-
----
-
-## Required GitHub Secrets
-
-PROD_SSH_HOST, PROD_SSH_USER, PROD_SSH_KEY, PROD_DEPLOY_PATH, PROD_ENV_FILE (secrets)
-PROD_DOMAIN (variable, not secret)
-SLACK_WEBHOOK_URL (optional, for uptime alerts)
-
-## SSL Certificate Setup
-
-Initial issuance (run once after first deploy):
-  docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d yourdomain.com --email admin@yourdomain.com --agree-tos --non-interactive
-
-Auto-renewal crontab entry:
-  0 0,12 * * * /opt/writing-system/nginx/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
-
-## Uptime Monitoring
-
-Uptime Kuma: https://yourdomain.com/status/ (configure monitors in UI after first boot)
-GitHub Actions uptime ping: every 5 minutes via .github/workflows/uptime-check.yml
-
----
-
-**Last Updated**: May 2026
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| WebSocket 404 | Gunicorn (WSGI) still running | Ensure Dockerfile CMD uses Daphne |
+| Celery/beat unhealthy | HTTP healthcheck on non-HTTP container | Override healthcheck (already done in compose) |
+| `NoOpenWindowError` | No open PaymentWindow for a website | Run `manage.py manage_windows open --website-id=N` |
+| Notifications not sending | Celery not running or SENDGRID_API_KEY missing | Check worker logs; set `SENDGRID_API_KEY` |
+| 502 from nginx | Daphne not started | Check `docker compose logs web` |
+| Static files 404 | `collectstatic` not run | `docker compose exec web python manage.py collectstatic` |
