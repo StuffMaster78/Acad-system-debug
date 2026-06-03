@@ -11,6 +11,7 @@ import {
   type VettingQuestion, type VettingQuizDetail, type VettingQuizSummary,
   type QuizType, type QuestionType,
 } from "@/api/writerVetting";
+import { api, apiPath } from "@/api/client";
 
 // ── State ───────────────────────────────────────────────────────────────────
 const quizzes    = ref<VettingQuizSummary[]>([]);
@@ -19,6 +20,64 @@ const loading    = ref(false);
 const saving     = ref(false);
 const notice     = ref<{ type: "success" | "error"; msg: string } | null>(null);
 type StatusPillTone = "neutral" | "success" | "warning" | "danger";
+
+// ── Active tab ───────────────────────────────────────────────────────────────
+const activeTab = ref<"quizzes" | "pending">("quizzes");
+
+// ── Pending essay review ─────────────────────────────────────────────────────
+interface PendingAttempt {
+  id: number; quiz: number; quiz_title: string; quiz_type: string; pass_score: number;
+  attempt_number: number; status: string; score: string | null; passed: boolean | null;
+  started_at: string; submitted_at: string | null; reviewer_notes: string;
+  writer_info?: string;
+  answers?: Array<{ question: number; question_text: string; question_type: string;
+    essay_response: string; essay_file_id: string; essay_file_name: string; essay_file_url: string | null }>;
+}
+
+const pendingAttempts  = ref<PendingAttempt[]>([]);
+const pendingLoading   = ref(false);
+const reviewingId      = ref<number | null>(null);
+const reviewForm       = reactive({ passed: true, reviewer_notes: "" });
+const reviewSaving     = ref(false);
+
+async function loadPending() {
+  pendingLoading.value = true;
+  try {
+    const { data } = await api.get<PendingAttempt[]>(apiPath("/writer-vetting/admin/pending-reviews/"));
+    // For each attempt, fetch detail to get answers with file URLs
+    const detailed: PendingAttempt[] = await Promise.all(
+      (Array.isArray(data) ? data : []).map(async (a) => {
+        try {
+          const { data: d } = await api.get<PendingAttempt>(apiPath(`/writer-vetting/attempts/${a.id}/`));
+          return { ...a, ...d };
+        } catch { return a; }
+      })
+    );
+    pendingAttempts.value = detailed;
+  } catch { toast("error", "Failed to load pending reviews."); }
+  finally { pendingLoading.value = false; }
+}
+
+function openReview(id: number) {
+  reviewingId.value = id;
+  Object.assign(reviewForm, { passed: true, reviewer_notes: "" });
+}
+
+async function submitReview() {
+  if (!reviewingId.value) return;
+  reviewSaving.value = true;
+  try {
+    await api.post(apiPath(`/writer-vetting/admin/attempts/${reviewingId.value}/review/`), reviewForm);
+    reviewingId.value = null;
+    toast("success", `Essay ${reviewForm.passed ? "approved" : "rejected"}.`);
+    await loadPending();
+  } catch { toast("error", "Failed to submit review."); }
+  finally { reviewSaving.value = false; }
+}
+
+function fmtDate(v: string) {
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(v));
+}
 
 const typeFilter = ref<QuizType | "all">("all");
 
@@ -274,8 +333,22 @@ onMounted(loadQuizzes);
         </div>
       </div>
 
-      <!-- Type filter chips -->
-      <div class="flex gap-2 mt-4">
+      <!-- Tabs -->
+      <div class="flex gap-1 mt-4">
+        <button
+          v-for="t in [{ key: 'quizzes', label: 'Quiz Bank' }, { key: 'pending', label: 'Pending Essay Reviews', badge: pendingAttempts.length || null }]"
+          :key="t.key"
+          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+          :class="activeTab === t.key ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'"
+          @click="activeTab = t.key as typeof activeTab; if (t.key === 'pending') loadPending()"
+        >
+          {{ t.label }}
+          <span v-if="t.badge && activeTab !== t.key" class="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">{{ t.badge }}</span>
+        </button>
+      </div>
+
+      <!-- Type filter chips (quiz bank only) -->
+      <div v-if="activeTab === 'quizzes'" class="flex gap-2 mt-3">
         <button
           v-for="opt in [
             { key: 'all', label: 'All' },
@@ -300,8 +373,84 @@ onMounted(loadQuizzes);
       :class="notice.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'"
     >{{ notice.msg }}</div>
 
+    <!-- ── PENDING ESSAY REVIEWS ─────────────────────────────────────────── -->
+    <div v-if="activeTab === 'pending'" class="p-6 space-y-4">
+      <div v-if="pendingLoading" class="flex justify-center py-12">
+        <RefreshCw class="w-6 h-6 text-gray-400 animate-spin" />
+      </div>
+      <div v-else-if="!pendingAttempts.length" class="flex flex-col items-center py-16 text-gray-400">
+        <CheckCircle2 class="w-12 h-12 mb-3 text-green-400" />
+        <p class="text-sm font-medium">No pending essay reviews.</p>
+      </div>
+      <div v-else class="space-y-4 max-w-3xl">
+        <div v-for="attempt in pendingAttempts" :key="attempt.id" class="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <!-- Attempt header -->
+          <div class="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
+            <div>
+              <p class="font-semibold text-gray-900">{{ attempt.quiz_title }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">Attempt #{{ attempt.attempt_number }} · Submitted {{ attempt.submitted_at ? fmtDate(attempt.submitted_at) : '—' }}</p>
+            </div>
+            <button
+              class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50"
+              @click="openReview(attempt.id)"
+            >
+              <Pencil class="w-3.5 h-3.5" /> Review
+            </button>
+          </div>
+
+          <!-- Essay answers -->
+          <div v-if="attempt.answers?.length" class="divide-y divide-gray-50">
+            <div v-for="ans in attempt.answers?.filter(a => a.question_type === 'essay')" :key="ans.question" class="px-5 py-4 space-y-2">
+              <p class="text-sm font-medium text-gray-700">{{ ans.question_text }}</p>
+              <p v-if="ans.essay_response" class="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2.5 whitespace-pre-line">{{ ans.essay_response }}</p>
+              <a
+                v-if="ans.essay_file_url"
+                :href="ans.essay_file_url"
+                target="_blank"
+                class="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:underline"
+              >
+                <FileText class="w-4 h-4" /> {{ ans.essay_file_name || 'Download essay file' }}
+              </a>
+              <p v-if="!ans.essay_response && !ans.essay_file_url" class="text-xs text-gray-400 italic">No response submitted.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review modal -->
+      <div v-if="reviewingId" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+          <h3 class="text-base font-semibold text-gray-900">Submit essay review</h3>
+          <div class="flex gap-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input v-model="reviewForm.passed" :value="true" type="radio" class="accent-green-600" /> Pass
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input v-model="reviewForm.passed" :value="false" type="radio" class="accent-red-600" /> Fail
+            </label>
+          </div>
+          <label class="block space-y-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Reviewer notes</span>
+            <textarea v-model="reviewForm.reviewer_notes" rows="3" placeholder="Feedback for the writer…" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+          </label>
+          <div class="flex gap-2 justify-end">
+            <button class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50" @click="reviewingId = null">Cancel</button>
+            <button
+              :disabled="reviewSaving"
+              class="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50"
+              :class="reviewForm.passed ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
+              @click="submitReview"
+            >
+              <RefreshCw v-if="reviewSaving" class="w-4 h-4 animate-spin inline mr-1" />
+              {{ reviewForm.passed ? 'Mark as passed' : 'Mark as failed' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Body: quiz list + question panel -->
-    <div class="flex h-[calc(100vh-185px)]">
+    <div v-if="activeTab === 'quizzes'" class="flex h-[calc(100vh-220px)]">
 
       <!-- Quiz list -->
       <div class="w-80 border-r border-gray-200 bg-white overflow-y-auto flex-shrink-0">

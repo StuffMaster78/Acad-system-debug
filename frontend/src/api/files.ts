@@ -213,4 +213,14 @@ export const filesApi = {
 
   rejectExternalLink: (linkId: number | string, reason = "") =>
     api.post<AdminActionResponse>(apiPath(`/files/admin/external-links/${linkId}/reject/`), { reason }),
+
+  // Generic single-file upload — used for vetting essay submissions
+  uploadFile: (file: File, purpose: string, isPublic = false) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("purpose", purpose);
+    form.append("is_public", String(isPublic));
+    // Do NOT set Content-Type header manually — axios handles multipart boundary
+    return api.post<{ file_id: string }>(apiPath("/files/upload/"), form);
+  },
 };

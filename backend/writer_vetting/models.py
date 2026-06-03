@@ -275,8 +275,13 @@ class WriterTestAnswer(models.Model):
         on_delete=models.SET_NULL,
         related_name="answers",
     )
-    # Essay: writer types a response
+    # Essay: writer types a response AND/OR uploads a file
     essay_response = models.TextField(blank=True)
+    # UUID of the ManagedFile from files_management (optional, essay questions only)
+    essay_file_id = models.CharField(max_length=36, blank=True, default="",
+        help_text="UUID of the uploaded essay file (files_management.ManagedFile).")
+    essay_file_name = models.CharField(max_length=255, blank=True, default="",
+        help_text="Original filename stored for display.")
 
     # Auto-set for MCQ/T-F; set by reviewer for essay
     is_correct = models.BooleanField(null=True, blank=True)

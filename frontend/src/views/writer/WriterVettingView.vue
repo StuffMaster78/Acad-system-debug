@@ -2,13 +2,14 @@
 import { computed, onMounted, ref } from "vue";
 import {
   AlertCircle, CheckCircle2, ChevronRight, Clock,
-  GraduationCap, RefreshCw, XCircle,
+  GraduationCap, RefreshCw, XCircle, Upload, FileText, X,
 } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import {
   writerVettingApi,
   type AttemptAnswer, type WriterAttempt, type WriterQuizCard, type WriterQuizQuestion,
 } from "@/api/writerVetting";
+import { filesApi } from "@/api/files";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const quizzes = ref<WriterQuizCard[]>([]);
@@ -114,6 +115,62 @@ function fmtTimer(s: number) {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
+// ── Essay file uploads (per question) ────────────────────────────────────────
+interface EssayFile { file: File; uploading: boolean; fileId: string; error: string }
+const essayFiles = ref<Record<number, EssayFile>>({});  // keyed by question_id
+
+const essayFileInputs = ref<Record<number, HTMLInputElement | null>>({});
+
+function pickEssayFile(questionId: number) {
+  essayFileInputs.value[questionId]?.click();
+}
+
+function clearEssayFile(questionId: number) {
+  const ef = { ...essayFiles.value };
+  delete ef[questionId];
+  essayFiles.value = ef;
+  // Also clear the file_id from the answer
+  if (answers.value[questionId]) {
+    answers.value = {
+      ...answers.value,
+      [questionId]: { ...answers.value[questionId], essay_file_id: "", essay_file_name: "" },
+    };
+  }
+}
+
+async function onEssayFileChange(questionId: number, e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  essayFiles.value = {
+    ...essayFiles.value,
+    [questionId]: { file, uploading: true, fileId: "", error: "" },
+  };
+
+  try {
+    const { data } = await filesApi.uploadFile(file, "writer_sample", false);
+    essayFiles.value = {
+      ...essayFiles.value,
+      [questionId]: { file, uploading: false, fileId: data.file_id, error: "" },
+    };
+    // Store in answer payload
+    answers.value = {
+      ...answers.value,
+      [questionId]: {
+        ...answers.value[questionId],
+        question_id: questionId,
+        essay_file_id:   data.file_id,
+        essay_file_name: file.name,
+      },
+    };
+  } catch {
+    essayFiles.value = {
+      ...essayFiles.value,
+      [questionId]: { file, uploading: false, fileId: "", error: "Upload failed. Try again." },
+    };
+  }
+}
+
 // ── Answer selection ──────────────────────────────────────────────────────────
 function selectChoice(questionId: number, choiceId: number) {
   answers.value = {
@@ -125,7 +182,11 @@ function selectChoice(questionId: number, choiceId: number) {
 function setEssay(questionId: number, text: string) {
   answers.value = {
     ...answers.value,
-    [questionId]: { question_id: questionId, essay_response: text },
+    [questionId]: {
+      ...answers.value[questionId],
+      question_id: questionId,
+      essay_response: text,
+    },
   };
 }
 
@@ -312,16 +373,59 @@ function closeResult() {
               </label>
             </div>
 
-            <!-- Essay textarea -->
-            <div v-else class="pl-10">
+            <!-- Essay: text response + optional file upload -->
+            <div v-else class="pl-10 space-y-3">
+              <!-- Typed response -->
               <textarea
                 :value="answers[q.id]?.essay_response ?? ''"
-                rows="6"
-                placeholder="Write your response here…"
+                rows="5"
+                placeholder="Type your response here (optional if you upload a file below)…"
                 class="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 @input="setEssay(q.id, ($event.target as HTMLTextAreaElement).value)"
               />
-              <p class="mt-1 text-xs text-neutral-400">{{ (answers[q.id]?.essay_response ?? '').length }} characters</p>
+              <p class="text-xs text-neutral-400">{{ (answers[q.id]?.essay_response ?? '').length }} characters</p>
+
+              <!-- File upload -->
+              <input
+                :ref="(el) => { essayFileInputs[q.id] = el as HTMLInputElement | null }"
+                type="file"
+                accept=".pdf,.doc,.docx,.txt,.rtf"
+                class="hidden"
+                @change="onEssayFileChange(q.id, $event)"
+              />
+
+              <!-- Uploaded file display -->
+              <div v-if="essayFiles[q.id]?.fileId" class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
+                <FileText class="size-4 text-emerald-600 shrink-0" />
+                <span class="flex-1 truncate text-emerald-800 font-medium">{{ essayFiles[q.id].file.name }}</span>
+                <CheckCircle2 class="size-4 text-emerald-500 shrink-0" />
+                <button type="button" class="text-emerald-500 hover:text-emerald-700" @click="clearEssayFile(q.id)">
+                  <X class="size-4" />
+                </button>
+              </div>
+
+              <!-- Uploading state -->
+              <div v-else-if="essayFiles[q.id]?.uploading" class="flex items-center gap-2 text-sm text-neutral-500">
+                <RefreshCw class="size-4 animate-spin" /> Uploading…
+              </div>
+
+              <!-- Upload error -->
+              <p v-if="essayFiles[q.id]?.error" class="text-xs text-red-600">{{ essayFiles[q.id].error }}</p>
+
+              <!-- Upload button (shown when no file yet) -->
+              <button
+                v-if="!essayFiles[q.id]?.fileId && !essayFiles[q.id]?.uploading"
+                type="button"
+                class="flex items-center gap-2 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm text-neutral-600 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 transition-colors w-full justify-center"
+                @click="pickEssayFile(q.id)"
+              >
+                <Upload class="size-4" />
+                Upload essay file (PDF, DOC, DOCX) — optional
+              </button>
+
+              <p class="text-xs text-neutral-400">
+                You can type your response, upload a file, or both. At least one is required.
+              </p>
             </div>
           </div>
         </div>

@@ -344,6 +344,8 @@ class WriterSubmitAttemptView(APIView):
                 defaults={
                     "selected_choice": choice,
                     "essay_response": item.get("essay_response", ""),
+                    "essay_file_id":   item.get("essay_file_id", ""),
+                    "essay_file_name": item.get("essay_file_name", ""),
                     "is_correct": is_correct,
                     "points_earned": points_earned,
                 },

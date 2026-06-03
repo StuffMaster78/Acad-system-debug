@@ -132,6 +132,7 @@ class AttemptAnswerSerializer(serializers.ModelSerializer):
         fields = [
             "id", "question", "question_text", "question_type",
             "selected_choice", "essay_response",
+            "essay_file_id", "essay_file_name",
             "is_correct", "points_earned", "explanation",
         ]
 
@@ -161,6 +162,8 @@ class WriterAttemptDetailSerializer(WriterAttemptSerializer):
 
 class SubmitAnswerSerializer(serializers.Serializer):
     """One answer in the submission payload."""
-    question_id      = serializers.IntegerField()
+    question_id        = serializers.IntegerField()
     selected_choice_id = serializers.IntegerField(required=False, allow_null=True)
-    essay_response   = serializers.CharField(required=False, allow_blank=True, default="")
+    essay_response     = serializers.CharField(required=False, allow_blank=True, default="")
+    essay_file_id      = serializers.CharField(required=False, allow_blank=True, default="")
+    essay_file_name    = serializers.CharField(required=False, allow_blank=True, default="")
