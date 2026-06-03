@@ -45,6 +45,7 @@ interface LevelSettings {
   min_completed_orders: number; min_rating: string;
   min_successful_takes: number; min_completion_rate: string | null;
   max_revision_rate: string | null; max_lateness_rate: string | null;
+  max_warnings: number;
   is_active: boolean;
 }
 
@@ -348,15 +349,18 @@ watch(activeTab, (t) => { if (t === "tips" && !policies.value.length) loadPolici
 
           <!-- Pay rates -->
           <section class="rounded-xl border border-gray-200 bg-white p-5">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Pay rates (per unit, USD)</h3>
-            <div class="grid gap-4 sm:grid-cols-3">
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Pay rates (USD)</h3>
+            <p class="text-xs text-gray-400 mb-4">
+              Base rates apply to each unit within the agreed scope. Additional rates apply to each unit beyond the original scope.
+            </p>
+
+            <!-- Base rates row -->
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Base pay — within scope</p>
+            <div class="grid gap-4 sm:grid-cols-3 mb-5">
               <label v-for="f in [
-                { key: 'base_pay_per_page',  label: 'Per page (base)' },
-                { key: 'base_pay_per_slide', label: 'Per slide (base)' },
-                { key: 'base_pay_per_chart', label: 'Per chart (base)' },
-                { key: 'additional_page_pay',  label: 'Per additional page' },
-                { key: 'additional_slide_pay', label: 'Per additional slide' },
-                { key: 'additional_chart_pay', label: 'Per additional chart' },
+                { key: 'base_pay_per_page',  label: 'Per page',  hint: 'Each written page in the order' },
+                { key: 'base_pay_per_slide', label: 'Per slide', hint: 'Each presentation slide' },
+                { key: 'base_pay_per_chart', label: 'Per chart', hint: 'Each chart or figure' },
               ]" :key="f.key" class="block space-y-1">
                 <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ f.label }}</span>
                 <div class="relative">
@@ -364,80 +368,174 @@ watch(activeTab, (t) => { if (t === "tips" && !policies.value.length) loadPolici
                   <input v-model="(settingsDraft as any)[f.key]" type="number" min="0" step="0.01"
                     class="h-9 w-full rounded-lg border border-gray-300 pl-6 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
+                <p class="text-xs text-gray-400">{{ f.hint }}</p>
+              </label>
+            </div>
+
+            <!-- Additional rates row -->
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Additional pay — beyond original scope</p>
+            <div class="grid gap-4 sm:grid-cols-3">
+              <label v-for="f in [
+                { key: 'additional_page_pay',  label: 'Per extra page',  hint: 'Pages added after the order starts' },
+                { key: 'additional_slide_pay', label: 'Per extra slide', hint: 'Slides added after the order starts' },
+                { key: 'additional_chart_pay', label: 'Per extra chart', hint: 'Charts added after the order starts' },
+              ]" :key="f.key" class="block space-y-1">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ f.label }}</span>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                  <input v-model="(settingsDraft as any)[f.key]" type="number" min="0" step="0.01"
+                    class="h-9 w-full rounded-lg border border-gray-300 pl-6 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+                <p class="text-xs text-gray-400">{{ f.hint }}</p>
               </label>
             </div>
           </section>
 
           <!-- Tip retention -->
           <section class="rounded-xl border border-amber-100 bg-amber-50 p-5">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Tip retention</h3>
-            <div class="max-w-xs">
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Tip retention</h3>
+            <p class="text-xs text-amber-700 mb-4">
+              Defines the % of each client tip that the writer keeps at this tier.
+              Set to 100 to pass the full tip to the writer. Overrides the global Tip Policy for this tier.
+            </p>
+            <div class="grid gap-4 sm:grid-cols-3">
               <label class="block space-y-1">
                 <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Writer keeps (%)</span>
                 <div class="relative">
                   <input v-model="settingsDraft.tip_percentage" type="number" min="0" max="100" step="0.01"
-                    class="h-9 w-full rounded-lg border border-gray-300 px-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    class="h-9 w-full rounded-lg border border-amber-200 bg-white px-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                   <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
                 </div>
+                <p class="text-xs text-amber-700">Platform keeps {{ settingsDraft.tip_percentage ? (100 - parseFloat(settingsDraft.tip_percentage as string)).toFixed(2) : '?' }}%</p>
               </label>
-              <p class="mt-1.5 text-xs text-amber-700">Platform retains the remainder. Overrides the global tip policy split for this tier.</p>
             </div>
           </section>
 
           <!-- Capacity -->
           <section class="rounded-xl border border-gray-200 bg-white p-5">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Capacity limits</h3>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Capacity limits</h3>
+            <p class="text-xs text-gray-400 mb-4">Controls how many orders a writer at this tier can handle simultaneously.</p>
             <div class="grid gap-4 sm:grid-cols-3">
               <label v-for="f in [
-                { key: 'max_active_orders',       label: 'Max active orders' },
-                { key: 'max_manual_takes',         label: 'Max manual takes' },
-                { key: 'max_pending_assignments',  label: 'Max pending assignments' },
+                { key: 'max_active_orders',       label: 'Max concurrent active orders', hint: 'Total in-progress orders at any one time' },
+                { key: 'max_manual_takes',         label: 'Max manual self-takes',        hint: 'Orders the writer can claim on their own per cycle' },
+                { key: 'max_pending_assignments',  label: 'Max pending assignments',      hint: 'Queued system-assigned offers awaiting acceptance' },
               ]" :key="f.key" class="block space-y-1">
                 <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ f.label }}</span>
                 <input v-model.number="(settingsDraft as any)[f.key]" type="number" min="0"
                   class="h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <p class="text-xs text-gray-400">{{ f.hint }}</p>
               </label>
             </div>
           </section>
 
           <!-- Urgency -->
           <section class="rounded-xl border border-gray-200 bg-white p-5">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Urgency settings</h3>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Urgency settings</h3>
+            <p class="text-xs text-gray-400 mb-4">Orders due in fewer than the threshold hours are treated as urgent and earn the surcharge + multiplier.</p>
             <div class="grid gap-4 sm:grid-cols-3">
               <label class="block space-y-1">
-                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Threshold (hrs)</span>
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Urgency threshold (hrs)</span>
                 <input v-model.number="settingsDraft.urgent_time_threshold_hours" type="number" min="1"
                   class="h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <p class="text-xs text-gray-400">Orders due in &lt; this many hours are urgent</p>
               </label>
               <label class="block space-y-1">
-                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Surcharge ($)</span>
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Flat surcharge (USD)</span>
                 <div class="relative">
                   <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                   <input v-model="settingsDraft.urgent_order_surcharge" type="number" min="0" step="0.01"
                     class="h-9 w-full rounded-lg border border-gray-300 pl-6 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
+                <p class="text-xs text-gray-400">Added flat to earnings for urgent orders</p>
               </label>
               <label class="block space-y-1">
-                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Multiplier (×)</span>
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Urgency multiplier (×)</span>
                 <input v-model="settingsDraft.urgent_multiplier" type="number" min="1" step="0.01"
                   class="h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <p class="text-xs text-gray-400">Multiplied against base pay for urgent orders</p>
               </label>
             </div>
           </section>
 
-          <!-- Eligibility -->
+          <!-- Promotion eligibility -->
           <section class="rounded-xl border border-gray-200 bg-white p-5">
             <h3 class="text-sm font-semibold text-gray-900 mb-1">Promotion eligibility</h3>
-            <p class="text-xs text-gray-400 mb-4">Minimum thresholds a writer must meet to be promoted into this tier.</p>
-            <div class="grid gap-4 sm:grid-cols-3">
-              <label v-for="f in [
-                { key: 'min_completed_orders',  label: 'Min completed orders' },
-                { key: 'min_rating',            label: 'Min rating (0–10)' },
-                { key: 'min_successful_takes',  label: 'Min successful takes' },
-              ]" :key="f.key" class="block space-y-1">
-                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ f.label }}</span>
-                <input v-model="(settingsDraft as any)[f.key]" type="number" min="0" step="0.01"
+            <p class="text-xs text-gray-400 mb-4">
+              Minimum standards a writer must meet to be promoted into this tier.
+              Rate fields are optional — leave blank to impose no limit.
+            </p>
+
+            <!-- Required thresholds -->
+            <div class="grid gap-4 sm:grid-cols-3 mb-5">
+              <label class="block space-y-1">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Min completed orders</span>
+                <input v-model.number="settingsDraft.min_completed_orders" type="number" min="0"
                   class="h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <p class="text-xs text-gray-400">Total orders finished before this tier</p>
+              </label>
+              <label class="block space-y-1">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Min rating (0–10)</span>
+                <input v-model="settingsDraft.min_rating" type="number" min="0" max="10" step="0.01"
+                  class="h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <p class="text-xs text-gray-400">Average client rating required</p>
+              </label>
+              <label class="block space-y-1">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Min successful self-takes</span>
+                <input v-model.number="settingsDraft.min_successful_takes" type="number" min="0"
+                  class="h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <p class="text-xs text-gray-400">Manually claimed orders completed without incident</p>
+              </label>
+            </div>
+
+            <!-- Optional rate caps -->
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Quality rate limits (optional)</p>
+            <div class="grid gap-4 sm:grid-cols-3">
+              <label class="block space-y-1">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Min completion rate (%)</span>
+                <div class="relative">
+                  <input
+                    :value="settingsDraft.min_completion_rate ?? ''"
+                    @input="(e: any) => { settingsDraft.min_completion_rate = e.target.value === '' ? null : e.target.value }"
+                    type="number" min="0" max="100" step="0.01" placeholder="No minimum"
+                    class="h-9 w-full rounded-lg border border-gray-300 px-3 pr-7 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">%</span>
+                </div>
+                <p class="text-xs text-gray-400">% of assigned orders the writer must complete</p>
+              </label>
+              <label class="block space-y-1">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Max revision rate (%)</span>
+                <div class="relative">
+                  <input
+                    :value="settingsDraft.max_revision_rate ?? ''"
+                    @input="(e: any) => { settingsDraft.max_revision_rate = e.target.value === '' ? null : e.target.value }"
+                    type="number" min="0" max="100" step="0.01" placeholder="No limit"
+                    class="h-9 w-full rounded-lg border border-gray-300 px-3 pr-7 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">%</span>
+                </div>
+                <p class="text-xs text-gray-400">Max % of orders that can be sent for revision</p>
+              </label>
+              <label class="block space-y-1">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Max lateness rate (%)</span>
+                <div class="relative">
+                  <input
+                    :value="settingsDraft.max_lateness_rate ?? ''"
+                    @input="(e: any) => { settingsDraft.max_lateness_rate = e.target.value === '' ? null : e.target.value }"
+                    type="number" min="0" max="100" step="0.01" placeholder="No limit"
+                    class="h-9 w-full rounded-lg border border-gray-300 px-3 pr-7 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">%</span>
+                </div>
+                <p class="text-xs text-gray-400">Max % of orders submitted past deadline</p>
+              </label>
+            </div>
+
+            <!-- Warnings cap -->
+            <div class="mt-5 max-w-xs">
+              <label class="block space-y-1">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Max active warnings</span>
+                <input v-model.number="settingsDraft.max_warnings" type="number" min="0"
+                  class="h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <p class="text-xs text-gray-400">Writers with more than this many active warnings become eligible for demotion from this tier</p>
               </label>
             </div>
           </section>

@@ -67,6 +67,7 @@ class WriterLevelSettingsSerializer(serializers.ModelSerializer):
             # Promotion eligibility
             "min_completed_orders", "min_rating", "min_successful_takes",
             "min_completion_rate", "max_revision_rate", "max_lateness_rate",
+            "max_warnings",
             # Status
             "is_active",
         ]

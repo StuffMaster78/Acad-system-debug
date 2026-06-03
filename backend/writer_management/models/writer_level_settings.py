@@ -158,6 +158,11 @@ class WriterLevelSettings(models.Model):
         blank=True,
     )
 
+    max_warnings = models.PositiveIntegerField(
+        default=3,
+        help_text="Maximum active warnings before a writer at this tier is eligible for demotion.",
+    )
+
     # ---------------------------------------------------
     # STATUS
     # ---------------------------------------------------
