@@ -17,7 +17,7 @@ class SpecialDaySerializer(serializers.ModelSerializer):
     class Meta:
         model = SpecialDay
         fields = '__all__'
-        read_only_fields = ('id', 'created_at', 'updated_at', 'created_by_username')
+        read_only_fields = ('id', 'created_at', 'updated_at', 'created_by_username', 'is_seeded')
 
     def get_countries_display(self, obj):
         """Get list of country codes."""

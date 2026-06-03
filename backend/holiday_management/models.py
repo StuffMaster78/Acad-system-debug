@@ -2,14 +2,30 @@
 Holiday Management Models
 Manages special days, holidays, and automated marketing features
 """
+import calendar
+from datetime import date, timedelta
+
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-# CountryField not needed - using JSONField for countries list
-from django.contrib.postgres.fields import JSONField
 
 User = settings.AUTH_USER_MODEL
+
+
+def _easter_date(year: int) -> date:
+    """Anonymous Gregorian Easter algorithm (Spencer Jones)."""
+    a = year % 19
+    b, c = divmod(year, 100)
+    d, e = divmod(b, 4)
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month, day = divmod(114 + h + l - 7 * m, 31)
+    return date(year, month, day + 1)
 
 
 class SpecialDay(models.Model):
@@ -107,6 +123,25 @@ class SpecialDay(models.Model):
         help_text=_("Template for broadcast message (can include {name}, {date}, etc.)")
     )
 
+    # Seeded / floating-date support
+    is_seeded = models.BooleanField(
+        default=False,
+        help_text=_(
+            "Pre-seeded system holiday. Admins may only edit discount/reminder "
+            "settings — name, date, and type are locked."
+        ),
+    )
+    date_rule = models.JSONField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "Rule for floating annual dates. "
+            "nth_weekday: {type, month, n, weekday, offset_days?} "
+            "last_weekday: {type, month, weekday} "
+            "easter: {type, offset_days?}"
+        ),
+    )
+
     # Metadata
     is_active = models.BooleanField(
         default=True,
@@ -135,12 +170,52 @@ class SpecialDay(models.Model):
         return f"{self.name} ({self.date})"
 
     def get_date_for_year(self, year=None):
-        """Get the date for a specific year (for annual events)."""
+        """Get the date for a specific year, resolving floating-date rules."""
         if not self.is_annual:
             return self.date
         if year is None:
             year = timezone.now().year
-        return self.date.replace(year=year)
+
+        if self.date_rule:
+            return self._resolve_date_rule(year)
+
+        try:
+            return self.date.replace(year=year)
+        except ValueError:
+            # Feb 29 in a non-leap year — fall back to Feb 28
+            return self.date.replace(year=year, day=28)
+
+    def _resolve_date_rule(self, year: int) -> date:
+        rule = self.date_rule or {}
+        rule_type = rule.get("type")
+        offset = int(rule.get("offset_days", 0))
+
+        if rule_type == "nth_weekday":
+            month   = int(rule["month"])
+            n       = int(rule["n"])       # 1-based
+            weekday = int(rule["weekday"]) # 0=Mon … 6=Sun
+            first = date(year, month, 1)
+            days_ahead = (weekday - first.weekday()) % 7
+            first_occurrence = first + timedelta(days=days_ahead)
+            result = first_occurrence + timedelta(weeks=n - 1)
+            return result + timedelta(days=offset)
+
+        if rule_type == "last_weekday":
+            month   = int(rule["month"])
+            weekday = int(rule["weekday"])
+            last = date(year, month, calendar.monthrange(year, month)[1])
+            days_back = (last.weekday() - weekday) % 7
+            result = last - timedelta(days=days_back)
+            return result + timedelta(days=offset)
+
+        if rule_type == "easter":
+            return _easter_date(year) + timedelta(days=offset)
+
+        # Unknown rule — fall back to stored date's month/day
+        try:
+            return self.date.replace(year=year)
+        except ValueError:
+            return self.date.replace(year=year, day=28)
 
     def is_upcoming(self, days_ahead=30):
         """Check if this event is upcoming within specified days."""

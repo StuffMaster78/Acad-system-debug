@@ -5,23 +5,56 @@ type PageResponse<T> = { count: number; next: string | null; previous: string | 
 export interface SpecialDay {
   id: number;
   name: string;
-  slug: string;
   date: string;
   event_type: string;
   description: string | null;
   is_annual: boolean;
   is_international: boolean;
   is_active: boolean;
-  priority: number;
+  is_seeded: boolean;
+  priority: string;
   countries: string[];
   countries_display: string[];
   event_date_this_year: string;
   days_until: number;
   is_upcoming: boolean;
+  // discount settings
+  discount_percentage: string | null;
+  discount_code_prefix: string;
+  discount_valid_days: number;
+  auto_generate_discount: boolean;
+  // reminder
+  reminder_days_before: number;
+  send_broadcast_reminder: boolean;
+  // meta
   created_by: number | null;
   created_by_username: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface HolidayMetrics {
+  holiday: string;
+  year: number;
+  event_date: string;
+  window_days: number;
+  orders_count: number;
+  total_revenue: string;
+  campaign: {
+    code: string;
+    redemptions: number;
+    discount_saved: string;
+  } | null;
+}
+
+export interface UpdateDiscountPayload {
+  discount_percentage?: string | null;
+  discount_code_prefix?: string;
+  discount_valid_days?: number;
+  auto_generate_discount?: boolean;
+  reminder_days_before?: number;
+  send_broadcast_reminder?: boolean;
+  is_active?: boolean;
 }
 
 export interface CreateSpecialDayPayload {
@@ -73,7 +106,7 @@ export const holidaysApi = {
     api.get<SpecialDay>(apiPath(`/holidays/special-days/${id}/`)),
   createSpecialDay: (payload: CreateSpecialDayPayload) =>
     api.post<SpecialDay>(apiPath("/holidays/special-days/"), payload),
-  updateSpecialDay: (id: number | string, payload: Partial<CreateSpecialDayPayload>) =>
+  updateSpecialDay: (id: number | string, payload: Partial<CreateSpecialDayPayload> | UpdateDiscountPayload) =>
     api.patch<SpecialDay>(apiPath(`/holidays/special-days/${id}/`), payload),
   deleteSpecialDay: (id: number | string) =>
     api.delete(apiPath(`/holidays/special-days/${id}/`)),
@@ -81,6 +114,10 @@ export const holidaysApi = {
     api.post<HolidayDiscountCampaign>(apiPath(`/holidays/special-days/${id}/generate_discount/`), { year }),
   upcomingSpecialDays: (daysAhead = 30, country?: string) =>
     api.get<SpecialDay[]>(apiPath("/holidays/special-days/upcoming/"), { params: { days_ahead: daysAhead, country } }),
+  metrics: (id: number | string, year?: number, windowDays = 7) =>
+    api.get<HolidayMetrics>(apiPath(`/holidays/special-days/${id}/metrics/`), {
+      params: { year, window_days: windowDays },
+    }),
 
   reminders: (params?: Record<string, unknown>) =>
     api.get<PageResponse<HolidayReminder>>(apiPath("/holidays/reminders/"), { params }),

@@ -7,6 +7,7 @@ import {
   Clock3,
   Globe,
   Loader2,
+  Lock,
   MapPin,
   Percent,
   Plus,
@@ -15,15 +16,16 @@ import {
   Star,
   Tag,
   Trash2,
+  TrendingUp,
   X,
 } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { holidaysApi } from "@/api/holidays";
-import type { HolidayDiscountCampaign, HolidayReminder, SpecialDay } from "@/api/holidays";
+import type { HolidayDiscountCampaign, HolidayMetrics, HolidayReminder, SpecialDay } from "@/api/holidays";
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = "special-days" | "reminders" | "campaigns";
+type Tab = "special-days" | "reminders" | "campaigns" | "metrics";
 const activeTab = ref<Tab>("special-days");
 
 // ── Special Days ──────────────────────────────────────────────────────────────
@@ -225,6 +227,57 @@ async function loadCampaigns() {
   finally { campaignsLoading.value = false; }
 }
 
+// ── Inline discount edit ─────────────────────────────────────────────────────
+
+const editingDiscountId = ref<number | null>(null);
+const discountDraft = ref({ discount_percentage: "", discount_code_prefix: "", discount_valid_days: 1 });
+const savingDiscountId = ref<number | null>(null);
+
+function startEditDiscount(day: SpecialDay) {
+  editingDiscountId.value = day.id;
+  discountDraft.value = {
+    discount_percentage: day.discount_percentage ?? "",
+    discount_code_prefix: day.discount_code_prefix ?? "",
+    discount_valid_days: day.discount_valid_days ?? 1,
+  };
+}
+
+async function saveDiscount(id: number) {
+  savingDiscountId.value = id;
+  try {
+    await holidaysApi.updateSpecialDay(id, {
+      discount_percentage: discountDraft.value.discount_percentage || null,
+      discount_code_prefix: discountDraft.value.discount_code_prefix,
+      discount_valid_days: discountDraft.value.discount_valid_days,
+    });
+    editingDiscountId.value = null;
+    await loadSpecialDays();
+  } catch { /* non-fatal */ } finally {
+    savingDiscountId.value = null;
+  }
+}
+
+// ── Metrics ──────────────────────────────────────────────────────────────────
+
+const metricsLoading = ref(false);
+const metricsData = ref<HolidayMetrics | null>(null);
+const metricsDay = ref<SpecialDay | null>(null);
+const metricsYear = ref(new Date().getFullYear());
+const metricsWindow = ref(7);
+
+async function loadMetrics(day: SpecialDay) {
+  metricsDay.value = day;
+  metricsData.value = null;
+  metricsLoading.value = true;
+  activeTab.value = "metrics";
+  try {
+    const { data } = await holidaysApi.metrics(day.id, metricsYear.value, metricsWindow.value);
+    metricsData.value = data;
+  } catch { metricsData.value = null; } finally {
+    metricsLoading.value = false;
+  }
+}
+
 // ── Upcoming banner data ──────────────────────────────────────────────────────
 
 const soonDays = computed(() =>
@@ -280,6 +333,7 @@ onMounted(async () => {
           { key: 'special-days', label: 'Special Days', icon: CalendarDays },
           { key: 'reminders', label: 'Reminders', icon: Bell },
           { key: 'campaigns', label: 'Discount Campaigns', icon: Percent },
+          { key: 'metrics', label: 'Metrics', icon: TrendingUp },
         ]"
         :key="tab.key"
         class="flex items-center gap-1.5 pb-3 text-sm font-medium border-b-2 transition-colors -mb-px"
@@ -420,7 +474,8 @@ onMounted(async () => {
               <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Name</th>
               <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Date</th>
               <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Type</th>
-              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Countries</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Scope</th>
+              <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Discount %</th>
               <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Days Until</th>
               <th class="text-left px-3 py-2 font-medium text-neutral-500 text-xs uppercase tracking-wide">Status</th>
               <th class="px-3 py-2" />
@@ -429,8 +484,11 @@ onMounted(async () => {
           <tbody class="divide-y divide-neutral-50">
             <tr v-for="day in specialDays" :key="day.id" class="hover:bg-neutral-50 transition-colors">
               <td class="px-3 py-2">
-                <div class="font-medium text-neutral-900">{{ day.name }}</div>
-                <div v-if="day.description" class="text-xs text-neutral-400 truncate max-w-[200px]">{{ day.description }}</div>
+                <div class="flex items-center gap-1.5">
+                  <Lock v-if="day.is_seeded" class="size-3 text-neutral-400 flex-shrink-0" title="Pre-seeded — name and date are locked" />
+                  <span class="font-medium text-neutral-900">{{ day.name }}</span>
+                </div>
+                <div v-if="day.is_seeded" class="text-xs text-indigo-500 mt-0.5">System holiday</div>
               </td>
               <td class="px-3 py-2 text-neutral-600">
                 <div>{{ new Date(day.event_date_this_year).toLocaleDateString("en-US", { month: "short", day: "numeric" }) }}</div>
@@ -454,6 +512,36 @@ onMounted(async () => {
                 </div>
                 <span v-else class="text-xs text-neutral-400">—</span>
               </td>
+              <!-- Inline discount edit -->
+              <td class="px-3 py-2">
+                <template v-if="editingDiscountId === day.id">
+                  <div class="flex items-center gap-1">
+                    <input
+                      v-model="discountDraft.discount_percentage"
+                      type="number" min="0" max="100" step="0.5"
+                      placeholder="%"
+                      class="w-14 text-xs px-1.5 py-1 rounded border border-neutral-300 focus:outline-none focus:ring-1 focus:ring-neutral-900"
+                    />
+                    <button
+                      class="text-xs px-2 py-1 rounded bg-neutral-900 text-white disabled:opacity-50"
+                      :disabled="savingDiscountId === day.id"
+                      @click="saveDiscount(day.id)"
+                    >
+                      <Loader2 v-if="savingDiscountId === day.id" class="size-3 animate-spin" />
+                      <span v-else>✓</span>
+                    </button>
+                    <button class="text-xs text-neutral-400 hover:text-neutral-700" @click="editingDiscountId = null">✕</button>
+                  </div>
+                </template>
+                <button
+                  v-else
+                  class="flex items-center gap-1 text-xs text-neutral-600 hover:text-neutral-900 group"
+                  @click="startEditDiscount(day)"
+                >
+                  <Percent class="size-3 text-neutral-400 group-hover:text-neutral-700" />
+                  {{ day.discount_percentage ? `${day.discount_percentage}%` : "—" }}
+                </button>
+              </td>
               <td class="px-3 py-2">
                 <span :class="daysUntilTone(day.days_until)">
                   {{ day.days_until < 0 ? "Passed" : day.days_until === 0 ? "Today" : `${day.days_until}d` }}
@@ -463,7 +551,7 @@ onMounted(async () => {
                 <StatusPill :label="day.is_active ? 'active' : 'inactive'" :tone="day.is_active ? 'success' : 'neutral'" />
               </td>
               <td class="px-3 py-2">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5">
                   <button
                     class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors text-neutral-600 disabled:opacity-50"
                     :disabled="generatingDiscountFor === day.id"
@@ -472,19 +560,27 @@ onMounted(async () => {
                   >
                     <Loader2 v-if="generatingDiscountFor === day.id" class="size-3 animate-spin" />
                     <Percent v-else class="size-3" />
-                    Discount
                   </button>
-                  <template v-if="pendingDeleteDayId === day.id">
-                    <button class="focus-ring rounded bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white" type="button" @click="deleteSpecialDay(day.id)">Confirm</button>
-                    <button class="focus-ring rounded border border-slate-200 px-2 py-0.5 text-xs text-graphite" type="button" @click="pendingDeleteDayId = null">Cancel</button>
-                  </template>
                   <button
-                    v-else
-                    class="p-1 rounded hover:bg-red-50 text-neutral-400 hover:text-berry-600 transition-colors"
-                    @click="deleteSpecialDay(day.id)"
+                    class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors text-neutral-600"
+                    title="View metrics"
+                    @click="loadMetrics(day)"
                   >
-                    <Trash2 class="size-4" />
+                    <TrendingUp class="size-3" />
                   </button>
+                  <template v-if="!day.is_seeded">
+                    <template v-if="pendingDeleteDayId === day.id">
+                      <button class="rounded bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white" @click="deleteSpecialDay(day.id)">Confirm</button>
+                      <button class="rounded border border-slate-200 px-2 py-0.5 text-xs text-graphite" @click="pendingDeleteDayId = null">Cancel</button>
+                    </template>
+                    <button
+                      v-else
+                      class="p-1 rounded hover:bg-red-50 text-neutral-400 hover:text-berry-600 transition-colors"
+                      @click="deleteSpecialDay(day.id)"
+                    >
+                      <Trash2 class="size-4" />
+                    </button>
+                  </template>
                 </div>
               </td>
             </tr>
@@ -606,6 +702,80 @@ onMounted(async () => {
         </table>
         </div>
       </div>
+    </template>
+
+    <!-- ── METRICS ───────────────────────────────────────────────────────────── -->
+    <template v-if="activeTab === 'metrics'">
+      <div class="flex flex-wrap items-center gap-3">
+        <div v-if="metricsDay" class="text-sm font-medium text-neutral-700 flex items-center gap-2">
+          <TrendingUp class="size-4 text-neutral-400" />
+          {{ metricsDay.name }}
+        </div>
+        <div v-else class="text-sm text-neutral-400">Select a holiday from the Special Days tab to view metrics.</div>
+        <template v-if="metricsDay">
+          <input
+            v-model.number="metricsYear"
+            type="number" min="2020" max="2030"
+            class="text-sm px-3 py-1.5 rounded-lg border border-neutral-200 bg-white w-24"
+            @change="loadMetrics(metricsDay!)"
+          />
+          <select
+            v-model.number="metricsWindow"
+            class="text-sm px-3 py-1.5 rounded-lg border border-neutral-200 bg-white"
+            @change="loadMetrics(metricsDay!)"
+          >
+            <option :value="3">±3 days</option>
+            <option :value="7">±7 days</option>
+            <option :value="14">±14 days</option>
+          </select>
+          <button
+            class="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50"
+            @click="loadMetrics(metricsDay)"
+          >
+            <RefreshCw class="size-4" /> Refresh
+          </button>
+        </template>
+      </div>
+
+      <div v-if="metricsLoading" class="p-8 flex justify-center">
+        <Loader2 class="size-7 text-neutral-300 animate-spin" />
+      </div>
+      <div v-else-if="!metricsData" class="bg-white rounded-lg border border-neutral-200 p-8 text-center text-neutral-400 text-sm">
+        {{ metricsDay ? "No data returned." : "Click the chart icon on any holiday to load its metrics." }}
+      </div>
+      <template v-else>
+        <!-- Summary cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-white rounded-xl border border-neutral-200 p-4">
+            <p class="text-xs font-semibold uppercase text-neutral-500">Holiday</p>
+            <p class="mt-1 text-base font-bold text-neutral-900 truncate">{{ metricsData.holiday }}</p>
+            <p class="text-xs text-neutral-400 mt-0.5">{{ metricsData.year }} · ±{{ metricsData.window_days }}d window</p>
+          </div>
+          <div class="bg-white rounded-xl border border-neutral-200 p-4">
+            <p class="text-xs font-semibold uppercase text-neutral-500">Orders in window</p>
+            <p class="mt-1 text-2xl font-bold text-neutral-900">{{ metricsData.orders_count }}</p>
+            <p class="text-xs text-neutral-400 mt-0.5">{{ metricsData.event_date }}</p>
+          </div>
+          <div class="bg-white rounded-xl border border-neutral-200 p-4">
+            <p class="text-xs font-semibold uppercase text-neutral-500">Revenue in window</p>
+            <p class="mt-1 text-2xl font-bold text-green-600">${{ Number(metricsData.total_revenue).toLocaleString() }}</p>
+          </div>
+          <div v-if="metricsData.campaign" class="bg-white rounded-xl border border-indigo-200 p-4">
+            <p class="text-xs font-semibold uppercase text-neutral-500">Discount campaign</p>
+            <code class="mt-1 block text-sm font-mono bg-neutral-100 px-2 py-0.5 rounded">{{ metricsData.campaign.code }}</code>
+            <p class="text-xs text-neutral-500 mt-1">{{ metricsData.campaign.redemptions }} redemptions · ${{ Number(metricsData.campaign.discount_saved).toLocaleString() }} saved</p>
+          </div>
+          <div v-else class="bg-white rounded-xl border border-neutral-200 p-4">
+            <p class="text-xs font-semibold uppercase text-neutral-500">Discount campaign</p>
+            <p class="mt-1 text-sm text-neutral-400">No campaign for {{ metricsData.year }}</p>
+            <button
+              v-if="metricsDay"
+              class="mt-2 text-xs text-indigo-600 hover:underline"
+              @click="generateDiscount(metricsDay.id)"
+            >Generate one →</button>
+          </div>
+        </div>
+      </template>
     </template>
 
     <!-- ── CAMPAIGNS ─────────────────────────────────────────────────────────── -->

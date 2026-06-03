@@ -1,12 +1,14 @@
 """
 Holiday Management ViewSets
 """
+from datetime import timedelta
+
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Sum, Count
 
 from .models import SpecialDay, HolidayReminder, HolidayDiscountCampaign
 from .serializers import (
@@ -17,6 +19,18 @@ from .services import (
     HolidayReminderService, HolidayDiscountService, HolidayNotificationService
 )
 from admin_management.permissions import IsAdmin
+
+# Fields that may be edited on pre-seeded holidays
+_SEEDED_EDITABLE_FIELDS = frozenset({
+    "discount_percentage",
+    "discount_code_prefix",
+    "discount_valid_days",
+    "auto_generate_discount",
+    "send_broadcast_reminder",
+    "reminder_days_before",
+    "broadcast_message_template",
+    "is_active",
+})
 
 
 class SpecialDayViewSet(viewsets.ModelViewSet):
@@ -69,6 +83,69 @@ class SpecialDayViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Create special day with creator."""
         serializer.save(created_by=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_seeded:
+            return Response(
+                {"detail": "Pre-seeded holidays cannot be deleted."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_seeded:
+            bad = [k for k in request.data if k not in _SEEDED_EDITABLE_FIELDS]
+            if bad:
+                return Response(
+                    {"detail": f"These fields cannot be changed on a seeded holiday: {bad}"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        return super().update(request, *args, **kwargs)
+
+    @action(detail=True, methods=['get'])
+    def metrics(self, request, pk=None):
+        """Return order volume and discount redemption stats for a holiday window."""
+        special_day = self.get_object()
+        year = int(request.query_params.get('year', timezone.now().year))
+        window_days = int(request.query_params.get('window_days', 7))
+
+        event_date = special_day.get_date_for_year(year)
+        start = event_date - timedelta(days=window_days)
+        end   = event_date + timedelta(days=window_days)
+
+        from orders.models.orders import Order
+        qs = Order.objects.filter(created_at__date__range=(start, end))
+        order_count = qs.count()
+        revenue = qs.aggregate(total=Sum('total_price'))['total'] or 0
+
+        campaign_data = None
+        try:
+            campaign = HolidayDiscountCampaign.objects.select_related('discount').get(
+                special_day=special_day, year=year
+            )
+            from discounts.models.discount_usage import DiscountUsage
+            usages = DiscountUsage.objects.filter(discount=campaign.discount)
+            campaign_data = {
+                "code": campaign.discount.code,
+                "redemptions": usages.count(),
+                "discount_saved": str(
+                    usages.aggregate(s=Sum('discount_amount'))['s'] or 0
+                ),
+            }
+        except HolidayDiscountCampaign.DoesNotExist:
+            pass
+
+        return Response({
+            "holiday": special_day.name,
+            "year": year,
+            "event_date": str(event_date),
+            "window_days": window_days,
+            "orders_count": order_count,
+            "total_revenue": str(revenue),
+            "campaign": campaign_data,
+        })
 
     @action(detail=True, methods=['post'])
     def generate_discount(self, request, pk=None):
