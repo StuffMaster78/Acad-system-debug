@@ -52,7 +52,40 @@ export interface AdminPasswordResetLinkResponse {
   expires_hours: number;
 }
 
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  username: string;
+  first_name?: string;
+  last_name?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  referrer?: string;
+  landing_page?: string;
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  user_id: number;
+  message: string;
+}
+
 export const authApi = {
+  register: (payload: RegisterPayload) =>
+    api.post<RegisterResponse>(apiPath("/auth/register/"), payload),
+
+  confirmRegistration: (token: string, otpCode: string) =>
+    api.post<LoginResponse>(apiPath("/auth/register/confirm/"), {
+      token,
+      otp_code: otpCode,
+    }),
+
+  resendRegistration: (email: string) =>
+    api.post(apiPath("/auth/register/resend/"), { email }),
+
   login: (payload: LoginPayload) =>
     api.post<LoginResponse>(apiPath("/auth/login/"), payload),
   refresh: (refresh: string) =>

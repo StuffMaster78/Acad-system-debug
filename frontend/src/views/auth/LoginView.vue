@@ -240,6 +240,12 @@ async function preview(role: UserRole) {
         </div>
       </div>
 
+      <!-- Register CTA -->
+      <p class="mt-4 text-center text-sm text-graphite">
+        New to {{ brandName ?? 'the platform' }}?
+        <RouterLink to="/auth/register" class="ml-1 font-semibold text-berry hover:underline">Create a free account</RouterLink>
+      </p>
+
       <!-- Dev preview panel -->
       <div v-if="isDev" class="mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <p class="text-xs font-semibold uppercase tracking-wider text-graphite">Preview workspace</p>

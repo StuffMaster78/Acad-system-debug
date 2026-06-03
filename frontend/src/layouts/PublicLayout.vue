@@ -80,6 +80,12 @@ const showClientNav = computed(() =>
             Become a writer
           </RouterLink>
           <RouterLink
+            class="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-slate-50"
+            to="/auth/register"
+          >
+            Get started
+          </RouterLink>
+          <RouterLink
             class="ml-1 inline-flex h-9 items-center rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
             to="/auth/login"
           >
