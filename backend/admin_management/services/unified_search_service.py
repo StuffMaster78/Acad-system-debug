@@ -156,14 +156,21 @@ class UnifiedSearchService:
             pass
 
         # Check for registration_id in profiles
+        # WriterProfile links to User via account_profile → use account_profile__user_id
+        # ClientProfile has a direct user FK → user_id is valid
         from client_management.models import ClientProfile
         from writer_management.models import WriterProfile
-        client_profiles = ClientProfile.objects.filter(registration_id__icontains=query).values_list('user_id', flat=True)
-        writer_profiles = WriterProfile.objects.filter(registration_id__icontains=query).values_list('user_id', flat=True)
-        if client_profiles.exists() or writer_profiles.exists():
-            search_q |= Q(id__in=list(client_profiles) + list(writer_profiles))
+        client_profile_user_ids = list(
+            ClientProfile.objects.filter(registration_id__icontains=query).values_list('user_id', flat=True)
+        )
+        writer_profile_user_ids = list(
+            WriterProfile.objects.filter(registration_id__icontains=query).values_list('account_profile__user_id', flat=True)
+        )
+        extra_ids = client_profile_user_ids + writer_profile_user_ids
+        if extra_ids:
+            search_q |= Q(id__in=extra_ids)
 
-        users = User.objects.filter(search_q).select_related('client_profile', 'writer_profile')[:limit]
+        users = User.objects.filter(search_q)[:limit]
 
         return [
             {

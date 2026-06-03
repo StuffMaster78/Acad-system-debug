@@ -112,10 +112,12 @@ class DuplicateAccountDetectionService:
         ).exclude(ip_address='').values('ip_address', 'user_id').distinct()
 
         # Get IPs from writer logs
+        # WriterProfile → account_profile → user, so writer__user_id is invalid;
+        # use writer__account_profile__user_id instead
         writer_ips = WriterIPLog.objects.filter(
             logged_at__gte=cutoff_date,
             ip_address__isnull=False
-        ).exclude(ip_address='').values('ip_address', 'writer__user_id').distinct()
+        ).exclude(ip_address='').values('ip_address', 'writer__account_profile__user_id').distinct()
 
         # Group by IP
         ip_to_users = defaultdict(set)
@@ -125,8 +127,8 @@ class DuplicateAccountDetectionService:
                 ip_to_users[entry['ip_address']].add(entry['user_id'])
 
         for entry in writer_ips:
-            if entry['ip_address']:
-                ip_to_users[entry['ip_address']].add(entry['writer__user_id'])
+            if entry['ip_address'] and entry.get('writer__account_profile__user_id'):
+                ip_to_users[entry['ip_address']].add(entry['writer__account_profile__user_id'])
 
         # Find IPs used by multiple users
         duplicates = []
