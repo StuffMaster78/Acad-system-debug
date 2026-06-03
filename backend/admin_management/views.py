@@ -259,7 +259,7 @@ class AdminDashboardView(viewsets.ViewSet):
                 "writer": order.assigned_writer.username if order.assigned_writer else "Unassigned",
                 "status": order.status,
                 "total_price": float(order.total_price) if order.total_price else 0.0,
-                "is_paid": order.is_paid,
+                "is_paid": order.payment_status == "fully_paid",
                 "created_at": order.created_at.isoformat() if order.created_at else None,
                 "website": order.website.name if order.website else "N/A",
             }
@@ -297,10 +297,10 @@ class AdminDashboardView(viewsets.ViewSet):
         # Top Spending Clients
         top_clients = User.objects.filter(
             role="client",
-            orders_as_client__is_paid=True
+            orders_as_client__payment_status="fully_paid",
         ).annotate(
-            total_spent=Sum("orders_as_client__total_price", filter=Q(orders_as_client__is_paid=True), default=0),
-            order_count=Count("orders_as_client", filter=Q(orders_as_client__is_paid=True)),
+            total_spent=Sum("orders_as_client__total_price", filter=Q(orders_as_client__payment_status="fully_paid"), default=0),
+            order_count=Count("orders_as_client", filter=Q(orders_as_client__payment_status="fully_paid")),
         ).order_by("-total_spent")[:10]
 
         top_clients_data = [
@@ -318,7 +318,7 @@ class AdminDashboardView(viewsets.ViewSet):
         thirty_days_ago = timezone.now() - timedelta(days=30)
         revenue_trends = Order.objects.filter(
             created_at__gte=thirty_days_ago,
-            is_paid=True
+            payment_status="fully_paid",
         ).extra(
             select={'day': "DATE(created_at)"}
         ).values('day').annotate(
@@ -339,7 +339,7 @@ class AdminDashboardView(viewsets.ViewSet):
         all_orders = Order.objects.all()
         order_status_breakdown = all_orders.values('status').annotate(
             count=Count('id'),
-            total_revenue=Sum('total_price', filter=Q(is_paid=True), default=0),
+            total_revenue=Sum('total_price', filter=Q(payment_status="fully_paid"), default=0),
         )
 
         status_breakdown_data = {
@@ -3492,16 +3492,8 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
         if cached_result is not None:
             return Response(cached_result)
 
-        # Get all tips
-        all_tips = Tip.objects.all().select_related(
-            'client', 'writer', 'order', 'writer_level', 'website', 'payment'
-        )
-
-        # Filter by website if user has website context and is not superadmin
-        if request.user.role != 'superadmin':
-            website = getattr(request.user, 'website', None)
-            if website:
-                all_tips = all_tips.filter(website=website)
+        # Get all tips — only fields that actually exist on the Tip model
+        all_tips = Tip.objects.all().select_related('sender', 'receiver', 'payment_intent')
 
         # Date range filter with validation
         try:
@@ -3509,82 +3501,69 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
         except (ValueError, TypeError):
             days = 30
         date_from = timezone.now() - timedelta(days=days)
-        recent_tips = all_tips.filter(sent_at__gte=date_from)
+        recent_tips = all_tips.filter(created_at__gte=date_from)
 
-        # Total statistics - combined into single query
+        # Total statistics
         total_stats = all_tips.aggregate(
             total_tips=Count('id'),
-            total_tip_amount=Sum('tip_amount'),
-            total_writer_earnings=Sum('writer_earning'),
-            total_platform_profit=Sum('platform_profit'),
-            avg_tip_amount=Avg('tip_amount'),
-            avg_writer_percentage=Avg('writer_percentage')
+            total_gross_cents=Sum('gross_amount_cents'),
+            total_writer_cents=Sum('writer_share_cents'),
+            total_platform_cents=Sum('platform_fee_cents'),
+            avg_gross_cents=Avg('gross_amount_cents'),
         )
 
-        # Recent statistics (last N days) - combined into single query
+        # Recent statistics
         recent_stats = recent_tips.aggregate(
             total_tips=Count('id'),
-            total_tip_amount=Sum('tip_amount'),
-            total_writer_earnings=Sum('writer_earning'),
-            total_platform_profit=Sum('platform_profit')
+            total_gross_cents=Sum('gross_amount_cents'),
+            total_writer_cents=Sum('writer_share_cents'),
+            total_platform_cents=Sum('platform_fee_cents'),
         )
 
-        # Tip type breakdown
-        type_breakdown = all_tips.values('tip_type').annotate(
+        # Source type breakdown (replaces tip_type)
+        type_breakdown = list(all_tips.values('source_type').annotate(
             count=Count('id'),
-            total_amount=Sum('tip_amount'),
-            writer_earnings=Sum('writer_earning'),
-            platform_profit=Sum('platform_profit')
-        )
+            total_gross_cents=Sum('gross_amount_cents'),
+            total_writer_cents=Sum('writer_share_cents'),
+            total_platform_cents=Sum('platform_fee_cents'),
+        ))
 
-        # Payment status breakdown
-        payment_status_breakdown = all_tips.values('payment_status').annotate(
+        # Status breakdown (replaces payment_status)
+        status_breakdown = list(all_tips.values('status').annotate(
             count=Count('id'),
-            total_amount=Sum('tip_amount')
-        )
+            total_gross_cents=Sum('gross_amount_cents'),
+        ))
 
-        # Writer level breakdown
-        level_breakdown = all_tips.filter(writer_level__isnull=False).values(
-            'writer_level__name'
-        ).annotate(
-            count=Count('id'),
-            total_amount=Sum('tip_amount'),
-            writer_earnings=Sum('writer_earning'),
-            platform_profit=Sum('platform_profit'),
-            avg_percentage=Avg('writer_percentage')
-        )
+        # Status counts for summary
+        status_dict = {item['status']: item['count'] for item in all_tips.values('status').annotate(count=Count('id'))}
 
-        # Payment status counts - combined into single query
-        payment_status_counts = all_tips.values('payment_status').annotate(
-            count=Count('id')
-        )
-        payment_status_dict = {item['payment_status']: item['count'] for item in payment_status_counts}
+        def _cents_to_float(val):
+            return round((val or 0) / 100, 2)
 
         response_data = {
             'summary': {
                 'total_tips': total_stats['total_tips'] or 0,
-                'total_tip_amount': float(total_stats['total_tip_amount'] or 0),
-                'total_writer_earnings': float(total_stats['total_writer_earnings'] or 0),
-                'total_platform_profit': float(total_stats['total_platform_profit'] or 0),
-                'avg_tip_amount': float(total_stats['avg_tip_amount'] or 0),
-                'avg_writer_percentage': float(total_stats['avg_writer_percentage'] or 0),
+                'total_tip_amount': _cents_to_float(total_stats['total_gross_cents']),
+                'total_writer_earnings': _cents_to_float(total_stats['total_writer_cents']),
+                'total_platform_profit': _cents_to_float(total_stats['total_platform_cents']),
+                'avg_tip_amount': _cents_to_float(total_stats['avg_gross_cents']),
             },
             'recent_summary': {
                 'days': days,
                 'total_tips': recent_stats['total_tips'] or 0,
-                'total_tip_amount': float(recent_stats['total_tip_amount'] or 0),
-                'total_writer_earnings': float(recent_stats['total_writer_earnings'] or 0),
-                'total_platform_profit': float(recent_stats['total_platform_profit'] or 0),
+                'total_tip_amount': _cents_to_float(recent_stats['total_gross_cents']),
+                'total_writer_earnings': _cents_to_float(recent_stats['total_writer_cents']),
+                'total_platform_profit': _cents_to_float(recent_stats['total_platform_cents']),
             },
             'payment_status': {
-                'completed': payment_status_dict.get('completed', 0),
-                'pending': payment_status_dict.get('pending', 0),
-                'processing': payment_status_dict.get('processing', 0),
-                'failed': payment_status_dict.get('failed', 0),
+                'succeeded': status_dict.get('succeeded', 0),
+                'pending': status_dict.get('pending', 0),
+                'processing': status_dict.get('processing', 0),
+                'failed': status_dict.get('failed', 0),
+                'cancelled': status_dict.get('cancelled', 0),
             },
-            'type_breakdown': list(type_breakdown),
-            'payment_status_breakdown': list(payment_status_breakdown),
-            'level_breakdown': list(level_breakdown),
+            'type_breakdown': type_breakdown,
+            'status_breakdown': status_breakdown,
         }
 
         # Cache the result for 5 minutes
@@ -3595,52 +3574,41 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def list_tips(self, request):
         """List all tips with earnings breakdown."""
-        from writer_management.models.tipping import Tip
-        from writer_management.serializers import TipDetailSerializer
+        from tips.models.tip import Tip
         from django.db.models import Q, Sum, Count
 
-        queryset = Tip.objects.all().select_related(
-            'client', 'writer', 'order', 'writer_level', 'website', 'payment'
-        )
+        queryset = Tip.objects.all().select_related('sender', 'receiver', 'payment_intent')
 
-        # Filter by website if user has website context and is not superadmin
-        if request.user.role != 'superadmin':
-            website = getattr(request.user, 'website', None)
-            if website:
-                queryset = queryset.filter(website=website)
+        # Filter by source_type (formerly tip_type)
+        source_type = request.query_params.get('tip_type') or request.query_params.get('source_type')
+        if source_type:
+            queryset = queryset.filter(source_type=source_type)
 
-        # Filter by tip type
-        tip_type = request.query_params.get('tip_type')
-        if tip_type:
-            queryset = queryset.filter(tip_type=tip_type)
+        # Filter by status (formerly payment_status)
+        status_filter = request.query_params.get('payment_status') or request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
 
-        # Filter by payment status
-        payment_status = request.query_params.get('payment_status')
-        if payment_status:
-            queryset = queryset.filter(payment_status=payment_status)
-
-        # Filter by writer
+        # Filter by receiver (writer)
         writer_id = request.query_params.get('writer_id')
         if writer_id:
-            queryset = queryset.filter(writer_id=writer_id)
+            queryset = queryset.filter(receiver_id=writer_id)
 
-        # Filter by client
+        # Filter by sender (client)
         client_id = request.query_params.get('client_id')
         if client_id:
-            queryset = queryset.filter(client_id=client_id)
+            queryset = queryset.filter(sender_id=client_id)
 
         # Filter by date range
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
         if date_from:
-            queryset = queryset.filter(sent_at__gte=date_from)
+            queryset = queryset.filter(created_at__gte=date_from)
         if date_to:
-            queryset = queryset.filter(sent_at__lte=date_to)
+            queryset = queryset.filter(created_at__lte=date_to)
 
-        # Order by most recent first
-        queryset = queryset.order_by('-sent_at')
+        queryset = queryset.order_by('-created_at')
 
-        # Pagination with validation and max limit
         try:
             limit = min(max(1, int(request.query_params.get('limit', 50))), 1000)
         except (ValueError, TypeError):
@@ -3650,27 +3618,46 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
         except (ValueError, TypeError):
             offset = 0
 
-        # Get summary statistics before pagination (combined query)
         summary = queryset.aggregate(
             total_count=Count('id'),
-            total_tip_amount=Sum('tip_amount'),
-            total_writer_earnings=Sum('writer_earning'),
-            total_platform_profit=Sum('platform_profit')
+            total_gross_cents=Sum('gross_amount_cents'),
+            total_writer_cents=Sum('writer_share_cents'),
+            total_platform_cents=Sum('platform_fee_cents'),
         )
 
-        # Apply pagination
         tips = queryset[offset:offset + limit]
 
-        serializer = TipDetailSerializer(tips, many=True, context={'request': request})
+        def _cents(val):
+            return round((val or 0) / 100, 2)
+
+        results = [
+            {
+                'id': t.id,
+                'public_id': str(t.public_id),
+                'sender_id': t.sender_id,
+                'sender_email': t.sender.email if t.sender_id else None,
+                'receiver_id': t.receiver_id,
+                'receiver_email': t.receiver.email if t.receiver_id else None,
+                'gross_amount': float(t.gross_amount),
+                'writer_share': _cents(t.writer_share_cents),
+                'platform_fee': _cents(t.platform_fee_cents),
+                'source_type': t.source_type,
+                'status': t.status,
+                'is_settled': t.is_settled,
+                'created_at': t.created_at.isoformat() if t.created_at else None,
+                'paid_at': t.paid_at.isoformat() if t.paid_at else None,
+            }
+            for t in tips
+        ]
 
         return Response({
             'count': summary['total_count'] or 0,
-            'results': serializer.data,
+            'results': results,
             'summary': {
-                'total_tip_amount': float(summary['total_tip_amount'] or 0),
-                'total_writer_earnings': float(summary['total_writer_earnings'] or 0),
-                'total_platform_profit': float(summary['total_platform_profit'] or 0),
-            }
+                'total_tip_amount': _cents(summary['total_gross_cents']),
+                'total_writer_earnings': _cents(summary['total_writer_cents']),
+                'total_platform_profit': _cents(summary['total_platform_cents']),
+            },
         })
 
     @action(detail=False, methods=['get'], url_path='analytics')
@@ -3682,15 +3669,8 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
         from django.utils import timezone
         from datetime import timedelta
 
-        # Get all tips
-        all_tips = Tip.objects.all().select_related(
-            'client', 'writer', 'order', 'writer_level', 'website'
-        )
-
-        # Filter by website if user has website context
-        website = getattr(request.user, 'website', None)
-        if website:
-            all_tips = all_tips.filter(website=website)
+        # Get all tips using correct field names
+        all_tips = Tip.objects.all().select_related('sender', 'receiver')
 
         # Date range with validation
         try:
@@ -3698,76 +3678,61 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
         except (ValueError, TypeError):
             days = 90
         date_from = timezone.now() - timedelta(days=days)
-        filtered_tips = all_tips.filter(sent_at__gte=date_from)
+        filtered_tips = all_tips.filter(created_at__gte=date_from)
 
         # Monthly trends
         monthly_trends = filtered_tips.annotate(
-            month=TruncMonth('sent_at')
+            month=TruncMonth('created_at')
         ).values('month').annotate(
             count=Count('id'),
-            total_amount=Sum('tip_amount'),
-            writer_earnings=Sum('writer_earning'),
-            platform_profit=Sum('platform_profit')
+            total_gross_cents=Sum('gross_amount_cents'),
+            total_writer_cents=Sum('writer_share_cents'),
+            total_platform_cents=Sum('platform_fee_cents'),
         ).order_by('month')
 
         # Weekly trends
         weekly_trends = filtered_tips.annotate(
-            week=TruncWeek('sent_at')
+            week=TruncWeek('created_at')
         ).values('week').annotate(
             count=Count('id'),
-            total_amount=Sum('tip_amount'),
-            writer_earnings=Sum('writer_earning'),
-            platform_profit=Sum('platform_profit')
-        ).order_by('-week')[:12] # Last 12 weeks
+            total_gross_cents=Sum('gross_amount_cents'),
+            total_writer_cents=Sum('writer_share_cents'),
+            total_platform_cents=Sum('platform_fee_cents'),
+        ).order_by('-week')[:12]
 
         # Daily trends (last 30 days)
         daily_trends = filtered_tips.filter(
-            sent_at__gte=timezone.now() - timedelta(days=30)
+            created_at__gte=timezone.now() - timedelta(days=30)
         ).annotate(
-            day=TruncDay('sent_at')
+            day=TruncDay('created_at')
         ).values('day').annotate(
             count=Count('id'),
-            total_amount=Sum('tip_amount'),
-            writer_earnings=Sum('writer_earning'),
-            platform_profit=Sum('platform_profit')
+            total_gross_cents=Sum('gross_amount_cents'),
         ).order_by('-day')[:30]
 
-        # Tip type breakdown
-        type_breakdown = filtered_tips.values('tip_type').annotate(
+        # Source type breakdown
+        type_breakdown = filtered_tips.values('source_type').annotate(
             count=Count('id'),
-            total_amount=Sum('tip_amount'),
-            writer_earnings=Sum('writer_earning'),
-            platform_profit=Sum('platform_profit'),
-            avg_amount=Avg('tip_amount')
+            total_gross_cents=Sum('gross_amount_cents'),
+            total_writer_cents=Sum('writer_share_cents'),
+            total_platform_cents=Sum('platform_fee_cents'),
         )
 
-        # Top writers by tips received
+        # Top writers (receivers) by tips received
         top_writers = filtered_tips.values(
-            'writer__id', 'writer__username', 'writer__email'
+            'receiver__id', 'receiver__username', 'receiver__email'
         ).annotate(
             tip_count=Count('id'),
-            total_received=Sum('writer_earning'),
-            avg_tip=Avg('writer_earning')
-        ).order_by('-total_received')[:10]
+            total_writer_cents=Sum('writer_share_cents'),
+        ).order_by('-total_writer_cents')[:10]
 
-        # Top clients by tips sent
+        # Top clients (senders) by tips sent
         top_clients = filtered_tips.values(
-            'client__id', 'client__username', 'client__email'
+            'sender__id', 'sender__username', 'sender__email'
         ).annotate(
             tip_count=Count('id'),
-            total_sent=Sum('tip_amount')
-        ).order_by('-total_sent')[:10]
-
-        # Writer level performance
-        level_performance = filtered_tips.filter(
-            writer_level__isnull=False
-        ).values('writer_level__name').annotate(
-            tip_count=Count('id'),
-            total_tips=Sum('tip_amount'),
-            total_writer_earnings=Sum('writer_earning'),
-            total_platform_profit=Sum('platform_profit'),
-            avg_percentage=Avg('writer_percentage')
-        ).order_by('-total_tips')
+            total_gross_cents=Sum('gross_amount_cents'),
+        ).order_by('-total_gross_cents')[:10]
 
         return Response({
             'period': {
@@ -3781,7 +3746,6 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
             },
             'breakdowns': {
                 'by_type': list(type_breakdown),
-                'by_level': list(level_performance),
             },
             'top_performers': {
                 'writers': list(top_writers),
@@ -3797,82 +3761,64 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
         from django.utils import timezone
         from datetime import timedelta
 
-        # Get all tips
-        all_tips = Tip.objects.all().select_related(
-            'client', 'writer', 'writer_level', 'website'
-        )
-
-        # Filter by website if user has website context
-        website = getattr(request.user, 'website', None)
-        if website:
-            all_tips = all_tips.filter(website=website)
+        # Get all tips using correct field names
+        all_tips = Tip.objects.all().select_related('sender', 'receiver')
 
         # Date range filter
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
         if date_from:
-            all_tips = all_tips.filter(sent_at__gte=date_from)
+            all_tips = all_tips.filter(created_at__gte=date_from)
         if date_to:
-            all_tips = all_tips.filter(sent_at__lte=date_to)
+            all_tips = all_tips.filter(created_at__lte=date_to)
 
-        # Only completed tips for earnings
-        completed_tips = all_tips.filter(payment_status='completed')
+        # Succeeded tips only for earnings reporting
+        completed_tips = all_tips.filter(status='succeeded')
+
+        def _cents(val):
+            return round((val or 0) / 100, 2)
 
         # Overall earnings
         overall = completed_tips.aggregate(
             total_tips=Count('id'),
-            total_tip_amount=Sum('tip_amount'),
-            total_writer_earnings=Sum('writer_earning'),
-            total_platform_profit=Sum('platform_profit'),
-            avg_tip_amount=Avg('tip_amount'),
-            avg_writer_percentage=Avg('writer_percentage')
+            total_gross_cents=Sum('gross_amount_cents'),
+            total_writer_cents=Sum('writer_share_cents'),
+            total_platform_cents=Sum('platform_fee_cents'),
+            avg_gross_cents=Avg('gross_amount_cents'),
         )
 
-        # Earnings by writer level
-        earnings_by_level = completed_tips.filter(
-            writer_level__isnull=False
-        ).values('writer_level__name').annotate(
+        # Earnings by source type
+        earnings_by_type = list(completed_tips.values('source_type').annotate(
             tip_count=Count('id'),
-            total_tips=Sum('tip_amount'),
-            writer_earnings=Sum('writer_earning'),
-            platform_profit=Sum('platform_profit'),
-            avg_percentage=Avg('writer_percentage')
-        ).order_by('-total_tips')
-
-        # Earnings by tip type
-        earnings_by_type = completed_tips.values('tip_type').annotate(
-            tip_count=Count('id'),
-            total_tips=Sum('tip_amount'),
-            writer_earnings=Sum('writer_earning'),
-            platform_profit=Sum('platform_profit')
-        )
+            total_gross_cents=Sum('gross_amount_cents'),
+            total_writer_cents=Sum('writer_share_cents'),
+            total_platform_cents=Sum('platform_fee_cents'),
+        ))
 
         # Monthly earnings (last 12 months)
+        from django.db.models.functions import TruncMonth
         twelve_months_ago = timezone.now() - timedelta(days=365)
-        monthly_earnings = completed_tips.filter(
-            sent_at__gte=twelve_months_ago
-        ).extra(
-            select={'month': "DATE_TRUNC('month', sent_at)"}
-        ).values('month').annotate(
+        monthly_earnings = list(completed_tips.filter(
+            created_at__gte=twelve_months_ago
+        ).annotate(month=TruncMonth('created_at')).values('month').annotate(
             tip_count=Count('id'),
-            total_tips=Sum('tip_amount'),
-            writer_earnings=Sum('writer_earning'),
-            platform_profit=Sum('platform_profit')
-        ).order_by('-month')[:12]
+            total_gross_cents=Sum('gross_amount_cents'),
+            total_writer_cents=Sum('writer_share_cents'),
+            total_platform_cents=Sum('platform_fee_cents'),
+        ).order_by('-month')[:12])
+
+        total_gross = overall['total_gross_cents'] or 0
+        total_platform = overall['total_platform_cents'] or 0
 
         return Response({
             'overall': {
                 'total_tips': overall['total_tips'] or 0,
-                'total_tip_amount': float(overall['total_tip_amount'] or 0),
-                'total_writer_earnings': float(overall['total_writer_earnings'] or 0),
-                'total_platform_profit': float(overall['total_platform_profit'] or 0),
-                'avg_tip_amount': float(overall['avg_tip_amount'] or 0),
-                'avg_writer_percentage': float(overall['avg_writer_percentage'] or 0),
-                'platform_profit_percentage': float(
-                    (overall['total_platform_profit'] or 0) / (overall['total_tip_amount'] or 1) * 100
-                ) if overall['total_tip_amount'] else 0,
+                'total_tip_amount': _cents(total_gross),
+                'total_writer_earnings': _cents(overall['total_writer_cents']),
+                'total_platform_profit': _cents(total_platform),
+                'avg_tip_amount': _cents(overall['avg_gross_cents']),
+                'platform_profit_percentage': round(total_platform / total_gross * 100, 2) if total_gross else 0,
             },
-            'by_level': list(earnings_by_level),
-            'by_type': list(earnings_by_type),
-            'monthly': list(monthly_earnings),
+            'by_type': earnings_by_type,
+            'monthly': monthly_earnings,
         })
