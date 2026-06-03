@@ -79,7 +79,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    # Daphne serves both HTTP and WebSocket (ASGI).
+    # Restart this container after backend code changes in dev.
+    command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "--proxy-headers", "writing_system.asgi:application"]
 
   # Celery worker
   celery:
@@ -116,6 +118,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "celery", "-A", "writing_system", "inspect", "ping", "--timeout", "10"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
     command: ["celery", "-A", "writing_system", "worker", "--loglevel=info", "--concurrency=2"]
 
   # Celery Beat scheduler
@@ -151,6 +159,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      # Beat doesn't expose a port — disable the inherited Dockerfile healthcheck
+      test: ["CMD-SHELL", "test -f /proc/1/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     command: ["celery", "-A", "writing_system", "beat", "--loglevel=info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
 
 volumes:
