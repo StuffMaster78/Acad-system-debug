@@ -50,6 +50,18 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       props: { role },
     },
     {
+      path: "guides",
+      name: `${role}-guides`,
+      component: () => import("@/views/shared/GuidesView.vue"),
+      props: { role },
+    },
+    {
+      path: "guides/:slug",
+      name: `${role}-guide-article`,
+      component: () => import("@/views/shared/GuideArticleView.vue"),
+      props: { role },
+    },
+    {
       path: ":section",
       name: `${role}-section`,
       component: RoleDashboard,

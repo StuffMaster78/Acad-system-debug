@@ -104,6 +104,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Holidays", to: "/superadmin/holidays", icon: CalendarDays },
     { label: "Publishing", to: "/superadmin/publishing", icon: Newspaper },
     { label: "Newsletters", to: "/superadmin/newsletters", icon: Mail },
+    { label: "Guides", to: "/superadmin/guides", icon: BookOpen },
     { label: "Content", to: "/superadmin/content", icon: FileEdit },
     { label: "Content Graph", to: "/superadmin/content-graph", icon: GitBranch },
     { label: "Files", to: "/superadmin/files", icon: FolderOpen },
@@ -148,6 +149,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Holidays", to: "/admin/holidays", icon: CalendarDays },
     { label: "Publishing", to: "/admin/publishing", icon: Newspaper },
     { label: "Newsletters", to: "/admin/newsletters", icon: Mail },
+    { label: "Guides", to: "/admin/guides", icon: BookOpen },
     { label: "Content", to: "/admin/content", icon: FileEdit },
     { label: "Content Graph", to: "/admin/content-graph", icon: GitBranch },
     { label: "Files", to: "/admin/files", icon: FolderOpen },
@@ -174,6 +176,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Messages", to: "/writer/messages", icon: MessageSquare },
     { label: "Announcements", to: "/writer/announcements", icon: Megaphone },
     { label: "Notifications", to: "/writer/notifications", icon: Bell },
+    { label: "Guides", to: "/writer/guides", icon: BookOpen },
     { label: "Account", to: "/writer/account", icon: User, separator: true },
   ],
   client: [
@@ -193,6 +196,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Announcements", to: "/client/announcements", icon: Megaphone },
     { label: "Support", to: "/client/support", icon: LifeBuoy },
     { label: "Notifications", to: "/client/notifications", icon: Bell },
+    { label: "Guides", to: "/client/guides", icon: BookOpen },
     { label: "Account", to: "/client/account", icon: User, separator: true },
   ],
   editor: [
@@ -208,6 +212,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Messages", to: "/editor/messages", icon: MessageSquare },
     { label: "Announcements", to: "/editor/announcements", icon: Megaphone },
     { label: "Notifications", to: "/editor/notifications", icon: Bell },
+    { label: "Guides", to: "/editor/guides", icon: BookOpen },
     { label: "Settings", to: "/editor/config", icon: Wrench, separator: true },
   ],
   support: [
@@ -225,6 +230,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Announcements", to: "/support/announcements", icon: Megaphone },
     { label: "Notifications", to: "/support/notifications", icon: Bell },
     { label: "Charts", to: "/support/charts", icon: LineChart },
+    { label: "Guides", to: "/support/guides", icon: BookOpen },
     { label: "Settings", to: "/support/config", icon: Wrench, separator: true },
   ],
 };
