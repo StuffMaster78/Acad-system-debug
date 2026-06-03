@@ -74,14 +74,11 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "writing_system.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "3", \
-     "--threads", "2", \
-     "--worker-class", "gthread", \
-     "--worker-tmp-dir", "/dev/shm", \
-     "--timeout", "120", \
-     "--keep-alive", "5", \
-     "--log-level", "info", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+# Daphne serves both HTTP and WebSocket (ASGI) in a single process.
+# Scale out by running multiple replicas rather than adding workers here.
+CMD ["daphne", \
+     "--bind", "0.0.0.0", \
+     "--port", "8000", \
+     "--proxy-headers", \
+     "-v", "1", \
+     "writing_system.asgi:application"]
