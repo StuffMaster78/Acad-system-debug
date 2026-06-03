@@ -99,17 +99,13 @@ class UnifiedSearchService:
         if user_role == 'client':
             qs = qs.filter(client=user)
         elif user_role == 'writer':
-            qs = qs.filter(assigned_writer=user)
+            # assigned_writer is a @property — filter via the assignments join
+            qs = qs.filter(assignments__writer=user, assignments__is_current=True)
         elif user_role not in ['admin', 'superadmin', 'support', 'editor']:
             qs = qs.none()
 
         # Search across multiple fields
-        search_q = (
-            Q(topic__icontains=query) |
-            Q(id__icontains=query) |
-            Q(order_instructions__icontains=query) |
-            Q(reference_id__icontains=query) if hasattr(Order, 'reference_id') else Q()
-        )
+        search_q = Q(topic__icontains=query) | Q(order_instructions__icontains=query)
 
         # Try to parse as order ID
         try:
@@ -118,9 +114,10 @@ class UnifiedSearchService:
         except ValueError:
             pass
 
+        # assigned_writer is a @property — not a FK, cannot be in select_related
         orders = qs.filter(search_q).select_related(
-            'client', 'assigned_writer', 'paper_type', 'website'
-        )[:limit]
+            'client', 'paper_type', 'website'
+        ).distinct()[:limit]
 
         return [
             {
