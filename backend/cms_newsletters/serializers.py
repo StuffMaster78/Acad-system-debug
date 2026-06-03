@@ -33,10 +33,68 @@ class UnsubscribeSerializer(serializers.Serializer):
     )
 
 
+class SubscriberListSerializer(serializers.ModelSerializer):
+    categories = SubscriberCategorySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Subscriber
+        fields = [
+            "id", "email", "is_active", "frequency",
+            "source", "source_detail", "categories",
+            "consent_marketing",
+            "open_count", "click_count",
+            "last_opened_at", "last_clicked_at",
+            "unsubscribed_at", "unsubscribe_reason",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
 class NewsletterListSerializer(serializers.ModelSerializer):
+    analytics = serializers.SerializerMethodField()
+
     class Meta:
         model = Newsletter
-        fields = ["id", "title", "subject_line", "status", "sent_at", "created_at"]
+        fields = [
+            "id", "title", "subject_line", "preview_text",
+            "status", "scheduled_send_date", "sent_at",
+            "sender_name", "sender_email",
+            "created_at", "analytics",
+        ]
+
+    def get_analytics(self, obj):
+        try:
+            return NewsletterAnalyticsSerializer(obj.analytics).data
+        except Exception:
+            return None
+
+
+class NewsletterDetailSerializer(serializers.ModelSerializer):
+    category = SubscriberCategorySerializer(read_only=True)
+    analytics = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Newsletter
+        fields = [
+            "id", "title", "subject_line", "preview_text",
+            "subject_line_b", "ab_split_percentage",
+            "category", "sender_name", "sender_email",
+            "status", "scheduled_send_date", "sent_at",
+            "created_by_name", "created_at", "updated_at",
+            "analytics",
+        ]
+
+    def get_analytics(self, obj):
+        try:
+            return NewsletterAnalyticsSerializer(obj.analytics).data
+        except Exception:
+            return None
+
+    def get_created_by_name(self, obj):
+        if obj.created_by is None:
+            return None
+        return obj.created_by.get_full_name() or obj.created_by.email
 
 
 class NewsletterAnalyticsSerializer(serializers.ModelSerializer):

@@ -375,6 +375,16 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "admin-writer-profile",
         component: () => import("@/views/admin/AdminWriterProfileView.vue"),
       },
+      {
+        path: "writer-applications",
+        name: "admin-writer-applications",
+        component: () => import("@/views/admin/AdminWriterApplicationsView.vue"),
+      },
+      {
+        path: "newsletters",
+        name: "admin-newsletters",
+        component: () => import("@/views/admin/AdminNewslettersView.vue"),
+      },
     );
   }
 
@@ -693,6 +703,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminWriterProfileView.vue"),
       },
       {
+        path: "writer-applications",
+        name: "superadmin-writer-applications",
+        component: () => import("@/views/admin/AdminWriterApplicationsView.vue"),
+      },
+      {
         path: "clients",
         name: "superadmin-clients",
         component: () => import("@/views/admin/AdminClientsView.vue"),
@@ -768,6 +783,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "publishing",
         name: "superadmin-publishing",
         component: () => import("@/views/admin/AdminPublishingView.vue"),
+      },
+      {
+        path: "newsletters",
+        name: "superadmin-newsletters",
+        component: () => import("@/views/admin/AdminNewslettersView.vue"),
       },
       {
         path: "content",
