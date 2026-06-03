@@ -3,10 +3,10 @@
 
     <!-- Hero -->
     <div class="bg-white border-b border-slate-200 px-6 py-16 text-center">
-      <h1 class="text-4xl font-extrabold text-ink">Academic writing services</h1>
-      <p class="mt-3 max-w-2xl mx-auto text-lg text-graphite">
-        Expert writing assistance across every subject, academic level, and deadline.
-      </p>
+      <h1 class="text-4xl font-extrabold text-ink">{{ heroHeading }}</h1>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <p v-if="heroIntroHtml" class="mt-3 max-w-2xl mx-auto text-lg text-graphite" v-html="heroIntroHtml" />
+      <p v-else class="mt-3 max-w-2xl mx-auto text-lg text-graphite">{{ heroIntroText }}</p>
       <RouterLink
         to="/auth/register"
         class="mt-8 inline-flex items-center gap-2 rounded-xl bg-berry px-7 py-3.5 font-bold text-white shadow-lg hover:bg-rose-700 transition-colors"
@@ -90,18 +90,45 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { ArrowRight, Clock } from "@lucide/vue";
 import { cmsApi, type ServicePageSummary } from "@/api/cms";
 import { useMeta, webPageSchema } from "@/composables/useMeta";
+import { usePortalContextStore } from "@/stores/portalContext";
 
+const portalCtx = usePortalContextStore();
+
+// ── Hero content — CMS → branding → static fallback ─────────────────────
+const FALLBACK_HEADING = "Academic writing services";
+const FALLBACK_INTRO   = "Expert writing assistance across every subject, academic level, and deadline.";
+
+const cmsHeading  = ref<string | null>(null);
+const cmsIntro    = ref<string | null>(null); // raw RichTextField HTML from Wagtail
+
+const heroHeading = computed(
+  () => cmsHeading.value
+    ?? (portalCtx.branding?.brand_name ? `${portalCtx.branding.brand_name} writing services` : null)
+    ?? FALLBACK_HEADING,
+);
+
+// If CMS returned rich-text HTML use it; otherwise fall back to plain text.
+const heroIntroHtml = computed(() => cmsIntro.value ?? null);
+const heroIntroText = computed(() => portalCtx.branding?.tagline || FALLBACK_INTRO);
+
+// ── Meta — static fallback on setup, reactive title update after CMS load ─
 useMeta({
-  title: "Academic Writing Services",
-  description: "Expert writing assistance across every subject and academic level. Essays, research papers, dissertations, and more.",
+  title: FALLBACK_HEADING,
+  description: FALLBACK_INTRO,
   schema: webPageSchema({ title: "Services", url: window.location.href }),
 });
 
+watch(heroHeading, (title) => {
+  const siteName = portalCtx.branding?.brand_name ?? "WritingSystem";
+  document.title = `${title} — ${siteName}`;
+});
+
+// ── Service listing ───────────────────────────────────────────────────────
 const isLoading = ref(true);
 const services = ref<ServicePageSummary[]>([]);
 const activeCategory = ref<string | null>(null);
@@ -126,11 +153,24 @@ function formatTurnaround(hours: number): string {
 }
 
 onMounted(async () => {
-  try {
-    const { data } = await cmsApi.servicePages();
-    services.value = data.items;
-  } catch { /* falls back to static */ }
-  finally { isLoading.value = false; }
+  const [indexRes, pagesRes] = await Promise.allSettled([
+    cmsApi.serviceIndexPage(),
+    cmsApi.servicePages(),
+  ]);
+
+  if (indexRes.status === "fulfilled") {
+    const page = indexRes.value.data.items?.[0];
+    if (page) {
+      cmsHeading.value = page.title || null;
+      cmsIntro.value   = page.intro?.trim() || null;
+    }
+  }
+
+  if (pagesRes.status === "fulfilled") {
+    services.value = pagesRes.value.data.items;
+  }
+
+  isLoading.value = false;
 });
 
 const STATIC_SERVICES = [

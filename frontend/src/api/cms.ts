@@ -84,6 +84,13 @@ export interface BlogPost extends BlogPostSummary {
 
 // ── Service pages ─────────────────────────────────────────────────────────
 
+export interface ServiceIndexPageData {
+  id: number;
+  title: string;
+  intro?: string; // RichTextField HTML
+  meta: { slug: string; type: string };
+}
+
 export interface ServicePageSummary {
   id: number;
   title: string;
@@ -290,6 +297,16 @@ export const cmsApi = {
         type: "cms_service_pages.ServicePage",
         slug,
         fields: SERVICE_DETAIL_FIELDS,
+      },
+    }),
+
+  serviceIndexPage: () =>
+    api.get<WagtailListResponse<ServiceIndexPageData>>(apiPath("/api/v2/pages/"), {
+      params: {
+        type: "cms_service_pages.ServiceIndexPage",
+        live: true,
+        fields: "intro",
+        limit: 1,
       },
     }),
 
