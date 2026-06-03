@@ -1,29 +1,40 @@
+import logging
+
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
+
 from .models.orders import Order
 from .models.legacy_models.requests import OrderRequest, WriterRequest
 from .models.legacy_models.order_disputes import Dispute
 from notifications_system.services.notification_service import NotificationService
 
-@receiver(post_save, sender=Order)
-def handle_order_save(sender, instance, created, **kwargs):
-    """
-    Signal to handle actions after an order is created or updated.
-    """
-    if created:
-        print(f"New order created: {instance.topic} by {instance.client}")
-        # Example: Notify admin or writer about the new order
-    else:
-        print(f"Order updated: {instance.topic} (Status: {instance.status})")
-        # Example: Notify client when order status changes
+log = logging.getLogger(__name__)
+
 
 @receiver(pre_save, sender=Order)
 def update_order_status(sender, instance, **kwargs):
-    """
-    Automatically update the order's status based on payment.
-    """
     if instance.is_paid and instance.status == 'unpaid':
-        instance.status = 'pending' # Auto-update status when payment is received
+        instance.status = 'pending'
+
+
+@receiver(post_save, sender=Order)
+def handle_order_completion(sender, instance, created, update_fields, **kwargs):
+    """
+    When an order transitions to COMPLETED, enqueue a Celery task to
+    create the writer's CompensationEvent. Skipped when update_fields is
+    provided and does not include 'status' (avoids unnecessary dispatches
+    on unrelated saves). Idempotency in the task prevents duplicate events.
+    """
+    if created:
+        return
+    if update_fields is not None and "status" not in update_fields:
+        return
+    if instance.status != "completed":
+        return
+    from writer_compensation.tasks.order_compensation_tasks import (
+        create_order_compensation_event,
+    )
+    create_order_compensation_event.delay(order_id=instance.pk)
 
 @receiver(post_save, sender=Dispute)
 def handle_dispute_creation(sender, instance, created, **kwargs):

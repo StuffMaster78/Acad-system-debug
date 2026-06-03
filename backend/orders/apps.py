@@ -28,6 +28,8 @@ class OrdersConfig(AppConfig):
         """
         if settings.DEBUG and os.environ.get("RUN_MAIN") != "true":
             return
+        import orders.signals  # noqa: F401 — registers signal handlers
+
         from orders.registry.discover import auto_discover_order_actions
         count = auto_discover_order_actions()
         log.info("[orders] loaded %d actions", count)
