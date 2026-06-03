@@ -61,6 +61,10 @@ from special_orders.api.views.lifecycle_views import (
     StartRevisionView,
     StartWorkView,
     SubmitWorkView,
+    SpecialOrderMilestoneListView,
+    SpecialOrderMilestoneDeliverView,
+    SpecialOrderMilestoneApproveView,
+    SpecialOrderMilestoneRequestRevisionView,
 )
 from special_orders.api.views.change_request_views import (
     AcceptChangeQuoteView,
@@ -260,6 +264,28 @@ urlpatterns = [
         "<int:special_order_id>/cancel/",
         CancelOrderView.as_view(),
         name="special-order-cancel",
+    ),
+
+    # ── Milestone actions ──────────────────────────────────────────────────
+    path(
+        "<int:special_order_id>/milestones/",
+        SpecialOrderMilestoneListView.as_view(),
+        name="special-order-milestones",
+    ),
+    path(
+        "<int:special_order_id>/milestones/<int:milestone_id>/deliver/",
+        SpecialOrderMilestoneDeliverView.as_view(),
+        name="special-order-milestone-deliver",
+    ),
+    path(
+        "<int:special_order_id>/milestones/<int:milestone_id>/approve/",
+        SpecialOrderMilestoneApproveView.as_view(),
+        name="special-order-milestone-approve",
+    ),
+    path(
+        "<int:special_order_id>/milestones/<int:milestone_id>/request-revision/",
+        SpecialOrderMilestoneRequestRevisionView.as_view(),
+        name="special-order-milestone-request-revision",
     ),
     path(
         "<int:special_order_id>/request-revision/",
