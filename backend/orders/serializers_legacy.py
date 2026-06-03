@@ -18,6 +18,34 @@ from orders.services.revisions import OrderRevisionService
 
 User = get_user_model()
 
+
+STAFF_ROLES = {'admin', 'superadmin', 'support', 'editor'}
+WRITER_HIDDEN_ORDER_FIELDS = {
+    'client',
+    'client_deadline',
+    'client_email',
+    'external_contact_email',
+    'external_contact_name',
+    'external_contact_phone',
+    'payment_status',
+    'total_price',
+    'amount_paid',
+    'remaining_balance',
+}
+
+
+def _apply_order_field_visibility(data, role):
+    if role == 'writer':
+        for field in WRITER_HIDDEN_ORDER_FIELDS:
+            data.pop(field, None)
+        data.pop('client_username', None)
+        return
+
+    if role == 'client':
+        data.pop('assigned_writer', None)
+        data.pop('writer_username', None)
+        data.pop('writer_compensation', None)
+
 class OrderListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for order list views.
@@ -29,6 +57,13 @@ class OrderListSerializer(serializers.ModelSerializer):
     paper_type_name = serializers.CharField(source='paper_type.name', read_only=True, allow_null=True)
     academic_level_name = serializers.CharField(source='academic_level.name', read_only=True, allow_null=True)
     subject_name = serializers.CharField(source='subject.name', read_only=True, allow_null=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        role = getattr(getattr(request, "user", None), "role", None)
+        _apply_order_field_visibility(data, role)
+        return data
 
     class Meta:
         model = Order
@@ -220,7 +255,7 @@ class OrderSerializer(serializers.ModelSerializer):
         )
 
         # Role-based field visibility
-        if role not in ['admin', 'superadmin', 'support']:
+        if role not in STAFF_ROLES:
             data.pop('external_contact_name', None)
             data.pop('external_contact_email', None)
             data.pop('external_contact_phone', None)
@@ -241,10 +276,12 @@ class OrderSerializer(serializers.ModelSerializer):
                 data['client_username'] = data['fake_client_id']
                 # Also set client_registration_id to fake_client_id for consistency
                 data['client_registration_id'] = data['fake_client_id']
-        elif role not in ['admin', 'superadmin', 'support']:
+        elif role not in STAFF_ROLES:
             # Hide fake_client_id from non-admin roles (except writers who need it)
             if role != 'writer':
                 data.pop('fake_client_id', None)
+
+        _apply_order_field_visibility(data, role)
 
         return data
 

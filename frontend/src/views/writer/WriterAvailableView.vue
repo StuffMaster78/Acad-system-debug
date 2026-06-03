@@ -224,8 +224,8 @@ onMounted(() => {
             </div>
             <div class="shrink-0">
               <StatusPill
-                :label="deadlineLabel(order.writer_deadline ?? order.client_deadline)"
-                :tone="deadlineTone(order.writer_deadline ?? order.client_deadline)"
+                :label="deadlineLabel(order.writer_deadline)"
+                :tone="deadlineTone(order.writer_deadline)"
               />
             </div>
           </div>
@@ -241,7 +241,7 @@ onMounted(() => {
               <dt class="sr-only">Pages</dt>
               <dd>{{ pagesLabel(order) }}</dd>
             </div>
-            <div v-if="order.writer_deadline ?? order.client_deadline" class="flex items-center gap-1.5 text-graphite">
+            <div v-if="order.writer_deadline" class="flex items-center gap-1.5 text-graphite">
               <Clock3 class="h-3.5 w-3.5 shrink-0 text-slate-400" />
               <dt class="sr-only">Deadline</dt>
               <dd>
@@ -251,7 +251,7 @@ onMounted(() => {
                     day: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
-                  }).format(new Date(order.writer_deadline ?? order.client_deadline!))
+                  }).format(new Date(order.writer_deadline))
                 }}
               </dd>
             </div>

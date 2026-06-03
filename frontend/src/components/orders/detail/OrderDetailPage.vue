@@ -72,6 +72,7 @@
           v-else-if="activeTab === 'quality'"
           :order-id="orderId"
           :order="order"
+          :lifecycle="lifecycle"
           :role="role"
           @refresh="orders.fetchOrder(orderId)"
         />

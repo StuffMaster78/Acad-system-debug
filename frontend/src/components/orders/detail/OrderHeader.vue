@@ -30,7 +30,7 @@
       <!-- Status badges + primary action -->
       <div class="flex flex-wrap items-center gap-2 lg:shrink-0">
         <StatusPill :label="order?.status ?? 'loading'" />
-        <StatusPill v-if="order?.payment_status" :label="order.payment_status" tone="warning" />
+        <StatusPill v-if="role !== 'writer' && order?.payment_status" :label="order.payment_status" tone="warning" />
         <span
           v-if="order?.is_urgent"
           class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700"
@@ -46,8 +46,8 @@
           <ShieldAlert class="h-3 w-3" />
           {{ riskLevel }}
         </span>
-        <span v-if="order?.client_deadline" class="ml-1 text-xs text-graphite">
-          {{ deadlineCountdown(order.client_deadline) }}
+        <span v-if="visibleDeadline" class="ml-1 text-xs text-graphite">
+          {{ deadlineCountdown(visibleDeadline) }}
         </span>
       </div>
     </div>
@@ -115,6 +115,9 @@ const backLabel = computed(() => {
 });
 
 const isStaffRole = computed(() => isStaff(props.role));
+const visibleDeadline = computed(() =>
+  props.role === "writer" ? props.order?.writer_deadline : props.order?.client_deadline,
+);
 
 const clientDisplay = computed(() => {
   if (props.role === "writer") return props.order ? maskedClient(props.order) : "—";
@@ -138,8 +141,7 @@ const riskClass = computed(() => {
 
 const showApproveBanner = computed(() => {
   if (props.role !== "client") return false;
-  const s = props.order?.status;
-  return s === "delivered" || s === "awaiting_approval";
+  return props.lifecycle?.available_actions?.includes("approve_order") ?? false;
 });
 
 const showRevisionBanner = computed(() => {

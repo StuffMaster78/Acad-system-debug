@@ -57,7 +57,7 @@ const clientCards = computed<Card[]>(() => [
 
 const writerCards = computed<Card[]>(() => [
   { label: "Compensation", value: money(props.order?.writer_compensation, props.order?.currency) },
-  { label: "Writer deadline", value: dateLabel(props.order?.writer_deadline ?? props.order?.client_deadline), sub: deadlineCountdown(props.order?.writer_deadline ?? props.order?.client_deadline), small: true },
+  { label: "Your deadline", value: dateLabel(props.order?.writer_deadline), sub: deadlineCountdown(props.order?.writer_deadline), small: true },
   { label: "Pages", value: props.order?.number_of_pages ? String(props.order.number_of_pages) : "—", sub: props.order?.spacing ?? "" },
   { label: "Status", value: props.order?.status ?? "—" },
 ]);

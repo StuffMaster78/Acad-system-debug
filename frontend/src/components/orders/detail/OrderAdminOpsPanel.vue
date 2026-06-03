@@ -2,7 +2,7 @@
 import { ref, computed } from "vue";
 import { Send } from "@lucide/vue";
 import { useOrderOpsStore } from "@/stores/orderOps";
-import { useAuthStore } from "@/stores/auth";
+import { useOrderStore } from "@/stores/orders";
 import type { UserRole } from "@/types/roles";
 
 const props = defineProps<{
@@ -11,7 +11,7 @@ const props = defineProps<{
 }>();
 
 const ops = useOrderOpsStore();
-const auth = useAuthStore();
+const orders = useOrderStore();
 
 const writerId = ref("");
 const note = ref("");
@@ -20,6 +20,16 @@ const canAct = computed(
   () => props.role === "admin" || props.role === "superadmin",
 );
 const needsNote = computed(() => note.value.trim().length >= 10);
+const availableActions = computed(() => {
+  if (Number(orders.selectedLifecycle?.order_id) !== Number(props.orderId)) {
+    return [];
+  }
+  return orders.selectedLifecycle?.available_actions ?? [];
+});
+
+function hasAction(action: string) {
+  return availableActions.value.includes(action);
+}
 
 async function run(action: () => Promise<unknown>) {
   try { await action(); note.value = ""; writerId.value = ""; }
@@ -63,36 +73,42 @@ async function run(action: () => Promise<unknown>) {
 
     <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
       <button
+        v-if="hasAction('route_to_staffing')"
         class="focus-ring h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-50"
         :disabled="ops.isMutating"
         @click="run(() => ops.routeToStaffing(orderId))"
       >Route to staffing</button>
 
       <button
+        v-if="hasAction('assign_writer')"
         class="focus-ring h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-50"
         :disabled="ops.isMutating || !Number(writerId)"
         @click="run(() => ops.assignDirect(orderId, Number(writerId), note))"
       >Assign writer</button>
 
       <button
+        v-if="hasAction('release_to_pool')"
         class="focus-ring h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-50"
         :disabled="ops.isMutating"
         @click="run(() => ops.releaseToPool(orderId, note))"
       >Release to pool</button>
 
       <button
+        v-if="hasAction('approve_delivery')"
         class="focus-ring h-9 rounded-md border border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-800 disabled:opacity-50"
         :disabled="ops.isMutating"
         @click="run(() => ops.approveForDelivery(orderId, note))"
       >Approve delivery</button>
 
       <button
+        v-if="hasAction('return_to_writer')"
         class="focus-ring h-9 rounded-md border border-amber-200 bg-white px-3 text-xs font-semibold text-amber-900 disabled:opacity-50"
         :disabled="ops.isMutating || !needsNote"
         @click="run(() => ops.returnToWriter(orderId, note))"
       >Return to writer</button>
 
       <button
+        v-if="hasAction('cancel_order')"
         class="focus-ring h-9 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-800 disabled:opacity-50"
         :disabled="ops.isMutating || !needsNote"
         @click="run(() => ops.cancel(orderId, note))"

@@ -558,11 +558,6 @@ const dueThisWeekCount = computed(() => {
                 Earn: ${{ Number(a.writer_compensation).toFixed(2) }}
               </div>
             </div>
-
-            <!-- Client deadline note -->
-            <div v-if="a.client_deadline" class="text-xs text-neutral-400">
-              Client deadline: {{ new Date(a.client_deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) }}
-            </div>
           </div>
         </div>
       </div>

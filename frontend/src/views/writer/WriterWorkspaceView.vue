@@ -224,8 +224,8 @@ onMounted(async () => {
               <StatusPill :label="String(order.status ?? 'in_progress')" tone="warning" />
               <span class="text-right">
                 <StatusPill
-                  :label="relativeDeadline(order.writer_deadline ?? order.client_deadline)"
-                  :tone="deadlineTone(order.writer_deadline ?? order.client_deadline)"
+                  :label="relativeDeadline(order.writer_deadline)"
+                  :tone="deadlineTone(order.writer_deadline)"
                 />
               </span>
             </RouterLink>

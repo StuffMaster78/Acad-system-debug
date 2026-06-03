@@ -274,7 +274,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
     try {
       if (auth.isPreviewSession) {
         rows.value = rows.value.map((row) =>
-          row.id === orderId ? { ...row, status: "staffing" } : row,
+          row.id === orderId ? { ...row, status: "ready_for_staffing" } : row,
         );
         notice.value = "Preview order routed to staffing.";
         return;

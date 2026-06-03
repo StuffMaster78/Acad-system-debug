@@ -140,8 +140,60 @@ function selectQueueOrder(order: OrderOpsRow) {
   orderControl.selectedId = order.id;
 }
 
-function orderControlDisabled(requireNote = false) {
-  return !selectedQueueOrder.value || ops.isMutating || (requireNote && orderControl.note.trim().length < 10);
+function orderStatus(order?: Pick<OrderOpsRow, "status">) {
+  return String(order?.status ?? "").toLowerCase();
+}
+
+function actionAllowed(order: OrderOpsRow | undefined, action: string, fallback: () => boolean) {
+  if (order?.available_actions) return order.available_actions.includes(action);
+  return fallback();
+}
+
+function canRouteToStaffing(order?: OrderOpsRow) {
+  return actionAllowed(order, "route_to_staffing", () => ["paid", "unpaid", "pending_payment"].includes(orderStatus(order)));
+}
+
+function canAssignWriter(order?: OrderOpsRow) {
+  return actionAllowed(order, "assign_writer", () => ["ready_for_staffing", "paid", "preferred_writer_pending"].includes(orderStatus(order)));
+}
+
+function canReleaseToPool(order?: OrderOpsRow) {
+  return actionAllowed(order, "release_to_pool", () => ["ready_for_staffing", "preferred_writer_pending", "assigned"].includes(orderStatus(order)));
+}
+
+function canApproveDelivery(order?: OrderOpsRow) {
+  return actionAllowed(order, "approve_delivery", () => ["qa_review", "submitted", "awaiting_approval", "delivered"].includes(orderStatus(order)));
+}
+
+function canReturnToWriter(order?: OrderOpsRow) {
+  return actionAllowed(order, "return_to_writer", () => ["qa_review", "submitted", "awaiting_approval"].includes(orderStatus(order)));
+}
+
+function canRequestRevision(order?: OrderOpsRow) {
+  return actionAllowed(order, "request_revision", () => ["submitted", "completed", "awaiting_approval"].includes(orderStatus(order)));
+}
+
+function canCancelOrder(order?: OrderOpsRow) {
+  return actionAllowed(order, "cancel_order", () => [
+    "created",
+    "unpaid",
+    "pending_payment",
+    "paid",
+    "ready_for_staffing",
+    "in_progress",
+    "on_hold",
+    "qa_review",
+    "submitted",
+    "disputed",
+  ].includes(orderStatus(order)));
+}
+
+function canArchiveOrder(order?: OrderOpsRow) {
+  return actionAllowed(order, "archive_order", () => orderStatus(order) === "completed");
+}
+
+function orderControlDisabled(requireNote = false, actionAllowed = true) {
+  return !selectedQueueOrder.value || !actionAllowed || ops.isMutating || (requireNote && orderControl.note.trim().length < 10);
 }
 
 function openOrderDetail(context: AdminWorkItem | OrderOpsRow) {
@@ -451,61 +503,83 @@ onMounted(() => {
 
           <div class="grid content-start gap-2 sm:grid-cols-2 xl:grid-cols-1">
             <button
+              v-if="canRouteToStaffing(selectedQueueOrder)"
               class="focus-ring h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold disabled:opacity-60"
               type="button"
-              :disabled="orderControlDisabled()"
+              :disabled="orderControlDisabled(false, canRouteToStaffing(selectedQueueOrder))"
               @click="selectedQueueOrder && ops.routeToStaffing(selectedQueueOrder.id).catch(() => undefined)"
             >
               Route to staffing
             </button>
             <button
+              v-if="canAssignWriter(selectedQueueOrder)"
               class="focus-ring h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold disabled:opacity-60"
               type="button"
-              :disabled="orderControlDisabled() || !Number(orderControl.writerId)"
+              :disabled="orderControlDisabled(false, canAssignWriter(selectedQueueOrder)) || !Number(orderControl.writerId)"
               @click="selectedQueueOrder && ops.assignDirect(selectedQueueOrder.id, Number(orderControl.writerId), orderControl.note).catch(() => undefined)"
             >
               Assign writer
             </button>
             <button
+              v-if="canReleaseToPool(selectedQueueOrder)"
               class="focus-ring h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold disabled:opacity-60"
               type="button"
-              :disabled="orderControlDisabled()"
+              :disabled="orderControlDisabled(false, canReleaseToPool(selectedQueueOrder))"
               @click="selectedQueueOrder && ops.releaseToPool(selectedQueueOrder.id, orderControl.note).catch(() => undefined)"
             >
               Release to pool
             </button>
             <button
+              v-if="canApproveDelivery(selectedQueueOrder)"
               class="focus-ring h-10 rounded-md border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-800 disabled:opacity-60"
               type="button"
-              :disabled="orderControlDisabled()"
+              :disabled="orderControlDisabled(false, canApproveDelivery(selectedQueueOrder))"
               @click="selectedQueueOrder && ops.approveForDelivery(selectedQueueOrder.id, orderControl.note).catch(() => undefined)"
             >
               Approve delivery
             </button>
             <button
+              v-if="canReturnToWriter(selectedQueueOrder)"
               class="focus-ring h-10 rounded-md border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-900 disabled:opacity-60"
               type="button"
-              :disabled="orderControlDisabled(true)"
+              :disabled="orderControlDisabled(true, canReturnToWriter(selectedQueueOrder))"
               @click="selectedQueueOrder && ops.returnToWriter(selectedQueueOrder.id, orderControl.note).catch(() => undefined)"
             >
               Return to writer
             </button>
             <button
+              v-if="canRequestRevision(selectedQueueOrder)"
               class="focus-ring h-10 rounded-md border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-900 disabled:opacity-60"
               type="button"
-              :disabled="orderControlDisabled(true)"
+              :disabled="orderControlDisabled(true, canRequestRevision(selectedQueueOrder))"
               @click="selectedQueueOrder && ops.requestRevision(selectedQueueOrder.id, orderControl.note).catch(() => undefined)"
             >
               Request revision
             </button>
             <button
+              v-if="canCancelOrder(selectedQueueOrder)"
               class="focus-ring h-10 rounded-md border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 disabled:opacity-60"
               type="button"
-              :disabled="orderControlDisabled(true)"
+              :disabled="orderControlDisabled(true, canCancelOrder(selectedQueueOrder))"
               @click="selectedQueueOrder && ops.cancel(selectedQueueOrder.id, orderControl.note).catch(() => undefined)"
             >
               Cancel order
             </button>
+            <button
+              v-if="canArchiveOrder(selectedQueueOrder)"
+              class="focus-ring h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold disabled:opacity-60"
+              type="button"
+              :disabled="orderControlDisabled(false, canArchiveOrder(selectedQueueOrder))"
+              @click="selectedQueueOrder && ops.archive(selectedQueueOrder.id).catch(() => undefined)"
+            >
+              Archive order
+            </button>
+            <p
+              v-if="selectedQueueOrder && !canRouteToStaffing(selectedQueueOrder) && !canAssignWriter(selectedQueueOrder) && !canReleaseToPool(selectedQueueOrder) && !canApproveDelivery(selectedQueueOrder) && !canReturnToWriter(selectedQueueOrder) && !canRequestRevision(selectedQueueOrder) && !canCancelOrder(selectedQueueOrder) && !canArchiveOrder(selectedQueueOrder)"
+              class="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-graphite"
+            >
+              No direct staff action is available for this status.
+            </p>
           </div>
         </div>
 
@@ -531,8 +605,8 @@ onMounted(() => {
               </button>
               <div class="mt-2 flex gap-2">
                 <button class="focus-ring flex-1 rounded-md border border-slate-200 py-1.5 text-xs font-semibold text-signal" type="button" @click="openOrderDetail(order)">Inspect</button>
-                <button v-if="ops.activeQueue === 'pending_staffing'" class="focus-ring rounded-md border border-slate-200 px-3 py-1.5 text-xs" type="button" title="Route to staffing" @click="ops.routeToStaffing(order.id).catch(() => undefined)"><Route class="h-4 w-4" /></button>
-                <button v-if="ops.activeQueue === 'eligible_for_archive'" class="focus-ring rounded-md border border-slate-200 px-3 py-1.5 text-xs" type="button" title="Archive" @click="ops.archive(order.id).catch(() => undefined)"><Archive class="h-4 w-4" /></button>
+                <button v-if="canRouteToStaffing(order)" class="focus-ring rounded-md border border-slate-200 px-3 py-1.5 text-xs" type="button" title="Route to staffing" @click="ops.routeToStaffing(order.id).catch(() => undefined)"><Route class="h-4 w-4" /></button>
+                <button v-if="canArchiveOrder(order)" class="focus-ring rounded-md border border-slate-200 px-3 py-1.5 text-xs" type="button" title="Archive" @click="ops.archive(order.id).catch(() => undefined)"><Archive class="h-4 w-4" /></button>
               </div>
             </div>
           </div>
@@ -569,8 +643,8 @@ onMounted(() => {
                   <td class="px-3 py-2.5">
                     <div class="flex justify-end gap-2">
                       <button class="focus-ring inline-flex h-9 items-center justify-center rounded-md border border-slate-200 px-3 text-xs font-semibold text-signal" type="button" @click.stop="openOrderDetail(order)">Inspect</button>
-                      <button v-if="ops.activeQueue === 'pending_staffing'" class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200" type="button" title="Route to staffing" @click="ops.routeToStaffing(order.id).catch(() => undefined)"><Route class="h-4 w-4" /></button>
-                      <button v-if="ops.activeQueue === 'eligible_for_archive'" class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200" type="button" title="Archive order" @click="ops.archive(order.id).catch(() => undefined)"><Archive class="h-4 w-4" /></button>
+                      <button v-if="canRouteToStaffing(order)" class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200" type="button" title="Route to staffing" @click="ops.routeToStaffing(order.id).catch(() => undefined)"><Route class="h-4 w-4" /></button>
+                      <button v-if="canArchiveOrder(order)" class="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200" type="button" title="Archive order" @click="ops.archive(order.id).catch(() => undefined)"><Archive class="h-4 w-4" /></button>
                     </div>
                   </td>
                 </tr>

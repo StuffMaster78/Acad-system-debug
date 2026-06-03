@@ -202,7 +202,7 @@ onMounted(() => {
             <span class="flex items-center gap-1"><FileText class="h-3 w-3" />{{ pagesLabel(order) }}</span>
             <span class="flex items-center gap-1">
               <Clock3 class="h-3 w-3" />
-              <StatusPill :label="deadlineLabel(order.writer_deadline ?? order.client_deadline)" :tone="deadlineTone(order.writer_deadline ?? order.client_deadline)" />
+              <StatusPill :label="deadlineLabel(order.writer_deadline)" :tone="deadlineTone(order.writer_deadline)" />
             </span>
             <span class="font-semibold text-ink">{{ compensation(order) }}</span>
           </div>
@@ -263,8 +263,8 @@ onMounted(() => {
                 <div class="flex items-center gap-1.5">
                   <Clock3 class="h-3.5 w-3.5 shrink-0 text-slate-400" />
                   <StatusPill
-                    :label="deadlineLabel(order.writer_deadline ?? order.client_deadline)"
-                    :tone="deadlineTone(order.writer_deadline ?? order.client_deadline)"
+                    :label="deadlineLabel(order.writer_deadline)"
+                    :tone="deadlineTone(order.writer_deadline)"
                   />
                 </div>
               </td>

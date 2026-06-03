@@ -162,13 +162,14 @@
 import { computed, ref } from "vue";
 import { CheckCircle2, Loader2, RotateCcw, Send } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
-import type { OrderSummary } from "@/types/orders";
+import type { OrderLifecycle, OrderSummary } from "@/types/orders";
 import { ordersApi } from "@/api/orders";
 import { useAuthStore } from "@/stores/auth";
 
 const props = defineProps<{
   orderId: string;
   order: OrderSummary;
+  lifecycle: OrderLifecycle | null;
   role: UserRole;
 }>();
 
@@ -186,9 +187,13 @@ const STATUS = computed(() => props.order.status ?? "");
 
 const isReviewer = computed(() => props.role === "admin" || props.role === "superadmin" || props.role === "editor");
 const canAct = computed(() => isReviewer.value || props.role === "writer");
-const canSubmitForQA = computed(() => STATUS.value === "in_progress" && (props.role === "writer" || isReviewer.value));
-const canApprove = computed(() => STATUS.value === "qa_review" && isReviewer.value);
-const canReturn = computed(() => STATUS.value === "qa_review" && isReviewer.value);
+const canSubmitForQA = computed(() => hasAction("submit_for_qa"));
+const canApprove = computed(() => hasAction("approve_delivery"));
+const canReturn = computed(() => hasAction("return_to_writer"));
+
+function hasAction(action: string): boolean {
+  return props.lifecycle?.available_actions?.includes(action) ?? false;
+}
 
 // ── Banner ────────────────────────────────────────────────────────────────────
 const STATUS_BANNER: Record<string, { title: string; body: string; class: string; icon: unknown }> = {

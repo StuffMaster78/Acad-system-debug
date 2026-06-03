@@ -29,6 +29,7 @@ export interface OrderOpsRow {
   preferred_writer_status: string;
   client_id: number | null;
   preferred_writer_id: number | null;
+  available_actions?: string[];
 }
 
 export interface OrderOpsQueueResponse {

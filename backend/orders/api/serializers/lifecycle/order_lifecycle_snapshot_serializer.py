@@ -41,3 +41,8 @@ class OrderLifecycleSnapshotSerializer(serializers.Serializer):
 
     is_revision_window_open = serializers.BooleanField()
     revision_window_days = serializers.IntegerField()
+    available_actions = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        default=list,
+    )

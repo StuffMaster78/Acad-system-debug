@@ -67,6 +67,7 @@ export interface OrderLifecycle {
   latest_revision_status: string | null;
   is_revision_window_open: boolean;
   revision_window_days: number;
+  available_actions?: string[];
 }
 
 export interface OrderActionResponse {

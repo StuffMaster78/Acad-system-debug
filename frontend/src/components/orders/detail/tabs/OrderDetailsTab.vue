@@ -47,7 +47,7 @@
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">English type</dt>
           <dd class="mt-1 text-sm text-ink">{{ order.english_type }}</dd>
         </div>
-        <div v-if="order.client_deadline">
+        <div v-if="role !== 'writer' && order.client_deadline">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Client deadline</dt>
           <dd class="mt-1 text-sm text-ink">{{ dateLabel(order.client_deadline) }}</dd>
         </div>
@@ -116,7 +116,7 @@
     <template v-if="role === 'client'">
       <!-- Dispute -->
       <div
-        v-if="lifecycle && !lifecycle.has_active_dispute && !isTerminal"
+        v-if="hasAction('raise_dispute')"
         class="rounded-lg border border-amber-200 bg-amber-50 p-5"
       >
         <div class="flex items-center gap-2">
@@ -231,7 +231,7 @@
       </div>
 
       <!-- Cancel order -->
-      <form v-if="!isTerminal" class="rounded-lg border border-rose-200 bg-rose-50 p-5" @submit.prevent="submitCancel">
+      <form v-if="hasAction('cancel_order')" class="rounded-lg border border-rose-200 bg-rose-50 p-5" @submit.prevent="submitCancel">
         <div class="flex items-center gap-2">
           <XCircle class="h-5 w-5 text-rose-700" />
           <h2 class="text-base font-semibold text-rose-950">Cancel order</h2>
@@ -366,7 +366,10 @@ const writerProfileRoute = computed(() => {
 });
 
 const TERMINAL = ["completed", "reviewed", "rated", "approved", "archived", "cancelled"];
-const isTerminal = computed(() => TERMINAL.includes(props.order.status ?? ""));
+
+function hasAction(action: string): boolean {
+  return props.lifecycle?.available_actions?.includes(action) ?? false;
+}
 
 // ── Dispute ─────────────────────────────────────────────────────────────────
 const disputeReason = ref("");

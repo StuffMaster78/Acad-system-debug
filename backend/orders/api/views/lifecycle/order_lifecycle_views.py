@@ -16,6 +16,9 @@ from orders.api.serializers.lifecycle.order_lifecycle_snapshot_serializer import
     OrderLifecycleSnapshotSerializer,
 )
 from orders.models import Order
+from orders.services.order_available_actions_service import (
+    OrderAvailableActionsService,
+)
 from orders.services.order_lifecycle_read_service import (
     OrderLifecycleReadService,
 )
@@ -47,6 +50,11 @@ class OrderLifecycleView(GenericAPIView):
 
         snapshot = OrderLifecycleReadService.build_snapshot(order=order)
         payload = asdict(snapshot) if is_dataclass(snapshot) else snapshot
+        payload["available_actions"] = OrderAvailableActionsService.build_actions(
+            order=order,
+            user=request.user,
+            lifecycle=snapshot,
+        )
         serializer = self.get_serializer(payload)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
