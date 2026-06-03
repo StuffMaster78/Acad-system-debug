@@ -181,6 +181,7 @@ LOCAL_APPS = [
     "holiday_management",
     "writer_compensation.apps.WriterCompensationConfig",
     "legal_pages",
+    "writer_vetting",
 ]
 
 
