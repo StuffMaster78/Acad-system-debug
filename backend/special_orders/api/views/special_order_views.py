@@ -408,3 +408,217 @@ class CreateFixedSpecialOrderView(APIView):
             response_serializer.data,
             status=status.HTTP_201_CREATED,
         )
+
+
+# ── Milestone template CRUD ───────────────────────────────────────────────────
+
+def _website_from_request(request):
+    website = getattr(request, "website", None)
+    if website:
+        return website
+    try:
+        return request.user.account_profiles.order_by("pk").first().website
+    except Exception:
+        return None
+
+
+class MilestoneTemplateListView(APIView):
+    """GET /special-orders/milestone-templates/   POST create"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from special_orders.models.configs import SpecialOrderMilestoneTemplate
+        from special_orders.api.serializers.config_serializers import SpecialOrderMilestoneTemplateSerializer
+        website = _website_from_request(request)
+        qs = SpecialOrderMilestoneTemplate.objects.filter(website=website).prefetch_related("items")
+        return Response(SpecialOrderMilestoneTemplateSerializer(qs, many=True).data)
+
+    def post(self, request):
+        from special_orders.models.configs import SpecialOrderMilestoneTemplate
+        from special_orders.api.serializers.config_serializers import SpecialOrderMilestoneTemplateSerializer
+        website = _website_from_request(request)
+        t = SpecialOrderMilestoneTemplate.objects.create(
+            website=website,
+            name=request.data.get("name", ""),
+            description=request.data.get("description", ""),
+            is_active=request.data.get("is_active", True),
+        )
+        return Response(SpecialOrderMilestoneTemplateSerializer(t).data, status=status.HTTP_201_CREATED)
+
+
+class MilestoneTemplateDetailView(APIView):
+    """PATCH/DELETE /special-orders/milestone-templates/<pk>/"""
+    permission_classes = [IsAuthenticated]
+
+    def _get(self, pk):
+        from special_orders.models.configs import SpecialOrderMilestoneTemplate
+        try:
+            return SpecialOrderMilestoneTemplate.objects.prefetch_related("items").get(pk=pk)
+        except SpecialOrderMilestoneTemplate.DoesNotExist:
+            return None
+
+    def patch(self, request, pk):
+        from special_orders.api.serializers.config_serializers import SpecialOrderMilestoneTemplateSerializer
+        t = self._get(pk)
+        if not t:
+            return Response({"detail": "Not found."}, status=404)
+        for field in ("name", "description", "is_active"):
+            if field in request.data:
+                setattr(t, field, request.data[field])
+        t.save()
+        return Response(SpecialOrderMilestoneTemplateSerializer(t).data)
+
+    def delete(self, request, pk):
+        t = self._get(pk)
+        if not t:
+            return Response({"detail": "Not found."}, status=404)
+        t.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MilestoneTemplateItemView(APIView):
+    """
+    POST  /special-orders/milestone-templates/<pk>/items/  add item
+    PATCH /special-orders/milestone-template-items/<item_pk>/
+    DELETE /special-orders/milestone-template-items/<item_pk>/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        from special_orders.models.configs import SpecialOrderMilestoneTemplate, SpecialOrderMilestoneTemplateItem
+        from special_orders.api.serializers.config_serializers import SpecialOrderMilestoneTemplateSerializer
+        try:
+            t = SpecialOrderMilestoneTemplate.objects.prefetch_related("items").get(pk=pk)
+        except SpecialOrderMilestoneTemplate.DoesNotExist:
+            return Response({"detail": "Template not found."}, status=404)
+        item = SpecialOrderMilestoneTemplateItem.objects.create(
+            template=t,
+            sequence=request.data.get("sequence", t.items.count() + 1),
+            label=request.data.get("label", ""),
+            percentage=request.data.get("percentage", "0.00"),
+            required_before_staffing=request.data.get("required_before_staffing", False),
+            required_before_delivery=request.data.get("required_before_delivery", False),
+        )
+        t.refresh_from_db()
+        return Response(SpecialOrderMilestoneTemplateSerializer(t).data, status=status.HTTP_201_CREATED)
+
+
+class MilestoneTemplateItemDetailView(APIView):
+    """PATCH/DELETE /special-orders/milestone-template-items/<pk>/"""
+    permission_classes = [IsAuthenticated]
+
+    def _get(self, pk):
+        from special_orders.models.configs import SpecialOrderMilestoneTemplateItem
+        try:
+            return SpecialOrderMilestoneTemplateItem.objects.select_related("template").get(pk=pk)
+        except SpecialOrderMilestoneTemplateItem.DoesNotExist:
+            return None
+
+    def patch(self, request, pk):
+        from special_orders.api.serializers.config_serializers import SpecialOrderMilestoneTemplateItemSerializer
+        item = self._get(pk)
+        if not item:
+            return Response({"detail": "Not found."}, status=404)
+        for field in ("sequence", "label", "percentage", "required_before_staffing", "required_before_delivery"):
+            if field in request.data:
+                setattr(item, field, request.data[field])
+        item.save()
+        return Response(SpecialOrderMilestoneTemplateItemSerializer(item).data)
+
+    def delete(self, request, pk):
+        item = self._get(pk)
+        if not item:
+            return Response({"detail": "Not found."}, status=404)
+        item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ── Pricing rules CRUD (all scoped to a PredefinedSpecialOrderConfig) ─────────
+
+class _RuleBaseView(APIView):
+    """Base for list+create on per-preset pricing rules."""
+    permission_classes = [IsAuthenticated]
+    model = None
+    serializer_class = None
+
+    def _config(self, config_pk):
+        try:
+            return PredefinedSpecialOrderConfig.objects.get(pk=config_pk)
+        except PredefinedSpecialOrderConfig.DoesNotExist:
+            return None
+
+    def get(self, request, config_pk):
+        config = self._config(config_pk)
+        if not config:
+            return Response({"detail": "Config not found."}, status=404)
+        from special_orders.api.serializers import config_serializers as cs
+        qs = self.model.objects.filter(predefined_order=config)
+        return Response(self.serializer_class(qs, many=True).data)
+
+    def post(self, request, config_pk):
+        config = self._config(config_pk)
+        if not config:
+            return Response({"detail": "Config not found."}, status=404)
+        s = self.serializer_class(data=request.data)
+        s.is_valid(raise_exception=True)
+        obj = s.save(website=config.website, predefined_order=config)
+        return Response(self.serializer_class(obj).data, status=status.HTTP_201_CREATED)
+
+
+class _RuleDetailBaseView(APIView):
+    """Base for patch+delete on a single pricing rule."""
+    permission_classes = [IsAuthenticated]
+    model = None
+    serializer_class = None
+
+    def _get(self, pk):
+        try:
+            return self.model.objects.get(pk=pk)
+        except self.model.DoesNotExist:
+            return None
+
+    def patch(self, request, pk):
+        obj = self._get(pk)
+        if not obj:
+            return Response({"detail": "Not found."}, status=404)
+        s = self.serializer_class(obj, data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        s.save()
+        return Response(s.data)
+
+    def delete(self, request, pk):
+        obj = self._get(pk)
+        if not obj:
+            return Response({"detail": "Not found."}, status=404)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _make_rule_views(model_name, serial_name):
+    """Factory — builds list+create and detail views for a pricing rule model."""
+    from special_orders.models import configs as cfg_module
+    from special_orders.api.serializers import config_serializers as cs_module
+
+    class ListView(_RuleBaseView):
+        model = getattr(cfg_module, model_name)
+        serializer_class = getattr(cs_module, serial_name)
+
+    class DetailView(_RuleDetailBaseView):
+        model = getattr(cfg_module, model_name)
+        serializer_class = getattr(cs_module, serial_name)
+
+    return ListView, DetailView
+
+
+RushRuleListView, RushRuleDetailView = _make_rule_views(
+    "SpecialOrderRushSurchargeRule", "RushSurchargeRuleSerializer"
+)
+WriterLevelRuleListView, WriterLevelRuleDetailView = _make_rule_views(
+    "SpecialOrderWriterLevelSurchargeRule", "WriterLevelSurchargeRuleSerializer"
+)
+ClientTierRuleListView, ClientTierRuleDetailView = _make_rule_views(
+    "SpecialOrderClientTierDiscountRule", "ClientTierDiscountRuleSerializer"
+)
+DifficultyRuleListView, DifficultyRuleDetailView = _make_rule_views(
+    "SpecialOrderPlatformDifficultyRule", "DifficultyRuleSerializer"
+)

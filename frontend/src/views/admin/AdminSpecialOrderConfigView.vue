@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { Plus, RefreshCw, Save, Sparkles } from "@lucide/vue";
-import { specialOrdersApi } from "@/api/specialOrders";
+import { Plus, RefreshCw, Save, Sparkles, Trash2 } from "@lucide/vue";
+import { specialOrdersApi, type MilestoneTemplate, type RushRule, type WriterLevelRule, type ClientTierRule } from "@/api/specialOrders";
 import { useAuthStore } from "@/stores/auth";
 import { usePortalContextStore } from "@/stores/portalContext";
 import { useWebsitesStore } from "@/stores/websites";
@@ -231,12 +231,107 @@ async function saveService() {
 async function switchWebsite() {
   resetServiceDraft();
   await load();
+  await loadTemplates();
+  if (selectedId.value) await loadRules(selectedId.value);
+}
+
+// ── Milestone templates ───────────────────────────────────────────────────────
+const templates = ref<MilestoneTemplate[]>([]);
+const templateDraft = reactive({ name: "", description: "", is_active: true });
+const itemDraft = reactive({ sequence: 1, label: "", percentage: "25.00", required_before_staffing: false, required_before_delivery: false });
+const expandedTemplateId = ref<number | null>(null);
+
+async function loadTemplates() {
+  try {
+    const { data } = await specialOrdersApi.milestoneTemplates(websiteParams.value);
+    templates.value = data;
+  } catch { /* non-fatal */ }
+}
+
+async function saveTemplate() {
+  if (!templateDraft.name.trim()) return;
+  try {
+    await specialOrdersApi.createMilestoneTemplate({ ...templateDraft });
+    Object.assign(templateDraft, { name: "", description: "", is_active: true });
+    await loadTemplates();
+    notice.value = "Milestone template created.";
+  } catch { error.value = "Failed to create template."; }
+}
+
+async function deleteTemplate(id: number) {
+  try {
+    await specialOrdersApi.deleteMilestoneTemplate(id);
+    await loadTemplates();
+  } catch { error.value = "Failed to delete template."; }
+}
+
+async function addItem(templateId: number) {
+  if (!itemDraft.label.trim()) return;
+  try {
+    await specialOrdersApi.addMilestoneTemplateItem(templateId, { ...itemDraft });
+    Object.assign(itemDraft, { sequence: itemDraft.sequence + 1, label: "", percentage: "25.00", required_before_staffing: false, required_before_delivery: false });
+    await loadTemplates();
+  } catch { error.value = "Failed to add item."; }
+}
+
+async function deleteItem(itemId: number) {
+  try {
+    await specialOrdersApi.deleteMilestoneTemplateItem(itemId);
+    await loadTemplates();
+  } catch { error.value = "Failed to delete item."; }
+}
+
+// ── Pricing rules ─────────────────────────────────────────────────────────────
+const rushRules        = ref<RushRule[]>([]);
+const writerLevelRules = ref<WriterLevelRule[]>([]);
+const clientTierRules  = ref<ClientTierRule[]>([]);
+const rushDraft        = reactive({ max_duration_days: 3, surcharge_percentage: "20.00", is_active: true });
+const levelDraft       = reactive({ writer_level: "expert", surcharge_percentage: "15.00", is_active: true });
+const tierDraft        = reactive({ client_tier: "gold", discount_percentage: "5.00", is_active: true });
+
+async function loadRules(configId: number) {
+  try {
+    const [r, l, t] = await Promise.allSettled([
+      specialOrdersApi.rushRules(configId),
+      specialOrdersApi.writerLevelRules(configId),
+      specialOrdersApi.clientTierRules(configId),
+    ]);
+    if (r.status === "fulfilled") rushRules.value = r.value.data;
+    if (l.status === "fulfilled") writerLevelRules.value = l.value.data;
+    if (t.status === "fulfilled") clientTierRules.value = t.value.data;
+  } catch { /* non-fatal */ }
+}
+
+async function addRushRule(configId: number) {
+  try { await specialOrdersApi.createRushRule(configId, { ...rushDraft }); await loadRules(configId); } catch { error.value = "Failed to add rush rule."; }
+}
+async function addLevelRule(configId: number) {
+  try { await specialOrdersApi.createWriterLevelRule(configId, { ...levelDraft }); await loadRules(configId); } catch { error.value = "Failed to add level rule."; }
+}
+async function addTierRule(configId: number) {
+  try { await specialOrdersApi.createClientTierRule(configId, { ...tierDraft }); await loadRules(configId); } catch { error.value = "Failed to add tier rule."; }
+}
+async function delRule(type: "rush" | "level" | "tier", id: number) {
+  try {
+    if (type === "rush")  await specialOrdersApi.deleteRushRule(id);
+    if (type === "level") await specialOrdersApi.deleteWriterLevelRule(id);
+    if (type === "tier")  await specialOrdersApi.deleteClientTierRule(id);
+    if (selectedId.value) await loadRules(selectedId.value);
+  } catch { error.value = "Failed to delete rule."; }
+}
+
+// override editService to also load rules
+const _origEditService = editService;
+function editServiceWithRules(cfg: PredefinedConfig) {
+  _origEditService(cfg);
+  if (cfg.id) loadRules(cfg.id);
 }
 
 onMounted(async () => {
   await websites.ensure();
   selectedWebsiteId.value = portal.website?.id ?? websites.list[0]?.id ?? null;
   await load();
+  await loadTemplates();
 });
 </script>
 
@@ -323,6 +418,136 @@ onMounted(async () => {
         </div>
       </section>
 
+      <!-- ── Pricing Rules (per preset) ─────────────────────────────────── -->
+      <section v-if="selectedId" class="rounded-lg border border-slate-200 bg-white p-5 space-y-4">
+        <h2 class="text-sm font-semibold text-ink">Pricing Rules — <span class="font-normal text-graphite">{{ predefined.find(p => p.id === selectedId)?.name }}</span></h2>
+
+        <!-- Rush surcharges -->
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-2">Rush surcharges</p>
+          <div class="space-y-1 mb-2">
+            <div v-for="r in rushRules" :key="r.id" class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+              <span class="text-ink font-medium">≤ {{ r.max_duration_days }}d</span>
+              <span class="text-graphite">+{{ r.surcharge_percentage }}%</span>
+              <button class="ml-auto text-rose-400 hover:text-rose-600" @click="delRule('rush', r.id!)"><Trash2 class="size-3.5" /></button>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <input v-model.number="rushDraft.max_duration_days" type="number" min="1" placeholder="Max days" class="w-24 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
+            <input v-model="rushDraft.surcharge_percentage" placeholder="Surcharge %" class="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
+            <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" @click="addRushRule(selectedId!)"><Plus class="size-3.5" /></button>
+          </div>
+        </div>
+
+        <!-- Writer level surcharges -->
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-2">Writer level surcharges</p>
+          <div class="space-y-1 mb-2">
+            <div v-for="r in writerLevelRules" :key="r.id" class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+              <span class="capitalize text-ink font-medium">{{ r.writer_level }}</span>
+              <span class="text-graphite">+{{ r.surcharge_percentage }}%</span>
+              <button class="ml-auto text-rose-400 hover:text-rose-600" @click="delRule('level', r.id!)"><Trash2 class="size-3.5" /></button>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <input v-model="levelDraft.writer_level" placeholder="Level" class="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
+            <input v-model="levelDraft.surcharge_percentage" placeholder="Surcharge %" class="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
+            <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" @click="addLevelRule(selectedId!)"><Plus class="size-3.5" /></button>
+          </div>
+        </div>
+
+        <!-- Client tier discounts -->
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-2">Client tier discounts</p>
+          <div class="space-y-1 mb-2">
+            <div v-for="r in clientTierRules" :key="r.id" class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+              <span class="capitalize text-ink font-medium">{{ r.client_tier }}</span>
+              <span class="text-graphite">−{{ r.discount_percentage }}%</span>
+              <button class="ml-auto text-rose-400 hover:text-rose-600" @click="delRule('tier', r.id!)"><Trash2 class="size-3.5" /></button>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <input v-model="tierDraft.client_tier" placeholder="Tier" class="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
+            <input v-model="tierDraft.discount_percentage" placeholder="Discount %" class="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
+            <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" @click="addTierRule(selectedId!)"><Plus class="size-3.5" /></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Milestone Templates ─────────────────────────────────────────── -->
+      <section class="rounded-lg border border-slate-200 bg-white p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-ink">Milestone Payment Templates</h2>
+          <span class="text-xs text-graphite">{{ templates.length }} template{{ templates.length !== 1 ? 's' : '' }}</span>
+        </div>
+
+        <!-- Create new template -->
+        <div class="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+          <input v-model="templateDraft.name" placeholder="Template name" class="rounded-lg border border-slate-200 px-3 py-2 text-sm focus-ring" />
+          <input v-model="templateDraft.description" placeholder="Description (optional)" class="rounded-lg border border-slate-200 px-3 py-2 text-sm focus-ring" />
+          <button class="inline-flex items-center gap-2 rounded-lg bg-berry px-4 py-2 text-sm font-semibold text-white hover:bg-berry/90" @click="saveTemplate">
+            <Plus class="size-4" /> Create
+          </button>
+        </div>
+
+        <!-- Template list -->
+        <div class="space-y-3">
+          <div v-if="!templates.length" class="py-6 text-center text-sm text-graphite">No templates yet.</div>
+
+          <div
+            v-for="t in templates"
+            :key="t.id"
+            class="rounded-lg border border-slate-200 overflow-hidden"
+          >
+            <!-- Template header -->
+            <div
+              class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50"
+              @click="expandedTemplateId = expandedTemplateId === t.id ? null : t.id"
+            >
+              <div>
+                <p class="text-sm font-semibold text-ink">{{ t.name }}</p>
+                <p class="text-xs text-graphite">
+                  {{ t.items.length }} item{{ t.items.length !== 1 ? 's' : '' }} ·
+                  Total: {{ t.items.reduce((s, i) => s + Number(i.percentage), 0).toFixed(1) }}%
+                  <span :class="t.items.reduce((s, i) => s + Number(i.percentage), 0) === 100 ? 'text-signal-600' : 'text-rose-500'">
+                    {{ t.items.reduce((s, i) => s + Number(i.percentage), 0) === 100 ? '✓' : '≠ 100%' }}
+                  </span>
+                </p>
+              </div>
+              <button class="text-rose-400 hover:text-rose-600 ml-2" @click.stop="deleteTemplate(t.id)"><Trash2 class="size-4" /></button>
+            </div>
+
+            <!-- Expanded items -->
+            <div v-if="expandedTemplateId === t.id" class="border-t border-slate-100 px-4 py-3 space-y-2 bg-slate-50">
+              <div
+                v-for="item in t.items"
+                :key="item.id"
+                class="flex items-center gap-3 text-sm"
+              >
+                <span class="w-7 text-xs font-bold text-graphite">{{ item.sequence }}.</span>
+                <span class="flex-1 text-ink">{{ item.label }}</span>
+                <span class="font-semibold text-berry w-14 text-right">{{ item.percentage }}%</span>
+                <span v-if="item.required_before_staffing" class="text-xs text-amber-600">staffing</span>
+                <span v-if="item.required_before_delivery" class="text-xs text-signal-600">delivery</span>
+                <button class="text-rose-300 hover:text-rose-500" @click="deleteItem(item.id!)"><Trash2 class="size-3.5" /></button>
+              </div>
+
+              <!-- Add item form -->
+              <div class="grid gap-2 pt-2 sm:grid-cols-[3rem_1fr_6rem_auto]">
+                <input v-model.number="itemDraft.sequence" type="number" min="1" placeholder="#" class="rounded border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
+                <input v-model="itemDraft.label" placeholder="Label (e.g. Deposit)" class="rounded border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
+                <input v-model="itemDraft.percentage" placeholder="%" class="rounded border border-slate-200 px-2 py-1.5 text-sm focus-ring" />
+                <button class="rounded border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" @click="addItem(t.id)"><Plus class="size-3.5" /></button>
+              </div>
+              <div class="flex gap-4 text-xs text-graphite">
+                <label class="flex items-center gap-1.5"><input v-model="itemDraft.required_before_staffing" type="checkbox" class="rounded accent-berry" /> Required before staffing</label>
+                <label class="flex items-center gap-1.5"><input v-model="itemDraft.required_before_delivery" type="checkbox" class="rounded accent-berry" /> Required before delivery</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div class="grid gap-5 lg:grid-cols-[22rem_1fr]">
         <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
@@ -342,7 +567,7 @@ onMounted(async () => {
             :key="cfg.id"
             class="block w-full border-b border-slate-50 px-4 py-3 text-left hover:bg-slate-50"
             :class="{ 'bg-berry/5': selectedId === cfg.id }"
-            @click="editService(cfg)"
+            @click="editServiceWithRules(cfg)"
           >
             <p class="font-medium text-ink">{{ cfg.name }}</p>
             <p class="mt-0.5 text-xs text-graphite">{{ cfg.durations.length }} duration prices · {{ cfg.requires_full_payment ? "full payment" : "flexible" }}</p>

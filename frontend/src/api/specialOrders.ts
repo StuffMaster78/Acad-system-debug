@@ -15,6 +15,29 @@ import type {
   DeliverMilestonePayload,
 } from "@/types/specialOrders";
 
+// ── Config management types ───────────────────────────────────────────────────
+export interface MilestoneTemplateItem {
+  id?: number;
+  sequence: number;
+  label: string;
+  percentage: string;
+  required_before_staffing: boolean;
+  required_before_delivery: boolean;
+}
+
+export interface MilestoneTemplate {
+  id: number;
+  name: string;
+  description: string;
+  is_active: boolean;
+  items: MilestoneTemplateItem[];
+}
+
+export interface RushRule      { id?: number; max_duration_days: number; surcharge_percentage: string; is_active: boolean }
+export interface WriterLevelRule { id?: number; writer_level: string; surcharge_percentage: string; is_active: boolean }
+export interface ClientTierRule  { id?: number; client_tier: string; discount_percentage: string; is_active: boolean }
+export interface DifficultyRule  { id?: number; platform: string; difficulty_level: string; multiplier: string; is_active: boolean }
+
 export const specialOrdersApi = {
   list: (params?: Record<string, unknown>) =>
     api.get<SpecialOrder[] | { count: number; next: string | null; previous: string | null; results: SpecialOrder[] }>(
@@ -101,4 +124,42 @@ export const specialOrdersApi = {
         { notes },
       ),
   },
+
+  // ── Milestone templates ─────────────────────────────────────────────────
+  milestoneTemplates: (params?: Record<string, unknown>) =>
+    api.get<MilestoneTemplate[]>(apiPath("/special-orders/milestone-templates/"), { params }),
+
+  createMilestoneTemplate: (payload: Partial<MilestoneTemplate>) =>
+    api.post<MilestoneTemplate>(apiPath("/special-orders/milestone-templates/"), payload),
+
+  updateMilestoneTemplate: (id: number, payload: Partial<MilestoneTemplate>) =>
+    api.patch<MilestoneTemplate>(apiPath(`/special-orders/milestone-templates/${id}/`), payload),
+
+  deleteMilestoneTemplate: (id: number) =>
+    api.delete(apiPath(`/special-orders/milestone-templates/${id}/`)),
+
+  addMilestoneTemplateItem: (templateId: number, item: Partial<MilestoneTemplateItem>) =>
+    api.post<MilestoneTemplate>(apiPath(`/special-orders/milestone-templates/${templateId}/items/`), item),
+
+  updateMilestoneTemplateItem: (itemId: number, payload: Partial<MilestoneTemplateItem>) =>
+    api.patch<MilestoneTemplateItem>(apiPath(`/special-orders/milestone-template-items/${itemId}/`), payload),
+
+  deleteMilestoneTemplateItem: (itemId: number) =>
+    api.delete(apiPath(`/special-orders/milestone-template-items/${itemId}/`)),
+
+  // ── Pricing rules ───────────────────────────────────────────────────────
+  rushRules:        (configId: number) => api.get<RushRule[]>(apiPath(`/special-orders/predefined-configs/${configId}/rules/rush/`)),
+  writerLevelRules: (configId: number) => api.get<WriterLevelRule[]>(apiPath(`/special-orders/predefined-configs/${configId}/rules/writer-level/`)),
+  clientTierRules:  (configId: number) => api.get<ClientTierRule[]>(apiPath(`/special-orders/predefined-configs/${configId}/rules/client-tier/`)),
+  difficultyRules:  (configId: number) => api.get<DifficultyRule[]>(apiPath(`/special-orders/predefined-configs/${configId}/rules/difficulty/`)),
+
+  createRushRule:        (configId: number, r: Omit<RushRule, "id">) => api.post<RushRule>(apiPath(`/special-orders/predefined-configs/${configId}/rules/rush/`), r),
+  createWriterLevelRule: (configId: number, r: Omit<WriterLevelRule, "id">) => api.post<WriterLevelRule>(apiPath(`/special-orders/predefined-configs/${configId}/rules/writer-level/`), r),
+  createClientTierRule:  (configId: number, r: Omit<ClientTierRule, "id">) => api.post<ClientTierRule>(apiPath(`/special-orders/predefined-configs/${configId}/rules/client-tier/`), r),
+  createDifficultyRule:  (configId: number, r: Omit<DifficultyRule, "id">) => api.post<DifficultyRule>(apiPath(`/special-orders/predefined-configs/${configId}/rules/difficulty/`), r),
+
+  deleteRushRule:        (id: number) => api.delete(apiPath(`/special-orders/rules/rush/${id}/`)),
+  deleteWriterLevelRule: (id: number) => api.delete(apiPath(`/special-orders/rules/writer-level/${id}/`)),
+  deleteClientTierRule:  (id: number) => api.delete(apiPath(`/special-orders/rules/client-tier/${id}/`)),
+  deleteDifficultyRule:  (id: number) => api.delete(apiPath(`/special-orders/rules/difficulty/${id}/`)),
 };

@@ -23,6 +23,16 @@ from special_orders.api.views.special_order_views import (
     SpecialOrderQuoteConfigView,
     SpecialOrderDetailView,
     SpecialOrderListView,
+    # Milestone templates
+    MilestoneTemplateListView,
+    MilestoneTemplateDetailView,
+    MilestoneTemplateItemView,
+    MilestoneTemplateItemDetailView,
+    # Pricing rules
+    RushRuleListView, RushRuleDetailView,
+    WriterLevelRuleListView, WriterLevelRuleDetailView,
+    ClientTierRuleListView, ClientTierRuleDetailView,
+    DifficultyRuleListView, DifficultyRuleDetailView,
 )
 from special_orders.api.views.payment_intent_views import (
     CreatePaymentIntentView,
@@ -326,4 +336,20 @@ urlpatterns = [
         SpecialOrderQuoteConfigView.as_view(),
         name="special-order-quote-config",
     ),
+
+    # ── Milestone templates ────────────────────────────────────────────────
+    path("milestone-templates/",               MilestoneTemplateListView.as_view(),       name="milestone-template-list"),
+    path("milestone-templates/<int:pk>/",      MilestoneTemplateDetailView.as_view(),     name="milestone-template-detail"),
+    path("milestone-templates/<int:pk>/items/",MilestoneTemplateItemView.as_view(),       name="milestone-template-item-add"),
+    path("milestone-template-items/<int:pk>/", MilestoneTemplateItemDetailView.as_view(), name="milestone-template-item-detail"),
+
+    # ── Pricing rules (per preset) ─────────────────────────────────────────
+    path("predefined-configs/<int:config_pk>/rules/rush/",         RushRuleListView.as_view(),         name="rush-rule-list"),
+    path("predefined-configs/<int:config_pk>/rules/writer-level/", WriterLevelRuleListView.as_view(),  name="writer-level-rule-list"),
+    path("predefined-configs/<int:config_pk>/rules/client-tier/",  ClientTierRuleListView.as_view(),   name="client-tier-rule-list"),
+    path("predefined-configs/<int:config_pk>/rules/difficulty/",   DifficultyRuleListView.as_view(),   name="difficulty-rule-list"),
+    path("rules/rush/<int:pk>/",          RushRuleDetailView.as_view(),         name="rush-rule-detail"),
+    path("rules/writer-level/<int:pk>/",  WriterLevelRuleDetailView.as_view(),  name="writer-level-rule-detail"),
+    path("rules/client-tier/<int:pk>/",   ClientTierRuleDetailView.as_view(),   name="client-tier-rule-detail"),
+    path("rules/difficulty/<int:pk>/",    DifficultyRuleDetailView.as_view(),   name="difficulty-rule-detail"),
 ]

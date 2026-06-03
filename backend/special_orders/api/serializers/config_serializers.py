@@ -9,6 +9,12 @@ from special_orders.models import (
     SpecialOrderMilestoneTemplate,
     SpecialOrderMilestoneTemplateItem,
 )
+from special_orders.models.configs import (
+    SpecialOrderRushSurchargeRule,
+    SpecialOrderWriterLevelSurchargeRule,
+    SpecialOrderClientTierDiscountRule,
+    SpecialOrderPlatformDifficultyRule,
+)
 
 
 class PredefinedSpecialOrderDurationSerializer(serializers.ModelSerializer):
@@ -109,3 +115,33 @@ class SpecialOrderMilestoneTemplateSerializer(serializers.ModelSerializer):
             "is_active",
             "items",
         ]
+
+
+# ── Pricing rule serializers ──────────────────────────────────────────────────
+
+class RushSurchargeRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SpecialOrderRushSurchargeRule
+        fields = ["id", "max_duration_days", "surcharge_percentage", "is_active"]
+        read_only_fields = ["id"]
+
+
+class WriterLevelSurchargeRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SpecialOrderWriterLevelSurchargeRule
+        fields = ["id", "writer_level", "surcharge_percentage", "is_active"]
+        read_only_fields = ["id"]
+
+
+class ClientTierDiscountRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SpecialOrderClientTierDiscountRule
+        fields = ["id", "client_tier", "discount_percentage", "is_active"]
+        read_only_fields = ["id"]
+
+
+class DifficultyRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SpecialOrderPlatformDifficultyRule
+        fields = ["id", "platform", "difficulty_level", "multiplier", "is_active"]
+        read_only_fields = ["id"]
