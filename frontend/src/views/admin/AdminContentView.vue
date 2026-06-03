@@ -528,6 +528,197 @@
       </div>
     </template>
 
+    <!-- ── Citation Density ──────────────────────────────────────────────────── -->
+    <template v-else-if="tab === 'citations'">
+      <div class="space-y-5">
+
+        <!-- Header + refresh -->
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p class="text-sm text-graphite max-w-2xl">
+              Blog posts that reference academic sources rank better in AI answer engines (Perplexity, ChatGPT).
+              Posts with <strong class="text-ink">citation_mode ≠ "none"</strong> but zero citations are the priority.
+            </p>
+          </div>
+          <button
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-graphite hover:bg-slate-50"
+            @click="loadCitationDensity"
+          >
+            <RefreshCw class="size-4" :class="citationLoading ? 'animate-spin' : ''" />
+            Refresh
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="citationLoading && !citationData" class="flex justify-center py-12">
+          <Loader2 class="size-7 text-slate-300 animate-spin" />
+        </div>
+
+        <template v-else-if="citationData">
+          <!-- Summary cards -->
+          <div class="grid gap-3 sm:grid-cols-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-4 text-center">
+              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Total posts</p>
+              <p class="mt-1 text-2xl font-bold text-ink">{{ citationData.summary.total_posts }}</p>
+            </div>
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">With citations</p>
+              <p class="mt-1 text-2xl font-bold text-emerald-700">{{ citationData.summary.posts_with_citations }}</p>
+            </div>
+            <div
+              class="rounded-xl border p-4 text-center"
+              :class="citationData.summary.posts_needing_citations > 0
+                ? 'border-amber-200 bg-amber-50'
+                : 'border-slate-200 bg-white'"
+            >
+              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Need citations</p>
+              <p
+                class="mt-1 text-2xl font-bold"
+                :class="citationData.summary.posts_needing_citations > 0 ? 'text-amber-700' : 'text-slate-400'"
+              >
+                {{ citationData.summary.posts_needing_citations }}
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-4 text-center">
+              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Coverage</p>
+              <p
+                class="mt-1 text-2xl font-bold"
+                :class="citationData.summary.coverage_pct >= 80 ? 'text-emerald-600' : citationData.summary.coverage_pct >= 50 ? 'text-amber-600' : 'text-rose-600'"
+              >
+                {{ citationData.summary.coverage_pct }}%
+              </p>
+            </div>
+          </div>
+
+          <!-- Coverage bar -->
+          <div class="rounded-xl border border-slate-200 bg-white px-5 py-4">
+            <div class="flex items-center justify-between mb-2 text-xs text-graphite">
+              <span>Citation coverage</span>
+              <span class="font-semibold">{{ citationData.summary.posts_with_citations }} / {{ citationData.summary.total_posts }} posts</span>
+            </div>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                class="h-full rounded-full transition-all"
+                :class="citationData.summary.coverage_pct >= 80 ? 'bg-emerald-500' : citationData.summary.coverage_pct >= 50 ? 'bg-amber-500' : 'bg-rose-500'"
+                :style="{ width: `${citationData.summary.coverage_pct}%` }"
+              />
+            </div>
+            <p class="mt-2 text-xs text-graphite">
+              Target: <strong class="text-ink">80%+</strong> coverage for strong GEO signals.
+              <span v-if="citationData.summary.coverage_pct < 80" class="text-amber-700 ml-1">
+                {{ citationData.summary.posts_needing_citations }} posts need attention.
+              </span>
+            </p>
+          </div>
+
+          <!-- Filter chips -->
+          <div class="flex gap-2">
+            <button
+              v-for="f in [{ key: 'all', label: 'All posts' }, { key: 'needs', label: '⚠ Need citations' }, { key: 'has', label: '✓ Have citations' }]"
+              :key="f.key"
+              class="px-3 py-1.5 text-xs font-medium rounded-full border transition-colors"
+              :class="citationFilter === f.key
+                ? 'bg-ink text-white border-ink'
+                : 'bg-white text-graphite border-slate-200 hover:border-slate-400'"
+              @click="citationFilter = f.key as typeof citationFilter"
+            >
+              {{ f.label }}
+              <span class="ml-1 opacity-60">
+                ({{
+                  f.key === 'all'   ? citationData.posts.length :
+                  f.key === 'needs' ? citationData.posts.filter(p => p.needs_citations).length :
+                  citationData.posts.filter(p => p.citation_count > 0).length
+                }})
+              </span>
+            </button>
+          </div>
+
+          <!-- Posts table -->
+          <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <div v-if="!filteredPosts.length" class="flex flex-col items-center py-12 text-graphite">
+              <BookOpen class="size-10 mb-3 text-slate-300" />
+              <p class="text-sm">No posts match this filter.</p>
+            </div>
+            <table v-else class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-xs text-graphite uppercase tracking-wide border-b border-slate-100">
+                <tr>
+                  <th class="px-4 py-3 text-left font-medium">Post title</th>
+                  <th class="px-4 py-3 text-left font-medium">Citation mode</th>
+                  <th class="px-4 py-3 text-center font-medium">Citations</th>
+                  <th class="px-4 py-3 text-left font-medium">Status</th>
+                  <th class="px-4 py-3 text-right font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                <tr
+                  v-for="post in filteredPosts"
+                  :key="post.id"
+                  class="hover:bg-slate-50 transition-colors"
+                  :class="post.needs_citations ? 'bg-amber-50/30' : ''"
+                >
+                  <td class="px-4 py-3">
+                    <p class="font-medium text-ink truncate max-w-[280px]">{{ post.title }}</p>
+                    <p class="text-xs text-graphite mt-0.5">{{ post.slug }}</p>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span
+                      class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                      :class="post.citation_mode === 'none'
+                        ? 'bg-slate-100 text-graphite'
+                        : 'bg-blue-50 text-blue-700'"
+                    >
+                      {{ post.citation_mode === 'none' ? 'No citations' : post.citation_mode.replace(/_/g, ' ') }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span
+                      class="inline-flex items-center justify-center size-7 rounded-full text-xs font-bold"
+                      :class="post.citation_count === 0
+                        ? post.needs_citations ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-graphite'
+                        : 'bg-emerald-100 text-emerald-800'"
+                    >
+                      {{ post.citation_count }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-1.5 text-xs">
+                      <AlertTriangle v-if="post.needs_citations" class="size-3.5 text-amber-500 shrink-0" />
+                      <CheckCircle2 v-else-if="post.citation_count > 0" class="size-3.5 text-emerald-500 shrink-0" />
+                      <span :class="post.needs_citations ? 'text-amber-700' : post.citation_count > 0 ? 'text-emerald-700' : 'text-graphite'">
+                        {{ post.needs_citations ? 'Needs citations' : post.citation_count > 0 ? 'Good' : 'Mode: none' }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <a
+                      :href="post.wagtail_edit_url"
+                      target="_blank"
+                      rel="noopener"
+                      class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-signal hover:text-signal transition-colors"
+                    >
+                      Add citations
+                      <ExternalLink class="size-3" />
+                    </a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- How-to callout -->
+          <div class="rounded-xl border border-blue-100 bg-blue-50 px-5 py-4">
+            <p class="text-sm font-semibold text-blue-900">How to improve citation coverage</p>
+            <ol class="mt-2 space-y-1 text-xs text-blue-800 list-decimal list-inside">
+              <li>Click <strong>Add citations</strong> to open the post in Wagtail.</li>
+              <li>Set <strong>Citation mode</strong> to APA 7, MLA 9, or Chicago.</li>
+              <li>Add references via the <strong>References library</strong> — DOI or URL lookup auto-fills metadata.</li>
+              <li>Re-publish the post. Citations appear at the bottom and generate JSON-LD.</li>
+            </ol>
+          </div>
+        </template>
+      </div>
+    </template>
+
     <!-- ── Blog & Authors ────────────────────────────────────────────────────── -->
     <template v-else-if="tab === 'blog'">
       <div class="space-y-5">
@@ -580,8 +771,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
-import { ExternalLink, FileText, Loader2, Pencil, Trash2, X } from "@lucide/vue";
+import { computed, onMounted, ref, watch } from "vue";
+import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, FileText, Loader2, Pencil, RefreshCw, Trash2, X } from "@lucide/vue";
+import { api, apiPath } from "@/api/client";
 import RichTextEditor from "@/components/ui/RichTextEditor.vue";
 import WebsiteSelectorBar from "@/components/ui/WebsiteSelectorBar.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -593,12 +785,13 @@ import {
 } from "@/api/legal";
 
 const TABS = [
-  { key: "legal" as const, label: "Legal documents" },
-  { key: "help" as const, label: "Help center" },
-  { key: "pages" as const, label: "Static pages" },
-  { key: "blog" as const, label: "Blog & authors" },
+  { key: "legal"     as const, label: "Legal documents" },
+  { key: "help"      as const, label: "Help center" },
+  { key: "pages"     as const, label: "Static pages" },
+  { key: "blog"      as const, label: "Blog & authors" },
+  { key: "citations" as const, label: "Citation density" },
 ];
-const tab = ref<"legal" | "help" | "pages" | "blog">("legal");
+const tab = ref<"legal" | "help" | "pages" | "blog" | "citations">("legal");
 const auth = useAuthStore();
 const isSuperAdmin = (auth.user as Record<string, unknown>)?.role === "superadmin"
   || !!(auth.user as Record<string, unknown>)?.is_superuser;
@@ -910,4 +1103,54 @@ onMounted(async () => {
     loadPages(),
   ]);
 });
+
+// ── Citation density ──────────────────────────────────────────────────────────
+
+interface CitationPost {
+  id: number;
+  title: string;
+  slug: string;
+  url_path: string;
+  citation_mode: string;
+  citation_count: number;
+  needs_citations: boolean;
+  first_published_at: string | null;
+  last_published_at: string | null;
+  wagtail_edit_url: string;
+}
+
+interface CitationDensityResponse {
+  summary: {
+    total_posts: number;
+    posts_with_citations: number;
+    posts_needing_citations: number;
+    coverage_pct: number;
+  };
+  posts: CitationPost[];
+}
+
+const citationData    = ref<CitationDensityResponse | null>(null);
+const citationLoading = ref(false);
+const citationFilter  = ref<"all" | "needs" | "has">("all");
+
+const filteredPosts = computed(() => {
+  const posts = citationData.value?.posts ?? [];
+  if (citationFilter.value === "needs") return posts.filter(p => p.needs_citations);
+  if (citationFilter.value === "has")   return posts.filter(p => p.citation_count > 0);
+  return posts;
+});
+
+async function loadCitationDensity() {
+  citationLoading.value = true;
+  try {
+    const { data } = await api.get<CitationDensityResponse>(
+      apiPath("/cms-api/references/citation-density/density/")
+    );
+    citationData.value = data;
+  } catch { /* non-fatal */ }
+  finally { citationLoading.value = false; }
+}
+
+// Load on tab switch
+watch(tab, (t) => { if (t === "citations" && !citationData.value) loadCitationDensity(); });
 </script>
