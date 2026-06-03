@@ -75,6 +75,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
   superadmin: [
     { label: "Command", to: "/superadmin", icon: ShieldCheck },
     { label: "Tenants", to: "/superadmin/tenants", icon: BriefcaseBusiness },
+    { label: "Command Center", to: "/superadmin/operations", icon: Gauge },
     { label: "Ops Intel", to: "/superadmin/ops", icon: BarChart3 },
     { label: "Activity", to: "/superadmin/activity", icon: Activity },
     { label: "Audit Log", to: "/superadmin/audit", icon: ShieldAlert },
@@ -125,6 +126,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
   ],
   admin: [
     { label: "Operations", to: "/admin", icon: Gauge },
+    { label: "Command Center", to: "/admin/operations", icon: ShieldAlert },
     { label: "Ops Intel", to: "/admin/ops", icon: BarChart3 },
     { label: "Activity", to: "/admin/activity", icon: Activity },
     { label: "Orders", to: "/admin/orders", icon: ClipboardList },
@@ -255,6 +257,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     { label: "Command", items: [
       { label: "Command", to: "/superadmin", icon: ShieldCheck },
       { label: "Tenants", to: "/superadmin/tenants", icon: BriefcaseBusiness },
+      { label: "Command Center", to: "/superadmin/operations", icon: Gauge },
       { label: "Ops Intel", to: "/superadmin/ops", icon: BarChart3 },
       { label: "Activity", to: "/superadmin/activity", icon: Activity },
       { label: "Audit Log", to: "/superadmin/audit", icon: ShieldAlert },
@@ -320,6 +323,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
   admin: [
     { label: "Operations", items: [
       { label: "Operations", to: "/admin", icon: Gauge },
+      { label: "Command Center", to: "/admin/operations", icon: ShieldAlert },
       { label: "Ops Intel", to: "/admin/ops", icon: BarChart3 },
       { label: "Activity", to: "/admin/activity", icon: Activity },
     ]},

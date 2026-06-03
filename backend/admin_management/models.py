@@ -251,3 +251,121 @@ class StaffWebsiteAssignment(models.Model):
     class Meta:
         unique_together = ("staff_member", "website")
         ordering = ["-assigned_at"]
+
+
+class OperationsCommandItemState(models.Model):
+    """
+    Staff action state for generated command-center items.
+
+    The command center is assembled from source models at request time. This
+    model stores the staff-facing overlay: acknowledged, snoozed, resolved, and
+    notes, without mutating the underlying order, ticket, content alert, etc.
+    """
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        ACKNOWLEDGED = "acknowledged", "Acknowledged"
+        SNOOZED = "snoozed", "Snoozed"
+        RESOLVED = "resolved", "Resolved"
+
+    item_id = models.CharField(max_length=180, unique=True)
+    domain = models.CharField(max_length=80)
+    entity_type = models.CharField(max_length=80)
+    entity_id = models.PositiveIntegerField(null=True, blank=True)
+    entity_label = models.CharField(max_length=255, blank=True)
+    website = models.ForeignKey(
+        "websites.Website",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="operations_command_item_states",
+    )
+    status = models.CharField(
+        max_length=30,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+        db_index=True,
+    )
+    note = models.TextField(blank=True)
+    snoozed_until = models.DateTimeField(null=True, blank=True)
+    assigned_to = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_operations_items",
+    )
+    assigned_at = models.DateTimeField(null=True, blank=True)
+    acknowledged_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="acknowledged_operations_items",
+    )
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_operations_items",
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="updated_operations_items",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"{self.item_id} — {self.status}"
+
+    class Meta:
+        ordering = ["-updated_at"]
+        indexes = [
+            models.Index(fields=["status", "snoozed_until"]),
+            models.Index(fields=["assigned_to", "status"]),
+            models.Index(fields=["website", "status"]),
+            models.Index(fields=["domain", "status"]),
+        ]
+
+
+class OperationsCommandItemEvent(models.Model):
+    """
+    Immutable activity trail for command-center item actions.
+    """
+
+    state = models.ForeignKey(
+        OperationsCommandItemState,
+        on_delete=models.CASCADE,
+        related_name="events",
+    )
+    action = models.CharField(max_length=40)
+    note = models.TextField(blank=True)
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="operations_command_events",
+    )
+    from_status = models.CharField(max_length=30, blank=True)
+    to_status = models.CharField(max_length=30, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"{self.state.item_id} — {self.action}"
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["state", "created_at"]),
+            models.Index(fields=["actor", "created_at"]),
+            models.Index(fields=["action", "created_at"]),
+        ]

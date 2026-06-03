@@ -59,6 +59,7 @@ from .views.dashboard_endpoints import (
     AdminAdvancePaymentsDashboardViewSet,
 )
 from .views.geographic_analytics import GeographicAnalyticsViewSet
+from .views.operations_command_center import OperationsCommandCenterViewSet
 
 # DRF Router for ViewSets
 router = DefaultRouter()
@@ -158,6 +159,9 @@ router.register(r'rate-limiting', RateLimitingViewSet, basename="rate_limiting")
 
 # Compression Monitoring
 router.register(r'compression', CompressionMonitoringViewSet, basename="compression_monitoring")
+
+# Business Operations Command Center
+router.register(r'operations-command-center', OperationsCommandCenterViewSet, basename="operations_command_center")
 
 urlpatterns = [
     # Authentication APIs (JWT-Based)
