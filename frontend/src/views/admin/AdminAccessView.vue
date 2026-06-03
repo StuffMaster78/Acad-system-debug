@@ -130,6 +130,17 @@ function applyRouteFilter() {
   page.value = 1;
 }
 
+// Defensive wrapper: guards against stale HMR store instances where
+// scanDuplicates may not yet exist on the cached singleton.
+async function runScan() {
+  if (typeof access.scanDuplicates === "function") {
+    await access.scanDuplicates().catch(() => undefined);
+  } else {
+    // Fallback: full lifecycle re-fetch (pre-scanDuplicates behaviour)
+    await access.hydrateLifecycle().catch(() => undefined);
+  }
+}
+
 onMounted(() => {
   applyRouteFilter();
   access.hydrate().catch(() => undefined);
@@ -447,7 +458,7 @@ watch(() => route.meta?.roleFilter, applyRouteFilter);
                 class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold disabled:opacity-50"
                 type="button"
                 :disabled="access.isDuplicatesLoading"
-                @click="access.scanDuplicates().catch(() => undefined)"
+                @click="runScan"
               >
                 <RefreshCw class="h-4 w-4" :class="access.isDuplicatesLoading ? 'animate-spin' : ''" />
                 {{ access.isDuplicatesLoading ? 'Scanning…' : 'Scan' }}

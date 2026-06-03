@@ -73,6 +73,13 @@ const showClientNav = computed(() =>
             </RouterLink>
           </template>
           <RouterLink
+            class="rounded-lg px-3.5 py-2 text-graphite transition-colors hover:bg-slate-100 hover:text-ink text-sm font-medium"
+            active-class="bg-slate-100 text-ink"
+            to="/apply"
+          >
+            Become a writer
+          </RouterLink>
+          <RouterLink
             class="ml-1 inline-flex h-9 items-center rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
             to="/auth/login"
           >

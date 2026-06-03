@@ -281,7 +281,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
       const { data } = await adminSettingsApi.screenedWords();
       screenedWords.value = normalizeList(data);
     } catch {
-      // non-fatal
+      ui.toast("Failed to load screened words.", "error");
     } finally {
       isLoadingContent.value = false;
     }
@@ -334,7 +334,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
       const { data } = await adminSettingsApi.specialDays({ ordering: "date" });
       specialDays.value = normalizeList(data);
     } catch {
-      // non-fatal
+      ui.toast("Failed to load special days.", "error");
     } finally {
       isLoadingCalendar.value = false;
     }
@@ -386,7 +386,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
       if (alerts.status === "fulfilled") systemAlerts.value = alerts.value.data.alerts ?? [];
       if (logs.status === "fulfilled") activityLogs.value = normalizeList(logs.value.data as unknown as Record<string, unknown>[] | { results: Record<string, unknown>[] });
     } catch {
-      // non-fatal
+      ui.toast("Failed to load system health data.", "error");
     } finally {
       isLoadingSystem.value = false;
     }
@@ -573,7 +573,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
       const { data } = await adminSettingsApi.pricingConfigs();
       pricingConfigs.value = normalizeList(data) as Record<string, unknown>[];
     } catch {
-      // non-fatal
+      ui.toast("Failed to load pricing config.", "error");
     } finally {
       isLoadingPricing.value = false;
     }

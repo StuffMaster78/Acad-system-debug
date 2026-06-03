@@ -988,6 +988,11 @@ export const router = createRouter({
           name: "legal-document",
           component: () => import("@/views/public/LegalView.vue"),
         },
+        {
+          path: "apply",
+          name: "writer-apply",
+          component: () => import("@/views/public/WriterApplyView.vue"),
+        },
       ],
     },
     {
