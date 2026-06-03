@@ -619,3 +619,55 @@ class RevenueByWebsiteView(APIView):
                 "summary": {},
             }
         )
+
+
+class ClientOrderSummaryView(APIView):
+    """
+    GET /api/v1/analytics/charts/client-summary/
+
+    Returns lifetime order summary and the 5 most recent paid orders
+    for the authenticated client.  Intended for the client spending
+    dashboard to show totals and a recent-orders row alongside charts.
+    """
+
+    permission_classes = [IsClientOrStaff]
+
+    def get(self, request):
+        from orders.models.orders import Order
+
+        qs = Order.objects.filter(
+            client=request.user,
+            payment_status="paid",
+        ).order_by("-created_at")
+
+        agg = qs.aggregate(
+            total_spend=Sum("total_price", output_field=DecimalField()),
+            total_orders=Count("id"),
+        )
+        total_spend = float(agg["total_spend"] or 0)
+        total_orders = agg["total_orders"] or 0
+        avg_order = round(total_spend / total_orders, 2) if total_orders else 0.0
+
+        recent = qs[:5].values(
+            "id", "topic", "total_price", "currency", "status", "created_at",
+        )
+        recent_list = [
+            {
+                "id": r["id"],
+                "topic": r["topic"] or "",
+                "amount": float(r["total_price"] or 0),
+                "currency": r["currency"] or "USD",
+                "status": r["status"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+            }
+            for r in recent
+        ]
+
+        return Response(
+            {
+                "total_spend": total_spend,
+                "total_orders": total_orders,
+                "avg_order_value": avg_order,
+                "recent_orders": recent_list,
+            }
+        )

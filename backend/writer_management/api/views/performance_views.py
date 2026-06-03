@@ -16,6 +16,7 @@ FIXES APPLIED
 """
 
 from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -23,6 +24,43 @@ from writer_management.api.permissions import (
     IsAdminUser,
     IsAdminOrWriterOwner,
 )
+
+
+class MyWriterPerformanceView(APIView):
+    """
+    GET /api/writer-management/me/performance/
+
+    Returns the authenticated writer's own performance record.
+    No registration_id needed — resolved from the session user.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from writer_management.api.serializers.performance_serializers import (
+            WriterPerformanceSerializer,
+        )
+        from writer_management.models.writer_performance import WriterPerformance
+        from writer_management.models.writer_profile import WriterProfile
+
+        try:
+            profile = WriterProfile.objects.get(account_profile__user=request.user)
+        except WriterProfile.DoesNotExist:
+            return Response({"detail": "Writer profile not found."}, status=404)
+
+        try:
+            perf = WriterPerformance.objects.get(writer=profile)
+        except WriterPerformance.DoesNotExist:
+            # Return zeroed record rather than 404 — the writer exists but
+            # no performance rows have been created yet (new writer).
+            return Response({
+                "total_orders": 0, "completed_orders": 0, "cancelled_orders": 0,
+                "disputed_orders": 0, "late_deliveries": 0, "on_time_deliveries": 0,
+                "revision_count": 0, "average_rating": None, "total_ratings": 0,
+                "total_earnings": "0.00", "total_tips_received": "0.00",
+                "total_bonuses": "0.00", "total_fines": "0.00", "updated_at": None,
+            })
+
+        return Response(WriterPerformanceSerializer(perf).data)
 
 
 class WriterPerformanceView(APIView):

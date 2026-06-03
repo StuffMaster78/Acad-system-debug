@@ -16,6 +16,7 @@ from .chart_views import (
     RevenueByWebsiteView,
     WriterEarningsTrendView,
     ClientSpendingTrendView,
+    ClientOrderSummaryView,
     PeriodComparisonView,
     DailySparklineView,
 )
@@ -35,6 +36,7 @@ urlpatterns = [
     path('charts/revenue-by-website/', RevenueByWebsiteView.as_view(), name='chart-revenue-by-website'),
     path('charts/writer-earnings/', WriterEarningsTrendView.as_view(), name='chart-writer-earnings'),
     path('charts/client-spending/', ClientSpendingTrendView.as_view(), name='chart-client-spending'),
+    path('charts/client-summary/', ClientOrderSummaryView.as_view(), name='chart-client-summary'),
     path('charts/comparison/', PeriodComparisonView.as_view(), name='chart-comparison'),
     path('charts/daily/', DailySparklineView.as_view(), name='chart-daily'),
 ]
