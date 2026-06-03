@@ -836,7 +836,10 @@ class WriterApplicationService:
             raise
         except Exception as exc:
             import logging as _log
-            _log.getLogger(__name__).warning(
-                "Quiz gate check error for application=%s: %s — skipping gate.",
+            _log.getLogger(__name__).error(
+                "Quiz gate check error for application=%s: %s — blocking approval.",
                 application.pk, exc,
             )
+            raise ValueError(
+                "Could not verify quiz requirements. Please try again or contact support."
+            ) from exc
