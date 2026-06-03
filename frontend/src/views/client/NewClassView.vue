@@ -172,7 +172,7 @@
           <div class="flex gap-3">
             <button
               class="rounded-lg bg-berry px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-berry/90 disabled:opacity-60"
-              :disabled="isSaving || !isValid"
+              :disabled="isSaving || !isValid || !paymentDisclosureAccepted"
               @click="submit"
             >
               {{ isSaving ? "Submitting…" : "Submit Class Request" }}
@@ -226,7 +226,7 @@
             </div>
           </div>
 
-          <PaymentDisclosureBanner />
+          <PaymentDisclosureBanner v-model="paymentDisclosureAccepted" context="class_order" />
 
           <div class="rounded-lg border border-slate-200 bg-white p-4">
             <p class="text-sm font-semibold text-ink">What happens next?</p>
@@ -263,6 +263,7 @@ const selectedConfig = ref<ClassServiceConfig | null>(null);
 const loadingConfigs = ref(true);
 const isSaving = ref(false);
 const error = ref<string | null>(null);
+const paymentDisclosureAccepted = ref(false);
 
 const fallbackConfigs: ClassServiceConfig[] = [
   {

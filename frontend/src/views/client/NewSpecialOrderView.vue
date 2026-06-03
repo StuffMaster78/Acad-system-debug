@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
 import { specialOrdersApi } from "@/api/specialOrders";
 import { useAuthStore } from "@/stores/auth";
 import type { SpecialOrderQuoteConfig } from "@/types/specialOrders";
@@ -17,6 +18,7 @@ const quoteConfig = ref<SpecialOrderQuoteConfig | null>(null);
 const isLoadingConfig = ref(true);
 const isSaving = ref(false);
 const error = ref<string | null>(null);
+const paymentDisclosureAccepted = ref(false);
 
 const selectedTemplate = computed(() =>
   quoteConfig.value?.milestone_templates.find((t) => t.id === selectedTemplateId.value) ?? null,
@@ -150,10 +152,15 @@ onMounted(async () => {
           {{ error }}
         </div>
 
+        <PaymentDisclosureBanner
+          v-model="paymentDisclosureAccepted"
+          context="special_order_request"
+        />
+
         <div class="flex gap-3">
           <button
             class="rounded-lg bg-berry px-5 py-2 text-sm font-medium text-white hover:bg-berry/90 disabled:opacity-60"
-            :disabled="isSaving || !title.trim() || !description.trim()"
+            :disabled="isSaving || !title.trim() || !description.trim() || !paymentDisclosureAccepted"
             @click="submit"
           >
             {{ isSaving ? "Submitting…" : "Submit Request" }}
