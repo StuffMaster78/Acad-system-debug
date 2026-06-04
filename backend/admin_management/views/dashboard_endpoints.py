@@ -53,9 +53,9 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
     def dashboard(self, request):
         """Get dispute statistics dashboard."""
         # Get all disputes
-        # Order model uses 'assigned_writer' not 'writer'
+        # Order model uses not 'writer'
         # Dispute model doesn't have 'resolved_by' field
-        all_disputes = Dispute.objects.all().select_related('order', 'order__client', 'order__assigned_writer', 'raised_by')
+        all_disputes = Dispute.objects.all().select_related('order', 'order__client', 'raised_by')
 
         # Filter by website if user has website context and is not superadmin
         if request.user.role != 'superadmin':
@@ -185,7 +185,7 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
         """Get pending disputes queue."""
         pending_disputes = Dispute.objects.filter(
             dispute_status='open'
-        ).select_related('order', 'order__client', 'order__assigned_writer').order_by('-created_at')
+        ).select_related('order', 'order__client').order_by('-created_at')
 
         # Filter by website if needed
         if request.user.role != 'superadmin':
@@ -808,7 +808,7 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
                 OrderStatus.UNDER_EDITING.value,
                 OrderStatus.PENDING_REVISION.value
             ]
-        ).select_related('client', 'assigned_writer', 'website').order_by('client_deadline')
+        ).select_related('client', 'website').order_by('client_deadline')
 
         # Filter by website if needed
         if request.user.role != 'superadmin':
@@ -869,7 +869,7 @@ class AdminExpressClassesDashboardViewSet(viewsets.ViewSet):
     def dashboard(self, request):
         """Get express class statistics dashboard."""
         all_express_classes = ExpressClass.objects.all().select_related(
-            'client', 'assigned_writer', 'website'
+            'client', 'website'
         )
 
         # Filter by website if needed
@@ -1823,7 +1823,7 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
     def dashboard(self, request):
         """Get fines statistics dashboard."""
         all_fines = Fine.objects.all().select_related(
-            'order', 'order__client', 'order__assigned_writer', 'issued_by', 'waived_by'
+            'order', 'order__client', 'issued_by', 'waived_by'
         )
 
         # Filter by website if needed
@@ -1981,7 +1981,7 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
         disputed_fines = Fine.objects.filter(
             status=FineStatus.DISPUTED.value
         ).select_related(
-            'order', 'order__client', 'order__assigned_writer'
+            'order', 'order__client'
         ).prefetch_related('fine_appeals').order_by('-imposed_at')
 
         # Filter by website if needed
@@ -2019,7 +2019,7 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
         active_fines = Fine.objects.filter(
             status__in=[FineStatus.ISSUED.value, FineStatus.DISPUTED.value]
         ).select_related(
-            'order', 'order__client', 'order__assigned_writer', 'issued_by'
+            'order', 'order__client', 'issued_by'
         ).order_by('-imposed_at')
 
         # Filter by website if needed

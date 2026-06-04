@@ -159,7 +159,7 @@ class ExportService:
     def prepare_orders_export(orders) -> List[Dict[str, Any]]:
         """Prepare order data for export."""
         export_data = []
-        for order in orders.select_related('client', 'assigned_writer', 'paper_type', 'academic_level', 'formatting_style', 'website'):
+        for order in orders.select_related('client', 'paper_type', 'academic_level', 'formatting_style', 'website'):
             export_data.append({
                 'Order ID': order.id,
                 'Topic': order.topic or '',
@@ -170,8 +170,7 @@ class ExportService:
                 'Paper Type': order.paper_type.name if order.paper_type else '',
                 'Academic Level': order.academic_level.name if order.academic_level else '',
                 'Formatting Style': order.formatting_style.name if order.formatting_style else '',
-                'Number of Pages': order.number_of_pages or 0,
-                'Number of Slides': order.number_of_slides or 0,
+                'Pages': order.base_quantity or 0,
                 'Status': order.status,
                 'Total Price': float(order.total_price) if order.total_price else 0,
                 'Writer Compensation': float(order.writer_compensation) if order.writer_compensation else 0,

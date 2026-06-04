@@ -94,28 +94,28 @@ class Command(BaseCommand):
                     website=website,
                     status='completed',
                     assigned_writer__isnull=False
-                ).select_related('assigned_writer')[:count * 2]
+                ).select_related('website')[:count * 2]
 
                 # In-progress orders -> pending compensation (upcoming)
                 in_progress_orders = Order.objects.filter(
                     website=website,
                     status__in=['in_progress', 'submitted', 'under_editing'],
                     assigned_writer__isnull=False
-                ).select_related('assigned_writer')[:count]
+                ).select_related('website')[:count]
 
                 # Orders on revision/disputed -> delayed compensation (processing)
                 delayed_orders = Order.objects.filter(
                     website=website,
                     status__in=['on_revision', 'revision_requested', 'disputed', 'revised'],
                     assigned_writer__isnull=False
-                ).select_related('assigned_writer')[:count // 2]
+                ).select_related('website')[:count // 2]
 
                 # Cancelled orders -> Blocked payments
                 cancelled_orders = Order.objects.filter(
                     website=website,
                     status='cancelled',
                     assigned_writer__isnull=False
-                ).select_related('assigned_writer')[:count // 4]
+                ).select_related('website')[:count // 4]
 
                 # Get special orders for this website
                 special_orders = SpecialOrder.objects.filter(

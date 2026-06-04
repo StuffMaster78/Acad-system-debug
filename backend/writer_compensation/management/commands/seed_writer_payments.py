@@ -93,7 +93,7 @@ class Command(BaseCommand):
                     website=website,
                     status='completed',
                     assigned_writer__isnull=False
-                ).select_related('assigned_writer')[:count * 2]
+                ).select_related('website')[:count * 2]
 
                 # Get special orders for this website
                 special_orders = SpecialOrder.objects.filter(

@@ -27,7 +27,7 @@ class AdminFinesManagementViewSet(viewsets.ViewSet):
         """Get fine statistics dashboard."""
         # Get all fines
         all_fines = Fine.objects.select_related(
-            'order', 'order__assigned_writer', 'issued_by', 'waived_by'
+            'order', 'issued_by', 'waived_by'
         )
 
         # Filter by website if user has website context and is not superadmin
@@ -124,7 +124,7 @@ class AdminFinesManagementViewSet(viewsets.ViewSet):
         fines = Fine.objects.filter(
             status=FineStatus.ISSUED
         ).select_related(
-            'order', 'order__assigned_writer', 'issued_by'
+            'order', 'issued_by'
         ).order_by('-imposed_at')
 
         # Filter by website if applicable
@@ -157,7 +157,7 @@ class AdminFinesManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get fine analytics."""
-        all_fines = Fine.objects.select_related('order', 'order__assigned_writer')
+        all_fines = Fine.objects.select_related('order')
 
         # Filter by website if applicable
         if request.user.role != 'superadmin':

@@ -250,7 +250,7 @@ class AdminDashboardView(viewsets.ViewSet):
         from datetime import timedelta
 
         # Recent Orders (last 10)
-        recent_orders = Order.objects.select_related('client', 'assigned_writer', 'website').order_by('-created_at')[:10]
+        recent_orders = Order.objects.select_related('client', 'website').order_by('-created_at')[:10]
         recent_orders_data = [
             {
                 "id": order.id,
@@ -2000,7 +2000,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
         from datetime import timedelta
 
         # Get all orders
-        all_orders = Order.objects.all().select_related('client', 'assigned_writer', 'website')
+        all_orders = Order.objects.all().select_related('client', 'website')
 
         # Both superadmin and admin should see all orders (no website filtering)
         # No website filtering for superadmin and admin
@@ -2233,7 +2233,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
         overdue = Order.objects.filter(
             Q(client_deadline__lt=now) | Q(writer_deadline__lt=now),
             status__in=['in_progress', 'assigned', 'on_revision', 'pending', 'available']
-        ).select_related('client', 'assigned_writer', 'website').order_by('client_deadline', 'writer_deadline')
+        ).select_related('client', 'website').order_by('client_deadline', 'writer_deadline')
 
         # Both superadmin and admin should see all orders (no website filtering)
 
@@ -2265,7 +2265,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
         stuck = Order.objects.filter(
             updated_at__lt=stuck_threshold,
             status__in=['in_progress', 'assigned', 'on_revision', 'pending']
-        ).select_related('client', 'assigned_writer', 'website').order_by('updated_at')
+        ).select_related('client', 'website').order_by('updated_at')
 
         # Both superadmin and admin should see all orders (no website filtering)
 
@@ -2279,7 +2279,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
             stuck = Order.objects.filter(
                 updated_at__lt=stuck_threshold,
                 status__in=['in_progress', 'assigned', 'on_revision', 'pending']
-            ).select_related('client', 'assigned_writer', 'website').order_by('updated_at')
+            ).select_related('client', 'website').order_by('updated_at')
             # Both superadmin and admin should see all orders (no website filtering)
 
         stuck = stuck[:limit]
@@ -2987,7 +2987,7 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
         from datetime import timedelta
 
         # Get all class bundles
-        all_bundles = ClassBundle.objects.all().select_related('client', 'assigned_writer', 'website', 'config')
+        all_bundles = ClassBundle.objects.all().select_related('client', 'website', 'config')
 
         # Filter by website if user has website context
         website = getattr(request.user, 'website', None)

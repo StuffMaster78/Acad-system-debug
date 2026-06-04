@@ -57,7 +57,9 @@ class DashboardMetricsService:
         if role == 'client':
             order_qs = order_qs.filter(client=user)
         elif role == 'writer':
-            order_qs = order_qs.filter(assigned_writer=user)
+            order_qs = order_qs.filter(
+                assignments__writer__user=user, assignments__is_current=True,
+            ).distinct()
         elif role == 'editor':
             # Editors see orders they're reviewing
             try:
@@ -269,7 +271,9 @@ class DashboardMetricsService:
         if role == 'client':
             order_qs = order_qs.filter(client=user)
         elif role == 'writer':
-            order_qs = order_qs.filter(assigned_writer=user)
+            order_qs = order_qs.filter(
+                assignments__writer__user=user, assignments__is_current=True,
+            ).distinct()
 
         # Group by month
         monthly_data = order_qs.annotate(
@@ -339,7 +343,9 @@ class DashboardMetricsService:
         if role == 'client':
             order_qs = order_qs.filter(client=user)
         elif role == 'writer':
-            order_qs = order_qs.filter(assigned_writer=user)
+            order_qs = order_qs.filter(
+                assignments__writer__user=user, assignments__is_current=True,
+            ).distinct()
 
         # Group by day
         daily_data = order_qs.annotate(
@@ -396,7 +402,9 @@ class DashboardMetricsService:
         if role == 'client':
             order_qs = order_qs.filter(client=user)
         elif role == 'writer':
-            order_qs = order_qs.filter(assigned_writer=user)
+            order_qs = order_qs.filter(
+                assignments__writer__user=user, assignments__is_current=True,
+            ).distinct()
 
         # Revenue by paper type
         paper_type_revenue = order_qs.values('paper_type__name').annotate(
@@ -459,7 +467,9 @@ class DashboardMetricsService:
         if role == 'client':
             order_qs = order_qs.filter(client=user)
         elif role == 'writer':
-            order_qs = order_qs.filter(assigned_writer=user)
+            order_qs = order_qs.filter(
+                assignments__writer__user=user, assignments__is_current=True,
+            ).distinct()
 
         payment_data = order_qs.values('payment_status').annotate(
             count=Count('id'),

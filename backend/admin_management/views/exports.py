@@ -78,7 +78,10 @@ class ExportViewSet(viewsets.ViewSet):
         if user_role == 'client':
             queryset = queryset.filter(client=request.user)
         elif user_role == 'writer':
-            queryset = queryset.filter(assigned_writer=request.user)
+            queryset = queryset.filter(
+                assignments__writer__user=request.user,
+                assignments__is_current=True,
+            ).distinct()
 
         # Prepare export data
         export_data = ExportService.prepare_orders_export(queryset)
