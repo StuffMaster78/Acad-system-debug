@@ -112,15 +112,19 @@ flowchart TD
     Start([App boot]) --> Init["portalContextStore.init()\nfetch /portal-context/"]
     Init --> Surface{surface?}
 
-    Surface -->|client| CRoutes["/client/* routes\nrole guard: client"]
-    Surface -->|writer| WRoutes["/writer/* routes\nrole guard: writer"]
-    Surface -->|staff| SRoutes["/admin/* or /superadmin/*\nrole guard: admin/superadmin/..."]
+    Surface -->|client| CRoutes["Register /client/* routes only\nallowed roles: client"]
+    Surface -->|writer| WRoutes["Register /writer/* routes only\nallowed roles: writer"]
+    Surface -->|staff| SRoutes["Register /admin/* routes only\nallowed roles: admin · superadmin · editor · support"]
+    Surface -->|error / unknown| Err[Error page\n503 — domain not configured]
 
-    CRoutes & WRoutes & SRoutes --> Guard["router.beforeEach\n1. Surface boundary check\n2. Auth check\n3. Role check"]
+    CRoutes --> Guard
+    WRoutes --> Guard
+    SRoutes --> Guard
+
+    Guard["router.beforeEach\n1. Auth check\n2. Role check"]
 
     Guard -->|pass| View[Render view]
-    Guard -->|surface mismatch| Redirect[Redirect to surface home]
-    Guard -->|unauthenticated| Login[/login]
+    Guard -->|unauthenticated| Login[/login for this surface]
     Guard -->|wrong role| Forbidden[403 page]
 ```
 
