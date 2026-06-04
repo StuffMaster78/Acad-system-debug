@@ -82,11 +82,49 @@ class CommandItem:
         }
 
 
-def _order_actions(order: Any, user: Any) -> list[str]:
+def _lifecycle_flags_for(order_ids: list[int]) -> dict[str, set[int]]:
+    """
+    Bulk-fetch the two lifecycle flags needed for action decisions.
+
+    Returns a dict with 'disputed' and 'held' sets of order PKs. Two queries
+    replace 6 per-order queries from build_snapshot(), eliminating the N+1
+    that would otherwise fire for every order item in the command center.
+    """
+    from orders.models.disputes.order_dispute import OrderDispute
+    from orders.models.orders.order_hold import OrderHold
+
+    disputed: set[int] = set(
+        OrderDispute.objects.filter(
+            order_id__in=order_ids,
+            status__in=OrderLifecycleReadService.ACTIVE_DISPUTE_STATUSES,
+        ).values_list("order_id", flat=True)
+    )
+    held: set[int] = set(
+        OrderHold.objects.filter(
+            order_id__in=order_ids,
+            status="active",
+        ).values_list("order_id", flat=True)
+    )
+    return {"disputed": disputed, "held": held}
+
+
+def _order_actions(
+    order: Any,
+    user: Any,
+    flags: dict[str, set[int]] | None = None,
+) -> list[str]:
     if user is None:
         return []
     try:
-        lifecycle = OrderLifecycleReadService.build_snapshot(order=order)
+        if flags is not None:
+            from types import SimpleNamespace
+            lifecycle = SimpleNamespace(
+                has_active_dispute=order.pk in flags["disputed"],
+                has_active_hold=order.pk in flags["held"],
+                current_writer_id=None,
+            )
+        else:
+            lifecycle = OrderLifecycleReadService.build_snapshot(order=order)
         return OrderAvailableActionsService.build_actions(
             order=order,
             user=user,
@@ -422,13 +460,31 @@ class OperationsCommandCenterViewSet(ViewSet):
             OrderStatus.REFUNDED,
             OrderStatus.ARCHIVED,
         ]
-        orders = (
+        orders = list(
             Order.objects.filter(self._website_filter(website))
             .exclude(status__in=closed)
             .filter(Q(client_deadline__lte=soon) | Q(writer_deadline__lte=soon))
             .select_related("website", "client")
             .order_by("client_deadline")[:30]
         )
+        awaiting_ack = list(
+            Order.objects.filter(self._website_filter(website))
+            .filter(
+                status__in=[
+                    OrderStatus.IN_PROGRESS,
+                    OrderStatus.READY_FOR_STAFFING,
+                    OrderStatus.PAID,
+                ],
+                last_writer_acknowledged_at__isnull=True,
+            )
+            .select_related("website")
+            .order_by("writer_deadline", "created_at")[:20]
+        )
+
+        # Bulk-fetch dispute/hold state — 2 queries instead of 6 per order.
+        all_ids = [o.pk for o in orders + awaiting_ack]
+        flags = _lifecycle_flags_for(all_ids) if all_ids else {"disputed": set(), "held": set()}
+
         items: list[CommandItem] = []
         for order in orders:
             due = order.writer_deadline or order.client_deadline
@@ -454,23 +510,10 @@ class OperationsCommandCenterViewSet(ViewSet):
                         {"label": "Status", "value": _display(order.status)},
                         {"label": "Client deadline", "value": _iso(order.client_deadline) or "Not set"},
                     ],
-                    available_actions=_order_actions(order, user),
+                    available_actions=_order_actions(order, user, flags=flags),
                 )
             )
 
-        awaiting_ack = (
-            Order.objects.filter(self._website_filter(website))
-            .filter(
-                status__in=[
-                    OrderStatus.IN_PROGRESS,
-                    OrderStatus.READY_FOR_STAFFING,
-                    OrderStatus.PAID,
-                ],
-                last_writer_acknowledged_at__isnull=True,
-            )
-            .select_related("website")
-            .order_by("writer_deadline", "created_at")[:20]
-        )
         for order in awaiting_ack:
             items.append(
                 CommandItem(
@@ -487,18 +530,19 @@ class OperationsCommandCenterViewSet(ViewSet):
                     created_at=_iso(order.created_at),
                     due_at=_iso(order.writer_deadline),
                     meta=[{"label": "Status", "value": _display(order.status)}],
-                    available_actions=_order_actions(order, user),
+                    available_actions=_order_actions(order, user, flags=flags),
                 )
             )
         return items
 
     def _order_payment_items(self, website: Website | None, user=None) -> list[CommandItem]:
-        orders = (
+        orders = list(
             Order.objects.filter(self._website_filter(website), total_price__gt=0)
             .exclude(payment_status__in=[OrderPaymentStatus.FULLY_PAID, OrderPaymentStatus.REFUNDED])
             .select_related("website")
             .order_by("-created_at")[:25]
         )
+        flags = _lifecycle_flags_for([o.pk for o in orders]) if orders else {"disputed": set(), "held": set()}
         items: list[CommandItem] = []
         for order in orders:
             balance = order.remaining_balance
@@ -521,7 +565,7 @@ class OperationsCommandCenterViewSet(ViewSet):
                         {"label": "Paid", "value": _money(order.amount_paid, order.currency)},
                         {"label": "Total", "value": _money(order.total_price, order.currency)},
                     ],
-                    available_actions=_order_actions(order, user),
+                    available_actions=_order_actions(order, user, flags=flags),
                 )
             )
         return items
