@@ -167,6 +167,7 @@ LOCAL_APPS = [
     "seo_pages",
     "tickets",
     "feedback",
+    "changelog",
     "mass_emails",
     "announcements",
     "analytics",

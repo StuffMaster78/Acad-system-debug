@@ -173,6 +173,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "client-feedback",
         component: () => import("@/views/client/ClientFeedbackView.vue"),
       },
+      {
+        path: "changelog",
+        name: "client-changelog",
+        component: () => import("@/views/shared/ChangelogView.vue"),
+      },
     );
   }
 
@@ -204,6 +209,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "feedback",
         name: "admin-feedback",
         component: () => import("@/views/admin/AdminFeedbackView.vue"),
+      },
+      {
+        path: "changelog",
+        name: "admin-changelog",
+        component: () => import("@/views/shared/ChangelogView.vue"),
       },
       {
         path: "audit",
@@ -555,6 +565,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "writer-feedback",
         component: () => import("@/views/writer/WriterFeedbackView.vue"),
       },
+      {
+        path: "changelog",
+        name: "writer-changelog",
+        component: () => import("@/views/shared/ChangelogView.vue"),
+      },
     );
   }
 
@@ -758,6 +773,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "feedback",
         name: "superadmin-feedback",
         component: () => import("@/views/admin/AdminFeedbackView.vue"),
+      },
+      {
+        path: "changelog",
+        name: "superadmin-changelog",
+        component: () => import("@/views/shared/ChangelogView.vue"),
       },
       {
         path: "orders",
