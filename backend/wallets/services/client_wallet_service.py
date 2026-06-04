@@ -85,6 +85,8 @@ class ClientWalletService:
         reference_type: str = "",
         reference_id: str = "",
         metadata: dict[str, Any] | None = None,
+        statement_descriptor_snapshot: str = "",
+        client_disclosure_text: str = "",
     ) -> Wallet:
         wallet = ClientWalletService.get_wallet(
             website=website,
@@ -113,6 +115,8 @@ class ClientWalletService:
             reference_type=reference_type,
             reference_id=reference_id,
             metadata=metadata,
+            statement_descriptor_snapshot=statement_descriptor_snapshot,
+            client_disclosure_text=client_disclosure_text,
         )
 
         ClientWalletService._link_entry_to_journal(

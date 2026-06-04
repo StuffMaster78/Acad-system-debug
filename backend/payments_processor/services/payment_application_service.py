@@ -337,6 +337,8 @@ class PaymentApplicationService:
                 "payment_intent_id": payment_intent.pk,
                 "provider": getattr(payment_intent, "provider", ""),
             },
+            statement_descriptor_snapshot=getattr(payment_intent, "statement_descriptor_snapshot", ""),
+            client_disclosure_text=getattr(payment_intent, "client_disclosure_text", ""),
         )
 
         return {
