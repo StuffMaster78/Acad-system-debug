@@ -13,8 +13,12 @@ log = logging.getLogger(__name__)
 
 @receiver(pre_save, sender=Order)
 def update_order_status(sender, instance, **kwargs):
-    if instance.is_paid and instance.status == 'unpaid':
-        instance.status = 'pending'
+    is_paid = (
+        getattr(instance, "payment_status", None) == "fully_paid"
+        or bool(getattr(instance, "is_paid", False))
+    )
+    if is_paid and instance.status == "unpaid":
+        instance.status = "pending"
 
 
 @receiver(post_save, sender=Order)
