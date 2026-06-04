@@ -26,12 +26,31 @@ from cms_engagement.serializers import EngagementSummarySerializer
 
 
 class PageEngagementView(APIView):
-    """GET /cms-api/engagement/page/<content_type>/<object_id>/
-    Returns engagement summary for a page."""
+    """
+    GET /cms-api/engagement/page/<content_type_id>/<object_id>/
+    GET /cms-api/engagement/page/?page_id=<wagtail_page_id>
+
+    Returns engagement summary. The ?page_id shortcut resolves the content_type automatically.
+    """
 
     permission_classes = [permissions.AllowAny]
 
-    def get(self, request, content_type_id, object_id):
+    def get(self, request, content_type_id=None, object_id=None):
+        if content_type_id is None:
+            page_id = request.query_params.get("page_id")
+            if not page_id:
+                return Response(
+                    {"error": "Provide path params or ?page_id"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                from wagtail.models import Page
+                from django.contrib.contenttypes.models import ContentType as CT
+                page = Page.objects.get(pk=int(page_id)).specific
+                content_type_id = CT.objects.get_for_model(page).id
+                object_id = page.pk
+            except Exception:
+                return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
         try:
             summary = EngagementSummary.objects.get(
                 content_type_id=content_type_id,

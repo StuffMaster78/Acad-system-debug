@@ -99,6 +99,18 @@
         <!-- StreamField blocks -->
         <BlockRenderer :blocks="post.body ?? []" />
 
+        <!-- Engagement bar -->
+        <ArticleEngagementBar
+          :summary="engagement.summary.value"
+          :is-mutating="engagement.isMutating.value"
+          :is-authenticated="auth.isAuthenticated"
+          :reading-time="post.reading_time ?? null"
+          :page-url="canonicalUrl"
+          @react="engagement.react"
+          @share="engagement.share"
+          @bookmark="engagement.bookmark"
+        />
+
         <!-- Tags -->
         <div v-if="post.tags?.length" class="mt-10 flex flex-wrap gap-2 border-t border-slate-100 pt-6">
           <span
@@ -175,12 +187,22 @@ import {
 import BlockRenderer from "@/components/cms/BlockRenderer.vue";
 import CitationList from "@/components/cms/CitationList.vue";
 import AskWidget from "@/components/ui/AskWidget.vue";
+import ArticleEngagementBar from "@/components/cms/ArticleEngagementBar.vue";
+import { usePageEngagement } from "@/composables/usePageEngagement";
+import { useAuthStore } from "@/stores/auth";
+import { computed } from "vue";
 
 const route = useRoute();
 const isLoading = ref(true);
 const notFound = ref(false);
 const post = ref<BlogPost | null>(null);
 const citations = ref<Citation[]>([]);
+const auth = useAuthStore();
+const canonicalUrl = computed(() => window.location.href);
+
+// Engagement — page ID is available after post loads; composable handles null gracefully
+const postId = computed(() => post.value?.id ?? null);
+const engagement = usePageEngagement(postId.value);
 
 async function load() {
   const slug = route.params.slug as string;

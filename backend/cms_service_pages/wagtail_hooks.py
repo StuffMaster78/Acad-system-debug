@@ -28,7 +28,11 @@ class ServiceCategorySnippetViewSet(SnippetViewSet):
 
     def get_queryset(self, request=None):
         qs = super().get_queryset()
-        return filter_queryset_by_user_sites(qs, self.request.user)
+        req = request or getattr(self, "request", None)
+        user = getattr(req, "user", None)
+        if user and user.is_authenticated:
+            return filter_queryset_by_user_sites(qs, user)
+        return qs
 
 
 # Re-register with custom viewset
