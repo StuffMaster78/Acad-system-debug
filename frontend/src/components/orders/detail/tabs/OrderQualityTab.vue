@@ -155,16 +155,81 @@
       </p>
     </div>
 
+    <!-- QA Checklist (staff only) -->
+    <div v-if="isReviewer && qaTemplates.length" class="rounded-xl border border-slate-200 bg-white p-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-ink">QA Checklist</h3>
+        <select
+          v-if="qaTemplates.length > 1"
+          v-model="activeTemplateId"
+          class="focus-ring h-8 rounded-md border border-slate-200 px-2 text-xs"
+        >
+          <option v-for="t in qaTemplates" :key="t.id" :value="t.id">{{ t.name }}</option>
+        </select>
+      </div>
+
+      <div v-if="activeTemplate" class="mt-4 space-y-2">
+        <div
+          v-for="item in activeTemplate.items"
+          :key="item.id"
+          class="flex items-start gap-3 rounded-lg border border-slate-100 px-3 py-2"
+          :class="qaChecked.has(item.id) ? 'bg-emerald-50/50 border-emerald-100' : ''"
+        >
+          <input
+            type="checkbox"
+            :id="`qa-${item.id}`"
+            :checked="qaChecked.has(item.id)"
+            class="mt-0.5 h-4 w-4 rounded text-signal"
+            @change="toggleQaItem(item.id)"
+          />
+          <label :for="`qa-${item.id}`" class="flex-1 cursor-pointer text-sm text-ink">
+            {{ item.text }}
+            <span v-if="item.is_required" class="ml-1 text-xs text-amber-600">*</span>
+          </label>
+          <span class="shrink-0 rounded text-[10px] font-medium capitalize text-graphite">{{ item.category }}</span>
+        </div>
+      </div>
+
+      <!-- Verdict and notes -->
+      <div v-if="activeTemplate" class="mt-4 space-y-3">
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="v in QA_VERDICTS"
+            :key="v.value"
+            class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
+            :class="qaVerdict === v.value ? v.activeClass : 'border-slate-200 text-graphite hover:bg-slate-50'"
+            @click="qaVerdict = v.value"
+          >{{ v.label }}</button>
+        </div>
+        <textarea
+          v-model="qaNotes"
+          rows="2"
+          placeholder="Optional QA notes visible to staff…"
+          class="focus-ring w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+        />
+        <button
+          class="focus-ring inline-flex h-9 items-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
+          :disabled="!qaVerdict || qaSaving"
+          @click="saveQaResult"
+        >
+          <span v-if="qaSaving">Saving…</span>
+          <span v-else>Save QA result</span>
+        </button>
+        <p v-if="qaSaved" class="text-xs text-emerald-700">QA result saved.</p>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { CheckCircle2, Loader2, RotateCcw, Send } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderLifecycle, OrderSummary } from "@/types/orders";
 import { ordersApi } from "@/api/orders";
 import { useAuthStore } from "@/stores/auth";
+import { api, apiPath } from "@/api/client";
 
 const props = defineProps<{
   orderId: string;
@@ -187,6 +252,57 @@ const STATUS = computed(() => props.order.status ?? "");
 
 const isReviewer = computed(() => props.role === "admin" || props.role === "superadmin" || props.role === "editor");
 const canAct = computed(() => isReviewer.value || props.role === "writer");
+
+// ── QA Checklist ──────────────────────────────────────────────────────────────
+interface QAItem { id: number; category: string; text: string; is_required: boolean; display_order: number }
+interface QATemplate { id: number; name: string; description: string; is_default: boolean; items: QAItem[] }
+const qaTemplates = ref<QATemplate[]>([]);
+const activeTemplateId = ref<number | null>(null);
+const activeTemplate = computed(() => qaTemplates.value.find(t => t.id === activeTemplateId.value) ?? null);
+const qaChecked = ref<Set<number>>(new Set());
+const qaVerdict = ref("");
+const qaNotes = ref("");
+const qaSaving = ref(false);
+const qaSaved = ref(false);
+
+const QA_VERDICTS = [
+  { value: "passed", label: "Pass", activeClass: "border-emerald-300 bg-emerald-50 text-emerald-700" },
+  { value: "passed_with_notes", label: "Pass with notes", activeClass: "border-amber-300 bg-amber-50 text-amber-700" },
+  { value: "failed", label: "Return to writer", activeClass: "border-red-300 bg-red-50 text-red-700" },
+];
+
+function toggleQaItem(itemId: number) {
+  const s = new Set(qaChecked.value);
+  if (s.has(itemId)) s.delete(itemId); else s.add(itemId);
+  qaChecked.value = s;
+}
+
+async function saveQaResult() {
+  if (!activeTemplateId.value || !qaVerdict.value) return;
+  qaSaving.value = true;
+  qaSaved.value = false;
+  try {
+    await api.post(apiPath(`/qa/orders/${props.orderId}/results/`), {
+      template_id: activeTemplateId.value,
+      checked_items: [...qaChecked.value],
+      verdict: qaVerdict.value,
+      notes: qaNotes.value,
+    });
+    qaSaved.value = true;
+  } finally {
+    qaSaving.value = false;
+  }
+}
+
+async function loadQATemplates() {
+  if (!isReviewer.value) return;
+  try {
+    const { data } = await api.get<QATemplate[]>(apiPath("/qa/templates/"));
+    qaTemplates.value = data;
+    const def = data.find(t => t.is_default) ?? data[0];
+    if (def) activeTemplateId.value = def.id;
+  } catch { qaTemplates.value = []; }
+}
 const canSubmitForQA = computed(() => hasAction("submit_for_qa"));
 const canApprove = computed(() => hasAction("approve_delivery"));
 const canReturn = computed(() => hasAction("return_to_writer"));
@@ -314,4 +430,6 @@ async function doReturn() {
     acting.value = false;
   }
 }
+
+onMounted(loadQATemplates);
 </script>
