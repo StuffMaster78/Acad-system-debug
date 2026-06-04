@@ -38,7 +38,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                 ).get(id=order_id)
 
                 # Check if order is paid and available for assignment
-                if not order.is_paid:
+                if order.payment_status != 'fully_paid':
                     return Response(
                         {"detail": "Only paid orders can be assigned to writers."},
                         status=status.HTTP_400_BAD_REQUEST

@@ -72,7 +72,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         total_spend = payment_stats['total_spend'] or Decimal('0.00')
         avg_order_value = payment_stats['avg_order_value'] or Decimal('0.00')
 
-        paid_orders_count = all_orders.filter(is_paid=True).count()
+        paid_orders_count = all_orders.filter(payment_status='fully_paid').count()
 
         # All-time statistics - combined queries
         all_time_orders_qs = Order.objects.filter(client=request.user)
@@ -879,7 +879,8 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         # Get unpaid orders
         unpaid_orders = Order.objects.filter(
             client=request.user,
-            is_paid=False
+        ).exclude(
+            payment_status__in=['fully_paid', 'refunded']
         ).exclude(
             status__in=['cancelled', 'refunded', 'closed']
         ).select_related('type_of_work')
@@ -991,7 +992,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             )
 
         # Check if order is unpaid
-        if order.is_paid:
+        if order.is_fully_paid:
             return Response(
                 {"detail": "Order is already paid."},
                 status=400

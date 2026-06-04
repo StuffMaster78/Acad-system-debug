@@ -175,7 +175,7 @@ class ExportService:
                 'Status': order.status,
                 'Total Price': float(order.total_price) if order.total_price else 0,
                 'Writer Compensation': float(order.writer_compensation) if order.writer_compensation else 0,
-                'Is Paid': 'Yes' if order.is_paid else 'No',
+                'Is Paid': 'Yes' if order.is_fully_paid else 'No',
                 'Client Deadline': order.client_deadline.strftime('%Y-%m-%d %H:%M:%S') if order.client_deadline else '',
                 'Writer Deadline': order.writer_deadline.strftime('%Y-%m-%d %H:%M:%S') if order.writer_deadline else '',
                 'Created At': order.created_at.strftime('%Y-%m-%d %H:%M:%S') if order.created_at else '',

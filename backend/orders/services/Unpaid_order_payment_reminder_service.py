@@ -95,7 +95,7 @@ class PaymentReminderService:
         orders_needing_reminders = []
 
         for order in unpaid_orders:
-            if order.is_paid:
+            if order.is_fully_paid:
                 continue
 
             current_percentage = (

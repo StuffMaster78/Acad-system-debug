@@ -255,7 +255,7 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
             'has_pending_request': has_pending,
             'order_id': order.id,
             'order_status': order.status,
-            'is_paid': order.is_paid,
+            'is_paid': order.is_fully_paid,
         })
 
 
