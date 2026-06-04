@@ -26,7 +26,7 @@ router.register(
 
 urlpatterns = [
     path(
-        "v1",
+        "v1/",
         include(router.urls),
     ),
 ]

@@ -13,8 +13,15 @@ class AuditLoggingConfig(AppConfig):
         Import signal registrations and startup hooks.
         Keep imports LOCAL to avoid app registry issues.
         """
-
-        try:
-            import audit_logging.signals.model_signals # noqa: F401
-        except Exception:
-            pass
+        _signal_modules = [
+            "audit_logging.signals.model_signals",
+            "audit_logging.signals.auth_signals",
+            "audit_logging.signals.order_signals",
+            "audit_logging.signals.billing_signals",
+            "audit_logging.signals.config_signals",
+        ]
+        for _mod in _signal_modules:
+            try:
+                __import__(_mod)
+            except Exception:
+                pass

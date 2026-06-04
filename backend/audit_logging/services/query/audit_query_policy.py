@@ -106,15 +106,19 @@ class AuditQueryPolicy:
     # --------------------------------------------------
 
     def can_view_sensitive_events(self) -> bool:
-
+        _ELEVATED = {"admin", "superadmin"}
         if getattr(self.user, "is_superuser", False):
             return True
-
-        return bool(
-            self.user.has_perm( # type: ignore[attr-defined]
-                "audit_logging.view_sensitive_audit_logs"
+        if getattr(self.user, "role", "") in _ELEVATED:
+            return True
+        try:
+            return bool(
+                self.user.has_perm(  # type: ignore[attr-defined]
+                    "audit_logging.view_sensitive_audit_logs"
+                )
             )
-        )
+        except Exception:
+            return False
 
     def _apply_sensitivity(
         self,

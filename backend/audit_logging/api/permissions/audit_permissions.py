@@ -16,10 +16,11 @@ class CanViewAuditLogs(BasePermission):
 
         user = request.user
 
+        _ALLOWED = {"admin", "superadmin", "support", "editor"}
         return bool(
             user
             and user.is_authenticated
-            and user.is_staff
+            and (user.is_staff or getattr(user, "role", "") in _ALLOWED)
         )
 
 

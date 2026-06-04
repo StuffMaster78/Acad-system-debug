@@ -28,11 +28,15 @@ class AuditEventFactory:
     def create(
         *,
         actor_id: int | None = None,
+        actor_role: str | None = None,
+        actor_display: str | None = None,
         action: str,
         website=None,
         object_type: str | None = None,
         object_id: str | None = None,
         metadata: dict | None = None,
+        before: dict | None = None,
+        after: dict | None = None,
         severity: str = AuditSeverity.INFO,
         is_sensitive: bool = False,
         sensitivity_level: str | None = None,
@@ -56,6 +60,19 @@ class AuditEventFactory:
         final_website = website or website_id
 
         # -------------------------
+        # Build enriched metadata
+        # -------------------------
+        enriched: dict[str, Any] = dict(metadata or {})
+        if actor_role:
+            enriched["actor_role"] = actor_role
+        if actor_display:
+            enriched["actor_display"] = actor_display
+        if before is not None:
+            enriched["before"] = before
+        if after is not None:
+            enriched["after"] = after
+
+        # -------------------------
         # CREATE EVENT
         # -------------------------
         event = AuditEvent.objects.create(
@@ -64,7 +81,7 @@ class AuditEventFactory:
             action=action,
             object_type=object_type,
             object_id=object_id,
-            metadata=safe_serialize(metadata or {}),
+            metadata=safe_serialize(enriched),
             correlation_id=correlation_id,
             span_id=getattr(span, "span_id", None),
             severity=severity,

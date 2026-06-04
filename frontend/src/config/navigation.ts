@@ -81,6 +81,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Feedback", to: "/superadmin/feedback", icon: Lightbulb },
     { label: "Activity", to: "/superadmin/activity", icon: Activity },
     { label: "Audit Log", to: "/superadmin/audit", icon: ShieldAlert },
+    { label: "Trust Center", to: "/superadmin/trust-center", icon: ShieldCheck },
     { label: "Orders", to: "/superadmin/orders", icon: ClipboardList },
     { label: "Classes", to: "/superadmin/classes", icon: BookOpen },
     { label: "Special Orders", to: "/superadmin/special-orders", icon: Sparkles },
@@ -161,6 +162,8 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Loyalty", to: "/admin/loyalty", icon: Gift },
     { label: "Rewards", to: "/admin/rewards", icon: Medal },
     { label: "Reputation", to: "/admin/reputation", icon: ShieldCheck },
+    { label: "Audit Log", to: "/admin/audit", icon: ShieldAlert },
+    { label: "Trust Center", to: "/admin/trust-center", icon: ShieldCheck },
     { label: "Fin. Center", to: "/admin/financials", icon: Activity },
     { label: "Fin. Events", to: "/admin/financial-events", icon: Activity },
     { label: "Discounts", to: "/admin/discounts", icon: Percent },
@@ -267,6 +270,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Feedback", to: "/superadmin/feedback", icon: Lightbulb },
       { label: "Activity", to: "/superadmin/activity", icon: Activity },
       { label: "Audit Log", to: "/superadmin/audit", icon: ShieldAlert },
+      { label: "Trust Center", to: "/superadmin/trust-center", icon: ShieldCheck },
     ]},
     { label: "Work", items: [
       { label: "Orders", to: "/superadmin/orders", icon: ClipboardList },
@@ -374,6 +378,10 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Rewards", to: "/admin/rewards", icon: Medal },
       { label: "Reputation", to: "/admin/reputation", icon: ShieldCheck },
       { label: "Discounts", to: "/admin/discounts", icon: Percent },
+    ]},
+    { label: "Security", items: [
+      { label: "Audit Log", to: "/admin/audit", icon: ShieldAlert },
+      { label: "Trust Center", to: "/admin/trust-center", icon: ShieldCheck },
     ]},
     { label: "Platform", items: [
       { label: "Holidays", to: "/admin/holidays", icon: CalendarDays },
