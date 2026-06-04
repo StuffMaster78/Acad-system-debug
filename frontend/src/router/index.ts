@@ -168,6 +168,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "client-referrals",
         component: () => import("@/views/client/ClientReferralsView.vue"),
       },
+      {
+        path: "feedback",
+        name: "client-feedback",
+        component: () => import("@/views/client/ClientFeedbackView.vue"),
+      },
     );
   }
 
@@ -194,6 +199,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "ops",
         name: "admin-ops",
         component: () => import("@/views/admin/AdminOpsView.vue"),
+      },
+      {
+        path: "feedback",
+        name: "admin-feedback",
+        component: () => import("@/views/admin/AdminFeedbackView.vue"),
       },
       {
         path: "files",
@@ -530,6 +540,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         name: "writer-vetting",
         component: () => import("@/views/writer/WriterVettingView.vue"),
       },
+      {
+        path: "feedback",
+        name: "writer-feedback",
+        component: () => import("@/views/writer/WriterFeedbackView.vue"),
+      },
     );
   }
 
@@ -723,6 +738,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "ops",
         name: "superadmin-ops",
         component: () => import("@/views/admin/AdminOpsView.vue"),
+      },
+      {
+        path: "feedback",
+        name: "superadmin-feedback",
+        component: () => import("@/views/admin/AdminFeedbackView.vue"),
       },
       {
         path: "orders",

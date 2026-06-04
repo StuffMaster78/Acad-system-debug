@@ -46,6 +46,7 @@ import {
   Users2,
   Wallet,
   Wrench,
+  Lightbulb,
 } from "@lucide/vue";
 import type { Component } from "vue";
 import type { UserRole } from "@/types/roles";
@@ -77,6 +78,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Tenants", to: "/superadmin/tenants", icon: BriefcaseBusiness },
     { label: "Command Center", to: "/superadmin/operations", icon: Gauge },
     { label: "Ops Intel", to: "/superadmin/ops", icon: BarChart3 },
+    { label: "Feedback", to: "/superadmin/feedback", icon: Lightbulb },
     { label: "Activity", to: "/superadmin/activity", icon: Activity },
     { label: "Audit Log", to: "/superadmin/audit", icon: ShieldAlert },
     { label: "Orders", to: "/superadmin/orders", icon: ClipboardList },
@@ -153,6 +155,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Ledger", to: "/admin/ledger", icon: Scale },
     { label: "Access", to: "/admin/access", icon: KeyRound },
     { label: "Comms", to: "/admin/communications", icon: Megaphone },
+    { label: "Feedback", to: "/admin/feedback", icon: Lightbulb },
     { label: "Email", to: "/admin/email", icon: Mail },
     { label: "Growth", to: "/admin/growth", icon: Percent },
     { label: "Loyalty", to: "/admin/loyalty", icon: Gift },
@@ -190,6 +193,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Fines", to: "/writer/fines", icon: AlertTriangle },
     { label: "Resources", to: "/writer/resources", icon: FolderOpen },
     { label: "Vetting", to: "/writer/vetting", icon: GraduationCap },
+    { label: "Feedback", to: "/writer/feedback", icon: Lightbulb },
     { label: "Messages", to: "/writer/messages", icon: MessageSquare },
     { label: "Announcements", to: "/writer/announcements", icon: Megaphone },
     { label: "Notifications", to: "/writer/notifications", icon: Bell },
@@ -209,6 +213,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Loyalty", to: "/client/loyalty", icon: Star },
     { label: "Charts", to: "/client/charts", icon: LineChart },
     { label: "Referrals", to: "/client/referrals", icon: Users2 },
+    { label: "Feedback", to: "/client/feedback", icon: Lightbulb },
     { label: "Messages", to: "/client/messages", icon: MessageSquare },
     { label: "Announcements", to: "/client/announcements", icon: Megaphone },
     { label: "Support", to: "/client/support", icon: LifeBuoy },
@@ -259,6 +264,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Tenants", to: "/superadmin/tenants", icon: BriefcaseBusiness },
       { label: "Command Center", to: "/superadmin/operations", icon: Gauge },
       { label: "Ops Intel", to: "/superadmin/ops", icon: BarChart3 },
+      { label: "Feedback", to: "/superadmin/feedback", icon: Lightbulb },
       { label: "Activity", to: "/superadmin/activity", icon: Activity },
       { label: "Audit Log", to: "/superadmin/audit", icon: ShieldAlert },
     ]},
@@ -359,6 +365,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     { label: "Communications", items: [
       { label: "Access", to: "/admin/access", icon: KeyRound },
       { label: "Comms", to: "/admin/communications", icon: Megaphone },
+      { label: "Feedback", to: "/admin/feedback", icon: Lightbulb },
       { label: "Email", to: "/admin/email", icon: Mail },
     ]},
     { label: "Growth", items: [
@@ -401,6 +408,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Classes", to: "/writer/classes", icon: BookOpen },
       { label: "Resources", to: "/writer/resources", icon: FolderOpen },
       { label: "Vetting", to: "/writer/vetting", icon: GraduationCap },
+      { label: "Feedback", to: "/writer/feedback", icon: Lightbulb },
     ]},
     { label: "Finance", items: [
       { label: "Earnings", to: "/writer/earnings", icon: Wallet },

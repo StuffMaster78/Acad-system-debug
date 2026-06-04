@@ -106,6 +106,7 @@ path("api/v1/special-orders/", include("special_orders.urls")),
         include(notification_urls, namespace="notifications"),
     ),
     path("api/v1/tickets/", include("tickets.urls")),
+    path("api/v1/feedback/", include("feedback.urls")),
     path("api/v1/activity/", include("activity.urls")),
 
     # ── Reviews, loyalty & referrals ──────────────────────────────────────────
