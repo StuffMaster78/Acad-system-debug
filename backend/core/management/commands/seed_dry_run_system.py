@@ -648,7 +648,6 @@ class Command(BaseCommand):
                     order = Order.objects.create(
                         website=website,
                         client=client,
-                        assigned_writer=assigned_writer,
                         topic=f"Dry Run Order #{order_counter} - {status.replace('_', ' ').title()}",
                         paper_type=paper_type,
                         academic_level=academic_level,
@@ -656,20 +655,34 @@ class Command(BaseCommand):
                         subject=subject,
                         type_of_work=type_of_work,
                         english_type=english_type,
-                        number_of_pages=randint(5, 20),
-                        number_of_slides=randint(0, 10),
-                        number_of_refereces=randint(3, 15),
-                        spacing=choice([SpacingOptions.SINGLE.value, SpacingOptions.DOUBLE.value]),
+                        base_quantity=randint(5, 20),
                         status=status,
                         client_deadline=client_deadline,
                         writer_deadline=writer_deadline,
-                        writer_deadline_percentage=writer_deadline_cfg,
                         total_price=Decimal(str(randint(50, 500))),
                         writer_compensation=Decimal(str(randint(30, 300))),
                         payment_status='fully_paid' if is_paid else 'unpaid',
                         amount_paid=Decimal(str(randint(50, 500))) if is_paid else Decimal('0.00'),
                         order_instructions=f"This is a dry run order with status '{status}'. Created for system testing.",
                     )
+
+                    # Create assignment record if a writer was chosen
+                    if assigned_writer:
+                        try:
+                            from orders.models.orders.order_assignment import OrderAssignment
+                            from orders.enums import OrderAssignmentSource, OrderAssignmentStatus
+                            writer_profile = getattr(assigned_writer, 'writerprofile', None)
+                            if writer_profile:
+                                OrderAssignment.objects.create(
+                                    website=website,
+                                    order=order,
+                                    writer=writer_profile,
+                                    source=OrderAssignmentSource.STAFF_ASSIGNMENT,
+                                    status=OrderAssignmentStatus.ACTIVE,
+                                    is_current=True,
+                                )
+                        except Exception:
+                            pass  # assignment is optional for seed data
 
                     # Set additional fields based on status
                     update_fields = []

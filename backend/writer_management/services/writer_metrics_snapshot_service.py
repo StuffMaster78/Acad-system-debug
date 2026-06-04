@@ -171,8 +171,9 @@ class WriterMetricsSnapshotService:
             from orders.models.orders import Order
 
             base_qs = Order.objects.filter(
-                assigned_writer=writer_profile,
-            )
+                assignments__writer=writer_profile,
+                assignments__is_current=True,
+            ).distinct()
 
             # Orders completed in this period
             completed = base_qs.filter(
@@ -302,11 +303,11 @@ class WriterMetricsSnapshotService:
             from django.db.models import Avg, F, ExpressionWrapper, fields
 
             result = Order.objects.filter(
-                assigned_writer=writer_profile,
+                assignments__writer=writer_profile,
+                assignments__is_current=True,
                 status="completed",
                 completed_at__range=(start_dt, end_dt),
-                assigned_at__isnull=False,
-            ).annotate(
+            ).distinct().annotate(
                 turnaround=ExpressionWrapper(
                     F("completed_at") - F("assigned_at"),
                     output_field=fields.DurationField(),

@@ -36,9 +36,10 @@ class WriterReconciliationService:
         try:
             from orders.models.orders import Order
             active_count = Order.objects.filter(
-                assigned_writer=writer,
+                assignments__writer=writer.writerprofile,
+                assignments__is_current=True,
                 status__in=["assigned", "in_progress", "revision"],
-            ).count()
+            ).distinct().count()
         except Exception as exc:
             logger.exception(
                 "reconcile_active_orders_count: cannot count orders "
@@ -77,9 +78,12 @@ class WriterReconciliationService:
             from orders.models.orders import Order
             from django.db.models import Count, Sum, Q
 
-            stats = Order.objects.filter(
-                assigned_writer=writer,
-            ).aggregate(
+            writer_profile = getattr(writer, 'writerprofile', None)
+            base_qs = Order.objects.filter(
+                assignments__writer=writer_profile,
+                assignments__is_current=True,
+            ).distinct() if writer_profile else Order.objects.none()
+            stats = base_qs.aggregate(
                 total=Count("id"),
                 completed=Count("id", filter=Q(status="completed")),
                 cancelled=Count("id", filter=Q(status="cancelled")),
