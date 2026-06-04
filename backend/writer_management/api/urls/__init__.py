@@ -2,6 +2,10 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from writer_management.views_dashboard import WriterDashboardViewSet
+from reviews_system.api.views.typed_review_views import (
+    WriterReviewListView,
+    WriterReviewSummaryView,
+)
 
 from writer_management.api.views.profile_views import (
     WriterProfileListView,
@@ -102,6 +106,10 @@ urlpatterns = [
     path("writers/<str:registration_id>/lift-blacklist/", LiftBlacklistView.as_view(), name="writer-lift-blacklist"),
     path("writers/<str:registration_id>/probation/", PlaceProbationView.as_view(), name="writer-probation"),
     path("writers/<str:registration_id>/penalties/", ApplyPenaltyView.as_view(), name="writer-penalty"),
+
+    # Reviews (public)
+    path("writers/<str:registration_id>/reviews/", WriterReviewListView.as_view(), name="writer-reviews"),
+    path("writers/<str:registration_id>/reviews/summary/", WriterReviewSummaryView.as_view(), name="writer-reviews-summary"),
 
     # Performance (admin + writer owner)
     path("writers/<str:registration_id>/performance/", WriterPerformanceView.as_view(), name="writer-performance"),

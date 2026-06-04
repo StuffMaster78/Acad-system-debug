@@ -85,6 +85,12 @@
           :order-id="orderId"
         />
       </div>
+
+      <!-- Review prompt for clients on completed orders -->
+      <OrderReviewPrompt
+        v-if="role === 'client' && order && ['completed', 'approved'].includes(order.status)"
+        :order-id="Number(orderId)"
+      />
     </template>
   </div>
 </template>
@@ -97,6 +103,7 @@ import { useOrderStore } from "@/stores/orders";
 import { useFilesStore } from "@/stores/files";
 import { useCommunicationsStore } from "@/stores/communications";
 import { ROLE_TABS } from "./types";
+import OrderReviewPrompt from "./OrderReviewPrompt.vue";
 
 import OrderHeader from "./OrderHeader.vue";
 import OrderSummaryCards from "./OrderSummaryCards.vue";

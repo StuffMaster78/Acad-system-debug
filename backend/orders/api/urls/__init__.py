@@ -24,4 +24,5 @@ urlpatterns = [
     path("", include("orders.api.urls.progressive_delivery_urls")),
     path("", include("orders.api.urls.order_file_urls")),
     path("", include("orders.api.urls.notes")),
+    path("", include("orders.api.urls.order_review_urls")),
 ]
