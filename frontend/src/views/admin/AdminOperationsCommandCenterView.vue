@@ -319,6 +319,62 @@ async function loadCommandCenter() {
   }
 }
 
+// ── Expanded card state ──────────────────────────────────────────────────────
+const expandedItemId = ref<string | null>(null);
+function toggleExpand(id: string) {
+  expandedItemId.value = expandedItemId.value === id ? null : id;
+}
+
+// ── Countdown helper ─────────────────────────────────────────────────────────
+function countdown(dueAt: string | null): { label: string; cls: string } {
+  if (!dueAt) return { label: "", cls: "" };
+  const h = (new Date(dueAt).getTime() - Date.now()) / 3_600_000;
+  if (h < 0) return { label: `OVERDUE ${Math.round(Math.abs(h))}h`, cls: "text-rose-600 font-bold" };
+  if (h < 2)  return { label: `${Math.round(h * 60)}m left`, cls: "text-rose-500 font-semibold" };
+  if (h < 24) return { label: `${Math.round(h)}h left`, cls: "text-amber-600 font-semibold" };
+  return { label: `${Math.round(h / 24)}d left`, cls: "text-graphite" };
+}
+
+// ── Priority left border ─────────────────────────────────────────────────────
+const priorityBorder: Record<string, string> = {
+  critical: "border-l-4 border-l-rose-500",
+  high:     "border-l-4 border-l-amber-400",
+  medium:   "border-l-4 border-l-sky-400",
+  low:      "border-l-4 border-slate-200",
+};
+
+// ── Domain breakdown for sidebar ─────────────────────────────────────────────
+const domainBreakdown = computed(() => {
+  const counts: Record<string, number> = {};
+  for (const item of response.value?.items ?? []) {
+    if (item.state?.status === "resolved") continue;
+    counts[item.domain] = (counts[item.domain] ?? 0) + 1;
+  }
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+});
+
+// ── Active-only filter toggle ────────────────────────────────────────────────
+const showResolved = ref(false);
+const enhancedFilteredItems = computed(() => {
+  return filteredItems.value.filter(item =>
+    showResolved.value ? true : item.state?.status !== "resolved"
+  );
+});
+
+// ── Triage dropdown state ────────────────────────────────────────────────────
+const triageOpenId = ref<string | null>(null);
+function toggleTriage(id: string) {
+  triageOpenId.value = triageOpenId.value === id ? null : id;
+}
+
+// ── Health score ─────────────────────────────────────────────────────────────
+const healthScore = computed(() => {
+  const total = summary.value.total;
+  if (!total) return 100;
+  const weight = summary.value.critical * 4 + summary.value.high * 2 + summary.value.medium;
+  return Math.max(0, Math.round(100 - (weight / (total * 4)) * 100));
+});
+
 watch(selectedWebsiteId, () => {
   loadCommandCenter().catch(() => undefined);
 });
@@ -330,362 +386,403 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <section class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <p class="text-sm font-semibold uppercase text-signal">Operations</p>
-        <h1 class="mt-2 text-3xl font-semibold text-ink">Command center</h1>
-        <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-graphite">
-          <span>{{ response?.scope.is_cross_tenant ? "All websites" : response?.scope.website_name || "Current website" }}</span>
-          <span class="text-slate-300">/</span>
-          <span>Updated {{ dateLabel(generatedAt) }}</span>
+  <div class="min-h-screen bg-slate-50/60">
+
+    <!-- ── Page header ──────────────────────────────────────────────────── -->
+    <div class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur-sm px-6 py-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 class="text-lg font-bold text-ink">Operations Command Center</h1>
+          <p class="mt-0.5 text-xs text-graphite">
+            {{ response?.scope.is_cross_tenant ? "All websites" : response?.scope.website_name || "Current website" }}
+            &middot; Updated {{ dateLabel(generatedAt) }}
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <select v-if="isSuperadmin" v-model="selectedWebsiteId"
+            class="focus-ring h-9 rounded-md border border-slate-200 bg-white px-3 text-sm">
+            <option value="">All websites</option>
+            <option v-for="site in websites.list" :key="site.id" :value="String(site.id)">
+              {{ websites.labelById(site.id) }}
+            </option>
+          </select>
+          <button class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-graphite hover:text-ink"
+            :disabled="isLoading" @click="loadCommandCenter">
+            <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" /> Refresh
+          </button>
         </div>
       </div>
+    </div>
 
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <select
-          v-if="isSuperadmin"
-          v-model="selectedWebsiteId"
-          class="focus-ring h-11 min-w-56 rounded-md border border-slate-200 bg-white px-3 text-sm"
-        >
-          <option value="">All websites</option>
-          <option v-for="site in websites.list" :key="site.id" :value="String(site.id)">
-            {{ websites.labelById(site.id) }}
-          </option>
-        </select>
-        <button
-          class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-ink"
-          type="button"
-          :disabled="isLoading"
-          @click="loadCommandCenter"
-        >
-          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
-          Refresh
-        </button>
-      </div>
-    </section>
+    <div class="px-6 py-5 space-y-5">
 
-    <p v-if="error" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-      {{ error }}
-    </p>
-
-    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <div
-        v-for="tile in summaryTiles"
-        :key="tile.label"
-        class="rounded-md border p-4"
-        :class="toneClasses[tile.tone]"
-      >
-        <div class="flex items-center justify-between gap-3">
-          <span class="text-sm font-medium">{{ tile.label }}</span>
-          <component :is="tile.icon" class="h-5 w-5" />
-        </div>
-        <p class="mt-3 text-3xl font-semibold">{{ tile.value }}</p>
-      </div>
-    </section>
-
-    <section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div class="space-y-4">
-        <div class="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 lg:flex-row lg:items-center">
-          <div class="relative flex-1">
-            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              v-model="query"
-              class="focus-ring h-10 w-full rounded-md border border-slate-200 pl-9 pr-3 text-sm"
-              type="search"
-              placeholder="Search queue"
-            >
+      <!-- ── Health + KPI strip ────────────────────────────────────────── -->
+      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <!-- Health bar -->
+        <div class="mb-4 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-graphite">System health</span>
+            <span class="text-sm font-bold" :class="healthScore >= 80 ? 'text-signal' : healthScore >= 50 ? 'text-amber-600' : 'text-rose-600'">
+              {{ healthScore }}%
+            </span>
           </div>
-          <select v-model="selectedDomain" class="focus-ring h-10 rounded-md border border-slate-200 bg-white px-3 text-sm">
-            <option v-for="domain in domains" :key="domain" :value="domain">
-              {{ domain === "all" ? "All domains" : domainLabel(domain) }}
-            </option>
-          </select>
-          <select v-model="selectedPriority" class="focus-ring h-10 rounded-md border border-slate-200 bg-white px-3 text-sm">
-            <option v-for="priority in priorityOptions" :key="priority" :value="priority">
-              {{ priority === "all" ? "All priority" : domainLabel(priority) }}
-            </option>
-          </select>
-          <select v-model="selectedOwner" class="focus-ring h-10 rounded-md border border-slate-200 bg-white px-3 text-sm">
-            <option value="all">All owners</option>
-            <option value="mine">Mine</option>
-            <option value="unassigned">Unassigned</option>
-          </select>
+          <span class="text-xs text-graphite">{{ summary.total }} active items</span>
         </div>
-
-        <div v-if="isLoading" class="flex min-h-64 items-center justify-center rounded-md border border-slate-200 bg-white">
-          <LoadingSpinner label="Loading operations" />
+        <div class="mb-4 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+          <div class="flex h-full rounded-full overflow-hidden">
+            <div class="bg-rose-500 transition-all" :style="{ width: `${summary.total ? (summary.critical / summary.total) * 100 : 0}%` }" />
+            <div class="bg-amber-400 transition-all" :style="{ width: `${summary.total ? (summary.high / summary.total) * 100 : 0}%` }" />
+            <div class="bg-sky-400 transition-all" :style="{ width: `${summary.total ? (summary.medium / summary.total) * 100 : 0}%` }" />
+            <div class="bg-slate-200 flex-1 transition-all" />
+          </div>
         </div>
+        <!-- KPI tiles -->
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+          <button v-for="p in (['critical','high','medium','low'] as const)" :key="p"
+            class="rounded-lg border px-3 py-2.5 text-left transition-all hover:shadow-sm"
+            :class="[
+              selectedPriority === p ? priorityClasses[p] : 'border-slate-200 bg-slate-50',
+              selectedPriority === p ? 'ring-1 ring-inset' : '',
+            ]"
+            @click="selectedPriority = selectedPriority === p ? 'all' : p">
+            <p class="text-[10px] font-semibold uppercase tracking-wide opacity-70 capitalize">{{ p }}</p>
+            <p class="mt-1 text-2xl font-bold">{{ summary[p] }}</p>
+          </button>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-graphite">Payments</p>
+            <p class="mt-1 text-2xl font-bold text-sky-700">{{ summary.payments_need_attention }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-graphite">Unassigned</p>
+            <p class="mt-1 text-2xl font-bold text-graphite">{{ summary.unassigned }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-graphite">Support</p>
+            <p class="mt-1 text-2xl font-bold text-graphite">{{ summary.support_escalations }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-graphite">Writers</p>
+            <p class="mt-1 text-2xl font-bold text-graphite">{{ summary.writer_reviews }}</p>
+          </div>
+        </div>
+      </div>
 
-        <div v-else-if="filteredItems.length" class="space-y-3">
-          <article
-            v-for="item in filteredItems"
-            :key="item.id"
-            class="rounded-md border border-slate-200 bg-white p-4"
-          >
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span
-                    class="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold"
-                    :class="priorityClasses[item.priority]"
-                  >
-                    {{ domainLabel(item.priority) }}
-                  </span>
-                  <span class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700">
-                    <component :is="domainIcons[item.domain as keyof typeof domainIcons] || ClipboardList" class="h-3.5 w-3.5" />
-                    {{ domainLabel(item.domain) }}
-                  </span>
-                  <span v-if="item.website" class="text-xs text-graphite">{{ item.website.name }}</span>
-                  <span
-                    v-if="item.state?.assigned_to"
-                    class="inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700"
-                  >
-                    <UserCheck class="h-3.5 w-3.5" />
-                    {{ item.state.assigned_to }}
-                  </span>
-                  <span
-                    v-if="item.state?.status && item.state.status !== 'active'"
-                    class="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium"
-                    :class="stateClasses[item.state.status]"
-                  >
-                    {{ domainLabel(item.state.status) }}
+      <p v-if="error" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ error }}</p>
+
+      <!-- ── Main 2-col ────────────────────────────────────────────────── -->
+      <div class="grid gap-5 xl:grid-cols-[1fr_280px]">
+
+        <!-- Queue -->
+        <div class="space-y-3">
+
+          <!-- Filter bar -->
+          <div class="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
+            <div class="relative flex-1 min-w-40">
+              <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input v-model="query" type="search" placeholder="Search items..."
+                class="focus-ring h-8 w-full rounded-md border border-slate-200 pl-8 pr-2 text-sm" />
+            </div>
+            <select v-model="selectedDomain" class="focus-ring h-8 rounded-md border border-slate-200 bg-white px-2 text-sm">
+              <option v-for="d in domains" :key="d" :value="d">{{ d === 'all' ? 'All domains' : domainLabel(d) }}</option>
+            </select>
+            <select v-model="selectedOwner" class="focus-ring h-8 rounded-md border border-slate-200 bg-white px-2 text-sm">
+              <option value="all">All owners</option>
+              <option value="mine">Mine</option>
+              <option value="unassigned">Unassigned</option>
+            </select>
+            <label class="flex items-center gap-1.5 text-xs text-graphite cursor-pointer ml-auto">
+              <input v-model="showResolved" type="checkbox" class="rounded" />
+              Show resolved
+            </label>
+            <span class="text-xs text-graphite">{{ enhancedFilteredItems.length }} items</span>
+          </div>
+
+          <!-- Loading skeleton -->
+          <div v-if="isLoading" class="space-y-2">
+            <div v-for="n in 4" :key="n" class="h-16 animate-pulse rounded-xl bg-slate-100" />
+          </div>
+
+          <!-- Empty state -->
+          <div v-else-if="!enhancedFilteredItems.length" class="rounded-xl border border-dashed border-slate-200 py-16 text-center">
+            <ShieldAlert class="mx-auto h-8 w-8 text-slate-300" />
+            <p class="mt-3 text-sm font-semibold text-ink">Queue is clear</p>
+            <p class="mt-1 text-xs text-graphite">No operational items match the current filters.</p>
+          </div>
+
+          <!-- Item cards -->
+          <div v-else class="space-y-2">
+            <article
+              v-for="item in enhancedFilteredItems"
+              :key="item.id"
+              class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-shadow hover:shadow-md"
+              :class="priorityBorder[item.priority]"
+            >
+              <!-- Compact row (always visible) -->
+              <div class="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
+                @click="toggleExpand(item.id)">
+                <!-- Domain icon -->
+                <component
+                  :is="domainIcons[item.domain as keyof typeof domainIcons] || ClipboardList"
+                  class="h-4 w-4 shrink-0 text-graphite"
+                />
+                <!-- Title + meta -->
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <p class="truncate text-sm font-semibold text-ink">{{ item.title }}</p>
+                    <span v-if="item.state?.status && item.state.status !== 'active'"
+                      class="rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize"
+                      :class="stateClasses[item.state.status]">
+                      {{ item.state.status }}
+                    </span>
+                    <span v-if="item.state?.assigned_to"
+                      class="flex items-center gap-0.5 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-700">
+                      <UserCheck class="h-2.5 w-2.5" />{{ item.state.assigned_to }}
+                    </span>
+                  </div>
+                  <p class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-graphite">
+                    <span class="capitalize">{{ domainLabel(item.domain) }}</span>
+                    <span v-if="item.website" class="text-slate-400">{{ item.website.name }}</span>
+                  </p>
+                </div>
+                <!-- Due countdown -->
+                <div class="shrink-0 text-right">
+                  <p v-if="item.due_at" class="text-xs" :class="countdown(item.due_at).cls">
+                    {{ countdown(item.due_at).label }}
+                  </p>
+                  <p class="text-[10px] text-slate-400">{{ dateLabel(item.due_at) }}</p>
+                </div>
+                <!-- Primary actions (always visible) -->
+                <div class="flex shrink-0 items-center gap-1.5 pl-2" @click.stop>
+                  <!-- Triage dropdown -->
+                  <div class="relative">
+                    <button
+                      class="focus-ring flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-graphite hover:border-slate-300"
+                      :disabled="isMutating"
+                      @click="toggleTriage(item.id)">
+                      <Clock class="h-3.5 w-3.5" /> Triage
+                    </button>
+                    <div v-if="triageOpenId === item.id"
+                      class="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl border border-slate-200 bg-white shadow-xl">
+                      <button class="flex w-full items-center gap-2 rounded-t-xl px-3 py-2 text-xs hover:bg-slate-50"
+                        @click="acknowledgeItem(item); triageOpenId = null">
+                        <CheckCircle2 class="h-3.5 w-3.5 text-signal" /> Acknowledge
+                      </button>
+                      <button class="flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50"
+                        @click="openActionDialog(item, 'snooze'); triageOpenId = null">
+                        <Clock class="h-3.5 w-3.5 text-sky-500" /> Snooze
+                      </button>
+                      <button class="flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50"
+                        @click="openHistoryDialog(item); triageOpenId = null">
+                        <History class="h-3.5 w-3.5 text-slate-400" /> History
+                      </button>
+                      <button class="flex w-full items-center gap-2 rounded-b-xl px-3 py-2 text-xs text-emerald-700 hover:bg-emerald-50"
+                        @click="openActionDialog(item, 'resolve'); triageOpenId = null">
+                        <CheckCircle2 class="h-3.5 w-3.5" /> Resolve
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Claim / Release -->
+                  <button
+                    v-if="item.state?.assigned_to_id === auth.user?.id"
+                    class="focus-ring h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-graphite"
+                    :disabled="isMutating" @click="setItemAssignment(item, 'release')">
+                    Release
+                  </button>
+                  <button v-else
+                    class="focus-ring h-8 rounded-md border border-violet-200 bg-violet-50 px-2 text-xs font-semibold text-violet-700"
+                    :disabled="isMutating" @click="setItemAssignment(item, 'claim')">
+                    Claim
+                  </button>
+                  <!-- Open CTA -->
+                  <button
+                    class="focus-ring flex h-8 items-center gap-1 rounded-md bg-ink px-3 text-xs font-semibold text-white hover:bg-ink/90"
+                    @click="openItem(item)">
+                    {{ item.action_label }} <ArrowRight class="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <!-- Expanded details -->
+              <div v-if="expandedItemId === item.id"
+                class="border-t border-slate-100 bg-slate-50/60 px-4 py-3 space-y-3">
+                <p class="text-sm leading-6 text-graphite">{{ item.description }}</p>
+                <div v-if="item.state?.note" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700">
+                  <span class="font-semibold">Note:</span> {{ item.state.note }}
+                </div>
+                <!-- Meta chips -->
+                <div class="flex flex-wrap gap-1.5">
+                  <span v-for="m in item.meta" :key="m.label"
+                    class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                    {{ m.label }}: {{ m.value }}
                   </span>
                 </div>
-                <h2 class="mt-3 text-lg font-semibold text-ink">{{ item.title }}</h2>
-                <p class="mt-1 text-sm leading-6 text-graphite">{{ item.description }}</p>
-                <p v-if="item.state?.note" class="mt-2 rounded-md bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700">
-                  {{ item.state.note }}
-                </p>
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <span
-                    v-for="meta in item.meta"
-                    :key="`${item.id}-${meta.label}`"
-                    class="rounded-md bg-slate-50 px-2.5 py-1 text-xs text-slate-700"
-                  >
-                    {{ meta.label }}: {{ meta.value }}
-                  </span>
-                  <span class="rounded-md bg-slate-50 px-2.5 py-1 text-xs text-slate-700">
-                    Due: {{ dateLabel(item.due_at) }}
-                  </span>
-                  <span class="rounded-md bg-slate-50 px-2.5 py-1 text-xs text-slate-700">
-                    Score: {{ item.score }}
-                  </span>
-                </div>
-                <div v-if="item.available_actions?.length" class="mt-2 flex flex-wrap gap-1.5">
-                  <span
-                    v-for="action in item.available_actions"
-                    :key="`${item.id}-action-${action}`"
-                    class="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700"
-                  >
+                <!-- Available actions -->
+                <div v-if="item.available_actions?.length" class="flex flex-wrap gap-1.5">
+                  <span class="text-xs font-semibold text-graphite">Actions:</span>
+                  <span v-for="action in item.available_actions" :key="action"
+                    class="rounded-full border border-signal/30 bg-signal/5 px-2.5 py-0.5 text-xs font-medium text-signal">
                     {{ actionLabel(action) }}
                   </span>
                 </div>
               </div>
-              <div class="flex shrink-0 flex-wrap gap-2 lg:justify-end">
-                <button
-                  v-if="item.state?.assigned_to_id === auth.user?.id"
-                  class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-ink"
-                  type="button"
-                  :disabled="isMutating"
-                  @click="setItemAssignment(item, 'release')"
-                >
-                  Release
-                </button>
-                <button
-                  v-else
-                  class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-violet-200 bg-violet-50 px-3 text-sm font-semibold text-violet-800"
-                  type="button"
-                  :disabled="isMutating"
-                  @click="setItemAssignment(item, 'claim')"
-                >
-                  <UserCheck class="h-4 w-4" />
-                  Claim
-                </button>
-                <button
-                  class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-ink"
-                  type="button"
-                  :disabled="isMutating"
-                  @click="acknowledgeItem(item)"
-                >
-                  <CheckCircle2 class="h-4 w-4" />
-                  Ack
-                </button>
-                <button
-                  class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-ink"
-                  type="button"
-                  @click="openHistoryDialog(item)"
-                >
-                  <History class="h-4 w-4" />
-                  History
-                </button>
-                <button
-                  class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-ink"
-                  type="button"
-                  :disabled="isMutating"
-                  @click="openActionDialog(item, 'snooze')"
-                >
-                  <Clock class="h-4 w-4" />
-                  Snooze
-                </button>
-                <button
-                  class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-800"
-                  type="button"
-                  :disabled="isMutating"
-                  @click="openActionDialog(item, 'resolve')"
-                >
-                  Resolve
-                </button>
-                <button
-                  class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white"
-                  type="button"
-                  @click="openItem(item)"
-                >
-                  {{ item.action_label }}
-                  <ArrowRight class="h-4 w-4" />
+            </article>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="space-y-4">
+
+          <!-- Domain breakdown -->
+          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 class="text-xs font-bold uppercase tracking-wide text-graphite mb-3">By domain</h3>
+            <div class="space-y-1.5">
+              <button
+                v-for="[domain, count] in domainBreakdown"
+                :key="domain"
+                class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors"
+                :class="selectedDomain === domain
+                  ? 'bg-ink text-white'
+                  : 'hover:bg-slate-50 text-graphite'"
+                @click="selectedDomain = selectedDomain === domain ? 'all' : domain"
+              >
+                <div class="flex items-center gap-2">
+                  <component :is="domainIcons[domain as keyof typeof domainIcons] || ClipboardList" class="h-4 w-4" />
+                  <span class="capitalize">{{ domainLabel(domain) }}</span>
+                </div>
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600"
+                  :class="selectedDomain === domain ? 'bg-white/20 text-white' : ''">
+                  {{ count }}
+                </span>
+              </button>
+              <button v-if="selectedDomain !== 'all'"
+                class="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-slate-200 py-1.5 text-xs text-graphite hover:bg-slate-50"
+                @click="selectedDomain = 'all'">
+                Clear filter
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick assignments -->
+          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 class="text-xs font-bold uppercase tracking-wide text-graphite mb-3">Workload</h3>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-graphite">Unassigned</span>
+                <button class="font-semibold text-amber-600"
+                  @click="selectedOwner = selectedOwner === 'unassigned' ? 'all' : 'unassigned'">
+                  {{ summary.unassigned }}
                 </button>
               </div>
-            </div>
-          </article>
-        </div>
-
-        <div v-else class="rounded-md border border-slate-200 bg-white px-6 py-12 text-center">
-          <p class="text-base font-semibold text-ink">No active operational items</p>
-          <p class="mt-2 text-sm text-graphite">The current filters are clear.</p>
-        </div>
-      </div>
-
-      <aside class="space-y-4">
-        <section class="rounded-md border border-slate-200 bg-white p-4">
-          <h2 class="text-base font-semibold text-ink">Pulse</h2>
-          <div class="mt-4 grid grid-cols-2 gap-3">
-            <div v-for="tile in pulseTiles" :key="tile.label" class="rounded-md bg-slate-50 p-3">
-              <p class="text-xs font-medium text-graphite">{{ tile.label }}</p>
-              <p class="mt-2 text-2xl font-semibold text-ink">{{ tile.value }}</p>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-graphite">Assigned to me</span>
+                <button class="font-semibold text-signal"
+                  @click="selectedOwner = selectedOwner === 'mine' ? 'all' : 'mine'">
+                  {{ summary.assigned }}
+                </button>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-graphite">Orders at risk</span>
+                <span class="font-semibold text-rose-600">{{ summary.orders_at_risk }}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-graphite">CMS alerts</span>
+                <span class="font-semibold text-graphite">{{ summary.cms_alerts }}</span>
+              </div>
             </div>
           </div>
-        </section>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4">
-          <h2 class="text-base font-semibold text-ink">Priority mix</h2>
-          <div class="mt-4 space-y-3">
-            <button
-              v-for="priority in priorityOptions.filter((item) => item !== 'all')"
-              :key="priority"
-              class="focus-ring flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm"
-              :class="selectedPriority === priority ? priorityClasses[priority as OperationsPriority] : 'border-slate-200 bg-white text-slate-700'"
-              type="button"
-              @click="selectedPriority = priority"
-            >
-              <span>{{ domainLabel(priority) }}</span>
-              <span>{{ summary[priority as OperationsPriority] }}</span>
-            </button>
-          </div>
-        </section>
-      </aside>
-    </section>
-
-    <BaseModal
-      :open="actionDialog.open"
-      :title="actionDialog.action === 'snooze' ? 'Snooze item' : 'Resolve item'"
-      :description="actionDialog.item?.title || ''"
-      size="md"
-      @close="closeActionDialog"
-    >
-      <form class="space-y-4" @submit.prevent="submitItemAction">
-        <label v-if="actionDialog.action === 'snooze'" class="block">
-          <span class="text-sm font-medium text-ink">Snooze for</span>
-          <select
-            v-model.number="actionDialog.snooze_hours"
-            class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
-          >
-            <option :value="4">4 hours</option>
-            <option :value="24">1 day</option>
-            <option :value="72">3 days</option>
-            <option :value="168">1 week</option>
-          </select>
-        </label>
-        <label class="block">
-          <span class="text-sm font-medium text-ink">Note</span>
-          <textarea
-            v-model="actionDialog.note"
-            class="focus-ring mt-1 min-h-28 w-full resize-none rounded-md border border-slate-200 px-3 py-2 text-sm"
-            :placeholder="actionDialog.action === 'snooze' ? 'Why can this wait?' : 'What was handled?'"
-          />
-        </label>
-      </form>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <button
-            class="focus-ring inline-flex h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-ink"
-            type="button"
-            @click="closeActionDialog"
-          >
-            Cancel
-          </button>
-          <button
-            class="focus-ring inline-flex h-10 items-center justify-center rounded-md bg-ink px-4 text-sm font-semibold text-white"
-            type="button"
-            :disabled="isMutating"
-            @click="submitItemAction"
-          >
-            {{ actionDialog.action === 'snooze' ? 'Snooze' : 'Resolve' }}
-          </button>
-        </div>
-      </template>
-    </BaseModal>
-
-    <BaseModal
-      :open="historyDialog.open"
-      title="Item history"
-      :description="historyDialog.item?.title || ''"
-      size="lg"
-      @close="closeHistoryDialog"
-    >
-      <div v-if="isHistoryLoading" class="py-10">
-        <LoadingSpinner label="Loading history" />
-      </div>
-      <div v-else-if="historyDialog.events.length" class="space-y-3">
-        <article
-          v-for="event in historyDialog.events"
-          :key="event.id"
-          class="rounded-md border border-slate-200 bg-white p-4"
-        >
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p class="text-sm font-semibold text-ink">{{ domainLabel(event.action) }}</p>
-              <p class="mt-1 text-xs text-graphite">
-                {{ event.actor || "System" }}
-                <template v-if="event.from_status || event.to_status">
-                  / {{ domainLabel(event.from_status || "none") }} to {{ domainLabel(event.to_status || "none") }}
-                </template>
-              </p>
+          <!-- Priority quick-filter -->
+          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 class="text-xs font-bold uppercase tracking-wide text-graphite mb-3">Priority filter</h3>
+            <div class="space-y-1.5">
+              <button v-for="p in (['critical','high','medium','low'] as const)" :key="p"
+                class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                :class="selectedPriority === p ? priorityClasses[p] : 'hover:bg-slate-50 text-graphite'"
+                @click="selectedPriority = selectedPriority === p ? 'all' : p">
+                <span class="capitalize">{{ p }}</span>
+                <span>{{ summary[p] }}</span>
+              </button>
             </div>
-            <span class="text-xs text-graphite">{{ dateLabel(event.created_at) }}</span>
           </div>
-          <p v-if="event.note" class="mt-3 rounded-md bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700">
-            {{ event.note }}
-          </p>
-          <div class="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-            <span
-              v-if="event.metadata.assigned_to"
-              class="rounded-md bg-violet-50 px-2.5 py-1 text-violet-700"
-            >
-              Assigned: {{ event.metadata.assigned_to }}
-            </span>
-            <span
-              v-if="event.metadata.snoozed_until"
-              class="rounded-md bg-indigo-50 px-2.5 py-1 text-indigo-700"
-            >
-              Snoozed until: {{ dateLabel(String(event.metadata.snoozed_until)) }}
-            </span>
-          </div>
-        </article>
+
+        </aside>
       </div>
-      <div v-else class="rounded-md border border-slate-200 bg-slate-50 px-5 py-10 text-center">
-        <p class="text-sm font-semibold text-ink">No history yet</p>
-        <p class="mt-1 text-sm text-graphite">Actions will appear here as staff work the item.</p>
-      </div>
-    </BaseModal>
+    </div>
   </div>
+
+  <!-- Triage click-outside handler -->
+  <div v-if="triageOpenId" class="fixed inset-0 z-20" @click="triageOpenId = null" />
+
+  <!-- Snooze / Resolve modal -->
+  <BaseModal
+    :open="actionDialog.open"
+    :title="actionDialog.action === 'snooze' ? 'Snooze item' : 'Resolve item'"
+    :description="actionDialog.item?.title || ''"
+    size="md"
+    @close="closeActionDialog"
+  >
+    <form class="space-y-4" @submit.prevent="submitItemAction">
+      <label v-if="actionDialog.action === 'snooze'" class="block">
+        <span class="text-sm font-medium text-ink">Snooze for</span>
+        <select v-model.number="actionDialog.snooze_hours"
+          class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+          <option :value="4">4 hours</option>
+          <option :value="24">1 day</option>
+          <option :value="72">3 days</option>
+          <option :value="168">1 week</option>
+        </select>
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-ink">Note</span>
+        <textarea v-model="actionDialog.note" rows="3"
+          class="focus-ring mt-1 min-h-24 w-full resize-none rounded-md border border-slate-200 px-3 py-2 text-sm"
+          :placeholder="actionDialog.action === 'snooze' ? 'Why can this wait?' : 'What was handled?'" />
+      </label>
+    </form>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <button class="focus-ring h-10 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold"
+          @click="closeActionDialog">Cancel</button>
+        <button class="focus-ring h-10 rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
+          :disabled="isMutating" @click="submitItemAction">
+          {{ actionDialog.action === 'snooze' ? 'Snooze' : 'Mark resolved' }}
+        </button>
+      </div>
+    </template>
+  </BaseModal>
+
+  <!-- History modal -->
+  <BaseModal
+    :open="historyDialog.open"
+    title="Item history"
+    :description="historyDialog.item?.title || ''"
+    size="lg"
+    @close="closeHistoryDialog"
+  >
+    <div v-if="isHistoryLoading" class="py-10 text-center text-sm text-graphite">Loading history...</div>
+    <div v-else-if="historyDialog.events.length" class="space-y-2">
+      <div v-for="event in historyDialog.events" :key="event.id"
+        class="rounded-lg border border-slate-100 px-4 py-3">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-sm font-semibold text-ink">{{ domainLabel(event.action) }}</p>
+            <p class="mt-0.5 text-xs text-graphite">
+              {{ event.actor || "System" }}
+              <template v-if="event.from_status || event.to_status">
+                &rarr; {{ domainLabel(event.to_status || "none") }}
+              </template>
+            </p>
+          </div>
+          <span class="text-xs text-graphite whitespace-nowrap">{{ dateLabel(event.created_at) }}</span>
+        </div>
+        <p v-if="event.note" class="mt-2 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          {{ event.note }}
+        </p>
+      </div>
+    </div>
+    <div v-else class="py-10 text-center">
+      <p class="text-sm font-semibold text-ink">No history yet</p>
+      <p class="mt-1 text-xs text-graphite">Actions will appear here as staff work the item.</p>
+    </div>
+  </BaseModal>
 </template>
