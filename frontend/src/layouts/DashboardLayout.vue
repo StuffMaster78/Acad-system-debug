@@ -42,6 +42,7 @@ const brandMenuOpen = ref(false);
 const brandMenuRoot = ref<HTMLElement | null>(null);
 const openGroups = ref<Set<string>>(new Set());
 const navRef = ref<HTMLElement | null>(null);
+const sidebarTooltip = ref<{ label: string; top: number } | null>(null);
 
 const roleLabel: Record<UserRole, string> = {
   client: "Client portal",
@@ -59,6 +60,13 @@ function initOpenGroups() {
 }
 
 watch(navGroups, initOpenGroups, { immediate: true });
+
+watch(
+  () => ui.sidebarCollapsed,
+  () => {
+    sidebarTooltip.value = null;
+  },
+);
 
 watch(
   () => route.path,
@@ -93,6 +101,21 @@ function toggleGroup(label: string) {
 function isActive(path: string) {
   if (path === `/${props.role}`) return route.path === path;
   return route.path === path || route.path.startsWith(`${path}/`);
+}
+
+function showSidebarTooltip(label: string, event: MouseEvent) {
+  if (!ui.sidebarCollapsed) return;
+  const target = event.currentTarget as HTMLElement | null;
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  sidebarTooltip.value = {
+    label,
+    top: rect.top + rect.height / 2,
+  };
+}
+
+function hideSidebarTooltip() {
+  sidebarTooltip.value = null;
 }
 
 function handleOutsideClicks(event: MouseEvent) {
@@ -136,6 +159,12 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
           <button
             class="flex h-7 w-7 items-center justify-center overflow-hidden rounded bg-white/[0.12] text-[10px] font-bold text-white transition-colors hover:bg-white/[0.2]"
             type="button"
+            :title="brandName"
+            :aria-label="brandName"
+            @mouseenter="showSidebarTooltip(brandName, $event)"
+            @mouseleave="hideSidebarTooltip"
+            @focus="showSidebarTooltip(brandName, $event as MouseEvent)"
+            @blur="hideSidebarTooltip"
             @click="brandMenuOpen = !brandMenuOpen"
           >
             <img v-if="brandLogo" :src="brandLogo" :alt="brandName" class="h-full w-full object-contain" />
@@ -212,17 +241,16 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
                 :class="isActive(item.to)
                   ? 'bg-white/[0.15] text-white'
                   : 'text-slate-400 hover:bg-white/[0.08] hover:text-white'"
+                :title="item.label"
+                :aria-label="item.label"
+                @mouseenter="showSidebarTooltip(item.label, $event)"
+                @mouseleave="hideSidebarTooltip"
+                @focus="showSidebarTooltip(item.label, $event as MouseEvent)"
+                @blur="hideSidebarTooltip"
                 @click="ui.closeSidebar()"
               >
                 <component :is="item.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
               </RouterLink>
-              <!-- Tooltip -->
-              <div
-                class="pointer-events-none absolute left-full top-1/2 z-50 ml-2.5 -translate-y-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg ring-1 ring-slate-700 transition-opacity duration-150 group-hover:opacity-100"
-              >
-                {{ item.label }}
-                <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
-              </div>
             </div>
             <div class="mx-auto my-1.5 w-5 border-t border-slate-700/60" />
           </div>
@@ -280,48 +308,81 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       <div class="shrink-0 space-y-px border-t border-slate-700 p-2">
 
         <!-- Collapse toggle (desktop only) -->
-        <button
-          class="hidden w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white lg:flex"
-          :class="ui.sidebarCollapsed ? 'justify-center' : ''"
-          type="button"
-          @click="ui.toggleSidebarCollapse()"
-        >
-          <ChevronRight
-            class="h-3.5 w-3.5 shrink-0 transition-transform duration-200"
-            :class="ui.sidebarCollapsed ? '' : 'rotate-180'"
-          />
-          <span v-if="!ui.sidebarCollapsed">Collapse</span>
-        </button>
+        <div class="group relative hidden lg:block">
+          <button
+            class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white"
+            :class="ui.sidebarCollapsed ? 'justify-center' : ''"
+            type="button"
+            :title="ui.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+            :aria-label="ui.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+            @mouseenter="showSidebarTooltip(ui.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar', $event)"
+            @mouseleave="hideSidebarTooltip"
+            @focus="showSidebarTooltip(ui.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar', $event as MouseEvent)"
+            @blur="hideSidebarTooltip"
+            @click="ui.toggleSidebarCollapse()"
+          >
+            <ChevronRight
+              class="h-3.5 w-3.5 shrink-0 transition-transform duration-200"
+              :class="ui.sidebarCollapsed ? '' : 'rotate-180'"
+            />
+            <span v-if="!ui.sidebarCollapsed">Collapse</span>
+          </button>
+        </div>
 
         <!-- User row -->
-        <RouterLink
-          :to="`/${role}/account`"
-          class="focus-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors hover:bg-white/[0.06]"
-          :class="ui.sidebarCollapsed ? 'justify-center' : ''"
-          @click="ui.closeSidebar()"
-        >
-          <UserAvatar :user="auth.user" size="sm" />
-          <div v-if="!ui.sidebarCollapsed" class="min-w-0 flex-1">
-            <p class="truncate text-[13px] font-medium leading-tight text-white">
-              {{ auth.user?.full_name || auth.user?.email }}
-            </p>
-            <p class="mt-px text-[10px] capitalize text-slate-400">{{ role }}</p>
-          </div>
-          <Settings v-if="!ui.sidebarCollapsed" class="h-[13px] w-[13px] shrink-0 text-slate-500" aria-hidden="true" />
-        </RouterLink>
+        <div class="group relative">
+          <RouterLink
+            :to="`/${role}/account`"
+            class="focus-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors hover:bg-white/[0.06]"
+            :class="ui.sidebarCollapsed ? 'justify-center' : ''"
+            :title="auth.user?.full_name || auth.user?.email || 'Account'"
+            :aria-label="auth.user?.full_name || auth.user?.email || 'Account'"
+            @mouseenter="showSidebarTooltip(auth.user?.full_name || auth.user?.email || 'Account', $event)"
+            @mouseleave="hideSidebarTooltip"
+            @focus="showSidebarTooltip(auth.user?.full_name || auth.user?.email || 'Account', $event as MouseEvent)"
+            @blur="hideSidebarTooltip"
+            @click="ui.closeSidebar()"
+          >
+            <UserAvatar :user="auth.user" size="sm" />
+            <div v-if="!ui.sidebarCollapsed" class="min-w-0 flex-1">
+              <p class="truncate text-[13px] font-medium leading-tight text-white">
+                {{ auth.user?.full_name || auth.user?.email }}
+              </p>
+              <p class="mt-px text-[10px] capitalize text-slate-400">{{ role }}</p>
+            </div>
+            <Settings v-if="!ui.sidebarCollapsed" class="h-[13px] w-[13px] shrink-0 text-slate-500" aria-hidden="true" />
+          </RouterLink>
+        </div>
 
         <!-- Sign out -->
-        <button
-          class="focus-ring flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-rose-400"
-          :class="ui.sidebarCollapsed ? 'justify-center' : ''"
-          type="button"
-          @click="auth.logout()"
-        >
-          <LogOut class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span v-if="!ui.sidebarCollapsed">Sign out</span>
-        </button>
+        <div class="group relative">
+          <button
+            class="focus-ring flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-rose-400"
+            :class="ui.sidebarCollapsed ? 'justify-center' : ''"
+            type="button"
+            title="Sign out"
+            aria-label="Sign out"
+            @mouseenter="showSidebarTooltip('Sign out', $event)"
+            @mouseleave="hideSidebarTooltip"
+            @focus="showSidebarTooltip('Sign out', $event as MouseEvent)"
+            @blur="hideSidebarTooltip"
+            @click="auth.logout()"
+          >
+            <LogOut class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span v-if="!ui.sidebarCollapsed">Sign out</span>
+          </button>
+        </div>
       </div>
     </aside>
+
+    <div
+      v-if="sidebarTooltip"
+      class="pointer-events-none fixed left-[66px] z-[80] -translate-y-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg ring-1 ring-slate-700"
+      :style="{ top: `${sidebarTooltip.top}px` }"
+    >
+      {{ sidebarTooltip.label }}
+      <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
+    </div>
 
     <!-- ── Main area ───────────────────────────────────────────────────── -->
     <div
