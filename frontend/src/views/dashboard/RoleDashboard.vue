@@ -23,6 +23,7 @@ import {
 } from "@lucide/vue";
 import type { Component } from "vue";
 import MetricTile from "@/components/ui/MetricTile.vue";
+import OnboardingChecklistCard from "@/components/shared/OnboardingChecklistCard.vue";
 import { dashboards } from "@/config/dashboard";
 import { groupedNavigationByRole } from "@/config/navigation";
 import { useDashboardData } from "@/composables/useDashboardData";
@@ -130,6 +131,9 @@ function metricIcon(label: string): Component | undefined {
     >
       {{ error }} — showing last known data.
     </p>
+
+    <!-- Onboarding checklist (client + writer only, auto-hides on completion) -->
+    <OnboardingChecklistCard v-if="role === 'client' || role === 'writer'" />
 
     <!-- Metric tiles -->
     <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

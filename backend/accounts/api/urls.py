@@ -23,6 +23,7 @@ from accounts.api.views.onboarding_views import (
     CompleteStaffOnboardingView,
     CompleteWriterOnboardingView,
 )
+from accounts.api.views.onboarding_status_view import OnboardingStatusView
 from accounts.api.views.permission_views import (
     PermissionDefinitionViewSet,
     RolePermissionViewSet,
@@ -64,6 +65,11 @@ router.register(
 
 
 urlpatterns = [
+    path(
+        "me/onboarding-status/",
+        OnboardingStatusView.as_view(),
+        name="onboarding-status",
+    ),
     path(
         "me/summary/",
         MyAccountSummaryView.as_view(),
