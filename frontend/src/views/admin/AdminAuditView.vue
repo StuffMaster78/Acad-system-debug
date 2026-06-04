@@ -24,6 +24,13 @@
       </div>
     </div>
 
+    <!-- Saved presets -->
+    <SavedViewPresets
+      view-type="audit"
+      :current-filters="(store.filters as Record<string, unknown>)"
+      @load="(f) => { Object.assign(store.filters, f); store.load(); }"
+    />
+
     <!-- Filters -->
     <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3">
       <div class="relative">
@@ -153,6 +160,7 @@
 import { onMounted, ref } from "vue";
 import { ChevronDown, ChevronRight, Download, Loader2, RefreshCw, Search, Shield } from "@lucide/vue";
 import { useAuditLogStore, humanAction } from "@/stores/auditLog";
+import SavedViewPresets from "@/components/admin/SavedViewPresets.vue";
 
 const store = useAuditLogStore();
 const expanded = ref<string | null>(null);

@@ -14,6 +14,7 @@ import {
 import { useRoute, useRouter } from "vue-router";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import SavedViewPresets from "@/components/admin/SavedViewPresets.vue";
 import { useAdminClientsStore } from "@/stores/adminClients";
 
 const clients = useAdminClientsStore();
@@ -140,6 +141,11 @@ onMounted(() => {
               placeholder="Search clients…"
             />
           </label>
+          <SavedViewPresets
+            view-type="clients"
+            :current-filters="{ query: clients.query, status: clients.statusFilter }"
+            @load="(f) => { clients.query = String(f.query ?? ''); if (f.status) clients.statusFilter = f.status as any; }"
+          />
         </div>
 
         <div v-if="clients.filteredClients.length" class="overflow-x-auto">

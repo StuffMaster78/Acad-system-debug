@@ -16,6 +16,7 @@ import {
 } from "@lucide/vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import SavedViewPresets from "@/components/admin/SavedViewPresets.vue";
 import { useAdminPaymentsStore } from "@/stores/adminPayments";
 import { useWebsitesStore } from "@/stores/websites";
 import {
@@ -321,6 +322,11 @@ onMounted(() => {
               placeholder="Search payments…"
             />
           </label>
+          <SavedViewPresets
+            view-type="payments"
+            :current-filters="{ query: payments.query }"
+            @load="(f) => { payments.query = String(f.query ?? ''); }"
+          />
         </div>
 
         <div v-if="payments.feed.length" class="overflow-x-auto">

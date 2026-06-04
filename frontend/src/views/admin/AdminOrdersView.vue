@@ -15,6 +15,7 @@ import {
 import BaseModal from "@/components/ui/BaseModal.vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import SavedViewPresets from "@/components/admin/SavedViewPresets.vue";
 import {
   adminWorkApi,
   type AdminWorkDetailBundle,
@@ -307,6 +308,13 @@ onMounted(() => {
           <h2 class="text-base font-semibold text-ink">All client-site work</h2>
           <p class="text-xs text-graphite">Normal orders, special orders, and class commitments.</p>
         </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50 px-5 py-2">
+        <SavedViewPresets
+          view-type="orders"
+          :current-filters="{ query: work.query, kind: work.activeKind }"
+          @load="(f) => { work.query = String(f.query ?? ''); if (f.kind) work.activeKind = String(f.kind); }"
+        />
       </div>
       <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
         <div class="flex flex-wrap gap-1">

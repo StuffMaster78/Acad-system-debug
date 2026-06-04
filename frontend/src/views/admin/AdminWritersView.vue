@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { AlertTriangle, BadgeMinus, Ban, BriefcaseBusiness, ExternalLink, FileText, RefreshCw, ShieldOff, UserCheck, Users } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import BulkActionBar from "@/components/ui/BulkActionBar.vue";
+import SavedViewPresets from "@/components/admin/SavedViewPresets.vue";
 import { useAdminWritersStore } from "@/stores/adminWriters";
 import { api, apiPath } from "@/api/client";
 
@@ -195,16 +196,23 @@ onMounted(() => {
             <h2 class="text-lg font-semibold text-ink">Writer roster</h2>
             <p class="mt-1 text-sm text-graphite">Filter and inspect platform writers.</p>
           </div>
-          <form class="flex gap-2" @submit.prevent="writers.hydrate()">
-            <input
-              v-model.trim="writers.query"
-              class="focus-ring h-10 rounded-md border border-slate-300 px-3 text-sm"
-              placeholder="Search writers"
+          <div class="flex flex-col gap-2">
+            <form class="flex gap-2" @submit.prevent="writers.hydrate()">
+              <input
+                v-model.trim="writers.query"
+                class="focus-ring h-10 rounded-md border border-slate-300 px-3 text-sm"
+                placeholder="Search writers"
+              />
+              <button class="focus-ring rounded-md bg-ink px-4 text-sm font-semibold text-white" type="submit">
+                Search
+              </button>
+            </form>
+            <SavedViewPresets
+              view-type="writers"
+              :current-filters="{ query: writers.query }"
+              @load="(f) => { writers.query = String(f.query ?? ''); writers.hydrate(); }"
             />
-            <button class="focus-ring rounded-md bg-ink px-4 text-sm font-semibold text-white" type="submit">
-              Search
-            </button>
-          </form>
+          </div>
         </div>
 
         <div v-if="bulkNotice" class="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">

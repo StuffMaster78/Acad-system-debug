@@ -2,6 +2,7 @@
 import { onMounted, ref } from "vue";
 import { AlertCircle, CheckCircle2, Clock, Search, ShieldAlert } from "@lucide/vue";
 import { useDisputesStore } from "@/stores/disputes";
+import SavedViewPresets from "@/components/admin/SavedViewPresets.vue";
 import type { Dispute, DisputeRemedy } from "@/types/disputes";
 
 const disputes = useDisputesStore();
@@ -102,6 +103,12 @@ const statusOptions = [
     <p v-if="disputes.error" class="rounded-lg bg-rose-50 border border-rose-200 px-4 py-2 text-sm text-rose-800">{{ disputes.error }}</p>
 
     <!-- Filters -->
+    <div class="space-y-2">
+    <SavedViewPresets
+      view-type="disputes"
+      :current-filters="{ query: disputes.query, status: disputes.statusFilter }"
+      @load="(f) => { disputes.query = String(f.query ?? ''); if (f.status) disputes.statusFilter = f.status as any; }"
+    />
     <div class="flex items-center gap-3 flex-wrap">
       <div class="relative flex-1 max-w-xs">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-graphite" />
@@ -124,6 +131,7 @@ const statusOptions = [
           {{ opt.label }}
         </button>
       </div>
+    </div>
     </div>
 
     <!-- Skeleton -->
