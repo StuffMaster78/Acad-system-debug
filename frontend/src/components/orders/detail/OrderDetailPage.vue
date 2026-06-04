@@ -8,6 +8,7 @@
       :role="role"
       :is-mutating="orders.isMutating"
       @approve="orders.approveOrder(orderId)"
+      @go-to-payments="activeTab = 'payments'"
     />
 
     <!-- Global store feedback -->
@@ -24,7 +25,7 @@
       <OrderSummaryCards :order="order" :lifecycle="lifecycle" :role="role" />
 
       <!-- Tab navigation -->
-      <OrderTabs :role="role" v-model="activeTab" />
+      <OrderTabs :role="role" :order="order" v-model="activeTab" />
 
       <!-- Tab content -->
       <div class="min-h-64">
