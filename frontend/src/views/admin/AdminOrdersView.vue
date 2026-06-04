@@ -313,7 +313,7 @@ onMounted(() => {
         <SavedViewPresets
           view-type="orders"
           :current-filters="{ query: work.query, kind: work.activeKind }"
-          @load="(f) => { work.query = String(f.query ?? ''); if (f.kind) work.activeKind = String(f.kind); }"
+          @load="(f) => { work.query = String(f.query ?? ''); if (f.kind) work.activeKind = f.kind as (typeof work.activeKind); }"
         />
       </div>
       <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">

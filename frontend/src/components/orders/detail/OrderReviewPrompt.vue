@@ -16,7 +16,7 @@
             />
             <span class="ml-1 text-sm text-graphite">{{ existing.rating }}/5</span>
           </div>
-          <p v-if="existing.comment" class="mt-1 text-sm text-graphite">{{ existing.comment }}</p>
+          <p v-if="existing.body" class="mt-1 text-sm text-graphite">{{ existing.body }}</p>
         </div>
       </div>
     </template>

@@ -8,7 +8,7 @@
       <div class="flex items-center gap-2">
         <button
           class="focus-ring inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold"
-          @click="store.exportUrl() && window.open(store.exportUrl(), '_blank')"
+          @click="exportAuditLog"
         >
           <Download class="h-4 w-4" /> Export
         </button>
@@ -165,6 +165,11 @@ import SavedViewPresets from "@/components/admin/SavedViewPresets.vue";
 const store = useAuditLogStore();
 const expanded = ref<string | null>(null);
 const SERVICES = ["auth", "orders", "payments", "wallets", "disputes", "staffing", "config"];
+
+function exportAuditLog() {
+  const url = store.exportUrl();
+  if (url) window.open(url, "_blank");
+}
 
 function toggle(id: string) { expanded.value = expanded.value === id ? null : id; }
 

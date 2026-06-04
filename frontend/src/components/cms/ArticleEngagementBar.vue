@@ -160,7 +160,7 @@ const SHARES = [
 
 function reactionCount(type: ReactionType): number {
   if (!props.summary) return 0;
-  const s = props.summary as Record<string, number>;
+  const s = props.summary as unknown as Record<string, number>;
   return s[type + "_count"] ?? 0;
 }
 

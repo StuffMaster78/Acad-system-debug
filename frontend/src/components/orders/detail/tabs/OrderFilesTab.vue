@@ -269,7 +269,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, defineComponent, h, ref } from "vue";
+import { computed, defineComponent, h, ref, type PropType } from "vue";
 import {
   AlertCircle, BookOpen, CheckCircle2, Download, ExternalLink,
   FileUp, Loader2, Lock, Paperclip, Plus, RefreshCw, Send, Trash2, X,
@@ -289,14 +289,14 @@ const FileTile = defineComponent({
     att: { type: Object as () => import("@/api/files").FileAttachment, required: true },
     orderId: { type: [String, Number], required: true },
     role: { type: String, required: true },
-    downloading: { type: Number, default: null },
-    deletingId: { type: Number, default: null },
+    downloading: { type: Number as PropType<number | null>, default: null },
+    deletingId: { type: Number as PropType<number | null>, default: null },
     deletingInFlight: Boolean,
     deleteReason: { type: String, default: "" },
     canDelete: Boolean,
     canStaffDetach: Boolean,
-    detachingId: { type: Number, default: null },
-    submittingFinal: { type: Number, default: null },
+    detachingId: { type: Number as PropType<number | null>, default: null },
+    submittingFinal: { type: Number as PropType<number | null>, default: null },
     showSubmitFinal: Boolean,
   },
   emits: ["download","open-delete","confirm-delete","cancel-delete","update:delete-reason","submit-final","staff-detach"],

@@ -167,11 +167,11 @@ async function save() {
   error.value = "";
   notice.value = "";
   try {
-    const payload = { ...draft, ...cleanRows() };
-    delete (payload as Record<string, unknown>).id;
+    const payload = { ...draft, ...cleanRows() } as Record<string, unknown>;
+    delete payload.id;
     const { data } = draft.id
-      ? await classesApi.updateConfig(draft.id, payload, websiteParams.value)
-      : await classesApi.createConfig(payload, websiteParams.value);
+      ? await classesApi.updateConfig(draft.id, payload as Partial<ClassServiceConfig>, websiteParams.value)
+      : await classesApi.createConfig(payload as Partial<ClassServiceConfig>, websiteParams.value);
     notice.value = draft.id ? "Configuration updated." : "Configuration created.";
     await load();
     editConfig(data);

@@ -410,7 +410,7 @@ async function exec(action: string) {
         ok("Dispute opened. All parties have been notified.");
         break;
       case "cancel":
-        await ordersApi.cancel(props.orderId, { reason: formInput.value });
+        await ordersApi.cancel(props.orderId, { reason: formInput.value, refund_destination: "wallet" });
         ok("Order cancelled.");
         break;
       case "archive_order":

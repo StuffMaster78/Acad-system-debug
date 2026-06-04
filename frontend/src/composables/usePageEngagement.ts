@@ -70,14 +70,14 @@ export function usePageEngagement(pageId: number | null | undefined) {
         // Optimistically update counts
         const prev = summary.value.user_reaction;
         if (prev && prev !== reactionType) {
-          (summary.value as Record<string, number>)[prev + "_count"] = Math.max(
+          (summary.value as unknown as Record<string, number>)[prev + "_count"] = Math.max(
             0,
-            ((summary.value as Record<string, number>)[prev + "_count"] || 0) - 1
+            ((summary.value as unknown as Record<string, number>)[prev + "_count"] || 0) - 1
           );
         }
         if (data.reaction_type) {
-          (summary.value as Record<string, number>)[reactionType + "_count"] =
-            ((summary.value as Record<string, number>)[reactionType + "_count"] || 0) +
+          (summary.value as unknown as Record<string, number>)[reactionType + "_count"] =
+            ((summary.value as unknown as Record<string, number>)[reactionType + "_count"] || 0) +
             (prev === reactionType ? -1 : 1);
         }
         summary.value.user_reaction = data.reaction_type;
