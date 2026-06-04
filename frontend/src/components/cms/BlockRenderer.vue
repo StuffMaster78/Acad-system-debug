@@ -78,7 +78,15 @@
       <div v-else-if="block.type === 'cta'" class="my-8 text-center">
         <a
           :href="(block.value as CtaValue).url"
-          class="inline-flex items-center gap-2 rounded-xl bg-berry px-8 py-4 text-base font-bold text-white shadow-lg transition-all hover:bg-rose-700 hover:shadow-xl"
+          class="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-bold shadow-lg transition-all"
+          :class="{
+            'bg-berry text-white hover:bg-rose-700 hover:shadow-xl':
+              !(block.value as CtaValue).style || (block.value as CtaValue).style === 'primary',
+            'bg-slate-100 text-ink hover:bg-slate-200':
+              (block.value as CtaValue).style === 'secondary',
+            'border-2 border-berry bg-transparent text-berry hover:bg-berry hover:text-white':
+              (block.value as CtaValue).style === 'outline',
+          }"
         >
           {{ (block.value as CtaValue).text }}
           <ArrowRight class="size-5" />
@@ -93,9 +101,9 @@
         v-else-if="block.type === 'hero'"
         class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-ink to-slate-700 px-8 py-16 text-white"
       >
-        <h1 class="text-4xl font-extrabold leading-tight">{{ (block.value as HeroValue).heading }}</h1>
-        <p v-if="(block.value as HeroValue).subheading" class="mt-4 max-w-2xl text-lg text-slate-300">
-          {{ (block.value as HeroValue).subheading }}
+        <h1 class="text-4xl font-extrabold leading-tight">{{ (block.value as HeroValue).headline }}</h1>
+        <p v-if="(block.value as HeroValue).subheadline" class="mt-4 max-w-2xl text-lg text-slate-300">
+          {{ (block.value as HeroValue).subheadline }}
         </p>
         <a
           v-if="(block.value as HeroValue).cta_text"
@@ -552,8 +560,8 @@ interface ImageValue { url?: string; alt?: string; caption?: string }
 interface QuoteValue { text: string; attribution?: string }
 interface CalloutValue { type?: string; title?: string; body: string }
 interface FaqValue { items: { question: string; answer: string }[] }
-interface CtaValue { text: string; url: string; subtext?: string }
-interface HeroValue { heading: string; subheading?: string; cta_text?: string; cta_url?: string }
+interface CtaValue { text: string; url: string; subtext?: string; style?: 'primary' | 'secondary' | 'outline' }
+interface HeroValue { headline: string; subheadline?: string; cta_text?: string; cta_url?: string; background_image?: unknown }
 interface TrustStripValue { items: { label: string }[] }
 interface FeatureGridValue { features: { icon?: string; title: string; body: string }[] }
 interface PricingTableValue { rows: { pages: string; standard: string; urgent: string }[] }

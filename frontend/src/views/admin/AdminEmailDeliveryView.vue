@@ -221,6 +221,9 @@
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">API Key</label>
             <input v-model="providerForm.api_key" type="password" autocomplete="off" class="input" placeholder="Leave blank to keep existing" />
+            <p v-if="providerForm.provider_name === 'mailgun'" class="mt-1 text-xs text-amber-700">
+              Mailgun: store as <code class="rounded bg-amber-50 px-1">key:mg.yourdomain.com</code> (key and sending domain separated by colon).
+            </p>
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Sender Name</label>

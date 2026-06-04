@@ -1,18 +1,27 @@
 """
 Email provider abstraction with registry pattern.
-Easily extendable for future providers.
+
+Supported providers:
+  smtp      - Django built-in mail backend (default)
+  sendgrid  - SendGrid v3 Mail Send API (no extra SDK required)
+  mailgun   - Mailgun Messages API (no extra SDK required)
+
+Mailgun note: store the api_key field as "{mailgun_api_key}:{sending_domain}",
+e.g. key-abc123:mg.yourdomain.com  (colon separator required).
 """
 
-from django.core.mail import EmailMultiAlternatives
 import logging
+import re
+
+import requests as http_requests
+from django.core.mail import EmailMultiAlternatives
+
+log = logging.getLogger(__name__)
 
 PROVIDER_REGISTRY = {}
 
 
 def register_provider(name):
-    """
-    Decorator to register a provider class.
-    """
     def decorator(cls):
         PROVIDER_REGISTRY[name.lower()] = cls
         return cls
@@ -20,10 +29,6 @@ def register_provider(name):
 
 
 class EmailProviderBase:
-    """
-    Abstract base class for all email providers.
-    """
-
     def send_email(self, subject, body_html, from_email, to):
         raise NotImplementedError
 
@@ -36,57 +41,106 @@ class SMTPProvider(EmailProviderBase):
         msg.send()
 
 
-# Optional: Add your SendGrid and Mailgun implementations
-# You’ll need to install these packages:
-# pip install sendgrid mailgun-python
+@register_provider("sendgrid")
+class SendGridProvider(EmailProviderBase):
+    """
+    Sends via the SendGrid v3 Mail Send API.
+    No sendgrid SDK required - only the requests package.
+    """
 
-# Example: SendGrid
-# from sendgrid import SendGridAPIClient
-# from sendgrid.helpers.mail import Mail
+    _API_URL = "https://api.sendgrid.com/v3/mail/send"
 
-# @register_provider("sendgrid")
-# class SendGridProvider(EmailProviderBase):
-# def __init__(self, api_key):
-# self.client = SendGridAPIClient(api_key=api_key)
+    def __init__(self, api_key):
+        self._api_key = api_key
 
-# def send_email(self, subject, body_html, from_email, to):
-# message = Mail(
-# from_email=from_email,
-# to_emails=to,
-# subject=subject,
-# html_content=body_html
-# )
-# self.client.send(message)
+    def send_email(self, subject, body_html, from_email, to):
+        from_name, from_addr = _parse_address(from_email)
+        from_field = {"email": from_addr}
+        if from_name:
+            from_field["name"] = from_name
+
+        payload = {
+            "personalizations": [
+                {"to": [{"email": addr} for addr in to]}
+            ],
+            "from": from_field,
+            "subject": subject,
+            "content": [{"type": "text/html", "value": body_html}],
+        }
+        resp = http_requests.post(
+            self._API_URL,
+            json=payload,
+            headers={
+                "Authorization": "Bearer " + self._api_key,
+                "Content-Type": "application/json",
+            },
+            timeout=30,
+        )
+        if resp.status_code not in (200, 202):
+            log.error("SendGrid API error %s: %s", resp.status_code, resp.text)
+            resp.raise_for_status()
 
 
-# Example: Mailgun
-# import requests
+@register_provider("mailgun")
+class MailgunProvider(EmailProviderBase):
+    """
+    Sends via the Mailgun Messages API.
+    No mailgun SDK required - only the requests package.
 
-# @register_provider("mailgun")
-# class MailgunProvider(EmailProviderBase):
-# def __init__(self, api_key, domain):
-# self.api_key = api_key
-# self.domain = domain
+    Store api_key as:  {mailgun_api_key}:{sending_domain}
+    Example:           key-abc1234567890:mg.yourplatform.com
+    """
 
-# def send_email(self, subject, body_html, from_email, to):
-# return requests.post(
-# f"https://api.mailgun.net/v3/{self.domain}/messages",
-# auth=("api", self.api_key),
-# data={
-# "from": from_email,
-# "to": to,
-# "subject": subject,
-# "html": body_html
-# }
-# )
+    _API_BASE = "https://api.mailgun.net/v3"
+
+    def __init__(self, api_key):
+        if ":" not in api_key:
+            raise ValueError(
+                "Mailgun api_key must be stored as {key}:{domain}. "
+                "Example: key-abc123:mg.yourdomain.com"
+            )
+        self._key, self._domain = api_key.split(":", 1)
+
+    def send_email(self, subject, body_html, from_email, to):
+        resp = http_requests.post(
+            self._API_BASE + "/" + self._domain + "/messages",
+            auth=("api", self._key),
+            data={
+                "from": from_email,
+                "to": to,
+                "subject": subject,
+                "html": body_html,
+            },
+            timeout=30,
+        )
+        if not resp.ok:
+            log.error("Mailgun API error %s: %s", resp.status_code, resp.text)
+            resp.raise_for_status()
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+_ADDR_RE = re.compile(r"^(.*?)\s*<([^>]+)>$")
+
+
+def _parse_address(address):
+    """Parse 'Display Name <email>' or plain 'email'. Returns (name, email)."""
+    clean = address.strip()
+    m = _ADDR_RE.match(clean)
+    if m:
+        name = m.group(1).strip().strip('"')
+        return name, m.group(2).strip()
+    return "", clean
 
 
 def get_provider_client(campaign):
     """
     Returns the appropriate provider client for the campaign.
-    Falls back to SMTP if no integration is active.
+    Falls back to SMTP if no active integration is configured.
     """
-    integration = getattr(campaign.website, 'email_service', None)
+    integration = getattr(campaign.website, "email_service", None)
     if not integration or not integration.is_active:
         return SMTPProvider()
 
@@ -94,12 +148,12 @@ def get_provider_client(campaign):
     provider_class = PROVIDER_REGISTRY.get(provider_name)
 
     if not provider_class:
-        raise ValueError(f"Unsupported provider: {provider_name}")
+        raise ValueError("Unsupported email provider: " + provider_name)
 
     try:
         return provider_class(api_key=integration.api_key)
     except TypeError:
-        return provider_class() # For SMTP (no api_key needed)
-    except Exception as e:
-        logging.error(f"Failed to init provider {provider_name}: {e}")
+        return provider_class()
+    except Exception as exc:
+        log.error("Failed to init provider %s: %s", provider_name, exc)
         raise
