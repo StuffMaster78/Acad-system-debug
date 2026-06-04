@@ -94,6 +94,10 @@ def debug_task(self):
 # ---------- Static Beat Schedule (safe even with shim) ----------
 # Using crontab() stub returns None when Celery isn't installed; harmless.
 app.conf.beat_schedule = { # type: ignore[attr-defined]
+    "dispatch-scheduled-mass-emails": {
+        "task": "mass_emails.tasks.dispatch_scheduled_campaigns",
+        "schedule": crontab(minute="*/5"),
+    },
     "send-scheduled-announcements": {
         "task": "announcements.tasks.send_scheduled_announcements",
         "schedule": crontab(minute="*/5"), # Every 5 minutes

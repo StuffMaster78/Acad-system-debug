@@ -13,6 +13,35 @@ from .services.campaign_service import MassEmailCampaignService
 logger = logging.getLogger(__name__)
 
 
+@shared_task
+def dispatch_scheduled_campaigns():
+    """
+    Pick up campaigns whose scheduled_time has passed and dispatch them.
+
+    Uses an atomic status transition (scheduled → sending) to prevent
+    double-dispatch if beat runs overlap.
+    """
+    now = timezone.now()
+    due_ids = list(
+        EmailCampaign.objects.filter(
+            status="scheduled",
+            scheduled_time__lte=now,
+        ).values_list("id", flat=True)
+    )
+    dispatched = 0
+    for campaign_id in due_ids:
+        # Only proceed if we can atomically claim the campaign.
+        claimed = EmailCampaign.objects.filter(
+            id=campaign_id,
+            status="scheduled",
+        ).update(status="sending")
+        if claimed:
+            send_email_campaign.delay(campaign_id)
+            dispatched += 1
+    logger.info("dispatch_scheduled_campaigns: dispatched %d campaign(s)", dispatched)
+    return dispatched
+
+
 @shared_task(bind=True, max_retries=3)
 def send_email_campaign(self, campaign_id):
     """

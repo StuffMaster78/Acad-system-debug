@@ -188,6 +188,10 @@ export const adminCommsApi = {
     api.post(apiPath(`/mass-emails/campaigns/${campaignId}/sync-recipients/`), {}),
   sendCampaignNow: (campaignId: number) =>
     api.post(apiPath(`/mass-emails/campaigns/${campaignId}/send_now/`), {}),
+  scheduleCampaign: (campaignId: number, scheduledTime: string) =>
+    api.post(apiPath(`/mass-emails/campaigns/${campaignId}/schedule/`), {
+      scheduled_time: scheduledTime,
+    }),
   sendCampaignTest: (campaignId: number) =>
     api.post(apiPath(`/mass-emails/campaigns/${campaignId}/send_test/`), {}),
 

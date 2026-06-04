@@ -137,8 +137,10 @@ export const useAdminCommsStore = defineStore("admin-comms", () => {
     title: "New campaign",
     subject: "A writing update from our team",
     body: "<h2>Hello {{ first_name }}</h2><p>We have an update for you.</p>",
-    email_type: "operational",
+    email_type: "marketing" as string,
     target_roles: ["client"] as CreateEmailCampaignPayload["target_roles"],
+    website: null as number | null,
+    scheduled_time: null as string | null,
   });
 
   const filteredThreads = computed(() => {
@@ -267,6 +269,46 @@ export const useAdminCommsStore = defineStore("admin-comms", () => {
     }
   }
 
+  async function sendCampaignNow(campaignId: number) {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        campaigns.value = campaigns.value.map((c) =>
+          c.id === campaignId ? { ...c, status: "sending" } : c,
+        );
+        notice.value = "Preview: campaign marked as sending.";
+        return;
+      }
+      await adminCommsApi.sendCampaignNow(campaignId);
+      notice.value = "Campaign sending started.";
+      await hydrate();
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function scheduleCampaign(campaignId: number, scheduledTime: string) {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        campaigns.value = campaigns.value.map((c) =>
+          c.id === campaignId ? { ...c, status: "scheduled", scheduled_time: scheduledTime } : c,
+        );
+        notice.value = "Preview: campaign scheduled.";
+        return;
+      }
+      await adminCommsApi.scheduleCampaign(campaignId, scheduledTime);
+      notice.value = "Campaign scheduled.";
+      await hydrate();
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   async function sendCampaignTest(campaignId: number) {
     const auth = useAuthStore();
     isMutating.value = true;
@@ -291,6 +333,8 @@ export const useAdminCommsStore = defineStore("admin-comms", () => {
       body: campaignComposer.value.body,
       email_type: campaignComposer.value.email_type,
       target_roles: campaignComposer.value.target_roles,
+      website: campaignComposer.value.website ?? undefined,
+      scheduled_time: campaignComposer.value.scheduled_time ?? undefined,
     };
 
     isMutating.value = true;
@@ -341,6 +385,8 @@ export const useAdminCommsStore = defineStore("admin-comms", () => {
     metrics,
     hydrate,
     sendBroadcast,
+    sendCampaignNow,
+    scheduleCampaign,
     sendCampaignTest,
     createCampaign,
   };

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import {
   BarChart3,
   BellRing,
@@ -20,6 +20,8 @@ import EmptyState from "@/components/ui/EmptyState.vue";
 import RichTextEditor from "@/components/forms/RichTextEditor.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminCommsStore } from "@/stores/adminComms";
+import { usePortalContextStore } from "@/stores/portalContext";
+import { useWebsitesStore } from "@/stores/websites";
 import { announcementsApi, type AnnouncementRecord, type CreateAnnouncementPayload } from "@/api/announcements";
 import {
   adminCommsApi,
@@ -29,6 +31,34 @@ import {
 } from "@/api/adminComms";
 
 const comms = useAdminCommsStore();
+const portalCtx = usePortalContextStore();
+const websites = useWebsitesStore();
+
+const isSuperadmin = computed(() => portalCtx.surface === "staff" &&
+  ["superadmin"].includes(portalCtx.allowedRoles?.[0] ?? ""));
+
+// Schedule modal state
+const scheduleModal = ref<{ open: boolean; campaignId: number | null; scheduledTime: string }>({
+  open: false,
+  campaignId: null,
+  scheduledTime: "",
+});
+function openScheduleModal(campaignId: number) {
+  const tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
+  scheduleModal.value = {
+    open: true,
+    campaignId,
+    scheduledTime: tomorrow.toISOString().slice(0, 16), // datetime-local format
+  };
+}
+async function confirmSchedule() {
+  if (!scheduleModal.value.campaignId || !scheduleModal.value.scheduledTime) return;
+  await comms.scheduleCampaign(
+    scheduleModal.value.campaignId,
+    new Date(scheduleModal.value.scheduledTime).toISOString(),
+  ).catch(() => undefined);
+  scheduleModal.value.open = false;
+}
 
 // ─── Announcements ──────────────────────────────────────────────────────────
 const announcements = ref<AnnouncementRecord[]>([]);
@@ -449,6 +479,20 @@ onMounted(() => {
           </div>
 
           <div class="mt-4 space-y-3">
+            <!-- Website selector — superadmin only; admin is auto-scoped -->
+            <label v-if="isSuperadmin" class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Website</span>
+              <select
+                v-model="comms.campaignComposer.website"
+                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+              >
+                <option :value="null">— Select website —</option>
+                <option v-for="site in websites.list" :key="site.id" :value="site.id">
+                  {{ site.name }}
+                </option>
+              </select>
+            </label>
+
             <label class="block">
               <span class="text-xs font-semibold uppercase text-graphite">Campaign title</span>
               <input
@@ -465,16 +509,69 @@ onMounted(() => {
                 type="text"
               >
             </label>
+
+            <!-- Email type + target roles -->
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="text-xs font-semibold uppercase text-graphite">Email type</span>
+                <select
+                  v-model="comms.campaignComposer.email_type"
+                  class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                >
+                  <option value="marketing">Marketing</option>
+                  <option value="promos">Promos</option>
+                  <option value="communication">Communication</option>
+                  <option value="updates">Updates</option>
+                </select>
+              </label>
+              <div>
+                <p class="text-xs font-semibold uppercase text-graphite">Target roles</p>
+                <div class="mt-1 flex gap-2">
+                  <label
+                    v-for="role in ['client', 'writer']"
+                    :key="role"
+                    class="flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-semibold capitalize transition-colors"
+                    :class="comms.campaignComposer.target_roles.includes(role as never)
+                      ? 'border-signal bg-signal/5 text-signal'
+                      : 'border-slate-200 text-graphite hover:bg-slate-50'"
+                  >
+                    <input
+                      type="checkbox"
+                      class="sr-only"
+                      :checked="comms.campaignComposer.target_roles.includes(role as never)"
+                      @change="(e) => {
+                        const checked = (e.target as HTMLInputElement).checked;
+                        comms.campaignComposer.target_roles = checked
+                          ? [...comms.campaignComposer.target_roles, role as never]
+                          : comms.campaignComposer.target_roles.filter((r) => r !== role);
+                      }"
+                    />
+                    {{ role }}
+                  </label>
+                </div>
+              </div>
+            </div>
+
             <label class="block">
               <span class="text-xs font-semibold uppercase text-graphite">Rich body</span>
-              <RichTextEditor
-                v-model="comms.campaignComposer.body"
-              />
+              <RichTextEditor v-model="comms.campaignComposer.body" />
             </label>
             <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
               <p class="text-xs font-semibold uppercase text-graphite">Preview</p>
               <div class="mt-2 rounded-md bg-white p-3 text-sm leading-6 text-ink" v-html="comms.campaignComposer.body" />
             </div>
+
+            <!-- Schedule time (optional) -->
+            <label class="block">
+              <span class="text-xs font-semibold uppercase text-graphite">Schedule send (optional)</span>
+              <input
+                v-model="comms.campaignComposer.scheduled_time"
+                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                type="datetime-local"
+              >
+              <p class="mt-1 text-xs text-graphite">Leave blank to save as draft.</p>
+            </label>
+
             <div class="grid gap-2 sm:grid-cols-2">
               <button
                 class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold"
@@ -490,7 +587,7 @@ onMounted(() => {
                 :disabled="comms.isMutating"
                 @click="comms.createCampaign(true).catch(() => undefined)"
               >
-                Send test
+                Save &amp; send test
               </button>
             </div>
           </div>
@@ -506,21 +603,78 @@ onMounted(() => {
                 <div>
                   <p class="font-semibold text-ink">{{ campaign.title }}</p>
                   <p class="mt-1 text-sm text-graphite">{{ campaign.subject }}</p>
+                  <p v-if="campaign.website" class="mt-0.5 text-xs text-graphite/60">
+                    {{ typeof campaign.website === "string" ? campaign.website : `Site #${campaign.website}` }}
+                  </p>
                 </div>
                 <StatusPill :label="campaign.status" :tone="statusTone(campaign.status)" />
               </div>
               <p class="mt-2 text-xs text-graphite">
                 {{ campaign.email_type || "campaign" }} · {{ formatDate(campaign.scheduled_time || campaign.sent_time || campaign.created_at) }}
               </p>
-              <button
-                class="focus-ring mt-3 inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold"
-                type="button"
-                :disabled="comms.isMutating"
-                @click="comms.sendCampaignTest(campaign.id).catch(() => undefined)"
-              >
-                Send test
-              </button>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button
+                  class="focus-ring inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold"
+                  type="button"
+                  :disabled="comms.isMutating"
+                  @click="comms.sendCampaignTest(campaign.id).catch(() => undefined)"
+                >
+                  Send test
+                </button>
+                <button
+                  v-if="['draft', 'scheduled'].includes(campaign.status)"
+                  class="focus-ring inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-signal px-2.5 text-xs font-semibold text-white"
+                  type="button"
+                  :disabled="comms.isMutating"
+                  @click="comms.sendCampaignNow(campaign.id).catch(() => undefined)"
+                >
+                  Send now
+                </button>
+                <button
+                  v-if="campaign.status === 'draft'"
+                  class="focus-ring inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold"
+                  type="button"
+                  :disabled="comms.isMutating"
+                  @click="openScheduleModal(campaign.id)"
+                >
+                  Schedule
+                </button>
+              </div>
             </article>
+          </div>
+
+          <!-- Schedule modal -->
+          <div
+            v-if="scheduleModal.open"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            @click.self="scheduleModal.open = false"
+          >
+            <div class="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+              <h3 class="text-sm font-semibold text-ink">Schedule campaign</h3>
+              <p class="mt-1 text-xs text-graphite">Choose when to send. The campaign will dispatch automatically.</p>
+              <input
+                v-model="scheduleModal.scheduledTime"
+                type="datetime-local"
+                class="focus-ring mt-3 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+              >
+              <div class="mt-4 flex justify-end gap-2">
+                <button
+                  class="focus-ring h-9 rounded-md border border-slate-200 px-3 text-sm font-semibold"
+                  type="button"
+                  @click="scheduleModal.open = false"
+                >
+                  Cancel
+                </button>
+                <button
+                  class="focus-ring h-9 rounded-md bg-ink px-3 text-sm font-semibold text-white"
+                  type="button"
+                  :disabled="comms.isMutating || !scheduleModal.scheduledTime"
+                  @click="confirmSchedule"
+                >
+                  Confirm schedule
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       </aside>

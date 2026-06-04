@@ -75,7 +75,22 @@ class EmailCampaignViewSet(viewsets.ModelViewSet):
         return EmailCampaignDetailSerializer
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        user = self.request.user
+        is_superadmin = (
+            getattr(user, "is_superuser", False)
+            or getattr(user, "role", None) == "superadmin"
+        )
+        if not is_superadmin:
+            # Non-superadmin staff can only create campaigns for their own website.
+            website = getattr(user, "website", None)
+            if website is None:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError(
+                    {"website": "No website associated with your account."}
+                )
+            serializer.save(created_by=user, website=website)
+        else:
+            serializer.save(created_by=user)
 
     @action(detail=True, methods=['post'])
     def schedule(self, request, pk=None):
