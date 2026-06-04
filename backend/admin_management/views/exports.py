@@ -68,7 +68,10 @@ class ExportViewSet(viewsets.ViewSet):
 
         is_paid = request.query_params.get('is_paid')
         if is_paid is not None:
-            queryset = queryset.filter(is_paid=(is_paid.lower() in ['true', '1', 'yes']))
+            if is_paid.lower() in ('true', '1', 'yes'):
+                queryset = queryset.filter(payment_status='fully_paid')
+            else:
+                queryset = queryset.exclude(payment_status='fully_paid').exclude(payment_status='refunded')
 
         # Role-based filtering
         user_role = getattr(request.user, 'role', None)

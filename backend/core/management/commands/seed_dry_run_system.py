@@ -666,7 +666,8 @@ class Command(BaseCommand):
                         writer_deadline_percentage=writer_deadline_cfg,
                         total_price=Decimal(str(randint(50, 500))),
                         writer_compensation=Decimal(str(randint(30, 300))),
-                        is_paid=is_paid,
+                        payment_status='fully_paid' if is_paid else 'unpaid',
+                        amount_paid=Decimal(str(randint(50, 500))) if is_paid else Decimal('0.00'),
                         order_instructions=f"This is a dry run order with status '{status}'. Created for system testing.",
                     )
 

@@ -193,9 +193,8 @@ class Command(BaseCommand):
                 completed_orders = Order.objects.filter(
                     website=website,
                     status='completed',
-                    is_paid=True,
-                    assigned_writer__isnull=False
-                )[:count * 2] # Get more orders than needed
+                    payment_status='fully_paid',
+                )[:count * 2]
 
                 if not completed_orders.exists():
                     self.stdout.write(

@@ -1471,7 +1471,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         # === REVENUE ANALYTICS ===
         revenue_orders = Order.objects.filter(
             created_at__gte=date_from,
-            is_paid=True
+            payment_status='fully_paid',
         )
         if website_filter:
             revenue_orders = revenue_orders.filter(website=website_filter)
@@ -1502,7 +1502,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         # Order conversion funnel
         conversion_funnel = {
             'created': all_orders.count(),
-            'paid': all_orders.filter(is_paid=True).count(),
+            'paid': all_orders.filter(payment_status='fully_paid').count(),
             'assigned': all_orders.filter(assigned_writer__isnull=False).count(),
             'in_progress': all_orders.filter(status=OrderStatus.IN_PROGRESS.value).count(),
             'submitted': all_orders.filter(status=OrderStatus.SUBMITTED.value).count(),
@@ -1549,7 +1549,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                 orders_as_client__created_at__gte=date_from
             )),
             total_spent=Sum('orders_as_client__total_price', filter=Q(
-                orders_as_client__is_paid=True,
+                orders_as_client__payment_status='fully_paid',
                 orders_as_client__created_at__gte=date_from
             ))
         ).filter(order_count__gt=0).order_by('-total_spent')[:10]
@@ -1606,7 +1606,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         ).values('week').annotate(
             orders_created=Count('id'),
             orders_completed=Count('id', filter=Q(status=OrderStatus.COMPLETED.value)),
-            revenue=Sum('total_price', filter=Q(is_paid=True))
+            revenue=Sum('total_price', filter=Q(payment_status='fully_paid'))
         ).order_by('week')
 
         return Response({
@@ -1709,7 +1709,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         if website_filter:
             period1_orders = period1_orders.filter(website=website_filter)
 
-        period1_revenue = period1_orders.filter(is_paid=True).aggregate(
+        period1_revenue = period1_orders.filter(payment_status='fully_paid').aggregate(
             total=Sum('total_price')
         )['total'] or 0
         period1_completed = period1_orders.filter(status=OrderStatus.COMPLETED.value).count()
@@ -1722,7 +1722,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         if website_filter:
             period2_orders = period2_orders.filter(website=website_filter)
 
-        period2_revenue = period2_orders.filter(is_paid=True).aggregate(
+        period2_revenue = period2_orders.filter(payment_status='fully_paid').aggregate(
             total=Sum('total_price')
         )['total'] or 0
         period2_completed = period2_orders.filter(status=OrderStatus.COMPLETED.value).count()

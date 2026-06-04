@@ -235,7 +235,7 @@ class NeedsAttentionFilter(admin.SimpleListFilter):
             )
         elif self.value() == 'unpaid':
             return queryset.filter(
-                is_paid=False,
+                payment_status='unpaid',
                 status__in=[
                     OrderStatus.UNPAID.value,
                     OrderStatus.PENDING.value,

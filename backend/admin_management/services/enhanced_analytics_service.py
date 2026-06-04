@@ -43,7 +43,7 @@ class EnhancedAnalyticsService:
         ).values('day').annotate(
             total=Count('id'),
             completed=Count('id', filter=Q(status__in=['completed', 'reviewed'])),
-            revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField())
+            revenue=Sum('total_price', filter=Q(payment_status='fully_paid'), output_field=DecimalField())
         ).order_by('day')
 
         # Average order completion time (simplified)
@@ -73,7 +73,7 @@ class EnhancedAnalyticsService:
         ).annotate(
             order_count=Count('orders_as_client'),
             total_spent=Sum('orders_as_client__total_price', filter=Q(
-                orders_as_client__is_paid=True
+                orders_as_client__payment_status='fully_paid'
             ), output_field=DecimalField()),
             repeat_orders=Count('orders_as_client', filter=Q(
                 orders_as_client__created_at__gte=start_date
@@ -87,7 +87,7 @@ class EnhancedAnalyticsService:
 
         # Revenue trends
         revenue_trends = orders.filter(
-            is_paid=True
+            payment_status='fully_paid'
         ).annotate(
             day=TruncDay('created_at')
         ).values('day').annotate(
@@ -235,7 +235,7 @@ class EnhancedAnalyticsService:
             return {
                 'total_orders': orders.count(),
                 'completed_orders': orders.filter(status__in=['completed', 'reviewed']).count(),
-                'revenue': float(orders.filter(is_paid=True).aggregate(
+                'revenue': float(orders.filter(payment_status='fully_paid').aggregate(
                     total=Sum('total_price', output_field=DecimalField())
                 )['total'] or 0),
                 'new_clients': User.objects.filter(

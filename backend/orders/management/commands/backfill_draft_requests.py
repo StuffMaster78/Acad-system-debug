@@ -59,7 +59,7 @@ class Command(BaseCommand):
 
         eligible_orders = (
             Order.objects.filter(
-                is_paid=True,
+                payment_status='fully_paid',
                 client__isnull=False,
                 extra_services__in=progressive_services,
             )

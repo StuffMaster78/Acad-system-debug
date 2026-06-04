@@ -123,33 +123,44 @@ class ClientWalletFactory(factory.django.DjangoModelFactory):
 
 
 class OrderFactory(factory.django.DjangoModelFactory):
-    """Factory for creating Order instances."""
+    """Factory for creating Order instances (new Order model)."""
 
     class Meta:
         model = Order
 
-    title = factory.Faker('sentence', nb_words=4)
-    description = factory.Faker('text', max_nb_chars=500)
-    deadline = factory.LazyFunction(lambda: timezone.now() + timedelta(days=7))
-    pages = factory.Faker('random_int', min=1, max=20)
-    academic_level = 'undergraduate'
-    paper_type = 'essay'
-    status = 'pending'
-    price = factory.LazyFunction(lambda: Decimal(fake.pydecimal(left_digits=3, right_digits=2, positive=True)))
+    topic = factory.Faker('sentence', nb_words=6)
+    order_instructions = factory.Faker('text', max_nb_chars=200)
+    client_deadline = factory.LazyFunction(lambda: timezone.now() + timedelta(days=7))
+    base_quantity = 2
+    status = 'created'
+    total_price = factory.LazyFunction(
+        lambda: Decimal(str(fake.pydecimal(left_digits=3, right_digits=2, positive=True)))
+    )
+    payment_status = 'unpaid'
     client = factory.SubFactory(ClientUserFactory)
     website = factory.LazyAttribute(lambda obj: obj.client.website)
-    is_paid = False
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        from order_configs.models import PaperType
+        website = kwargs.get('website')
+        if website and 'paper_type' not in kwargs:
+            paper_type, _ = PaperType.objects.get_or_create(website=website, name='Essay')
+            kwargs['paper_type'] = paper_type
+        return super()._create(model_class, *args, **kwargs)
 
 
 class PaidOrderFactory(OrderFactory):
     """Factory for creating paid orders."""
-    is_paid = True
+    payment_status = 'fully_paid'
+    amount_paid = factory.LazyAttribute(lambda o: o.total_price)
     status = 'assigned'
 
 
 class CompletedOrderFactory(OrderFactory):
     """Factory for creating completed orders."""
-    is_paid = True
+    payment_status = 'fully_paid'
+    amount_paid = factory.LazyAttribute(lambda o: o.total_price)
     status = 'completed'
     completed_at = factory.LazyFunction(timezone.now)
 

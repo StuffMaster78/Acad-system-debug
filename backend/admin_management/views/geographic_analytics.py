@@ -56,7 +56,7 @@ class GeographicAnalyticsViewSet(viewsets.ViewSet):
             date_from = timezone.now() - timedelta(days=days)
 
         # Base queryset for paid orders
-        orders = Order.objects.filter(is_paid=True)
+        orders = Order.objects.filter(payment_status='fully_paid')
         if website_filter:
             orders = orders.filter(website=website_filter)
         if date_from:
@@ -159,7 +159,7 @@ class GeographicAnalyticsViewSet(viewsets.ViewSet):
         if days > 0:
             date_from = timezone.now() - timedelta(days=days)
 
-        orders = Order.objects.filter(is_paid=True)
+        orders = Order.objects.filter(payment_status='fully_paid')
         if website_filter:
             orders = orders.filter(website=website_filter)
         if date_from:
@@ -203,7 +203,7 @@ class GeographicAnalyticsViewSet(viewsets.ViewSet):
         if days > 0:
             date_from = timezone.now() - timedelta(days=days)
 
-        orders = Order.objects.filter(is_paid=True)
+        orders = Order.objects.filter(payment_status='fully_paid')
         if website_filter:
             orders = orders.filter(website=website_filter)
         if date_from:
@@ -248,7 +248,7 @@ class GeographicAnalyticsViewSet(viewsets.ViewSet):
         if days > 0:
             date_from = timezone.now() - timedelta(days=days)
 
-        orders = Order.objects.filter(is_paid=True)
+        orders = Order.objects.filter(payment_status='fully_paid')
         if website_filter:
             orders = orders.filter(website=website_filter)
         if date_from:

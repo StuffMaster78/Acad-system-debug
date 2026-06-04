@@ -48,7 +48,7 @@ class FinancialOverviewViewSet(ViewSet):
         website_id = request.query_params.get('website_id')
 
         # Build base querysets
-        orders_qs = Order.objects.filter(is_paid=True)
+        orders_qs = Order.objects.filter(payment_status='fully_paid')
         special_payment_qs = SpecialOrderPaymentApplication.objects.filter(
             status=PaymentApplicationStatus.APPLIED,
         )

@@ -402,7 +402,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             from orders.models.legacy_models.requests import WriterRequest
             writer_requests = WriterRequest.objects.filter(
                 requested_by_writer=request.user,
-                order__is_paid=True # Only show requests for paid orders
+                order__payment_status='fully_paid',
             ).select_related('order').order_by('-created_at')
 
             # Add writer request order IDs to requested list
@@ -784,7 +784,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         completed_paid_orders = Order.objects.filter(
             assignments__writer=request.user, assignments__is_current=True,
             status__in=['completed', 'approved'],
-            is_paid=True
+            payment_status='fully_paid',
         ).select_related('client', 'website').order_by('-submitted_at', '-created_at', '-updated_at')
 
         # Get completed orders that are paid but writer payment hasn't been processed yet (upcoming payments)

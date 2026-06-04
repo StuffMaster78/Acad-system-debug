@@ -85,12 +85,12 @@ class DashboardMetricsService:
         # Calculate paid/unpaid orders correctly
         # Paid orders: orders where is_paid=True
         # Unpaid orders: orders where is_paid=False OR is_paid is None
-        paid_orders_qs = order_qs.filter(is_paid=True)
-        unpaid_orders_qs = order_qs.filter(Q(is_paid=False) | Q(is_paid__isnull=True))
+        paid_orders_qs = order_qs.filter(payment_status='fully_paid')
+        unpaid_orders_qs = order_qs.exclude(payment_status='fully_paid').exclude(payment_status='refunded')
         recent_orders_qs = order_qs.filter(created_at__gte=recent_cutoff)
 
         order_stats = order_qs.aggregate(
-            total_revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField()),
+            total_revenue=Sum('total_price', filter=Q(payment_status='fully_paid'), output_field=DecimalField()),
         )
 
         # Get counts separately to ensure accuracy
@@ -199,21 +199,21 @@ class DashboardMetricsService:
             amount_paid_today = Decimal('0.00')
             two_weeks_ago = timezone.now() - timedelta(days=14)
             income_2weeks = order_qs.filter(
-                is_paid=True,
+                payment_status='fully_paid',
                 updated_at__gte=two_weeks_ago
             ).aggregate(
                 total=Sum('total_price', output_field=DecimalField())
             )['total'] or Decimal('0.00')
             week_start = timezone.now() - timedelta(days=7)
             income_this_week = order_qs.filter(
-                is_paid=True,
+                payment_status='fully_paid',
                 updated_at__gte=week_start
             ).aggregate(
                 total=Sum('total_price', output_field=DecimalField())
             )['total'] or Decimal('0.00')
             month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             income_monthly = order_qs.filter(
-                is_paid=True,
+                payment_status='fully_paid',
                 updated_at__gte=month_start
             ).aggregate(
                 total=Sum('total_price', output_field=DecimalField())
@@ -276,7 +276,7 @@ class DashboardMetricsService:
             month_start=TruncMonth('created_at')
         ).values('month_start').annotate(
             order_count=Count('id'),
-            revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField())
+            revenue=Sum('total_price', filter=Q(payment_status='fully_paid'), output_field=DecimalField())
         ).order_by('month_start')
 
         month_lookup = {}
@@ -346,7 +346,7 @@ class DashboardMetricsService:
             day_start=TruncDay('created_at')
         ).values('day_start').annotate(
             order_count=Count('id'),
-            revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField())
+            revenue=Sum('total_price', filter=Q(payment_status='fully_paid'), output_field=DecimalField())
         ).order_by('day_start')
 
         day_lookup = {}
@@ -386,7 +386,7 @@ class DashboardMetricsService:
 
         order_qs = Order.objects.filter(
             created_at__gte=cutoff,
-            is_paid=True
+            payment_status='fully_paid',
         )
         # Both superadmin and admin see all orders (no website filtering)
         if role not in ['superadmin', 'admin']:
@@ -461,22 +461,22 @@ class DashboardMetricsService:
         elif role == 'writer':
             order_qs = order_qs.filter(assigned_writer=user)
 
-        payment_data = order_qs.values('is_paid').annotate(
+        payment_data = order_qs.values('payment_status').annotate(
             count=Count('id'),
             total_revenue=Sum('total_price', output_field=DecimalField())
         )
 
         paid_count = next(
-            (item['count'] for item in payment_data if item['is_paid']),
+            (item['count'] for item in payment_data if item['payment_status'] == 'fully_paid'),
             0
         )
         unpaid_count = next(
-            (item['count'] for item in payment_data if not item['is_paid']),
+            (item['count'] for item in payment_data if item['payment_status'] != 'fully_paid'),
             0
         )
 
         paid_revenue = next(
-            (float(item['total_revenue']) for item in payment_data if item['is_paid']),
+            (float(item['total_revenue'] or 0) for item in payment_data if item['payment_status'] == 'fully_paid'),
             0.0
         )
 
@@ -582,7 +582,7 @@ class DashboardMetricsService:
                 created_at__lt=year_end
             )
             orders_count = year_orders.count()
-            revenue = year_orders.filter(is_paid=True).aggregate(
+            revenue = year_orders.filter(payment_status='fully_paid').aggregate(
                 total=Sum('total_price', output_field=DecimalField())
             )['total'] or Decimal('0.00')
 
