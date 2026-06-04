@@ -29,6 +29,7 @@ from writer_vetting.models import AttemptStatus, WriterTestAttempt
 
 
 from orders.services.order_available_actions_service import OrderAvailableActionsService
+from orders.services.order_lifecycle_read_service import OrderLifecycleReadService
 
 STAFF_ROLES = {"superadmin", "admin", "editor", "support"}
 
@@ -85,10 +86,11 @@ def _order_actions(order: Any, user: Any) -> list[str]:
     if user is None:
         return []
     try:
+        lifecycle = OrderLifecycleReadService.build_snapshot(order=order)
         return OrderAvailableActionsService.build_actions(
             order=order,
             user=user,
-            lifecycle=None,
+            lifecycle=lifecycle,
         )
     except Exception:
         return []
