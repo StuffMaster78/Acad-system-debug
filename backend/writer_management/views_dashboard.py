@@ -272,7 +272,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             assigned_writer=request.user,
             created_at__gte=date_from
         ).select_related('client', 'website').only(
-            'id', 'status', 'created_at', 'submitted_at', 'client_deadline',
+            'id', 'status', 'created_at', 'submitted_at',
             'writer_deadline', 'completed_at', 'updated_at'
         )
 
@@ -531,7 +531,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
             def _serialize_order(order):
                 meta = match_metadata.get(order.id, {})
-                deadline = (order.client_deadline or order.writer_deadline or getattr(order, 'deadline', None))
+                deadline = (order.writer_deadline or getattr(order, 'deadline', None))
                 return {
                     'id': order.id,
                     'topic': order.topic,
@@ -540,7 +540,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'paper_type': getattr(order.paper_type, 'name', str(order.paper_type)) if order.paper_type else None,
                     'deadline': deadline.isoformat() if deadline else None,
                     'pages': self._get_order_pages(order),
-                    'price': float(order.total_price) if order.total_price else 0,
+                    'writer_compensation': meta.get('potential_payout', 0),
                     'created_at': order.created_at.isoformat() if order.created_at else None,
                     'is_requested': order.id in requested_order_ids,
                     'match_score': meta.get('score', 0),
@@ -1369,8 +1369,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         # Build calendar data
         calendar_data = {}
         for order in assigned_orders:
-            # Use writer_deadline, client_deadline, or deadline (in that order)
-            deadline = order.writer_deadline or order.client_deadline or getattr(order, 'deadline', None)
+            deadline = order.writer_deadline or getattr(order, 'deadline', None)
             if not deadline:
                 continue
 
@@ -1399,7 +1398,6 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'is_overdue': is_overdue,
                 'is_urgent': is_urgent,
                 'hours_remaining': round(hours_remaining, 1) if not is_overdue else None,
-                'total_price': float(order.total_price) if order.total_price else 0,
             })
 
         # Sort orders within each day by deadline
@@ -1469,8 +1467,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         now = timezone.now()
         for order in assigned_orders:
-            # Use writer_deadline, client_deadline, or deadline (in that order)
-            deadline = order.writer_deadline or order.client_deadline or getattr(order, 'deadline', None)
+            deadline = order.writer_deadline or getattr(order, 'deadline', None)
             if not deadline:
                 continue
 
@@ -1491,9 +1488,6 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 f"Pages: {self._get_order_pages(order)}",
                 f"Status: {order.status}",
             ]
-
-            if order.total_price:
-                description_parts.append(f"Price: ${order.total_price:,.2f}")
 
             if hasattr(order, 'website') and order.website:
                 description_parts.append(f"Website: {order.website.name}")
@@ -1597,7 +1591,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         upcoming_deadlines_list = []
         urgent_count = 0
         for order in upcoming_deadlines:
-            deadline = order.writer_deadline or order.client_deadline
+            deadline = order.writer_deadline or getattr(order, 'deadline', None)
             if deadline:
                 hours_remaining = (deadline - now).total_seconds() / 3600
                 days_remaining = hours_remaining / 24
@@ -1764,7 +1758,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             )
             .only(
                 'id', 'status', 'created_at', 'message',
-                'order__id', 'order__topic', 'order__status', 'order__total_price',
+                'order__id', 'order__topic', 'order__status', 'order__writer_compensation',
                 'order__number_of_pages', 'order__number_of_slides',
                 'reviewed_by__username',
             )
@@ -1780,7 +1774,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             .only(
                 'id', 'status', 'created_at', 'updated_at', 'reason',
                 'additional_pages', 'additional_slides', 'has_counter_offer',
-                'order__id', 'order__topic', 'order__status', 'order__total_price',
+                'order__id', 'order__topic', 'order__status', 'order__writer_compensation',
                 'order__number_of_pages', 'order__number_of_slides'
             )
             .order_by('-created_at')[:50] # Limit to 50 most recent
@@ -1798,9 +1792,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'order_id': order.id,
                 'order_topic': order.topic or 'No topic',
                 'order_status': order.status,
-                'order_price': (
-                    float(order.total_price)
-                    if order.total_price else 0
+                'writer_compensation': (
+                    float(order.writer_compensation)
+                    if getattr(order, 'writer_compensation', None) else 0
                 ),
                 'order_pages': self._get_order_pages(order),
                 'requested_at': (
@@ -1831,9 +1825,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'order_id': order.id,
                 'order_topic': order.topic or 'No topic',
                 'order_status': order.status,
-                'order_price': (
-                    float(order.total_price)
-                    if order.total_price else 0
+                'writer_compensation': (
+                    float(order.writer_compensation)
+                    if getattr(order, 'writer_compensation', None) else 0
                 ),
                 'order_pages': self._get_order_pages(order),
                 'requested_at': (
@@ -1922,11 +1916,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {
                     'id': o.id,
                     'topic': o.topic or 'No topic',
-                    'client_name': o.client.username if o.client else 'N/A',
                     'pages': self._get_order_pages(o),
                     'updated_at': o.updated_at.isoformat() if o.updated_at else None,
-                    'deadline': (o.writer_deadline or o.client_deadline or getattr(o, 'deadline', None)).isoformat() if (o.writer_deadline or o.client_deadline or getattr(o, 'deadline', None)) else None,
-                    'total_price': float(o.total_price) if o.total_price else 0,
+                    'deadline': (o.writer_deadline or getattr(o, 'deadline', None)).isoformat() if (o.writer_deadline or getattr(o, 'deadline', None)) else None,
                 }
                 for o in revision_orders
             ]
