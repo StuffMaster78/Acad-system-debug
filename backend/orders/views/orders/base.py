@@ -1,5 +1,5 @@
 from datetime import datetime, time
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.db import models, transaction
@@ -153,11 +153,183 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
 
     def update(self, request, *args, **kwargs):
         """
-        Update order fields. Only allows updating specific safe fields.
-        Status changes should go through the action system.
+        Update order fields.
+
+        Admin and superadmin can edit order metadata directly. Workflow
+        transitions should still prefer the action system, but this endpoint
+        supports controlled staff corrections for order detail fields.
         """
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
+        role = getattr(request.user, "role", None)
+        is_full_order_editor = (
+            request.user.is_superuser or role in {"admin", "superadmin"}
+        )
+
+        if is_full_order_editor:
+            editable_fields = {
+                "topic",
+                "order_instructions",
+                "paper_type",
+                "academic_level",
+                "formatting_style",
+                "subject",
+                "type_of_work",
+                "english_type",
+                "client_deadline",
+                "writer_deadline",
+                "base_quantity",
+                "unit_type",
+                "status",
+                "visibility_mode",
+                "preferred_writer_status",
+                "total_price",
+                "amount_paid",
+                "currency",
+                "payment_status",
+                "writer_compensation",
+                "service_family",
+                "service_code",
+                "is_urgent",
+                "requires_editing",
+                "editing_skip_reason",
+                "discount_code_used",
+                "flags",
+                "completion_notes",
+                "qa_review_note",
+            }
+            fk_fields = {
+                "paper_type",
+                "academic_level",
+                "formatting_style",
+                "subject",
+                "type_of_work",
+                "english_type",
+            }
+            decimal_fields = {
+                "total_price",
+                "amount_paid",
+                "writer_compensation",
+            }
+            datetime_fields = {"client_deadline", "writer_deadline"}
+            boolean_fields = {"is_urgent", "requires_editing"}
+            integer_fields = {"base_quantity"}
+
+            provided = {
+                key: value
+                for key, value in request.data.items()
+                if key in editable_fields
+            }
+            if not provided:
+                return Response(
+                    {
+                        "detail": "No editable order fields provided.",
+                        "allowed_fields": sorted(editable_fields),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            update_fields = []
+            errors = {}
+
+            for field, value in provided.items():
+                if field in fk_fields:
+                    if value in ("", None):
+                        if field == "paper_type":
+                            errors[field] = "Paper type is required."
+                            continue
+                        setattr(instance, f"{field}_id", None)
+                        update_fields.append(field)
+                        continue
+                    try:
+                        pk = int(value)
+                    except (TypeError, ValueError):
+                        errors[field] = "Expected a numeric config id."
+                        continue
+
+                    model_field = instance._meta.get_field(field)
+                    related_model = model_field.remote_field.model
+                    related_obj = related_model.objects.filter(pk=pk).first()
+                    if related_obj is None:
+                        errors[field] = "Config option does not exist."
+                        continue
+                    related_website_id = getattr(related_obj, "website_id", None)
+                    if (
+                        related_website_id is not None
+                        and related_website_id != instance.website_id
+                    ):
+                        errors[field] = "Config option belongs to a different website."
+                        continue
+                    setattr(instance, f"{field}_id", pk)
+                    update_fields.append(field)
+                    continue
+
+                if field in decimal_fields:
+                    if value in ("", None):
+                        value = Decimal("0")
+                    try:
+                        value = Decimal(str(value))
+                    except (InvalidOperation, ValueError):
+                        errors[field] = "Expected a valid decimal amount."
+                        continue
+
+                if field in datetime_fields:
+                    if value in ("", None):
+                        if field == "client_deadline":
+                            errors[field] = "Client deadline is required."
+                            continue
+                        value = None
+                    else:
+                        parsed = parse_datetime(str(value))
+                        if parsed is None:
+                            errors[field] = "Expected an ISO datetime."
+                            continue
+                        if timezone.is_naive(parsed):
+                            parsed = timezone.make_aware(
+                                parsed,
+                                timezone.get_current_timezone(),
+                            )
+                        value = parsed
+
+                if field in boolean_fields:
+                    if value in ("", None) and field == "requires_editing":
+                        value = None
+                    elif isinstance(value, bool):
+                        pass
+                    else:
+                        value = str(value).strip().lower() in {
+                            "1",
+                            "true",
+                            "yes",
+                            "on",
+                        }
+
+                if field in integer_fields:
+                    try:
+                        value = int(value)
+                    except (TypeError, ValueError):
+                        errors[field] = "Expected a whole number."
+                        continue
+                    if value < 0:
+                        errors[field] = "Must be zero or greater."
+                        continue
+
+                if field == "flags" and not isinstance(value, list):
+                    errors[field] = "Expected a list of flags."
+                    continue
+
+                setattr(instance, field, value)
+                update_fields.append(field)
+
+            if errors:
+                return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+            if "updated_at" not in update_fields:
+                update_fields.append("updated_at")
+            instance.save(update_fields=sorted(set(update_fields)))
+            instance.refresh_from_db()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
 
         # Define allowed fields that can be updated directly
         # These fields are updated directly on the model, bypassing serializer validation
@@ -307,7 +479,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 return None
             try:
                 return Decimal(str(value))
-            except (Decimal.InvalidOperation, ValueError):
+            except (InvalidOperation, ValueError):
                 return None
 
         def parse_datetime_param(value, *, end_of_day=False):

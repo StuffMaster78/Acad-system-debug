@@ -126,9 +126,64 @@ export const useFilesStore = defineStore("files", () => {
     orderId: number | string,
     file: File,
     purpose: FilePurpose,
+    extra?: Record<string, string>,
   ) {
-    addToQueue([file], purpose);
-    await uploadFiles(orderId);
+    const auth = useAuthStore();
+    isUploading.value = true;
+    error.value = "";
+    notice.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        addToQueue([file], purpose);
+        await uploadFiles(orderId);
+        return;
+      }
+      const { data } = await filesApi.uploadToOrder(orderId, purpose, file, extra);
+      attachments.value = [data, ...attachments.value];
+      notice.value = "File uploaded successfully.";
+    } catch {
+      error.value = "Upload failed — check file type and size.";
+    } finally {
+      isUploading.value = false;
+    }
+  }
+
+  async function submitExternalLink(
+    orderId: number | string,
+    payload: { url: string; title?: string; purpose: FilePurpose },
+  ) {
+    const auth = useAuthStore();
+    error.value = "";
+    notice.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        const attachment: FileAttachment = {
+          id: Date.now(),
+          purpose: payload.purpose,
+          visibility: payload.purpose === "writer_guide" ? "writer_and_staff" : "order_participants",
+          is_primary: false,
+          is_active: true,
+          display_name: payload.title || payload.url,
+          external_link: {
+            id: Date.now(),
+            title: payload.title || payload.url,
+            url: payload.url,
+            review_status: "approved",
+            is_active: true,
+            created_at: new Date().toISOString(),
+          },
+          attached_at: new Date().toISOString(),
+        };
+        attachments.value = [attachment, ...attachments.value];
+        notice.value = "Link added.";
+        return;
+      }
+      const { data } = await filesApi.submitExternalOrderLink(orderId, payload);
+      attachments.value = [data, ...attachments.value];
+      notice.value = "Link added.";
+    } catch {
+      error.value = "Could not add the link.";
+    }
   }
 
   async function downloadFile(orderId: number | string, attachmentId: number | string) {
@@ -194,6 +249,7 @@ export const useFilesStore = defineStore("files", () => {
     clearQueue,
     uploadFiles,
     uploadSingleFile,
+    submitExternalLink,
     downloadFile,
     submitFinalFile,
     requestFileDeletion,

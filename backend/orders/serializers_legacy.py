@@ -56,6 +56,9 @@ class OrderListSerializer(serializers.ModelSerializer):
     writer_username = serializers.CharField(source='assigned_writer.username', read_only=True, allow_null=True)
     paper_type_name = serializers.CharField(source='paper_type.name', read_only=True, allow_null=True)
     academic_level_name = serializers.CharField(source='academic_level.name', read_only=True, allow_null=True)
+    formatting_style_name = serializers.CharField(source='formatting_style.name', read_only=True, allow_null=True)
+    type_of_work_name = serializers.CharField(source='type_of_work.name', read_only=True, allow_null=True)
+    english_type_name = serializers.CharField(source='english_type.name', read_only=True, allow_null=True)
     subject_name = serializers.CharField(source='subject.name', read_only=True, allow_null=True)
 
     def to_representation(self, instance):
@@ -69,7 +72,8 @@ class OrderListSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'id', 'topic', 'paper_type', 'paper_type_name', 'academic_level', 'academic_level_name',
-            'formatting_style', 'type_of_work', 'english_type', 'base_quantity',
+            'formatting_style', 'formatting_style_name', 'type_of_work', 'type_of_work_name',
+            'english_type', 'english_type_name', 'base_quantity',
             'client_deadline', 'writer_deadline',
             'client', 'client_username', 'writer_username',
             'preferred_writer', 'total_price', 'writer_compensation',
@@ -86,6 +90,12 @@ class OrderListSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     client_username = serializers.CharField(source='client.username', read_only=True)
     writer_username = serializers.CharField(source='assigned_writer.username', read_only=True)
+    paper_type_name = serializers.CharField(source='paper_type.name', read_only=True, allow_null=True)
+    academic_level_name = serializers.CharField(source='academic_level.name', read_only=True, allow_null=True)
+    formatting_style_name = serializers.CharField(source='formatting_style.name', read_only=True, allow_null=True)
+    type_of_work_name = serializers.CharField(source='type_of_work.name', read_only=True, allow_null=True)
+    english_type_name = serializers.CharField(source='english_type.name', read_only=True, allow_null=True)
+    subject_name = serializers.CharField(source='subject.name', read_only=True, allow_null=True)
     is_unattributed = serializers.SerializerMethodField(read_only=True)
     # Fake client ID for writers viewing unattributed orders
     fake_client_id = serializers.SerializerMethodField(read_only=True)
@@ -107,12 +117,15 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'topic', 'order_instructions', 'paper_type', 'academic_level',
-            'formatting_style', 'type_of_work', 'english_type', 'base_quantity',
+            'id', 'topic', 'order_instructions', 'paper_type', 'paper_type_name',
+            'academic_level', 'academic_level_name',
+            'formatting_style', 'formatting_style_name',
+            'type_of_work', 'type_of_work_name',
+            'english_type', 'english_type_name', 'base_quantity',
             'client_deadline', 'writer_deadline',
             'client', 'client_username', 'client_email', 'client_registration_id', 'writer_username',
             'preferred_writer', 'total_price', 'writer_compensation',
-            'subject', 'subject_is_technical', 'status', 'flags', 'created_at', 'updated_at',
+            'subject', 'subject_name', 'subject_is_technical', 'status', 'flags', 'created_at', 'updated_at',
             'created_by_admin', 'is_follow_up',
             'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent',
             'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',

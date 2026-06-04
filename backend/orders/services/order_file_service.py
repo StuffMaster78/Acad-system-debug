@@ -230,6 +230,42 @@ class OrderFileService:
 
     @classmethod
     @transaction.atomic
+    def staff_upload_writer_guide(
+        cls,
+        *,
+        order,
+        uploaded_by,
+        uploaded_file: UploadedFile,
+        guide_type: str = "guide",
+        description: str = "",
+    ) -> FileAttachment:
+        """
+        Let staff upload a guide/resource intended for assigned writers.
+        """
+
+        cls._ensure_same_website(order=order, user=uploaded_by)
+        if not cls._is_staff(user=uploaded_by):
+            raise PermissionDenied("Only staff can add writer guides.")
+
+        attachment = OrderFileIntegrationService.upload_writer_guide_file(
+            order=order,
+            uploaded_by=uploaded_by,
+            uploaded_file=uploaded_file,
+            guide_type=guide_type,
+            description=description,
+        )
+
+        cls._record_file_event(
+            order=order,
+            actor=uploaded_by,
+            event_type="writer_guide_uploaded",
+            attachment=attachment,
+        )
+
+        return attachment
+
+    @classmethod
+    @transaction.atomic
     def submit_external_link(
         cls,
         *,
@@ -244,6 +280,8 @@ class OrderFileService:
         """
 
         cls._ensure_same_website(order=order, user=submitted_by)
+        if purpose == "writer_guide" and not cls._is_staff(user=submitted_by):
+            raise PermissionDenied("Only staff can add writer guide links.")
         if not (
             cls._is_staff(user=submitted_by)
             or cls._is_order_client(order=order, user=submitted_by)
@@ -319,6 +357,8 @@ class OrderFileService:
 
     @staticmethod
     def _ensure_same_website(*, order, user) -> None:
+        if getattr(user, "is_superuser", False) or getattr(user, "role", None) == "superadmin":
+            return
         if order.website_id != user.website_id:
             raise PermissionDenied("Cross-tenant access denied.")
 
@@ -351,6 +391,7 @@ class OrderFileService:
             or getattr(user, "is_superuser", False)
             or getattr(user, "is_admin", False)
             or getattr(user, "is_super_admin", False)
+            or getattr(user, "role", None) in {"admin", "superadmin", "support", "editor"}
         )
 
     @staticmethod

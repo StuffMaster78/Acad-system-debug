@@ -12,6 +12,7 @@ from orders.api.views.files.order_file_views import (
     OrderReferenceFileUploadView,
     OrderRevisionFileUploadView,
     OrderStyleReferenceFileUploadView,
+    OrderWriterGuideFileUploadView,
 )
 
 urlpatterns = [
@@ -49,6 +50,11 @@ urlpatterns = [
         "<int:order_id>/files/revisions/",
         OrderRevisionFileUploadView.as_view(),
         name="order-file-upload-revision",
+    ),
+    path(
+        "<int:order_id>/files/writer-guides/",
+        OrderWriterGuideFileUploadView.as_view(),
+        name="order-file-upload-writer-guide",
     ),
     path(
         "<int:order_id>/files/extra-services/",

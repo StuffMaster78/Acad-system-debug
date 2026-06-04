@@ -2,31 +2,230 @@
   <div class="space-y-4">
     <!-- Order specifications -->
     <div class="rounded-lg border border-slate-200 bg-white p-5">
-      <h2 class="text-base font-semibold text-ink">Order specifications</h2>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-base font-semibold text-ink">Order specifications</h2>
+        <button
+          v-if="canEditOrder"
+          class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:text-ink"
+          type="button"
+          @click="toggleEdit"
+        >
+          <RefreshCw v-if="editSaving || configStore.isLoading" class="size-3.5 animate-spin" />
+          <span>{{ editingOrder ? "Close editor" : "Edit details" }}</span>
+        </button>
+      </div>
+
+      <form
+        v-if="editingOrder"
+        class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4"
+        @submit.prevent="saveOrderEdits"
+      >
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <label class="block md:col-span-2 xl:col-span-3">
+            <span class="text-xs font-semibold text-graphite">Topic</span>
+            <input v-model.trim="editForm.topic" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Paper type</span>
+            <select v-model="editForm.paper_type" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="">None</option>
+              <option v-for="option in configStore.collections.paperTypes" :key="option.id" :value="String(option.id)">{{ option.name }}</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Academic level</span>
+            <select v-model="editForm.academic_level" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="">None</option>
+              <option v-for="option in configStore.collections.academicLevels" :key="option.id" :value="String(option.id)">{{ option.name }}</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Type of work</span>
+            <select v-model="editForm.type_of_work" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="">None</option>
+              <option v-for="option in configStore.collections.typesOfWork" :key="option.id" :value="String(option.id)">{{ option.name }}</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Subject</span>
+            <select v-model="editForm.subject" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="">None</option>
+              <option v-for="option in configStore.collections.subjects" :key="option.id" :value="String(option.id)">{{ option.name }}</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Citation style</span>
+            <select v-model="editForm.formatting_style" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="">None</option>
+              <option v-for="option in configStore.collections.formattingStyles" :key="option.id" :value="String(option.id)">{{ option.name }}</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">English type</span>
+            <select v-model="editForm.english_type" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="">None</option>
+              <option v-for="option in configStore.collections.englishTypes" :key="option.id" :value="String(option.id)">{{ option.name }}</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Quantity</span>
+            <input v-model="editForm.base_quantity" min="0" type="number" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Unit type</span>
+            <select v-model="editForm.unit_type" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="page">Pages</option>
+              <option value="slide">Slides</option>
+              <option value="word">Words</option>
+              <option value="hour">Hours</option>
+              <option value="item">Items</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Order status</span>
+            <select v-model="editForm.status" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option v-for="status in statusOptions" :key="status" :value="status">{{ status.replace(/_/g, " ") }}</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Payment status</span>
+            <select v-model="editForm.payment_status" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option v-for="status in paymentStatusOptions" :key="status" :value="status">{{ status.replace(/_/g, " ") }}</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Client deadline</span>
+            <input v-model="editForm.client_deadline" type="datetime-local" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Writer deadline</span>
+            <input v-model="editForm.writer_deadline" type="datetime-local" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Total price</span>
+            <input v-model.trim="editForm.total_price" inputmode="decimal" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Amount paid</span>
+            <input v-model.trim="editForm.amount_paid" inputmode="decimal" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Writer compensation</span>
+            <input v-model.trim="editForm.writer_compensation" inputmode="decimal" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Currency</span>
+            <input v-model.trim="editForm.currency" maxlength="8" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm uppercase" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Service family</span>
+            <input v-model.trim="editForm.service_family" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Service code</span>
+            <input v-model.trim="editForm.service_code" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Discount code</span>
+            <input v-model.trim="editForm.discount_code_used" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Flags</span>
+            <input v-model.trim="editForm.flags" placeholder="urgent_review, high_risk" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-graphite">
+            <input v-model="editForm.is_urgent" class="h-4 w-4 accent-signal" type="checkbox" />
+            Urgent order
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold text-graphite">Editing requirement</span>
+            <select v-model="editForm.requires_editing" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="">Use policy</option>
+              <option value="true">Required</option>
+              <option value="false">Not required</option>
+            </select>
+          </label>
+
+          <label class="block md:col-span-2 xl:col-span-3">
+            <span class="text-xs font-semibold text-graphite">Editing skip reason</span>
+            <input v-model.trim="editForm.editing_skip_reason" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block md:col-span-2 xl:col-span-3">
+            <span class="text-xs font-semibold text-graphite">Instructions</span>
+            <textarea v-model.trim="editForm.order_instructions" rows="5" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+
+          <label class="block md:col-span-2 xl:col-span-3">
+            <span class="text-xs font-semibold text-graphite">QA review note</span>
+            <textarea v-model.trim="editForm.qa_review_note" rows="2" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+          </label>
+        </div>
+
+        <p v-if="editError" class="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{{ editError }}</p>
+        <p v-if="editNotice" class="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ editNotice }}</p>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button
+            class="focus-ring inline-flex items-center justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            type="submit"
+            :disabled="editSaving"
+          >
+            <Loader2 v-if="editSaving" class="mr-2 size-4 animate-spin" />
+            Save changes
+          </button>
+          <button class="focus-ring rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-graphite" type="button" @click="resetEditForm">
+            Reset
+          </button>
+        </div>
+      </form>
+
       <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div v-if="order.topic">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Topic</dt>
           <dd class="mt-1 text-sm text-ink">{{ order.topic }}</dd>
         </div>
-        <div v-if="order.academic_level">
+        <div v-if="academicLevelLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Academic level</dt>
-          <dd class="mt-1 text-sm text-ink">{{ order.academic_level }}</dd>
+          <dd class="mt-1 text-sm text-ink">{{ academicLevelLabel }}</dd>
         </div>
-        <div v-if="order.paper_type">
+        <div v-if="paperTypeLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Paper type</dt>
-          <dd class="mt-1 text-sm text-ink">{{ order.paper_type }}</dd>
+          <dd class="mt-1 text-sm text-ink">{{ paperTypeLabel }}</dd>
         </div>
-        <div v-if="order.type_of_work">
+        <div v-if="typeOfWorkLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Type of work</dt>
-          <dd class="mt-1 text-sm text-ink">{{ order.type_of_work }}</dd>
+          <dd class="mt-1 text-sm text-ink">{{ typeOfWorkLabel }}</dd>
         </div>
-        <div v-if="order.subject">
+        <div v-if="subjectLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Subject</dt>
-          <dd class="mt-1 text-sm text-ink">{{ order.subject }}</dd>
+          <dd class="mt-1 text-sm text-ink">{{ subjectLabel }}</dd>
         </div>
-        <div v-if="order.formatting_style">
+        <div v-if="formattingStyleLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Citation style</dt>
-          <dd class="mt-1 text-sm text-ink">{{ order.formatting_style }}</dd>
+          <dd class="mt-1 text-sm text-ink">{{ formattingStyleLabel }}</dd>
         </div>
         <div v-if="order.number_of_pages">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Pages</dt>
@@ -43,9 +242,9 @@
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Sources</dt>
           <dd class="mt-1 text-sm text-ink">{{ order.number_of_refereces }}</dd>
         </div>
-        <div v-if="order.english_type">
+        <div v-if="englishTypeLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">English type</dt>
-          <dd class="mt-1 text-sm text-ink">{{ order.english_type }}</dd>
+          <dd class="mt-1 text-sm text-ink">{{ englishTypeLabel }}</dd>
         </div>
         <div v-if="role !== 'writer' && order.client_deadline">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Client deadline</dt>
@@ -328,17 +527,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { AlertTriangle, ExternalLink, Gift, LifeBuoy, Loader2, Pin, Plus, RefreshCw, Star, X, XCircle } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
-import type { OrderNote, OrderSummary, OrderLifecycle } from "@/types/orders";
+import type { OrderNote, OrderSummary, OrderLifecycle, UpdateOrderPayload } from "@/types/orders";
 import type { Review } from "@/types/reviews";
 import { reviewsApi } from "@/api/reviews";
 import { supportApi } from "@/api/support";
 import { tipsApi, type TipRecord } from "@/api/tips";
 import { ordersApi } from "@/api/orders";
 import { useOrderStore } from "@/stores/orders";
+import { useOrderConfigStore } from "@/stores/orderConfig";
 import { dateLabel, maskedWriter, isStaff } from "../types";
 
 const props = defineProps<{
@@ -350,8 +550,193 @@ const props = defineProps<{
 
 const router = useRouter();
 const orders = useOrderStore();
+const configStore = useOrderConfigStore();
 const isMutating = computed(() => orders.isMutating);
 const isStaffRole = computed(() => isStaff(props.role));
+const canEditOrder = computed(() => props.role === "admin" || props.role === "superadmin");
+
+function displayLabel(name?: string | null, fallback?: number | string | null): string {
+  if (name && String(name).trim()) return String(name);
+  if (fallback == null || fallback === "") return "";
+  return String(fallback);
+}
+
+const academicLevelLabel = computed(() => displayLabel(props.order.academic_level_name, props.order.academic_level));
+const paperTypeLabel = computed(() => displayLabel(props.order.paper_type_name, props.order.paper_type));
+const typeOfWorkLabel = computed(() => displayLabel(props.order.type_of_work_name, props.order.type_of_work));
+const subjectLabel = computed(() => displayLabel(props.order.subject_name, props.order.subject));
+const formattingStyleLabel = computed(() => displayLabel(props.order.formatting_style_name, props.order.formatting_style));
+const englishTypeLabel = computed(() => displayLabel(props.order.english_type_name, props.order.english_type));
+
+const statusOptions = [
+  "created",
+  "pending",
+  "unpaid",
+  "pending_payment",
+  "paid",
+  "ready_for_staffing",
+  "preferred_writer_pending",
+  "assigned",
+  "in_progress",
+  "submitted",
+  "qa_review",
+  "under_editing",
+  "revision_requested",
+  "completed",
+  "cancelled",
+  "archived",
+];
+const paymentStatusOptions = ["unpaid", "pending", "partial", "paid", "fully_paid", "refunded", "failed"];
+const editingOrder = ref(false);
+const editSaving = ref(false);
+const editError = ref("");
+const editNotice = ref("");
+const editForm = reactive({
+  topic: "",
+  paper_type: "",
+  academic_level: "",
+  type_of_work: "",
+  subject: "",
+  formatting_style: "",
+  english_type: "",
+  base_quantity: "0",
+  unit_type: "page",
+  status: "",
+  payment_status: "",
+  client_deadline: "",
+  writer_deadline: "",
+  total_price: "",
+  amount_paid: "",
+  writer_compensation: "",
+  currency: "USD",
+  service_family: "",
+  service_code: "",
+  discount_code_used: "",
+  flags: "",
+  is_urgent: false,
+  requires_editing: "",
+  editing_skip_reason: "",
+  order_instructions: "",
+  qa_review_note: "",
+});
+
+function toLocalDatetime(value?: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function toIsoDatetime(value: string): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function idString(value?: number | string | null): string {
+  return value == null || value === "" ? "" : String(value);
+}
+
+function resetEditForm() {
+  editForm.topic = props.order.topic ?? "";
+  editForm.paper_type = idString(props.order.paper_type);
+  editForm.academic_level = idString(props.order.academic_level);
+  editForm.type_of_work = idString(props.order.type_of_work);
+  editForm.subject = idString(props.order.subject);
+  editForm.formatting_style = idString(props.order.formatting_style);
+  editForm.english_type = idString(props.order.english_type);
+  editForm.base_quantity = String(props.order.base_quantity ?? props.order.number_of_pages ?? 0);
+  editForm.unit_type = props.order.unit_type ?? "page";
+  editForm.status = props.order.status ?? "created";
+  editForm.payment_status = props.order.payment_status ?? "unpaid";
+  editForm.client_deadline = toLocalDatetime(props.order.client_deadline);
+  editForm.writer_deadline = toLocalDatetime(props.order.writer_deadline);
+  editForm.total_price = String(props.order.total_price ?? "");
+  editForm.amount_paid = String(props.order.amount_paid ?? "");
+  editForm.writer_compensation = String(props.order.writer_compensation ?? "");
+  editForm.currency = props.order.currency ?? "USD";
+  editForm.service_family = props.order.service_family ?? "";
+  editForm.service_code = props.order.service_code ?? "";
+  editForm.discount_code_used = props.order.discount_code_used ?? "";
+  editForm.flags = (props.order.flags ?? []).join(", ");
+  editForm.is_urgent = Boolean(props.order.is_urgent);
+  editForm.requires_editing = props.order.requires_editing == null ? "" : String(props.order.requires_editing);
+  editForm.editing_skip_reason = props.order.editing_skip_reason ?? "";
+  editForm.order_instructions = props.order.order_instructions ?? props.order.instructions ?? "";
+  editForm.qa_review_note = props.order.qa_review_note ?? "";
+  editError.value = "";
+  editNotice.value = "";
+}
+
+async function toggleEdit() {
+  if (editingOrder.value) {
+    editingOrder.value = false;
+    return;
+  }
+  resetEditForm();
+  editingOrder.value = true;
+  try {
+    await configStore.fetchAll(props.order.website ?? null);
+  } catch {
+    editError.value = "Unable to load order config options.";
+  }
+}
+
+function optionalId(value: string): number | null {
+  return value ? Number(value) : null;
+}
+
+function optionalBoolean(value: string): boolean | null {
+  if (value === "") return null;
+  return value === "true";
+}
+
+function editPayload(): UpdateOrderPayload {
+  return {
+    topic: editForm.topic,
+    paper_type: optionalId(editForm.paper_type),
+    academic_level: optionalId(editForm.academic_level),
+    type_of_work: optionalId(editForm.type_of_work),
+    subject: optionalId(editForm.subject),
+    formatting_style: optionalId(editForm.formatting_style),
+    english_type: optionalId(editForm.english_type),
+    base_quantity: Number(editForm.base_quantity || 0),
+    unit_type: editForm.unit_type,
+    status: editForm.status,
+    payment_status: editForm.payment_status,
+    client_deadline: toIsoDatetime(editForm.client_deadline),
+    writer_deadline: toIsoDatetime(editForm.writer_deadline),
+    total_price: editForm.total_price,
+    amount_paid: editForm.amount_paid,
+    writer_compensation: editForm.writer_compensation,
+    currency: editForm.currency.toUpperCase(),
+    service_family: editForm.service_family,
+    service_code: editForm.service_code,
+    discount_code_used: editForm.discount_code_used,
+    flags: editForm.flags.split(",").map((flag) => flag.trim()).filter(Boolean),
+    is_urgent: editForm.is_urgent,
+    requires_editing: optionalBoolean(editForm.requires_editing),
+    editing_skip_reason: editForm.editing_skip_reason,
+    order_instructions: editForm.order_instructions,
+    qa_review_note: editForm.qa_review_note,
+  };
+}
+
+async function saveOrderEdits() {
+  editSaving.value = true;
+  editError.value = "";
+  editNotice.value = "";
+  try {
+    await ordersApi.update(props.orderId, editPayload());
+    await orders.fetchOrder(props.orderId);
+    editNotice.value = "Order details updated.";
+  } catch {
+    editError.value = "Unable to update order details. Check required fields and tenant-specific config options.";
+  } finally {
+    editSaving.value = false;
+  }
+}
 
 // Writer profile link — available to all staff roles that can see the order detail
 const writerProfileRoute = computed(() => {

@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from files_management.exceptions import FileManagementError
+from files_management.enums import FilePurpose, FileVisibility
 from files_management.selectors import FileAttachmentSelector
 from files_management.services import FileDeletionService
 from orders.api.serializers.files.order_file_serializers import (
@@ -84,6 +85,7 @@ class OrderFileBaseView(APIView):
             or getattr(user, "is_superuser", False)
             or getattr(user, "is_admin", False)
             or getattr(user, "is_super_admin", False)
+            or getattr(user, "role", None) in {"admin", "superadmin", "support", "editor"}
         )
 
     @staticmethod
@@ -146,13 +148,32 @@ class OrderFileListView(OrderFileBaseView):
         order = self.get_order(request, order_id)
 
         attachments = FileAttachmentSelector.for_object(
-            website=request.user.website,
+            website=order.website,
             obj=order,
         ).select_related(
             "managed_file",
             "external_link",
             "attached_by",
         )
+
+        if self.is_order_client(order=order, user=request.user) and not self.is_staff(user=request.user):
+            attachments = attachments.exclude(
+                purpose=FilePurpose.WRITER_GUIDE,
+            ).exclude(
+                visibility=FileVisibility.WRITER_AND_STAFF,
+            ).exclude(
+                visibility=FileVisibility.STAFF_ONLY,
+            ).exclude(
+                visibility=FileVisibility.INTERNAL_ONLY,
+            )
+        elif self.is_order_writer(order=order, user=request.user) and not self.is_staff(user=request.user):
+            attachments = attachments.exclude(
+                visibility=FileVisibility.CLIENT_AND_STAFF,
+            ).exclude(
+                visibility=FileVisibility.STAFF_ONLY,
+            ).exclude(
+                visibility=FileVisibility.INTERNAL_ONLY,
+            )
 
         return Response(
             OrderFileAttachmentSerializer(
@@ -367,6 +388,36 @@ class OrderRevisionFileUploadView(OrderFileBaseView):
         )
 
 
+class OrderWriterGuideFileUploadView(OrderFileBaseView):
+    """
+    Upload staff-provided guide/resource files for writers.
+    """
+
+    def post(self, request, order_id: int):
+        order = self.get_order(request, order_id)
+        if not self.is_staff(user=request.user):
+            raise PermissionDenied("Only staff can add writer guides.")
+
+        serializer = OrderFileUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            attachment = OrderFileService.staff_upload_writer_guide(
+                order=order,
+                uploaded_by=request.user,
+                uploaded_file=serializer.validated_data["file"],
+                guide_type=serializer.validated_data.get("category_code", "guide"),
+                description=serializer.validated_data.get("description", ""),
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
+
+        return Response(
+            OrderFileAttachmentSerializer(attachment).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
 class OrderExternalFileLinkView(OrderFileBaseView):
     """
     Submit external file link for an order.
@@ -377,6 +428,12 @@ class OrderExternalFileLinkView(OrderFileBaseView):
 
         serializer = OrderExternalFileLinkSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        if (
+            serializer.validated_data["purpose"] == FilePurpose.WRITER_GUIDE
+            and not self.is_staff(user=request.user)
+        ):
+            raise PermissionDenied("Only staff can add writer guide links.")
 
         try:
             attachment = OrderFileService.submit_external_link(
@@ -405,7 +462,7 @@ class OrderFileDownloadView(OrderFileBaseView):
 
         attachment = get_object_or_404(
             FileAttachmentSelector.for_object(
-                website=request.user.website,
+                website=order.website,
                 obj=order,
             ),
             id=attachment_id,
@@ -435,7 +492,7 @@ class OrderFileDeletionRequestView(OrderFileBaseView):
 
         attachment = get_object_or_404(
             FileAttachmentSelector.for_object(
-                website=request.user.website,
+                website=order.website,
                 obj=order,
             ),
             id=attachment_id,
@@ -445,7 +502,7 @@ class OrderFileDeletionRequestView(OrderFileBaseView):
         serializer.is_valid(raise_exception=True)
 
         deletion_request = FileDeletionService.request_deletion(
-            website=request.user.website,
+            website=order.website,
             requested_by=request.user,
             attachment=attachment,
             reason=serializer.validated_data["reason"],

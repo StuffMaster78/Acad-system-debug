@@ -59,6 +59,7 @@ class OrderExternalFileLinkSerializer(serializers.Serializer):
             FilePurpose.ORDER_DRAFT,
             FilePurpose.ORDER_FINAL,
             FilePurpose.ORDER_REVISION,
+            FilePurpose.WRITER_GUIDE,
             FilePurpose.STYLE_REFERENCE,
             FilePurpose.EXTRA_SERVICE_FILE,
         ]

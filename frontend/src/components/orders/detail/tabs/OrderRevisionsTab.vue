@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { CheckCircle, RotateCcw, ShieldAlert, XCircle } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderLifecycle, RevisionRequest, RevisionRouteResponse } from "@/types/orders";
@@ -40,6 +40,11 @@ function statusClass(s: string): string {
   if (s === "rejected" || s === "cancelled") return "bg-rose-100 text-rose-700";
   return "bg-slate-100 text-slate-600";
 }
+
+const canRequestRevision = computed(() =>
+  props.role === "client" &&
+  (props.lifecycle?.available_actions?.includes("request_revision") ?? false),
+);
 
 async function loadRevisions() {
   loading.value = true;
@@ -227,7 +232,7 @@ onMounted(loadRevisions);
 
     <!-- Client: request revision form -->
     <form
-      v-if="role === 'client' && lifecycle?.is_revision_window_open"
+      v-if="canRequestRevision"
       class="rounded-lg border border-slate-200 bg-white p-5"
       @submit.prevent="submitRevision"
     >
@@ -285,6 +290,12 @@ onMounted(loadRevisions);
       class="rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm text-graphite"
     >
       The revision window for this order has closed. Contact support if you need further changes.
+    </div>
+    <div
+      v-else-if="role === 'client'"
+      class="rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm text-graphite"
+    >
+      Revision requests are not available for this order status.
     </div>
 
   </div>

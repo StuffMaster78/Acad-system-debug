@@ -91,6 +91,7 @@ class FilePurpose(models.TextChoices):
     ORDER_DRAFT = "order_draft", "Order Draft"
     ORDER_FINAL = "order_final", "Order Final"
     ORDER_REVISION = "order_revision", "Order Revision"
+    WRITER_GUIDE = "writer_guide", "Writer Guide"
     STYLE_REFERENCE = "style_reference", "Style Reference"
     EXTRA_SERVICE_FILE = "extra_service_file", "Extra Service File"
 

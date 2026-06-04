@@ -12,12 +12,15 @@ import type {
   RevisionRequest,
   RevisionRequestPayload,
   RevisionRouteResponse,
+  UpdateOrderPayload,
 } from "@/types/orders";
 
 export const ordersApi = {
   list: (params?: Record<string, unknown>) =>
     api.get<OrderSummary[] | { count: number; next: string | null; previous: string | null; results: OrderSummary[] }>(ordersApiPath("/orders/"), { params }),
   get: (id: number | string) => api.get<OrderSummary>(ordersApiPath(`/orders/${id}/`)),
+  update: (id: number | string, payload: UpdateOrderPayload) =>
+    api.patch<OrderSummary>(ordersApiPath(`/orders/${id}/`), payload),
   create: (payload: CreateOrderPayload) =>
     api.post<CreateOrderResponse>(ordersApiPath("/orders/create/"), payload),
   lifecycle: (id: number | string) =>

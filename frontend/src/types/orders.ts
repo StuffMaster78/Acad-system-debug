@@ -19,20 +19,30 @@ export interface OrderSummary {
   service_family?: string;
   service_code?: string;
   paper_type?: number | string | null;
+  paper_type_name?: string | null;
   academic_level?: number | string | null;
+  academic_level_name?: string | null;
   formatting_style?: number | string | null;
+  formatting_style_name?: string | null;
   type_of_work?: number | string | null;
+  type_of_work_name?: string | null;
   english_type?: number | string | null;
+  english_type_name?: string | null;
   number_of_pages?: number | string | null;
   number_of_slides?: number | string | null;
   number_of_refereces?: number | string | null;
+  base_quantity?: number | string | null;
+  unit_type?: string | null;
   spacing?: string;
   subject?: number | string | null;
+  subject_name?: string | null;
   subject_is_technical?: boolean;
   discount_code_used?: string;
   is_composite?: boolean;
   is_paid?: boolean;
   is_urgent?: boolean;
+  requires_editing?: boolean | null;
+  editing_skip_reason?: string;
   flags?: string[];
   client_deadline?: string;
   writer_deadline?: string | null;
@@ -44,6 +54,36 @@ export interface OrderSummary {
   qa_returned_at?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface UpdateOrderPayload {
+  topic?: string;
+  order_instructions?: string;
+  paper_type?: number | null;
+  academic_level?: number | null;
+  formatting_style?: number | null;
+  subject?: number | null;
+  type_of_work?: number | null;
+  english_type?: number | null;
+  client_deadline?: string | null;
+  writer_deadline?: string | null;
+  base_quantity?: number;
+  unit_type?: string;
+  status?: string;
+  total_price?: string | number;
+  amount_paid?: string | number;
+  currency?: string;
+  payment_status?: string;
+  writer_compensation?: string | number;
+  service_family?: string;
+  service_code?: string;
+  is_urgent?: boolean;
+  requires_editing?: boolean | null;
+  editing_skip_reason?: string;
+  discount_code_used?: string;
+  flags?: string[];
+  completion_notes?: string;
+  qa_review_note?: string;
 }
 
 export interface OrderLifecycle {

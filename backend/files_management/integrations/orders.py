@@ -199,6 +199,37 @@ class OrderFileIntegrationService:
 
     @classmethod
     @transaction.atomic
+    def upload_writer_guide_file(
+        cls,
+        *,
+        order,
+        uploaded_by,
+        uploaded_file: UploadedFile,
+        guide_type: str = "guide",
+        description: str = "",
+    ) -> FileAttachment:
+        """
+        Upload a staff-provided guide meant for writers and staff only.
+        """
+
+        return cls._upload_and_attach(
+            order=order,
+            uploaded_by=uploaded_by,
+            uploaded_file=uploaded_file,
+            purpose=FilePurpose.WRITER_GUIDE,
+            visibility=FileVisibility.WRITER_AND_STAFF,
+            display_name=getattr(uploaded_file, "name", ""),
+            metadata={
+                "order_file_status": "writer_guide",
+                "guide_type": guide_type,
+                "description": description,
+                "source_domain": "orders",
+                "is_visible_to_writer": True,
+            },
+        )
+
+    @classmethod
+    @transaction.atomic
     def upload_style_reference_file(
         cls,
         *,
@@ -305,9 +336,20 @@ class OrderFileIntegrationService:
             obj=order,
             external_link=external_link,
             purpose=purpose,
-            visibility=FileVisibility.ORDER_PARTICIPANTS,
+            visibility=(
+                FileVisibility.WRITER_AND_STAFF
+                if purpose == FilePurpose.WRITER_GUIDE
+                else FileVisibility.ORDER_PARTICIPANTS
+            ),
             attached_by=submitted_by,
             display_name=title,
+            metadata={
+                "order_file_status": "writer_guide_link"
+                if purpose == FilePurpose.WRITER_GUIDE
+                else "external_link",
+                "source_domain": "orders",
+                "is_visible_to_writer": purpose == FilePurpose.WRITER_GUIDE,
+            },
         )
 
     @classmethod

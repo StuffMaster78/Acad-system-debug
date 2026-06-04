@@ -1,5 +1,147 @@
 <template>
   <div class="space-y-4">
+    <!-- Writer-facing guides -->
+    <div v-if="canSeeWriterGuides" class="rounded-lg border border-slate-200 bg-white">
+      <div class="border-b border-slate-200 px-5 py-4">
+        <h2 class="text-base font-semibold text-ink">Writer guides</h2>
+        <p class="mt-1 text-xs text-graphite">
+          {{ isStaffRole ? 'Upload files, article links, rubrics, and style instructions for the assigned writer.' : 'Staff-provided guides and resources for this order.' }}
+        </p>
+      </div>
+
+      <div v-if="isStaffRole" class="border-b border-slate-100 p-5">
+        <div class="grid gap-4 lg:grid-cols-2">
+          <form class="rounded-lg border border-slate-200 bg-slate-50 p-4" @submit.prevent="uploadGuideFile">
+            <div class="flex items-center gap-2">
+              <FileUp class="size-4 text-signal" />
+              <h3 class="text-sm font-semibold text-ink">Upload guide file</h3>
+            </div>
+            <label class="mt-3 block text-sm font-medium text-ink">
+              PDF, DOC, DOCX, or supporting file
+              <input class="focus-ring mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" type="file" @change="onGuidePick" />
+            </label>
+            <label class="mt-3 block">
+              <span class="text-xs font-medium text-graphite">Guide type</span>
+              <select v-model="guideType" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm">
+                <option value="guide">General guide</option>
+                <option value="rubric">Rubric</option>
+                <option value="style_guide">Style guide</option>
+                <option value="article">Article</option>
+                <option value="client_context">Client context</option>
+              </select>
+            </label>
+            <label class="mt-3 block">
+              <span class="text-xs font-medium text-graphite">Description</span>
+              <textarea v-model.trim="guideDescription" class="focus-ring mt-1 min-h-16 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="What should the writer use this for?" />
+            </label>
+            <button
+              class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              type="submit"
+              :disabled="files.isUploading || !guideFile"
+            >
+              <Loader2 v-if="files.isUploading" class="size-4 animate-spin" />
+              <FileUp v-else class="size-4" />
+              Upload guide
+            </button>
+          </form>
+
+          <form class="rounded-lg border border-slate-200 bg-slate-50 p-4" @submit.prevent="attachExistingGuide">
+            <div class="flex items-center gap-2">
+              <BookOpen class="size-4 text-signal" />
+              <h3 class="text-sm font-semibold text-ink">Attach existing guide</h3>
+            </div>
+            <label class="mt-3 block">
+              <span class="text-xs font-medium text-graphite">Guide article</span>
+              <select v-model="selectedGuideSlug" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm" @focus="loadGuideArticles">
+                <option value="">Choose from Guides</option>
+                <option v-for="article in guideArticles" :key="article.id" :value="article.slug">
+                  {{ article.title }}
+                </option>
+              </select>
+            </label>
+            <p class="mt-2 text-xs text-graphite">
+              These are the articles managed in the Guides section.
+            </p>
+            <button
+              class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60"
+              type="submit"
+              :disabled="!selectedGuideSlug"
+            >
+              <BookOpen class="size-4" />
+              Attach guide
+            </button>
+          </form>
+
+          <form class="rounded-lg border border-slate-200 bg-slate-50 p-4" @submit.prevent="addGuideLink">
+            <div class="flex items-center gap-2">
+              <ExternalLink class="size-4 text-signal" />
+              <h3 class="text-sm font-semibold text-ink">Add guide link or article</h3>
+            </div>
+            <label class="mt-3 block">
+              <span class="text-xs font-medium text-graphite">Title</span>
+              <input v-model.trim="guideLinkTitle" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="Article, guide, or instruction title" />
+            </label>
+            <label class="mt-3 block">
+              <span class="text-xs font-medium text-graphite">URL</span>
+              <input v-model.trim="guideLinkUrl" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="https://..." type="url" />
+            </label>
+            <button
+              class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60"
+              type="submit"
+              :disabled="!guideLinkUrl"
+            >
+              <ExternalLink class="size-4" />
+              Add link
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div v-if="!writerGuides.length" class="px-5 py-8 text-center">
+        <Paperclip class="mx-auto mb-2 size-7 text-slate-300" />
+        <p class="text-sm text-graphite">No writer guides yet.</p>
+      </div>
+      <div v-else class="divide-y divide-slate-100">
+        <div v-for="guide in writerGuides" :key="guide.id" class="flex items-start gap-4 px-5 py-4">
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold text-ink">
+              {{ guide.display_name ?? guide.managed_file?.original_filename ?? guide.external_link?.title ?? `Guide #${guide.id}` }}
+            </p>
+            <p v-if="guideDescriptionText(guide)" class="mt-1 text-xs leading-5 text-graphite">
+              {{ guideDescriptionText(guide) }}
+            </p>
+            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-graphite">
+              <span>{{ guideTypeLabel(guide) }}</span>
+              <span v-if="guide.managed_file?.file_size_bytes"> · {{ fileSize(guide.managed_file.file_size_bytes) }}</span>
+              <span v-if="guide.external_link" class="rounded-full bg-blue-100 px-1.5 py-0.5 font-semibold text-blue-700">Link</span>
+            </div>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <a
+              v-if="guide.external_link?.url"
+              :href="guide.external_link.url"
+              target="_blank"
+              rel="noreferrer"
+              class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
+            >
+              <ExternalLink class="h-3.5 w-3.5" />
+              Open
+            </a>
+            <button
+              v-else-if="guide.managed_file && guide.managed_file.scan_status !== 'infected'"
+              class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
+              :disabled="downloading === guide.id"
+              @click="download(guide.id)"
+            >
+              <Loader2 v-if="downloading === guide.id" class="h-3.5 w-3.5 animate-spin" />
+              <Download v-else class="h-3.5 w-3.5" />
+              Download
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Upload panel -->
     <div class="rounded-lg border border-slate-200 bg-white">
       <div class="border-b border-slate-200 px-5 py-4">
@@ -130,6 +272,7 @@
               <select v-model="singlePurpose" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 px-2 text-sm">
                 <option value="order_reference">Reference</option>
                 <option value="order_instruction">Instruction</option>
+                <option v-if="isStaffRole" value="writer_guide">Writer guide</option>
                 <option value="style_reference">Style reference</option>
                 <option value="order_revision">Revision support</option>
               </select>
@@ -335,12 +478,14 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import {
-  AlertCircle, CheckCircle2, Download, ExternalLink,
+  AlertCircle, BookOpen, CheckCircle2, Download, ExternalLink,
   FileUp, Loader2, Lock, Paperclip, Plus, RefreshCw, Send, Trash2, X,
 } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderSummary, OrderLifecycle } from "@/types/orders";
 import { type DeliveryStatus, type FilePurpose } from "@/api/files";
+import type { FileAttachment } from "@/api/files";
+import { legalApi, type HelpArticleSummary } from "@/api/legal";
 import { writerApi } from "@/api/writer";
 import { useFilesStore, type QueuedFile } from "@/stores/files";
 import { isStaff } from "../types";
@@ -359,6 +504,8 @@ const emit = defineEmits<{
 const files = useFilesStore();
 const isStaffRole = computed(() => isStaff(props.role));
 const canRequestDeletion = computed(() => props.role === "client" || isStaffRole.value);
+const canSeeWriterGuides = computed(() => props.role === "writer" || isStaffRole.value);
+const writerGuides = computed(() => files.attachments.filter((att) => att.purpose === "writer_guide"));
 
 const hasRevision = computed(() =>
   props.order.status === "revision_requested" ||
@@ -380,6 +527,7 @@ const PURPOSE_LABELS: Record<string, string> = {
   order_draft: "Draft",
   order_final: "Final deliverable",
   order_revision: "Revision support",
+  writer_guide: "Writer guide",
   style_reference: "Style reference",
   extra_service_file: "Extra service",
   message_attachment: "Message attachment",
@@ -387,6 +535,17 @@ const PURPOSE_LABELS: Record<string, string> = {
 
 function purposeLabel(p: string): string {
   return PURPOSE_LABELS[p] ?? p.replace(/_/g, " ");
+}
+
+function guideDescriptionText(guide: FileAttachment): string {
+  const value = guide.metadata?.description;
+  return typeof value === "string" ? value : "";
+}
+
+function guideTypeLabel(guide: FileAttachment): string {
+  const value = guide.metadata?.guide_type;
+  const raw = typeof value === "string" && value ? value : "guide";
+  return raw.replace(/_/g, " ");
 }
 
 function scanBadge(status: string): string {
@@ -444,6 +603,13 @@ async function submitWork() {
 // ── Client single upload ─────────────────────────────────────────────────────
 const singleFile = ref<File | null>(null);
 const singlePurpose = ref<FilePurpose>("order_reference");
+const guideFile = ref<File | null>(null);
+const guideType = ref("guide");
+const guideDescription = ref("");
+const guideLinkTitle = ref("");
+const guideLinkUrl = ref("");
+const guideArticles = ref<HelpArticleSummary[]>([]);
+const selectedGuideSlug = ref("");
 
 function onSinglePick(event: Event) {
   const input = event.target as HTMLInputElement;
@@ -451,10 +617,69 @@ function onSinglePick(event: Event) {
   files.clearMessages();
 }
 
+function onGuidePick(event: Event) {
+  const input = event.target as HTMLInputElement;
+  guideFile.value = input.files?.[0] ?? null;
+  files.clearMessages();
+}
+
 async function singleUpload() {
   if (!singleFile.value) return;
-  await files.uploadSingleFile(props.orderId, singleFile.value, singlePurpose.value);
+  await files.uploadSingleFile(
+    props.orderId,
+    singleFile.value,
+    singlePurpose.value,
+    singlePurpose.value === "writer_guide"
+      ? { category_code: "guide", description: "Staff-provided writer guide." }
+      : undefined,
+  );
   singleFile.value = null;
+}
+
+async function uploadGuideFile() {
+  if (!guideFile.value) return;
+  await files.uploadSingleFile(props.orderId, guideFile.value, "writer_guide", {
+    category_code: guideType.value,
+    description: guideDescription.value,
+  });
+  guideFile.value = null;
+  guideDescription.value = "";
+  guideType.value = "guide";
+}
+
+async function addGuideLink() {
+  if (!guideLinkUrl.value) return;
+  await files.submitExternalLink(props.orderId, {
+    url: guideLinkUrl.value,
+    title: guideLinkTitle.value || guideLinkUrl.value,
+    purpose: "writer_guide",
+  });
+  guideLinkTitle.value = "";
+  guideLinkUrl.value = "";
+}
+
+async function loadGuideArticles() {
+  if (guideArticles.value.length) return;
+  try {
+    const { data } = await legalApi.articles();
+    guideArticles.value = data.filter((article) =>
+      ["writer", "staff", "all", "everyone"].includes(String(article.audience || "").toLowerCase()),
+    );
+  } catch {
+    guideArticles.value = [];
+  }
+}
+
+async function attachExistingGuide() {
+  const article = guideArticles.value.find((item) => item.slug === selectedGuideSlug.value);
+  if (!article) return;
+  const url = `${window.location.origin}/writer/guides/${article.slug}`;
+  await files.submitExternalLink(props.orderId, {
+    url,
+    title: article.title,
+    purpose: "writer_guide",
+  });
+  selectedGuideSlug.value = "";
 }
 
 // ── Payment re-check ─────────────────────────────────────────────────────────

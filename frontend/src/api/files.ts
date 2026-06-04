@@ -6,6 +6,7 @@ export type FilePurpose =
   | "order_draft"
   | "order_final"
   | "order_revision"
+  | "writer_guide"
   | "style_reference"
   | "extra_service_file"
   | "message_attachment";
@@ -14,6 +15,7 @@ export type FileVisibility =
   | "order_participants"
   | "client_writer_staff"
   | "client_and_staff"
+  | "writer_and_staff"
   | "owner_only"
   | "staff_only"
   | "private";
@@ -125,6 +127,7 @@ const PURPOSE_ENDPOINT: Record<string, string> = {
   order_draft: "drafts",
   order_final: "final",
   order_revision: "revisions",
+  writer_guide: "writer-guides",
   extra_service_file: "extra-services",
 };
 
@@ -167,6 +170,12 @@ export const filesApi = {
     scope = "detach_only",
   ) =>
     api.post(orderFilePath(orderId, `${attachmentId}/request-deletion/`), { reason, scope }),
+
+  submitExternalOrderLink: (
+    orderId: number | string,
+    payload: { url: string; title?: string; purpose: FilePurpose },
+  ) =>
+    api.post<FileAttachment>(orderFilePath(orderId, "external-links/"), payload),
 
   // Admin-only generic file management
   adminFiles: (params?: Record<string, unknown>) =>

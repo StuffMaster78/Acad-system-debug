@@ -23,11 +23,15 @@ export const orderOpsApi = {
       reason,
     }),
   approveForDelivery: (orderId: number, notes = "") =>
-    api.post(ordersApiPath(`/orders/${orderId}/qa/approve/`), { notes }),
+    api.post(ordersApiPath(`/orders/${orderId}/qa/approve/`), { note: notes }),
   returnToWriter: (orderId: number, notes: string) =>
-    api.post(ordersApiPath(`/orders/${orderId}/qa/return/`), { notes }),
+    api.post(ordersApiPath(`/orders/${orderId}/qa/return/`), { reason: notes }),
   requestRevision: (orderId: number, instructions: string) =>
-    api.post(ordersApiPath(`/orders/${orderId}/revisions/`), { instructions }),
+    api.post(ordersApiPath(`/orders/${orderId}/revisions/`), {
+      reason: "Staff revision request",
+      scope_summary: instructions,
+      is_within_original_scope: true,
+    }),
   cancel: (orderId: number, reason: string) =>
     api.post(ordersApiPath(`/orders/${orderId}/cancel/`), { reason }),
   archive: (orderId: number) =>
