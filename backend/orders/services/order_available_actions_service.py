@@ -174,6 +174,62 @@ class OrderAvailableActionsService:
             return False
         return True
 
+    @classmethod
+    def build_blocked_reasons(
+        cls,
+        *,
+        order: Any,
+        user: Any,
+        lifecycle: Any,
+    ) -> dict[str, str]:
+        """
+        Return a dict of action_name → human-readable reason for actions that
+        are status-eligible but currently blocked by lifecycle state.
+
+        Only populated for staff roles. Clients and writers receive {}.
+        The frontend uses this to render "why is this button missing?" tooltips.
+        """
+        role = getattr(user, "role", None)
+        is_staff = role in STAFF_ROLES or bool(getattr(user, "is_staff", False))
+        if not is_staff:
+            return {}
+
+        status = str(getattr(order, "status", "") or "").lower()
+        blocked: dict[str, str] = {}
+
+        # raise_dispute — status allows it, but an active dispute already exists
+        if (
+            status in {"in_progress", "submitted", "completed"}
+            and getattr(lifecycle, "has_active_dispute", False)
+        ):
+            blocked["raise_dispute"] = "An active dispute is already open on this order."
+
+        # archive_order — order is completed but something prevents archiving
+        if status == "completed":
+            if getattr(order, "archived_at", None) is not None:
+                blocked["archive_order"] = "Order has already been archived."
+            elif getattr(lifecycle, "has_active_dispute", False):
+                blocked["archive_order"] = "Cannot archive while a dispute is open."
+
+        # submit_for_qa — in_progress but held
+        if status == "in_progress" and getattr(lifecycle, "has_active_hold", False):
+            blocked["submit_for_qa"] = "Order is on hold and cannot be submitted."
+
+        # approve_order — completed but already approved
+        if status == "completed" and getattr(order, "approved_at", None) is not None:
+            blocked["approve_order"] = "Order has already been approved."
+
+        # request_revision — status allows it, but order is already approved
+        if (
+            status in {"submitted", "completed"}
+            and getattr(order, "approved_at", None) is not None
+        ):
+            blocked["request_revision"] = (
+                "Order has been approved — the revision window is closed."
+            )
+
+        return blocked
+
     @staticmethod
     def _dedupe(actions: Iterable[str]) -> list[str]:
         seen: set[str] = set()

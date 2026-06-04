@@ -55,6 +55,11 @@ class OrderLifecycleView(GenericAPIView):
             user=request.user,
             lifecycle=snapshot,
         )
+        payload["blocked_actions"] = OrderAvailableActionsService.build_blocked_reasons(
+            order=order,
+            user=request.user,
+            lifecycle=snapshot,
+        )
         serializer = self.get_serializer(payload)
 
         return Response(serializer.data, status=status.HTTP_200_OK)

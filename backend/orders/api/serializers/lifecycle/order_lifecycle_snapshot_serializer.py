@@ -46,3 +46,8 @@ class OrderLifecycleSnapshotSerializer(serializers.Serializer):
         required=False,
         default=list,
     )
+    blocked_actions = serializers.DictField(
+        child=serializers.CharField(),
+        required=False,
+        default=dict,
+    )
