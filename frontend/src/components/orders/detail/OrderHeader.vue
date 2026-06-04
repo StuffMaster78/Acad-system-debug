@@ -20,10 +20,8 @@
           <span class="font-mono">{{ clientDisplay }}</span>
           <span class="text-slate-300">·</span>
           <span class="font-mono">{{ writerDisplay }}</span>
-          <span v-if="order?.website && isStaffRole" class="text-slate-300">·</span>
-          <span v-if="order?.website && isStaffRole" class="text-xs">
-            Site #{{ order.website }}
-          </span>
+          <span v-if="websiteLabel && isStaffRole" class="text-slate-300">·</span>
+          <span v-if="websiteLabel && isStaffRole" class="text-xs">{{ websiteLabel }}</span>
         </div>
       </div>
 
@@ -90,6 +88,7 @@
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import { ArrowLeft, Loader2, RotateCcw, ShieldAlert, ThumbsUp, Zap } from "@lucide/vue";
+import { useWebsitesStore } from "@/stores/websites";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderSummary, OrderLifecycle } from "@/types/orders";
@@ -115,6 +114,11 @@ const backLabel = computed(() => {
 });
 
 const isStaffRole = computed(() => isStaff(props.role));
+const websites = useWebsitesStore();
+const websiteLabel = computed(() => {
+  if (!props.order?.website) return null;
+  return websites.labelById(props.order.website) || `Site #${props.order.website}`;
+});
 const visibleDeadline = computed(() =>
   props.role === "writer" ? props.order?.writer_deadline : props.order?.client_deadline,
 );

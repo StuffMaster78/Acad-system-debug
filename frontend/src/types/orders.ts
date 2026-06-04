@@ -108,6 +108,8 @@ export interface OrderLifecycle {
   is_revision_window_open: boolean;
   revision_window_days: number;
   available_actions?: string[];
+  /** Staff-facing reasons why certain actions are unavailable in the current lifecycle state. */
+  blocked_actions?: Record<string, string>;
 }
 
 export interface OrderActionResponse {

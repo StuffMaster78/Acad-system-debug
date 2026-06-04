@@ -7,7 +7,7 @@
       :class="[
         'whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors',
         modelValue === tab
-          ? 'border-b-2 border-blue-600 text-blue-600'
+          ? 'border-b-2 border-signal text-signal'
           : 'text-graphite hover:text-ink',
       ]"
     >

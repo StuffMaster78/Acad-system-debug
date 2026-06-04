@@ -32,8 +32,20 @@ const availableActions = computed(() => {
   return orders.selectedLifecycle?.available_actions ?? [];
 });
 
+const blockedActions = computed(() => {
+  if (Number(orders.selectedLifecycle?.order_id) !== Number(props.orderId)) {
+    return {} as Record<string, string>;
+  }
+  return orders.selectedLifecycle?.blocked_actions ?? {};
+});
+
 function hasAction(action: string) {
   return availableActions.value.includes(action);
+}
+
+/** Returns why an action is unavailable, or empty string if it's available. */
+function blockedReason(action: string): string {
+  return blockedActions.value[action] ?? "";
 }
 
 const hasAnyAction = computed(() =>
@@ -134,9 +146,10 @@ async function submitForQA() {
 
     <div v-if="hasAnyAction" class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
       <button
-        v-if="hasAction('route_to_staffing')"
+        v-if="hasAction('route_to_staffing') || blockedReason('route_to_staffing')"
         class="focus-ring inline-flex h-9 items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold disabled:opacity-50"
-        :disabled="isPanelMutating || ops.isMutating"
+        :disabled="isPanelMutating || ops.isMutating || !!blockedReason('route_to_staffing')"
+        :title="blockedReason('route_to_staffing') || undefined"
         @click="run(() => ops.routeToStaffing(orderId))"
       ><Send class="size-3.5" /> Route</button>
 
@@ -213,5 +226,14 @@ async function submitForQA() {
     <p v-else class="mt-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-graphite">
       No direct staff action is available for this order status.
     </p>
+
+    <!-- Blocked-action explanations (populated by lifecycle endpoint) -->
+    <div v-if="Object.keys(blockedActions).length" class="mt-3 rounded-md border border-amber-100 bg-amber-50/60 px-3 py-2 space-y-1">
+      <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Why some actions are unavailable</p>
+      <div v-for="(reason, action) in blockedActions" :key="action" class="flex items-start gap-2 text-xs text-amber-900">
+        <span class="shrink-0 font-mono text-[10px] bg-amber-100 rounded px-1 py-0.5 capitalize">{{ String(action).replace(/_/g, ' ') }}</span>
+        <span>{{ reason }}</span>
+      </div>
+    </div>
   </div>
 </template>

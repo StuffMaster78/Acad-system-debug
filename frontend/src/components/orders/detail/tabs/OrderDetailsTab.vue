@@ -227,10 +227,10 @@
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Citation style</dt>
           <dd class="mt-1 text-sm text-ink">{{ formattingStyleLabel }}</dd>
         </div>
-        <div v-if="order.number_of_pages">
-          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Pages</dt>
+        <div v-if="order.base_quantity ?? order.number_of_pages">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Pages / Qty</dt>
           <dd class="mt-1 text-sm text-ink">
-            {{ order.number_of_pages }}
+            {{ order.base_quantity ?? order.number_of_pages }}
             <span v-if="order.spacing" class="text-graphite">({{ order.spacing }})</span>
           </dd>
         </div>
