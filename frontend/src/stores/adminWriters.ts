@@ -116,6 +116,7 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
   const discipline = ref<WriterDisciplineState | null>(null);
   const query = ref("");
   const isLoading = ref(false);
+  const isSelectingWriter = ref(false);
   const isMutating = ref(false);
   const error = ref("");
   const notice = ref("");
@@ -191,9 +192,11 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
   async function selectWriter(registrationId: string) {
     const auth = useAuthStore();
     error.value = "";
+    isSelectingWriter.value = true;
 
     try {
       if (auth.isPreviewSession) {
+        await new Promise((r) => setTimeout(r, 120)); // simulate latency in preview
         const writer = previewWriters().find((item) => item.registration_id === registrationId);
         selectedWriter.value = writer ?? null;
         discipline.value = writer ? previewDiscipline(writer) : null;
@@ -209,6 +212,8 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
     } catch (caught) {
       error.value = "Unable to load writer detail.";
       throw caught;
+    } finally {
+      isSelectingWriter.value = false;
     }
   }
 
@@ -440,6 +445,7 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
     discipline,
     query,
     isLoading,
+    isSelectingWriter,
     isMutating,
     error,
     notice,

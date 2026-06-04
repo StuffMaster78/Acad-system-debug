@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { AlertTriangle, BadgeMinus, Ban, BriefcaseBusiness, ExternalLink, FileText, RefreshCw, ShieldOff, UserCheck, Users } from "@lucide/vue";
+import { AlertTriangle, BadgeMinus, Ban, BriefcaseBusiness, ExternalLink, FileText, Loader2, RefreshCw, ShieldOff, UserCheck, Users } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import BulkActionBar from "@/components/ui/BulkActionBar.vue";
 import SavedViewPresets from "@/components/admin/SavedViewPresets.vue";
@@ -112,6 +112,15 @@ async function handleBulkAction(key: string) {
 }
 
 const selected = computed(() => writers.selectedWriter);
+const panelRef = ref<HTMLElement | null>(null);
+
+async function inspectWriter(registrationId: string) {
+  await writers.selectWriter(registrationId);
+  // On mobile the grid stacks — scroll the panel into view after loading
+  if (panelRef.value && window.innerWidth < 1280) {
+    panelRef.value.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
 
 function dateLabel(value?: string | null) {
   if (!value) return "Not set";
@@ -261,7 +270,7 @@ onMounted(() => {
             <button
               class="focus-ring text-left"
               type="button"
-              @click="writers.selectWriter(writer.registration_id)"
+              @click="inspectWriter(writer.registration_id)"
             >
               <p class="font-semibold text-ink">{{ writer.pen_name || writer.full_name || writer.registration_id }}</p>
               <p class="mt-1 text-xs text-graphite">{{ writer.full_name || writer.registration_id }} · joined {{ dateLabel(writer.joined_at) }}</p>
@@ -270,10 +279,13 @@ onMounted(() => {
             <StatusPill :label="writer.verification_status" :tone="writer.is_verified ? 'success' : 'warning'" />
             <StatusPill :label="(writer as any).is_suspended ? 'suspended' : (writer as any).is_on_probation ? 'probation' : 'clear'" :tone="riskTone(writer as any)" />
             <button
-              class="focus-ring text-right text-xs font-semibold text-signal"
+              class="focus-ring inline-flex items-center gap-1 text-right text-xs font-semibold text-signal"
               type="button"
-              @click="writers.selectWriter(writer.registration_id)"
-            >Inspect</button>
+              @click="inspectWriter(writer.registration_id)"
+            >
+              <Loader2 v-if="writers.isSelectingWriter && selected?.registration_id === writer.registration_id" class="h-3 w-3 animate-spin" />
+              Inspect
+            </button>
           </div>
           </div>
           </div>
@@ -294,7 +306,14 @@ onMounted(() => {
         />
       </div>
 
-      <aside class="rounded-lg border border-slate-200 bg-white p-5">
+      <aside ref="panelRef" class="relative rounded-lg border border-slate-200 bg-white p-5">
+        <!-- Loading overlay while Inspect fetch is in flight -->
+        <div
+          v-if="writers.isSelectingWriter"
+          class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70"
+        >
+          <Loader2 class="h-6 w-6 animate-spin text-signal" />
+        </div>
         <div class="flex items-start justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold text-ink">{{ selected?.pen_name || "Writer detail" }}</h2>
@@ -508,10 +527,11 @@ onMounted(() => {
               </td>
               <td class="px-3 py-2.5 text-right">
                 <button
-                  class="focus-ring rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-signal"
+                  class="focus-ring inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-signal"
                   type="button"
-                  @click="writers.selectWriter(row.registration_id)"
+                  @click="inspectWriter(row.registration_id)"
                 >
+                  <Loader2 v-if="writers.isSelectingWriter && selected?.registration_id === row.registration_id" class="h-3 w-3 animate-spin" />
                   Inspect
                 </button>
               </td>
