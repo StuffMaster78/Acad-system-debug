@@ -230,6 +230,41 @@ export interface RevisionRouteResponse {
   status?: string;
 }
 
+export interface DesignQuotePayload {
+  service_code: string;
+  quantity?: number;
+  slides?: number;
+  deadline_hours?: number;
+  selected_addon_codes?: string[];
+  topic?: string;
+  instructions?: string;
+}
+
+export interface DiagramQuotePayload {
+  service_code: string;
+  quantity: number;
+  deadline_hours?: number;
+  diagram_type: string;
+  diagram_complexity: string;
+  selected_addon_codes?: string[];
+}
+
+export interface Suggestion {
+  type: "deadline_adjustment" | "rush_order";
+  message: string;
+  recommended_deadline_hours?: number;
+}
+
+export interface ServiceAddon {
+  addon_code: string;
+  name: string;
+  description?: string;
+  flat_amount: string;
+  is_public: boolean;
+  is_active: boolean;
+  sort_order: number;
+}
+
 export interface PaperQuoteStartResponse {
   session_id: string;
   status: string;
@@ -237,6 +272,7 @@ export interface PaperQuoteStartResponse {
   estimated_min_price: string | number | null;
   estimated_max_price: string | number | null;
   currency: string;
+  suggestions?: Suggestion[];
 }
 
 export interface PriceLine {
@@ -254,6 +290,7 @@ export interface PaperQuoteUpdateResponse {
   calculated_price: string | number | null;
   currency: string;
   lines: PriceLine[];
+  suggestions?: Suggestion[];
 }
 
 export interface PricingSnapshotResponse {

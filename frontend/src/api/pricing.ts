@@ -1,10 +1,15 @@
 import { api, apiPath } from "./client";
 import type {
+  DesignQuotePayload,
+  DiagramQuotePayload,
   PaperQuotePayload,
   PaperQuoteStartResponse,
   PaperQuoteUpdateResponse,
   PricingSnapshotResponse,
+  ServiceAddon,
 } from "@/types/orders";
+
+type QuoteType = "paper" | "design" | "diagram";
 
 export interface ConfigOption {
   id: number;
@@ -46,6 +51,41 @@ export const pricingApi = {
     api.post<PaperQuoteUpdateResponse>(
       apiPath(`/pricing/quotes/paper/${sessionId}/update/`),
       payload,
+    ),
+  startDesignQuote: (payload: DesignQuotePayload) =>
+    api.post<PaperQuoteStartResponse>(
+      apiPath("/pricing/quotes/design/start/"),
+      payload,
+    ),
+  updateDesignQuote: (sessionId: string, payload: DesignQuotePayload) =>
+    api.post<PaperQuoteUpdateResponse>(
+      apiPath(`/pricing/quotes/design/${sessionId}/update/`),
+      payload,
+    ),
+  startDiagramQuote: (payload: DiagramQuotePayload) =>
+    api.post<PaperQuoteStartResponse>(
+      apiPath("/pricing/quotes/diagram/start/"),
+      payload,
+    ),
+  updateDiagramQuote: (sessionId: string, payload: DiagramQuotePayload) =>
+    api.post<PaperQuoteUpdateResponse>(
+      apiPath(`/pricing/quotes/diagram/${sessionId}/update/`),
+      payload,
+    ),
+  // Generic dispatcher — used by the shared composable
+  startQuote: (type: QuoteType, payload: Record<string, unknown>) =>
+    api.post<PaperQuoteStartResponse>(
+      apiPath(`/pricing/quotes/${type}/start/`),
+      payload,
+    ),
+  updateQuote: (type: QuoteType, sessionId: string, payload: Record<string, unknown>) =>
+    api.post<PaperQuoteUpdateResponse>(
+      apiPath(`/pricing/quotes/${type}/${sessionId}/update/`),
+      payload,
+    ),
+  addons: (serviceCode: string) =>
+    api.get<ServiceAddon[]>(
+      apiPath(`/pricing/public/addons/?service_code=${serviceCode}`),
     ),
   createSnapshot: (sessionId: string) =>
     api.post<PricingSnapshotResponse>(
