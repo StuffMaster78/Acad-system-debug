@@ -21,8 +21,10 @@
 12. [Account & Profile Settings](#account--profile-settings)
 13. [Notifications](#notifications)
 14. [Help Center & Legal Documents](#help-center--legal-documents)
-15. [Troubleshooting](#troubleshooting)
-16. [FAQ](#faq)
+15. [What's New](#whats-new)
+16. [Feedback & Suggestions](#feedback--suggestions)
+17. [Troubleshooting](#troubleshooting)
+18. [FAQ](#faq)
 
 ---
 
@@ -61,6 +63,18 @@ After login you land on your **Dashboard**, which shows:
 - Loyalty points and current tier
 - Unread notifications
 - Quick links to place a new order or top up your wallet
+
+### Getting Started Checklist
+
+When you first create an account, a **Getting Started** checklist appears on your dashboard. It guides you through the recommended first steps:
+
+1. Verify your email address
+2. Complete your profile (name, timezone, communication preferences)
+3. Read the Help Center introduction
+4. Place your first order
+5. Top up your wallet (optional — you can also pay by card at checkout)
+
+The checklist closes automatically once all items are complete. You can also dismiss it manually if you prefer.
 
 ---
 
@@ -421,6 +435,41 @@ If you cannot find what you need in the Help Center:
 
 - Open a support ticket from the **Help** page.
 - Use the **Contact** link in the footer to find the support email or phone number for your site.
+
+---
+
+## What's New
+
+The **What's New** section (also called the Changelog) is accessible from your dashboard sidebar or from the account menu. It lists recent platform updates, new features, and fixes that affect your experience as a client.
+
+Pinned announcements appear at the top. Updates are organized by date. You do not need to do anything — improvements appear automatically when you next use the platform.
+
+---
+
+## Feedback & Suggestions
+
+You can share feedback, report issues, or suggest new features directly from within the platform.
+
+### Submitting feedback
+
+1. Click your account avatar in the top-right corner
+2. Select **Feedback & Suggestions**
+3. Choose a category (e.g. "Order experience", "Payments", "Website issue")
+4. Describe your suggestion or issue
+5. Click **Submit**
+
+Your feedback is reviewed by the team. You can see the status of your submission:
+
+| Status | Meaning |
+|---|---|
+| New | Received, not yet reviewed |
+| Under review | Being assessed by the team |
+| Planned | Accepted for a future update |
+| In progress | Being built |
+| Done | Shipped |
+| Rejected | Will not be implemented (reason provided) |
+
+You can also upvote existing suggestions from other users to show support for ideas you agree with.
 
 ---
 

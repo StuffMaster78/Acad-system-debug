@@ -1,517 +1,446 @@
 # Writer User Guide
 
-**Version**: 1.0  
----
+**Last Updated**: June 2026
 
-## Submitting Final Work
-
-Upload your final file on the Files tab, then click Submit for delivery on the file card.
-Simply uploading does NOT notify the client — you must click Submit for delivery.
-
-The system verifies the file passed the virus scan before allowing submission.
-
-## Special Orders
-
-Each milestone has its own delivery form. Click Deliver milestone, add notes and a file link.
-The client receives notification and can approve or request revision per milestone.
+This guide covers everything you need to know as a writer on the platform — from applying and getting approved, to completing orders, managing earnings, and using platform tools.
 
 ---
 
-**Last Updated**: May 2026
+## Table of Contents
+
+1. [Applying to Join](#1-applying-to-join)
+2. [Vetting Quiz](#2-vetting-quiz)
+3. [Getting Started After Approval](#3-getting-started-after-approval)
+4. [Dashboard](#4-dashboard)
+5. [Finding and Claiming Orders](#5-finding-and-claiming-orders)
+6. [Working on an Order](#6-working-on-an-order)
+7. [Submitting Your Work](#7-submitting-your-work)
+8. [Revisions](#8-revisions)
+9. [Files Tab](#9-files-tab)
+10. [Messaging](#10-messaging)
+11. [Special Orders and Milestones](#11-special-orders-and-milestones)
+12. [Earnings and Payouts](#12-earnings-and-payouts)
+13. [Performance and Analytics](#13-performance-and-analytics)
+14. [Writer Resources](#14-writer-resources)
+15. [What's New](#15-whats-new)
+16. [Feedback and Suggestions](#16-feedback-and-suggestions)
+17. [Troubleshooting](#17-troubleshooting)
+18. [FAQ](#18-faq)
 
 ---
 
-## 📋 Table of Contents
+## 1. Applying to Join
 
-1. [Getting Started](#getting-started)
-2. [Order Management](#order-management)
-3. [Payment & Earnings](#payment--earnings)
-4. [Workload Management](#workload-management)
-5. [Deadline Calendar](#deadline-calendar)
-6. [Communication](#communication)
-7. [Performance & Analytics](#performance--analytics)
-8. [Troubleshooting](#troubleshooting)
-9. [FAQ](#faq)
+New writers apply through the public application form at `/apply`.
 
----
+### What you need
 
-## 🚀 Getting Started
+- A valid email address
+- A personal statement (why you want to write for this platform, your background)
+- CV or resume link (Google Drive, Dropbox, or direct URL)
+- Portfolio links showing samples of your writing (optional but strongly recommended)
 
-### First Login
+### Application steps
 
-1. **Access the System**
-   - Navigate to the writer portal
-   - Click "Login" in the top right corner
+1. Go to `/apply` on the platform website
+2. Fill in your personal details (name, email, area of expertise, education level)
+3. Write a personal statement — explain your writing background, subject strengths, and why you want to join
+4. Add your CV link and any portfolio links
+5. Submit the application
 
-2. **Login Credentials**
-   - Enter your email address
-   - Enter your password
-   - Click "Login"
+You will receive a confirmation email. Your application enters the review queue and is assessed by the admin team. You may be asked to complete a vetting quiz before a decision is made.
 
-3. **Dashboard Access**
-   - After login, you'll see your writer dashboard
-   - Overview of orders, earnings, and workload
+### Application outcomes
 
-### Navigation Overview
-
-- **Dashboard** - Overview of your account
-- **Orders** - View and manage assigned orders
-- **Earnings** - Payment status and history
-- **Calendar** - Deadline calendar view
-- **Messages** - Communication with clients
-- **Profile** - Account settings and preferences
+| Outcome | What happens |
+|---|---|
+| Approved | Your writer account is created. You receive login credentials by email. |
+| Rejected | You receive a rejection email with the reason. You may reapply after addressing the noted issues. |
+| Quiz assigned | You receive a quiz link. Complete the quiz, then the admin team reviews your results alongside the application. |
 
 ---
 
-## 📝 Order Management
+## 2. Vetting Quiz
 
-### Viewing Available Orders
+Some applicants are asked to complete a vetting quiz before their application is approved. The quiz tests subject knowledge, writing quality, and platform understanding.
 
-1. **Access Order Queue**
-   - Go to **"Orders"** → **"Available Orders"**
-   - See orders you can take
+### Taking the quiz
 
-2. **Order Information**
-   - Topic and requirements
-   - Deadline
-   - Pages and complexity
-   - Payment amount
-   - Client information
+1. You receive an email with a quiz link
+2. Click the link — it opens the quiz in your browser (no login required at this stage)
+3. Answer all questions
+4. Submit when complete
 
-### Taking Orders
+Questions may be multiple choice, short answer, or writing tasks depending on your stated subject area.
 
-1. **Review Order Details**
-   - Click on an order to view full details
-   - Read instructions carefully
-   - Check deadline and requirements
-   - **Check Urgency Level**: Rush orders (≤ 6h) and Same-day orders (≤ 24h) have higher earnings
+### After the quiz
 
-2. **Take Order**
-   - Click **"Take Order"** button
-   - Confirm you can complete on time
-   - Order will be assigned to you
-   - **Note**: System enforces minimum safe deadlines based on page count
-
-### Managing Assigned Orders
-
-#### Order Statuses
-
-- **In Progress** - Currently working on order
-- **On Hold** - Temporarily paused
-- **Submitted** - Work submitted for review
-- **Under Editing** - Editor reviewing work
-- **Revision Requested** - Client wants changes
-- **On Revision** - Making requested changes
-- **Completed** - Order finished
-
-#### Order Actions
-
-**Update Progress**
-1. Open the order
-2. Go to **"Progress"** section
-3. Update progress percentage
-4. Add notes if needed
-5. Click **"Save Progress"**
-
-**Submit Work**
-1. Complete the order
-2. Upload final files
-3. Click **"Submit for Review"**
-4. Add submission notes
-5. Confirm submission
-
-**Request Deadline Extension**
-1. Open the order
-2. Click **"Request Extension"**
-3. Provide reason
-4. Request new deadline
-5. Submit request
-
-**Request Order Hold**
-1. Open the order
-2. Click **"Request Hold"**
-3. Provide reason
-4. Submit request
-
-### File Management
-
-**Upload Files**
-1. Open the order
-2. Go to **"Files"** section
-3. Click **"Upload File"**
-4. Select **File Type** category:
-   - Order Instructions
-   - Sample Paper
-   - Plagiarism Report
-   - Final Draft
-   - Other (as configured)
-5. Select file(s)
-6. Add description (optional)
-7. Click **"Upload"**
-
-**File Types Supported**
-- Word documents (.doc, .docx)
-- PDF files (.pdf)
-- Text files (.txt)
-- Images (.jpg, .png)
-- Files are organized by category for better management
+Your results are reviewed alongside your application. You are not shown a score directly — the admin team uses the results as one factor in their decision. You will hear back by email with the final outcome.
 
 ---
 
-## 💰 Payment & Earnings
+## 3. Getting Started After Approval
 
-### Payment Status Dashboard
+When your application is approved you receive a welcome email with:
+- Your login link
+- Your temporary password (change it on first login)
+- A link to this guide
 
-1. **Access Payment Dashboard**
-   - Go to **"Earnings"** in navigation
-   - View payment status overview
+### Onboarding checklist
 
-2. **Payment Information**
-   - **Total Earnings** - Lifetime earnings
-   - **Pending Payments** - Awaiting payment
-   - **Delayed Payments** - Overdue payments
-   - **Recent Payments** - Latest payments
+When you first log in, a **Getting Started** checklist appears on your dashboard. Work through it before accepting your first order:
 
-### Payment Breakdown
+1. Change your password
+2. Complete your writer profile (display name, bio, subject specialties)
+3. Set your timezone and notification preferences
+4. Read the Writer Code of Conduct (linked in the checklist)
+5. Review the submission standards
+6. Complete any outstanding vetting quiz (if not yet done)
 
-**By Status**
-- **Completed** - Paid and processed
-- **Pending** - Awaiting processing
-- **Delayed** - Past due date
-- **Processing** - Currently being processed
-
-**By Period**
-- **This Month** - Current month earnings
-- **Last Month** - Previous month
-- **This Year** - Year-to-date
-- **All Time** - Lifetime total
-
-### Payment History
-
-1. **View Payment History**
-   - Go to **"Earnings"** → **"Payment History"**
-   - See all past payments
-
-2. **Payment Details**
-   - Payment date
-   - Order ID
-   - Amount
-   - Payment method
-   - Status
-
-### Payout Requests
-
-1. **Request Payout**
-   - Go to **"Earnings"** → **"Payout Requests"**
-   - Click **"Request Payout"**
-   - Enter amount
-   - Select payment method
-   - Submit request
-
-2. **Payout Status**
-   - **Pending** - Awaiting approval
-   - **Approved** - Processing
-   - **Completed** - Paid
-   - **Rejected** - Request denied
+The checklist closes once all items are complete. You can dismiss it manually if you prefer.
 
 ---
 
-## 📊 Workload Management
+## 4. Dashboard
 
-### Workload Capacity Indicator
+After login you see your writer dashboard with:
 
-1. **View Workload**
-   - Go to **"Dashboard"** → **"Workload"**
-   - See current capacity status
+- **Active assignments** — orders currently assigned to you with deadline countdowns
+- **Orders available** — new orders in the pool matching your subject areas
+- **Recent earnings** — compensation events from the last 30 days
+- **Performance snapshot** — completion rate, revision rate, average rating
+- **Deadline calendar** — visual view of your upcoming deadlines
 
-2. **Capacity Information**
-   - **Current Orders** - Number of active orders
-   - **Max Capacity** - Maximum orders allowed
-   - **Available Slots** - Orders you can take
-   - **Capacity Percentage** - Current usage
-
-### Workload Breakdown
-
-**By Status**
-- In Progress
-- On Hold
-- Revision Requested
-- Under Editing
-
-**By Deadline**
-- Urgent (within 24 hours)
-- Upcoming (next 3 days)
-- Normal (more than 3 days)
-
-### Workload Recommendations
-
-The system provides recommendations:
-- **At Capacity** - Complete current tasks before taking new ones
-- **Near Capacity** - Manage workload carefully
-- **Available** - You can take on more orders
-- **Urgent Tasks** - Focus on upcoming deadlines
-
-### Availability Settings
-
-1. **Set Availability**
-   - Go to **"Profile"** → **"Availability"**
-   - Toggle **"Available for Auto-Assignments"**
-   - Add availability message
-   - Save settings
+Deadline countdown colors: green (plenty of time), amber (under 24 hours), red (overdue).
 
 ---
 
-## 📅 Deadline Calendar
+## 5. Finding and Claiming Orders
 
-### Calendar View
+### Order pool
 
-1. **Access Calendar**
-   - Go to **"Calendar"** in navigation
-   - View monthly calendar
+Orders that match your subject areas and writer level appear in the **Orders available** section on your dashboard and in the full **Orders** list (`/writer/orders`).
 
-2. **Calendar Features**
-   - **Task Count** - Number of orders per day
-   - **Color Coding** - Overdue (red), Urgent (orange), Normal (blue)
-   - **Day Selection** - Click day to see all tasks
+Each listing shows:
+- Service type and subject area
+- Page/word count
+- Academic level
+- Deadline
+- Compensation amount
 
-### Viewing Day Tasks
+### Expressing interest (bidding)
 
-1. **Select a Day**
-   - Click on any day with tasks
-   - Sidebar opens showing all tasks
+1. Click an order to open the preview
+2. Click **Express interest**
+3. Optionally add a short message explaining your suitability
+4. Submit
 
-2. **Task Information**
-   - Order ID and topic
-   - Deadline time
-   - Time remaining
-   - Pages and status
-   - Order value
+An admin reviews all expressions of interest and assigns the order to the most suitable writer. You receive a notification if you are selected.
 
-3. **Task Actions**
-   - View order details
-   - Update progress
-   - Submit work
+### Preferred writer requests
 
-### Calendar Features
-
-**Navigation**
-- **Previous Month** - Go to previous month
-- **Next Month** - Go to next month
-- **Today** - Jump to current date
-- **Refresh** - Reload calendar data
-
-**Export Calendar**
-- Click **"Export to Calendar"**
-- Download ICS file
-- Import to Google Calendar, Outlook, or Apple Calendar
+Some clients nominate a specific writer when placing an order. If you are a client's preferred writer, you receive a direct assignment notification. You can accept or decline within the response window.
 
 ---
 
-## 💬 Communication
+## 6. Working on an Order
 
-### Messaging Clients
+Once assigned, the order appears in your **Active assignments** with status `in_progress`.
 
-1. **Access Messages**
-   - Open an order
-   - Go to **"Messages"** tab
-   - Or use **"Messages"** in navigation
+### Order detail page
 
-2. **Welcome Message**
-   - When opening a new order's chat, your default welcome message will be pre-filled
-   - Edit or customize the message before sending
-   - This helps you greet clients professionally
+Click the order to open the detail page. As a writer you see:
 
-3. **Send Message**
-   - Type your message (or use pre-filled welcome message)
-   - Attach files if needed
-   - Click **"Send"**
+| Tab | Contents |
+|---|---|
+| Details | Full requirements: service type, topic, word count, academic level, style, special instructions |
+| Files | Client materials (instructions, source files), Writer guides (rubrics, style sheets), Drafts & deliverables (your uploads) |
+| Messages | Communication with the client and staff |
+| Revisions | Revision requests and history |
+| Timeline | Event history for the order |
 
-4. **Message Features**
-   - Real-time notifications
-   - File attachments
-   - Message history
-   - Read receipts
-   - Default welcome message support
+### Reading the requirements
 
-### Communication Best Practices
+Before starting work:
+1. Read the **Details** tab in full
+2. Download all files in the **Client materials** section
+3. Check **Writer guides** for any rubrics or style sheets
+4. If anything is unclear, send a message in the **Messages** tab before starting
 
-✅ **Do:**
-- Respond promptly to messages
-- Be professional and courteous
-- Provide regular updates
-- Ask clarifying questions when needed
+Misunderstanding the brief is the most common reason for revision requests. Ask early.
 
-❌ **Don't:**
-- Share personal contact information
-- Use unprofessional language
-- Ignore client messages
-- Make promises you can't keep
+### Status banners
+
+While working, you may see:
+- **Amber banner** (on_hold): "This order has been paused by the operations team." Do not submit work until the hold is released.
+- **Rose banner** (disputed): "A dispute has been opened on this order. Do not make any changes to this order." Wait for staff resolution.
 
 ---
 
-## 📈 Performance & Analytics
+## 7. Submitting Your Work
 
-### Performance Dashboard
+### Standard orders
 
-1. **View Performance**
-   - Go to **"Dashboard"** → **"Performance"**
-   - See your performance metrics
+1. Complete your work and save it in the required file format (usually DOCX or PDF)
+2. Open the order detail → **Files** tab
+3. Find the **Drafts & deliverables** section
+4. Click **Upload file** and select your completed document
+5. After the upload completes and the virus scan passes, a **Submit for QA** button appears in the **Staff Actions** area (or you may see it as a file action)
+6. Click **Submit for QA** to send your work to the quality review queue
 
-2. **Performance Metrics**
-   - **Completion Rate** - Orders completed on time
-   - **Average Rating** - Client ratings
-   - **Revision Rate** - Revision requests
-   - **Earnings Trend** - Earnings over time
+**Important**: simply uploading a file does NOT notify anyone. You must click **Submit for QA** (or the equivalent submit button) to move the order into review. The order status changes from `in_progress` to `qa_review`.
 
-### Analytics Overview
+### What happens after submission
 
-**Order Analytics**
-- Orders by status
-- Orders by service type
-- Completion trends
-- Quality metrics
+1. Your work enters the QA queue
+2. An editor reviews it against the order requirements
+3. Two outcomes:
+   - **Approved**: order moves to `submitted`, client is notified for approval
+   - **Returned**: order returns to `in_progress`, you receive the editor's feedback in the order timeline
 
-**Earnings Analytics**
-- Earnings by period
-- Earnings by service type
-- Payment trends
-- Payout history
+If the work is returned to you, read the return reason carefully before making changes (see Revisions section).
 
-**Performance Trends**
-- Performance over time
-- Rating trends
-- Completion rate trends
-- Client satisfaction
+### Held orders
 
-### Level & Ranking
-
-1. **View Level**
-   - Go to **"Dashboard"** → **"Level"**
-   - See your current level
-
-2. **Level Information**
-   - Current level name
-   - Max orders allowed
-   - Benefits and privileges
-   - Progress to next level
+If the order is `on_hold` when you try to submit, the submit button is disabled and shows: "Order is on hold and cannot be submitted." Wait for the hold to be released before submitting.
 
 ---
 
-## 🔧 Troubleshooting
+## 8. Revisions
 
-### Common Issues
+### Receiving a revision request
 
-#### Can't Take Order
-- **Check**: Are you at capacity?
-- **Check**: Is your account active?
-- **Solution**: Complete current orders or contact support
+When a client or editor requests a revision, you receive a notification and the order status changes to `revision_requested`. You will see an orange banner: "Revision in progress."
 
-#### Payment Delayed
-- **Check**: Payment status in dashboard
-- **Check**: Payout method verified?
-- **Solution**: Contact support for assistance
+The revision request includes:
+- The reason/scope of the revision
+- Whether it is within the original scope
 
-#### Can't Upload Files
-- **Check**: File size within limits?
-- **Check**: File type supported?
-- **Solution**: Try different file or contact support
+### Completing a revision
 
-#### Deadline Issues
-- **Check**: Calendar view for deadlines
-- **Check**: Request extension if needed
-- **Solution**: Contact support for urgent issues
+1. Open the order → **Revisions** tab
+2. Read the revision request details carefully
+3. Make the required changes to your document
+4. Upload the revised file to **Files** tab → Drafts & deliverables
+5. Click **Submit for QA** again
+6. The order re-enters the QA queue
 
-### Getting Help
+### What counts as a revision vs. a new order
 
-1. **Check FAQ** - Common questions below
-2. **Contact Support** - Create a support ticket
-3. **Email Support** - Send email to support team
+A revision covers corrections and changes within the original scope — fixing errors, adding citations, adjusting tone, meeting the word count. If the client is asking for fundamentally different content, more pages, or a different topic entirely, that is a new order. If you believe a request is outside original scope, message staff via the Messages tab.
 
 ---
 
-## ❓ FAQ
+## 9. Files Tab
 
-### Orders
+The Files tab organizes all order attachments into sections:
 
-**Q: How many orders can I take?**  
-A: Depends on your writer level. Check your workload capacity indicator.
+| Section | Who can see it | What it contains |
+|---|---|---|
+| Client materials | All participants | Files the client uploaded as requirements |
+| Writer guides | Writer + Staff | Rubrics, style guides, templates provided by staff |
+| Drafts & deliverables | All participants | Your work — uploaded files and final delivery |
+| Revision files | All participants | Files from revision cycles |
+| Internal files | Staff only | Not visible to writers |
 
-**Q: What if I can't complete an order on time?**  
-A: Request a deadline extension as soon as possible. Contact support if urgent.
+### Uploading files
 
-**Q: Can I reject an order after taking it?**  
-A: Contact support to discuss order reassignment. Avoid taking orders you can't complete.
+1. Navigate to the correct section (your work goes in **Drafts & deliverables**)
+2. Click **Upload file**
+3. Select your file — accepted formats: DOCX, PDF, TXT, JPG, PNG
+4. Wait for the upload and virus scan to complete
+5. The file appears in the section with a timestamp
 
-**Q: How do I submit revisions?**  
-A: Open the order, upload revised files, add notes, and click "Submit Revision".
-
-### Payments
-
-**Q: When do I get paid?**  
-A: Payments are processed after order completion and client approval. Check payment status.
-
-**Q: How do I request a payout?**  
-A: Go to Earnings → Payout Requests → Request Payout, enter amount, and submit.
-
-**Q: What payment methods are available?**  
-A: Bank transfer, PayPal, and other methods. Check your profile for available options.
-
-**Q: Why is my payment delayed?**  
-A: Payments may be delayed for various reasons. Check payment status and contact support.
-
-### Workload
-
-**Q: How do I know if I'm at capacity?**  
-A: Check the Workload Capacity Indicator in your dashboard.
-
-**Q: Can I increase my capacity?**  
-A: Capacity increases with your writer level. Complete orders successfully to level up.
-
-**Q: What if I have too many orders?**  
-A: Focus on urgent deadlines first. Request holds if necessary. Contact support for help.
-
-### Calendar
-
-**Q: How do I export my calendar?**  
-A: Go to Calendar, click "Export to Calendar", and import the ICS file to your calendar app.
-
-**Q: Can I see tasks for a specific day?**  
-A: Yes, click on any day in the calendar to see all tasks due that day.
+After uploading a deliverable, always click **Submit for QA** — uploading alone does not trigger the review process.
 
 ---
 
-## 📞 Support
+## 10. Messaging
 
-### Contact Methods
+The **Messages** tab provides a thread shared between you, the client, and staff.
 
-- **Support Tickets** - Create ticket in system
-- **Email** - support@yourwebsite.com
-- **Phone** - Available in your region
+### Best practices
 
-### Support Hours
+- Message the client before starting if the brief has any ambiguity
+- Be professional — clients may see all messages
+- Use messages to document decisions: if a client verbally requests something outside scope, ask them to confirm it in messages
+- Do not share personal contact information in messages
 
-- **Monday - Friday**: 9 AM - 6 PM
-- **Saturday**: 10 AM - 4 PM
-- **Sunday**: Closed
+### Staff messages
 
----
-
----
-
-## Submitting Final Work
-
-Upload your final file on the Files tab, then click Submit for delivery on the file card.
-Simply uploading does NOT notify the client — you must click Submit for delivery.
-
-The system verifies the file passed the virus scan before allowing submission.
-
-## Special Orders
-
-Each milestone has its own delivery form. Click Deliver milestone, add notes and a file link.
-The client receives notification and can approve or request revision per milestone.
+Staff can send messages visible to writers only (marked "Staff note"). These will not be shown to the client.
 
 ---
 
-**Last Updated**: May 2026  
-**For the latest updates, check the system announcements**
+## 11. Special Orders and Milestones
 
+Special orders are custom projects with multiple delivery milestones (e.g. a research report delivered in three parts: outline, draft, final).
+
+Each milestone has its own:
+- Deadline
+- Compensation amount
+- Delivery form
+
+### Delivering a milestone
+
+1. Open the special order → find the milestone in the Details tab
+2. Click **Deliver milestone**
+3. Add delivery notes and upload the milestone file
+4. Submit
+
+The client is notified per milestone and can approve or request revision on each one independently. All milestones must be completed and approved for the order to reach `completed` status.
+
+---
+
+## 12. Earnings and Payouts
+
+### Compensation events
+
+Each time you complete an order (or milestone), a `CompensationEvent` is created. Types:
+
+| Type | Description |
+|---|---|
+| Base | Standard compensation for completing the order |
+| Bonus | Performance bonus awarded by admin |
+| Tip | Voluntary tip from the client |
+
+### Viewing your earnings
+
+Go to **Earnings** in your navigation:
+- **Pending**: compensation events not yet paid out
+- **Paid**: completed payouts with dates and amounts
+- **History**: full compensation timeline
+
+### Payout process
+
+Payouts are processed in batches by admin (typically weekly or bi-weekly). You are notified by email when a payout is processed. Payment is made via your registered bank account or payment method on file.
+
+If a compensation event has been in "Pending" status for longer than expected, contact support with the order ID.
+
+---
+
+## 13. Performance and Analytics
+
+Go to **Analytics** in your navigation to see your performance metrics:
+
+| Metric | What it measures |
+|---|---|
+| Completion rate | Orders delivered without needing to be reassigned |
+| On-time rate | Orders delivered before or by the deadline |
+| Revision rate | Orders that required at least one revision |
+| Dispute rate | Orders that had a dispute opened |
+| Average rating | Client ratings across all reviewed orders |
+
+These metrics affect your writer level (Standard / Professional / Expert), which in turn affects which orders you are eligible for and your base compensation rate.
+
+### Improving your metrics
+
+- Read briefs thoroughly before starting
+- Ask clarifying questions early via Messages
+- Submit work before (not at) the deadline to allow for potential revision
+- Use the writer guides and rubrics provided in the Files tab
+
+---
+
+## 14. Writer Resources
+
+Go to **Resources** in your navigation (`/writer/resources`) to access:
+
+- **Style guides**: APA, MLA, Harvard, Chicago — formatting references
+- **Subject guides**: subject-specific writing tips and common pitfalls
+- **Platform guides**: how-to articles for using specific platform features
+- **Code of Conduct**: the full writer standards and policies
+- **FAQ**: answers to common writer questions
+
+Resources are maintained by admin and updated as platform standards evolve. Check back periodically for new additions.
+
+---
+
+## 15. What's New
+
+The **What's New** section (also called the Changelog) lists recent platform updates that affect writers — new features, workflow changes, and fixes. Access it from your sidebar or account menu.
+
+Pinned announcements appear at the top. You do not need to do anything — changes take effect automatically when you next use the platform.
+
+---
+
+## 16. Feedback and Suggestions
+
+Share feedback, report issues, or suggest improvements from within the platform.
+
+### How to submit
+
+1. Click your account avatar → **Feedback & Suggestions**
+2. Choose a category (e.g. "Order workflow", "Earnings", "Platform issue")
+3. Describe your suggestion or issue
+4. Submit
+
+You can track the status of your submission and upvote suggestions from other writers.
+
+| Status | Meaning |
+|---|---|
+| New | Received, under review |
+| Planned | Accepted for future work |
+| In progress | Being built |
+| Done | Shipped |
+| Rejected | Will not be implemented (reason given) |
+
+---
+
+## 17. Troubleshooting
+
+### I cannot submit my work
+
+Check:
+1. Is the order `on_hold`? An amber banner will tell you. Wait for the hold to be released.
+2. Did you upload the file first? The submit button only appears after a successful upload.
+3. Did the virus scan fail? Try re-uploading the file.
+4. Is the order `disputed`? A rose banner will tell you. You cannot submit during an active dispute.
+
+### I cannot see the order I was assigned
+
+Check your **Active assignments** on the dashboard. If the order is not there:
+1. Check whether the order was reassigned (check Timeline tab on the order if you can find it)
+2. Contact support if you cannot locate the order
+
+### My compensation is showing as pending for too long
+
+Payouts are batched. If a compensation event has been pending for more than 14 days:
+1. Go to Earnings → Pending
+2. Note the order ID
+3. Contact support with the order ID and the expected compensation amount
+
+### My revision request was unreasonable
+
+If you believe a revision request is outside the original scope:
+1. Do not refuse outright
+2. Send a message in the Messages tab to staff explaining why you believe it is out of scope
+3. Staff will review and may update the revision scope or escalate
+
+---
+
+## 18. FAQ
+
+**Q: How is my writer level determined?**
+Your writer level (Standard, Professional, Expert) is set by admin based on your application credentials, quiz results, and ongoing performance metrics. You can request a level review after completing 10 or more orders.
+
+**Q: Can I decline an order I was assigned?**
+Yes, but frequent declines affect your assignment priority. If you need to decline, do so as early as possible and message staff explaining the reason. Orders declined without notice within 12 hours of the deadline are treated more seriously.
+
+**Q: What happens if I miss a deadline?**
+Missing a deadline may result in the order being placed on hold and potentially reassigned. It affects your on-time rate. If you know in advance that you cannot meet a deadline, message staff immediately — proactive communication is treated far better than silence.
+
+**Q: Can I work on multiple orders at the same time?**
+Yes. There is no fixed cap, but admin monitors workload. If you have more active assignments than your track record supports, new bid approvals may be throttled.
+
+**Q: What is the difference between the QA submission and the client approval?**
+When you submit for QA, an editor reviews your work. If approved by the editor, the order moves to `submitted` and the client sees it for the first time. The client then approves or requests a revision. You are not notified about client approval — you are only notified if a revision is requested.
+
+**Q: Can I communicate directly with the client outside the platform?**
+No. All communication must go through the platform Messages tab. Sharing personal contact details is a violation of the Writer Code of Conduct and may result in suspension.
+
+**Q: What file formats can I submit?**
+DOCX, PDF, TXT, and common image formats (JPG, PNG) are accepted. If your deliverable requires a different format (e.g. XLSX for a spreadsheet), contact support before uploading.
+
+**Q: How do I report a client who is being abusive in messages?**
+Screenshot the messages and contact support. You can also send a staff-visible note in the Messages tab on the order, which only staff will see.

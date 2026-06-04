@@ -138,6 +138,21 @@ LOGGING = {
             'level': 'WARNING', # Suppress DatabaseScheduler schedule changed messages
             'propagate': False,
         },
+        'daphne': {
+            'handlers': ['console'],
+            'level': 'WARNING', # Suppress per-request HTTP access log noise in dev
+            'propagate': False,
+        },
+        'daphne.http_protocol': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'daphne.ws_protocol': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
     },
 }
 

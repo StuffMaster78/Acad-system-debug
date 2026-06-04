@@ -87,6 +87,13 @@ docker-logs: ## View Docker logs
 docker-test-backend: ## Run backend tests in Docker
 	docker-compose exec web pytest -v
 
+restart: ## Restart Daphne web container (required after backend code changes in dev)
+	docker compose restart web
+
+seed: ## Seed development data (run after first docker-up)
+	docker compose exec web python manage.py seed_dev_data
+	docker compose exec web python manage.py backfill_compensation_events
+
 # Cleanup
 clean: clean-backend clean-frontend ## Clean all generated files
 
