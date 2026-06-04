@@ -263,6 +263,14 @@ app.conf.beat_schedule = { # type: ignore[attr-defined]
         "task": "orders.tasks.check_order_deadlines",
         "schedule": crontab(minute="*/30"),
     },
+    "orders-escalate-overdue-every-30-minutes": {
+        "task": "orders.tasks.escalate_overdue_orders",
+        "schedule": crontab(minute="*/30"),
+    },
+    "orders-detect-stuck-orders-hourly": {
+        "task": "orders.tasks.detect_stuck_orders",
+        "schedule": crontab(minute=15),  # offset from other tasks
+    },
     # Close windows at 23:50 every night.
     # Runs just before midnight so end_date == today is still true.
     # auto_confirm_pending=True so no events are excluded.

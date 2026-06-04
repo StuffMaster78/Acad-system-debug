@@ -11,5 +11,6 @@ from . import ( # noqa: F401
     order_reminder_tasks,
     order_staffing_tasks,
     preferred_writer_tasks,
+    sla_escalation_tasks,
     unpaid_order_reminder_tasks,
 )
