@@ -1759,7 +1759,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             .only(
                 'id', 'status', 'created_at', 'message',
                 'order__id', 'order__topic', 'order__status', 'order__writer_compensation',
-                'order__number_of_pages', 'order__number_of_slides',
+                'order__base_quantity',
                 'reviewed_by__username',
             )
             .order_by('-created_at')[:50]

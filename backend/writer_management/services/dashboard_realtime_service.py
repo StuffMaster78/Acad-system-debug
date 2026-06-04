@@ -113,10 +113,11 @@ class WriterDashboardRealtimeService:
     def _orders_ready_payload(cls, user):
         qs = (
             Order.objects.filter(
-                assigned_writer=user,
+                assignments__writer__user=user, assignments__is_current=True,
                 status__in=cls.READY_FOR_SUBMISSION_STATUSES,
-                payment_status='fully_paid', # Only show paid orders
+                payment_status='fully_paid',
             )
+            .distinct()
             .select_related("client")
             .order_by("writer_deadline", "client_deadline")
         )
@@ -137,7 +138,7 @@ class WriterDashboardRealtimeService:
     def _next_deadline_payload(cls, user):
         upcoming = (
             Order.objects.filter(
-                assigned_writer=user,
+                assignments__writer__user=user, assignments__is_current=True,
                 payment_status='fully_paid', # Only show paid orders
             )
             .exclude(status__in=cls.EXCLUDED_DEADLINE_STATUSES)
@@ -200,9 +201,10 @@ class WriterDashboardRealtimeService:
     @classmethod
     def _active_assignment_count(cls, user):
         return Order.objects.filter(
-            assigned_writer=user,
+            assignments__writer__user=user,
+            assignments__is_current=True,
             status__in=cls.ACTIVE_ASSIGNMENT_STATUSES,
-        ).count()
+        ).distinct().count()
 
     @staticmethod
     def _get_order_pages(order):

@@ -44,7 +44,10 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(requested_by=user)
         elif user.role == 'writer':
             # Writers can see requests for their assigned orders
-            queryset = queryset.filter(order__assigned_writer=user)
+            queryset = queryset.filter(
+                order__assignments__writer__user=user,
+                order__assignments__is_current=True,
+            ).distinct()
         elif user.role in ['admin', 'superadmin', 'support']:
             # Admins can see all requests
             pass

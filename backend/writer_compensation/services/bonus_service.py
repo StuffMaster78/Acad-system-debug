@@ -294,7 +294,8 @@ class BonusService:
 
         for referred_writer in referrals:
             completed_orders = Order.objects.filter(
-                assigned_writer=referred_writer.user,
+                assignments__writer__user=referred_writer.user,
+                assignments__is_current=True,
                 status="completed",
                 completed_at__date__gte=period_start,
                 completed_at__date__lte=period_end,

@@ -33,9 +33,9 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
         if order_id:
             try:
                 order = Order.objects.select_related(
-                    'client', 'assigned_writer', 'website',
+                    'client', 'website',
                     'paper_type', 'academic_level', 'subject', 'type_of_work'
-                ).get(id=order_id)
+                ).prefetch_related('assignments__writer').get(id=order_id)
 
                 # Check if order is paid and available for assignment
                 if order.payment_status != 'fully_paid':
@@ -73,21 +73,23 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
 
             # Get current orders in progress
             active_orders = Order.objects.filter(
-                assigned_writer=writer,
-                status__in=['in_progress', 'revision_requested', 'revision_in_progress', 'on_revision']
-            ).select_related('client', 'paper_type', 'academic_level', 'subject', 'type_of_work')
+                assignments__writer__user=writer,
+                assignments__is_current=True,
+                status__in=['in_progress', 'revision_requested', 'revision_in_progress', 'on_revision'],
+            ).distinct().select_related('client', 'paper_type', 'academic_level', 'subject', 'type_of_work')
 
             # Get completed orders count (for rating calculation)
             completed_orders = Order.objects.filter(
-                assigned_writer=writer,
-                status='completed'
-            ).count()
+                assignments__writer__user=writer,
+                assignments__is_current=True,
+                status='completed',
+            ).distinct().count()
 
             # Get average rating from reviews
             from reviews_system.models.order_review import OrderReview
             avg_rating_result = OrderReview.objects.filter(
-                order__assigned_writer=writer,
-                order__status='completed'
+                writer__user=writer,
+                order__status='completed',
             ).aggregate(avg_rating=Avg('rating'))
             avg_rating = avg_rating_result['avg_rating'] or 0
 
@@ -196,9 +198,10 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
 
         # Get all active orders with details
         active_orders = Order.objects.filter(
-            assigned_writer=writer,
-            status__in=['in_progress', 'revision_requested', 'revision_in_progress', 'on_revision']
-        ).select_related(
+            assignments__writer__user=writer,
+            assignments__is_current=True,
+            status__in=['in_progress', 'revision_requested', 'revision_in_progress', 'on_revision'],
+        ).distinct().select_related(
             'client', 'paper_type', 'academic_level', 'subject', 'type_of_work', 'website'
         ).order_by('-created_at')
 
@@ -214,9 +217,10 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
 
         # Get recent completed orders
         recent_completed = Order.objects.filter(
-            assigned_writer=writer,
-            status='completed'
-        ).select_related('client', 'paper_type').order_by('-submitted_at')[:5]
+            assignments__writer__user=writer,
+            assignments__is_current=True,
+            status='completed',
+        ).distinct().select_related('client', 'paper_type').order_by('-submitted_at')[:5]
 
         return Response({
             'writer': {
