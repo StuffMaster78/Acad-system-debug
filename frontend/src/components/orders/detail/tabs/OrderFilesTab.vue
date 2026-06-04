@@ -1,482 +1,275 @@
 <template>
-  <div class="space-y-4">
-    <!-- Writer-facing guides -->
-    <div v-if="canSeeWriterGuides" class="rounded-lg border border-slate-200 bg-white">
-      <div class="border-b border-slate-200 px-5 py-4">
-        <h2 class="text-base font-semibold text-ink">Writer guides</h2>
-        <p class="mt-1 text-xs text-graphite">
-          {{ isStaffRole ? 'Upload files, article links, rubrics, and style instructions for the assigned writer.' : 'Staff-provided guides and resources for this order.' }}
-        </p>
-      </div>
+  <div class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white overflow-hidden">
 
-      <div v-if="isStaffRole" class="border-b border-slate-100 p-5">
-        <div class="grid gap-4 lg:grid-cols-2">
-          <form class="rounded-lg border border-slate-200 bg-slate-50 p-4" @submit.prevent="uploadGuideFile">
-            <div class="flex items-center gap-2">
-              <FileUp class="size-4 text-signal" />
-              <h3 class="text-sm font-semibold text-ink">Upload guide file</h3>
-            </div>
-            <label class="mt-3 block text-sm font-medium text-ink">
-              PDF, DOC, DOCX, or supporting file
-              <input class="focus-ring mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" type="file" @change="onGuidePick" />
-            </label>
-            <label class="mt-3 block">
-              <span class="text-xs font-medium text-graphite">Guide type</span>
-              <select v-model="guideType" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm">
-                <option value="guide">General guide</option>
-                <option value="rubric">Rubric</option>
-                <option value="style_guide">Style guide</option>
-                <option value="article">Article</option>
-                <option value="client_context">Client context</option>
-              </select>
-            </label>
-            <label class="mt-3 block">
-              <span class="text-xs font-medium text-graphite">Description</span>
-              <textarea v-model.trim="guideDescription" class="focus-ring mt-1 min-h-16 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="What should the writer use this for?" />
-            </label>
-            <button
-              class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              type="submit"
-              :disabled="files.isUploading || !guideFile"
-            >
-              <Loader2 v-if="files.isUploading" class="size-4 animate-spin" />
-              <FileUp v-else class="size-4" />
-              Upload guide
-            </button>
-          </form>
-
-          <form class="rounded-lg border border-slate-200 bg-slate-50 p-4" @submit.prevent="attachExistingGuide">
-            <div class="flex items-center gap-2">
-              <BookOpen class="size-4 text-signal" />
-              <h3 class="text-sm font-semibold text-ink">Attach existing guide</h3>
-            </div>
-            <label class="mt-3 block">
-              <span class="text-xs font-medium text-graphite">Guide article</span>
-              <select v-model="selectedGuideSlug" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm" @focus="loadGuideArticles">
-                <option value="">Choose from Guides</option>
-                <option v-for="article in guideArticles" :key="article.id" :value="article.slug">
-                  {{ article.title }}
-                </option>
-              </select>
-            </label>
-            <p class="mt-2 text-xs text-graphite">
-              These are the articles managed in the Guides section.
-            </p>
-            <button
-              class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60"
-              type="submit"
-              :disabled="!selectedGuideSlug"
-            >
-              <BookOpen class="size-4" />
-              Attach guide
-            </button>
-          </form>
-
-          <form class="rounded-lg border border-slate-200 bg-slate-50 p-4" @submit.prevent="addGuideLink">
-            <div class="flex items-center gap-2">
-              <ExternalLink class="size-4 text-signal" />
-              <h3 class="text-sm font-semibold text-ink">Add guide link or article</h3>
-            </div>
-            <label class="mt-3 block">
-              <span class="text-xs font-medium text-graphite">Title</span>
-              <input v-model.trim="guideLinkTitle" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="Article, guide, or instruction title" />
-            </label>
-            <label class="mt-3 block">
-              <span class="text-xs font-medium text-graphite">URL</span>
-              <input v-model.trim="guideLinkUrl" class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="https://..." type="url" />
-            </label>
-            <button
-              class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60"
-              type="submit"
-              :disabled="!guideLinkUrl"
-            >
-              <ExternalLink class="size-4" />
-              Add link
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div v-if="!writerGuides.length" class="px-5 py-8 text-center">
-        <Paperclip class="mx-auto mb-2 size-7 text-slate-300" />
-        <p class="text-sm text-graphite">No writer guides yet.</p>
-      </div>
-      <div v-else class="divide-y divide-slate-100">
-        <div v-for="guide in writerGuides" :key="guide.id" class="flex items-start gap-4 px-5 py-4">
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-semibold text-ink">
-              {{ guide.display_name ?? guide.managed_file?.original_filename ?? guide.external_link?.title ?? `Guide #${guide.id}` }}
-            </p>
-            <p v-if="guideDescriptionText(guide)" class="mt-1 text-xs leading-5 text-graphite">
-              {{ guideDescriptionText(guide) }}
-            </p>
-            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-graphite">
-              <span>{{ guideTypeLabel(guide) }}</span>
-              <span v-if="guide.managed_file?.file_size_bytes"> · {{ fileSize(guide.managed_file.file_size_bytes) }}</span>
-              <span v-if="guide.external_link" class="rounded-full bg-blue-100 px-1.5 py-0.5 font-semibold text-blue-700">Link</span>
-            </div>
-          </div>
-          <div class="flex shrink-0 items-center gap-2">
-            <a
-              v-if="guide.external_link?.url"
-              :href="guide.external_link.url"
-              target="_blank"
-              rel="noreferrer"
-              class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
-            >
-              <ExternalLink class="h-3.5 w-3.5" />
-              Open
-            </a>
-            <button
-              v-else-if="guide.managed_file && guide.managed_file.scan_status !== 'infected'"
-              class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
-              :disabled="downloading === guide.id"
-              @click="download(guide.id)"
-            >
-              <Loader2 v-if="downloading === guide.id" class="h-3.5 w-3.5 animate-spin" />
-              <Download v-else class="h-3.5 w-3.5" />
-              Download
-            </button>
-          </div>
-        </div>
-      </div>
+    <!-- Notices -->
+    <div v-if="files.error" class="px-5 py-3 text-sm text-rose-700 bg-rose-50 flex items-center gap-2">
+      <AlertCircle class="h-4 w-4 shrink-0" />{{ files.error }}
+    </div>
+    <div v-if="files.notice" class="px-5 py-3 text-sm text-emerald-700 bg-emerald-50 flex items-center gap-2">
+      <CheckCircle2 class="h-4 w-4 shrink-0" />{{ files.notice }}
     </div>
 
-    <!-- Upload panel -->
-    <div class="rounded-lg border border-slate-200 bg-white">
-      <div class="border-b border-slate-200 px-5 py-4">
-        <h2 class="text-base font-semibold text-ink">Upload files</h2>
-        <p class="mt-1 text-xs text-graphite">
-          {{ role === 'writer' ? 'Upload your draft or final deliverable, plus any supporting files.' : 'Attach reference or instruction files.' }}
-        </p>
+    <!-- ═══ SECTION 1 — Client materials ════════════════════════════════ -->
+    <section>
+      <!-- Header -->
+      <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-5 py-3">
+        <div class="flex items-center gap-2">
+          <Paperclip class="h-4 w-4 text-graphite" />
+          <h3 class="text-sm font-semibold text-ink">Client materials</h3>
+          <span class="rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">All participants</span>
+        </div>
+        <p class="text-xs text-graphite">Instructions, references, and context provided by the client.</p>
       </div>
-
-      <div class="p-5 space-y-4">
-        <!-- Writer: multi-file queue upload -->
-        <template v-if="role === 'writer'">
-          <label class="block">
-            <span class="text-xs font-medium text-graphite">Default purpose</span>
-            <select v-model="defaultPurpose" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 px-2 text-sm">
-              <option value="order_final">Final deliverable</option>
-              <option value="order_draft">Draft</option>
-              <option value="order_revision">Revision support</option>
+      <!-- Upload (client or staff on behalf) -->
+      <div v-if="role === 'client' || isStaffRole" class="border-b border-slate-100 p-4">
+        <form class="flex flex-wrap items-end gap-3" @submit.prevent="() => { singlePurpose = singlePurpose === 'admin_internal' ? 'order_reference' : singlePurpose; singleUpload(); }">
+          <label class="flex-1 min-w-40">
+            <span class="block text-xs font-medium text-graphite mb-1">File</span>
+            <input type="file" class="focus-ring block w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs" @change="onSinglePick" />
+          </label>
+          <label class="w-44">
+            <span class="block text-xs font-medium text-graphite mb-1">Type</span>
+            <select v-model="singlePurpose" class="focus-ring h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs">
+              <option value="order_instruction">Instruction</option>
               <option value="order_reference">Reference</option>
-              <option value="style_reference">Style reference</option>
             </select>
           </label>
-
-          <label class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 p-6 text-center hover:border-slate-400 hover:bg-slate-50">
-            <Plus class="h-6 w-6 text-slate-400" />
-            <span class="text-sm font-medium text-ink">Add files</span>
-            <span class="text-xs text-graphite">Click to browse — multiple files supported</span>
-            <input class="sr-only" type="file" multiple @change="onFilePick" />
-          </label>
-
-          <div v-if="files.uploadQueue.length" class="space-y-2">
-            <div v-for="item in files.uploadQueue" :key="item.id" class="rounded-md border border-slate-200 bg-slate-50 p-3">
-              <div class="flex items-center gap-3">
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-ink">{{ item.file.name }}</p>
-                  <p class="mt-0.5 text-xs text-graphite">{{ fileSize(item.file.size) }}</p>
-                </div>
-                <span class="shrink-0" :class="queueTone(item)">
-                  <Loader2 v-if="item.status === 'uploading'" class="h-3.5 w-3.5 animate-spin" />
-                  <CheckCircle2 v-else-if="item.status === 'done'" class="h-3.5 w-3.5" />
-                  <AlertCircle v-else-if="item.status === 'error'" class="h-3.5 w-3.5" />
-                  <span v-else class="text-xs capitalize text-graphite">{{ item.status }}</span>
-                </span>
-                <button
-                  v-if="item.status !== 'uploading'"
-                  class="focus-ring shrink-0 rounded p-0.5 text-slate-400 hover:text-ink"
-                  @click="files.removeFromQueue(item.id)"
-                >
-                  <X class="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div v-if="item.status === 'pending'" class="mt-2">
-                <select
-                  :value="item.purpose"
-                  class="focus-ring h-8 w-full rounded border border-slate-200 bg-white px-2 text-xs"
-                  @change="item.purpose = ($event.target as HTMLSelectElement).value as FilePurpose"
-                >
-                  <option value="order_final">Final deliverable</option>
-                  <option value="order_draft">Draft</option>
-                  <option value="order_revision">Revision support</option>
-                  <option value="order_reference">Reference</option>
-                  <option value="style_reference">Style reference</option>
-                </select>
-              </div>
-              <p v-if="item.error" class="mt-1 text-xs text-berry">{{ item.error }}</p>
-            </div>
-
-            <div class="flex gap-2 pt-1">
-              <button
-                class="focus-ring inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-                type="button"
-                :disabled="files.isUploading || !pendingCount"
-                @click="files.uploadFiles(orderId)"
-              >
-                <Loader2 v-if="files.isUploading" class="h-4 w-4 animate-spin" />
-                <FileUp v-else class="h-4 w-4" />
-                Upload {{ pendingCount > 0 ? `${pendingCount} file${pendingCount !== 1 ? 's' : ''}` : 'all' }}
-              </button>
-              <button
-                class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-sm text-graphite hover:bg-slate-50 disabled:opacity-50"
-                type="button"
-                :disabled="files.isUploading"
-                @click="files.clearQueue()"
-              >
-                <Trash2 class="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-
-          <!-- Writer submit work -->
-          <div class="border-t border-slate-200 pt-4">
-            <div class="flex items-center gap-2">
-              <Send class="h-5 w-5 text-signal" />
-              <h3 class="text-sm font-semibold text-ink">{{ hasRevision ? 'Submit revised work' : 'Submit work' }}</h3>
-            </div>
-            <div v-if="!hasDeliverable" class="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              <AlertCircle class="mt-0.5 h-4 w-4 shrink-0" />
-              Upload a Final deliverable or Draft first.
-            </div>
-            <label class="mt-3 block">
-              <span class="text-xs font-medium text-graphite">Submission note (optional)</span>
-              <textarea v-model.trim="submissionNote" class="focus-ring mt-1 min-h-16 w-full rounded-md border border-slate-200 px-3 py-2 text-sm" placeholder="Any notes for the client or editor…" />
-            </label>
-            <p v-if="submitError" class="mt-2 text-xs text-berry">{{ submitError }}</p>
-            <p v-if="submitNotice" class="mt-2 text-xs text-signal">{{ submitNotice }}</p>
-            <button
-              class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-signal px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-              type="button"
-              :disabled="isSubmitting || !hasDeliverable"
-              @click="submitWork"
-            >
-              <Loader2 v-if="isSubmitting" class="h-4 w-4 animate-spin" />
-              <Send v-else class="h-4 w-4" />
-              {{ hasRevision ? 'Submit revised work' : 'Submit work' }}
-            </button>
-          </div>
-        </template>
-
-        <!-- Client/staff: single file upload -->
-        <template v-else>
-          <form @submit.prevent="singleUpload">
-            <label class="block text-sm font-medium text-ink">
-              File
-              <input class="focus-ring mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" type="file" @change="onSinglePick" />
-            </label>
-            <div class="mt-3">
-              <span class="text-xs font-medium text-graphite">Purpose</span>
-              <select v-model="singlePurpose" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 px-2 text-sm">
-                <option value="order_reference">Reference</option>
-                <option value="order_instruction">Instruction</option>
-                <option v-if="isStaffRole" value="writer_guide">Writer guide</option>
-                <option value="style_reference">Style reference</option>
-                <option value="order_revision">Revision support</option>
-              </select>
-            </div>
-            <button
-              class="focus-ring mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60"
-              type="submit"
-              :disabled="files.isUploading || !singleFile"
-            >
-              <Loader2 v-if="files.isUploading" class="h-4 w-4 animate-spin" />
-              <FileUp class="h-4 w-4" />
-              Attach file
-            </button>
-          </form>
-        </template>
-
-        <div v-if="files.error" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">{{ files.error }}</div>
-        <div v-if="files.notice" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-signal">{{ files.notice }}</div>
+          <button type="submit" class="focus-ring h-9 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!singleFile || files.isMutating">Upload</button>
+        </form>
       </div>
-    </div>
-
-    <!-- Attached files list -->
-    <div class="rounded-lg border border-slate-200 bg-white">
-      <div class="border-b border-slate-200 px-5 py-4">
-        <h2 class="text-base font-semibold text-ink">Attached files</h2>
-        <p class="mt-0.5 text-xs text-graphite">{{ files.attachments.length }} file{{ files.attachments.length !== 1 ? 's' : '' }} attached</p>
-      </div>
-      <div v-if="files.isLoadingAttachments" class="space-y-px">
-        <div v-for="n in 3" :key="n" class="animate-pulse px-5 py-4">
-          <div class="h-3 w-48 rounded bg-slate-200" />
-          <div class="mt-2 h-3 w-32 rounded bg-slate-100" />
-        </div>
-      </div>
-      <div v-else-if="!files.attachments.length" class="px-5 py-10 text-center">
-        <Paperclip class="mx-auto mb-2 size-7 text-slate-300" />
-        <p class="text-sm text-graphite">No files attached yet.</p>
-      </div>
-      <!-- Delivery blocked banner -->
-      <div
-        v-if="files.deliveryBlocked"
-        class="mx-4 mb-2 mt-1 rounded-md border border-amber-200 bg-amber-50 px-4 py-3"
-      >
-        <p class="text-sm font-semibold text-amber-900">
-          <template v-if="files.deliveryBlocked.blocked_reason === 'balance_due'">
-            Download locked — outstanding balance
-            <span v-if="files.deliveryBlocked.amount_due" class="font-bold">
-              ({{ files.deliveryBlocked.amount_due }} remaining)
-            </span>
-          </template>
-          <template v-else-if="files.deliveryBlocked.blocked_reason === 'scan_pending'">
-            File is being scanned — download available once scan passes.
-          </template>
-          <template v-else-if="files.deliveryBlocked.blocked_reason === 'not_submitted'">
-            The writer has not yet submitted this file for delivery.
-          </template>
-          <template v-else>
-            Download not available: {{ files.deliveryBlocked.blocked_reason.replace(/_/g, ' ') }}
-          </template>
-        </p>
-        <div class="mt-2 flex flex-wrap gap-2">
-          <button
-            v-if="files.deliveryBlocked.blocked_reason === 'balance_due'"
-            class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800"
-            @click="emit('go-to-payments')"
-          >
-            Pay remaining balance
-          </button>
-          <button
-            class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-50"
-            :disabled="files.isLoadingAttachments"
-            @click="recheckAccess"
-          >
-            <Loader2 v-if="files.isLoadingAttachments" class="size-3 animate-spin" />
-            <RefreshCw v-else class="size-3" />
-            Check again
-          </button>
-        </div>
-      </div>
-
-      <div v-else class="divide-y divide-slate-100">
-        <div v-for="att in files.attachments" :key="att.id" class="flex items-start gap-4 px-5 py-4">
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium text-ink">
-              {{ att.display_name ?? att.managed_file?.original_filename ?? att.external_link?.title ?? `Attachment #${att.id}` }}
-            </p>
-            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-graphite">
-              <span class="capitalize">{{ purposeLabel(att.purpose) }}</span>
-              <span v-if="att.managed_file?.file_size_bytes"> · {{ fileSize(att.managed_file.file_size_bytes) }}</span>
-              <!-- Scan status badge -->
-              <span
-                v-if="att.managed_file?.scan_status && att.managed_file.scan_status !== 'not_scanned'"
-                class="rounded-full px-1.5 py-0.5 text-xs font-semibold"
-                :class="scanBadge(att.managed_file.scan_status)"
-              >
-                {{ att.managed_file.scan_status.replace(/_/g, ' ') }}
-              </span>
-              <!-- Delivery status badge (final files) -->
-              <span
-                v-if="att.purpose === 'order_final' && att.delivery_status"
-                class="rounded-full px-1.5 py-0.5 text-xs font-semibold"
-                :class="deliveryBadge(att.delivery_status)"
-              >
-                {{ deliveryLabel(att.delivery_status) }}
-              </span>
-              <!-- External link indicator -->
-              <span v-if="att.external_link" class="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">
-                External link
-              </span>
-            </div>
-          </div>
-
-          <div class="flex shrink-0 items-center gap-2">
-            <!-- Writer: Submit Final action for unsubmitted final files -->
-            <button
-              v-if="role === 'writer' && att.purpose === 'order_final' && !att.is_submitted"
-              class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-signal px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
-              :disabled="submittingFinal === att.id"
-              @click="submitFinal(att.id)"
-            >
-              <Loader2 v-if="submittingFinal === att.id" class="h-3.5 w-3.5 animate-spin" />
-              <Send v-else class="h-3.5 w-3.5" />
-              Submit for delivery
-            </button>
-
-            <!-- Download -->
-            <a
-              v-if="att.external_link?.url"
-              :href="att.external_link.url"
-              target="_blank"
-              rel="noreferrer"
-              class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
-            >
-              <ExternalLink class="h-3.5 w-3.5" />
-              Open
-            </a>
-            <!-- Locked final file (client sees it but cannot download until paid) -->
-            <span
-              v-else-if="att.purpose === 'order_final' && role === 'client' && att.delivery_status && att.delivery_status !== 'approved'"
-              class="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700"
-            >
-              <Lock class="h-3.5 w-3.5" />
-              {{ att.delivery_status === 'pending' || att.delivery_status === 'submitted' ? 'Payment required' : deliveryLabel(att.delivery_status) }}
-            </span>
-            <button
-              v-else-if="att.managed_file && att.managed_file.scan_status !== 'infected'"
-              class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
-              :disabled="downloading === att.id"
-              @click="download(att.id)"
-            >
-              <Loader2 v-if="downloading === att.id" class="h-3.5 w-3.5 animate-spin" />
-              <Download v-else class="h-3.5 w-3.5" />
-              Download
-            </button>
-            <span v-else-if="att.managed_file?.scan_status === 'infected'" class="text-xs font-semibold text-rose-600">
-              Blocked
-            </span>
-
-            <!-- Delete request -->
-            <button
-              v-if="canRequestDeletion"
-              class="focus-ring rounded p-1.5 text-slate-400 hover:text-rose-500"
-              :title="deletingId === att.id ? 'Cancelling…' : 'Request deletion'"
-              @click="openDeletePrompt(att.id)"
-            >
-              <Trash2 class="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete confirmation overlay -->
-    <div v-if="deletingId !== null" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div class="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-xl">
-        <h3 class="text-base font-semibold text-ink">Request file deletion</h3>
-        <p class="mt-1 text-sm text-graphite">This submits a deletion request to staff. Provide a reason.</p>
-        <textarea
-          v-model.trim="deleteReason"
-          class="focus-ring mt-4 min-h-20 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-          placeholder="Reason for deletion…"
+      <!-- File list -->
+      <div v-if="!clientMaterials.length" class="px-5 py-8 text-center text-xs text-graphite">No client materials yet.</div>
+      <div v-else class="divide-y divide-slate-50">
+        <FileTile
+          v-for="att in clientMaterials" :key="att.id"
+          :att="att" :order-id="orderId" :role="role"
+          :downloading="downloading" :deleting-id="deletingId"
+          :deleting-in-flight="deletingInFlight" :delete-reason="deleteReason"
+          :can-delete="canRequestDeletion" :can-staff-detach="false"
+          @download="download" @open-delete="openDeletePrompt"
+          @confirm-delete="confirmDelete" @cancel-delete="cancelDelete"
+          @update:delete-reason="deleteReason = $event"
         />
-        <div class="mt-4 flex gap-3">
-          <button
-            class="focus-ring flex-1 rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            :disabled="!deleteReason || deletingInFlight"
-            @click="confirmDelete"
-          >
-            <Loader2 v-if="deletingInFlight" class="inline h-4 w-4 animate-spin" />
-            <span v-else>Submit request</span>
+      </div>
+    </section>
+
+    <!-- ═══ SECTION 2 — Writer guides ══════════════════════════════════ -->
+    <section v-if="canSeeWriterGuides">
+      <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-5 py-3">
+        <div class="flex items-center gap-2">
+          <BookOpen class="h-4 w-4 text-blue-500" />
+          <h3 class="text-sm font-semibold text-ink">Writer guides</h3>
+          <span class="rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-700 border-blue-200">Writer + Staff</span>
+        </div>
+        <p class="text-xs text-graphite">Rubrics, style guides, and resources for the assigned writer only.</p>
+      </div>
+      <!-- Staff upload forms -->
+      <div v-if="isStaffRole" class="border-b border-slate-100 p-4 space-y-3">
+        <div class="grid gap-4 lg:grid-cols-2">
+          <form class="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2" @submit.prevent="uploadGuideFile">
+            <div class="flex items-center gap-2"><FileUp class="h-4 w-4 text-signal" /><span class="text-xs font-semibold text-ink">Upload guide file</span></div>
+            <input type="file" class="focus-ring block w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs" @change="onGuidePick" />
+            <div class="grid grid-cols-2 gap-2">
+              <select v-model="guideType" class="focus-ring h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs">
+                <option value="guide">General guide</option><option value="rubric">Rubric</option>
+                <option value="style_guide">Style guide</option><option value="article">Article</option>
+                <option value="client_context">Client context</option>
+              </select>
+              <input v-model="guideDescription" type="text" placeholder="Description (optional)" class="focus-ring h-8 w-full rounded-md border border-slate-200 px-2 text-xs" />
+            </div>
+            <button type="submit" class="focus-ring h-8 w-full rounded-md bg-signal text-xs font-semibold text-white disabled:opacity-50" :disabled="!guideFile || files.isMutating">Upload guide</button>
+          </form>
+          <div class="space-y-3">
+            <form class="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2" @submit.prevent="addGuideLink">
+              <div class="flex items-center gap-2"><ExternalLink class="h-4 w-4 text-signal" /><span class="text-xs font-semibold text-ink">Add external link</span></div>
+              <input v-model="guideLinkUrl" type="url" placeholder="https://..." class="focus-ring h-8 w-full rounded-md border border-slate-200 px-2 text-xs" />
+              <input v-model="guideLinkTitle" type="text" placeholder="Title (optional)" class="focus-ring h-8 w-full rounded-md border border-slate-200 px-2 text-xs" />
+              <button type="submit" class="focus-ring h-8 w-full rounded-md border border-slate-200 bg-white text-xs font-semibold text-ink disabled:opacity-50" :disabled="!guideLinkUrl || files.isMutating">Add link</button>
+            </form>
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2" @mouseenter="loadGuideArticles">
+              <div class="flex items-center gap-2"><BookOpen class="h-4 w-4 text-signal" /><span class="text-xs font-semibold text-ink">Attach help article</span></div>
+              <select v-model="selectedGuideSlug" class="focus-ring h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs">
+                <option value="">— pick an article —</option>
+                <option v-for="a in guideArticles" :key="a.slug" :value="a.slug">{{ a.title }}</option>
+              </select>
+              <button class="focus-ring h-8 w-full rounded-md border border-slate-200 bg-white text-xs font-semibold text-ink disabled:opacity-50" :disabled="!selectedGuideSlug || files.isMutating" @click="attachExistingGuide">Attach article</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="!writerGuides.length" class="px-5 py-8 text-center text-xs text-graphite">No writer guides attached yet.</div>
+      <div v-else class="divide-y divide-slate-50">
+        <FileTile
+          v-for="att in writerGuides" :key="att.id"
+          :att="att" :order-id="orderId" :role="role"
+          :downloading="downloading" :deleting-id="deletingId"
+          :deleting-in-flight="deletingInFlight" :delete-reason="deleteReason"
+          :can-delete="canRequestDeletion" :can-staff-detach="isStaffRole"
+          :detaching-id="detachingId"
+          @download="download" @open-delete="openDeletePrompt"
+          @confirm-delete="confirmDelete" @cancel-delete="cancelDelete"
+          @update:delete-reason="deleteReason = $event"
+          @staff-detach="staffDetach"
+        />
+      </div>
+    </section>
+
+    <!-- ═══ SECTION 3 — Drafts & Deliverables ══════════════════════════ -->
+    <section>
+      <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-5 py-3">
+        <div class="flex items-center gap-2">
+          <FileUp class="h-4 w-4 text-graphite" />
+          <h3 class="text-sm font-semibold text-ink">Drafts &amp; deliverables</h3>
+          <span class="rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">All participants</span>
+        </div>
+        <p class="text-xs text-graphite">Work-in-progress and final files submitted by the writer.</p>
+      </div>
+      <!-- Writer upload queue -->
+      <div v-if="role === 'writer'" class="border-b border-slate-100 p-4 space-y-3">
+        <div class="flex flex-wrap items-end gap-3">
+          <label class="flex-1 min-w-40">
+            <span class="block text-xs font-medium text-graphite mb-1">Add file(s)</span>
+            <input type="file" multiple class="focus-ring block w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs" @change="onFilePick" />
+          </label>
+          <label class="w-44">
+            <span class="block text-xs font-medium text-graphite mb-1">Type</span>
+            <select v-model="defaultPurpose" class="focus-ring h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs">
+              <option value="order_final">Final deliverable</option>
+              <option value="order_draft">Draft (for review)</option>
+            </select>
+          </label>
+          <button v-if="files.uploadQueue.length" class="focus-ring h-9 rounded-md bg-signal px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!pendingCount || files.isMutating" @click="files.uploadFiles(orderId)">
+            Upload{{ pendingCount ? ` (${pendingCount})` : '' }}
           </button>
-          <button
-            class="focus-ring rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-graphite hover:bg-slate-50"
-            @click="cancelDelete"
-          >
-            Cancel
+        </div>
+        <!-- Queue items -->
+        <div v-if="files.uploadQueue.length" class="space-y-1">
+          <div v-for="item in files.uploadQueue" :key="item.id" class="flex items-center justify-between rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-xs">
+            <div class="flex items-center gap-2 min-w-0">
+              <Loader2 v-if="item.status === 'uploading'" class="h-3 w-3 animate-spin text-signal shrink-0" />
+              <CheckCircle2 v-else-if="item.status === 'done'" class="h-3 w-3 text-signal shrink-0" />
+              <AlertCircle v-else-if="item.status === 'error'" class="h-3 w-3 text-berry shrink-0" />
+              <span class="truncate text-graphite">{{ item.file.name }}</span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-[10px] capitalize" :class="queueTone(item)">{{ item.status }}</span>
+              <button v-if="item.status !== 'uploading'" class="text-slate-400 hover:text-slate-600" @click="files.removeFromQueue(item.id)"><X class="h-3 w-3" /></button>
+            </div>
+          </div>
+        </div>
+        <!-- Submit work -->
+        <div v-if="hasDeliverable" class="rounded-lg border border-signal/20 bg-signal/5 p-3 space-y-2">
+          <p class="text-xs font-semibold text-ink">Ready to submit this work for delivery?</p>
+          <textarea v-model="submissionNote" rows="2" placeholder="Optional note to the client..." class="focus-ring w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs" />
+          <button class="focus-ring h-9 rounded-md bg-signal px-4 text-xs font-semibold text-white flex items-center gap-2 disabled:opacity-50" :disabled="isSubmitting" @click="submitWork">
+            <Send class="h-3.5 w-3.5" />{{ isSubmitting ? 'Submitting...' : 'Submit work for delivery' }}
+          </button>
+          <p v-if="submitError" class="text-xs text-berry">{{ submitError }}</p>
+          <p v-if="submitNotice" class="text-xs text-signal">{{ submitNotice }}</p>
+        </div>
+      </div>
+      <div v-if="!draftDeliverables.length" class="px-5 py-8 text-center text-xs text-graphite">No deliverables uploaded yet.</div>
+      <div v-else class="divide-y divide-slate-50">
+        <FileTile
+          v-for="att in draftDeliverables" :key="att.id"
+          :att="att" :order-id="orderId" :role="role"
+          :downloading="downloading" :deleting-id="deletingId"
+          :deleting-in-flight="deletingInFlight" :delete-reason="deleteReason"
+          :can-delete="canRequestDeletion" :can-staff-detach="false"
+          :submitting-final="submittingFinal" :show-submit-final="role === 'writer'"
+          @download="download" @open-delete="openDeletePrompt"
+          @confirm-delete="confirmDelete" @cancel-delete="cancelDelete"
+          @update:delete-reason="deleteReason = $event"
+          @submit-final="submitFinal"
+        />
+      </div>
+    </section>
+
+    <!-- ═══ SECTION 4 — Revision files ═════════════════════════════════ -->
+    <section v-if="hasRevision || revisionFiles.length">
+      <div class="flex flex-wrap items-center justify-between gap-2 bg-amber-50/50 px-5 py-3">
+        <div class="flex items-center gap-2">
+          <RefreshCw class="h-4 w-4 text-amber-600" />
+          <h3 class="text-sm font-semibold text-ink">Revision files</h3>
+          <span class="rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">All participants</span>
+        </div>
+        <p class="text-xs text-graphite">Files submitted or added in support of this revision round.</p>
+      </div>
+      <div v-if="role === 'writer' && hasRevision" class="border-b border-slate-100 p-4">
+        <form class="flex flex-wrap items-end gap-3" @submit.prevent="() => { singlePurpose = 'order_revision'; singleUpload(); }">
+          <label class="flex-1 min-w-40">
+            <input type="file" class="focus-ring block w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs" @change="(e) => { singlePurpose = 'order_revision'; onSinglePick(e); }" />
+          </label>
+          <button type="submit" class="focus-ring h-9 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!singleFile || files.isMutating">Upload revision file</button>
+        </form>
+      </div>
+      <div v-if="!revisionFiles.length" class="px-5 py-8 text-center text-xs text-graphite">No revision files yet.</div>
+      <div v-else class="divide-y divide-slate-50">
+        <FileTile
+          v-for="att in revisionFiles" :key="att.id"
+          :att="att" :order-id="orderId" :role="role"
+          :downloading="downloading" :deleting-id="deletingId"
+          :deleting-in-flight="deletingInFlight" :delete-reason="deleteReason"
+          :can-delete="canRequestDeletion" :can-staff-detach="false"
+          @download="download" @open-delete="openDeletePrompt"
+          @confirm-delete="confirmDelete" @cancel-delete="cancelDelete"
+          @update:delete-reason="deleteReason = $event"
+        />
+      </div>
+    </section>
+
+    <!-- ═══ SECTION 5 — Internal / Staff only ══════════════════════════ -->
+    <section v-if="isStaffRole">
+      <div class="flex flex-wrap items-center justify-between gap-2 bg-amber-50/40 px-5 py-3">
+        <div class="flex items-center gap-2">
+          <Lock class="h-4 w-4 text-amber-600" />
+          <h3 class="text-sm font-semibold text-ink">Internal files</h3>
+          <span class="rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 border-amber-200">Staff only</span>
+        </div>
+        <p class="text-xs text-graphite">Admin attachments and evidence not visible to clients or writers.</p>
+      </div>
+      <div class="border-b border-slate-100 p-4">
+        <form class="flex flex-wrap items-end gap-3" @submit.prevent="() => { singlePurpose = 'admin_internal'; singleUpload(); }">
+          <label class="flex-1 min-w-40">
+            <input type="file" class="focus-ring block w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs" @change="(e) => { singlePurpose = 'admin_internal'; onSinglePick(e); }" />
+          </label>
+          <button type="submit" class="focus-ring h-9 rounded-md bg-amber-600 px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!singleFile || files.isMutating">Upload internal</button>
+        </form>
+      </div>
+      <div v-if="!internalFiles.length" class="px-5 py-8 text-center text-xs text-graphite">No internal files.</div>
+      <div v-else class="divide-y divide-slate-50">
+        <FileTile
+          v-for="att in internalFiles" :key="att.id"
+          :att="att" :order-id="orderId" :role="role"
+          :downloading="downloading" :deleting-id="deletingId"
+          :deleting-in-flight="deletingInFlight" :delete-reason="deleteReason"
+          :can-delete="true" :can-staff-detach="true" :detaching-id="detachingId"
+          @download="download" @open-delete="openDeletePrompt"
+          @confirm-delete="confirmDelete" @cancel-delete="cancelDelete"
+          @update:delete-reason="deleteReason = $event"
+          @staff-detach="staffDetach"
+        />
+      </div>
+    </section>
+
+    <!-- Delete confirm modal -->
+    <div v-if="deletingId" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" @click.self="cancelDelete">
+      <div class="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-xl space-y-3">
+        <h3 class="text-sm font-semibold text-ink">Request file removal</h3>
+        <textarea :value="deleteReason" rows="3" placeholder="Reason for removal..." class="focus-ring w-full rounded-md border border-slate-200 px-3 py-2 text-sm" @input="deleteReason = ($event.target as HTMLTextAreaElement).value" />
+        <div class="flex gap-2">
+          <button class="focus-ring flex-1 h-9 rounded-md border border-slate-200 text-xs font-semibold text-graphite" @click="cancelDelete">Cancel</button>
+          <button class="focus-ring flex-1 h-9 rounded-md bg-rose-600 text-xs font-semibold text-white disabled:opacity-50" :disabled="!deleteReason.trim() || deletingInFlight" @click="confirmDelete">
+            {{ deletingInFlight ? 'Requesting...' : 'Request removal' }}
           </button>
         </div>
       </div>
     </div>
+
   </div>
 </template>
-
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, defineComponent, h, ref } from "vue";
 import {
   AlertCircle, BookOpen, CheckCircle2, Download, ExternalLink,
   FileUp, Loader2, Lock, Paperclip, Plus, RefreshCw, Send, Trash2, X,
@@ -489,6 +282,127 @@ import { legalApi, type HelpArticleSummary } from "@/api/legal";
 import { writerApi } from "@/api/writer";
 import { useFilesStore, type QueuedFile } from "@/stores/files";
 import { isStaff } from "../types";
+
+// ── FileTile — inline file card component ────────────────────────────────────
+const FileTile = defineComponent({
+  props: {
+    att: { type: Object as () => import("@/api/files").FileAttachment, required: true },
+    orderId: { type: [String, Number], required: true },
+    role: { type: String, required: true },
+    downloading: { type: Number, default: null },
+    deletingId: { type: Number, default: null },
+    deletingInFlight: Boolean,
+    deleteReason: { type: String, default: "" },
+    canDelete: Boolean,
+    canStaffDetach: Boolean,
+    detachingId: { type: Number, default: null },
+    submittingFinal: { type: Number, default: null },
+    showSubmitFinal: Boolean,
+  },
+  emits: ["download","open-delete","confirm-delete","cancel-delete","update:delete-reason","submit-final","staff-detach"],
+  setup(props, { emit }) {
+    // Visibility badge colours (re-declared locally for the render fn)
+    const VIS_LOCAL: Record<string, { label: string; cls: string }> = {
+      client_writer_staff: { label: "All participants", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+      order_participants:  { label: "All participants", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+      writer_and_staff:    { label: "Writer + Staff",  cls: "bg-blue-50 text-blue-700 border-blue-200" },
+      client_and_staff:    { label: "Client + Staff",  cls: "bg-violet-50 text-violet-700 border-violet-200" },
+      staff_only:          { label: "Staff only",      cls: "bg-amber-50 text-amber-700 border-amber-200" },
+      internal_only:       { label: "Internal",        cls: "bg-amber-50 text-amber-700 border-amber-200" },
+      tenant_staff:        { label: "Staff only",      cls: "bg-amber-50 text-amber-700 border-amber-200" },
+    };
+    function vis(v: string) { return VIS_LOCAL[v] ?? { label: v.replace(/_/g," "), cls: "bg-slate-100 text-slate-500 border-slate-200" }; }
+
+    function fileName(att: typeof props.att): string {
+      return att.managed_file?.original_name ?? att.external_link?.title ?? att.display_name ?? `File #${att.id}`;
+    }
+    function fileExt(att: typeof props.att): string {
+      const n = fileName(att);
+      const parts = n.split(".");
+      return parts.length > 1 ? parts.pop()!.toLowerCase() : "";
+    }
+    function fileSz(bytes?: number | null): string {
+      if (!bytes) return "";
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024*1024) return `${(bytes/1024).toFixed(1)} KB`;
+      return `${(bytes/(1024*1024)).toFixed(1)} MB`;
+    }
+    function purposeLabel(p: string): string {
+      return { order_instruction:"Instruction", order_reference:"Reference", order_draft:"Draft", order_final:"Final", order_revision:"Revision", writer_guide:"Guide", style_reference:"Style ref", admin_internal:"Internal", extra_service_file:"Extra service" }[p] ?? p.replace(/_/g," ");
+    }
+
+    return () => {
+      const att = props.att as typeof props.att;
+      const v = vis(att.visibility ?? "");
+      const name = fileName(att);
+      const ext = fileExt(att);
+      const isLink = !!att.external_link;
+      const isDownloading = props.downloading === att.id;
+      const isDetaching = props.detachingId === att.id;
+
+      return h("div", { class: "flex items-start gap-3 px-5 py-3 hover:bg-slate-50/60 transition-colors" }, [
+        // File type icon / ext badge
+        h("div", { class: "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-[10px] font-bold uppercase text-graphite" }, ext || (isLink ? "url" : "file")),
+        // File info
+        h("div", { class: "min-w-0 flex-1 space-y-0.5" }, [
+          h("p", { class: "truncate text-sm font-medium text-ink" }, name),
+          h("div", { class: "flex flex-wrap items-center gap-2 text-xs text-graphite" }, [
+            // Purpose badge
+            h("span", { class: "rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium capitalize" }, purposeLabel(att.purpose)),
+            // Visibility badge
+            h("span", { class: `rounded-full border px-2 py-0.5 text-[10px] font-semibold ${v.cls}` }, v.label),
+            // Size
+            att.managed_file?.size ? h("span", {}, fileSz(att.managed_file.size)) : null,
+            // Date
+            att.attached_at ? h("span", {}, new Date(att.attached_at).toLocaleDateString()) : null,
+            // Delivery status badge
+            att.delivery_status && att.delivery_status !== "pending" ?
+              h("span", { class: att.delivery_status === "approved" ? "text-emerald-600 font-semibold" : att.delivery_status === "submitted" ? "text-blue-600 font-semibold" : "text-amber-600 font-semibold" },
+                att.delivery_status) : null,
+          ]),
+        ]),
+        // Actions
+        h("div", { class: "flex shrink-0 items-center gap-1.5" }, [
+          // Download / open link
+          isLink
+            ? h("a", { href: att.external_link?.url, target: "_blank", class: "focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-graphite hover:border-slate-300 hover:text-ink" },
+                h(ExternalLink, { class: "h-3.5 w-3.5" }))
+            : h("button", {
+                class: "focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-graphite hover:border-slate-300 hover:text-ink disabled:opacity-40",
+                disabled: isDownloading,
+                onClick: () => emit("download", att.id),
+              }, isDownloading ? h(Loader2, { class: "h-3.5 w-3.5 animate-spin" }) : h(Download, { class: "h-3.5 w-3.5" })),
+
+          // Submit final (writer only)
+          props.showSubmitFinal && att.delivery_status === "pending" ?
+            h("button", {
+              class: "focus-ring flex h-8 items-center gap-1 rounded-lg border border-signal px-2 text-[11px] font-semibold text-signal hover:bg-signal hover:text-white disabled:opacity-40",
+              disabled: props.submittingFinal === att.id,
+              title: "Mark as final deliverable",
+              onClick: () => emit("submit-final", att.id),
+            }, props.submittingFinal === att.id ? [h(Loader2, { class: "h-3 w-3 animate-spin" })] : [h(Send, { class: "h-3 w-3" }), " Submit"]) : null,
+
+          // Staff quick-detach (for guides and internal)
+          props.canStaffDetach ?
+            h("button", {
+              class: "focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500 disabled:opacity-40",
+              disabled: isDetaching,
+              title: "Detach file",
+              onClick: () => emit("staff-detach", att.id),
+            }, isDetaching ? h(Loader2, { class: "h-3.5 w-3.5 animate-spin" }) : h(X, { class: "h-3.5 w-3.5" })) : null,
+
+          // Standard delete request
+          props.canDelete && !props.canStaffDetach ?
+            h("button", {
+              class: "focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500",
+              title: "Request removal",
+              onClick: () => emit("open-delete", att.id),
+            }, h(Trash2, { class: "h-3.5 w-3.5" })) : null,
+        ]),
+      ]);
+    };
+  },
+});
 
 const props = defineProps<{
   orderId: string;
@@ -505,7 +419,38 @@ const files = useFilesStore();
 const isStaffRole = computed(() => isStaff(props.role));
 const canRequestDeletion = computed(() => props.role === "client" || isStaffRole.value);
 const canSeeWriterGuides = computed(() => props.role === "writer" || isStaffRole.value);
-const writerGuides = computed(() => files.attachments.filter((att) => att.purpose === "writer_guide"));
+const writerGuides    = computed(() => files.attachments.filter((a) => a.purpose === "writer_guide" || a.purpose === "style_reference"));
+const clientMaterials = computed(() => files.attachments.filter((a) => a.purpose === "order_instruction" || a.purpose === "order_reference"));
+const draftDeliverables = computed(() => files.attachments.filter((a) => ["order_draft","order_final","extra_service_file"].includes(a.purpose)));
+const revisionFiles   = computed(() => files.attachments.filter((a) => a.purpose === "order_revision"));
+const internalFiles   = computed(() => files.attachments.filter((a) => a.purpose === "admin_internal"));
+
+// ── Visibility badge ─────────────────────────────────────────────────────────
+interface VisBadge { label: string; cls: string }
+const VIS: Record<string, VisBadge> = {
+  client_writer_staff:  { label: "All participants", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  order_participants:   { label: "All participants", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  writer_and_staff:     { label: "Writer + Staff",   cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  client_and_staff:     { label: "Client + Staff",   cls: "bg-violet-50 text-violet-700 border-violet-200" },
+  staff_only:           { label: "Staff only",       cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  internal_only:        { label: "Internal",         cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  tenant_staff:         { label: "Staff only",       cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  owner_only:           { label: "Private",          cls: "bg-slate-100 text-slate-500 border-slate-200" },
+  private:              { label: "Private",          cls: "bg-slate-100 text-slate-500 border-slate-200" },
+};
+function visBadge(v: string): VisBadge {
+  return VIS[v] ?? { label: v.replace(/_/g," "), cls: "bg-slate-100 text-slate-500 border-slate-200" };
+}
+// ── Staff quick-detach ────────────────────────────────────────────────────────
+const detachingId = ref<number | null>(null);
+async function staffDetach(attachmentId: number) {
+  detachingId.value = attachmentId;
+  try {
+    await files.requestFileDeletion(props.orderId, attachmentId, "Staff detached file", "detach_only");
+  } finally {
+    detachingId.value = null;
+  }
+}
 
 const hasRevision = computed(() =>
   props.order.status === "revision_requested" ||
