@@ -27,8 +27,12 @@ class ServiceCategorySnippetViewSet(SnippetViewSet):
     search_fields = ["name", "description"]
 
     def get_queryset(self, request=None):
-        qs = super().get_queryset()
+        # Wagtail calls get_queryset(request) as a positional arg — pass it through.
         req = request or getattr(self, "request", None)
+        if req is not None:
+            qs = super().get_queryset(req)
+        else:
+            qs = super().get_queryset()
         user = getattr(req, "user", None)
         if user and user.is_authenticated:
             return filter_queryset_by_user_sites(qs, user)
