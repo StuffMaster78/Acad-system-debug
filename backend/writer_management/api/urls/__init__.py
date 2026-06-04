@@ -1,6 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
+from writer_management.views_dashboard import WriterDashboardViewSet
+
 from writer_management.api.views.profile_views import (
     WriterProfileListView,
     WriterProfileDetailView,
@@ -64,6 +66,7 @@ from writer_management.api.views.badge_views import (
 )
 
 router = DefaultRouter()
+router.register("me/dashboard", WriterDashboardViewSet, basename="writer-dashboard")
 router.register("applications", WriterApplicationViewSet, basename="writer-application")
 
 urlpatterns = [

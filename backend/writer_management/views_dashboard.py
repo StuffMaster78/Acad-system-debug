@@ -11,14 +11,17 @@ from decimal import Decimal
 from core.utils.cache_helpers import cache_view_result
 
 from writer_management.models.writer_profile import WriterProfile
-from writer_management.models.performance_snapshot import WriterPerformanceSnapshot
+from writer_management.models.writer_performance import WriterPerformanceSnapshot
 # WriterOrderRequest imported inside functions to avoid circular import
-from writer_management.models.payout import WriterPayment, WriterEarningsHistory
+from writer_management.models.old_models.payout import WriterPayment, WriterEarningsHistory
 from writer_management.models.badges import WriterBadge, Badge
 from orders.models.orders import Order
 # WriterRequest imported inside functions to avoid circular import
 from payments_processor.models import PaymentIntent
-from reviews_system.models.writer_review import WriterReview
+try:
+    from reviews_system.models.writer_review import WriterReview
+except ImportError:
+    WriterReview = None  # model not yet built
 from communications.models import CommunicationThread, CommunicationMessage
 
 
@@ -109,7 +112,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         total_special_order_earnings = sum(Decimal(str(e.get('total', e.get('amount', 0)))) for e in special_order_earnings_list)
 
         # Get bonuses and tips (excluding installments)
-        from writer_management.models.payout import WriterPayment
+        from writer_management.models.old_models.payout import WriterPayment
         from special_orders.models import WriterBonus
 
         payments = WriterPayment.objects.filter(
@@ -210,7 +213,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         # Earnings by order type - optimized with prefetch_related
         orders_with_payments = Order.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             payments__status='completed'
         ).select_related('client', 'website').prefetch_related('payments').annotate(
             writer_payment=Sum('payments__amount', filter=Q(payments__status='completed'))
@@ -269,7 +272,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         # Get writer's orders - optimized with select_related to prevent N+1
         orders = Order.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             created_at__gte=date_from
         ).select_related('client', 'website').only(
             'id', 'status', 'created_at', 'submitted_at',
@@ -322,12 +325,14 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         on_time_rate = (on_time_orders / completed_orders * 100) if completed_orders > 0 else 0
         revision_rate = (revised_orders / total_orders * 100) if total_orders > 0 else 0
 
-        # Quality scores - optimized with select_related
-        reviews = WriterReview.objects.filter(
-            writer=request.user,
-            submitted_at__gte=date_from
-        ).select_related('order', 'writer').only('rating', 'submitted_at')
-        avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+        # Quality scores
+        avg_rating = 0
+        if WriterReview is not None:
+            reviews = WriterReview.objects.filter(
+                writer=request.user,
+                submitted_at__gte=date_from,
+            ).only('rating', 'submitted_at')
+            avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
 
         # Performance trends
         performance_trend = orders.annotate(
@@ -573,7 +578,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
             # Count active orders (in_progress, under_editing, revision_requested, on_hold)
             active_orders_count = Order.objects.filter(
-                assigned_writer=profile.user,
+                assignments__writer=profile.user, assignments__is_current=True,
                 website=profile.website,
                 status__in=['in_progress', 'under_editing', 'revision_requested', 'on_hold']
             ).count()
@@ -782,7 +787,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         # Get all completed paid orders
         completed_paid_orders = Order.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             status__in=['completed', 'approved'],
             is_paid=True
         ).select_related('client', 'website').order_by('-submitted_at', '-created_at', '-updated_at')
@@ -1362,7 +1367,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         # Get assigned orders with deadlines
         assigned_orders = Order.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             status__in=['in_progress', 'on_hold', 'revision_requested'],
         ).select_related('client', 'type_of_work', 'paper_type')
 
@@ -1452,7 +1457,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         # Get assigned orders with deadlines
         assigned_orders = Order.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             status__in=['in_progress', 'on_hold', 'revision_requested'],
         ).select_related('client', 'type_of_work', 'paper_type', 'website')
 
@@ -1563,7 +1568,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         # Count current active orders
         active_orders = Order.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             status__in=['in_progress', 'on_hold', 'revision_requested', 'submitted', 'under_editing', 'on_revision']
         )
 
@@ -1908,7 +1913,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
             # Get revision requests (orders needing revision)
             revision_orders = Order.objects.filter(
-                assigned_writer=request.user,
+                assignments__writer=request.user, assignments__is_current=True,
                 status='revision_requested'
             ).select_related('client', 'type_of_work').order_by('-updated_at')[:10]
 
@@ -2114,13 +2119,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         date_from = timezone.now() - timedelta(days=days)
 
         # Import required models
-        from writer_management.models.payout import WriterPayment
+        from writer_management.models.old_models.payout import WriterPayment
         from special_orders.models import WriterBonus, SpecialOrder
         from orders.models.orders import Order
 
         # Get regular order earnings
         regular_orders = Order.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             status__in=['completed', 'approved'],
             updated_at__gte=date_from
         ).select_related('type_of_work')
@@ -2172,7 +2177,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         # Get special order earnings
         special_orders = SpecialOrder.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             status__in=['completed', 'approved'],
             updated_at__gte=date_from
         )
@@ -2262,13 +2267,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         # Weekly breakdown
         week_regular = Order.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             status__in=['completed', 'approved'],
             updated_at__gte=week_start
         ).count()
 
         week_special = SpecialOrder.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             status__in=['completed', 'approved'],
             updated_at__gte=week_start
         ).count()
@@ -2281,13 +2286,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         # Monthly breakdown
         month_regular = Order.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             status__in=['completed', 'approved'],
             updated_at__gte=month_start
         ).count()
 
         month_special = SpecialOrder.objects.filter(
-            assigned_writer=request.user,
+            assignments__writer=request.user, assignments__is_current=True,
             status__in=['completed', 'approved'],
             updated_at__gte=month_start
         ).count()
@@ -2393,7 +2398,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         format_type = request.query_params.get('format', 'csv')
 
         # Import required models
-        from writer_management.models.payout import WriterPayment
+        from writer_management.models.old_models.payout import WriterPayment
         from special_orders.models import WriterBonus, SpecialOrder
         from orders.models.orders import Order
 
@@ -2658,8 +2663,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
 
         # Get all orders assigned to writer
         orders = Order.objects.filter(
-            assigned_writer=request.user
-        ).values_list('id', flat=True)
+            assignments__writer=request.user,
+            assignments__is_current=True,
+        ).distinct().values_list('id', flat=True)
 
         # Get priorities
         priorities = WriterOrderPriority.objects.filter(
@@ -2707,7 +2713,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             )
 
         # Get all threads where writer is involved (via assigned orders or as participant)
-        writer_orders = Order.objects.filter(assigned_writer=request.user)
+        writer_orders = Order.objects.filter(
+            assignments__writer=request.user, assignments__is_current=True,
+        ).distinct()
 
         # Get threads for writer's orders
         order_threads = CommunicationThread.objects.filter(
