@@ -491,14 +491,17 @@ def other_client_order(other_client, website):
     from datetime import timedelta
     from django.utils import timezone
 
+    from order_configs.models import PaperType
+    paper_type, _ = PaperType.objects.get_or_create(website=website, name="Essay")
     return Order.objects.create(
         client=other_client,
         website=website,
         topic='Other Client Order',
-        number_of_pages=3,
+        paper_type=paper_type,
         total_price=Decimal('50.00'),
         client_deadline=timezone.now() + timedelta(days=5),
-        status='draft'
+        order_instructions="",
+        status='draft',
     )
 
 
