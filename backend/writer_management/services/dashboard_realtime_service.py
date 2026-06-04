@@ -119,7 +119,7 @@ class WriterDashboardRealtimeService:
             )
             .distinct()
             .select_related("client")
-            .order_by("writer_deadline", "client_deadline")
+            .order_by("writer_deadline", "created_at")
         )
         total = qs.count()
         orders = [
@@ -142,7 +142,7 @@ class WriterDashboardRealtimeService:
                 payment_status='fully_paid', # Only show paid orders
             )
             .exclude(status__in=cls.EXCLUDED_DEADLINE_STATUSES)
-            .order_by("writer_deadline", "client_deadline", "created_at")
+            .order_by("writer_deadline", "created_at")
         )
         order = upcoming.first()
         if not order:
@@ -216,9 +216,9 @@ class WriterDashboardRealtimeService:
 
     @staticmethod
     def _coalesce_deadline(order):
+        # Use writer_deadline only — client_deadline must never be sent to writers.
         deadline = (
             getattr(order, "writer_deadline", None)
-            or getattr(order, "client_deadline", None)
             or getattr(order, "deadline", None)
         )
         return deadline.isoformat() if deadline else None

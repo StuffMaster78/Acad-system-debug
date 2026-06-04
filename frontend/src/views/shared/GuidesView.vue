@@ -8,7 +8,7 @@ import {
 } from "@lucide/vue";
 import { legalApi, type HelpArticleSummary, type HelpCategory } from "@/api/legal";
 
-defineProps<{ role: string }>();
+const props = defineProps<{ role: string }>();
 
 const router = useRouter();
 
@@ -68,7 +68,7 @@ async function loadAll() {
 }
 
 function openArticle(slug: string) {
-  router.push({ name: "guide-article", params: { slug } });
+  router.push({ name: `${props.role}-guide-article`, params: { slug } });
 }
 
 onMounted(loadAll);

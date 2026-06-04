@@ -9,7 +9,8 @@ export type FilePurpose =
   | "writer_guide"
   | "style_reference"
   | "extra_service_file"
-  | "message_attachment";
+  | "message_attachment"
+  | "admin_internal";
 
 export type FileVisibility =
   | "order_participants"
@@ -129,6 +130,7 @@ const PURPOSE_ENDPOINT: Record<string, string> = {
   order_revision: "revisions",
   writer_guide: "writer-guides",
   extra_service_file: "extra-services",
+  admin_internal: "internal",
 };
 
 function orderFilePath(orderId: number | string, sub = "") {

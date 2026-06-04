@@ -34,7 +34,7 @@
               <option value="order_reference">Reference</option>
             </select>
           </label>
-          <button type="submit" class="focus-ring h-9 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!singleFile || files.isMutating">Upload</button>
+          <button type="submit" class="focus-ring h-9 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!singleFile || files.isUploading">Upload</button>
         </form>
       </div>
       <!-- File list -->
@@ -77,14 +77,14 @@
               </select>
               <input v-model="guideDescription" type="text" placeholder="Description (optional)" class="focus-ring h-8 w-full rounded-md border border-slate-200 px-2 text-xs" />
             </div>
-            <button type="submit" class="focus-ring h-8 w-full rounded-md bg-signal text-xs font-semibold text-white disabled:opacity-50" :disabled="!guideFile || files.isMutating">Upload guide</button>
+            <button type="submit" class="focus-ring h-8 w-full rounded-md bg-signal text-xs font-semibold text-white disabled:opacity-50" :disabled="!guideFile || files.isUploading">Upload guide</button>
           </form>
           <div class="space-y-3">
             <form class="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2" @submit.prevent="addGuideLink">
               <div class="flex items-center gap-2"><ExternalLink class="h-4 w-4 text-signal" /><span class="text-xs font-semibold text-ink">Add external link</span></div>
               <input v-model="guideLinkUrl" type="url" placeholder="https://..." class="focus-ring h-8 w-full rounded-md border border-slate-200 px-2 text-xs" />
               <input v-model="guideLinkTitle" type="text" placeholder="Title (optional)" class="focus-ring h-8 w-full rounded-md border border-slate-200 px-2 text-xs" />
-              <button type="submit" class="focus-ring h-8 w-full rounded-md border border-slate-200 bg-white text-xs font-semibold text-ink disabled:opacity-50" :disabled="!guideLinkUrl || files.isMutating">Add link</button>
+              <button type="submit" class="focus-ring h-8 w-full rounded-md border border-slate-200 bg-white text-xs font-semibold text-ink disabled:opacity-50" :disabled="!guideLinkUrl || files.isUploading">Add link</button>
             </form>
             <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2" @mouseenter="loadGuideArticles">
               <div class="flex items-center gap-2"><BookOpen class="h-4 w-4 text-signal" /><span class="text-xs font-semibold text-ink">Attach help article</span></div>
@@ -92,7 +92,7 @@
                 <option value="">— pick an article —</option>
                 <option v-for="a in guideArticles" :key="a.slug" :value="a.slug">{{ a.title }}</option>
               </select>
-              <button class="focus-ring h-8 w-full rounded-md border border-slate-200 bg-white text-xs font-semibold text-ink disabled:opacity-50" :disabled="!selectedGuideSlug || files.isMutating" @click="attachExistingGuide">Attach article</button>
+              <button class="focus-ring h-8 w-full rounded-md border border-slate-200 bg-white text-xs font-semibold text-ink disabled:opacity-50" :disabled="!selectedGuideSlug || files.isUploading" @click="attachExistingGuide">Attach article</button>
             </div>
           </div>
         </div>
@@ -138,7 +138,7 @@
               <option value="order_draft">Draft (for review)</option>
             </select>
           </label>
-          <button v-if="files.uploadQueue.length" class="focus-ring h-9 rounded-md bg-signal px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!pendingCount || files.isMutating" @click="files.uploadFiles(orderId)">
+          <button v-if="files.uploadQueue.length" class="focus-ring h-9 rounded-md bg-signal px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!pendingCount || files.isUploading" @click="files.uploadFiles(orderId)">
             Upload{{ pendingCount ? ` (${pendingCount})` : '' }}
           </button>
         </div>
@@ -200,7 +200,7 @@
           <label class="flex-1 min-w-40">
             <input type="file" class="focus-ring block w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs" @change="(e) => { singlePurpose = 'order_revision'; onSinglePick(e); }" />
           </label>
-          <button type="submit" class="focus-ring h-9 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!singleFile || files.isMutating">Upload revision file</button>
+          <button type="submit" class="focus-ring h-9 rounded-md bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!singleFile || files.isUploading">Upload revision file</button>
         </form>
       </div>
       <div v-if="!revisionFiles.length" class="px-5 py-8 text-center text-xs text-graphite">No revision files yet.</div>
@@ -233,7 +233,7 @@
           <label class="flex-1 min-w-40">
             <input type="file" class="focus-ring block w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs" @change="(e) => { singlePurpose = 'admin_internal'; onSinglePick(e); }" />
           </label>
-          <button type="submit" class="focus-ring h-9 rounded-md bg-amber-600 px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!singleFile || files.isMutating">Upload internal</button>
+          <button type="submit" class="focus-ring h-9 rounded-md bg-amber-600 px-4 text-xs font-semibold text-white disabled:opacity-50" :disabled="!singleFile || files.isUploading">Upload internal</button>
         </form>
       </div>
       <div v-if="!internalFiles.length" class="px-5 py-8 text-center text-xs text-graphite">No internal files.</div>
@@ -314,7 +314,7 @@ const FileTile = defineComponent({
     function vis(v: string) { return VIS_LOCAL[v] ?? { label: v.replace(/_/g," "), cls: "bg-slate-100 text-slate-500 border-slate-200" }; }
 
     function fileName(att: typeof props.att): string {
-      return att.managed_file?.original_name ?? att.external_link?.title ?? att.display_name ?? `File #${att.id}`;
+      return att.managed_file?.original_filename ?? att.external_link?.title ?? att.display_name ?? `File #${att.id}`;
     }
     function fileExt(att: typeof props.att): string {
       const n = fileName(att);
@@ -352,7 +352,7 @@ const FileTile = defineComponent({
             // Visibility badge
             h("span", { class: `rounded-full border px-2 py-0.5 text-[10px] font-semibold ${v.cls}` }, v.label),
             // Size
-            att.managed_file?.size ? h("span", {}, fileSz(att.managed_file.size)) : null,
+            att.managed_file?.file_size_bytes ? h("span", {}, fileSz(att.managed_file.file_size_bytes)) : null,
             // Date
             att.attached_at ? h("span", {}, new Date(att.attached_at).toLocaleDateString()) : null,
             // Delivery status badge
@@ -446,7 +446,7 @@ const detachingId = ref<number | null>(null);
 async function staffDetach(attachmentId: number) {
   detachingId.value = attachmentId;
   try {
-    await files.requestFileDeletion(props.orderId, attachmentId, "Staff detached file", "detach_only");
+    await files.requestFileDeletion(props.orderId, attachmentId, "Staff detached file");
   } finally {
     detachingId.value = null;
   }
@@ -618,7 +618,10 @@ async function loadGuideArticles() {
 async function attachExistingGuide() {
   const article = guideArticles.value.find((item) => item.slug === selectedGuideSlug.value);
   if (!article) return;
-  const url = `${window.location.origin}/writer/guides/${article.slug}`;
+  // Use a relative URL so the link resolves against the writer portal origin,
+  // not the staff origin this page is served from. Full portal-aware URL
+  // generation requires the portal context API (not yet built).
+  const url = `/writer/guides/${article.slug}`;
   await files.submitExternalLink(props.orderId, {
     url,
     title: article.title,

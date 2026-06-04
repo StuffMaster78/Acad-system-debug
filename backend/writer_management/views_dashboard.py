@@ -478,7 +478,6 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             def _deadline_dt(order):
                 return (
                     order.writer_deadline
-                    or order.client_deadline
                     or getattr(order, 'deadline', None)
                     or order.created_at
                 )
@@ -941,8 +940,8 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             # Determine urgency and technicality similar to WriterPayment.process_payment
             is_urgent = False
             writer_level = getattr(profile, 'writer_level', None)
-            if getattr(o, 'writer_deadline', None) or getattr(o, 'client_deadline', None):
-                deadline = getattr(o, 'writer_deadline', None) or getattr(o, 'client_deadline', None)
+            if getattr(o, 'writer_deadline', None):
+                deadline = getattr(o, 'writer_deadline', None)
                 if deadline and writer_level and getattr(writer_level, 'urgent_order_deadline_hours', None) is not None:
                     hours_until_deadline = (deadline - timezone.now()).total_seconds() / 3600
                     is_urgent = hours_until_deadline <= writer_level.urgent_order_deadline_hours
