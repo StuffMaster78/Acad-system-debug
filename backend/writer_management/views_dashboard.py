@@ -18,10 +18,7 @@ from writer_management.models.badges import WriterBadge, Badge
 from orders.models.orders import Order
 # WriterRequest imported inside functions to avoid circular import
 from payments_processor.models import PaymentIntent
-try:
-    from reviews_system.models.writer_review import WriterReview
-except ImportError:
-    WriterReview = None  # model not yet built
+from reviews_system.models.writer_review import WriterReview
 from communications.models import CommunicationThread, CommunicationMessage
 
 
@@ -326,13 +323,11 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         revision_rate = (revised_orders / total_orders * 100) if total_orders > 0 else 0
 
         # Quality scores
-        avg_rating = 0
-        if WriterReview is not None:
-            reviews = WriterReview.objects.filter(
-                writer=request.user,
-                submitted_at__gte=date_from,
-            ).only('rating', 'submitted_at')
-            avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+        reviews = WriterReview.objects.filter(
+            writer=request.user,
+            submitted_at__gte=date_from,
+        ).only('rating', 'submitted_at')
+        avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
 
         # Performance trends
         performance_trend = orders.annotate(
