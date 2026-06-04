@@ -53,7 +53,7 @@ class SupportProfile(models.Model):
 
     def check_order_payment_status(self, order):
         """Checks whether an order has been paid or not."""
-        return order.is_paid
+        return order.is_fully_paid
 
     def change_order_status(self, order, new_status):
         """Allows support agents to change the status of an order."""

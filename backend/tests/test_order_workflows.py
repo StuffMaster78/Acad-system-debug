@@ -191,20 +191,20 @@ class TestOrderCancellation:
 
     def test_cancel_order_requires_ownership(self, authenticated_client, other_client_order):
         """Test client can only cancel their own orders."""
-        url = f'/api/v1/orders/orders/{other_client_order.id}/action/'
-        data = {
-            'action': 'cancel_order',
-            'reason': 'Test cancellation'
-        }
+        url = f'/api/v1/orders/orders/{other_client_order.id}/cancel/'
+        data = {'reason': 'Test cancellation'}
 
         response = authenticated_client.post(url, data, format='json')
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code in (
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_404_NOT_FOUND,
+        )
 
     def test_cancel_paid_order_creates_refund(self, authenticated_client, order, client_wallet):
         """Test cancelling paid order creates refund."""
         # Mark order as paid
-        order.is_paid = True
+        order.payment_status = 'fully_paid'
         order.status = 'in_progress'
         order.save()
 

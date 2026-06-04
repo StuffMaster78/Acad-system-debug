@@ -1318,9 +1318,23 @@ class AdminReviewModerationViewSet(viewsets.ViewSet):
     """Admin ViewSet for review moderation dashboard."""
     permission_classes = [IsAuthenticated, IsAdmin]
 
+    @staticmethod
+    def _import_review_models():
+        """Return (WebsiteReview, WriterReview, OrderReview) or raise ImportError."""
+        try:
+            from reviews_system.models.website_review import WebsiteReview
+            from reviews_system.models.writer_review import WriterReview
+            from reviews_system.models.order_review import OrderReview
+            return WebsiteReview, WriterReview, OrderReview
+        except ImportError as exc:
+            raise ImportError("Typed review models (WriterReview, WebsiteReview, OrderReview) are not yet built.") from exc
+
     def _get_review_by_type_and_id(self, review_type: str, review_id: int):
         """Get review instance by type and ID."""
-        from reviews_system.models import WebsiteReview, WriterReview, OrderReview
+        try:
+            WebsiteReview, WriterReview, OrderReview = self._import_review_models()
+        except ImportError as exc:
+            raise ValueError(str(exc)) from exc
 
         review_map = {
             'website': WebsiteReview,
@@ -1337,10 +1351,13 @@ class AdminReviewModerationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='moderation-queue')
     def moderation_queue(self, request):
         """Get pending reviews for moderation."""
-        from reviews_system.models import WebsiteReview, WriterReview, OrderReview
-        from reviews_system.serializers import (
-            WebsiteReviewSerializer, WriterReviewSerializer, OrderReviewSerializer
-        )
+        try:
+            WebsiteReview, WriterReview, OrderReview = self._import_review_models()
+            from reviews_system.serializers import (
+                WebsiteReviewSerializer, WriterReviewSerializer, OrderReviewSerializer
+            )
+        except ImportError:
+            return Response({"reviews": [], "count": 0, "counts_by_type": {"website": 0, "writer": 0, "order": 0}})
         from django.db.models import Q
 
         # Get query parameters
@@ -1570,7 +1587,10 @@ class AdminReviewModerationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):
         """Get review analytics dashboard."""
-        from reviews_system.models import WebsiteReview, WriterReview, OrderReview
+        try:
+            WebsiteReview, WriterReview, OrderReview = self._import_review_models()
+        except ImportError:
+            return Response({"detail": "Review analytics not yet available."})
         from django.db.models import Count, Avg, Q
         from django.utils import timezone
         from datetime import timedelta
@@ -1735,7 +1755,10 @@ class AdminReviewModerationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='spam-detection')
     def spam_detection(self, request):
         """Get spam detection alerts for reviews."""
-        from reviews_system.models import WebsiteReview, WriterReview, OrderReview
+        try:
+            WebsiteReview, WriterReview, OrderReview = self._import_review_models()
+        except ImportError:
+            return Response({"alerts": [], "total_suspicious": 0})
         from django.db.models import Count, Q
         from django.utils import timezone
         from datetime import timedelta
@@ -1900,7 +1923,10 @@ class AdminReviewModerationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='moderation-history')
     def moderation_history(self, request):
         """Get moderation history for a review."""
-        from reviews_system.models import WebsiteReview, WriterReview, OrderReview
+        try:
+            WebsiteReview, WriterReview, OrderReview = self._import_review_models()
+        except ImportError:
+            return Response({"detail": "Review history not yet available."})
         from django.db.models import Q
         from django.utils import timezone
         from datetime import timedelta

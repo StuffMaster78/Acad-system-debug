@@ -254,10 +254,11 @@ class BlogPostPage(Page):
 
     @property
     def reading_time(self):
-        """Estimated reading time."""
-        from cms_core.validators import get_reading_time
-
-        return get_reading_time(self.word_count)
+        """Estimated reading time in minutes (integer). Frontend appends ' min read'."""
+        wc = self.word_count
+        if not wc:
+            return None
+        return max(1, round(wc / 250))
 
     @property
     def toc(self):
