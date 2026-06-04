@@ -38,7 +38,13 @@ export const ordersApi = {
   archive: (id: number | string, payload: Record<string, unknown>) =>
     api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/archive/`), payload),
   raiseDispute: (id: number | string, reason: string) =>
-    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/dispute/`), { reason }),
+    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/disputes/`), { reason }),
+  holdRequest: (id: number | string, reason: string) =>
+    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/holds/`), { reason }),
+  holdRelease: (holdId: number, reason?: string) =>
+    api.post<OrderActionResponse>(ordersApiPath(`/holds/${holdId}/release/`), { reason: reason ?? "" }),
+  reassignmentRequest: (id: number | string, reason: string) =>
+    api.post<OrderActionResponse>(ordersApiPath(`/orders/${id}/reassignments/`), { reason }),
   revisions: (id: number | string) =>
     api.get<RevisionRequest[]>(ordersApiPath(`/orders/${id}/revisions/`)),
   approveRevision: (orderId: number | string, revId: number) =>

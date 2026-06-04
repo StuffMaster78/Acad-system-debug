@@ -24,6 +24,16 @@
       <!-- Summary cards -->
       <OrderSummaryCards :order="order" :lifecycle="lifecycle" :role="role" />
 
+      <!-- Staff actions panel — visible to all staff roles -->
+      <OrderActionsPanel
+        v-if="isStaff"
+        :order-id="orderId"
+        :order="order"
+        :lifecycle="lifecycle"
+        :role="role"
+        @refresh="orders.fetchOrder(orderId)"
+      />
+
       <!-- Tab navigation -->
       <OrderTabs :role="role" :order="order" v-model="activeTab" />
 
@@ -103,11 +113,12 @@ import type { UserRole } from "@/types/roles";
 import { useOrderStore } from "@/stores/orders";
 import { useFilesStore } from "@/stores/files";
 import { useCommunicationsStore } from "@/stores/communications";
-import { ROLE_TABS } from "./types";
+import { ROLE_TABS, isStaff as checkStaff } from "./types";
 import OrderReviewPrompt from "./OrderReviewPrompt.vue";
 
 import OrderHeader from "./OrderHeader.vue";
 import OrderSummaryCards from "./OrderSummaryCards.vue";
+import OrderActionsPanel from "./OrderActionsPanel.vue";
 import OrderTabs from "./OrderTabs.vue";
 import OrderDetailsTab from "./tabs/OrderDetailsTab.vue";
 import OrderFilesTab from "./tabs/OrderFilesTab.vue";
@@ -130,6 +141,8 @@ const comms = useCommunicationsStore();
 
 const order = computed(() => orders.selectedOrder);
 const lifecycle = computed(() => orders.selectedLifecycle);
+
+const isStaff = computed(() => checkStaff(props.role));
 
 // Start on the first tab the role can see
 const activeTab = ref(ROLE_TABS[props.role]?.[0] ?? "details");
