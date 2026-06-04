@@ -28,6 +28,13 @@
       </div>
     </div>
 
+    <!-- Saved presets -->
+    <SavedViewPresets
+      view-type="feedback"
+      :current-filters="(fb.filters as Record<string, unknown>)"
+      @load="(f) => { Object.assign(fb.filters, f); applyFilters(); }"
+    />
+
     <!-- Filters -->
     <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3">
       <input
@@ -274,6 +281,7 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { RefreshCw } from "@lucide/vue";
 import { useFeedbackStore } from "@/stores/feedback";
 import type { FeedbackItem, FeedbackStatus } from "@/api/feedback";
+import SavedViewPresets from "@/components/admin/SavedViewPresets.vue";
 
 const fb = useFeedbackStore();
 const detailItem = ref<FeedbackItem | null>(null);

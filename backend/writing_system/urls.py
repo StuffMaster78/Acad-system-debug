@@ -109,6 +109,7 @@ path("api/v1/special-orders/", include("special_orders.urls")),
     path("api/v1/feedback/", include("feedback.urls")),
     path("api/v1/changelog/", include("changelog.urls")),
     path("api/v1/qa/", include("qa_checklists.urls")),
+    path("api/v1/saved-views/", include("saved_views.urls")),
     path("api/v1/activity/", include("activity.urls")),
 
     # ── Reviews, loyalty & referrals ──────────────────────────────────────────

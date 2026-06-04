@@ -169,6 +169,7 @@ LOCAL_APPS = [
     "feedback",
     "changelog",
     "qa_checklists",
+    "saved_views",
     "mass_emails",
     "announcements",
     "analytics",
