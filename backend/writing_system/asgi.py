@@ -3,6 +3,12 @@ ASGI config for writing_system project.
 """
 
 import os
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"urllib3 .* or chardet .*charset_normalizer .* doesn't match a supported version!",
+)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "writing_system.settings")
 

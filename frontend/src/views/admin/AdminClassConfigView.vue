@@ -31,6 +31,7 @@ type DurationRow  = { key: string; label: string; weeks: number | null; descript
 type WorkloadRow  = { key: string; label: string; complexity: string; description: string; price_hint: string };
 type TaskRow      = { key: string; label: string; description: string; required: boolean };
 type RequiredFieldRow = { value: string };
+type VisibilityFilter = "all" | "active" | "inactive";
 
 // ── Default row seeds ─────────────────────────────────────────────────────────
 const emptyDurations = [
@@ -63,12 +64,22 @@ const error             = ref("");
 const notice            = ref("");
 const selectedWebsiteId = ref<number | null>(null);
 const confirmDelete     = ref<number | null>(null);
+const isCreatingFirst   = ref(false);
+const isSeeding         = ref(false);
+const visibilityFilter  = ref<VisibilityFilter>("all");
 
 const auth    = useAuthStore();
 const portal  = usePortalContextStore();
 const websites = useWebsitesStore();
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false });
 
 const activeConfigs  = computed(() => configs.value.filter((c) => c.is_active));
+const inactiveConfigs = computed(() => configs.value.filter((c) => !c.is_active));
+const visibleConfigs = computed(() => {
+  if (visibilityFilter.value === "active") return activeConfigs.value;
+  if (visibilityFilter.value === "inactive") return inactiveConfigs.value;
+  return configs.value;
+});
 const isSuperadmin   = computed(() => auth.role === "superadmin");
 const websiteParams  = computed(() =>
   isSuperadmin.value && selectedWebsiteId.value ? { website_id: selectedWebsiteId.value } : undefined
@@ -80,6 +91,17 @@ function configWebsiteLabel(cfg: ClassServiceConfig): string {
   if (cfg.website_name || cfg.website_domain)
     return cfg.website_domain ? `${cfg.website_name || cfg.website_domain}` : cfg.website_name || "";
   return "";
+}
+
+function formatDate(value?: string | null): string {
+  if (!value) return "not yet synced";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "unknown";
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function resetRows() {
@@ -101,7 +123,18 @@ function resetDraft() {
   resetRows();
 }
 
+function startFirstConfig() {
+  isCreatingFirst.value = true;
+  resetDraft();
+}
+
+function startNewConfig() {
+  isCreatingFirst.value = true;
+  resetDraft();
+}
+
 function editConfig(cfg: ClassServiceConfig) {
+  isCreatingFirst.value = false;
   selectedId.value = cfg.id;
   Object.assign(draft, {
     id: cfg.id, name: cfg.name, slug: cfg.slug, description: cfg.description,
@@ -147,9 +180,15 @@ async function load() {
   try {
     const { data } = await classesApi.configs(websiteParams.value);
     configs.value = data;
+    if (isCreatingFirst.value) {
+      return;
+    }
     const selected = data.find((c) => c.id === selectedId.value) ?? data[0];
-    if (selected) editConfig(selected);
-    else resetDraft();
+    if (selected) {
+      editConfig(selected);
+    } else {
+      resetDraft();
+    }
   } catch {
     error.value = "Unable to load class configurations.";
     configs.value = [];
@@ -174,6 +213,7 @@ async function save() {
       : await classesApi.createConfig(payload as Partial<ClassServiceConfig>, websiteParams.value);
     notice.value = draft.id ? "Configuration updated." : "Configuration created.";
     await load();
+    isCreatingFirst.value = false;
     editConfig(data);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : "Unable to save configuration.";
@@ -188,6 +228,21 @@ async function toggleActive(cfg: ClassServiceConfig) {
     await load();
   } catch {
     error.value = "Unable to update status.";
+  }
+}
+
+async function seedDefaults() {
+  isSeeding.value = true;
+  error.value = "";
+  notice.value = "";
+  try {
+    const { data } = await classesApi.seedConfigDefaults(websiteParams.value);
+    notice.value = `Class defaults synced: ${data.created} created, ${data.updated} updated.`;
+    await load();
+  } catch {
+    error.value = "Unable to seed class defaults.";
+  } finally {
+    isSeeding.value = false;
   }
 }
 
@@ -208,16 +263,59 @@ const draft = reactive<Draft>({
 </script>
 
 <template>
-  <div class="min-h-full bg-slate-50">
+  <div :class="props.embedded ? 'space-y-4' : 'min-h-full bg-slate-50'">
     <!-- ── Page header ─────────────────────────────────────────────────────── -->
-    <div class="border-b border-slate-200 bg-white px-6 py-5">
+    <div
+      v-if="props.embedded"
+      class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+    >
+      <div>
+        <h1 class="text-sm font-semibold text-ink">Class Configs</h1>
+        <p class="text-xs text-graphite">Configure client-facing class services, scope options, and payment policy.</p>
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        <div v-if="isSuperadmin" class="flex items-center gap-2">
+          <span class="text-xs font-semibold text-graphite">Website</span>
+          <select
+            v-model.number="selectedWebsiteId"
+            class="focus-ring h-9 rounded-md border border-slate-200 bg-white px-3 text-sm"
+            @change="load"
+          >
+            <option v-for="site in websites.options" :key="site.value" :value="site.value">{{ site.label }}</option>
+          </select>
+        </div>
+        <button
+          class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-graphite hover:text-ink"
+          @click="load"
+        >
+          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
+          Refresh
+        </button>
+        <button
+          class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-graphite hover:text-ink disabled:opacity-60"
+          :disabled="isSeeding"
+          @click="seedDefaults"
+        >
+          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isSeeding }" />
+          Seed defaults
+        </button>
+        <button
+          class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md bg-signal px-4 text-sm font-semibold text-white hover:bg-emerald-600"
+          @click="startNewConfig"
+        >
+          <Plus class="h-4 w-4" />
+          New config
+        </button>
+      </div>
+    </div>
+    <div v-else class="border-b border-slate-200 bg-white px-6 py-5">
       <div class="mx-auto flex max-w-7xl items-start justify-between gap-4">
         <div class="flex items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-signal/10">
             <Settings class="h-5 w-5 text-signal" />
           </div>
           <div>
-            <h1 class="text-lg font-bold text-ink">Class Management</h1>
+            <h1 class="text-lg font-bold text-ink">Class Configs</h1>
             <p class="text-sm text-graphite">Configure client-facing class services, scope options, and payment policy.</p>
           </div>
         </div>
@@ -242,8 +340,16 @@ const draft = reactive<Draft>({
             Refresh
           </button>
           <button
+            class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-graphite hover:text-ink disabled:opacity-60"
+            :disabled="isSeeding"
+            @click="seedDefaults"
+          >
+            <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isSeeding }" />
+            Seed defaults
+          </button>
+          <button
             class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md bg-signal px-4 text-sm font-semibold text-white hover:bg-emerald-600"
-            @click="resetDraft"
+            @click="startNewConfig"
           >
             <Plus class="h-4 w-4" />
             New config
@@ -252,17 +358,21 @@ const draft = reactive<Draft>({
       </div>
     </div>
 
-    <div class="mx-auto max-w-7xl px-6 py-5 space-y-4">
+    <div :class="props.embedded ? 'space-y-4' : 'mx-auto max-w-7xl px-6 py-5 space-y-4'">
 
       <!-- ── Status/error banners ──────────────────────────────────────────── -->
       <div v-if="error" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error }}</div>
       <div v-if="notice" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ notice }}</div>
 
       <!-- ── Summary strip ─────────────────────────────────────────────────── -->
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
           <p class="text-xs font-semibold uppercase text-graphite">Active</p>
           <p class="mt-1 text-2xl font-bold text-ink">{{ activeConfigs.length }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <p class="text-xs font-semibold uppercase text-graphite">Inactive</p>
+          <p class="mt-1 text-2xl font-bold text-ink">{{ inactiveConfigs.length }}</p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
           <p class="text-xs font-semibold uppercase text-graphite">Total</p>
@@ -279,21 +389,58 @@ const draft = reactive<Draft>({
       </div>
 
       <!-- ── Main layout ───────────────────────────────────────────────────── -->
-      <div class="grid gap-5 lg:grid-cols-[280px_1fr]">
+      <div
+        v-if="!configs.length && !isCreatingFirst && !isLoading"
+        class="rounded-xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center"
+      >
+        <BookOpen class="mx-auto mb-3 h-10 w-10 text-slate-300" />
+        <p class="text-sm font-semibold text-ink">No configurations yet.</p>
+        <p class="mx-auto mt-1 max-w-xl text-sm text-graphite">
+          Create a class service preset before clients can choose class duration, workload, task types, and payment policy.
+        </p>
+        <button
+          class="focus-ring mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-signal px-4 text-sm font-semibold text-white hover:bg-emerald-600"
+          @click="startFirstConfig"
+        >
+          <Plus class="h-4 w-4" />
+          Create the first one
+        </button>
+      </div>
+
+      <div
+        v-else
+        class="grid gap-5"
+        :class="configs.length ? 'lg:grid-cols-[280px_1fr]' : 'lg:grid-cols-1'"
+      >
 
         <!-- ── Left: preset list ─────────────────────────────────────────── -->
-        <aside class="space-y-2">
+        <aside v-if="configs.length || isLoading" class="space-y-2">
+          <div class="rounded-xl border border-slate-200 bg-white p-2">
+            <div class="grid grid-cols-3 gap-1 rounded-lg bg-slate-50 p-1">
+              <button
+                v-for="option in [
+                  { value: 'all', label: `All ${configs.length}` },
+                  { value: 'active', label: `Active ${activeConfigs.length}` },
+                  { value: 'inactive', label: `Inactive ${inactiveConfigs.length}` },
+                ]"
+                :key="option.value"
+                type="button"
+                class="rounded-md px-2 py-1.5 text-[11px] font-semibold transition"
+                :class="visibilityFilter === option.value ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+                @click="visibilityFilter = option.value as VisibilityFilter"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
           <div v-if="isLoading" class="rounded-xl border border-slate-200 bg-white py-12 text-center text-sm text-graphite">
             Loading…
           </div>
-          <div v-else-if="!configs.length" class="rounded-xl border border-dashed border-slate-200 py-12 text-center">
-            <BookOpen class="mx-auto mb-3 h-9 w-9 text-slate-300" />
-            <p class="text-sm text-graphite">No configurations yet.</p>
-            <button class="mt-3 text-sm font-semibold text-signal hover:underline" @click="resetDraft">Create the first one</button>
+          <div v-else-if="!visibleConfigs.length" class="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-graphite">
+            No {{ visibilityFilter }} configs.
           </div>
           <button
-            v-for="cfg in configs"
-            v-else
+            v-for="cfg in visibleConfigs"
             :key="cfg.id"
             class="group w-full rounded-xl border px-4 py-3 text-left transition-all"
             :class="selectedId === cfg.id
@@ -312,6 +459,9 @@ const draft = reactive<Draft>({
                 </div>
                 <p class="mt-0.5 text-xs text-graphite">{{ cfg.pricing_mode }} · {{ cfg.duration_options.length }}d · {{ cfg.task_options.length }}t</p>
                 <p v-if="configWebsiteLabel(cfg)" class="mt-0.5 text-[10px] text-graphite/60">{{ configWebsiteLabel(cfg) }}</p>
+                <p class="mt-0.5 text-[10px] text-graphite/60">
+                  Updated {{ formatDate(cfg.updated_at) }}<span v-if="cfg.created_by_name"> · by {{ cfg.created_by_name }}</span>
+                </p>
               </div>
               <ChevronRight
                 class="mt-0.5 h-4 w-4 shrink-0 transition-transform text-slate-300"
@@ -451,7 +601,8 @@ const draft = reactive<Draft>({
                 <Plus class="h-3.5 w-3.5" /> Add
               </button>
             </div>
-            <div v-if="durationRows.length" class="space-y-2">
+            <div v-if="durationRows.length" class="overflow-x-auto">
+              <div class="min-w-[760px] space-y-2">
               <!-- Header -->
               <div class="grid grid-cols-[1fr_1fr_80px_1.5fr_32px] gap-2 px-1 text-[10px] font-semibold uppercase text-graphite">
                 <span>Key</span><span>Label</span><span>Weeks</span><span>Description</span><span />
@@ -464,6 +615,7 @@ const draft = reactive<Draft>({
                 <button type="button" class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-graphite hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500" @click="durationRows.splice(i, 1)">
                   <X class="h-3.5 w-3.5" />
                 </button>
+              </div>
               </div>
             </div>
             <p v-else class="text-sm text-graphite">No durations yet. Click Add to create one.</p>
@@ -480,7 +632,8 @@ const draft = reactive<Draft>({
                 <Plus class="h-3.5 w-3.5" /> Add
               </button>
             </div>
-            <div v-if="workloadRows.length" class="space-y-2">
+            <div v-if="workloadRows.length" class="overflow-x-auto">
+              <div class="min-w-[920px] space-y-2">
               <div class="grid grid-cols-[1fr_1fr_120px_1.5fr_1fr_32px] gap-2 px-1 text-[10px] font-semibold uppercase text-graphite">
                 <span>Key</span><span>Label</span><span>Complexity</span><span>Description</span><span>Price hint</span><span />
               </div>
@@ -497,6 +650,7 @@ const draft = reactive<Draft>({
                   <X class="h-3.5 w-3.5" />
                 </button>
               </div>
+              </div>
             </div>
             <p v-else class="text-sm text-graphite">No workload levels yet.</p>
           </div>
@@ -512,7 +666,8 @@ const draft = reactive<Draft>({
                 <Plus class="h-3.5 w-3.5" /> Add
               </button>
             </div>
-            <div v-if="taskRows.length" class="space-y-2">
+            <div v-if="taskRows.length" class="overflow-x-auto">
+              <div class="min-w-[780px] space-y-2">
               <div class="grid grid-cols-[1fr_1fr_1.5fr_100px_32px] gap-2 px-1 text-[10px] font-semibold uppercase text-graphite">
                 <span>Key</span><span>Label</span><span>Description</span><span>Required</span><span />
               </div>
@@ -526,6 +681,7 @@ const draft = reactive<Draft>({
                 <button type="button" class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-graphite hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500" @click="taskRows.splice(i, 1)">
                   <X class="h-3.5 w-3.5" />
                 </button>
+              </div>
               </div>
             </div>
             <p v-else class="text-sm text-graphite">No task types yet.</p>

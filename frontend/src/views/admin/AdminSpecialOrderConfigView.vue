@@ -20,6 +20,7 @@ type ServiceDraft = {
 };
 
 type DurationRow = { id?: number; duration_days: number | null; price: string; is_active: boolean };
+type VisibilityFilter = "all" | "active" | "inactive";
 
 const predefined = ref<PredefinedConfig[]>([]);
 const durationRows = ref<DurationRow[]>([]);
@@ -31,10 +32,13 @@ const isSavingService = ref(false);
 const error = ref("");
 const notice = ref("");
 const selectedWebsiteId = ref<number | null>(null);
+const visibilityFilter = ref<VisibilityFilter>("all");
+const isSeedingDefaults = ref(false);
 
 const auth = useAuthStore();
 const portal = usePortalContextStore();
 const websites = useWebsitesStore();
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false });
 
 const serviceDraft = reactive<ServiceDraft>({
   id: null,
@@ -61,6 +65,12 @@ const policyDraft = reactive({
 });
 
 const activePredefined = computed(() => predefined.value.filter((cfg) => cfg.is_active));
+const inactivePredefined = computed(() => predefined.value.filter((cfg) => !cfg.is_active));
+const visiblePredefined = computed(() => {
+  if (visibilityFilter.value === "active") return activePredefined.value;
+  if (visibilityFilter.value === "inactive") return inactivePredefined.value;
+  return predefined.value;
+});
 const durationCount = computed(() => predefined.value.reduce((sum, cfg) => sum + cfg.durations.length, 0));
 const isSuperadmin = computed(() => auth.role === "superadmin");
 const websiteParams = computed(() =>
@@ -82,6 +92,17 @@ function configWebsiteLabel(cfg: PredefinedConfig): string {
     return cfg.website_domain ? `${cfg.website_name || cfg.website_domain} (${cfg.website_domain})` : cfg.website_name || "Current website";
   }
   return selectedWebsiteLabel.value;
+}
+
+function formatDate(value?: string | null): string {
+  if (!value) return "not yet synced";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "unknown";
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function defaultDurations(): DurationRow[] {
@@ -147,6 +168,7 @@ function editService(cfg: PredefinedConfig) {
     price: row.price,
     is_active: row.is_active,
   }));
+  if (cfg.id) void loadRules(cfg.id);
 }
 
 async function load() {
@@ -225,6 +247,21 @@ async function saveService() {
     error.value = caught instanceof Error ? caught.message : "Unable to save express service preset.";
   } finally {
     isSavingService.value = false;
+  }
+}
+
+async function seedDefaults() {
+  isSeedingDefaults.value = true;
+  error.value = "";
+  notice.value = "";
+  try {
+    const { data } = await specialOrdersApi.seedPredefinedConfigDefaults(websiteParams.value);
+    notice.value = `SPO defaults synced: ${data.configs_created} presets created, ${data.configs_updated} updated; ${data.durations_created} durations created, ${data.durations_updated} updated.`;
+    await load();
+  } catch {
+    error.value = "Unable to seed SPO defaults.";
+  } finally {
+    isSeedingDefaults.value = false;
   }
 }
 
@@ -320,13 +357,6 @@ async function delRule(type: "rush" | "level" | "tier", id: number) {
   } catch { error.value = "Failed to delete rule."; }
 }
 
-// override editService to also load rules
-const _origEditService = editService;
-function editServiceWithRules(cfg: PredefinedConfig) {
-  _origEditService(cfg);
-  if (cfg.id) loadRules(cfg.id);
-}
-
 onMounted(async () => {
   await websites.ensure();
   selectedWebsiteId.value = portal.website?.id ?? websites.list[0]?.id ?? null;
@@ -336,11 +366,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-full bg-slate-50 p-6">
-    <div class="mx-auto max-w-7xl space-y-5">
+  <div :class="props.embedded ? 'space-y-5' : 'min-h-full bg-slate-50 p-6'">
+    <div :class="props.embedded ? 'space-y-5' : 'mx-auto max-w-7xl space-y-5'">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-xl font-bold text-ink">Special Order Management</h1>
+          <h1 :class="props.embedded ? 'text-sm font-semibold text-ink' : 'text-xl font-bold text-ink'">SPO-Configs</h1>
           <p class="text-sm text-graphite">Preset express services, duration prices, custom quote policy, and milestone behavior.</p>
           <p class="mt-1 text-xs font-medium text-graphite">Website: {{ selectedWebsiteLabel }}</p>
         </div>
@@ -359,13 +389,25 @@ onMounted(async () => {
             <RefreshCw class="size-4" :class="{ 'animate-spin': isLoading }" />
             Refresh
           </button>
+          <button
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-graphite hover:text-ink disabled:opacity-60"
+            :disabled="isSeedingDefaults"
+            @click="seedDefaults"
+          >
+            <RefreshCw class="size-4" :class="{ 'animate-spin': isSeedingDefaults }" />
+            Seed defaults
+          </button>
         </div>
       </div>
 
-      <div class="grid gap-3 sm:grid-cols-4">
+      <div class="grid gap-3 sm:grid-cols-5">
         <div class="rounded-lg border border-slate-200 bg-white p-4">
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Express presets</p>
           <p class="mt-1 text-2xl font-bold text-ink">{{ activePredefined.length }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Inactive</p>
+          <p class="mt-1 text-2xl font-bold text-ink">{{ inactivePredefined.length }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-4">
           <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Duration prices</p>
@@ -548,7 +590,7 @@ onMounted(async () => {
         </div>
       </section>
 
-      <div class="grid gap-5 lg:grid-cols-[22rem_1fr]">
+      <div class="grid gap-5 xl:grid-cols-[22rem_minmax(0,1fr)]">
         <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
           <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <h2 class="text-sm font-semibold text-ink">Express presets</h2>
@@ -556,22 +598,54 @@ onMounted(async () => {
               <Plus class="mr-1 inline size-3.5" /> New
             </button>
           </div>
+          <div class="border-b border-slate-100 p-2">
+            <div class="grid grid-cols-3 gap-1 rounded-lg bg-slate-50 p-1">
+              <button
+                v-for="option in [
+                  { value: 'all', label: `All ${predefined.length}` },
+                  { value: 'active', label: `Active ${activePredefined.length}` },
+                  { value: 'inactive', label: `Inactive ${inactivePredefined.length}` },
+                ]"
+                :key="option.value"
+                type="button"
+                class="rounded-md px-2 py-1.5 text-[11px] font-semibold transition"
+                :class="visibilityFilter === option.value ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+                @click="visibilityFilter = option.value as VisibilityFilter"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
           <div v-if="isLoading" class="py-12 text-center text-graphite">Loading…</div>
           <div v-else-if="!predefined.length" class="py-12 text-center">
             <Sparkles class="mx-auto mb-3 size-9 text-slate-300" />
             <p class="text-sm text-graphite">No express presets yet.</p>
           </div>
+          <div v-else-if="!visiblePredefined.length" class="py-10 text-center text-sm text-graphite">
+            No {{ visibilityFilter }} presets.
+          </div>
           <button
-            v-for="cfg in predefined"
+            v-for="cfg in visiblePredefined"
             v-else
             :key="cfg.id"
             class="block w-full border-b border-slate-50 px-4 py-3 text-left hover:bg-slate-50"
             :class="{ 'bg-berry/5': selectedId === cfg.id }"
-            @click="editServiceWithRules(cfg)"
+            @click="editService(cfg)"
           >
-            <p class="font-medium text-ink">{{ cfg.name }}</p>
+            <div class="flex items-start justify-between gap-2">
+              <p class="font-medium text-ink">{{ cfg.name }}</p>
+              <span
+                class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                :class="cfg.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'"
+              >
+                {{ cfg.is_active ? "Active" : "Inactive" }}
+              </span>
+            </div>
             <p class="mt-0.5 text-xs text-graphite">{{ cfg.durations.length }} duration prices · {{ cfg.requires_full_payment ? "full payment" : "flexible" }}</p>
             <p class="mt-1 text-xs text-slate-400">{{ configWebsiteLabel(cfg) }}</p>
+            <p class="mt-0.5 text-[10px] text-slate-400">
+              Updated {{ formatDate(cfg.updated_at) }}<span v-if="cfg.created_by_name"> · by {{ cfg.created_by_name }}</span>
+            </p>
           </button>
         </section>
 
@@ -614,7 +688,8 @@ onMounted(async () => {
               <h3 class="text-sm font-semibold text-ink">Duration Prices</h3>
               <button class="text-xs font-medium text-berry hover:underline" @click="addDuration">Add duration</button>
             </div>
-            <div class="space-y-2">
+            <div class="overflow-x-auto">
+              <div class="min-w-[640px] space-y-2">
               <div
                 v-for="(row, index) in durationRows"
                 :key="row.id ?? index"
@@ -643,6 +718,7 @@ onMounted(async () => {
                 >
                   x
                 </button>
+              </div>
               </div>
             </div>
           </div>

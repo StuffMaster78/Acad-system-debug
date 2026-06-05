@@ -41,10 +41,23 @@ from order_pricing_core.api.views.pricing_snapshot_views import (
 )
 from order_pricing_core.api.views.pricing_config_views import (
     AcademicLevelRateDetailView,
-    WebsitePricingProfileView
-)
-from order_pricing_core.api.views.pricing_config_views import (
     AcademicLevelRateListCreateView,
+    DeadlineRateDetailView,
+    DeadlineRateListCreateView,
+    DiagramComplexityRateDetailView,
+    DiagramComplexityRateListCreateView,
+    PaperTypeRateDetailView,
+    PaperTypeRateListCreateView,
+    SyncOrderConfigPricingRatesView,
+    SubjectCategoryDetailView,
+    SubjectCategoryListCreateView,
+    SubjectRateDetailView,
+    SubjectRateListCreateView,
+    WebsitePricingProfileView,
+    WorkTypeRateDetailView,
+    WorkTypeRateListCreateView,
+    WriterLevelRateDetailView,
+    WriterLevelRateListCreateView,
 )
 from order_pricing_core.api.views.service_catalog_views import (
     ServiceAddonDetailView,
@@ -111,9 +124,14 @@ urlpatterns = [
         name="composite-quote-finalize",
     ),
     path(
-    "admin/profile/",
+        "admin/profile/",
         WebsitePricingProfileView.as_view(),
         name="admin-pricing-profile",
+    ),
+    path(
+        "admin/sync-order-config-rates/",
+        SyncOrderConfigPricingRatesView.as_view(),
+        name="admin-sync-order-config-rates",
     ),
     path(
         "admin/dimensions/academic-levels/",
@@ -125,6 +143,83 @@ urlpatterns = [
         AcademicLevelRateDetailView.as_view(),
         name="admin-academic-level-rate-detail",
     ),
+    # ── Deadline rates ─────────────────────────────────────────────────────
+    path(
+        "admin/dimensions/deadline-rates/",
+        DeadlineRateListCreateView.as_view(),
+        name="admin-deadline-rate-list-create",
+    ),
+    path(
+        "admin/dimensions/deadline-rates/<int:item_id>/",
+        DeadlineRateDetailView.as_view(),
+        name="admin-deadline-rate-detail",
+    ),
+    # ── Paper type rates ────────────────────────────────────────────────────
+    path(
+        "admin/dimensions/paper-types/",
+        PaperTypeRateListCreateView.as_view(),
+        name="admin-paper-type-rate-list-create",
+    ),
+    path(
+        "admin/dimensions/paper-types/<int:item_id>/",
+        PaperTypeRateDetailView.as_view(),
+        name="admin-paper-type-rate-detail",
+    ),
+    # ── Work type rates ─────────────────────────────────────────────────────
+    path(
+        "admin/dimensions/work-types/",
+        WorkTypeRateListCreateView.as_view(),
+        name="admin-work-type-rate-list-create",
+    ),
+    path(
+        "admin/dimensions/work-types/<int:item_id>/",
+        WorkTypeRateDetailView.as_view(),
+        name="admin-work-type-rate-detail",
+    ),
+    # ── Subject rates ────────────────────────────────────────────────────────
+    path(
+        "admin/dimensions/subject-categories/",
+        SubjectCategoryListCreateView.as_view(),
+        name="admin-subject-category-list-create",
+    ),
+    path(
+        "admin/dimensions/subject-categories/<int:item_id>/",
+        SubjectCategoryDetailView.as_view(),
+        name="admin-subject-category-detail",
+    ),
+    path(
+        "admin/dimensions/subject-rates/",
+        SubjectRateListCreateView.as_view(),
+        name="admin-subject-rate-list-create",
+    ),
+    path(
+        "admin/dimensions/subject-rates/<int:item_id>/",
+        SubjectRateDetailView.as_view(),
+        name="admin-subject-rate-detail",
+    ),
+    # ── Writer level rates ──────────────────────────────────────────────────
+    path(
+        "admin/dimensions/writer-levels/",
+        WriterLevelRateListCreateView.as_view(),
+        name="admin-writer-level-rate-list-create",
+    ),
+    path(
+        "admin/dimensions/writer-levels/<int:item_id>/",
+        WriterLevelRateDetailView.as_view(),
+        name="admin-writer-level-rate-detail",
+    ),
+    # ── Diagram complexity rates ────────────────────────────────────────────
+    path(
+        "admin/dimensions/diagram-complexity/",
+        DiagramComplexityRateListCreateView.as_view(),
+        name="admin-diagram-complexity-rate-list-create",
+    ),
+    path(
+        "admin/dimensions/diagram-complexity/<int:item_id>/",
+        DiagramComplexityRateDetailView.as_view(),
+        name="admin-diagram-complexity-rate-detail",
+    ),
+    # ── Service catalog ─────────────────────────────────────────────────────
     path(
         "admin/service-catalog/items/",
         ServiceCatalogItemListCreateView.as_view(),

@@ -1,4 +1,4 @@
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 import logging
 
@@ -41,15 +41,16 @@ def send_website_mail(
     reply_to = [getattr(website, 'support_email', from_email)] if website else [from_email]
 
     try:
-        send_mail(
+        email = EmailMultiAlternatives(
             subject=subject,
-            message=message,
+            body=message,
             from_email=from_email,
-            recipient_list=recipient_list,
-            fail_silently=False,
-            html_message=html_message,
+            to=recipient_list,
             reply_to=reply_to,
         )
+        if html_message:
+            email.attach_alternative(html_message, "text/html")
+        email.send(fail_silently=False)
         logger.info(f"Email sent from {from_email} to {recipient_list}")
         return True
     except Exception as e:

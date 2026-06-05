@@ -249,7 +249,7 @@ class AuditEvent(models.Model):
     }
 
     def save(self, *args, **kwargs):
-        if self.pk:
+        if not self._state.adding:
             previous = AuditEvent.objects.get(pk=self.pk)
 
             for field in self.IMMUTABLE_FIELDS:

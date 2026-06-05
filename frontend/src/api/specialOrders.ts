@@ -76,11 +76,24 @@ export const specialOrdersApi = {
   updatePredefinedConfig: (id: number | string, payload: PredefinedConfigPayload, params?: Record<string, unknown>) =>
     api.patch<PredefinedConfig>(apiPath(`/special-orders/predefined-configs/${id}/`), payload, { params }),
 
+  seedPredefinedConfigDefaults: (params?: Record<string, unknown>) =>
+    api.post<{
+      configs_created: number;
+      configs_updated: number;
+      durations_created: number;
+      durations_updated: number;
+    }>(apiPath("/special-orders/predefined-configs/seed-defaults/"), {}, { params }),
+
   updateQuoteConfig: (payload: Partial<SpecialOrderQuoteConfig["settings"]>, params?: Record<string, unknown>) =>
     api.patch<SpecialOrderQuoteConfig>(apiPath("/special-orders/quote-config/"), payload, { params }),
 
   update: (id: number | string, payload: Partial<CreateSpecialOrderPayload>) =>
     api.patch<SpecialOrder>(apiPath(`/special-orders/${id}/`), payload),
+
+  availableActions: (id: number | string) =>
+    api.get<{ available_actions: string[]; blocked_actions: { action: string; reason: string }[] }>(
+      apiPath(`/special-orders/${id}/available-actions/`),
+    ),
 
   cancel: (id: number | string, reason?: string) =>
     api.post(apiPath(`/special-orders/${id}/cancel/`), { reason }),

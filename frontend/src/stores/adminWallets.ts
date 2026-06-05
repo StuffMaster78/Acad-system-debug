@@ -6,6 +6,7 @@ import { useUiStore } from "@/stores/ui";
 import { usePortalContextStore } from "@/stores/portalContext";
 import type {
   AdminWalletAdjustmentPayload,
+  AdminEnsureWalletPayload,
   AdminWalletEntryRecord,
   AdminWalletHoldPayload,
   AdminWalletHoldRecord,
@@ -156,9 +157,19 @@ function previewHolds(walletId: number): AdminWalletHoldRecord[] {
   ];
 }
 
-function resolvedWebsiteParams(extra: Record<string, unknown> = {}) {
+function resolvedWebsiteParams(extra: Record<string, unknown> = {}, selectedWebsiteId?: number | null) {
   const portalCtx = usePortalContextStore();
-  return portalCtx.website?.id ? { ...extra, website_id: portalCtx.website.id } : extra;
+  const websiteId = selectedWebsiteId || portalCtx.website?.id;
+  return websiteId ? { ...extra, website_id: websiteId } : extra;
+}
+
+function resolvedWebsitePayload<T extends Record<string, unknown>>(
+  payload: T,
+  selectedWebsiteId?: number | null,
+): T & { website_id?: number } {
+  const portalCtx = usePortalContextStore();
+  const websiteId = selectedWebsiteId || portalCtx.website?.id;
+  return websiteId ? { ...payload, website_id: websiteId } : payload;
 }
 
 export const useAdminWalletsStore = defineStore("admin-wallets", () => {
@@ -167,6 +178,7 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
   const holds = ref<AdminWalletHoldRecord[]>([]);
   const selectedWalletId = ref<number | null>(null);
   const selectedHoldId = ref<number | null>(null);
+  const selectedWebsiteId = ref<number | null>(null);
   const query = ref("");
   const filter = ref<WalletFilter>("all");
   const isLoading = ref(false);
@@ -179,6 +191,12 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
     description: "Admin balance adjustment",
     reference: "",
     reference_type: "admin_adjustment",
+  });
+  const ensureForm = ref({
+    user_id: null as number | null,
+    user_lookup: "",
+    wallet_type: "client" as "client" | "writer",
+    currency: "USD",
   });
   const holdForm = ref({
     amount: 25,
@@ -207,6 +225,9 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
         [
           wallet.id,
           wallet.owner_user_id,
+          wallet.owner_user_email,
+          wallet.owner_user_name,
+          wallet.owner_user_role,
           wallet.website_id,
           wallet.wallet_type,
           wallet.status,
@@ -257,6 +278,10 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
 
   async function hydrate() {
     const auth = useAuthStore();
+    const portalCtx = usePortalContextStore();
+    if (!selectedWebsiteId.value && portalCtx.website?.id) {
+      selectedWebsiteId.value = portalCtx.website.id;
+    }
     isLoading.value = true;
     error.value = "";
 
@@ -272,7 +297,9 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
         return;
       }
 
-      const { data } = await adminWalletsApi.wallets(resolvedWebsiteParams({ page_size: 100 }));
+      const { data } = await adminWalletsApi.wallets(
+        resolvedWebsiteParams({ page_size: 100 }, selectedWebsiteId.value),
+      );
       wallets.value = normalizeList(data);
       if (!selectedWalletId.value || !wallets.value.some((wallet) => wallet.id === selectedWalletId.value)) {
         selectedWalletId.value = wallets.value[0]?.id ?? null;
@@ -302,8 +329,8 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
       }
 
       const [entryRes, holdRes] = await Promise.all([
-        adminWalletsApi.entries(walletId, resolvedWebsiteParams({ page_size: 50 })),
-        adminWalletsApi.holds(walletId, resolvedWebsiteParams({ page_size: 25 })),
+        adminWalletsApi.entries(walletId, resolvedWebsiteParams({ page_size: 50 }, selectedWebsiteId.value)),
+        adminWalletsApi.holds(walletId, resolvedWebsiteParams({ page_size: 25 }, selectedWebsiteId.value)),
       ]);
       entries.value = normalizeList(entryRes.data);
       holds.value = normalizeList(holdRes.data);
@@ -314,22 +341,91 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
   }
 
   function adjustmentPayload(): AdminWalletAdjustmentPayload {
-    return {
+    return resolvedWebsitePayload({
       amount: Number(adjustmentForm.value.amount),
       description: adjustmentForm.value.description,
       reference: adjustmentForm.value.reference,
       reference_type: adjustmentForm.value.reference_type,
-    };
+    }, selectedWebsiteId.value);
   }
 
   function holdPayload(): AdminWalletHoldPayload {
-    return {
+    return resolvedWebsitePayload({
       amount: Number(holdForm.value.amount),
       reason: holdForm.value.reason,
       reference: holdForm.value.reference,
       reference_type: holdForm.value.reference_type,
       expires_at: holdForm.value.expires_at ? new Date(holdForm.value.expires_at).toISOString() : null,
-    };
+    }, selectedWebsiteId.value);
+  }
+
+  async function ensureWallet() {
+    const auth = useAuthStore();
+    const ui = useUiStore();
+    const lookup = ensureForm.value.user_lookup.trim();
+    if (!ensureForm.value.user_id && !lookup) {
+      error.value = "Enter a client or writer user ID, email, username, or name before selecting a wallet.";
+      ui.toast(error.value, "error");
+      return;
+    }
+    isMutating.value = true;
+    error.value = "";
+    notice.value = "";
+
+    try {
+      if (auth.isPreviewSession) {
+        const wallet: AdminWalletRecord = {
+          id: Date.now(),
+          website_id: 1,
+          owner_user_id: ensureForm.value.user_id,
+          owner_user_email: lookup || `${ensureForm.value.wallet_type}.${ensureForm.value.user_id}@preview.local`,
+          owner_user_name: lookup || `Preview ${ensureForm.value.wallet_type} #${ensureForm.value.user_id}`,
+          owner_user_role: ensureForm.value.wallet_type,
+          wallet_type: ensureForm.value.wallet_type,
+          currency: ensureForm.value.currency,
+          status: "active",
+          is_active: true,
+          available_balance: "0.00",
+          pending_balance: "0.00",
+          total_credited: "0.00",
+          total_debited: "0.00",
+          last_activity_at: new Date().toISOString(),
+        };
+        wallets.value = [wallet, ...wallets.value.filter((item) => item.id !== wallet.id)];
+        selectedWalletId.value = wallet.id;
+        entries.value = [];
+        holds.value = [];
+        return;
+      }
+
+      const payload: AdminEnsureWalletPayload = resolvedWebsitePayload({
+        user_id: ensureForm.value.user_id,
+        user_lookup: lookup,
+        wallet_type: ensureForm.value.wallet_type,
+        currency: ensureForm.value.currency,
+      }, selectedWebsiteId.value);
+      const { data } = await adminWalletsApi.ensureWallet(payload);
+      wallets.value = [data, ...wallets.value.filter((item) => item.id !== data.id)];
+      selectedWalletId.value = data.id;
+      await loadWalletDetail(data.id);
+      notice.value = "Wallet selected and ready for top-up.";
+      ui.toast(notice.value, "success");
+    } catch (caught) {
+      error.value = "Could not find or create that wallet. Check the user, role, and website.";
+      ui.toast(error.value, "error");
+      throw caught;
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
+  async function setWebsiteId(websiteId: number | null) {
+    selectedWebsiteId.value = websiteId;
+    selectedWalletId.value = null;
+    selectedHoldId.value = null;
+    entries.value = [];
+    holds.value = [];
+    await hydrate();
   }
 
   async function runWalletAction(action: "fund" | "debit" | "hold" | "reconcile" | "repair") {
@@ -477,6 +573,7 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
     holds,
     selectedWalletId,
     selectedHoldId,
+    selectedWebsiteId,
     selectedWallet,
     selectedHold,
     query,
@@ -489,10 +586,13 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
     error,
     notice,
     adjustmentForm,
+    ensureForm,
     holdForm,
     hydrate,
     loadWalletDetail,
     runWalletAction,
+    ensureWallet,
+    setWebsiteId,
     releaseSelectedHold,
     captureSelectedHold,
   };

@@ -1,4 +1,5 @@
 from wallets.api.views.admin_wallet_views import (
+    AdminEnsureWalletView,
     AdminWalletCaptureHoldView,
     AdminWalletCreateHoldView,
     AdminWalletDebitView,
@@ -33,6 +34,7 @@ __all__ = [
 
     # Admin wallet views
     "AdminWalletListView",
+    "AdminEnsureWalletView",
     "AdminWalletDetailView",
     "AdminWalletEntryListView",
     "AdminWalletHoldListView",

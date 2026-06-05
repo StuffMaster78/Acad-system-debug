@@ -44,4 +44,6 @@ export const orderConfigApi = {
     api.patch<OrderConfigOption>(apiPath(`/order-configs/${collection}/${id}/`), payload),
   deleteOption: (collection: ConfigCollection, id: number) =>
     api.delete(apiPath(`/order-configs/${collection}/${id}/`)),
+  populateDefaults: (payload: { default_set?: "general" | "nursing" | "technical"; website_id?: number | null }) =>
+    api.post(apiPath("/order-configs/management/populate-defaults/"), payload),
 };

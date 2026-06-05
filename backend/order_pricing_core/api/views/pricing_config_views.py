@@ -4,6 +4,7 @@ Admin-facing pricing config API views.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 from typing import cast
 
@@ -13,6 +14,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.utils.text import slugify
 
 from order_pricing_core.api.serializers.pricing_config_serializers import (
     AcademicLevelRateSerializer,
@@ -172,6 +174,141 @@ class WebsitePricingProfileView(APIView):
         )
 
 
+class SyncOrderConfigPricingRatesView(APIView):
+    """
+    Sync PaperTypeRate and SubjectRate rows from order config options.
+    """
+
+    permission_classes = [CanManagePricingConfig]
+
+    SUBJECT_CATEGORIES = [
+        ("humanities", "Humanities & Arts", Decimal("1.0000"), 1),
+        ("social_sciences", "Social Sciences", Decimal("1.0000"), 2),
+        ("business", "Business & Economics", Decimal("1.0000"), 3),
+        ("stem", "STEM", Decimal("1.2000"), 4),
+        ("nursing", "Nursing & Healthcare", Decimal("1.1000"), 5),
+        ("law", "Law & Legal Studies", Decimal("1.3000"), 6),
+        ("technology", "Computing & Technology", Decimal("1.4000"), 7),
+        ("general", "General", Decimal("1.0000"), 8),
+    ]
+
+    SUBJECT_CATEGORY_MAP = {
+        "general": "general",
+        "humanities": "humanities",
+        "sciences": "stem",
+        "health_sciences": "nursing",
+        "nursing": "nursing",
+        "computing": "technology",
+        "engineering": "stem",
+        "business": "business",
+        "education": "social_sciences",
+        "social_sciences": "social_sciences",
+        "law": "law",
+        "theology": "humanities",
+        "mathematics": "stem",
+        "environment": "stem",
+    }
+
+    def post(self, request: Request) -> Response:
+        from order_configs.models import PaperType
+        from order_configs.models import Subject
+
+        website = request.website
+        category_map = self._ensure_subject_categories(website)
+
+        paper_created = 0
+        paper_updated = 0
+        for index, paper_type in enumerate(PaperType.objects.filter(website=website), start=1):
+            _, created = PaperTypeRate.objects.update_or_create(
+                website=website,
+                code=self._code(paper_type.name),
+                defaults={
+                    "label": paper_type.name,
+                    "multiplier": self._paper_type_multiplier(paper_type.name),
+                    "sort_order": paper_type.display_order or index,
+                    "is_active": paper_type.is_active,
+                },
+            )
+            paper_created += 1 if created else 0
+            paper_updated += 0 if created else 1
+
+        subject_created = 0
+        subject_updated = 0
+        for index, subject in enumerate(Subject.objects.filter(website=website), start=1):
+            category_code = self.SUBJECT_CATEGORY_MAP.get(subject.category, "general")
+            category = category_map.get(category_code) or category_map["general"]
+            _, created = SubjectRate.objects.update_or_create(
+                website=website,
+                code=self._code(subject.name),
+                defaults={
+                    "label": subject.name,
+                    "category": category,
+                    "custom_multiplier": None,
+                    "sort_order": subject.display_order or index,
+                    "is_active": subject.is_active,
+                },
+            )
+            subject_created += 1 if created else 0
+            subject_updated += 0 if created else 1
+
+        return Response(
+            {
+                "paper_type_rates": {
+                    "created": paper_created,
+                    "updated": paper_updated,
+                },
+                "subject_rates": {
+                    "created": subject_created,
+                    "updated": subject_updated,
+                },
+                "subject_categories": {
+                    "total": len(category_map),
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def _ensure_subject_categories(self, website) -> dict[str, SubjectCategory]:
+        category_map: dict[str, SubjectCategory] = {}
+        for code, label, multiplier, sort_order in self.SUBJECT_CATEGORIES:
+            category, _ = SubjectCategory.objects.update_or_create(
+                website=website,
+                code=code,
+                defaults={
+                    "label": label,
+                    "multiplier": multiplier,
+                    "sort_order": sort_order,
+                    "is_active": True,
+                },
+            )
+            category_map[code] = category
+        return category_map
+
+    def _code(self, value: str) -> str:
+        code = slugify(value).replace("-", "_")[:50]
+        return code or "item"
+
+    def _paper_type_multiplier(self, name: str) -> Decimal:
+        lowered = name.lower()
+        if any(key in lowered for key in ("dissertation", "thesis")):
+            return Decimal("1.4000")
+        if any(key in lowered for key in ("lab", "nursing", "clinical")):
+            return Decimal("1.2000")
+        if any(key in lowered for key in ("legal", "law")):
+            return Decimal("1.5000")
+        if any(key in lowered for key in ("technical", "engineering")):
+            return Decimal("1.3000")
+        if any(key in lowered for key in ("coding", "programming")):
+            return Decimal("1.6000")
+        if any(key in lowered for key in ("editing", "proofreading")):
+            return Decimal("0.7000")
+        if any(key in lowered for key in ("creative", "poetry", "script")):
+            return Decimal("0.9000")
+        if any(key in lowered for key in ("research", "case study")):
+            return Decimal("1.1000")
+        return Decimal("1.0000")
+
+
 class AcademicLevelRateListCreateView(APIView):
     """
     List or create academic level rates.
@@ -283,4 +420,325 @@ class AcademicLevelRateDetailView(APIView):
             item_id=item_id,
         )
         item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ── Deadline rates ────────────────────────────────────────────────────────────
+
+class DeadlineRateListCreateView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def get(self, request: Request) -> Response:
+        items = DeadlineRate.objects.filter(website=request.website).order_by("sort_order", "max_hours")
+        return Response([
+            {"id": i.pk, "label": i.label, "max_hours": i.max_hours,
+             "multiplier": str(i.multiplier), "sort_order": i.sort_order, "is_active": i.is_active}
+            for i in items
+        ])
+
+    def post(self, request: Request) -> Response:
+        s = DeadlineRateSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        validate_deadline_rate(
+            max_hours=s.validated_data["max_hours"],
+            multiplier=s.validated_data["multiplier"],
+        )
+        item = DeadlineRate.objects.create(website=request.website, **s.validated_data)
+        return Response({"id": item.pk, "label": item.label, "max_hours": item.max_hours}, status=status.HTTP_201_CREATED)
+
+
+class DeadlineRateDetailView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def _get(self, request: Request, item_id: int) -> DeadlineRate:
+        try:
+            return DeadlineRate.objects.get(pk=item_id, website=request.website)
+        except DeadlineRate.DoesNotExist:
+            raise NotFound
+
+    def patch(self, request: Request, item_id: int) -> Response:
+        item = self._get(request, item_id)
+        s = DeadlineRateSerializer(data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        for field, value in s.validated_data.items():
+            setattr(item, field, value)
+        item.save()
+        return Response({"id": item.pk, "label": item.label})
+
+    def delete(self, request: Request, item_id: int) -> Response:
+        self._get(request, item_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ── Paper type rates ──────────────────────────────────────────────────────────
+
+class PaperTypeRateListCreateView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def get(self, request: Request) -> Response:
+        items = PaperTypeRate.objects.filter(website=request.website).order_by("sort_order", "id")
+        return Response([
+            {"id": i.pk, "code": i.code, "label": i.label,
+             "multiplier": str(i.multiplier), "sort_order": i.sort_order, "is_active": i.is_active}
+            for i in items
+        ])
+
+    def post(self, request: Request) -> Response:
+        s = PaperTypeRateSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        validate_positive_multiplier(multiplier=s.validated_data["multiplier"])
+        item = PaperTypeRate.objects.create(website=request.website, **s.validated_data)
+        return Response({"id": item.pk, "code": item.code, "label": item.label}, status=status.HTTP_201_CREATED)
+
+
+class PaperTypeRateDetailView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def _get(self, request: Request, item_id: int) -> PaperTypeRate:
+        try:
+            return PaperTypeRate.objects.get(pk=item_id, website=request.website)
+        except PaperTypeRate.DoesNotExist:
+            raise NotFound
+
+    def patch(self, request: Request, item_id: int) -> Response:
+        item = self._get(request, item_id)
+        s = PaperTypeRateSerializer(data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        for field, value in s.validated_data.items():
+            setattr(item, field, value)
+        item.save()
+        return Response({"id": item.pk, "code": item.code, "label": item.label})
+
+    def delete(self, request: Request, item_id: int) -> Response:
+        self._get(request, item_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ── Work type rates ───────────────────────────────────────────────────────────
+
+class WorkTypeRateListCreateView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def get(self, request: Request) -> Response:
+        items = WorkTypeRate.objects.filter(website=request.website).order_by("sort_order", "id")
+        return Response([
+            {"id": i.pk, "code": i.code, "label": i.label,
+             "multiplier": str(i.multiplier), "sort_order": i.sort_order, "is_active": i.is_active}
+            for i in items
+        ])
+
+    def post(self, request: Request) -> Response:
+        s = WorkTypeRateSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        validate_positive_multiplier(multiplier=s.validated_data["multiplier"])
+        item = WorkTypeRate.objects.create(website=request.website, **s.validated_data)
+        return Response({"id": item.pk, "code": item.code, "label": item.label}, status=status.HTTP_201_CREATED)
+
+
+class WorkTypeRateDetailView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def _get(self, request: Request, item_id: int) -> WorkTypeRate:
+        try:
+            return WorkTypeRate.objects.get(pk=item_id, website=request.website)
+        except WorkTypeRate.DoesNotExist:
+            raise NotFound
+
+    def patch(self, request: Request, item_id: int) -> Response:
+        item = self._get(request, item_id)
+        s = WorkTypeRateSerializer(data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        for field, value in s.validated_data.items():
+            setattr(item, field, value)
+        item.save()
+        return Response({"id": item.pk, "code": item.code, "label": item.label})
+
+    def delete(self, request: Request, item_id: int) -> Response:
+        self._get(request, item_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ── Subject categories and subject rates ──────────────────────────────────────
+
+class SubjectCategoryListCreateView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def get(self, request: Request) -> Response:
+        items = SubjectCategory.objects.filter(website=request.website).order_by("sort_order", "id")
+        return Response([
+            {"id": i.pk, "code": i.code, "label": i.label,
+             "multiplier": str(i.multiplier), "sort_order": i.sort_order, "is_active": i.is_active}
+            for i in items
+        ])
+
+    def post(self, request: Request) -> Response:
+        s = SubjectCategorySerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        validate_positive_multiplier(multiplier=s.validated_data["multiplier"])
+        item = SubjectCategory.objects.create(website=request.website, **s.validated_data)
+        return Response({"id": item.pk, "code": item.code, "label": item.label}, status=status.HTTP_201_CREATED)
+
+
+class SubjectCategoryDetailView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def _get(self, request: Request, item_id: int) -> SubjectCategory:
+        try:
+            return SubjectCategory.objects.get(pk=item_id, website=request.website)
+        except SubjectCategory.DoesNotExist:
+            raise NotFound
+
+    def patch(self, request: Request, item_id: int) -> Response:
+        item = self._get(request, item_id)
+        s = SubjectCategorySerializer(data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        if "multiplier" in s.validated_data:
+            validate_positive_multiplier(multiplier=s.validated_data["multiplier"])
+        for field, value in s.validated_data.items():
+            setattr(item, field, value)
+        item.save()
+        return Response({"id": item.pk, "code": item.code, "label": item.label})
+
+    def delete(self, request: Request, item_id: int) -> Response:
+        self._get(request, item_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SubjectRateListCreateView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def get(self, request: Request) -> Response:
+        items = SubjectRate.objects.select_related("category").filter(website=request.website).order_by("sort_order", "id")
+        return Response([
+            {"id": i.pk, "code": i.code, "label": i.label,
+             "category_id": i.category_id, "category_label": i.category.label,
+             "custom_multiplier": str(i.custom_multiplier) if i.custom_multiplier is not None else None,
+             "sort_order": i.sort_order, "is_active": i.is_active}
+            for i in items
+        ])
+
+    def post(self, request: Request) -> Response:
+        s = SubjectRateSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        item = SubjectRate(website=request.website, **s.validated_data)
+        validate_subject_rate(item)
+        item.save()
+        return Response({"id": item.pk, "code": item.code, "label": item.label}, status=status.HTTP_201_CREATED)
+
+
+class SubjectRateDetailView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def _get(self, request: Request, item_id: int) -> SubjectRate:
+        try:
+            return SubjectRate.objects.select_related("category").get(pk=item_id, website=request.website)
+        except SubjectRate.DoesNotExist:
+            raise NotFound
+
+    def patch(self, request: Request, item_id: int) -> Response:
+        item = self._get(request, item_id)
+        s = SubjectRateSerializer(data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        for field, value in s.validated_data.items():
+            setattr(item, field, value)
+        validate_subject_rate(item)
+        item.save()
+        return Response({"id": item.pk, "code": item.code, "label": item.label})
+
+    def delete(self, request: Request, item_id: int) -> Response:
+        self._get(request, item_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ── Writer level rates ────────────────────────────────────────────────────────
+
+class WriterLevelRateListCreateView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def get(self, request: Request) -> Response:
+        items = WriterLevelRate.objects.filter(website=request.website).order_by("sort_order", "id")
+        return Response([
+            {"id": i.pk, "code": i.code, "label": i.label, "amount": str(i.amount),
+             "is_flat_fee": i.is_flat_fee, "sort_order": i.sort_order, "is_active": i.is_active}
+            for i in items
+        ])
+
+    def post(self, request: Request) -> Response:
+        s = WriterLevelRateSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        validate_non_negative_amount(amount=s.validated_data["amount"])
+        item = WriterLevelRate.objects.create(website=request.website, **s.validated_data)
+        return Response({"id": item.pk, "code": item.code, "label": item.label}, status=status.HTTP_201_CREATED)
+
+
+class WriterLevelRateDetailView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def _get(self, request: Request, item_id: int) -> WriterLevelRate:
+        try:
+            return WriterLevelRate.objects.get(pk=item_id, website=request.website)
+        except WriterLevelRate.DoesNotExist:
+            raise NotFound
+
+    def patch(self, request: Request, item_id: int) -> Response:
+        item = self._get(request, item_id)
+        s = WriterLevelRateSerializer(data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        for field, value in s.validated_data.items():
+            setattr(item, field, value)
+        item.save()
+        return Response({"id": item.pk, "code": item.code, "label": item.label})
+
+    def delete(self, request: Request, item_id: int) -> Response:
+        self._get(request, item_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ── Diagram complexity rates ──────────────────────────────────────────────────
+
+class DiagramComplexityRateListCreateView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def get(self, request: Request) -> Response:
+        items = DiagramComplexityRate.objects.filter(website=request.website).order_by("id")
+        return Response([
+            {"id": i.pk, "complexity": i.complexity, "multiplier": str(i.multiplier), "is_active": i.is_active}
+            for i in items
+        ])
+
+    def post(self, request: Request) -> Response:
+        s = DiagramComplexityRateSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        validate_positive_multiplier(multiplier=s.validated_data["multiplier"])
+        item, created = DiagramComplexityRate.objects.update_or_create(
+            website=request.website,
+            complexity=s.validated_data["complexity"],
+            defaults={"multiplier": s.validated_data["multiplier"], "is_active": s.validated_data.get("is_active", True)},
+        )
+        return Response(
+            {"id": item.pk, "complexity": item.complexity, "multiplier": str(item.multiplier)},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class DiagramComplexityRateDetailView(APIView):
+    permission_classes = [CanManagePricingConfig]
+
+    def _get(self, request: Request, item_id: int) -> DiagramComplexityRate:
+        try:
+            return DiagramComplexityRate.objects.get(pk=item_id, website=request.website)
+        except DiagramComplexityRate.DoesNotExist:
+            raise NotFound
+
+    def patch(self, request: Request, item_id: int) -> Response:
+        item = self._get(request, item_id)
+        s = DiagramComplexityRateSerializer(data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        for field, value in s.validated_data.items():
+            setattr(item, field, value)
+        item.save()
+        return Response({"id": item.pk, "complexity": item.complexity, "multiplier": str(item.multiplier)})
+
+    def delete(self, request: Request, item_id: int) -> Response:
+        self._get(request, item_id).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

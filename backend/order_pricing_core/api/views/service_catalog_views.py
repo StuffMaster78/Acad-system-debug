@@ -13,6 +13,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from order_pricing_core.api.serializers.service_catalog_serializers import (
+    DesignOrderServiceConfigSerializer,
+)
+from order_pricing_core.api.serializers.service_catalog_serializers import (
+    DiagramOrderServiceConfigSerializer,
+)
+from order_pricing_core.api.serializers.service_catalog_serializers import (
+    PaperOrderServiceConfigSerializer,
+)
+from order_pricing_core.api.serializers.service_catalog_serializers import (
     ServiceAddonSerializer,
 )
 from order_pricing_core.api.serializers.service_catalog_serializers import (
@@ -38,6 +47,92 @@ from order_pricing_core.validators.service_catalog_validators import (
 )
 
 
+def _config_payload(item: ServiceCatalogItem) -> dict[str, Any]:
+    """
+    Return family-specific service config fields when present.
+    """
+    payload: dict[str, Any] = {}
+    paper = getattr(item, "paper_order_config", None)
+    if paper is not None:
+        payload["paper_order_config"] = {
+            "supports_pages": paper.uses_pages,
+            "supports_spacing": paper.supports_spacing,
+            "supports_academic_level": paper.supports_academic_level,
+            "supports_paper_type": paper.supports_paper_type,
+            "supports_work_type": paper.supports_work_type,
+            "supports_subject": paper.supports_subject,
+            "supports_analysis_level": paper.supports_analysis_level,
+            "supports_writer_level": paper.supports_writer_level,
+            "supports_preferred_writer": paper.supports_preferred_writer,
+            "supports_deadline": paper.supports_deadline,
+            "supports_files": paper.supports_files,
+            "supports_topic": paper.supports_topic,
+            "supports_instructions": paper.supports_instructions,
+            "default_is_public": paper.default_is_public,
+        }
+    design = getattr(item, "design_order_config", None)
+    if design is not None:
+        payload["design_order_config"] = {
+            "design_product_type": design.design_product_type,
+            "default_package_type": design.default_package_type,
+            "supports_quantity": design.supports_quantity,
+            "supports_slides": design.supports_slides,
+            "supports_deadline": design.supports_deadline,
+            "supports_files": design.supports_files,
+            "supports_topic": design.supports_topic,
+            "supports_instructions": design.supports_instructions,
+        }
+    diagram = getattr(item, "diagram_order_config", None)
+    if diagram is not None:
+        payload["diagram_order_config"] = {
+            "diagram_type": diagram.diagram_type,
+            "supports_quantity": diagram.supports_quantity,
+            "supports_complexity": diagram.supports_complexity,
+            "supports_deadline": diagram.supports_deadline,
+            "supports_files": diagram.supports_files,
+            "supports_topic": diagram.supports_topic,
+            "supports_instructions": diagram.supports_instructions,
+        }
+    return payload
+
+
+def _item_payload(item: ServiceCatalogItem) -> dict[str, Any]:
+    payload = {
+        "id": item.pk,
+        "service_code": item.service_code,
+        "name": item.name,
+        "description": item.description,
+        "service_family": item.service_family,
+        "pricing_strategy": item.pricing_strategy,
+        "pricing_unit": item.pricing_unit,
+        "base_amount": item.base_amount,
+        "minimum_charge": item.minimum_charge,
+        "is_public": item.is_public,
+        "is_active": item.is_active,
+        "sort_order": item.sort_order,
+    }
+    payload.update(_config_payload(item))
+    return payload
+
+
+def _validated_config_data(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    configs: dict[str, dict[str, Any]] = {}
+    config_specs = (
+        ("paper_order_config", PaperOrderServiceConfigSerializer),
+        ("design_order_config", DesignOrderServiceConfigSerializer),
+        ("diagram_order_config", DiagramOrderServiceConfigSerializer),
+    )
+    for key, serializer_cls in config_specs:
+        if key not in data:
+            continue
+        serializer = serializer_cls(data=data.pop(key), partial=True)
+        serializer.is_valid(raise_exception=True)
+        configs[key] = cast(dict[str, Any], serializer.validated_data)
+    if "paper_order_config" in configs and "supports_pages" in configs["paper_order_config"]:
+        configs["paper_order_config"]["uses_pages"] = configs["paper_order_config"].pop("supports_pages")
+    return configs
+
+
 class ServiceCatalogItemListCreateView(APIView):
     """
     List or create service catalog items.
@@ -50,34 +145,23 @@ class ServiceCatalogItemListCreateView(APIView):
             website=request.website,
         ).order_by("sort_order", "id")
 
-        return Response(
-            [
-                {
-                    "id": item.pk,
-                    "service_code": item.service_code,
-                    "name": item.name,
-                    "service_family": item.service_family,
-                    "pricing_strategy": item.pricing_strategy,
-                    "pricing_unit": item.pricing_unit,
-                    "base_amount": item.base_amount,
-                    "minimum_charge": item.minimum_charge,
-                    "is_public": item.is_public,
-                    "is_active": item.is_active,
-                    "sort_order": item.sort_order,
-                }
-                for item in items
-            ],
-            status=status.HTTP_200_OK,
-        )
+        return Response([_item_payload(item) for item in items], status=status.HTTP_200_OK)
 
     def post(self, request: Request) -> Response:
         serializer = ServiceCatalogItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         data = cast(dict[str, Any], serializer.validated_data)
+        config_data = _validated_config_data(data)
         item = ServiceCatalogAdminService.create_service_catalog_item(
             website=request.website,
             data=data,
+        )
+        ServiceCatalogAdminService.update_service_family_config(
+            item=item,
+            paper_config=config_data.get("paper_order_config"),
+            design_config=config_data.get("design_order_config"),
+            diagram_config=config_data.get("diagram_order_config"),
         )
 
         return Response(
@@ -103,23 +187,7 @@ class ServiceCatalogItemDetailView(APIView):
             item_id=item_id,
         )
 
-        return Response(
-            {
-                "id": item.pk,
-                "service_code": item.service_code,
-                "name": item.name,
-                "description": item.description,
-                "service_family": item.service_family,
-                "pricing_strategy": item.pricing_strategy,
-                "pricing_unit": item.pricing_unit,
-                "base_amount": item.base_amount,
-                "minimum_charge": item.minimum_charge,
-                "is_public": item.is_public,
-                "is_active": item.is_active,
-                "sort_order": item.sort_order,
-            },
-            status=status.HTTP_200_OK,
-        )
+        return Response(_item_payload(item), status=status.HTTP_200_OK)
 
     def patch(self, request: Request, item_id: int) -> Response:
         item = get_service_catalog_item_by_id(
@@ -134,12 +202,19 @@ class ServiceCatalogItemDetailView(APIView):
         serializer.is_valid(raise_exception=True)
 
         data = cast(dict[str, Any], serializer.validated_data)
+        config_data = _validated_config_data(data)
 
         for field, value in data.items():
             setattr(item, field, value)
 
         validate_service_catalog_item(item)
         item.save()
+        ServiceCatalogAdminService.update_service_family_config(
+            item=item,
+            paper_config=config_data.get("paper_order_config"),
+            design_config=config_data.get("design_order_config"),
+            diagram_config=config_data.get("diagram_order_config"),
+        )
 
         return Response(
             {

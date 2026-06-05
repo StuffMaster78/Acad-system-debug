@@ -10,35 +10,55 @@ const router = useRouter();
 
 onMounted(() => store.loadOrders());
 
-const statusLabel: Record<SpecialOrderStatus, string> = {
-  draft: "Draft",
-  pending_quote: "Awaiting Quote",
+const statusLabel: Partial<Record<SpecialOrderStatus, string>> = {
+  inquiry: "Inquiry",
+  quote_pending: "Awaiting Quote",
   quote_sent: "Quote Sent",
   quote_accepted: "Quote Accepted",
-  quote_rejected: "Quote Rejected",
+  awaiting_payment: "Awaiting Payment",
+  partially_funded: "Partially Funded",
+  ready_for_staffing: "Ready for Staffing",
+  assigned: "Assigned",
+  on_hold: "On Hold",
+  submitted: "Submitted",
   in_progress: "In Progress",
+  ready_for_delivery: "Ready for Delivery",
   completed: "Completed",
   cancelled: "Cancelled",
+  approved: "Approved",
+  revision_requested: "Revision Requested",
+  on_revision: "On Revision",
+  refunded: "Refunded",
 };
 
-const statusClass: Record<SpecialOrderStatus, string> = {
-  draft: "bg-slate-100 text-slate-600",
-  pending_quote: "bg-amber-100 text-amber-700",
+const statusClass: Partial<Record<SpecialOrderStatus, string>> = {
+  inquiry: "bg-slate-100 text-slate-600",
+  quote_pending: "bg-amber-100 text-amber-700",
   quote_sent: "bg-blue-100 text-blue-700",
   quote_accepted: "bg-emerald-100 text-emerald-700",
-  quote_rejected: "bg-rose-100 text-rose-700",
+  awaiting_payment: "bg-amber-100 text-amber-700",
+  partially_funded: "bg-amber-100 text-amber-700",
+  ready_for_staffing: "bg-blue-100 text-blue-700",
+  assigned: "bg-blue-100 text-blue-700",
+  on_hold: "bg-slate-100 text-graphite",
+  submitted: "bg-purple-100 text-purple-700",
   in_progress: "bg-purple-100 text-purple-700",
+  ready_for_delivery: "bg-blue-100 text-blue-700",
   completed: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-slate-100 text-slate-400",
+  approved: "bg-emerald-100 text-emerald-700",
+  revision_requested: "bg-rose-100 text-rose-700",
+  on_revision: "bg-amber-100 text-amber-700",
+  refunded: "bg-slate-100 text-slate-400",
 };
 
 const active = computed(() =>
   store.orders.filter((o) =>
-    ["quote_accepted", "in_progress"].includes(o.status),
+    ["assigned", "in_progress", "submitted", "ready_for_delivery", "revision_requested", "on_revision"].includes(o.status),
   ),
 );
 const past = computed(() =>
-  store.orders.filter((o) => ["completed", "cancelled"].includes(o.status)),
+  store.orders.filter((o) => ["completed", "approved", "cancelled", "refunded"].includes(o.status)),
 );
 
 function progress(total: number, done: number) {
@@ -77,8 +97,8 @@ function progress(total: number, done: number) {
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <p class="font-semibold text-ink text-sm truncate">{{ order.title }}</p>
-                <span :class="statusClass[order.status]" class="text-xs px-2 py-0.5 rounded-full font-medium shrink-0">
-                  {{ statusLabel[order.status] }}
+                <span :class="statusClass[order.status] ?? 'bg-slate-100 text-graphite'" class="text-xs px-2 py-0.5 rounded-full font-medium shrink-0">
+                  {{ statusLabel[order.status] ?? order.status.replace(/_/g, ' ') }}
                 </span>
               </div>
               <p class="text-xs text-graphite mt-0.5 truncate">{{ order.reference }}</p>
@@ -99,10 +119,12 @@ function progress(total: number, done: number) {
             </div>
 
             <div class="flex flex-col items-end gap-1 shrink-0">
-              <p v-if="order.final_price || order.quoted_price" class="text-sm font-semibold text-ink">
-                ${{ order.final_price ?? order.quoted_price }}
+              <p v-if="order.writer_compensation?.type === 'fixed_amount'" class="text-sm font-semibold text-ink">
+                {{ order.writer_compensation.currency }} {{ order.writer_compensation.amount }}
               </p>
-              <p v-if="order.deadline" class="text-xs text-graphite">Due {{ order.deadline }}</p>
+              <p v-else-if="order.writer_compensation?.type === 'percentage'" class="text-sm font-semibold text-ink">
+                {{ order.writer_compensation.percentage }}% share
+              </p>
               <ChevronRight class="size-4 text-slate-300 group-hover:text-purple-400 transition-colors mt-1" />
             </div>
           </div>
@@ -134,8 +156,8 @@ function progress(total: number, done: number) {
               <p class="text-xs text-graphite mt-0.5">{{ order.reference }}</p>
             </div>
             <div class="flex items-center gap-3 shrink-0">
-              <span :class="statusClass[order.status]" class="text-xs px-2 py-0.5 rounded-full font-medium">
-                {{ statusLabel[order.status] }}
+              <span :class="statusClass[order.status] ?? 'bg-slate-100 text-graphite'" class="text-xs px-2 py-0.5 rounded-full font-medium">
+                {{ statusLabel[order.status] ?? order.status.replace(/_/g, ' ') }}
               </span>
               <ChevronRight class="size-4 text-slate-300 group-hover:text-slate-400 transition-colors" />
             </div>

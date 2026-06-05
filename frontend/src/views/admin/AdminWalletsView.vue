@@ -17,9 +17,11 @@ import EmptyState from "@/components/ui/EmptyState.vue";
 import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminWalletsStore } from "@/stores/adminWallets";
+import { useAuthStore } from "@/stores/auth";
 import { useWebsitesStore } from "@/stores/websites";
 
 const wallets = useAdminWalletsStore();
+const auth = useAuthStore();
 
 const metricToneClasses = {
   neutral: "border-slate-200 bg-white",
@@ -39,7 +41,7 @@ const filterOptions = [
 const walletColumns: DataTableColumn[] = [
   { key: "id", label: "Wallet", sortable: true },
   { key: "wallet_type", label: "Type", sortable: true },
-  { key: "owner_user_id", label: "Owner", sortable: true },
+  { key: "owner_user_email", label: "Owner", sortable: true },
   { key: "available_balance", label: "Available", align: "right", sortable: true },
   { key: "pending_balance", label: "Pending", align: "right", sortable: true },
   { key: "status", label: "Status", sortable: true },
@@ -65,6 +67,7 @@ const holdColumns: DataTableColumn[] = [
 const walletRows = computed(() => wallets.filteredWallets as unknown as Record<string, unknown>[]);
 const entryRows = computed(() => wallets.entries as unknown as Record<string, unknown>[]);
 const holdRows = computed(() => wallets.holds as unknown as Record<string, unknown>[]);
+const isSuperadmin = computed(() => auth.role === "superadmin");
 
 function formatDate(value?: string | null) {
   if (!value) return "Not set";
@@ -108,6 +111,11 @@ function selectHold(row: Record<string, unknown>) {
   if (!Number.isNaN(id)) wallets.selectedHoldId = id;
 }
 
+function confirmWalletAction(label: string, run: () => Promise<unknown>) {
+  if (!window.confirm(`Confirm ${label}?`)) return;
+  run().catch(() => undefined);
+}
+
 const websites = useWebsitesStore();
 onMounted(() => {
   wallets.hydrate().catch(() => undefined);
@@ -125,15 +133,34 @@ onMounted(() => {
           Inspect tenant-scoped wallets, audit ledger entries, manage holds, and run controlled balance adjustments.
         </p>
       </div>
-      <button
-        class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold"
-        type="button"
-        :disabled="wallets.isLoading"
-        @click="wallets.hydrate"
-      >
-        <RefreshCw class="h-4 w-4" />
-        Refresh
-      </button>
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <label v-if="isSuperadmin" class="block min-w-72">
+          <span class="text-xs font-semibold uppercase text-graphite">Tenant</span>
+          <select
+            class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+            :value="wallets.selectedWebsiteId ?? ''"
+            @change="wallets.setWebsiteId(($event.target as HTMLSelectElement).value ? Number(($event.target as HTMLSelectElement).value) : null).catch(() => undefined)"
+          >
+            <option value="">Current host tenant</option>
+            <option
+              v-for="site in websites.options"
+              :key="site.value"
+              :value="site.value"
+            >
+              {{ site.label }}
+            </option>
+          </select>
+        </label>
+        <button
+          class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold"
+          type="button"
+          :disabled="wallets.isLoading"
+          @click="wallets.hydrate"
+        >
+          <RefreshCw class="h-4 w-4" />
+          Refresh
+        </button>
+      </div>
     </section>
 
     <p
@@ -149,6 +176,83 @@ onMounted(() => {
     >
       {{ wallets.notice }}
     </p>
+
+    <section class="rounded-md border border-slate-200 bg-white shadow-sm">
+      <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex items-start gap-3">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-signal/10 text-signal">
+            <WalletCards class="h-5 w-5" />
+          </span>
+          <div>
+            <h2 class="text-lg font-semibold text-ink">Adjust user wallet</h2>
+            <p class="mt-1 max-w-3xl text-sm leading-6 text-graphite">
+              Find or create a client or writer wallet by user ID, email, username, or name, then post a top-up, debit, hold, reconciliation, or repair action.
+            </p>
+          </div>
+        </div>
+        <div
+          v-if="wallets.selectedWallet"
+          class="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+        >
+          <p class="font-semibold text-ink">
+            Selected #{{ wallets.selectedWallet.id }} · {{ formatAmount(wallets.selectedWallet.available_balance, wallets.selectedWallet.currency) }}
+          </p>
+          <p class="mt-1 capitalize text-graphite">
+            {{ wallets.selectedWallet.wallet_type }} · {{ wallets.selectedWallet.owner_user_email || `User #${wallets.selectedWallet.owner_user_id}` }}
+          </p>
+        </div>
+      </div>
+
+      <div class="grid gap-4 px-5 py-4 lg:grid-cols-[minmax(220px,1fr)_minmax(140px,0.45fr)_minmax(160px,0.55fr)_minmax(140px,0.4fr)_auto] lg:items-end">
+        <label class="block">
+          <span class="text-xs font-semibold uppercase text-graphite">User lookup</span>
+          <input
+            v-model.trim="wallets.ensureForm.user_lookup"
+            class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm"
+            placeholder="Email, username, or name"
+            type="search"
+          >
+        </label>
+        <label class="block">
+          <span class="text-xs font-semibold uppercase text-graphite">User ID</span>
+          <input
+            v-model.number="wallets.ensureForm.user_id"
+            class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm"
+            min="1"
+            placeholder="Client or writer user ID"
+            type="number"
+          >
+        </label>
+        <label class="block">
+          <span class="text-xs font-semibold uppercase text-graphite">Wallet owner type</span>
+          <select
+            v-model="wallets.ensureForm.wallet_type"
+            class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm"
+          >
+            <option value="client">Client</option>
+            <option value="writer">Writer</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-xs font-semibold uppercase text-graphite">Currency</span>
+          <input
+            v-model="wallets.ensureForm.currency"
+            class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm uppercase"
+            maxlength="10"
+            type="text"
+          >
+        </label>
+        <button
+          class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:opacity-60"
+          type="button"
+          :disabled="wallets.isMutating || (!wallets.ensureForm.user_id && !wallets.ensureForm.user_lookup)"
+          @click="wallets.ensureWallet().catch(() => undefined)"
+        >
+          <WalletCards class="h-4 w-4" />
+          Find or create wallet
+        </button>
+      </div>
+    </section>
 
     <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <div
@@ -224,6 +328,12 @@ onMounted(() => {
             <template #cell-owner_user_id="{ value }">
               User #{{ value ?? "system" }}
             </template>
+            <template #cell-owner_user_email="{ row, value }">
+              <p class="font-semibold text-ink">{{ row.owner_user_name || value || "System wallet" }}</p>
+              <p class="mt-1 text-xs text-graphite">
+                {{ value || `User #${row.owner_user_id ?? "system"}` }}
+              </p>
+            </template>
             <template #cell-available_balance="{ row, value }">
               <span class="font-semibold text-ink">{{ formatAmount(value as string | number, row.currency as string) }}</span>
             </template>
@@ -283,9 +393,9 @@ onMounted(() => {
           <div class="border-b border-slate-200 px-4 py-4">
             <div class="flex items-center gap-2">
               <CircleDollarSign class="h-5 w-5 text-signal" />
-              <h2 class="text-base font-semibold">Selected wallet</h2>
+              <h2 class="text-base font-semibold">Top up or adjust wallet</h2>
             </div>
-            <p class="mt-1 text-sm text-graphite">Operational summary and guarded admin actions.</p>
+            <p class="mt-1 text-sm text-graphite">Use the selected wallet from the lookup above or the registry table.</p>
           </div>
 
           <div v-if="wallets.selectedWallet" class="space-y-4 p-4">
@@ -293,7 +403,9 @@ onMounted(() => {
               <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
                 <p class="text-xs font-semibold uppercase text-graphite">Wallet</p>
                 <p class="mt-2 font-semibold text-ink">#{{ wallets.selectedWallet.id }}</p>
-                <p class="mt-1 text-xs capitalize text-graphite">{{ wallets.selectedWallet.wallet_type }}</p>
+                <p class="mt-1 text-xs capitalize text-graphite">
+                  {{ wallets.selectedWallet.wallet_type }} · {{ wallets.selectedWallet.owner_user_email || `User #${wallets.selectedWallet.owner_user_id}` }}
+                </p>
               </div>
               <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
                 <p class="text-xs font-semibold uppercase text-graphite">Available</p>
@@ -350,13 +462,13 @@ onMounted(() => {
                 @click="wallets.runWalletAction('fund').catch(() => undefined)"
               >
                 <BadgeDollarSign class="h-4 w-4" />
-                Credit
+                Top up
               </button>
               <button
                 class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md bg-rose-700 px-3 text-sm font-semibold text-white disabled:opacity-60"
                 type="button"
-                :disabled="wallets.isMutating"
-                @click="wallets.runWalletAction('debit').catch(() => undefined)"
+                :disabled="wallets.isMutating || !wallets.adjustmentForm.reference || !wallets.adjustmentForm.description"
+                @click="confirmWalletAction('wallet debit', () => wallets.runWalletAction('debit'))"
               >
                 <HandCoins class="h-4 w-4" />
                 Debit
@@ -386,7 +498,7 @@ onMounted(() => {
             <EmptyState
               :icon="WalletCards"
               title="Select a wallet"
-              message="Choose a wallet from the registry to inspect and operate on it."
+              message="Use the Adjust user wallet panel above or choose a wallet from the registry."
             />
           </div>
         </section>
@@ -450,8 +562,8 @@ onMounted(() => {
             <button
               class="focus-ring inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-ink px-3 text-sm font-semibold text-white disabled:opacity-60"
               type="button"
-              :disabled="wallets.isMutating || !wallets.selectedWallet"
-              @click="wallets.runWalletAction('hold').catch(() => undefined)"
+              :disabled="wallets.isMutating || !wallets.selectedWallet || !wallets.holdForm.reason || !wallets.holdForm.reference"
+              @click="confirmWalletAction('wallet hold', () => wallets.runWalletAction('hold'))"
             >
               <LockKeyhole class="h-4 w-4" />
               Create hold
@@ -489,7 +601,7 @@ onMounted(() => {
               class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold disabled:opacity-60"
               type="button"
               :disabled="wallets.isMutating || !wallets.selectedHold"
-              @click="wallets.releaseSelectedHold().catch(() => undefined)"
+              @click="confirmWalletAction('hold release', () => wallets.releaseSelectedHold())"
             >
               Release hold
             </button>
@@ -497,7 +609,7 @@ onMounted(() => {
               class="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 disabled:opacity-60"
               type="button"
               :disabled="wallets.isMutating || !wallets.selectedHold"
-              @click="wallets.captureSelectedHold().catch(() => undefined)"
+              @click="confirmWalletAction('hold capture', () => wallets.captureSelectedHold())"
             >
               Capture hold
             </button>

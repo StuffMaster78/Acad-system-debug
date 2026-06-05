@@ -111,12 +111,12 @@ class PricingSnapshotService:
     @staticmethod
     def _get_quote_lines_manager(
         quote: PricingQuote,
-    ) -> RelatedManager[PricingQuoteLine]:
+    ) -> RelatedManager:
         """
         Return the typed reverse manager for quote lines.
         """
         return cast(
-            RelatedManager[PricingQuoteLine],
+            RelatedManager,
             getattr(quote, "lines"),
         )
 

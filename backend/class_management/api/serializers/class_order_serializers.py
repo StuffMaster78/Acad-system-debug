@@ -3,9 +3,32 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from class_management.models import ClassOrder
+from class_management.services.class_available_actions_service import (
+    ClassAvailableActionsService,
+)
 
 
-class ClassOrderListSerializer(serializers.ModelSerializer):
+class ClassOrderActionContractMixin(serializers.Serializer):
+    available_actions = serializers.SerializerMethodField()
+    blocked_actions = serializers.SerializerMethodField()
+
+    def _actions(self, obj):
+        request = self.context.get("request")
+        if request is None:
+            return {"available_actions": [], "blocked_actions": []}
+        return ClassAvailableActionsService.for_order(
+            class_order=obj,
+            user=request.user,
+        )
+
+    def get_available_actions(self, obj):
+        return self._actions(obj)["available_actions"]
+
+    def get_blocked_actions(self, obj):
+        return self._actions(obj)["blocked_actions"]
+
+
+class ClassOrderListSerializer(ClassOrderActionContractMixin, serializers.ModelSerializer):
     client_name = serializers.CharField(
         source="client.get_full_name",
         read_only=True,
@@ -36,12 +59,59 @@ class ClassOrderListSerializer(serializers.ModelSerializer):
             "currency",
             "is_work_paused",
             "pause_reason",
+            "available_actions",
+            "blocked_actions",
             "created_at",
             "updated_at",
         ]
 
 
-class ClassOrderDetailSerializer(serializers.ModelSerializer):
+class ClientClassOrderListSerializer(ClassOrderActionContractMixin, serializers.ModelSerializer):
+    class Meta:
+        model = ClassOrder
+        fields = [
+            "id",
+            "title",
+            "status",
+            "payment_status",
+            "institution_name",
+            "class_name",
+            "class_subject",
+            "academic_level",
+            "final_amount",
+            "paid_amount",
+            "balance_amount",
+            "currency",
+            "is_work_paused",
+            "pause_reason",
+            "available_actions",
+            "blocked_actions",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class WriterClassOrderListSerializer(ClassOrderActionContractMixin, serializers.ModelSerializer):
+    class Meta:
+        model = ClassOrder
+        fields = [
+            "id",
+            "title",
+            "status",
+            "institution_name",
+            "class_name",
+            "class_subject",
+            "academic_level",
+            "is_work_paused",
+            "pause_reason",
+            "available_actions",
+            "blocked_actions",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class ClassOrderDetailSerializer(ClassOrderActionContractMixin, serializers.ModelSerializer):
     class Meta:
         model = ClassOrder
         fields = [
@@ -84,6 +154,8 @@ class ClassOrderDetailSerializer(serializers.ModelSerializer):
             "archived_at",
             "created_by",
             "updated_by",
+            "available_actions",
+            "blocked_actions",
             "created_at",
             "updated_at",
         ]

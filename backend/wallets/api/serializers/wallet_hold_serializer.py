@@ -52,3 +52,14 @@ class AdminCreateWalletHoldSerializer(serializers.Serializer):
         if value <= 0:
             raise serializers.ValidationError("Amount must be greater than zero.")
         return value
+
+    def validate(self, attrs):
+        if not (attrs.get("reason") or "").strip():
+            raise serializers.ValidationError(
+                {"reason": "Hold reason is required."}
+            )
+        if not (attrs.get("reference") or "").strip():
+            raise serializers.ValidationError(
+                {"reference": "Hold reference is required."}
+            )
+        return attrs

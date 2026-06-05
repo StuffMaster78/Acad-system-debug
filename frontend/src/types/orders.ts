@@ -134,7 +134,7 @@ export interface CancelOrderPayload {
 
 export interface CreateOrderPayload {
   topic: string;
-  paper_type_id: number;
+  paper_type_id?: number | null;
   academic_level_id?: number | null;
   formatting_style_id?: number | null;
   subject_id?: number | null;
@@ -158,7 +158,8 @@ export interface CreateOrderPayload {
   external_contact_email?: string;
   external_contact_phone?: string;
   allow_unpaid_access?: boolean;
-  pricing_snapshot_id: number;
+  pricing_snapshot_id?: number | null;
+  pricing_snapshot_ids?: number[];
   payment_provider?: string;
   payment_method_code?: string;
 }

@@ -32,10 +32,18 @@ class PredefinedSpecialOrderDurationSerializer(serializers.ModelSerializer):
 class PredefinedSpecialOrderConfigSerializer(serializers.ModelSerializer):
     website_name = serializers.CharField(source="website.name", read_only=True)
     website_domain = serializers.CharField(source="website.domain", read_only=True)
+    created_by_name = serializers.SerializerMethodField()
     durations = PredefinedSpecialOrderDurationSerializer(
         many=True,
         read_only=True,
     )
+
+    def get_created_by_name(self, obj) -> str | None:
+        user = getattr(obj, "created_by", None)
+        if user is None:
+            return None
+        full_name = getattr(user, "get_full_name", lambda: "")()
+        return full_name or getattr(user, "username", None) or getattr(user, "email", None)
 
     class Meta:
         model = PredefinedSpecialOrderConfig
@@ -53,6 +61,7 @@ class PredefinedSpecialOrderConfigSerializer(serializers.ModelSerializer):
             "allow_external_payment",
             "allow_discounts",
             "durations",
+            "created_by_name",
             "created_at",
             "updated_at",
         ]
@@ -61,6 +70,7 @@ class PredefinedSpecialOrderConfigSerializer(serializers.ModelSerializer):
             "website",
             "website_name",
             "website_domain",
+            "created_by_name",
             "created_at",
             "updated_at",
         ]

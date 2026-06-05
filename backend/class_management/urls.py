@@ -7,6 +7,7 @@ from class_management.api.views import (
     ClassAssignmentViewSet,
     ClassServiceConfigDetailView,
     ClassServiceConfigListView,
+    ClassServiceConfigSeedDefaultsView,
     ClassOrderViewSet,
     ClassPaymentViewSet,
     ClassPriceProposalViewSet,
@@ -42,6 +43,7 @@ class_order_start_work = ClassOrderViewSet.as_view({"post": "start_work"})
 class_order_complete = ClassOrderViewSet.as_view({"post": "complete"})
 class_order_cancel = ClassOrderViewSet.as_view({"post": "cancel"})
 class_order_archive = ClassOrderViewSet.as_view({"post": "archive"})
+class_order_available_actions = ClassOrderViewSet.as_view({"get": "available_actions"})
 
 scope_assessment = ClassScopeAssessmentViewSet.as_view({
     "get": "retrieve",
@@ -163,6 +165,11 @@ price_proposal_detail = ClassPriceProposalViewSet.as_view({
 
 urlpatterns = [
     path("configs/", ClassServiceConfigListView.as_view(), name="class-config-list"),
+    path(
+        "configs/seed-defaults/",
+        ClassServiceConfigSeedDefaultsView.as_view(),
+        name="class-config-seed-defaults",
+    ),
     path("configs/<int:pk>/", ClassServiceConfigDetailView.as_view(), name="class-config-detail"),
     path("classes/", class_order_list, name="class-order-list"),
     path("classes/<int:pk>/", class_order_detail, name="class-order-detail"),
@@ -195,6 +202,11 @@ urlpatterns = [
         "classes/<int:pk>/archive/",
         class_order_archive,
         name="class-order-archive",
+    ),
+    path(
+        "classes/<int:pk>/available-actions/",
+        class_order_available_actions,
+        name="class-order-available-actions",
     ),
 
     path(

@@ -65,9 +65,14 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         # Optimize queryset with select_related to prevent N+1 queries
         queryset = User.objects.all().select_related(
             'website',  # Frequently accessed in serializers
+            'client_profile',
+            'editor_profile',
+            'support_profile',
+            'admin_profile',
+            'superadmin_profile',
         ).prefetch_related(
-            'user_main_profile', # OneToOne relationship
             'account_profiles',
+            'account_profiles__writer_profile',
         )
 
         # Superadmins and admins can see all users

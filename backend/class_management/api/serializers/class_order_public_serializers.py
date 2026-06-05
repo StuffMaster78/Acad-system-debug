@@ -3,9 +3,12 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from class_management.models import ClassOrder
+from class_management.api.serializers.class_order_serializers import (
+    ClassOrderActionContractMixin,
+)
 
 
-class ClientClassOrderDetailSerializer(serializers.ModelSerializer):
+class ClientClassOrderDetailSerializer(ClassOrderActionContractMixin, serializers.ModelSerializer):
     class Meta:
         model = ClassOrder
         fields = [
@@ -37,12 +40,14 @@ class ClientClassOrderDetailSerializer(serializers.ModelSerializer):
             "accepted_at",
             "completed_at",
             "cancelled_at",
+            "available_actions",
+            "blocked_actions",
             "created_at",
             "updated_at",
         ]
 
 
-class WriterClassOrderDetailSerializer(serializers.ModelSerializer):
+class WriterClassOrderDetailSerializer(ClassOrderActionContractMixin, serializers.ModelSerializer):
     class Meta:
         model = ClassOrder
         fields = [
@@ -57,13 +62,14 @@ class WriterClassOrderDetailSerializer(serializers.ModelSerializer):
             "starts_on",
             "ends_on",
             "status",
-            "payment_status",
             "complexity_level",
             "writer_visible_notes",
             "is_work_paused",
             "pause_reason",
             "submitted_at",
             "completed_at",
+            "available_actions",
+            "blocked_actions",
             "created_at",
             "updated_at",
         ]

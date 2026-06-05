@@ -95,6 +95,26 @@ LOGGING = {
             "level": env("WRITING_SYSTEM_LOG_LEVEL", "DEBUG"),
             "propagate": False,
         },
+        "celery": {
+            "handlers": ["console"],
+            "level": env("CELERY_LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+        "celery.task": {
+            "handlers": ["console"],
+            "level": env("CELERY_TASK_LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+        "celery.utils.functional": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "audit": {
+            "handlers": ["console"],
+            "level": env("AUDIT_LOG_LEVEL", "WARNING"),
+            "propagate": False,
+        },
     },
 }
 

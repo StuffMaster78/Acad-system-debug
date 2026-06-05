@@ -106,6 +106,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
   const showCreateForm = ref(false);
   const editingId = ref<number | null>(null);
   const categoryFilter = ref<string>("");
+  const defaultSet = ref<"general" | "nursing" | "technical">("general");
 
   const createForm = reactive<ConfigOptionPayload>({
     name: "",
@@ -148,9 +149,9 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     return { id: Date.now(), name, code: name.toLowerCase().replace(/\s+/g, "_"), is_active: true };
   }
 
-  async function loadCollection(collection: ConfigCollection) {
+  async function loadCollection(collection: ConfigCollection, options?: { force?: boolean }) {
     activeCollection.value = collection;
-    if (collectionItems.value[collection].length) return;
+    if (!options?.force && collectionItems.value[collection].length) return;
     isLoadingCollection.value = true;
     try {
       if (auth.isPreviewSession) {
@@ -198,6 +199,30 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
       resetCreate();
     } catch {
       ui.toast("Failed to create option.", "error");
+    } finally {
+      isSaving.value = false;
+    }
+  }
+
+  async function populateDefaults(collection?: ConfigCollection) {
+    isSaving.value = true;
+    try {
+      if (auth.isPreviewSession) {
+        ui.toast(`Default ${defaultSet.value} data populated (preview).`, "success");
+        return;
+      }
+      await orderConfigApi.populateDefaults({ default_set: defaultSet.value });
+      if (collection) {
+        collectionItems.value[collection] = [];
+        await loadCollection(collection, { force: true });
+      } else {
+        for (const key of Object.keys(collectionItems.value) as ConfigCollection[]) {
+          collectionItems.value[key] = [];
+        }
+      }
+      ui.toast(`Default ${defaultSet.value} data populated.`, "success");
+    } catch {
+      ui.toast("Failed to populate default order config data.", "error");
     } finally {
       isSaving.value = false;
     }
@@ -582,6 +607,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
   return {
     activeTab,
     activeCollection,
+    defaultSet,
     collectionItems,
     isLoadingCollection,
     isSaving,
@@ -592,6 +618,7 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     editForm,
     loadCollection,
     createOption,
+    populateDefaults,
     saveEdit,
     startEdit,
     cancelEdit,

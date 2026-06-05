@@ -11,6 +11,26 @@ from datetime import timedelta
 import pytz
 
 
+def _client_profile(user):
+    try:
+        return user.client_profile
+    except Exception:
+        return None
+
+
+def _writer_profile(user):
+    try:
+        account_profiles = user.account_profiles.all()
+    except Exception:
+        return None
+    for account_profile in account_profiles:
+        try:
+            return account_profile.writer_profile
+        except Exception:
+            continue
+    return None
+
+
 class OnlineStatusMixin:
     """
     Mixin to add online status tracking functionality to ViewSets.
@@ -46,17 +66,10 @@ class OnlineStatusMixin:
 
             # Update last_active based on role
             try:
-                if hasattr(user, 'writer_profile'):
-                    user.writer_profile.last_active = current_time
-                    user.writer_profile.save(update_fields=['last_active'])
-                elif hasattr(user, 'client_profile'):
-                    user.client_profile.last_online = current_time
-                    user.client_profile.save(update_fields=['last_online'])
-
-                # Also update UserProfile if it exists
-                if hasattr(user, 'user_main_profile'):
-                    user.user_main_profile.last_active = current_time
-                    user.user_main_profile.save(update_fields=['last_active'])
+                client_profile = _client_profile(user)
+                if client_profile is not None:
+                    client_profile.last_online = current_time
+                    client_profile.save(update_fields=['last_online'])
 
                 # Cache for 30 seconds to prevent excessive DB writes
                 cache.set(cache_key, current_time.isoformat(), 30)
@@ -94,21 +107,20 @@ class OnlineStatusMixin:
 
         statuses = {}
         users = User.objects.filter(id__in=user_ids).select_related(
-            'writer_profile', 'client_profile', 'user_main_profile'
-        )
+            'client_profile',
+        ).prefetch_related('account_profiles__writer_profile')
 
         for user in users:
             last_active = None
             is_online = False
 
-            if hasattr(user, 'writer_profile') and user.writer_profile.last_active:
-                last_active = user.writer_profile.last_active
+            client_profile = _client_profile(user)
+            writer_profile = _writer_profile(user)
+            if client_profile is not None and client_profile.last_online:
+                last_active = client_profile.last_online
                 is_online = last_active >= online_threshold
-            elif hasattr(user, 'client_profile') and user.client_profile.last_online:
-                last_active = user.client_profile.last_online
-                is_online = last_active >= online_threshold
-            elif hasattr(user, 'user_main_profile') and user.user_main_profile.last_active:
-                last_active = user.user_main_profile.last_active
+            elif writer_profile is not None and getattr(writer_profile, 'last_active', None):
+                last_active = writer_profile.last_active
                 is_online = last_active >= online_threshold
 
             statuses[user.id] = {
@@ -129,34 +141,30 @@ class OnlineStatusMixin:
 
         try:
             target_user = User.objects.select_related(
-                'writer_profile', 'client_profile', 'user_main_profile'
-            ).get(id=pk)
+                'client_profile',
+            ).prefetch_related('account_profiles__writer_profile').get(id=pk)
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=404)
 
         # Get timezone
         timezone_str = "UTC"
-        if hasattr(target_user, 'writer_profile'):
-            timezone_str = target_user.writer_profile.timezone or "UTC"
-        elif hasattr(target_user, 'client_profile'):
-            timezone_str = target_user.client_profile.timezone or "UTC"
-        elif hasattr(target_user, 'user_main_profile'):
-            # Try to get from user's detected timezone
-            timezone_str = getattr(target_user, 'detected_timezone', None) or "UTC"
+        client_profile = _client_profile(target_user)
+        writer_profile = _writer_profile(target_user)
+        if writer_profile is not None:
+            timezone_str = writer_profile.timezone or "UTC"
+        elif client_profile is not None:
+            timezone_str = client_profile.timezone or "UTC"
 
         # Get last active
         last_active = None
         is_online = False
         online_threshold = now() - timedelta(minutes=5)
 
-        if hasattr(target_user, 'writer_profile') and target_user.writer_profile.last_active:
-            last_active = target_user.writer_profile.last_active
+        if client_profile is not None and client_profile.last_online:
+            last_active = client_profile.last_online
             is_online = last_active >= online_threshold
-        elif hasattr(target_user, 'client_profile') and target_user.client_profile.last_online:
-            last_active = target_user.client_profile.last_online
-            is_online = last_active >= online_threshold
-        elif hasattr(target_user, 'user_main_profile') and target_user.user_main_profile.last_active:
-            last_active = target_user.user_main_profile.last_active
+        elif writer_profile is not None and getattr(writer_profile, 'last_active', None):
+            last_active = writer_profile.last_active
             is_online = last_active >= online_threshold
 
         # Calculate day/night based on timezone
@@ -176,4 +184,3 @@ class OnlineStatusMixin:
             "is_daytime": is_daytime,
             "local_time": local_time.isoformat() if 'local_time' in locals() else None
         })
-

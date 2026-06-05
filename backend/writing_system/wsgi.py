@@ -8,6 +8,12 @@ https://docs.djangoproject.com/en/4.2/howto/deployment/wsgi/
 """
 
 import os
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"urllib3 .* or chardet .*charset_normalizer .* doesn't match a supported version!",
+)
 
 from django.core.wsgi import get_wsgi_application
 

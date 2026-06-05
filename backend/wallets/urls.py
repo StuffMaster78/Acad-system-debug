@@ -1,6 +1,7 @@
 from django.urls import path
 
 from wallets.api.views import (
+    AdminEnsureWalletView,
     AdminWalletCaptureHoldView,
     AdminWalletCreateHoldView,
     AdminWalletDebitView,
@@ -35,6 +36,11 @@ urlpatterns = [
     ),
 
     path("admin/wallets/", AdminWalletListView.as_view(), name="admin-wallet-list"),
+    path(
+        "admin/wallets/ensure/",
+        AdminEnsureWalletView.as_view(),
+        name="admin-wallet-ensure",
+    ),
     path(
         "admin/payout-requests/",
         AdminWriterPayoutRequestListView.as_view(),

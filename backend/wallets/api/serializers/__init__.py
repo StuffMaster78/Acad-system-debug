@@ -4,6 +4,7 @@ from wallets.api.serializers.wallet_hold_serializer import (
     WalletHoldSerializer,
 )
 from wallets.api.serializers.wallet_serializer import (
+    AdminEnsureWalletSerializer,
     AdminWalletAdjustmentSerializer,
     AdminWalletDebitSerializer,
     AdminWalletFundSerializer,
@@ -20,6 +21,7 @@ __all__ = [
     "WalletEntrySerializer",
     "WalletHoldSerializer",
     "AdminWalletAdjustmentSerializer",
+    "AdminEnsureWalletSerializer",
     "AdminWalletFundSerializer",
     "AdminWalletDebitSerializer",
     "AdminCreateWalletHoldSerializer",

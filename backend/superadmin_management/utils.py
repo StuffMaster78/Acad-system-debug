@@ -1,6 +1,6 @@
 from django.core.mail import send_mail
 from django.conf import settings
-from notifications_system.models.notifications import Notification
+from notifications_system.services.notification_service import NotificationService
 from django.contrib.auth import get_user_model
 from websites.models.websites import Website
 # from channels.layers import get_channel_layer
@@ -47,19 +47,20 @@ class SuperadminNotifier:
             # Use superadmin's website if available, otherwise use the default
             notification_website = getattr(superadmin, 'website', None) or website
 
-            # In-App Notification - use get_or_create to avoid duplicates
+            # In-app notification through the canonical notification pipeline.
             try:
-                Notification.objects.get_or_create(
-                    user=superadmin,
+                NotificationService.notify(
+                    event_key="system.alert",
+                    recipient=superadmin,
                     website=notification_website,
-                    title=title,
-                    message=message,
-                    type='in_app',
-                    defaults={
-                        'category': category,
-                        'event': 'system',
-                        'status': 'pending',
-                    }
+                    context={
+                        "title": title,
+                        "message": message,
+                        "category": category,
+                    },
+                    channels=["in_app"],
+                    priority="high" if category in {"security", "dispute", "admin"} else "normal",
+                    is_critical=category in {"security", "dispute"},
                 )
             except Exception as e:
                 logger.debug(f"Could not create notification for {superadmin.username}: {e}")

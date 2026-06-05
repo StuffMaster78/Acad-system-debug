@@ -177,7 +177,7 @@ class CompositePricingQuoteService:
         composite_quote: CompositePricingQuote,
     ) -> list[CompositePricingQuoteItem]:
         items_manager = cast(
-            RelatedManager[CompositePricingQuoteItem],
+            RelatedManager,
             getattr(composite_quote, "items"),
         )
         return list(items_manager.all().order_by("sort_order", "id"))
@@ -190,7 +190,7 @@ class CompositePricingQuoteService:
         component_quotes: list[PricingQuote],
     ) -> None:
         items_manager = cast(
-            RelatedManager[CompositePricingQuoteItem],
+            RelatedManager,
             getattr(composite_quote, "items"),
         )
         items_manager.all().delete()

@@ -1,21 +1,52 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import ConfigTopBar from "@/components/config/ConfigTopBar.vue";
 import ConfigSidebar from "@/components/config/ConfigSidebar.vue";
 import ConfigSectionCard from "@/components/config/ConfigSectionCard.vue";
 import ConfigCollectionPanel from "@/components/config/ConfigCollectionPanel.vue";
 import ConfigAuditDrawer from "@/components/config/ConfigAuditDrawer.vue";
 import RuntimeConfigPanel from "@/components/config/RuntimeConfigPanel.vue";
+import AdminPricingConfigView from "@/views/admin/AdminPricingConfigView.vue";
+import AdminServiceCatalogView from "@/views/admin/AdminServiceCatalogView.vue";
 import { useAdminMasterConfigStore } from "@/stores/adminMasterConfig";
 import { useAdminConfigHubStore } from "@/stores/adminConfigHub";
 import { useRuntimeConfigStore } from "@/stores/runtimeConfig";
-import { getDomain } from "@/config/configDefinitions";
+import { useAuthStore } from "@/stores/auth";
+import { getDomain, scopeAllows } from "@/config/configDefinitions";
 
+const route = useRoute();
 const config = useAdminMasterConfigStore();
 const hub = useAdminConfigHubStore();
 const runtime = useRuntimeConfigStore();
+const auth = useAuthStore();
+
+function canUseSection(domain: string, section: string) {
+  const meta = getDomain(domain)?.sections.find((item) => item.key === section);
+  return Boolean(meta && scopeAllows(auth.role ?? "support", meta.requiredScope));
+}
+
+function firstAllowedSection(domain: string) {
+  return getDomain(domain)?.sections.find((item) => scopeAllows(auth.role ?? "support", item.requiredScope))?.key ?? "";
+}
+
+function navigateSafely(domain: string, section: string) {
+  const targetSection = canUseSection(domain, section) ? section : firstAllowedSection(domain);
+  if (targetSection) {
+    config.navigate(domain, targetSection);
+  }
+}
+
+function syncRouteSelection() {
+  const domain = typeof route.query.domain === "string" ? route.query.domain : "";
+  const section = typeof route.query.section === "string" ? route.query.section : "";
+  if (domain && section) {
+    navigateSafely(domain, section);
+  }
+}
 
 onMounted(() => {
+  syncRouteSelection();
   config.loadConfigValues();
   runtime.load();
 });
@@ -23,6 +54,20 @@ onMounted(() => {
 // Active domain sections to render
 const activeDomainMeta = computed(() => getDomain(config.activeDomain));
 const activeSections = computed(() => activeDomainMeta.value?.sections ?? []);
+const activeSectionMeta = computed(() =>
+  activeSections.value.find((section) => section.key === config.activeSection) ?? activeSections.value[0],
+);
+const activePricingPanel = computed(() =>
+  config.activeDomain === "pricing" ? activeSectionMeta.value?.panel ?? null : null,
+);
+const pricingServiceTab = computed<"items" | "addons" | null>(() => {
+  if (activePricingPanel.value === "pricing-service-catalog") return "items";
+  if (activePricingPanel.value === "pricing-addons") return "addons";
+  return null;
+});
+const usesPricingConfigPanel = computed(() =>
+  typeof activePricingPanel.value === "string" && !pricingServiceTab.value,
+);
 
 // When navigating, scroll to the active section
 watch(
@@ -30,6 +75,20 @@ watch(
   () => {
     const el = document.getElementById(`section-${config.activeSection}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  },
+);
+
+watch(
+  () => [route.query.domain, route.query.section],
+  syncRouteSelection,
+);
+
+watch(
+  () => [config.activeDomain, config.activeSection, auth.role],
+  () => {
+    if (!canUseSection(config.activeDomain, config.activeSection)) {
+      navigateSafely(config.activeDomain, config.activeSection);
+    }
   },
 );
 </script>
@@ -92,6 +151,37 @@ watch(
         <!-- Runtime Controls — live backend registry -->
         <div v-else-if="config.activeDomain === 'system'" class="p-6">
           <RuntimeConfigPanel />
+        </div>
+
+        <!-- Pricing — backend-connected calculators, catalog, and upsells -->
+        <div v-else-if="config.activeDomain === 'pricing'" class="p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold text-ink">{{ activeDomainMeta?.label }}</h2>
+              <p class="text-sm text-graphite">
+                {{ activeSections.length }} pricing surface{{ activeSections.length !== 1 ? "s" : "" }}
+                <span v-if="activeSectionMeta" class="ml-1 font-medium text-berry">
+                  · {{ activeSectionMeta.label }}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <AdminServiceCatalogView
+            v-if="pricingServiceTab"
+            embedded
+            :tab="pricingServiceTab"
+          />
+          <AdminPricingConfigView
+            v-else-if="usesPricingConfigPanel"
+            embedded
+            :section-key="activeSectionMeta?.key ?? config.activeSection"
+          />
+          <ConfigSectionCard
+            v-else-if="activeSectionMeta"
+            :domain="config.activeDomain"
+            :section="activeSectionMeta"
+          />
         </div>
 
         <!-- Normal domain view -->

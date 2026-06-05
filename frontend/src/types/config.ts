@@ -53,6 +53,7 @@ export interface ConfigSectionMeta {
   pendingBackend?: boolean;
   isCrud?: boolean;
   crudCollection?: string;
+  panel?: string;
 }
 
 export interface ConfigDomainMeta {

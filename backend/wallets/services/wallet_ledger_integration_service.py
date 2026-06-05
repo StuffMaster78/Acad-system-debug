@@ -8,11 +8,12 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from ledger.models.journal_entry import JournalEntry
 from ledger.models.ledger_account import LedgerAccount
-from ledger.constants import LedgerAccountStatus, LedgerEntryType
+from ledger.constants import LedgerAccountStatus, LedgerAccountType, LedgerEntryType
 from ledger.services.journal_posting_service import (
     JournalLineInput,
     JournalPostingService,
 )
+from ledger.services.account_service import AccountService
 from wallets.constants import WalletEntryType, WalletType
 
 
@@ -38,6 +39,38 @@ class WalletLedgerIntegrationService:
     ACCOUNT_ORDER_FUNDS_HELD = "ORDER_FUNDS_HELD"
     ACCOUNT_REFUND_CLEARING = "REFUND_CLEARING"
     ACCOUNT_PLATFORM_ADJUSTMENTS = "PLATFORM_ADJUSTMENTS"
+    REQUIRED_ACCOUNT_DEFAULTS = {
+        ACCOUNT_CLIENT_WALLET_LIABILITY: {
+            "name": "Client Wallet Liability",
+            "account_type": LedgerAccountType.LIABILITY,
+            "is_system_account": True,
+        },
+        ACCOUNT_WRITER_WALLET_LIABILITY: {
+            "name": "Writer Wallet Liability",
+            "account_type": LedgerAccountType.LIABILITY,
+            "is_system_account": True,
+        },
+        ACCOUNT_GATEWAY_CLEARING: {
+            "name": "Gateway Clearing",
+            "account_type": LedgerAccountType.ASSET,
+            "is_system_account": True,
+        },
+        ACCOUNT_ORDER_FUNDS_HELD: {
+            "name": "Order Funds Held",
+            "account_type": LedgerAccountType.LIABILITY,
+            "is_system_account": True,
+        },
+        ACCOUNT_REFUND_CLEARING: {
+            "name": "Refund Clearing",
+            "account_type": LedgerAccountType.LIABILITY,
+            "is_system_account": True,
+        },
+        ACCOUNT_PLATFORM_ADJUSTMENTS: {
+            "name": "Platform Adjustments",
+            "account_type": LedgerAccountType.EXPENSE,
+            "is_system_account": True,
+        },
+    }
 
     @staticmethod
     def _wallet_pk(*, wallet: Any) -> str:
@@ -77,11 +110,25 @@ class WalletLedgerIntegrationService:
         """
         Retrieve an active tenant-scoped ledger account.
         """
-        return LedgerAccount.objects.get(
-            website=website,
-            code=code,
-            status=LedgerAccountStatus.ACTIVE,
-        )
+        try:
+            return LedgerAccount.objects.get(
+                website=website,
+                code=code,
+                status=LedgerAccountStatus.ACTIVE,
+            )
+        except LedgerAccount.DoesNotExist:
+            defaults = WalletLedgerIntegrationService.REQUIRED_ACCOUNT_DEFAULTS.get(code)
+            if defaults is None:
+                raise
+            account, _created = AccountService.get_or_create_account(
+                website=website,
+                code=code,
+                defaults=defaults,
+            )
+            if account.status != LedgerAccountStatus.ACTIVE:
+                account.status = LedgerAccountStatus.ACTIVE
+                account.save(update_fields=["status", "updated_at"])
+            return account
 
     @staticmethod
     def _wallet_liability_account(

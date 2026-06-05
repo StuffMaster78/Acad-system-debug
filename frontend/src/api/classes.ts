@@ -63,6 +63,16 @@ function normalizeClassOrder(raw: unknown): ClassOrder {
     created_at: asString(row.created_at),
     updated_at: asString(row.updated_at),
     notes: asString(row.notes ?? row.initial_client_notes ?? row.writer_visible_notes),
+    available_actions: Array.isArray(row.available_actions) ? row.available_actions.map(String) : undefined,
+    blocked_actions: Array.isArray(row.blocked_actions)
+      ? row.blocked_actions.map((item) => {
+          const action = asRecord(item);
+          return {
+            action: asString(action.action),
+            reason: asString(action.reason),
+          };
+        })
+      : undefined,
   };
 }
 
@@ -174,6 +184,9 @@ export const classesApi = {
   updateConfig: (id: number | string, payload: Partial<ClassServiceConfig>, params?: Record<string, unknown>) =>
     api.patch<ClassServiceConfig>(base(`/configs/${id}/`), payload, { params }),
 
+  seedConfigDefaults: (params?: Record<string, unknown>) =>
+    api.post<{ created: number; updated: number }>(base("/configs/seed-defaults/"), {}, { params }),
+
   list: (params?: Record<string, unknown>) =>
     api.get<unknown[] | ApiPage<unknown>>(
       base("/classes/"),
@@ -215,6 +228,11 @@ export const classesApi = {
   complete: (id: number | string) =>
     api.post<unknown>(base(`/classes/${id}/complete/`), {})
       .then((res) => ({ ...res, data: normalizeClassOrder(res.data) })),
+
+  availableActions: (id: number | string) =>
+    api.get<{ available_actions: string[]; blocked_actions: { action: string; reason: string }[] }>(
+      base(`/classes/${id}/available-actions/`),
+    ),
 
   tasks: {
     list: (classId: number | string) =>

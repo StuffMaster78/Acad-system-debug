@@ -10,7 +10,11 @@ export interface AdminWalletMetric {
 export interface AdminWalletRecord {
   id: number;
   website_id?: number | null;
+  website_name?: string | null;
   owner_user_id?: number | null;
+  owner_user_email?: string | null;
+  owner_user_name?: string | null;
+  owner_user_role?: string | null;
   wallet_type: "client" | "writer" | "system" | string;
   currency?: string;
   status?: string;
@@ -72,6 +76,14 @@ export interface AdminWalletAdjustmentPayload {
   reference_type?: string;
   reference_id?: string;
   metadata?: Record<string, unknown>;
+}
+
+export interface AdminEnsureWalletPayload {
+  user_id?: number | null;
+  user_lookup?: string;
+  wallet_type: "client" | "writer";
+  currency?: string;
+  website_id?: number | null;
 }
 
 export interface AdminWalletHoldPayload {

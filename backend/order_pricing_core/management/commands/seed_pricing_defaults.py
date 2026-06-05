@@ -9,6 +9,13 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.apps import apps
 
+from order_pricing_core.constants import DesignPackageType
+from order_pricing_core.constants import DesignProductType
+from order_pricing_core.constants import DiagramType
+from order_pricing_core.constants import PricingStrategy
+from order_pricing_core.constants import PricingUnit
+from order_pricing_core.constants import ServiceFamily
+
 
 class Command(BaseCommand):
     help = "Seed default pricing profile, rates, and deadline tiers for a website"
@@ -27,6 +34,9 @@ class Command(BaseCommand):
         SubjectCategory = apps.get_model("order_pricing_core", "SubjectCategory")
         AnalysisLevelRate = apps.get_model("order_pricing_core", "AnalysisLevelRate")
         DiagramComplexityRate = apps.get_model("order_pricing_core", "DiagramComplexityRate")
+        ServiceCatalogItem = apps.get_model("order_pricing_core", "ServiceCatalogItem")
+        DesignOrderServiceConfig = apps.get_model("order_pricing_core", "DesignOrderServiceConfig")
+        DiagramOrderServiceConfig = apps.get_model("order_pricing_core", "DiagramOrderServiceConfig")
 
         domain = options["website_domain"]
         try:
@@ -234,6 +244,22 @@ class Command(BaseCommand):
                 f" {'' if created else '↻ '} {complexity.capitalize()} diagram × {multiplier}"
             ))
 
+        # ── Service catalog defaults ──────────────────────────────────────────
+        self._section("SERVICE CATALOG DEFAULTS")
+        design_count = self._seed_design_services(
+            website=website,
+            ServiceCatalogItem=ServiceCatalogItem,
+            DesignOrderServiceConfig=DesignOrderServiceConfig,
+        )
+        diagram_count = self._seed_diagram_services(
+            website=website,
+            ServiceCatalogItem=ServiceCatalogItem,
+            DiagramOrderServiceConfig=DiagramOrderServiceConfig,
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f" {design_count} design services and {diagram_count} diagram services ready"
+        ))
+
         # ── Paper type rates from order_configs ────────────────────────────────
         SubjectRate = apps.get_model("order_pricing_core", "SubjectRate")
         PaperType = apps.get_model("order_configs", "PaperType")
@@ -295,7 +321,159 @@ class Command(BaseCommand):
         self.stdout.write(f" Subject rates : {SubjectRate.objects.filter(website=website).count()}")
         self.stdout.write(f" Analysis levels : {AnalysisLevelRate.objects.filter(website=website).count()}")
         self.stdout.write(f" Diagram complexity: {DiagramComplexityRate.objects.filter(website=website).count()}")
+        self.stdout.write(f" Design services : {ServiceCatalogItem.objects.filter(website=website, service_family=ServiceFamily.DESIGN_ORDER).count()}")
+        self.stdout.write(f" Diagram services : {ServiceCatalogItem.objects.filter(website=website, service_family=ServiceFamily.DIAGRAM_ORDER).count()}")
         self.stdout.write(self.style.SUCCESS("\n Pricing defaults seeded successfully!\n"))
+
+    def _seed_design_services(
+        self,
+        *,
+        website,
+        ServiceCatalogItem,
+        DesignOrderServiceConfig,
+    ) -> int:
+        services = [
+            {
+                "service_code": "presentation_design",
+                "name": "Presentation Design",
+                "description": "Slide deck design priced per slide.",
+                "pricing_unit": PricingUnit.SLIDE,
+                "base_amount": Decimal("12.00"),
+                "minimum_charge": Decimal("15.00"),
+                "sort_order": 50,
+                "config": {
+                    "design_product_type": DesignProductType.PRESENTATION,
+                    "default_package_type": DesignPackageType.STANDARD,
+                    "supports_slides": True,
+                    "supports_quantity": False,
+                },
+            },
+            {
+                "service_code": "infographic_design",
+                "name": "Infographic Design",
+                "description": "Custom infographic design priced per item.",
+                "pricing_unit": PricingUnit.ITEM,
+                "base_amount": Decimal("45.00"),
+                "minimum_charge": Decimal("45.00"),
+                "sort_order": 51,
+                "config": {
+                    "design_product_type": DesignProductType.INFOGRAPHIC,
+                    "default_package_type": DesignPackageType.STANDARD,
+                    "supports_slides": False,
+                    "supports_quantity": False,
+                },
+            },
+            {
+                "service_code": "poster_flyer_design",
+                "name": "Poster / Flyer Design",
+                "description": "Poster, flyer, or one-page visual design.",
+                "pricing_unit": PricingUnit.ITEM,
+                "base_amount": Decimal("35.00"),
+                "minimum_charge": Decimal("35.00"),
+                "sort_order": 52,
+                "config": {
+                    "design_product_type": DesignProductType.FLYER,
+                    "default_package_type": DesignPackageType.STANDARD,
+                    "supports_slides": False,
+                    "supports_quantity": False,
+                },
+            },
+        ]
+
+        for data in services:
+            config = data.pop("config")
+            item, _ = ServiceCatalogItem.objects.update_or_create(
+                website=website,
+                service_code=data["service_code"],
+                defaults={
+                    **data,
+                    "service_family": ServiceFamily.DESIGN_ORDER,
+                    "pricing_strategy": PricingStrategy.FORMULA,
+                    "is_public": True,
+                    "is_active": True,
+                },
+            )
+            DesignOrderServiceConfig.objects.update_or_create(
+                service=item,
+                defaults={
+                    **config,
+                    "supports_deadline": True,
+                    "supports_files": True,
+                    "supports_topic": True,
+                    "supports_instructions": True,
+                },
+            )
+
+        return len(services)
+
+    def _seed_diagram_services(
+        self,
+        *,
+        website,
+        ServiceCatalogItem,
+        DiagramOrderServiceConfig,
+    ) -> int:
+        services = [
+            {
+                "service_code": "flowchart_diagram",
+                "name": "Flowchart Diagram",
+                "description": "Process, decision, or workflow diagram.",
+                "diagram_type": DiagramType.FLOWCHART,
+                "sort_order": 60,
+            },
+            {
+                "service_code": "erd_diagram",
+                "name": "Entity Relationship Diagram",
+                "description": "Database ERD for entities and relationships.",
+                "diagram_type": DiagramType.ERD,
+                "sort_order": 61,
+            },
+            {
+                "service_code": "uml_diagram",
+                "name": "UML Diagram",
+                "description": "UML-style class, sequence, or system diagram.",
+                "diagram_type": DiagramType.UML,
+                "sort_order": 62,
+            },
+            {
+                "service_code": "system_diagram",
+                "name": "System Architecture Diagram",
+                "description": "Technical system or architecture diagram.",
+                "diagram_type": DiagramType.SYSTEM_DIAGRAM,
+                "sort_order": 63,
+            },
+        ]
+
+        for data in services:
+            diagram_type = data.pop("diagram_type")
+            item, _ = ServiceCatalogItem.objects.update_or_create(
+                website=website,
+                service_code=data["service_code"],
+                defaults={
+                    **data,
+                    "service_family": ServiceFamily.DIAGRAM_ORDER,
+                    "pricing_strategy": PricingStrategy.FORMULA,
+                    "pricing_unit": PricingUnit.DIAGRAM,
+                    "base_amount": Decimal("18.00"),
+                    "minimum_charge": Decimal("15.00"),
+                    "is_public": True,
+                    "is_active": True,
+                },
+            )
+            DiagramOrderServiceConfig.objects.update_or_create(
+                service=item,
+                defaults={
+                    "diagram_type": diagram_type,
+                    "supports_quantity": True,
+                    "supports_complexity": True,
+                    "supports_deadline": True,
+                    "supports_files": True,
+                    "supports_topic": True,
+                    "supports_instructions": True,
+                },
+            )
+
+        return len(services)
 
     def _paper_type_multiplier(self, name: str) -> Decimal:
         n = name.lower()

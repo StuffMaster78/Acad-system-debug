@@ -1104,6 +1104,57 @@ DEFAULT_TEMPLATES = {
             'available_variables': ['amount'],
         },
     },
+    'wallet.writer.earning_posted': {
+        NotificationChannel.IN_APP: {
+            'title': 'Earning posted',
+            'message': '{{amount}} has been added to your writer wallet.',
+            'available_variables': ['amount', 'currency', 'wallet_id'],
+        },
+    },
+    'wallet.writer.bonus_posted': {
+        NotificationChannel.IN_APP: {
+            'title': 'Bonus posted',
+            'message': '{{amount}} has been added to your writer wallet as a bonus.',
+            'available_variables': ['amount', 'currency', 'wallet_id'],
+        },
+    },
+    'wallet.writer.penalty_posted': {
+        NotificationChannel.IN_APP: {
+            'title': 'Penalty applied',
+            'message': '{{amount}} has been deducted from your writer wallet.',
+            'available_variables': ['amount', 'currency', 'wallet_id'],
+        },
+    },
+
+    # Class management
+    'class.submitted': {
+        NotificationChannel.IN_APP: {
+            'title': 'Class submitted',
+            'message': '{{title}} has been submitted for review.',
+            'available_variables': ['class_order_id', 'title'],
+        },
+    },
+    'class.writer_compensation_posted': {
+        NotificationChannel.IN_APP: {
+            'title': 'Class compensation posted',
+            'message': '{{amount}} has been posted to your writer wallet.',
+            'available_variables': ['class_order_id', 'amount', 'currency'],
+        },
+    },
+    'class.two_factor.required': {
+        NotificationChannel.IN_APP: {
+            'title': 'Two-factor code needed',
+            'message': 'A class access request needs a two-factor code.',
+            'available_variables': ['class_order_id'],
+        },
+    },
+    'class.payment.overdue': {
+        NotificationChannel.IN_APP: {
+            'title': 'Class payment overdue',
+            'message': 'A class payment is overdue for {{title}}.',
+            'available_variables': ['class_order_id', 'title'],
+        },
+    },
 
     # Payouts — additional events
     'payout.requested': {

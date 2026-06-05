@@ -14,18 +14,15 @@
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
-                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="statusClass[store.detail.status]">
-                    {{ statusLabel[store.detail.status] }}
+                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="statusClass[store.detail.status] ?? 'bg-slate-100 text-graphite'">
+                    {{ statusLabel[store.detail.status] ?? store.detail.status.replace(/_/g, ' ') }}
                   </span>
                   <span class="font-mono text-xs text-graphite">{{ store.detail.reference }}</span>
                 </div>
                 <h1 class="mt-2 text-xl font-bold text-ink">{{ store.detail.title }}</h1>
-                <p class="mt-1 text-sm leading-5 text-graphite">{{ store.detail.description }}</p>
+                <p class="mt-1 text-sm leading-5 text-graphite">{{ store.detail.inquiry_details || store.detail.description }}</p>
                 <div class="mt-3 flex flex-wrap items-center gap-4 text-xs text-graphite">
-                  <span v-if="store.detail.deadline" class="flex items-center gap-1.5">
-                    <Clock class="size-3.5" />
-                    Deadline: {{ fmtDate(store.detail.deadline) }}
-                  </span>
+                  <span v-if="store.detail.duration_days">{{ store.detail.duration_days }} day turnaround</span>
                   <span v-if="store.detail.writer_username" class="flex items-center gap-1.5 text-emerald-700">
                     <CheckCircle class="size-3.5" />
                     Expert assigned
@@ -39,7 +36,7 @@
               <div class="shrink-0 text-right">
                 <p v-if="store.detail.quoted_price" class="text-2xl font-bold text-ink">${{ store.detail.quoted_price }}</p>
                 <p v-else class="mt-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Awaiting quote</p>
-                <p v-if="store.detail.quoted_price" class="mt-0.5 text-xs capitalize text-graphite">{{ store.detail.payment_status }}</p>
+                <p v-if="store.detail.quoted_price" class="mt-0.5 text-xs text-graphite">Quoted amount</p>
               </div>
             </div>
 
@@ -158,7 +155,7 @@
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
                   <span class="font-mono text-xs text-graphite">#{{ m.sequence }}</span>
-                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="milestoneStatusClass[m.status]">
+                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="milestoneStatusClass[m.status] ?? 'bg-slate-100 text-graphite'">
                     {{ m.status.replace(/_/g, " ") }}
                   </span>
                 </div>
@@ -166,8 +163,8 @@
                 <p v-if="m.description" class="mt-0.5 text-sm text-graphite">{{ m.description }}</p>
               </div>
               <div class="shrink-0 text-right">
-                <p class="font-bold text-ink">${{ m.price }}</p>
-                <p class="mt-0.5 text-xs text-graphite">Due {{ fmtDate(m.due_date) }}</p>
+                <p v-if="m.price" class="font-bold text-ink">${{ m.price }}</p>
+                <p v-if="m.due_date" class="mt-0.5 text-xs text-graphite">Due {{ fmtDate(m.due_date) }}</p>
               </div>
             </div>
             <div v-if="m.delivery_notes" class="mt-3 rounded-lg bg-slate-50 px-4 py-2.5 text-sm text-graphite">
@@ -175,7 +172,7 @@
             </div>
 
             <!-- Milestone delivery -->
-            <div v-if="m.delivery_file_url && m.status === 'approved'" class="mt-4 flex items-center gap-3">
+            <div v-if="m.delivery_file_url && m.deliverable_status === 'approved'" class="mt-4 flex items-center gap-3">
               <a
                 :href="m.delivery_file_url"
                 target="_blank"
@@ -188,7 +185,7 @@
                 Delivered {{ fmtDate(m.delivered_at) }}
               </span>
             </div>
-            <div v-else-if="m.status === 'submitted'" class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-800">
+            <div v-else-if="m.deliverable_status === 'uploaded'" class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-800">
               <p class="font-semibold">Work submitted — awaiting your approval</p>
               <p class="mt-0.5 opacity-80">Review the delivery notes above. Contact support if you have concerns or need a revision.</p>
             </div>
@@ -250,7 +247,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { AlertCircle, ArrowLeft, CheckCircle, Clock, Download, Package, XCircle } from "@lucide/vue";
+import { AlertCircle, ArrowLeft, CheckCircle, Download, Package, XCircle } from "@lucide/vue";
 import { useSpecialOrdersStore } from "@/stores/specialOrders";
 import type { MilestoneStatus, SpecialOrderStatus } from "@/types/specialOrders";
 
@@ -266,35 +263,55 @@ const tabs = [
 ];
 const activeTab = ref("milestones");
 
-const statusLabel: Record<SpecialOrderStatus, string> = {
-  draft: "Draft",
-  pending_quote: "Awaiting Quote",
+const statusLabel: Partial<Record<SpecialOrderStatus, string>> = {
+  inquiry: "Inquiry",
+  quote_pending: "Awaiting Quote",
   quote_sent: "Quote Ready",
   quote_accepted: "Quote Accepted",
-  quote_rejected: "Quote Declined",
+  awaiting_payment: "Awaiting Payment",
+  partially_funded: "Partially Funded",
+  ready_for_staffing: "Ready for Staffing",
+  assigned: "Assigned",
+  on_hold: "On Hold",
+  submitted: "Submitted",
   in_progress: "In Progress",
+  ready_for_delivery: "Ready for Delivery",
   completed: "Completed",
   cancelled: "Cancelled",
+  approved: "Approved",
+  revision_requested: "Revision Requested",
+  on_revision: "On Revision",
+  refunded: "Refunded",
 };
 
-const statusClass: Record<SpecialOrderStatus, string> = {
-  draft: "bg-slate-100 text-graphite",
-  pending_quote: "bg-amber-100 text-amber-700",
+const statusClass: Partial<Record<SpecialOrderStatus, string>> = {
+  inquiry: "bg-slate-100 text-graphite",
+  quote_pending: "bg-amber-100 text-amber-700",
   quote_sent: "bg-blue-100 text-blue-700",
   quote_accepted: "bg-emerald-100 text-emerald-700",
-  quote_rejected: "bg-rose-100 text-rose-700",
+  awaiting_payment: "bg-amber-100 text-amber-700",
+  partially_funded: "bg-amber-100 text-amber-700",
+  ready_for_staffing: "bg-blue-100 text-blue-700",
+  assigned: "bg-blue-100 text-blue-700",
+  on_hold: "bg-slate-100 text-graphite",
+  submitted: "bg-purple-100 text-purple-700",
   in_progress: "bg-purple-100 text-purple-700",
+  ready_for_delivery: "bg-blue-100 text-blue-700",
   completed: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-slate-100 text-slate-400",
+  approved: "bg-emerald-100 text-emerald-700",
+  revision_requested: "bg-rose-100 text-rose-700",
+  on_revision: "bg-amber-100 text-amber-700",
+  refunded: "bg-slate-100 text-slate-400",
 };
 
-const milestoneStatusClass: Record<MilestoneStatus, string> = {
+const milestoneStatusClass: Partial<Record<MilestoneStatus, string>> = {
   pending: "bg-slate-100 text-graphite",
-  in_progress: "bg-amber-100 text-amber-700",
-  submitted: "bg-purple-100 text-purple-700",
-  revision_requested: "bg-rose-100 text-rose-700",
-  approved: "bg-emerald-100 text-emerald-700",
+  partially_paid: "bg-amber-100 text-amber-700",
+  paid: "bg-emerald-100 text-emerald-700",
+  overdue: "bg-rose-100 text-rose-700",
   cancelled: "bg-slate-100 text-slate-400",
+  refunded: "bg-slate-100 text-slate-400",
 };
 
 const milestonePct = computed(() => {
@@ -318,11 +335,13 @@ async function handleReject() {
   rejectReason.value = "";
 }
 
-function fmtDate(v: string): string {
+function fmtDate(v: string | null): string {
+  if (!v) return "Not set";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(v));
 }
 
-function fmtDateTime(v: string): string {
+function fmtDateTime(v: string | null): string {
+  if (!v) return "Not set";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(v));
 }
 </script>

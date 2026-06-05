@@ -50,6 +50,9 @@ class ServiceCatalogItemSerializer(serializers.Serializer):
     is_public = serializers.BooleanField(required=False, default=True)
     is_active = serializers.BooleanField(required=False, default=True)
     sort_order = serializers.IntegerField(required=False, default=0)
+    paper_order_config = serializers.DictField(required=False)
+    design_order_config = serializers.DictField(required=False)
+    diagram_order_config = serializers.DictField(required=False)
 
 
 class PaperOrderServiceConfigSerializer(serializers.Serializer):

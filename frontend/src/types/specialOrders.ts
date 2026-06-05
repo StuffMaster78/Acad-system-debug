@@ -1,20 +1,32 @@
 export type SpecialOrderStatus =
-  | "draft"
-  | "pending_quote"
+  | "inquiry"
+  | "quote_pending"
   | "quote_sent"
   | "quote_accepted"
-  | "quote_rejected"
+  | "awaiting_payment"
+  | "partially_funded"
+  | "ready_for_staffing"
+  | "assigned"
+  | "on_hold"
+  | "submitted"
   | "in_progress"
+  | "ready_for_delivery"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "approved"
+  | "revision_requested"
+  | "on_revision"
+  | "refunded";
 
 export type MilestoneStatus =
   | "pending"
-  | "in_progress"
-  | "submitted"
-  | "revision_requested"
-  | "approved"
-  | "cancelled";
+  | "partially_paid"
+  | "paid"
+  | "overdue"
+  | "cancelled"
+  | "refunded";
+
+export type DeliverableStatus = "pending" | "uploaded" | "under_review" | "approved" | "rejected" | "delivered";
 
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "superseded";
 
@@ -22,19 +34,23 @@ export interface SpecialOrder {
   id: number;
   reference: string;
   title: string;
-  description: string;
+  description?: string;
+  inquiry_details?: string;
   status: SpecialOrderStatus;
-  client_id: number;
-  client_username: string;
-  assigned_writer_id: number | null;
-  writer_username: string | null;
+  client_id?: number;
+  client?: number;
+  client_username?: string;
+  assigned_writer_id?: number | null;
+  writer?: number | null;
+  writer_username?: string | null;
   total_milestones: number;
   completed_milestones: number;
-  quoted_price: string | null;
-  final_price: string | null;
+  quoted_price?: string | null;
   currency: string;
-  payment_status: string;
-  deadline: string | null;
+  duration_days?: number | null;
+  writer_compensation?: { type: "fixed_amount"; amount: string; currency: string } | { type: "percentage"; percentage: string } | null;
+  available_actions?: string[];
+  blocked_actions?: { action: string; reason: string }[];
   created_at: string;
   updated_at: string;
   attachments_count: number;
@@ -61,10 +77,17 @@ export interface SpecialOrderMilestone {
   sequence: number;
   label: string;
   description: string;
-  price: string;
+  price: string | null;
+  amount_due?: string | null;
+  funded_amount?: string | null;
+  balance_amount?: string | null;
   currency: string;
-  due_date: string;
+  due_date: string | null;
+  due_at?: string | null;
   status: MilestoneStatus;
+  funding_status?: MilestoneStatus;
+  deliverable_id?: number | null;
+  deliverable_status?: DeliverableStatus | null;
   writer_id: number | null;
   writer_username: string | null;
   delivery_file_url: string | null;
@@ -90,7 +113,6 @@ export interface SpecialOrderDetail extends SpecialOrder {
 export interface CreateSpecialOrderPayload {
   title: string;
   description: string;
-  deadline?: string;
 }
 
 // ── Quoted (estimated) order ──────────────────────────────────────────────────
@@ -144,6 +166,9 @@ export interface PredefinedConfig {
   allow_external_payment: boolean;
   allow_discounts: boolean;
   durations: PredefinedConfigDuration[];
+  created_by_name?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface PredefinedConfigPayload {

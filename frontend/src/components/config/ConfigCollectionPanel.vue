@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { Check, Pencil, Plus, Trash2, X } from "@lucide/vue";
 import type { ConfigSectionMeta } from "@/types/config";
 import { useAdminConfigHubStore } from "@/stores/adminConfigHub";
@@ -14,6 +14,17 @@ const hub = useAdminConfigHubStore();
 
 const collection = computed(() => props.section.crudCollection as ConfigCollection | undefined);
 const isSubjects = computed(() => collection.value === "subjects");
+const canPopulateDefaults = computed(() =>
+  collection.value === "paper-types" ||
+  collection.value === "subjects" ||
+  collection.value === "academic-levels" ||
+  collection.value === "types-of-work" ||
+  collection.value === "formatting-styles" ||
+  collection.value === "english-types",
+);
+const PAGE_SIZE = 10;
+const searchQuery = ref("");
+const page = ref(1);
 
 const CATEGORY_OPTIONS = [
   { value: "", label: "All categories" },
@@ -37,6 +48,26 @@ const items = computed(() => {
   if (!collection.value) return [];
   return hub.collectionItems[collection.value] ?? [];
 });
+const filteredItems = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  if (!query) return items.value;
+  return items.value.filter((item) => {
+    const raw = item as Record<string, unknown>;
+    return [
+      item.name,
+      item.code,
+      raw.description,
+      raw.category,
+    ].some((value) => String(value ?? "").toLowerCase().includes(query));
+  });
+});
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredItems.value.length / PAGE_SIZE)));
+const pageItems = computed(() => {
+  const start = (page.value - 1) * PAGE_SIZE;
+  return filteredItems.value.slice(start, start + PAGE_SIZE);
+});
+const showingFrom = computed(() => filteredItems.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0);
+const showingTo = computed(() => Math.min(page.value * PAGE_SIZE, filteredItems.value.length));
 
 function load() {
   if (collection.value) hub.loadCollection(collection.value);
@@ -44,7 +75,16 @@ function load() {
 
 // Reload when category filter changes for subjects
 watch(() => hub.categoryFilter, () => {
-  if (isSubjects.value && collection.value) hub.loadCollection(collection.value);
+  page.value = 1;
+  if (isSubjects.value && collection.value) hub.loadCollection(collection.value, { force: true });
+});
+
+watch([searchQuery, collection], () => {
+  page.value = 1;
+});
+
+watch(totalPages, (next) => {
+  if (page.value > next) page.value = next;
 });
 
 load();
@@ -55,6 +95,32 @@ load();
     <!-- Header -->
     <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 px-5 py-3">
       <h3 class="text-sm font-semibold text-ink">{{ section.label }}</h3>
+
+      <input
+        v-model="searchQuery"
+        type="search"
+        :placeholder="`Search ${section.label.toLowerCase()}…`"
+        class="focus-ring h-8 min-w-[14rem] rounded-lg border border-slate-200 bg-white px-2 text-xs text-graphite"
+      />
+
+      <div v-if="canPopulateDefaults" class="flex items-center gap-1.5">
+        <select
+          v-model="hub.defaultSet"
+          class="focus-ring h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-graphite"
+          title="Default seed set"
+        >
+          <option value="general">General defaults</option>
+          <option value="nursing">Nursing defaults</option>
+          <option value="technical">Technical defaults</option>
+        </select>
+        <button
+          class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50 disabled:opacity-60"
+          :disabled="hub.isSaving"
+          @click="collection && hub.populateDefaults(collection)"
+        >
+          Seed data
+        </button>
+      </div>
 
       <!-- Category filter (subjects only) -->
       <select
@@ -103,7 +169,7 @@ load();
 
     <!-- Table -->
     <div v-else class="overflow-x-auto">
-      <table class="min-w-full text-sm">
+      <table class="min-w-[860px] text-sm">
         <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
           <tr>
             <th class="px-5 py-2.5 text-left">Name</th>
@@ -115,10 +181,22 @@ load();
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-50">
-          <tr v-if="!items.length">
-            <td :colspan="isSubjects ? 6 : 4" class="py-8 text-center text-graphite">No items yet.</td>
+          <tr v-if="!pageItems.length">
+            <td :colspan="isSubjects ? 6 : 4" class="py-8 text-center text-graphite">
+              <div class="flex flex-col items-center gap-2">
+                <p>{{ items.length ? "No items match your search." : "No items yet." }}</p>
+                <button
+                  v-if="!items.length && canPopulateDefaults"
+                  class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
+                  :disabled="hub.isSaving"
+                  @click="collection && hub.populateDefaults(collection)"
+                >
+                  Seed {{ hub.defaultSet }} defaults
+                </button>
+              </div>
+            </td>
           </tr>
-          <tr v-for="item in items" :key="item.id" class="group">
+          <tr v-for="item in pageItems" :key="item.id" class="group">
             <!-- Edit row — spans full width -->
             <template v-if="hub.editingId === item.id">
               <td :colspan="isSubjects ? 6 : 4" class="px-5 py-3 bg-slate-50">
@@ -203,9 +281,28 @@ load();
     </div>
 
     <!-- Item count -->
-    <div v-if="items.length" class="border-t border-slate-100 px-5 py-2 text-xs text-graphite">
-      {{ items.length }} item{{ items.length !== 1 ? 's' : '' }}
-      <span v-if="isSubjects && hub.categoryFilter"> in {{ CATEGORY_OPTIONS.find(o => o.value === hub.categoryFilter)?.label }}</span>
+    <div v-if="items.length" class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-2 text-xs text-graphite">
+      <div>
+        Showing {{ showingFrom }}-{{ showingTo }} of {{ filteredItems.length }} item{{ filteredItems.length !== 1 ? 's' : '' }}
+        <span v-if="isSubjects && hub.categoryFilter"> in {{ CATEGORY_OPTIONS.find(o => o.value === hub.categoryFilter)?.label }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          class="rounded border border-slate-200 px-2 py-1 disabled:opacity-40"
+          :disabled="page <= 1"
+          @click="page -= 1"
+        >
+          Prev
+        </button>
+        <span>Page {{ page }} / {{ totalPages }}</span>
+        <button
+          class="rounded border border-slate-200 px-2 py-1 disabled:opacity-40"
+          :disabled="page >= totalPages"
+          @click="page += 1"
+        >
+          Next
+        </button>
+      </div>
     </div>
   </div>
 </template>

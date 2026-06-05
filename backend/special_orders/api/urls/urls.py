@@ -20,7 +20,9 @@ from special_orders.api.views.special_order_views import (
     CreateQuotedSpecialOrderView,
     ListPredefinedSpecialOrderConfigsView,
     PredefinedSpecialOrderConfigDetailView,
+    SeedPredefinedSpecialOrderConfigsView,
     SpecialOrderQuoteConfigView,
+    SpecialOrderAvailableActionsView,
     SpecialOrderDetailView,
     SpecialOrderListView,
     # Milestone templates
@@ -108,6 +110,11 @@ urlpatterns = [
         "<int:special_order_id>/",
         SpecialOrderDetailView.as_view(),
         name="special-order-detail",
+    ),
+    path(
+        "<int:special_order_id>/available-actions/",
+        SpecialOrderAvailableActionsView.as_view(),
+        name="special-order-available-actions",
     ),
     path(
         "quoted/",
@@ -351,6 +358,11 @@ urlpatterns = [
         "predefined-configs/",
         ListPredefinedSpecialOrderConfigsView.as_view(),
         name="special-order-predefined-configs",
+    ),
+    path(
+        "predefined-configs/seed-defaults/",
+        SeedPredefinedSpecialOrderConfigsView.as_view(),
+        name="special-order-predefined-config-seed-defaults",
     ),
     path(
         "predefined-configs/<int:pk>/",

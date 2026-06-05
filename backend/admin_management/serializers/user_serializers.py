@@ -14,6 +14,21 @@ def _account_profiles(user):
     return user.account_profiles.all()
 
 
+def _get_role_profile(user, related_name):
+    try:
+        return getattr(user, related_name)
+    except Exception:
+        return None
+
+
+def _get_writer_profile(user):
+    for account_profile in _account_profiles(user):
+        writer_profile = _get_role_profile(account_profile, "writer_profile")
+        if writer_profile is not None:
+            return writer_profile
+    return None
+
+
 def _is_account_suspended(user) -> bool:
     legacy_value = getattr(user, "is_suspended", None)
     if legacy_value is not None:
@@ -48,9 +63,8 @@ def _is_blacklisted(user) -> bool:
 
 
 def _writer_discipline(user):
-    try:
-        writer_profile = user.writer_profile
-    except Exception:
+    writer_profile = _get_writer_profile(user)
+    if writer_profile is None:
         return None
     return getattr(writer_profile, "discipline_state", None)
 
@@ -105,12 +119,20 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_phone_number(self, obj):
         """Get phone number from user profile."""
-        try:
-            profile = getattr(obj, 'user_main_profile', None)
-            if profile and hasattr(profile, 'phone_number'):
-                return str(profile.phone_number) if profile.phone_number else None
-        except Exception:
-            pass
+        phone_number = getattr(obj, 'phone_number', None)
+        if phone_number:
+            return str(phone_number)
+        for related_name in (
+            'client_profile',
+            'editor_profile',
+            'support_profile',
+            'admin_profile',
+            'superadmin_profile',
+        ):
+            profile = _get_role_profile(obj, related_name)
+            phone_number = getattr(profile, 'phone_number', None)
+            if phone_number:
+                return str(phone_number)
         return None
 
     def get_role_display(self, obj):
@@ -239,12 +261,20 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_phone_number(self, obj):
         """Get phone number from user profile."""
-        try:
-            profile = getattr(obj, 'user_main_profile', None)
-            if profile and hasattr(profile, 'phone_number'):
-                return str(profile.phone_number) if profile.phone_number else None
-        except Exception:
-            pass
+        phone_number = getattr(obj, 'phone_number', None)
+        if phone_number:
+            return str(phone_number)
+        for related_name in (
+            'client_profile',
+            'editor_profile',
+            'support_profile',
+            'admin_profile',
+            'superadmin_profile',
+        ):
+            profile = _get_role_profile(obj, related_name)
+            phone_number = getattr(profile, 'phone_number', None)
+            if phone_number:
+                return str(phone_number)
         return None
 
     def get_is_suspended(self, obj):
@@ -277,15 +307,13 @@ class UserDetailSerializer(serializers.ModelSerializer):
         return getattr(discipline, "probation_ends_at", None) or getattr(obj, "probation_end_date", None)
 
     def get_writer_profile(self, obj):
-        try:
-            if hasattr(obj, 'writer_profile') and obj.writer_profile:
-                return {
-                    'id': obj.writer_profile.id,
-                    'level': getattr(obj.writer_profile, 'level', None),
-                    'specialization': getattr(obj.writer_profile, 'specialization', None),
-                }
-        except Exception:
-            pass
+        writer_profile = _get_writer_profile(obj)
+        if writer_profile:
+            return {
+                'id': writer_profile.id,
+                'level': getattr(writer_profile, 'level', None),
+                'specialization': getattr(writer_profile, 'specialization', None),
+            }
         return None
 
     def get_client_profile(self, obj):

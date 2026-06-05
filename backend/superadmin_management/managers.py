@@ -10,7 +10,7 @@ from accounts.models import AccountProfile
 from accounts.services.account_activation_service import AccountActivationService
 from accounts.services.account_service import AccountService
 from .models import SuperadminLog, Probation, Blacklist, User, UserActionLog
-from notifications_system.models.notifications import Notification
+from notifications_system.services.notification_service import NotificationService
 class SuperadminManager:
     """Handles all Superadmin operations."""
 
@@ -253,13 +253,18 @@ class SuperadminManager:
         for admin in admins:
             # Use admin's website if available, otherwise use default
             notification_website = getattr(admin, 'website', None) or website
-            Notification.objects.create(
-                user=admin,
+            NotificationService.notify(
+                event_key="system.alert",
+                recipient=admin,
                 website=notification_website,
-                title=title,
-                message=message,
-                event='system',
-                type='in_app'
+                context={
+                    "title": title,
+                    "message": message,
+                    "category": "admin",
+                },
+                channels=["in_app"],
+                priority="high",
+                is_critical=False,
             )
 
     def log_action(admin, user, action, details=""):

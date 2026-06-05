@@ -20,26 +20,46 @@ onMounted(() => store.loadOrders());
 const search = ref("");
 const statusFilter = ref<SpecialOrderStatus | "">("");
 
-const statusLabel: Record<SpecialOrderStatus, string> = {
-  draft: "Draft",
-  pending_quote: "Awaiting Quote",
+const statusLabel: Partial<Record<SpecialOrderStatus, string>> = {
+  inquiry: "Inquiry",
+  quote_pending: "Awaiting Quote",
   quote_sent: "Quote Sent",
   quote_accepted: "Accepted",
-  quote_rejected: "Rejected",
+  awaiting_payment: "Awaiting Payment",
+  partially_funded: "Partially Funded",
+  ready_for_staffing: "Ready for Staffing",
+  assigned: "Assigned",
+  on_hold: "On Hold",
+  submitted: "Submitted",
   in_progress: "In Progress",
+  ready_for_delivery: "Ready for Delivery",
   completed: "Completed",
   cancelled: "Cancelled",
+  approved: "Approved",
+  revision_requested: "Revision Requested",
+  on_revision: "On Revision",
+  refunded: "Refunded",
 };
 
-const statusClass: Record<SpecialOrderStatus, string> = {
-  draft: "bg-slate-100 text-graphite",
-  pending_quote: "bg-amber-100 text-amber-700",
+const statusClass: Partial<Record<SpecialOrderStatus, string>> = {
+  inquiry: "bg-slate-100 text-graphite",
+  quote_pending: "bg-amber-100 text-amber-700",
   quote_sent: "bg-blue-100 text-blue-700",
   quote_accepted: "bg-emerald-100 text-emerald-700",
-  quote_rejected: "bg-rose-100 text-rose-700",
+  awaiting_payment: "bg-amber-100 text-amber-700",
+  partially_funded: "bg-amber-100 text-amber-700",
+  ready_for_staffing: "bg-blue-100 text-blue-700",
+  assigned: "bg-blue-100 text-blue-700",
+  on_hold: "bg-slate-100 text-graphite",
+  submitted: "bg-purple-100 text-purple-700",
   in_progress: "bg-purple-100 text-purple-700",
+  ready_for_delivery: "bg-blue-100 text-blue-700",
   completed: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-slate-100 text-slate-400",
+  approved: "bg-emerald-100 text-emerald-700",
+  revision_requested: "bg-rose-100 text-rose-700",
+  on_revision: "bg-amber-100 text-amber-700",
+  refunded: "bg-slate-100 text-slate-400",
 };
 
 const filtered = computed(() => {
@@ -51,7 +71,7 @@ const filtered = computed(() => {
       (o) =>
         o.title.toLowerCase().includes(q) ||
         o.reference.toLowerCase().includes(q) ||
-        o.client_username.toLowerCase().includes(q),
+        (o.client_username ?? "").toLowerCase().includes(q),
     );
   }
   return list;
@@ -136,8 +156,8 @@ function progress(total: number, done: number) {
                 {{ order.quoted_price ? `$${order.quoted_price}` : '—' }}
               </td>
               <td class="px-3 py-2 text-center">
-                <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass[order.status]">
-                  {{ statusLabel[order.status] }}
+                <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass[order.status] ?? 'bg-slate-100 text-graphite'">
+                  {{ statusLabel[order.status] ?? order.status.replace(/_/g, ' ') }}
                 </span>
               </td>
             </tr>

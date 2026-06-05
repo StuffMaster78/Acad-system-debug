@@ -14,7 +14,9 @@ from order_pricing_core.calculators.base import BasePricingCalculator
 from order_pricing_core.calculators.base import PriceBreakdownItem
 from order_pricing_core.calculators.base import PriceCalculationResult
 from order_pricing_core.constants import BreakdownLineType
+from order_pricing_core.constants import DiagramComplexity
 from order_pricing_core.constants import QuoteMode
+from order_pricing_core.constants import PricingUnit
 from order_pricing_core.models import DeadlineRate
 from order_pricing_core.models import DiagramComplexityRate
 from order_pricing_core.models import ServiceAddon
@@ -56,17 +58,29 @@ class DiagramOrderPricingCalculator(BasePricingCalculator):
             is_active=True,
         )
 
-        quantity = require_positive_int(payload, "quantity", "Quantity")
+        quantity = self._get_quantity(service=service, payload=payload)
+        payload["quantity"] = quantity
         deadline_hours = optional_positive_int(payload, "deadline_hours")
+        self._validate_configured_inputs(
+            service=service,
+            payload=payload,
+            deadline_hours=deadline_hours,
+        )
 
         if mode == QuoteMode.ESTIMATE:
             return self._estimate_result(
                 profile=profile,
+                service=service,
                 quantity=quantity,
                 deadline_hours=deadline_hours,
             )
 
         addon_codes = payload.get("selected_addon_codes", [])
+
+        complexity = self._get_complexity(service=service, payload=payload)
+        diagram_type = self._get_diagram_type(service=service, payload=payload)
+        payload["diagram_complexity"] = complexity
+        payload["diagram_type"] = diagram_type
 
         return self._final_result(
             website=website,
@@ -74,16 +88,8 @@ class DiagramOrderPricingCalculator(BasePricingCalculator):
             profile=profile,
             quantity=quantity,
             deadline_hours=deadline_hours,
-            complexity=require_string(
-                payload,
-                "diagram_complexity",
-                "Diagram complexity",
-            ),
-            diagram_type=require_string(
-                payload,
-                "diagram_type",
-                "Diagram type",
-            ),
+            complexity=complexity,
+            diagram_type=diagram_type,
             addon_codes=addon_codes,
         )
 
@@ -91,14 +97,17 @@ class DiagramOrderPricingCalculator(BasePricingCalculator):
         self,
         *,
         profile: WebsitePricingProfile,
+        service,
         quantity: int,
         deadline_hours: int | None,
     ) -> PriceCalculationResult:
         """
         Build an estimate-mode result for diagram work.
         """
-        base_amount = self._money(
-            Decimal(quantity) * profile.base_price_per_diagram
+        base_amount = self._base_amount_for_service(
+            profile=profile,
+            service=service,
+            quantity=quantity,
         )
 
         min_total = self._money(
@@ -135,6 +144,8 @@ class DiagramOrderPricingCalculator(BasePricingCalculator):
                 "estimated_min_price": str(min_total),
                 "estimated_max_price": str(max_total),
                 "quantity": quantity,
+                "pricing_unit": service.pricing_unit,
+                **self._config_metadata(service=service),
             },
             suggestions=[],
         )
@@ -154,36 +165,42 @@ class DiagramOrderPricingCalculator(BasePricingCalculator):
         """
         Build the final calculated diagram-order result.
         """
-        complexity_rate = DiagramComplexityRate.objects.get(
+        complexity_rate = self._get_complexity_rate(
             website=website,
+            service=service,
             complexity=complexity,
-            is_active=True,
         )
 
         lines: list[PriceBreakdownItem] = []
 
-        base_amount = self._money(
-            Decimal(quantity) * profile.base_price_per_diagram
+        base_amount = self._base_amount_for_service(
+            profile=profile,
+            service=service,
+            quantity=quantity,
         )
         lines.append(
             PriceBreakdownItem(
                 line_type=BreakdownLineType.BASE,
                 code="diagram_base",
-                label=f"Base price for {quantity} diagrams",
+                label=self._base_label(service=service, quantity=quantity),
                 amount=base_amount,
-                metadata={"diagram_type": diagram_type},
+                metadata={
+                    "diagram_type": diagram_type,
+                    "pricing_unit": service.pricing_unit,
+                },
             )
         )
 
         subtotal = base_amount
 
-        subtotal = self._apply_multiplier(
-            subtotal=subtotal,
-            multiplier=complexity_rate.multiplier,
-            lines=lines,
-            code="diagram_complexity",
-            label=f"Diagram complexity ({complexity})",
-        )
+        if complexity_rate is not None:
+            subtotal = self._apply_multiplier(
+                subtotal=subtotal,
+                multiplier=complexity_rate.multiplier,
+                lines=lines,
+                code="diagram_complexity",
+                label=f"Diagram complexity ({complexity})",
+            )
 
         if deadline_hours is not None:
             subtotal = self._apply_deadline_rate(
@@ -230,9 +247,200 @@ class DiagramOrderPricingCalculator(BasePricingCalculator):
                 "diagram_complexity": complexity,
                 "diagram_type": diagram_type,
                 "addon_codes": addon_codes,
+                "pricing_unit": service.pricing_unit,
+                "service_code": service.service_code,
+                **self._config_metadata(service=service),
             },
             suggestions=[],
         )
+
+    def _validate_configured_inputs(
+        self,
+        *,
+        service,
+        payload: dict[str, Any],
+        deadline_hours: int | None,
+    ) -> None:
+        """
+        Enforce diagram-specific service settings when present.
+        """
+        config = getattr(service, "diagram_order_config", None)
+        if config is None:
+            return
+
+        errors: dict[str, str] = {}
+        if not config.supports_quantity and payload.get("quantity") not in {
+            None,
+            1,
+        }:
+            errors["quantity"] = (
+                "This service is configured as a single-diagram order."
+            )
+
+        if (
+            not config.supports_complexity
+            and payload.get("diagram_complexity")
+        ):
+            errors["diagram_complexity"] = (
+                "This service does not support complexity selection."
+            )
+
+        if not config.supports_deadline and deadline_hours is not None:
+            errors["deadline_hours"] = (
+                "This service does not support deadline selection."
+            )
+
+        if not config.supports_topic and payload.get("topic"):
+            errors["topic"] = "This service does not support a topic field."
+
+        if not config.supports_instructions and payload.get("instructions"):
+            errors["instructions"] = (
+                "This service does not support instructions."
+            )
+
+        configured_type = config.diagram_type
+        requested_type = payload.get("diagram_type")
+        if (
+            configured_type
+            and requested_type
+            and requested_type != configured_type
+        ):
+            errors["diagram_type"] = (
+                "This service is configured for a different diagram type."
+            )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def _get_quantity(self, *, service, payload: dict[str, Any]) -> int:
+        """
+        Resolve diagram quantity from service configuration.
+        """
+        config = getattr(service, "diagram_order_config", None)
+        if config is not None and not config.supports_quantity:
+            return 1
+
+        if service.pricing_unit == PricingUnit.ORDER:
+            return 1
+
+        return require_positive_int(payload, "quantity", "Quantity")
+
+    def _get_complexity(
+        self,
+        *,
+        service,
+        payload: dict[str, Any],
+    ) -> str:
+        """
+        Resolve diagram complexity, defaulting when disabled.
+        """
+        config = getattr(service, "diagram_order_config", None)
+        if config is not None and not config.supports_complexity:
+            return DiagramComplexity.SIMPLE
+
+        return require_string(
+            payload,
+            "diagram_complexity",
+            "Diagram complexity",
+        )
+
+    def _get_diagram_type(
+        self,
+        *,
+        service,
+        payload: dict[str, Any],
+    ) -> str:
+        """
+        Resolve diagram type from config or request payload.
+        """
+        config = getattr(service, "diagram_order_config", None)
+        if config is not None and config.diagram_type:
+            return config.diagram_type
+
+        return require_string(payload, "diagram_type", "Diagram type")
+
+    def _base_amount_for_service(
+        self,
+        *,
+        profile: WebsitePricingProfile,
+        service,
+        quantity: int,
+    ) -> Decimal:
+        """
+        Return the base amount for the diagram service.
+        """
+        if service.pricing_unit == PricingUnit.ORDER:
+            amount = service.base_amount
+            if amount <= Decimal("0.00"):
+                amount = profile.base_price_per_diagram
+            return self._money(amount)
+
+        if service.pricing_unit in {
+            PricingUnit.DIAGRAM,
+            PricingUnit.QUANTITY,
+            PricingUnit.ITEM,
+        }:
+            unit_amount = profile.base_price_per_diagram
+            if service.base_amount > Decimal("0.00"):
+                unit_amount = service.base_amount
+            return self._money(Decimal(quantity) * unit_amount)
+
+        raise ValidationError(
+            {"pricing_unit": "Unsupported diagram pricing unit."}
+        )
+
+    def _base_label(self, *, service, quantity: int) -> str:
+        """
+        Return a readable base line label.
+        """
+        if service.pricing_unit == PricingUnit.ORDER:
+            return "Base price for diagram order"
+
+        if quantity == 1:
+            return "Base price for 1 diagram"
+
+        return f"Base price for {quantity} diagrams"
+
+    def _get_complexity_rate(self, *, website, service, complexity: str):
+        """
+        Return the matching complexity rate when the service uses it.
+        """
+        config = getattr(service, "diagram_order_config", None)
+        if config is not None and not config.supports_complexity:
+            return None
+
+        rate = DiagramComplexityRate.objects.filter(
+            website=website,
+            complexity=complexity,
+            is_active=True,
+        ).first()
+
+        if rate is None:
+            raise ValidationError(
+                {
+                    "diagram_complexity": (
+                        "Active diagram complexity rate not found."
+                    )
+                }
+            )
+
+        return rate
+
+    def _config_metadata(self, *, service) -> dict[str, Any]:
+        """
+        Return configured diagram defaults for downstream consumers.
+        """
+        config = getattr(service, "diagram_order_config", None)
+        if config is None:
+            return {}
+
+        metadata: dict[str, Any] = {
+            "supports_quantity": config.supports_quantity,
+            "supports_complexity": config.supports_complexity,
+        }
+        if config.diagram_type:
+            metadata["configured_diagram_type"] = config.diagram_type
+        return metadata
 
     def _apply_deadline_rate(
         self,

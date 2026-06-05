@@ -94,7 +94,7 @@ class AuditEventViewSet(viewsets.ReadOnlyModelViewSet):
             correlation_id=params.get("correlation_id"),
             span_id=params.get("span_id"),
             status=params.get("status"),
-            limit=int(params.get("limit", 100)),
+            limit=self._safe_limit(params.get("limit", 100)),
         )
 
         policy = AuditQueryPolicy(
@@ -102,6 +102,17 @@ class AuditEventViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         return policy.search_events(query)
+
+    @staticmethod
+    def _safe_limit(value) -> int:
+        """
+        Parse optional query limit without letting bad input 500.
+        """
+        try:
+            limit = int(value)
+        except (TypeError, ValueError):
+            return 100
+        return max(1, min(limit, 500))
 
     # --------------------------------------------------
     # Serializer

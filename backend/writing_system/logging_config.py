@@ -128,6 +128,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'celery.utils.functional': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
         'django.utils.autoreload': {
             'handlers': ['console'],
             'level': 'WARNING', # Suppress autoreload INFO messages
@@ -136,6 +141,11 @@ LOGGING = {
         'django_celery_beat': {
             'handlers': ['console'],
             'level': 'WARNING', # Suppress DatabaseScheduler schedule changed messages
+            'propagate': False,
+        },
+        'audit': {
+            'handlers': ['console'],
+            'level': os.getenv('AUDIT_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'daphne': {
@@ -203,4 +213,3 @@ else:
     LOGGING['loggers']['writing_system']['handlers'] = ['console']
     LOGGING['loggers']['celery']['handlers'] = ['console']
     LOGGING['loggers']['celery.task']['handlers'] = ['console']
-

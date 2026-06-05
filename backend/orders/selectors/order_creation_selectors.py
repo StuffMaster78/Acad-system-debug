@@ -31,8 +31,9 @@ class OrderCreationContext:
     perform repeated lookup logic.
     """
 
-    paper_type: PaperType
+    paper_type: Optional[PaperType]
     pricing_snapshot: PricingSnapshot
+    pricing_snapshots: list[PricingSnapshot]
     academic_level: Optional[AcademicLevel] = None
     formatting_style: Optional[FormattingandCitationStyle] = None
     subject: Optional[Subject] = None
@@ -61,8 +62,9 @@ class OrderCreationSelector:
     def build_context(
         cls,
         *,
-        paper_type_id: int,
-        pricing_snapshot_id: int,
+        paper_type_id: Optional[int],
+        pricing_snapshot_id: Optional[int] = None,
+        pricing_snapshot_ids: Optional[list[int]] = None,
         academic_level_id: Optional[int] = None,
         formatting_style_id: Optional[int] = None,
         subject_id: Optional[int] = None,
@@ -104,11 +106,15 @@ class OrderCreationSelector:
             OrderCreationContext:
                 Bundled resolved instances.
         """
+        snapshots = cls._get_pricing_snapshots(
+            pricing_snapshot_id=pricing_snapshot_id,
+            pricing_snapshot_ids=pricing_snapshot_ids,
+        )
+
         return OrderCreationContext(
-            paper_type=PaperType.objects.get(pk=paper_type_id),
-            pricing_snapshot=PricingSnapshot.objects.get(
-                pk=pricing_snapshot_id
-            ),
+            paper_type=cls._get_optional_paper_type(paper_type_id),
+            pricing_snapshot=snapshots[0],
+            pricing_snapshots=snapshots,
             academic_level=cls._get_optional_academic_level(
                 academic_level_id
             ),
@@ -133,6 +139,40 @@ class OrderCreationSelector:
                 preferred_writer_id
             ),
         )
+
+    @staticmethod
+    def _get_optional_paper_type(
+        paper_type_id: Optional[int],
+    ) -> Optional[PaperType]:
+        """
+        Resolve paper type when provided.
+        """
+        if paper_type_id is None:
+            return None
+        return PaperType.objects.get(pk=paper_type_id)
+
+    @staticmethod
+    def _get_pricing_snapshots(
+        *,
+        pricing_snapshot_id: Optional[int],
+        pricing_snapshot_ids: Optional[list[int]],
+    ) -> list[PricingSnapshot]:
+        """
+        Resolve one or more pricing snapshots in submitted order.
+        """
+        ids: list[int] = []
+        if pricing_snapshot_id is not None:
+            ids.append(pricing_snapshot_id)
+        if pricing_snapshot_ids:
+            ids.extend(pricing_snapshot_ids)
+
+        deduped_ids = list(dict.fromkeys(ids))
+        snapshots = list(
+            PricingSnapshot.objects.filter(pk__in=deduped_ids)
+        )
+        snapshot_map = {snapshot.pk: snapshot for snapshot in snapshots}
+
+        return [snapshot_map[pk] for pk in deduped_ids]
 
     @staticmethod
     def _get_optional_academic_level(

@@ -2,6 +2,12 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"urllib3 .* or chardet .*charset_normalizer .* doesn't match a supported version!",
+)
 
 
 def main():

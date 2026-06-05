@@ -25,7 +25,10 @@ from special_orders.api.serializers.lifecycle_serializers import (
     SubmitWorkSerializer,
 )
 from special_orders.api.serializers.special_order_serializers import (
+    SpecialOrderClientDetailSerializer,
     SpecialOrderDetailSerializer,
+    SpecialOrderWriterDetailSerializer,
+    serialize_special_order_milestone,
 )
 from special_orders.models import SpecialOrderWriterPayRule
 from special_orders.selectors import SpecialOrderSelector
@@ -47,6 +50,19 @@ from special_orders.services.new_services.special_order_revision_service import 
 from special_orders.services.new_services.special_order_submission_service import (
     SpecialOrderSubmissionService,
 )
+
+
+def _detail_serializer(special_order, request):
+    role = getattr(request.user, "role", "")
+    serializer_class = SpecialOrderDetailSerializer
+    if role == "writer":
+        serializer_class = SpecialOrderWriterDetailSerializer
+    elif role == "client":
+        serializer_class = SpecialOrderClientDetailSerializer
+    return serializer_class(
+        special_order,
+        context={"request": request},
+    )
 
 
 class AssignWriterView(APIView):
@@ -86,7 +102,7 @@ class AssignWriterView(APIView):
             reason=str(data.get("reason", "")),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 
 class StartWorkView(APIView):
@@ -110,7 +126,7 @@ class StartWorkView(APIView):
             reason=str(data.get("notes", "")),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 
 class SubmitWorkView(APIView):
@@ -137,7 +153,7 @@ class SubmitWorkView(APIView):
             ),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 
 class MarkReadyForDeliveryView(APIView):
@@ -161,7 +177,7 @@ class MarkReadyForDeliveryView(APIView):
             notes=str(data.get("notes", "")),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 
 class CompleteOrderView(APIView):
@@ -185,7 +201,7 @@ class CompleteOrderView(APIView):
             notes=str(data.get("notes", "")),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 
 class ApproveOrderView(APIView):
@@ -209,7 +225,7 @@ class ApproveOrderView(APIView):
             notes=str(data.get("notes", "")),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 
 class HoldOrderView(APIView):
@@ -233,7 +249,7 @@ class HoldOrderView(APIView):
             reason=str(data["reason"]),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 
 class ReleaseHoldView(APIView):
@@ -258,7 +274,7 @@ class ReleaseHoldView(APIView):
             reason=str(data.get("reason", "")),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 
 class CancelOrderView(APIView):
@@ -282,7 +298,7 @@ class CancelOrderView(APIView):
             reason=str(data["reason"]),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 
 class RequestRevisionView(APIView):
@@ -307,7 +323,7 @@ class RequestRevisionView(APIView):
             metadata=cast(dict[str, Any], data.get("metadata", {})),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 
 class StartRevisionView(APIView):
@@ -331,7 +347,7 @@ class StartRevisionView(APIView):
             notes=str(data.get("notes", "")),
         )
 
-        return Response(SpecialOrderDetailSerializer(special_order).data)
+        return Response(_detail_serializer(special_order, request).data)
 
 # ── Milestone actions ─────────────────────────────────────────────────────────
 
@@ -360,7 +376,6 @@ class SpecialOrderMilestoneListView(APIView):
     def get(self, request, special_order_id: int):
         from special_orders.models.funding import SpecialOrderFundingMilestone
         from special_orders.models.delivery import SpecialOrderDeliverable
-        from django.utils import timezone
 
         website = _req_website(request)
         order = _get_order(special_order_id, website)
@@ -380,30 +395,16 @@ class SpecialOrderMilestoneListView(APIView):
             if d.metadata.get("milestone_id")
         }
 
-        result = []
-        for m in milestones:
-            d = deliverables.get(m.id)
-            result.append({
-                "id": m.id,
-                "sequence": m.sequence,
-                "label": m.label,
-                "milestone_type": m.milestone_type,
-                "status": m.status,
-                "amount_due": str(m.amount_due),
-                "funded_amount": str(m.funded_amount),
-                "balance_amount": str(m.balance_amount),
-                "due_at": m.due_at.isoformat() if m.due_at else None,
-                "required_before_staffing":  m.required_before_staffing,
-                "required_before_delivery":  m.required_before_delivery,
-                "required_before_completion": m.required_before_completion,
-                # Delivery tracking
-                "deliverable_id":     d.id if d else None,
-                "deliverable_status": d.status if d else None,
-                "delivery_notes":     d.description if d else None,
-                "revision_notes":     d.review_notes if d else None,
-                "delivered_at":       d.uploaded_at.isoformat() if d and d.uploaded_at else None,
-                "approved_at":        d.reviewed_at.isoformat() if d and d.reviewed_at else None,
-            })
+        include_money = getattr(request.user, "role", "") != "writer"
+        result = [
+            serialize_special_order_milestone(
+                order=order,
+                milestone=m,
+                deliverable=deliverables.get(m.id),
+                include_money=include_money,
+            )
+            for m in milestones
+        ]
 
         return Response(result)
 
@@ -434,8 +435,8 @@ class SpecialOrderMilestoneDeliverView(APIView):
         except SpecialOrderFundingMilestone.DoesNotExist:
             return Response({"detail": "Milestone not found."}, status=404)
 
-        notes        = request.data.get("notes", "")
-        file_ref     = request.data.get("file_reference", "")
+        notes        = request.data.get("notes", request.data.get("delivery_notes", ""))
+        file_ref     = request.data.get("file_reference", request.data.get("delivery_file_url", ""))
         now          = timezone.now()
 
         deliverable, created = SpecialOrderDeliverable.objects.update_or_create(
@@ -456,12 +457,15 @@ class SpecialOrderMilestoneDeliverView(APIView):
             deliverable.metadata = {"milestone_id": milestone.id}
             deliverable.save(update_fields=["metadata"])
 
-        return Response({
-            "id":             deliverable.id,
-            "status":         deliverable.status,
-            "delivery_notes": deliverable.description,
-            "delivered_at":   deliverable.uploaded_at.isoformat() if deliverable.uploaded_at else None,
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            serialize_special_order_milestone(
+                order=order,
+                milestone=milestone,
+                deliverable=deliverable,
+                include_money=getattr(request.user, "role", "") != "writer",
+            ),
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class SpecialOrderMilestoneApproveView(APIView):
@@ -508,11 +512,14 @@ class SpecialOrderMilestoneApproveView(APIView):
             milestone.status = FundingMilestoneStatus.PAID
             milestone.save(update_fields=["status", "updated_at"])
 
-        return Response({
-            "id":          milestone.id,
-            "status":      milestone.status,
-            "approved_at": now.isoformat(),
-        })
+        return Response(
+            serialize_special_order_milestone(
+                order=order,
+                milestone=milestone,
+                deliverable=deliverable,
+                include_money=getattr(request.user, "role", "") != "writer",
+            )
+        )
 
 
 class SpecialOrderMilestoneRequestRevisionView(APIView):
@@ -557,8 +564,11 @@ class SpecialOrderMilestoneRequestRevisionView(APIView):
         deliverable.reviewed_at  = now
         deliverable.save(update_fields=["status", "review_notes", "reviewed_by", "reviewed_at", "updated_at"])
 
-        return Response({
-            "id":             deliverable.id,
-            "status":         deliverable.status,
-            "revision_notes": deliverable.review_notes,
-        })
+        return Response(
+            serialize_special_order_milestone(
+                order=order,
+                milestone=milestone,
+                deliverable=deliverable,
+                include_money=getattr(request.user, "role", "") != "writer",
+            )
+        )

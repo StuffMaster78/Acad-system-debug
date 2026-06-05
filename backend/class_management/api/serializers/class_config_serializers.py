@@ -8,6 +8,14 @@ from class_management.models import ClassServiceConfig
 class ClassServiceConfigSerializer(serializers.ModelSerializer):
     website_name = serializers.CharField(source="website.name", read_only=True)
     website_domain = serializers.CharField(source="website.domain", read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+
+    def get_created_by_name(self, obj) -> str | None:
+        user = getattr(obj, "created_by", None)
+        if user is None:
+            return None
+        full_name = getattr(user, "get_full_name", lambda: "")()
+        return full_name or getattr(user, "username", None) or getattr(user, "email", None)
 
     class Meta:
         model = ClassServiceConfig
@@ -34,6 +42,7 @@ class ClassServiceConfigSerializer(serializers.ModelSerializer):
             "quote_expiry_hours",
             "is_active",
             "display_order",
+            "created_by_name",
             "created_at",
             "updated_at",
         ]
@@ -42,6 +51,7 @@ class ClassServiceConfigSerializer(serializers.ModelSerializer):
             "website",
             "website_name",
             "website_domain",
+            "created_by_name",
             "created_at",
             "updated_at",
         ]

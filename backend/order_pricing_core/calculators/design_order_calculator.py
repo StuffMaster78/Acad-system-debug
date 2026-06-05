@@ -52,6 +52,8 @@ class DesignOrderPricingCalculator(BasePricingCalculator):
             is_active=True,
         )
 
+        self._validate_configured_inputs(service=service, payload=payload)
+
         quantity = self._get_quantity(service=service, payload=payload)
         deadline_hours = optional_positive_int(payload, "deadline_hours")
         addon_codes = payload.get("selected_addon_codes", [])
@@ -124,6 +126,7 @@ class DesignOrderPricingCalculator(BasePricingCalculator):
                 "estimated_max_price": str(max_total),
                 "quantity": quantity,
                 "pricing_unit": service.pricing_unit,
+                **self._config_metadata(service=service),
             },
             suggestions=[],
         )
@@ -209,9 +212,55 @@ class DesignOrderPricingCalculator(BasePricingCalculator):
                 "addon_codes": addon_codes,
                 "pricing_unit": service.pricing_unit,
                 "service_code": service.service_code,
+                **self._config_metadata(service=service),
             },
             suggestions=[],
         )
+
+    def _validate_configured_inputs(
+        self,
+        *,
+        service,
+        payload: dict[str, Any],
+    ) -> None:
+        """
+        Enforce design-specific service settings when present.
+        """
+        config = getattr(service, "design_order_config", None)
+        if config is None:
+            return
+
+        errors: dict[str, str] = {}
+
+        if (
+            service.pricing_unit == PricingUnit.SLIDE
+            and not config.supports_slides
+        ):
+            errors["slides"] = "This service is not configured for slides."
+
+        if (
+            service.pricing_unit == PricingUnit.QUANTITY
+            and not config.supports_quantity
+        ):
+            errors["quantity"] = (
+                "This service is not configured for quantity pricing."
+            )
+
+        if not config.supports_deadline and payload.get("deadline_hours"):
+            errors["deadline_hours"] = (
+                "This service does not support deadline selection."
+            )
+
+        if not config.supports_topic and payload.get("topic"):
+            errors["topic"] = "This service does not support a topic field."
+
+        if not config.supports_instructions and payload.get("instructions"):
+            errors["instructions"] = (
+                "This service does not support instructions."
+            )
+
+        if errors:
+            raise ValidationError(errors)
 
     def _get_quantity(self, *, service, payload: dict[str, Any]) -> int:
         """
@@ -264,6 +313,21 @@ class DesignOrderPricingCalculator(BasePricingCalculator):
         raise ValidationError(
             {"pricing_unit": "Unsupported design pricing unit."}
         )
+
+    def _config_metadata(self, *, service) -> dict[str, Any]:
+        """
+        Return configured design defaults for downstream consumers.
+        """
+        config = getattr(service, "design_order_config", None)
+        if config is None:
+            return {}
+
+        metadata: dict[str, Any] = {}
+        if config.design_product_type:
+            metadata["design_product_type"] = config.design_product_type
+        if config.default_package_type:
+            metadata["design_package_type"] = config.default_package_type
+        return metadata
 
     def _base_label(self, *, service, quantity: int) -> str:
         """

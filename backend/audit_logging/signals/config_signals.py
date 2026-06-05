@@ -49,13 +49,21 @@ def audit_portal_definition_changes(sender, instance, created, **kwargs):
     if sender.__name__ != "PortalDefinition":
         return
     from audit_logging.factories.audit_event_factory import AuditEventFactory
+    from websites.models.websites import Website
     try:
+        website = Website.objects.filter(is_active=True, is_deleted=False).first()
+        if website is None:
+            log.warning(
+                "audit_portal_definition_changes skipped: no active website context"
+            )
+            return
         AuditEventFactory.create(
             action="config.portal_definition_changed",
-            website=None,
+            website=website,
             object_type="portal_definition",
             object_id=str(instance.pk),
             metadata={
+                "scope": "platform",
                 "code": getattr(instance, "code", ""),
                 "domain": getattr(instance, "domain", ""),
                 "is_active": getattr(instance, "is_active", None),

@@ -60,9 +60,7 @@ class AuditQueryService:
         if query.occurred_before:
             qs = qs.filter(occurred_at__lte=query.occurred_before)
 
-        qs = qs.order_by("-occurred_at")
-
-        return qs[: query.limit]
+        return qs.order_by("-occurred_at")
 
     # --------------------------------------------------
     # TIMELINE

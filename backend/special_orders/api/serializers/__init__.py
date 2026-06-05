@@ -19,8 +19,12 @@ from special_orders.api.serializers.quote_serializers import (
 from special_orders.api.serializers.special_order_serializers import (
     CreateFixedSpecialOrderSerializer,
     CreateQuotedSpecialOrderSerializer,
+    SpecialOrderClientDetailSerializer,
+    SpecialOrderClientListSerializer,
     SpecialOrderDetailSerializer,
     SpecialOrderListSerializer,
+    SpecialOrderWriterDetailSerializer,
+    SpecialOrderWriterListSerializer,
 )
 from special_orders.api.serializers.payment_serializers import (
     ApplyExternalPaymentSerializer,
@@ -38,9 +42,13 @@ __all__ = [
     "PredefinedSpecialOrderDurationSerializer",
     "RejectSpecialOrderQuoteSerializer",
     "SpecialOrderDetailSerializer",
+    "SpecialOrderClientDetailSerializer",
+    "SpecialOrderClientListSerializer",
     "SpecialOrderFundingMilestoneSerializer",
     "SpecialOrderFundingPlanSerializer",
     "SpecialOrderListSerializer",
+    "SpecialOrderWriterDetailSerializer",
+    "SpecialOrderWriterListSerializer",
     "SpecialOrderPaymentApplicationSerializer",
     "SpecialOrderPricingSnapshotSerializer",
     "SpecialOrderQuoteLineSerializer",

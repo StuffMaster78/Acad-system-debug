@@ -395,7 +395,12 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "service-catalog",
         name: "admin-service-catalog",
-        component: () => import("@/views/admin/AdminServiceCatalogView.vue"),
+        redirect: { path: "/admin/config", query: { domain: "pricing", section: "service-catalog" } },
+      },
+      {
+        path: "pricing-config",
+        name: "admin-pricing-config",
+        redirect: { path: "/admin/config", query: { domain: "pricing", section: "deadline-bands" } },
       },
       {
         path: "class-config",
@@ -1024,7 +1029,12 @@ function roleRoute(role: UserRole): RouteRecordRaw {
       {
         path: "service-catalog",
         name: "superadmin-service-catalog",
-        component: () => import("@/views/admin/AdminServiceCatalogView.vue"),
+        redirect: { path: "/superadmin/config", query: { domain: "pricing", section: "service-catalog" } },
+      },
+      {
+        path: "pricing-config",
+        name: "superadmin-pricing-config",
+        redirect: { path: "/superadmin/config", query: { domain: "pricing", section: "base-rates" } },
       },
       {
         path: "config",

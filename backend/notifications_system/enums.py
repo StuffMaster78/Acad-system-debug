@@ -68,6 +68,18 @@ class NotificationEvent(TextChoices):
         'wallet.client.refunded',
         _('Client Wallet Refunded'),
     )
+    WALLET_WRITER_EARNING_POSTED = (
+        'wallet.writer.earning_posted',
+        _('Writer Earning Posted'),
+    )
+    WALLET_WRITER_BONUS_POSTED = (
+        'wallet.writer.bonus_posted',
+        _('Writer Bonus Posted'),
+    )
+    WALLET_WRITER_PENALTY_POSTED = (
+        'wallet.writer.penalty_posted',
+        _('Writer Penalty Posted'),
+    )
 
     # Payouts and compensation — writer-specific
     PAYOUT_REQUESTED = 'payout.requested', _(
@@ -195,6 +207,18 @@ class NotificationEvent(TextChoices):
     WRITER_REWARD_REVOKED = "writer.reward.revoked"
 
     FILE_INFECTED_DETECTED = "file.infected_detected", "Infected file detected"
+
+    # Class management
+    CLASS_SUBMITTED = "class.submitted", _("Class Submitted")
+    CLASS_WRITER_COMPENSATION_POSTED = (
+        "class.writer_compensation_posted",
+        _("Class Writer Compensation Posted"),
+    )
+    CLASS_TWO_FACTOR_REQUIRED = (
+        "class.two_factor.required",
+        _("Class Two-Factor Required"),
+    )
+    CLASS_PAYMENT_OVERDUE = "class.payment.overdue", _("Class Payment Overdue")
 class NotificationChannel(TextChoices):
     """
     Delivery channels.
@@ -224,6 +248,7 @@ class NotificationCategory(TextChoices):
     LOYALTY = 'loyalty', _('Loyalty')
     REFERRAL = 'referral', _('Referral')
     COMMUNICATION_MESSAGE = 'communication_message', _('Communicatin Message')
+    CLASS = 'class', _('Class')
     SYSTEM = 'system', _('System')
     INFO = 'info', _('Info')
 
@@ -283,6 +308,7 @@ def get_event_category(event_key: str) -> str:
         'referral': NotificationCategory.REFERRAL,
         'message': NotificationCategory.COMMUNICATION_MESSAGE,
         'communications': NotificationCategory.COMMUNICATION_MESSAGE,
+        'class': NotificationCategory.CLASS,
         'system': NotificationCategory.SYSTEM,
     }
     prefix = event_key.split('.')[0] if '.' in event_key else ''

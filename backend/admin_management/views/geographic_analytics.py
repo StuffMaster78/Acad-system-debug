@@ -75,19 +75,9 @@ class GeographicAnalyticsViewSet(viewsets.ViewSet):
             .order_by('-total_spend')
         )
 
-        # Get state data from UserProfile
-        # Join through client -> user_main_profile
-        state_spend = (
-            orders
-            .filter(client__user_main_profile__state__isnull=False)
-            .exclude(client__user_main_profile__state='')
-            .values('client__user_main_profile__state')
-            .annotate(
-                total_spend=Sum('total_price'),
-                order_count=Count('id')
-            )
-            .order_by('-total_spend')
-        )
+        # State/region is not currently stored on the active client profile.
+        # Keep the response shape stable without querying a removed relation.
+        state_spend = []
 
         # Get subject data from Order
         subject_spend = (
@@ -209,26 +199,7 @@ class GeographicAnalyticsViewSet(viewsets.ViewSet):
         if date_from:
             orders = orders.filter(created_at__gte=date_from)
 
-        state_data = (
-            orders
-            .filter(client__user_main_profile__state__isnull=False)
-            .exclude(client__user_main_profile__state='')
-            .values('client__user_main_profile__state')
-            .annotate(
-                total_spend=Sum('total_price'),
-                order_count=Count('id')
-            )
-            .order_by('-total_spend')
-        )
-
-        result = [
-            {
-                'state': item['client__user_main_profile__state'],
-                'total_spend': float(item['total_spend']),
-                'order_count': item['order_count'],
-            }
-            for item in state_data
-        ]
+        result = []
 
         return Response(result)
 

@@ -414,8 +414,11 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             resolved_disputes=Count("id", filter=Q(dispute_status="resolved"))
         )
 
-        # Fetch all unread notifications for Superadmins
-        notifications = Notification.objects.filter(recipient=request.user, is_read=False).order_by('-timestamp')
+        # Fetch recent notifications for Superadmins. Read state lives on
+        # NotificationsUserStatus, so avoid legacy recipient/is_read fields.
+        notifications = Notification.objects.filter(
+            user=request.user,
+        ).order_by("-created_at")[:20]
 
         context = {
             **user_stats,

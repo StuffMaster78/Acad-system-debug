@@ -15,23 +15,20 @@
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
-                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="statusClass[order.status]">
-                    {{ statusLabel[order.status] }}
+                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="statusClass[order.status] ?? 'bg-slate-100 text-graphite'">
+                    {{ statusLabel[order.status] ?? order.status.replace(/_/g, ' ') }}
                   </span>
                   <span class="font-mono text-xs text-graphite">{{ order.reference }}</span>
                 </div>
                 <h1 class="mt-2 text-xl font-bold text-ink">{{ order.title }}</h1>
-                <p class="mt-1 text-sm leading-5 text-graphite">{{ order.description }}</p>
-                <div class="mt-3 flex flex-wrap items-center gap-4 text-xs text-graphite">
-                  <span v-if="order.deadline" class="flex items-center gap-1.5">
-                    <Clock class="size-3.5" />
-                    Deadline: {{ fmtDate(order.deadline) }}
-                  </span>
-                </div>
+                <p class="mt-1 text-sm leading-5 text-graphite">{{ order.inquiry_details || order.description }}</p>
               </div>
               <div class="shrink-0 text-right">
-                <p v-if="order.final_price || order.quoted_price" class="text-2xl font-bold text-ink">
-                  ${{ order.final_price ?? order.quoted_price }}
+                <p v-if="order.writer_compensation?.type === 'fixed_amount'" class="text-2xl font-bold text-ink">
+                  {{ order.writer_compensation.currency }} {{ order.writer_compensation.amount }}
+                </p>
+                <p v-else-if="order.writer_compensation?.type === 'percentage'" class="text-2xl font-bold text-ink">
+                  {{ order.writer_compensation.percentage }}% share
                 </p>
               </div>
             </div>
@@ -72,7 +69,7 @@
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
                   <span class="font-mono text-xs text-graphite">#{{ m.sequence }}</span>
-                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="milestoneStatusClass[m.status]">
+                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="milestoneStatusClass[m.status] ?? 'bg-slate-100 text-graphite'">
                     {{ m.status.replace(/_/g, ' ') }}
                   </span>
                 </div>
@@ -80,8 +77,7 @@
                 <p v-if="m.description" class="mt-0.5 text-sm text-graphite">{{ m.description }}</p>
               </div>
               <div class="shrink-0 text-right">
-                <p class="font-bold text-ink">${{ m.price }}</p>
-                <p class="mt-0.5 text-xs text-graphite">Due {{ fmtDate(m.due_date) }}</p>
+                <p v-if="m.due_date" class="mt-0.5 text-xs text-graphite">Due {{ fmtDate(m.due_date) }}</p>
               </div>
             </div>
 
@@ -91,21 +87,21 @@
             </div>
 
             <!-- Already delivered -->
-            <div v-if="m.delivery_notes && (m.status === 'submitted' || m.status === 'approved')" class="mt-3 rounded-lg bg-slate-50 px-4 py-2.5 text-sm text-graphite">
+            <div v-if="m.delivery_notes && (m.deliverable_status === 'uploaded' || m.deliverable_status === 'approved')" class="mt-3 rounded-lg bg-slate-50 px-4 py-2.5 text-sm text-graphite">
               <span class="font-medium text-ink">Your delivery notes:</span> {{ m.delivery_notes }}
             </div>
-            <div v-if="m.delivery_file_url && (m.status === 'submitted' || m.status === 'approved')" class="mt-2">
+            <div v-if="m.delivery_file_url && (m.deliverable_status === 'uploaded' || m.deliverable_status === 'approved')" class="mt-2">
               <a :href="m.delivery_file_url" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline">
                 <ExternalLink class="size-3" /> View uploaded file
               </a>
             </div>
-            <div v-if="m.status === 'approved'" class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-700">
+            <div v-if="m.deliverable_status === 'approved'" class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-700">
               Client approved this milestone.
             </div>
 
             <!-- Delivery form -->
             <div
-              v-if="m.status === 'pending' || m.status === 'in_progress' || m.status === 'revision_requested'"
+              v-if="canDeliverMilestone(m)"
               class="mt-4 border-t border-slate-100 pt-4"
             >
               <template v-if="deliveringId !== m.id">
@@ -114,12 +110,12 @@
                   @click="openDelivery(m.id)"
                 >
                   <Upload class="size-3.5" />
-                  {{ m.status === 'revision_requested' ? 'Submit revision' : 'Deliver milestone' }}
+                  {{ m.deliverable_status === 'rejected' ? 'Submit revision' : 'Deliver milestone' }}
                 </button>
               </template>
               <template v-else>
                 <p class="mb-2 text-xs font-semibold text-ink">
-                  {{ m.status === 'revision_requested' ? 'Submit your revision' : 'Deliver milestone #' + m.sequence }}
+                  {{ m.deliverable_status === 'rejected' ? 'Submit your revision' : 'Deliver milestone #' + m.sequence }}
                 </p>
                 <textarea
                   v-model="deliveryNotes"
@@ -165,7 +161,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ArrowLeft, CheckCircle, Clock, ExternalLink, Loader2, Upload } from "@lucide/vue";
+import { ArrowLeft, CheckCircle, ExternalLink, Loader2, Upload } from "@lucide/vue";
 import { specialOrdersApi } from "@/api/specialOrders";
 import type { SpecialOrder, SpecialOrderMilestone, MilestoneStatus, SpecialOrderStatus } from "@/types/specialOrders";
 
@@ -241,38 +237,64 @@ async function confirmDelivery(milestoneId: number) {
 }
 
 // ── Labels / classes ─────────────────────────────────────────────────────────
-function fmtDate(v: string) {
+function canDeliverMilestone(m: SpecialOrderMilestone): boolean {
+  if (m.status === "cancelled" || m.status === "refunded") return false;
+  return !m.deliverable_status || m.deliverable_status === "pending" || m.deliverable_status === "rejected";
+}
+
+function fmtDate(v: string | null) {
+  if (!v) return "Not set";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(v));
 }
 
-const statusLabel: Record<SpecialOrderStatus, string> = {
-  draft: "Draft",
-  pending_quote: "Awaiting Quote",
+const statusLabel: Partial<Record<SpecialOrderStatus, string>> = {
+  inquiry: "Inquiry",
+  quote_pending: "Awaiting Quote",
   quote_sent: "Quote Sent",
   quote_accepted: "Accepted",
-  quote_rejected: "Rejected",
+  awaiting_payment: "Awaiting Payment",
+  partially_funded: "Partially Funded",
+  ready_for_staffing: "Ready for Staffing",
+  assigned: "Assigned",
+  on_hold: "On Hold",
+  submitted: "Submitted",
   in_progress: "In Progress",
+  ready_for_delivery: "Ready for Delivery",
   completed: "Completed",
   cancelled: "Cancelled",
+  approved: "Approved",
+  revision_requested: "Revision Requested",
+  on_revision: "On Revision",
+  refunded: "Refunded",
 };
 
-const statusClass: Record<SpecialOrderStatus, string> = {
-  draft: "bg-slate-100 text-slate-600",
-  pending_quote: "bg-amber-100 text-amber-700",
+const statusClass: Partial<Record<SpecialOrderStatus, string>> = {
+  inquiry: "bg-slate-100 text-slate-600",
+  quote_pending: "bg-amber-100 text-amber-700",
   quote_sent: "bg-blue-100 text-blue-700",
   quote_accepted: "bg-emerald-100 text-emerald-700",
-  quote_rejected: "bg-rose-100 text-rose-700",
+  awaiting_payment: "bg-amber-100 text-amber-700",
+  partially_funded: "bg-amber-100 text-amber-700",
+  ready_for_staffing: "bg-blue-100 text-blue-700",
+  assigned: "bg-blue-100 text-blue-700",
+  on_hold: "bg-slate-100 text-graphite",
+  submitted: "bg-purple-100 text-purple-700",
   in_progress: "bg-purple-100 text-purple-700",
+  ready_for_delivery: "bg-blue-100 text-blue-700",
   completed: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-slate-100 text-slate-400",
+  approved: "bg-emerald-100 text-emerald-700",
+  revision_requested: "bg-rose-100 text-rose-700",
+  on_revision: "bg-amber-100 text-amber-700",
+  refunded: "bg-slate-100 text-slate-400",
 };
 
-const milestoneStatusClass: Record<MilestoneStatus, string> = {
+const milestoneStatusClass: Partial<Record<MilestoneStatus, string>> = {
   pending: "bg-slate-100 text-graphite",
-  in_progress: "bg-amber-100 text-amber-700",
-  submitted: "bg-purple-100 text-purple-700",
-  revision_requested: "bg-rose-100 text-rose-700",
-  approved: "bg-emerald-100 text-emerald-700",
+  partially_paid: "bg-amber-100 text-amber-700",
+  paid: "bg-emerald-100 text-emerald-700",
+  overdue: "bg-rose-100 text-rose-700",
   cancelled: "bg-slate-100 text-slate-400",
+  refunded: "bg-slate-100 text-slate-400",
 };
 </script>

@@ -81,6 +81,10 @@ class CreateOrderView(GenericAPIView):
             )
 
         pricing_snapshot = validated_data["pricing_snapshot"]
+        pricing_snapshots = validated_data.get(
+            "pricing_snapshots",
+            [pricing_snapshot],
+        )
 
         user = cast(Any, request.user)
 
@@ -96,7 +100,11 @@ class CreateOrderView(GenericAPIView):
             website=website,
             client=client,
             order_payload=serializer.to_order_payload(),
-            pricing_result=pricing_snapshot,
+            pricing_result=(
+                OrderCreationService.build_pricing_result_from_snapshots(
+                    pricing_snapshots=pricing_snapshots,
+                )
+            ),
             source_pricing_snapshot=pricing_snapshot,
             triggered_by=user,
         )

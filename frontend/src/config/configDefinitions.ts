@@ -26,11 +26,18 @@ export const DOMAINS: ConfigDomainMeta[] = [
     iconName: "DollarSign",
     requiredScope: "admin",
     sections: [
-      { key: "base-pricing", label: "Base Pricing", requiredScope: "superadmin" },
-      { key: "deadline-pricing", label: "Deadline Urgency Pricing", requiredScope: "admin" },
-      { key: "academic-level-pricing",label: "Academic Level Pricing", requiredScope: "admin" },
+      { key: "base-rates", label: "Base Rates", requiredScope: "superadmin", panel: "pricing-profile" },
+      { key: "deadline-bands", label: "Deadline Bands", requiredScope: "admin", panel: "pricing-deadlines" },
+      { key: "academic-level-rates", label: "Academic Level Rates", requiredScope: "admin", panel: "pricing-academic-levels" },
+      { key: "paper-type-rates", label: "Paper Type Rates", requiredScope: "admin", panel: "pricing-paper-types" },
+      { key: "subject-rates", label: "Subject Rates", requiredScope: "admin", panel: "pricing-subject-rates" },
+      { key: "work-type-rates", label: "Work Type Rates", requiredScope: "admin", panel: "pricing-work-types" },
+      { key: "writer-level-rates", label: "Writer Level Rates", requiredScope: "admin", panel: "pricing-writer-levels" },
+      { key: "diagram-complexity", label: "Diagram Complexity", requiredScope: "admin", panel: "pricing-diagram-complexity" },
+      { key: "service-catalog", label: "Service Catalog", requiredScope: "admin", panel: "pricing-service-catalog" },
+      { key: "service-addons", label: "Add-ons & Upsells", requiredScope: "admin", panel: "pricing-addons" },
       { key: "subject-multipliers", label: "Subject Multipliers", requiredScope: "admin" },
-      { key: "writer-preference-fees",label: "Writer Preference Fees", requiredScope: "admin" },
+      { key: "writer-preference-fees", label: "Writer Preference Fees", requiredScope: "admin" },
       { key: "revision-pricing", label: "Revision Pricing", requiredScope: "admin" },
     ],
   },
@@ -206,24 +213,24 @@ export const ALL_SETTINGS: ConfigDefinition[] = [
   // DOMAIN: pricing
   // ══════════════════════════════════════════════════════════════
 
-  // Section: base-pricing
-  { key: "pricing_base_price_per_page", label: "Base price per page", description: "Starting price per page at standard academic level with no urgency.", domain: "pricing", section: "base-pricing", dataType: "currency", defaultValue: 12.00, requiredScope: "superadmin", websiteOverrideAllowed: true },
-  { key: "pricing_min_order_price", label: "Minimum order price", description: "Floor price — no order can be placed below this amount.", domain: "pricing", section: "base-pricing", dataType: "currency", defaultValue: 10.00, requiredScope: "superadmin", websiteOverrideAllowed: true },
-  { key: "pricing_currency", label: "Default currency", description: "Primary currency for the website. Affects display and checkout.", domain: "pricing", section: "base-pricing", dataType: "select", defaultValue: "USD", requiredScope: "superadmin", websiteOverrideAllowed: true, options: [{ label: "USD $", value: "USD" }, { label: "GBP £", value: "GBP" }, { label: "EUR €", value: "EUR" }, { label: "CAD $", value: "CAD" }] },
-  { key: "pricing_words_per_page", label: "Words per page", description: "Word count that constitutes a single page for pricing purposes.", domain: "pricing", section: "base-pricing", dataType: "number", defaultValue: 275, requiredScope: "superadmin", websiteOverrideAllowed: false },
+  // Section: base-rates
+  { key: "pricing_base_price_per_page", label: "Base price per page", description: "Starting price per page at standard academic level with no urgency.", domain: "pricing", section: "base-rates", dataType: "currency", defaultValue: 12.00, requiredScope: "superadmin", websiteOverrideAllowed: true },
+  { key: "pricing_min_order_price", label: "Minimum order price", description: "Floor price — no order can be placed below this amount.", domain: "pricing", section: "base-rates", dataType: "currency", defaultValue: 10.00, requiredScope: "superadmin", websiteOverrideAllowed: true },
+  { key: "pricing_currency", label: "Default currency", description: "Primary currency for the website. Affects display and checkout.", domain: "pricing", section: "base-rates", dataType: "select", defaultValue: "USD", requiredScope: "superadmin", websiteOverrideAllowed: true, options: [{ label: "USD $", value: "USD" }, { label: "GBP £", value: "GBP" }, { label: "EUR €", value: "EUR" }, { label: "CAD $", value: "CAD" }] },
+  { key: "pricing_words_per_page", label: "Words per page", description: "Word count that constitutes a single page for pricing purposes.", domain: "pricing", section: "base-rates", dataType: "number", defaultValue: 275, requiredScope: "superadmin", websiteOverrideAllowed: false },
 
-  // Section: deadline-pricing
-  { key: "pricing_urgency_6h_multiplier", label: "6h deadline uplift (%)", description: "Price premium applied to orders with a 6-hour deadline.", domain: "pricing", section: "deadline-pricing", dataType: "percentage", defaultValue: 100, requiredScope: "admin", websiteOverrideAllowed: true },
-  { key: "pricing_urgency_12h_multiplier", label: "12h deadline uplift (%)", description: "Price premium for 12-hour deadlines.", domain: "pricing", section: "deadline-pricing", dataType: "percentage", defaultValue: 75, requiredScope: "admin", websiteOverrideAllowed: true },
-  { key: "pricing_urgency_24h_multiplier", label: "24h deadline uplift (%)", description: "Price premium for 24-hour deadlines.", domain: "pricing", section: "deadline-pricing", dataType: "percentage", defaultValue: 50, requiredScope: "admin", websiteOverrideAllowed: true },
-  { key: "pricing_urgency_48h_multiplier", label: "48h deadline uplift (%)", description: "Price premium for 48-hour deadlines.", domain: "pricing", section: "deadline-pricing", dataType: "percentage", defaultValue: 25, requiredScope: "admin", websiteOverrideAllowed: true },
-  { key: "pricing_standard_multiplier", label: "Standard (72h+) uplift (%)",description: "Surcharge for standard deadlines (no uplift by default).", domain: "pricing", section: "deadline-pricing", dataType: "percentage", defaultValue: 0, requiredScope: "admin", websiteOverrideAllowed: true },
+  // Section: deadline-bands
+  { key: "pricing_urgency_6h_multiplier", label: "6h deadline uplift (%)", description: "Price premium applied to orders with a 6-hour deadline.", domain: "pricing", section: "deadline-bands", dataType: "percentage", defaultValue: 100, requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "pricing_urgency_12h_multiplier", label: "12h deadline uplift (%)", description: "Price premium for 12-hour deadlines.", domain: "pricing", section: "deadline-bands", dataType: "percentage", defaultValue: 75, requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "pricing_urgency_24h_multiplier", label: "24h deadline uplift (%)", description: "Price premium for 24-hour deadlines.", domain: "pricing", section: "deadline-bands", dataType: "percentage", defaultValue: 50, requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "pricing_urgency_48h_multiplier", label: "48h deadline uplift (%)", description: "Price premium for 48-hour deadlines.", domain: "pricing", section: "deadline-bands", dataType: "percentage", defaultValue: 25, requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "pricing_standard_multiplier", label: "Standard (72h+) uplift (%)",description: "Surcharge for standard deadlines (no uplift by default).", domain: "pricing", section: "deadline-bands", dataType: "percentage", defaultValue: 0, requiredScope: "admin", websiteOverrideAllowed: true },
 
-  // Section: academic-level-pricing
-  { key: "pricing_high_school_multiplier", label: "High School multiplier (%)", description: "Price adjustment for high school level orders.", domain: "pricing", section: "academic-level-pricing", dataType: "percentage", defaultValue: 0, requiredScope: "admin", websiteOverrideAllowed: true },
-  { key: "pricing_undergrad_multiplier", label: "Undergraduate multiplier (%)", description: "Price adjustment for undergraduate level orders.", domain: "pricing", section: "academic-level-pricing", dataType: "percentage", defaultValue: 10, requiredScope: "admin", websiteOverrideAllowed: true },
-  { key: "pricing_masters_multiplier", label: "Masters multiplier (%)", description: "Price adjustment for master's level orders.", domain: "pricing", section: "academic-level-pricing", dataType: "percentage", defaultValue: 25, requiredScope: "admin", websiteOverrideAllowed: true },
-  { key: "pricing_phd_multiplier", label: "PhD multiplier (%)", description: "Price adjustment for doctoral level orders.", domain: "pricing", section: "academic-level-pricing", dataType: "percentage", defaultValue: 40, requiredScope: "admin", websiteOverrideAllowed: true },
+  // Section: academic-level-rates
+  { key: "pricing_high_school_multiplier", label: "High School multiplier (%)", description: "Price adjustment for high school level orders.", domain: "pricing", section: "academic-level-rates", dataType: "percentage", defaultValue: 0, requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "pricing_undergrad_multiplier", label: "Undergraduate multiplier (%)", description: "Price adjustment for undergraduate level orders.", domain: "pricing", section: "academic-level-rates", dataType: "percentage", defaultValue: 10, requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "pricing_masters_multiplier", label: "Masters multiplier (%)", description: "Price adjustment for master's level orders.", domain: "pricing", section: "academic-level-rates", dataType: "percentage", defaultValue: 25, requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "pricing_phd_multiplier", label: "PhD multiplier (%)", description: "Price adjustment for doctoral level orders.", domain: "pricing", section: "academic-level-rates", dataType: "percentage", defaultValue: 40, requiredScope: "admin", websiteOverrideAllowed: true },
 
   // Section: subject-multipliers
   { key: "pricing_technical_subject_uplift",label: "Technical subject uplift (%)", description: "Extra % added for STEM, law, and other technical subjects.", domain: "pricing", section: "subject-multipliers", dataType: "percentage", defaultValue: 15, requiredScope: "admin", websiteOverrideAllowed: true },

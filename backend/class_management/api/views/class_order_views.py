@@ -25,12 +25,17 @@ from class_management.api.serializers.class_order_serializers import (
     ClassOrderCreateSerializer,
     ClassOrderDetailSerializer,
     ClassOrderListSerializer,
+    ClientClassOrderListSerializer,
+    WriterClassOrderListSerializer,
 )
 from class_management.models.class_order import ClassOrder
 from class_management.models import ClassServiceConfig
 from class_management.selectors import ClassOrderSelector
 from class_management.services.class_order_service import (
     ClassOrderService,
+)
+from class_management.services.class_available_actions_service import (
+    ClassAvailableActionsService,
 )
 from class_management.api.views.class_base_views import ClassTenantViewMixin
 
@@ -74,6 +79,11 @@ class ClassOrderViewSet(ClassTenantViewMixin, viewsets.ModelViewSet):
         Return serializer class for the current action and actor.
         """
         if self.action == "list":
+            role = getattr(self.request.user, "role", "")
+            if role == "writer":
+                return WriterClassOrderListSerializer
+            if role == "client":
+                return ClientClassOrderListSerializer
             return ClassOrderListSerializer
 
         if self.action == "create":
@@ -184,6 +194,19 @@ class ClassOrderViewSet(ClassTenantViewMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
 
         return Response(serializer.data)
+
+    @action(detail=True, methods=["get"], url_path="available-actions")
+    def available_actions(self, request, pk=None):
+        """
+        Return role-aware actions available for this class order.
+        """
+        class_order = self.get_object()
+        return Response(
+            ClassAvailableActionsService.for_order(
+                class_order=class_order,
+                user=request.user,
+            )
+        )
 
     @action(detail=True, methods=["post"])
     def submit(self, request, pk=None):

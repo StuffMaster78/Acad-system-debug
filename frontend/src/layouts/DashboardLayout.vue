@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 import { ChevronDown, ChevronRight, LogOut, Menu, Settings, X } from "@lucide/vue";
 import ActivityShortcut from "@/components/layout/ActivityShortcut.vue";
@@ -16,6 +16,7 @@ import { useUiStore } from "@/stores/ui";
 import { usePortalContextStore } from "@/stores/portalContext";
 import { useNotificationActions } from "@/composables/useNotificationActions";
 import { useNotifications } from "@/composables/useNotifications";
+import { useActivityStore } from "@/stores/activity";
 import type { UserRole } from "@/types/roles";
 
 const props = defineProps<{ role: UserRole }>();
@@ -34,6 +35,7 @@ const brandInitials = computed(() => {
 const brandLogo = computed(() => portalCtx.branding?.logo_url || "");
 const { isConnected } = useNotifications();
 useNotificationActions();
+const activity = useActivityStore();
 const navGroups = computed(() => groupedNavigationByRole[props.role]);
 
 const userMenuOpen = ref(false);
@@ -43,6 +45,7 @@ const brandMenuRoot = ref<HTMLElement | null>(null);
 const openGroups = ref<Set<string>>(new Set());
 const navRef = ref<HTMLElement | null>(null);
 const sidebarTooltip = ref<{ label: string; top: number } | null>(null);
+let activityTimer: ReturnType<typeof setInterval> | null = null;
 
 const roleLabel: Record<UserRole, string> = {
   client: "Client portal",
@@ -67,6 +70,17 @@ watch(
     sidebarTooltip.value = null;
   },
 );
+
+onMounted(() => {
+  activity.hydrate().catch(() => undefined);
+  activityTimer = setInterval(() => {
+    activity.hydrate().catch(() => undefined);
+  }, 45_000);
+});
+
+onUnmounted(() => {
+  if (activityTimer) clearInterval(activityTimer);
+});
 
 watch(
   () => route.path,

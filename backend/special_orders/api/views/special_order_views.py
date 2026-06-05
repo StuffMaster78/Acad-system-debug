@@ -1,9 +1,12 @@
 from __future__ import annotations
 from rest_framework.permissions import IsAuthenticated
 
+from decimal import Decimal
 from typing import Any, cast
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
+from django.utils.text import slugify
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
@@ -19,6 +22,12 @@ from special_orders.api.serializers import (
     SpecialOrderDetailSerializer,
     SpecialOrderListSerializer,
 )
+from special_orders.api.serializers.special_order_serializers import (
+    SpecialOrderClientDetailSerializer,
+    SpecialOrderClientListSerializer,
+    SpecialOrderWriterDetailSerializer,
+    SpecialOrderWriterListSerializer,
+)
 from special_orders.api.serializers.config_serializers import (
     EstimatedSpecialOrderSettingsSerializer,
     PredefinedSpecialOrderConfigSerializer,
@@ -28,17 +37,57 @@ from special_orders.selectors import (
     SpecialOrderConfigSelector,
     SpecialOrderSelector,
 )
-from special_orders.models import PredefinedSpecialOrderConfig
+from special_orders.models import (
+    EstimatedSpecialOrderSettings,
+    PredefinedSpecialOrderConfig,
+    PredefinedSpecialOrderDuration,
+)
 from special_orders.services.new_services.special_order_creation_service import (
     SpecialOrderCreationService,
+)
+from special_orders.services.new_services.special_order_available_actions_service import (
+    SpecialOrderAvailableActionsService,
 )
 from websites.models.websites import Website
 
 
+DEFAULT_PREDEFINED_SPECIAL_ORDER_CONFIGS = [
+    {
+        "name": "Shadow Health",
+        "description": "Shadow Health assignments and assessments.",
+        "durations": [
+            {"days": 2, "price": Decimal("250.00")},
+            {"days": 3, "price": Decimal("350.00")},
+            {"days": 5, "price": Decimal("500.00")},
+        ],
+    },
+    {
+        "name": "ATI Comprehensive",
+        "description": "ATI assessments and practice tests.",
+        "durations": [
+            {"days": 2, "price": Decimal("200.00")},
+            {"days": 3, "price": Decimal("280.00")},
+            {"days": 5, "price": Decimal("400.00")},
+        ],
+    },
+    {
+        "name": "Custom Project",
+        "description": "Custom special-order projects.",
+        "durations": [
+            {"days": 2, "price": Decimal("180.00")},
+            {"days": 3, "price": Decimal("250.00")},
+            {"days": 5, "price": Decimal("380.00")},
+        ],
+    },
+]
+
+
 class ListPredefinedSpecialOrderConfigsView(APIView):
     """
-    List active predefined special order configs for the current website.
-    Used by clients to browse fixed-price express order options.
+    List predefined special order configs for the current website.
+
+    Admins need inactive rows for configuration management. Non-admin callers
+    only receive active configs for client-facing fixed-price order options.
     """
 
     permission_classes = [IsAuthenticated]
@@ -68,7 +117,7 @@ class ListPredefinedSpecialOrderConfigsView(APIView):
         website = self._website(request)
         configs = SpecialOrderConfigSelector.list_predefined_configs(
             website=website,
-            active_only=True,
+            active_only=not self._can_manage(request.user),
         )
         serializer = PredefinedSpecialOrderConfigSerializer(configs, many=True)
         return Response(serializer.data)
@@ -133,6 +182,79 @@ class ListPredefinedSpecialOrderConfigsView(APIView):
                 predefined_order=config,
                 website=website,
             ).exclude(pk__in=seen).update(is_active=False)
+
+
+class SeedPredefinedSpecialOrderConfigsView(ListPredefinedSpecialOrderConfigsView):
+    """
+    Create or refresh the tenant's default fixed special-order presets.
+    """
+
+    def post(self, request):
+        if not self._can_manage(request.user):
+            return Response({"detail": "Admin only."}, status=status.HTTP_403_FORBIDDEN)
+
+        website = self._website(request)
+        if website is None:
+            return Response(
+                {"detail": "Website context is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        counts = {
+            "configs_created": 0,
+            "configs_updated": 0,
+            "durations_created": 0,
+            "durations_updated": 0,
+        }
+
+        with transaction.atomic():
+            EstimatedSpecialOrderSettings.objects.get_or_create(
+                website=website,
+                defaults={
+                    "default_deposit_percentage": Decimal("50.00"),
+                    "minimum_deposit_amount": Decimal("0.00"),
+                    "allow_installments": True,
+                },
+            )
+            for row in DEFAULT_PREDEFINED_SPECIAL_ORDER_CONFIGS:
+                config, was_created = PredefinedSpecialOrderConfig.objects.update_or_create(
+                    website=website,
+                    slug=slugify(row["name"]),
+                    defaults={
+                        "name": row["name"],
+                        "description": row["description"],
+                        "is_active": True,
+                        "requires_full_payment": True,
+                        "allow_wallet_payment": True,
+                        "allow_external_payment": True,
+                        "allow_discounts": True,
+                    },
+                )
+                if was_created:
+                    config.created_by = request.user
+                    config.save(update_fields=["created_by", "updated_at"])
+                    counts["configs_created"] += 1
+                else:
+                    counts["configs_updated"] += 1
+
+                for duration_row in row["durations"]:
+                    _, duration_created = (
+                        PredefinedSpecialOrderDuration.objects.update_or_create(
+                            website=website,
+                            predefined_order=config,
+                            duration_days=duration_row["days"],
+                            defaults={
+                                "price": duration_row["price"],
+                                "is_active": True,
+                            },
+                        )
+                    )
+                    if duration_created:
+                        counts["durations_created"] += 1
+                    else:
+                        counts["durations_updated"] += 1
+
+        return Response(counts)
 
 
 class PredefinedSpecialOrderConfigDetailView(APIView):
@@ -275,16 +397,20 @@ class SpecialOrderListView(APIView):
         website = getattr(request, "website", None) or user.website
         role = getattr(user, "role", "")
 
+        serializer_class = SpecialOrderListSerializer
+
         if role == "writer":
             queryset = SpecialOrderSelector.list_for_writer(
                 website=website,
                 writer=user,
             )
+            serializer_class = SpecialOrderWriterListSerializer
         elif role == "client":
             queryset = SpecialOrderSelector.list_for_client(
                 website=website,
                 client=user,
             )
+            serializer_class = SpecialOrderClientListSerializer
         elif user.is_superuser or role == "superadmin":
             # Superadmin sees all special orders across all websites
             from special_orders.models import SpecialOrder
@@ -296,7 +422,11 @@ class SpecialOrderListView(APIView):
                 website=website,
             )
 
-        serializer = SpecialOrderListSerializer(queryset, many=True)
+        serializer = serializer_class(
+            queryset,
+            many=True,
+            context={"request": request},
+        )
         return Response(serializer.data)
 
 
@@ -326,8 +456,49 @@ class SpecialOrderDetailView(APIView):
 
         self.check_object_permissions(request, special_order)
 
-        serializer = SpecialOrderDetailSerializer(special_order)
+        role = getattr(user, "role", "")
+        serializer_class = SpecialOrderDetailSerializer
+        if role == "writer":
+            serializer_class = SpecialOrderWriterDetailSerializer
+        elif role == "client":
+            serializer_class = SpecialOrderClientDetailSerializer
+
+        serializer = serializer_class(
+            special_order,
+            context={"request": request},
+        )
         return Response(serializer.data)
+
+
+class SpecialOrderAvailableActionsView(APIView):
+    permission_classes = [IsAuthenticated, CanViewSpecialOrder]
+
+    def get(self, request, special_order_id: int):
+        user = request.user
+        if user.is_superuser or getattr(user, "role", None) == "superadmin":
+            from special_orders.models import SpecialOrder
+
+            try:
+                special_order = SpecialOrder.objects.select_related(
+                    "website",
+                    "client",
+                    "writer",
+                ).get(pk=special_order_id)
+            except SpecialOrder.DoesNotExist:
+                raise NotFound("Special order not found.")
+        else:
+            special_order = SpecialOrderSelector.get_by_id(
+                website=user.website,
+                special_order_id=special_order_id,
+            )
+
+        self.check_object_permissions(request, special_order)
+        return Response(
+            SpecialOrderAvailableActionsService.for_order(
+                special_order=special_order,
+                user=request.user,
+            )
+        )
 
 
 class CreateQuotedSpecialOrderView(APIView):
@@ -354,7 +525,10 @@ class CreateQuotedSpecialOrderView(APIView):
             created_by=request.user,
         )
 
-        response_serializer = SpecialOrderDetailSerializer(special_order)
+        response_serializer = SpecialOrderClientDetailSerializer(
+            special_order,
+            context={"request": request},
+        )
         return Response(
             response_serializer.data,
             status=status.HTTP_201_CREATED,
@@ -403,7 +577,10 @@ class CreateFixedSpecialOrderView(APIView):
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
 
-        response_serializer = SpecialOrderDetailSerializer(special_order)
+        response_serializer = SpecialOrderClientDetailSerializer(
+            special_order,
+            context={"request": request},
+        )
         return Response(
             response_serializer.data,
             status=status.HTTP_201_CREATED,

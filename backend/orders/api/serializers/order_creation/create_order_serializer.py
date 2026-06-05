@@ -38,7 +38,10 @@ class CreateOrderSerializer(serializers.Serializer):
         max_length=255,
         trim_whitespace=True,
     )
-    paper_type_id = serializers.IntegerField()
+    paper_type_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+    )
     academic_level_id = serializers.IntegerField(
         required=False,
         allow_null=True,
@@ -130,12 +133,26 @@ class CreateOrderSerializer(serializers.Serializer):
         required=False,
         default=False,
     )
-    pricing_snapshot_id = serializers.IntegerField()
+    pricing_snapshot_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+    )
+    pricing_snapshot_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        default=list,
+        allow_empty=True,
+    )
 
-    def validate_paper_type_id(self, value: int) -> int:
+    def validate_paper_type_id(
+        self,
+        value: Optional[int],
+    ) -> Optional[int]:
         """
         Ensure paper type exists.
         """
+        if value is None:
+            return value
         if not PaperType.objects.filter(pk=value).exists():
             raise serializers.ValidationError("Invalid paper_type_id.")
         return value
@@ -294,15 +311,37 @@ class CreateOrderSerializer(serializers.Serializer):
             )
         return value
 
-    def validate_pricing_snapshot_id(self, value: int) -> int:
+    def validate_pricing_snapshot_id(
+        self,
+        value: Optional[int],
+    ) -> Optional[int]:
         """
         Ensure pricing snapshot exists.
         """
+        if value is None:
+            return value
         if not PricingSnapshot.objects.filter(pk=value).exists():
             raise serializers.ValidationError(
                 "Invalid pricing_snapshot_id."
             )
         return value
+
+    def validate_pricing_snapshot_ids(self, value: list[int]) -> list[int]:
+        """
+        Ensure every pricing snapshot exists.
+        """
+        if not value:
+            return value
+
+        deduped = list(dict.fromkeys(value))
+        existing_count = PricingSnapshot.objects.filter(
+            pk__in=deduped,
+        ).count()
+        if existing_count != len(deduped):
+            raise serializers.ValidationError(
+                "One or more pricing_snapshot_ids are invalid."
+            )
+        return deduped
 
     def validate_flags(self, value: list[str]) -> list[str]:
         """
@@ -329,9 +368,22 @@ class CreateOrderSerializer(serializers.Serializer):
         request = self.context.get("request")
         request_user = getattr(request, "user", None)
 
+        pricing_snapshot_id = attrs.get("pricing_snapshot_id")
+        pricing_snapshot_ids = attrs.get("pricing_snapshot_ids", [])
+
+        if pricing_snapshot_id is None and not pricing_snapshot_ids:
+            raise serializers.ValidationError(
+                {
+                    "pricing_snapshot_id": (
+                        "Provide pricing_snapshot_id or pricing_snapshot_ids."
+                    )
+                }
+            )
+
         creation_context = OrderCreationSelector.build_context(
-            paper_type_id=attrs["paper_type_id"],
-            pricing_snapshot_id=attrs["pricing_snapshot_id"],
+            paper_type_id=attrs.get("paper_type_id"),
+            pricing_snapshot_id=pricing_snapshot_id,
+            pricing_snapshot_ids=pricing_snapshot_ids,
             academic_level_id=attrs.get("academic_level_id"),
             formatting_style_id=attrs.get("formatting_style_id"),
             subject_id=attrs.get("subject_id"),
@@ -352,6 +404,7 @@ class CreateOrderSerializer(serializers.Serializer):
         )
 
         attrs["pricing_snapshot"] = creation_context.pricing_snapshot
+        attrs["pricing_snapshots"] = creation_context.pricing_snapshots
         attrs["paper_type"] = creation_context.paper_type
         attrs["academic_level"] = creation_context.academic_level
         attrs["formatting_style"] = creation_context.formatting_style
@@ -420,12 +473,12 @@ class CreateOrderSerializer(serializers.Serializer):
                 False,
             ),
             "service_family": getattr(
-                data["pricing_snapshot"],
+                getattr(data["pricing_snapshot"], "service", None),
                 "service_family",
                 "",
             ),
             "service_code": getattr(
-                data["pricing_snapshot"],
+                getattr(data["pricing_snapshot"], "service", None),
                 "service_code",
                 "",
             ),

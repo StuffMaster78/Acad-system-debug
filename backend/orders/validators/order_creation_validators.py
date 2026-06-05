@@ -285,17 +285,19 @@ class OrderCreationValidator:
                 Raised when pricing snapshot and request mismatch.
         """
         pricing_snapshot = context.pricing_snapshot
+        pricing_snapshots = getattr(context, "pricing_snapshots", [])
 
         requested_service_family = attrs.get("service_family")
         requested_service_code = attrs.get("service_code")
+        snapshot_service = getattr(pricing_snapshot, "service", None)
 
         snapshot_service_family = getattr(
-            pricing_snapshot,
+            snapshot_service,
             "service_family",
             "",
         )
         snapshot_service_code = getattr(
-            pricing_snapshot,
+            snapshot_service,
             "service_code",
             "",
         )
@@ -326,27 +328,25 @@ class OrderCreationValidator:
                 }
             )
 
-        snapshot_website_id = getattr(
-            pricing_snapshot,
-            "website_id",
-            None,
-        )
         request_website_id = getattr(
             attrs.get("request_user"),
             "website_id",
             None,
         )
 
-        if (
-            snapshot_website_id is not None
-            and request_website_id is not None
-            and snapshot_website_id != request_website_id
-        ):
-            raise ValidationError(
-                {
-                    "pricing_snapshot_id": (
-                        "Selected pricing snapshot must belong to the "
-                        "same tenant."
-                    )
-                }
-            )
+        for snapshot in pricing_snapshots or [pricing_snapshot]:
+            snapshot_website_id = getattr(snapshot, "website_id", None)
+
+            if (
+                snapshot_website_id is not None
+                and request_website_id is not None
+                and snapshot_website_id != request_website_id
+            ):
+                raise ValidationError(
+                    {
+                        "pricing_snapshot_id": (
+                            "Selected pricing snapshots must belong to "
+                            "the same tenant."
+                        )
+                    }
+                )

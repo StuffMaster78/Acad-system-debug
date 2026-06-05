@@ -1,6 +1,7 @@
 import { api, apiPath } from "./client";
 import type {
   AdminWalletAdjustmentPayload,
+  AdminEnsureWalletPayload,
   AdminWalletEntryRecord,
   AdminWalletHoldPayload,
   AdminWalletHoldRecord,
@@ -14,6 +15,11 @@ export const adminWalletsApi = {
     api.get<ListResponse<AdminWalletRecord>>(
       apiPath("/wallets/admin/wallets/"),
       { params },
+    ),
+  ensureWallet: (payload: AdminEnsureWalletPayload) =>
+    api.post<AdminWalletRecord>(
+      apiPath("/wallets/admin/wallets/ensure/"),
+      payload,
     ),
   wallet: (walletId: number) =>
     api.get<AdminWalletRecord>(

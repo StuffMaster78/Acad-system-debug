@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, watch } from "vue";
 import {
   ClipboardList,
   Cpu,
@@ -36,6 +36,13 @@ const ICON_MAP: Record<string, unknown> = {
 
 // Track which domains are expanded in the sidebar
 const expanded = ref<Record<string, boolean>>({ [config.activeDomain]: true });
+
+watch(
+  () => config.activeDomain,
+  (domain) => {
+    expanded.value[domain] = true;
+  },
+);
 
 function toggleDomain(key: string) {
   expanded.value[key] = !expanded.value[key];

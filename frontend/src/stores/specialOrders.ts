@@ -29,10 +29,8 @@ const PREVIEW_ORDERS: SpecialOrder[] = [
     total_milestones: 4,
     completed_milestones: 2,
     quoted_price: "850.00",
-    final_price: null,
     currency: "USD",
-    payment_status: "partial",
-    deadline: "2026-06-30",
+    duration_days: 45,
     created_at: "2026-04-01T10:00:00Z",
     updated_at: "2026-04-20T14:00:00Z",
     attachments_count: 3,
@@ -50,10 +48,8 @@ const PREVIEW_ORDERS: SpecialOrder[] = [
     total_milestones: 0,
     completed_milestones: 0,
     quoted_price: null,
-    final_price: null,
     currency: "USD",
-    payment_status: "pending",
-    deadline: "2026-07-15",
+    duration_days: 14,
     created_at: "2026-05-01T09:00:00Z",
     updated_at: "2026-05-10T11:00:00Z",
     attachments_count: 1,
@@ -72,7 +68,9 @@ const PREVIEW_DETAIL: SpecialOrderDetail = {
       price: "200.00",
       currency: "USD",
       due_date: "2026-05-01",
-      status: "approved",
+      status: "paid",
+      funding_status: "paid",
+      deliverable_status: "approved",
       writer_id: 5,
       writer_username: "writer.pro",
       delivery_file_url: "https://example.com/files/ch1-2.docx",
@@ -90,7 +88,9 @@ const PREVIEW_DETAIL: SpecialOrderDetail = {
       price: "200.00",
       currency: "USD",
       due_date: "2026-05-20",
-      status: "approved",
+      status: "paid",
+      funding_status: "paid",
+      deliverable_status: "approved",
       writer_id: 5,
       writer_username: "writer.pro",
       delivery_file_url: "https://example.com/files/ch3-4.docx",
@@ -108,7 +108,9 @@ const PREVIEW_DETAIL: SpecialOrderDetail = {
       price: "250.00",
       currency: "USD",
       due_date: "2026-06-10",
-      status: "in_progress",
+      status: "partially_paid",
+      funding_status: "partially_paid",
+      deliverable_status: null,
       writer_id: 5,
       writer_username: "writer.pro",
       delivery_file_url: null,
@@ -127,6 +129,8 @@ const PREVIEW_DETAIL: SpecialOrderDetail = {
       currency: "USD",
       due_date: "2026-06-25",
       status: "pending",
+      funding_status: "pending",
+      deliverable_status: null,
       writer_id: null,
       writer_username: null,
       delivery_file_url: null,
@@ -186,12 +190,12 @@ export const useSpecialOrdersStore = defineStore("specialOrders", () => {
 
   const pendingMilestones = computed(() =>
     (detail.value?.milestones ?? []).filter((m) =>
-      ["pending", "in_progress", "submitted", "revision_requested"].includes(m.status),
+      ["pending", "partially_paid", "overdue"].includes(m.status),
     ),
   );
   const completedMilestones = computed(() =>
     (detail.value?.milestones ?? []).filter((m) =>
-      ["approved", "cancelled"].includes(m.status),
+      ["paid", "cancelled", "refunded"].includes(m.status),
     ),
   );
   const latestQuote = computed<Quote | null>(() => detail.value?.latest_quote ?? null);
@@ -287,7 +291,7 @@ export const useSpecialOrdersStore = defineStore("specialOrders", () => {
     try {
       if (auth.isPreviewSession) {
         if (detail.value?.latest_quote) detail.value.latest_quote.status = "rejected";
-        if (detail.value) detail.value.status = "quote_rejected";
+        if (detail.value) detail.value.status = "quote_pending";
         return;
       }
       await specialOrdersApi.quotes.reject(orderId, quoteId, reason);
@@ -308,7 +312,10 @@ export const useSpecialOrdersStore = defineStore("specialOrders", () => {
       if (auth.isPreviewSession) {
         if (detail.value) {
           const m = detail.value.milestones.find((m) => m.id === Number(milestoneId));
-          if (m) { m.status = "submitted"; m.delivered_at = new Date().toISOString(); }
+          if (m) {
+            m.deliverable_status = "uploaded";
+            m.delivered_at = new Date().toISOString();
+          }
         }
         return;
       }
@@ -329,8 +336,13 @@ export const useSpecialOrdersStore = defineStore("specialOrders", () => {
       if (auth.isPreviewSession) {
         if (detail.value) {
           const m = detail.value.milestones.find((m) => m.id === Number(milestoneId));
-          if (m) { m.status = "approved"; m.approved_at = new Date().toISOString(); }
-          const done = detail.value.milestones.filter((m) => m.status === "approved").length;
+          if (m) {
+            m.status = "paid";
+            m.funding_status = "paid";
+            m.deliverable_status = "approved";
+            m.approved_at = new Date().toISOString();
+          }
+          const done = detail.value.milestones.filter((m) => m.status === "paid").length;
           detail.value.completed_milestones = done;
         }
         return;

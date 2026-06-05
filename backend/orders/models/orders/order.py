@@ -140,6 +140,8 @@ class Order(models.Model):
         "order_configs.PaperType",
         on_delete=models.PROTECT,
         related_name="orders",
+        null=True,
+        blank=True,
         help_text="Requested paper type.",
     )
     academic_level = models.ForeignKey(

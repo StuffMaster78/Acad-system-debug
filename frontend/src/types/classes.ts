@@ -53,6 +53,8 @@ export interface ClassOrder {
   created_at: string;
   updated_at: string;
   notes?: string;
+  available_actions?: string[];
+  blocked_actions?: { action: string; reason: string }[];
 }
 
 export interface ClassTask {
@@ -128,6 +130,9 @@ export interface ClassServiceConfig {
   quote_expiry_hours: number;
   is_active: boolean;
   display_order: number;
+  created_by_name?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ClassPricingSnapshot {

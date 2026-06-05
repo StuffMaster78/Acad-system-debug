@@ -198,6 +198,21 @@ LOGGING = {
             "level": env("CELERY_LOG_LEVEL", "INFO"),
             "propagate": False,
         },
+        "celery.task": {
+            "handlers": ["file", "console"],
+            "level": env("CELERY_TASK_LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+        "celery.utils.functional": {
+            "handlers": ["file", "console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "audit": {
+            "handlers": ["file", "console"],
+            "level": env("AUDIT_LOG_LEVEL", "WARNING"),
+            "propagate": False,
+        },
     },
 }
 

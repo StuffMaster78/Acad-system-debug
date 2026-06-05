@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.utils.request_context import get_request_website
+from notifications_system.services.notification_service import NotificationService
 from wallets.api.permissions.permissions import (
     CanAdjustWallet,
     CanManageWalletHolds,
@@ -16,6 +19,7 @@ from wallets.api.permissions.permissions import (
     CanViewWallets,
 )
 from wallets.api.serializers import (
+    AdminEnsureWalletSerializer,
     AdminCreateWalletHoldSerializer,
     AdminWalletDebitSerializer,
     AdminWalletFundSerializer,
@@ -31,6 +35,10 @@ from wallets.services import (
     WalletReconciliationService,
     WalletService,
 )
+from wallets.services.wallet_ledger_integration_service import (
+    WalletLedgerIntegrationService,
+)
+from websites.models.websites import Website
 
 
 class AdminWalletQuerysetMixin:
@@ -47,6 +55,21 @@ class AdminWalletQuerysetMixin:
 
     def get_website(self) -> Any:
         request = self.get_request()
+        user = request.user
+        if (
+            getattr(user, "is_superuser", False)
+            or getattr(user, "role", None) == "superadmin"
+        ):
+            website_id = request.query_params.get("website_id") or request.data.get(
+                "website_id"
+            )
+            if website_id:
+                return get_object_or_404(
+                    Website,
+                    id=website_id,
+                    is_active=True,
+                    is_deleted=False,
+                )
         return get_request_website(request)
 
     def get_wallet(self, wallet_id: int) -> Wallet:
@@ -177,6 +200,17 @@ class AdminWalletFundView(AdminWalletQuerysetMixin, APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        journal_entry = WalletLedgerIntegrationService.post_admin_credit(
+            website=website,
+            wallet=wallet,
+            amount=data["amount"],
+            created_by=request.user,
+            reference=data.get("reference", ""),
+            source_object_id=data.get("reference_id", ""),
+            description=data.get("description", ""),
+            metadata=data.get("metadata", {}),
+        )
+
         entry = WalletService.credit_wallet(
             wallet=wallet,
             amount=data["amount"],
@@ -189,10 +223,45 @@ class AdminWalletFundView(AdminWalletQuerysetMixin, APIView):
             reference_id=data.get("reference_id", ""),
             metadata=data.get("metadata", {}),
         )
+        entry.ledger_transaction = journal_entry
+        entry.save(update_fields=["ledger_transaction", "updated_at"])
+        self._notify_wallet_owner(
+            event_key="wallet.credited",
+            wallet=wallet,
+            amount=data["amount"],
+            entry=entry,
+            triggered_by=request.user,
+        )
 
         return Response(
             WalletEntrySerializer(entry).data,
             status=status.HTTP_201_CREATED,
+        )
+
+    @staticmethod
+    def _notify_wallet_owner(
+        *,
+        event_key: str,
+        wallet: Wallet,
+        amount: Any,
+        entry: WalletEntry,
+        triggered_by: Any,
+    ) -> None:
+        owner = getattr(wallet, "owner_user", None)
+        if owner is None:
+            return
+        NotificationService.notify(
+            event_key=event_key,
+            recipient=owner,
+            website=wallet.website,
+            context={
+                "amount": str(amount),
+                "currency": wallet.currency,
+                "wallet_id": wallet.pk,
+                "wallet_entry_id": entry.pk,
+                "new_balance": str(wallet.available_balance),
+            },
+            triggered_by=triggered_by,
         )
 
 
@@ -213,6 +282,17 @@ class AdminWalletDebitView(AdminWalletQuerysetMixin, APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        journal_entry = WalletLedgerIntegrationService.post_admin_debit(
+            website=website,
+            wallet=wallet,
+            amount=data["amount"],
+            created_by=request.user,
+            reference=data.get("reference", ""),
+            source_object_id=data.get("reference_id", ""),
+            description=data.get("description", ""),
+            metadata=data.get("metadata", {}),
+        )
+
         entry = WalletService.debit_wallet(
             wallet=wallet,
             amount=data["amount"],
@@ -225,11 +305,63 @@ class AdminWalletDebitView(AdminWalletQuerysetMixin, APIView):
             reference_id=data.get("reference_id", ""),
             metadata=data.get("metadata", {}),
         )
+        entry.ledger_transaction = journal_entry
+        entry.save(update_fields=["ledger_transaction", "updated_at"])
+        AdminWalletFundView._notify_wallet_owner(
+            event_key="wallet.debited",
+            wallet=wallet,
+            amount=data["amount"],
+            entry=entry,
+            triggered_by=request.user,
+        )
 
         return Response(
             WalletEntrySerializer(entry).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class AdminEnsureWalletView(AdminWalletQuerysetMixin, APIView):
+    """
+    Ensure a client or writer wallet exists for the resolved tenant.
+    """
+
+    permission_classes = [
+        permissions.IsAuthenticated,
+        CanAdjustWallet,
+    ]
+
+    def post(self, request: Request) -> Response:
+        website = self.get_website()
+        serializer = AdminEnsureWalletSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        User = get_user_model()
+        user_queryset = User.objects.filter(
+            website=website,
+            role=data["wallet_type"],
+            is_active=True,
+        )
+        if data.get("user_id"):
+            user_queryset = user_queryset.filter(id=data["user_id"])
+        else:
+            lookup = data["user_lookup"]
+            user_queryset = user_queryset.filter(
+                Q(email__iexact=lookup)
+                | Q(username__iexact=lookup)
+                | Q(first_name__icontains=lookup)
+                | Q(last_name__icontains=lookup)
+            )
+        user = get_object_or_404(user_queryset.order_by("id"))
+        wallet = WalletService.get_or_create_wallet(
+            website=website,
+            owner_user=user,
+            wallet_type=data["wallet_type"],
+            currency=data.get("currency", "USD"),
+        )
+
+        return Response(WalletSerializer(wallet).data, status=status.HTTP_200_OK)
 
 
 class AdminWalletCreateHoldView(AdminWalletQuerysetMixin, APIView):

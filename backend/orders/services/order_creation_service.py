@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from orders.models.orders.enums import OrderPaymentStatus, OrderStatus
+from orders.models.orders.enums import OrderScopeUnitType
 from orders.models.orders.order import Order
 from orders.models.orders.order_item import OrderItem
 from orders.models.orders.order_timeline_event import OrderTimelineEvent
@@ -19,6 +20,10 @@ from django.forms.models import model_to_dict
 from communications.services.thread_bootstrap_service import (
     CommunicationThreadBootstrapService,
 )
+from order_pricing_core.constants import PricingUnit
+from order_pricing_core.models.pricing_snapshots import PricingSnapshot
+
+
 class OrderCreationService:
     """
     Own creation of new orders from validated input and pricing-core output.
@@ -74,6 +79,9 @@ class OrderCreationService:
             ValidationError: If required fields are missing from the payload.
         """
         cls._validate_payload(order_payload=order_payload)
+        pricing_result = cls._normalize_pricing_result(
+            pricing_result=pricing_result,
+        )
         snapshot_payload = cls._build_snapshot_payload(
             pricing_result=pricing_result,
             source_pricing_snapshot=source_pricing_snapshot,
@@ -129,7 +137,7 @@ class OrderCreationService:
             website=website,
             client=client,
             topic=order_payload["topic"],
-            paper_type=order_payload["paper_type"],
+            paper_type=order_payload.get("paper_type"),
             academic_level=order_payload.get("academic_level"),
             formatting_style=order_payload.get("formatting_style"),
             subject=order_payload.get("subject"),
@@ -264,7 +272,6 @@ class OrderCreationService:
     def _validate_payload(*, order_payload: dict[str, Any]) -> None:
         required_fields = {
             "topic",
-            "paper_type",
             "client_deadline",
             "order_instructions",
         }
@@ -276,6 +283,139 @@ class OrderCreationService:
             raise ValidationError(
                 {"missing_fields": f"Missing required fields: {missing}"}
             )
+
+    @classmethod
+    def build_pricing_result_from_snapshots(
+        cls,
+        *,
+        pricing_snapshots: list[PricingSnapshot],
+    ) -> dict[str, Any]:
+        """
+        Build an order pricing payload from frozen pricing snapshots.
+        """
+        if not pricing_snapshots:
+            raise ValidationError(
+                {"pricing_snapshot_id": "At least one snapshot is required."}
+            )
+
+        items = [
+            cls._snapshot_to_item_payload(snapshot=snapshot, sort_order=index)
+            for index, snapshot in enumerate(pricing_snapshots)
+        ]
+        subtotal = sum(
+            (cls._to_decimal(item["subtotal"]) for item in items),
+            start=Decimal("0.00"),
+        )
+        discount_amount = sum(
+            (cls._to_decimal(item["discount_amount"]) for item in items),
+            start=Decimal("0.00"),
+        )
+        total = sum(
+            (cls._to_decimal(item["total_price"]) for item in items),
+            start=Decimal("0.00"),
+        )
+        first_snapshot = pricing_snapshots[0]
+        first_service = first_snapshot.service
+        is_composite = len(pricing_snapshots) > 1
+
+        return {
+            "total_price": str(total),
+            "subtotal_amount": str(subtotal),
+            "discount_amount": str(discount_amount),
+            "writer_compensation_amount": "0.00",
+            "currency": first_snapshot.currency,
+            "service_family": (
+                "composite" if is_composite else first_service.service_family
+            ),
+            "service_code": (
+                "composite" if is_composite else first_service.service_code
+            ),
+            "is_composite": is_composite,
+            "pricing_policy_version": "",
+            "preferred_writer_fee_amount": "0.00",
+            "items": items,
+        }
+
+    @classmethod
+    def _normalize_pricing_result(
+        cls,
+        *,
+        pricing_result: Any,
+    ) -> Any:
+        """
+        Convert raw snapshot input into the order pricing payload shape.
+        """
+        if isinstance(pricing_result, PricingSnapshot):
+            return cls.build_pricing_result_from_snapshots(
+                pricing_snapshots=[pricing_result],
+            )
+        return pricing_result
+
+    @classmethod
+    def _snapshot_to_item_payload(
+        cls,
+        *,
+        snapshot: PricingSnapshot,
+        sort_order: int,
+    ) -> dict[str, Any]:
+        """
+        Convert a pricing snapshot into one order item payload.
+        """
+        service = snapshot.service
+        input_data = snapshot.input_data or {}
+
+        return {
+            "service_family": service.service_family,
+            "service_code": service.service_code,
+            "pricing_snapshot": snapshot,
+            "topic": input_data.get("topic") or service.name,
+            "quantity": cls._quantity_for_snapshot(snapshot=snapshot),
+            "unit_type": cls._unit_type_for_snapshot(snapshot=snapshot),
+            "subtotal": str(snapshot.final_price),
+            "discount_amount": "0.00",
+            "total_price": str(snapshot.final_price),
+            "metadata": {
+                "pricing_snapshot_id": snapshot.pk,
+                "service_name": service.name,
+                "input_data": input_data,
+                "breakdown": snapshot.breakdown,
+            },
+            "sort_order": sort_order,
+        }
+
+    @staticmethod
+    def _quantity_for_snapshot(*, snapshot: PricingSnapshot) -> int:
+        """
+        Resolve item quantity from snapshot input and pricing unit.
+        """
+        input_data = snapshot.input_data or {}
+        pricing_unit = snapshot.service.pricing_unit
+        if pricing_unit == PricingUnit.PAGE:
+            value = input_data.get("pages")
+        elif pricing_unit == PricingUnit.SLIDE:
+            value = input_data.get("slides")
+        else:
+            value = input_data.get("quantity")
+
+        if value in {None, ""}:
+            return 1
+        return int(value)
+
+    @staticmethod
+    def _unit_type_for_snapshot(*, snapshot: PricingSnapshot) -> str:
+        """
+        Map pricing units into order scope unit types.
+        """
+        pricing_unit = snapshot.service.pricing_unit
+        if pricing_unit == PricingUnit.PAGE:
+            return OrderScopeUnitType.PAGE
+        if pricing_unit == PricingUnit.SLIDE:
+            return OrderScopeUnitType.SLIDE
+        if pricing_unit == PricingUnit.DIAGRAM:
+            return OrderScopeUnitType.DIAGRAM
+        if pricing_unit == PricingUnit.ITEM:
+            return OrderScopeUnitType.DESIGN_CONCEPT
+        return OrderScopeUnitType.OTHER
 
     @classmethod
     def _create_order_items(
@@ -317,7 +457,11 @@ class OrderCreationService:
             OrderItem.objects.create(
                 website=website,
                 order=order,
-                pricing_snapshot=source_pricing_snapshot,
+                pricing_snapshot=item.get(
+                    "pricing_snapshot",
+                    source_pricing_snapshot,
+                ),
+                unit_type=item.get("unit_type", OrderScopeUnitType.OTHER),
                 service_family=item.get(
                     "service_family",
                     order.service_family,
@@ -466,7 +610,9 @@ class OrderCreationService:
                 derived from the raw pricing result.
         """
         if isinstance(pricing_result, dict):
-            return pricing_result
+            return OrderCreationService._strip_internal_pricing_objects(
+                pricing_result
+            )
         if is_dataclass(pricing_result) and not isinstance(
             pricing_result, type
         ):
@@ -499,6 +645,22 @@ class OrderCreationService:
             else:
                 payload[attr] = value
 
+        return payload
+
+    @staticmethod
+    def _strip_internal_pricing_objects(
+        pricing_result: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Remove runtime-only model objects before JSON persistence.
+        """
+        payload = pricing_result.copy()
+        items = []
+        for item in payload.get("items", []):
+            clean_item = item.copy()
+            clean_item.pop("pricing_snapshot", None)
+            items.append(clean_item)
+        payload["items"] = items
         return payload
 
     @staticmethod

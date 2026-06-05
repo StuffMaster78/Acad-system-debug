@@ -14,14 +14,17 @@ class DiagramOrderQuoteRequestSerializer(serializers.Serializer):
 
     service_code = serializers.CharField()
 
-    quantity = serializers.IntegerField(min_value=1)
+    quantity = serializers.IntegerField(required=False, min_value=1)
     deadline_hours = serializers.IntegerField(
         required=False,
         min_value=1,
     )
 
-    diagram_type = serializers.CharField()
-    diagram_complexity = serializers.CharField()
+    diagram_type = serializers.CharField(required=False, allow_blank=True)
+    diagram_complexity = serializers.CharField(
+        required=False,
+        allow_blank=True,
+    )
 
     selected_addon_codes = serializers.ListField(
         child=serializers.CharField(),

@@ -1,6 +1,12 @@
 # writing_system/celery.py
 from __future__ import annotations
 import os, json
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"urllib3 .* or chardet .*charset_normalizer .* doesn't match a supported version!",
+)
 
 # --- Try real Celery; otherwise fall back to a safe shim ---------------------
 try:
