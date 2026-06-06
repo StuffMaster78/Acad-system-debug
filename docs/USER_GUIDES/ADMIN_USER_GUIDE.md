@@ -466,11 +466,24 @@ Campaign management, subscriber list, send history, open/click rates.
 
 ### Service catalog
 
-Subject areas, service types, academic levels, deadline options. Affects pricing calculations and order placement.
+Central setup for paper, design, diagram, and combo orders. The service catalog, add-ons, upsells, and pricing dimensions feed public calculators, the client order form, and staff order review screens.
 
 ### Pricing rules
 
-Rush fee multipliers, writer level surcharges, loyalty tier discounts, difficulty multipliers.
+- Deadline bands and rush multipliers
+- Academic-level, paper-type, subject, and work-type rates
+- Writer-level rates and writer preference fees
+- Diagram complexity and design-service pricing
+- Add-ons, upsells, minimum order price, and currency
+
+### Class and special-order configs
+
+Class and SPO setup are available from the sidebar:
+
+- `/admin/class-config` for class packages, durations, workload presets, payment policies, and writer-safe fields
+- `/admin/special-order-config` for predefined special-order templates, milestones, lifecycle presets, and writer pay rules
+
+Use these pages to hide business logic from clients while still giving them clear package, milestone, and scope choices.
 
 ### Special days
 

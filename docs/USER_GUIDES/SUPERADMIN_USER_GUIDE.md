@@ -184,7 +184,7 @@ Off by default. Enable to include recently resolved items.
 - List with search, filter by level and status
 - Click any writer: assignment history, performance stats, compensation history, review scores, quiz results, disciplinary notes
 
-### Writer Applications (`/superadmin/applications`)
+### Writer Applications (`/superadmin/writer-applications`)
 
 1. Open pending application
 2. Review personal statement, CV, portfolio
@@ -192,7 +192,7 @@ Off by default. Enable to include recently resolved items.
 4. **Approve**: writer account created, onboarding email sent
 5. **Reject**: reason saved, applicant notified
 
-### Writer Vetting (`/superadmin/vetting`)
+### Writer Vetting (`/superadmin/writer-vetting`)
 
 - Assign quiz to applicant from their application page
 - View quiz attempt: score, per-question breakdown
@@ -310,14 +310,23 @@ Review moderation across all websites.
 
 ### Service catalog
 
-Subject areas, service types, academic levels, deadline options. Scoped to selected website.
+Central pricing and order setup for paper, design, diagram, and combo orders. Use the website selector when you need tenant-specific values.
 
 ### Pricing rules
 
-- Rush fee multipliers by deadline band
-- Writer level surcharges
-- Loyalty tier discounts
-- Difficulty multipliers
+- Base rates, minimum order price, currency, and words per page
+- Deadline bands, academic-level rates, paper-type rates, subject rates, and work-type rates
+- Writer-level rates, diagram complexity, design services, add-ons, and upsells
+- Service catalog entries used by public calculators and the client order form
+
+### Class and special-order configs
+
+Class configs and SPO configs remain available from the sidebar:
+
+- `/superadmin/class-config` for class packages, durations, workload presets, payment policies, and writer visibility rules
+- `/superadmin/special-order-config` for predefined special-order templates, milestones, writer pay rules, and lifecycle presets
+
+These configs feed the client-facing class and special-order flows; clients select business-friendly options while staff controls the underlying pricing, milestone, and writer-pay logic.
 
 ### Special days
 
@@ -335,7 +344,7 @@ Platform defaults: revision window days, auto-complete delay, max bid count. Ema
 
 ## 12. Portal Definitions
 
-**URL**: `/superadmin/portals`
+**URL**: `/superadmin/portal-definitions`
 
 Each website has up to three portal surfaces: `client`, `writer`, `staff`.
 
@@ -428,13 +437,13 @@ Platform health overview. Use after deployments to confirm all services are up.
 
 ### Onboard a new writer
 
-1. Review application at `/superadmin/applications`
-2. Optionally assign vetting quiz
+1. Review application at `/superadmin/writer-applications`
+2. Optionally assign vetting quiz from `/superadmin/writer-vetting`
 3. Approve → writer receives onboarding email
 
 ### Create a new tenant
 
-1. Go to `/superadmin/websites` → New website
+1. Go to `/superadmin/tenants` for tenant records or `/superadmin/website` for the active website profile
 2. Fill in domain, name, branding
 3. Create portal definitions for client / writer / staff surfaces
 4. Configure pricing rules and service catalog
