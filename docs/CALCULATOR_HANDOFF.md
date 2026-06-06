@@ -2,7 +2,7 @@
 
 **For**: Frontend designer / developer  
 **Last updated**: June 2026  
-**Status**: Paper calculator built. Design + Diagram calculators need frontend widget only — backend is complete.
+**Status**: Paper, Design, and Diagram calculators are implemented. The CMS calculator block routes to the correct widget by `service_code`.
 
 ---
 
@@ -101,7 +101,7 @@ Widget min-width: works from 280px upward.
 
 ## 3. Calculator 1 — Paper Orders
 
-**File**: `src/components/cms/PricingCalculator.vue` ← already built
+**File**: `frontend/src/components/cms/PricingCalculator.vue`
 
 ### Input grid (2 columns, collapses at `sm`)
 
@@ -153,8 +153,8 @@ Updates live as pages change. `double` spacing = 275 words/page, `single` = 550 
 
 ## 4. Calculator 2 — Design Orders
 
-**File**: `src/components/cms/DesignCalculator.vue` ← **needs to be created**  
-**Backend endpoints**: live and ready at `/api/pricing/quotes/design/start/` and `.../update/`
+**File**: `frontend/src/components/cms/DesignCalculator.vue`  
+**Backend endpoints**: live at `/api/pricing/quotes/design/start/` and `.../update/`
 
 ### Input grid
 
@@ -189,8 +189,8 @@ Below the grid, if addons are available for this service, show the add-ons panel
 
 ## 5. Calculator 3 — Diagram Orders
 
-**File**: `src/components/cms/DiagramCalculator.vue` ← **needs to be created**  
-**Backend endpoints**: live and ready at `/api/pricing/quotes/diagram/start/` and `.../update/`
+**File**: `frontend/src/components/cms/DiagramCalculator.vue`  
+**Backend endpoints**: live at `/api/pricing/quotes/diagram/start/` and `.../update/`
 
 ### Input grid
 

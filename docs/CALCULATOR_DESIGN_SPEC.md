@@ -1,6 +1,6 @@
 # Pricing Calculator — Frontend Design Specification
 
-This document covers everything a frontend developer or designer needs to build, extend, or re-skin the pricing calculators. Three calculator types exist in the backend. One (`PaperOrderCalculator`) is fully wired. Two (`DesignOrderCalculator`, `DiagramOrderCalculator`) have complete backend endpoints but no frontend widget yet.
+This document covers everything a frontend developer or designer needs to build, extend, or re-skin the pricing calculators. Three calculator types are wired end to end: paper, design, and diagram. The CMS calculator block renders the matching frontend widget from its `service_code`.
 
 ---
 
@@ -8,9 +8,9 @@ This document covers everything a frontend developer or designer needs to build,
 
 1. [How the System Works](#1-how-the-system-works)
 2. [API Reference](#2-api-reference)
-3. [Calculator 1 — Paper Orders (built)](#3-calculator-1--paper-orders-built)
-4. [Calculator 2 — Design Orders (needs widget)](#4-calculator-2--design-orders-needs-widget)
-5. [Calculator 3 — Diagram Orders (needs widget)](#5-calculator-3--diagram-orders-needs-widget)
+3. [Calculator 1 — Paper Orders](#3-calculator-1--paper-orders)
+4. [Calculator 2 — Design Orders](#4-calculator-2--design-orders)
+5. [Calculator 3 — Diagram Orders](#5-calculator-3--diagram-orders)
 6. [Price Line Breakdown](#6-price-line-breakdown)
 7. [Optional Enhancements (already in backend)](#7-optional-enhancements-already-in-backend)
 8. [Session Handoff to Order Form](#8-session-handoff-to-order-form)
@@ -146,9 +146,9 @@ interface PricingSnapshotResponse {
 
 ---
 
-## 3. Calculator 1 — Paper Orders (built)
+## 3. Calculator 1 — Paper Orders
 
-**File**: `src/components/cms/PricingCalculator.vue`
+**File**: `frontend/src/components/cms/PricingCalculator.vue`
 
 **What it prices**: Essays, research papers, coursework, dissertations — anything priced per page.
 
@@ -233,8 +233,9 @@ After "Get exact price":
 
 ---
 
-## 4. Calculator 2 — Design Orders (needs widget)
+## 4. Calculator 2 — Design Orders
 
+**File**: `frontend/src/components/cms/DesignCalculator.vue`  
 **Backend endpoints**: `/api/pricing/quotes/design/start/` and `/api/pricing/quotes/design/{session_id}/update/`
 
 **What it prices**: Presentation slides, infographics, posters, book covers — anything priced per unit/piece.
@@ -264,7 +265,7 @@ After "Get exact price":
 2. Deadline multiplier (same `DeadlineRate` bands as paper)
 3. Each selected addon: flat fee added
 
-### Suggested widget
+### Current widget
 
 ```
 ┌────────────────────────────────────────────────────┐
@@ -288,8 +289,9 @@ After "Get exact price":
 
 ---
 
-## 5. Calculator 3 — Diagram Orders (needs widget)
+## 5. Calculator 3 — Diagram Orders
 
+**File**: `frontend/src/components/cms/DiagramCalculator.vue`  
 **Backend endpoints**: `/api/pricing/quotes/diagram/start/` and `/api/pricing/quotes/diagram/{session_id}/update/`
 
 **What it prices**: Charts, flowcharts, concept maps, org charts, process diagrams — priced by quantity and complexity.
