@@ -280,11 +280,19 @@ Key variables in `backend/.env`:
 
 ```bash
 # Backend
+docker compose exec web python manage.py check
 docker compose exec web pytest tests/ -q
+docker compose exec web python scripts/smoke_config_routes.py
+docker compose exec web python scripts/smoke_role_journeys.py
+docker compose exec web python scripts/smoke_wallet_admin.py
 
 # Frontend
+cd frontend && npm run typecheck
 cd frontend && npm run test
+cd frontend && npm run build
 ```
+
+For a quick release-readiness pass, run the backend system check, the three smoke scripts, frontend typecheck, frontend tests, and frontend production build. The smoke scripts verify that config/CMS routes resolve, class and special-order role contracts do not leak sensitive fields, and admin/superadmin wallet adjustments can find/create wallets and post ledger-backed balance movements.
 
 ---
 

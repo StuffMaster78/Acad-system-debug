@@ -249,8 +249,22 @@ class OrderTestCase(TestCase):
 ### Running Tests
 
 ```bash
-python manage.py test
+# Backend health and release smokes
+docker compose exec web python manage.py check
+docker compose exec web python scripts/smoke_config_routes.py
+docker compose exec web python scripts/smoke_role_journeys.py
+docker compose exec web python scripts/smoke_wallet_admin.py
+
+# Fuller backend test suite
+docker compose exec web pytest tests/ -q
+
+# Frontend
+cd frontend && npm run typecheck
+cd frontend && npm run test
+cd frontend && npm run build
 ```
+
+Run the smoke scripts after changes to config hub, class management, special orders, CMS intelligence routes, notifications, activity, or wallets. They intentionally exercise cross-role contracts so regressions like writer financial leaks, missing `available_actions`, broken config route names, and admin wallet adjustment failures are caught before manual QA.
 
 ---
 
