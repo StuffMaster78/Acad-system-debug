@@ -47,6 +47,11 @@ class ClassAvailableActionsService:
                 ClassOrderStatus.PARTIALLY_PAID,
             }:
                 available.append("manual_mark_paid")
+            if (
+                status in {ClassOrderStatus.PAID, ClassOrderStatus.ASSIGNED}
+                and getattr(class_order, "payment_status", "") == ClassPaymentStatus.PAID
+            ):
+                available.append("assign_writer")
             if status in {
                 ClassOrderStatus.PAID,
                 ClassOrderStatus.ASSIGNED,

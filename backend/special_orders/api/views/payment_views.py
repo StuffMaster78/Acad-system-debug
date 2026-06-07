@@ -221,26 +221,34 @@ class ManualVerifiedSpecialOrderPaymentView(APIView):
             )
 
         transaction_reference = str(data["transaction_reference"])
-        application = (
-            SpecialOrderPaymentOrchestrationService.apply_admin_adjustment(
-                special_order=special_order,
-                amount=cast(Decimal, data["amount"]),
-                idempotency_key=(
-                    f"manual-special-payment:"
-                    f"{special_order.website_id}:{special_order.pk}:"
-                    f"{transaction_reference}"
-                ),
-                ledger_entry_reference=transaction_reference,
-                applied_by=request.user,
-                reason=str(data["verification_note"]),
-                metadata={
-                    "source": "manual_staff_verification",
-                    "transaction_reference": transaction_reference,
-                    "payment_method": str(data.get("payment_method", "")),
-                    "verified_by_user_id": request.user.id,
-                },
+        from special_orders.models.funding import SpecialOrderFundingPlan
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        try:
+            application = (
+                SpecialOrderPaymentOrchestrationService.apply_admin_adjustment(
+                    special_order=special_order,
+                    amount=cast(Decimal, data["amount"]),
+                    idempotency_key=(
+                        f"manual-special-payment:"
+                        f"{special_order.website_id}:{special_order.pk}:"
+                        f"{transaction_reference}"
+                    ),
+                    ledger_entry_reference=transaction_reference,
+                    applied_by=request.user,
+                    reason=str(data["verification_note"]),
+                    metadata={
+                        "source": "manual_staff_verification",
+                        "transaction_reference": transaction_reference,
+                        "payment_method": str(data.get("payment_method", "")),
+                        "verified_by_user_id": request.user.id,
+                    },
+                )
             )
-        )
+        except SpecialOrderFundingPlan.DoesNotExist:
+            raise DRFValidationError(
+                "This special order has no funding plan. A funding plan must be "
+                "created (via the quote acceptance flow) before payments can be applied."
+            )
 
         response_serializer = SpecialOrderPaymentApplicationSerializer(
             application,
