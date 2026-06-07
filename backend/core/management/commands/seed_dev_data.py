@@ -16,6 +16,9 @@ What it creates (idempotent — safe to re-run):
   6. WriterConfig               site-level writer assignment settings
   7. TipPolicy                  default split (writer 90 / platform 10)
   8. LoyaltyTiers × 4          Bronze → Silver → Gold → Platinum
+  9. ClassOrder balance backfill  refreshes balance_amount on any order
+                                where the stored value is stale (e.g. from
+                                seeder scripts that bypass the payment flow)
 
 Run order matters — Website must exist before anything website-scoped.
 """
@@ -186,6 +189,8 @@ class Command(BaseCommand):
             self._seed_tip_policy()
             self._seed_loyalty_tiers(website)
 
+        self._backfill_class_balances()
+
         self.stdout.write(self.style.SUCCESS("\nDone! Dev environment is ready.\n"))
         self.stdout.write("  Login:    http://localhost:8000/api/v1/auth/login/")
         self.stdout.write("  Email:    admin@dev.local")
@@ -319,6 +324,30 @@ class Command(BaseCommand):
                 },
             )
             self._log("LoyaltyTier", tier.name, created)
+
+    def _backfill_class_balances(self) -> None:
+        """
+        Recalculate balance_amount for any ClassOrder where the stored value
+        does not match final_amount - paid_amount.  This covers orders created
+        via direct DB inserts or seeder scripts that bypass the payment flow
+        (which normally calls refresh_balance()).  Safe to call repeatedly.
+        """
+        try:
+            from class_management.models import ClassOrder
+        except ImportError:
+            return
+
+        stale = [
+            o for o in ClassOrder.objects.all()
+            if o.balance_amount != max(o.final_amount - o.paid_amount, Decimal("0.00"))
+        ]
+        for order in stale:
+            order.refresh_balance()
+
+        if stale:
+            self.stdout.write(
+                f"  Refreshed balance_amount on {len(stale)} ClassOrder(s)"
+            )
 
     # ----------------------------------------------------------------
 
