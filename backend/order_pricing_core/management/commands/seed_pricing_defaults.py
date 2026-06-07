@@ -246,6 +246,10 @@ class Command(BaseCommand):
 
         # ── Service catalog defaults ──────────────────────────────────────────
         self._section("SERVICE CATALOG DEFAULTS")
+        paper_count = self._seed_paper_services(
+            website=website,
+            ServiceCatalogItem=ServiceCatalogItem,
+        )
         design_count = self._seed_design_services(
             website=website,
             ServiceCatalogItem=ServiceCatalogItem,
@@ -257,13 +261,15 @@ class Command(BaseCommand):
             DiagramOrderServiceConfig=DiagramOrderServiceConfig,
         )
         self.stdout.write(self.style.SUCCESS(
-            f" {design_count} design services and {diagram_count} diagram services ready"
+            f" {paper_count} paper, {design_count} design, {diagram_count} diagram services ready"
         ))
 
         # ── Paper type rates from order_configs ────────────────────────────────
         SubjectRate = apps.get_model("order_pricing_core", "SubjectRate")
         PaperType = apps.get_model("order_configs", "PaperType")
         Subject = apps.get_model("order_configs", "Subject")
+        AcademicLevel = apps.get_model("order_configs", "AcademicLevel")
+        TypeOfWork = apps.get_model("order_configs", "TypeOfWork")
 
         self._section("PAPER TYPE RATES (from order_configs)")
         pt_created = pt_updated = 0
@@ -307,6 +313,47 @@ class Command(BaseCommand):
                 f" {sr_created} created, {sr_updated} updated across {Subject.objects.filter(website=website).count()} subjects"
             ))
 
+        # ── Academic level rates from order_configs ────────────────────────────
+        # The calculator looks up AcademicLevelRate by code=AcademicLevel.name
+        # (via optionCode fallback). Seed one rate row per real AcademicLevel so
+        # the quote engine never hits DoesNotExist for any valid selection.
+        self._section("ACADEMIC LEVEL RATES (from order_configs)")
+        al_created = al_updated = 0
+        for al in AcademicLevel.objects.filter(website=website):
+            multiplier = self._academic_level_multiplier(al.name)
+            _, created = AcademicLevelRate.objects.update_or_create(
+                website=website,
+                code=al.name,
+                defaults=dict(label=al.name, multiplier=multiplier, sort_order=0),
+            )
+            if created:
+                al_created += 1
+            else:
+                al_updated += 1
+        self.stdout.write(self.style.SUCCESS(
+            f" {al_created} created, {al_updated} updated across {AcademicLevel.objects.filter(website=website).count()} academic levels"
+        ))
+
+        # ── Work type rates from order_configs ─────────────────────────────────
+        # The calculator looks up WorkTypeRate by code=TypeOfWork.name.
+        # Seed one rate row per real TypeOfWork so every valid selection resolves.
+        self._section("WORK TYPE RATES (from order_configs)")
+        wt_created = wt_updated = 0
+        for tow in TypeOfWork.objects.filter(website=website):
+            multiplier = self._work_type_multiplier(tow.name)
+            _, created = WorkTypeRate.objects.update_or_create(
+                website=website,
+                code=tow.name,
+                defaults=dict(label=tow.name, multiplier=multiplier, sort_order=0),
+            )
+            if created:
+                wt_created += 1
+            else:
+                wt_updated += 1
+        self.stdout.write(self.style.SUCCESS(
+            f" {wt_created} created, {wt_updated} updated across {TypeOfWork.objects.filter(website=website).count()} work types"
+        ))
+
         # ── Summary ────────────────────────────────────────────────────────────
         self.stdout.write("\n" + "=" * 60)
         self.stdout.write(self.style.SUCCESS("SUMMARY"))
@@ -321,6 +368,7 @@ class Command(BaseCommand):
         self.stdout.write(f" Subject rates : {SubjectRate.objects.filter(website=website).count()}")
         self.stdout.write(f" Analysis levels : {AnalysisLevelRate.objects.filter(website=website).count()}")
         self.stdout.write(f" Diagram complexity: {DiagramComplexityRate.objects.filter(website=website).count()}")
+        self.stdout.write(f" Paper services  : {ServiceCatalogItem.objects.filter(website=website, service_family=ServiceFamily.PAPER_ORDER).count()}")
         self.stdout.write(f" Design services : {ServiceCatalogItem.objects.filter(website=website, service_family=ServiceFamily.DESIGN_ORDER).count()}")
         self.stdout.write(f" Diagram services : {ServiceCatalogItem.objects.filter(website=website, service_family=ServiceFamily.DIAGRAM_ORDER).count()}")
         self.stdout.write(self.style.SUCCESS("\n Pricing defaults seeded successfully!\n"))
@@ -474,6 +522,79 @@ class Command(BaseCommand):
             )
 
         return len(services)
+
+    def _seed_paper_services(
+        self,
+        *,
+        website,
+        ServiceCatalogItem,
+    ) -> int:
+        services = [
+            {
+                "service_code": "academic_writing",
+                "name": "Academic Writing",
+                "description": "Standard academic paper, essay, or research writing service.",
+                "sort_order": 10,
+            },
+            {
+                "service_code": "standard_paper",
+                "name": "Standard Paper",
+                "description": "General paper writing priced per page.",
+                "sort_order": 11,
+            },
+        ]
+        for data in services:
+            ServiceCatalogItem.objects.update_or_create(
+                website=website,
+                service_code=data["service_code"],
+                defaults={
+                    **data,
+                    "service_family": ServiceFamily.PAPER_ORDER,
+                    "pricing_strategy": PricingStrategy.FORMULA,
+                    "pricing_unit": PricingUnit.PAGE,
+                    "base_amount": Decimal("14.00"),
+                    "minimum_charge": Decimal("10.00"),
+                    "is_public": True,
+                    "is_active": True,
+                },
+            )
+        return len(services)
+
+    def _academic_level_multiplier(self, name: str) -> Decimal:
+        n = name.lower()
+        if any(k in n for k in ("phd", "doctorate", "doctoral")):
+            return Decimal("1.8000")
+        if any(k in n for k in ("professional", "md", "jd", "dds", "dvm", "edd", "dpt", "pharmd")):
+            return Decimal("1.6000")
+        if any(k in n for k in ("master", "graduate", "mba", "msc", "meng")):
+            return Decimal("1.5000")
+        if any(k in n for k in ("bachelor", "undergrad", "university")):
+            return Decimal("1.2000")
+        if any(k in n for k in ("college", "associate", "diploma", "certificate")):
+            return Decimal("1.1000")
+        if any(k in n for k in ("high school", "secondary", "a-level", "ib ")):
+            return Decimal("1.0000")
+        return Decimal("1.2000")
+
+    def _work_type_multiplier(self, name: str) -> Decimal:
+        n = name.lower()
+        if any(k in n for k in ("programming", "coding", "algorithm", "software", "development", "api", "database design", "system design", "data structure")):
+            return Decimal("1.6000")
+        if any(k in n for k in ("data analysis", "statistical", "quantitative", "qualitative", "research analysis", "financial analysis", "market research")):
+            return Decimal("1.3000")
+        if any(k in n for k in ("translation", "localiz")):
+            return Decimal("1.1000")
+        if any(k in n for k in ("research", "literature review", "bibliography", "annotated", "annotation")):
+            return Decimal("1.0000")
+        if any(k in n for k in ("rewriting", "rewrite", "paraphras")):
+            return Decimal("0.8000")
+        if any(k in n for k in ("editing", "revision", "review")):
+            return Decimal("0.6000")
+        if any(k in n for k in ("proofreading", "formatting", "citation", "referencing")):
+            return Decimal("0.5000")
+        if any(k in n for k in ("tutoring", "consultation", "guidance", "coaching")):
+            return Decimal("0.9000")
+        return Decimal("1.0000")
 
     def _paper_type_multiplier(self, name: str) -> Decimal:
         n = name.lower()

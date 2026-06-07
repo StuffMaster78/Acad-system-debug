@@ -92,6 +92,9 @@ restart: ## Restart Daphne web container (required after backend code changes in
 
 seed: ## Seed development data (run after first docker-up)
 	docker compose exec web python manage.py seed_dev_data
+	docker compose exec web python manage.py seed_pricing_defaults localhost
+	docker compose exec web python manage.py seed_special_orders --with-orders
+	docker compose exec web python manage.py seed_orders
 	docker compose exec web python manage.py backfill_compensation_events
 
 # Cleanup
