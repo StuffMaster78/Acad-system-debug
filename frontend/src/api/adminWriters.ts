@@ -50,6 +50,55 @@ export interface WriterActionResponse {
   status?: string;
 }
 
+export type WriterResourceType = "document" | "link" | "video" | "article" | "tool";
+
+export interface WriterResourceCategory {
+  id: number;
+  name: string;
+  description?: string;
+  display_order: number;
+  is_active: boolean;
+}
+
+export interface AdminWriterResource {
+  id: number;
+  title: string;
+  description?: string;
+  resource_type: WriterResourceType;
+  resource_type_display?: string;
+  category?: number | null;
+  category_name?: string | null;
+  file_url?: string | null;
+  files_app_file_id?: number | null;
+  external_url?: string | null;
+  video_url?: string | null;
+  content?: string;
+  is_featured: boolean;
+  is_active: boolean;
+  display_order: number;
+  view_count: number;
+  download_count: number;
+  created_by_name?: string | null;
+  updated_by_name?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface WriterResourcePayload {
+  title: string;
+  description?: string;
+  resource_type: WriterResourceType;
+  category?: number | null;
+  file_url?: string | null;
+  files_app_file_id?: number | null;
+  external_url?: string;
+  video_url?: string;
+  content?: string;
+  is_featured?: boolean;
+  is_active?: boolean;
+  display_order?: number;
+}
+
 type ListResponse<T> = T[] | { results: T[] };
 
 export const adminWritersApi = {
@@ -121,4 +170,36 @@ export const adminWritersApi = {
       apiPath(`/writer-management/writers/${registrationId}/notes/create/`),
       { body, is_pinned },
     ),
+  resourceCategories: (params?: Record<string, unknown>) =>
+    api.get<WriterResourceCategory[]>(
+      apiPath("/writer-management/admin/resource-categories/"),
+      { params },
+    ),
+  createResourceCategory: (payload: {
+    name: string;
+    description?: string;
+    display_order?: number;
+    is_active?: boolean;
+  }) =>
+    api.post<WriterResourceCategory>(
+      apiPath("/writer-management/admin/resource-categories/"),
+      payload,
+    ),
+  resources: (params?: Record<string, unknown>) =>
+    api.get<AdminWriterResource[]>(
+      apiPath("/writer-management/admin/resources/"),
+      { params },
+    ),
+  createResource: (payload: WriterResourcePayload) =>
+    api.post<AdminWriterResource>(
+      apiPath("/writer-management/admin/resources/"),
+      payload,
+    ),
+  updateResource: (id: number | string, payload: Partial<WriterResourcePayload>) =>
+    api.patch<AdminWriterResource>(
+      apiPath(`/writer-management/admin/resources/${id}/`),
+      payload,
+    ),
+  deleteResource: (id: number | string) =>
+    api.delete(apiPath(`/writer-management/admin/resources/${id}/`)),
 };

@@ -53,13 +53,9 @@ class ClassOrderService:
     }
     ASSIGN_ALLOWED = {
         ClassOrderStatus.PAID,
-        ClassOrderStatus.PARTIALLY_PAID,
-        ClassOrderStatus.ACCEPTED,
     }
     START_WORK_ALLOWED = {
         ClassOrderStatus.ASSIGNED,
-        ClassOrderStatus.PAID,
-        ClassOrderStatus.PARTIALLY_PAID,
     }
     COMPLETE_ALLOWED = {
         ClassOrderStatus.IN_PROGRESS,
@@ -388,6 +384,7 @@ class ClassOrderService:
             allowed=cls.ASSIGN_ALLOWED,
             action="assign writer",
         )
+        cls._require_fully_paid(class_order=class_order)
 
         class_order.assigned_writer = writer
         class_order.updated_by = assigned_by

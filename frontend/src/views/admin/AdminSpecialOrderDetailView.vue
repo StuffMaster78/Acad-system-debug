@@ -63,59 +63,104 @@
             </div>
 
             <!-- Admin lifecycle actions (hidden from support/editor who are view-only) -->
-            <div v-if="canManage" class="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-              <button
-                v-if="!store.detail.writer_username"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
-                :disabled="store.isSaving"
-                @click="showAssign = !showAssign"
-              >
-                <UserPlus class="size-3.5" />
-                Assign Writer
-              </button>
-              <button
-                v-if="['inquiry', 'quote_pending', 'quote_sent'].includes(store.detail.status)"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
-                @click="store.showQuoteForm = !store.showQuoteForm"
-              >
-                <FileText class="size-3.5" />
-                {{ store.showQuoteForm ? 'Cancel Quote' : 'Create Quote' }}
-              </button>
-              <button
-                v-if="['in_progress'].includes(store.detail.status)"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
-                :disabled="store.isSaving"
-                @click="handleMarkComplete"
-              >
-                <CheckCircle class="size-3.5" />
-                Mark Complete
-              </button>
-              <button
-                v-if="!['completed', 'cancelled'].includes(store.detail.status)"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
-                :disabled="store.isSaving"
-                @click="handleCancelOrder"
-              >
-                <XCircle class="size-3.5" />
-                Cancel Order
-              </button>
+            <div class="mt-5 border-t border-slate-100 pt-4">
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  v-if="canManage && canAssignSpecialWriter"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
+                  :disabled="store.isSaving"
+                  type="button"
+                  @click="openSpecialActionDialog('assign_writer')"
+                >
+                  <UserPlus class="size-3.5" />
+                  Assign Writer
+                </button>
+                <button
+                  v-if="canManage && canManualVerifySpecialPayment"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
+                  :disabled="store.isSaving"
+                  type="button"
+                  @click="openSpecialActionDialog('manual_mark_paid')"
+                >
+                  <CircleDollarSign class="size-3.5" />
+                  Verify Payment
+                </button>
+                <button
+                  v-if="canManage && hasSpecialAction('create_quote', ['inquiry', 'quote_pending', 'quote_sent'].includes(store.detail.status))"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"
+                  type="button"
+                  @click="store.showQuoteForm = !store.showQuoteForm"
+                >
+                  <FileText class="size-3.5" />
+                  {{ store.showQuoteForm ? 'Cancel Quote' : 'Create Quote' }}
+                </button>
+                <button
+                  v-if="canManage && hasSpecialAction('complete_order', ['in_progress', 'submitted', 'ready_for_delivery'].includes(store.detail.status))"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
+                  :disabled="store.isSaving"
+                  type="button"
+                  @click="openSpecialActionDialog('complete_order')"
+                >
+                  <CheckCircle class="size-3.5" />
+                  Mark Complete
+                </button>
+                <button
+                  v-if="canManage && hasSpecialAction('cancel_order', !['completed', 'cancelled', 'approved', 'refunded'].includes(store.detail.status))"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
+                  :disabled="store.isSaving"
+                  type="button"
+                  @click="openSpecialActionDialog('cancel_order')"
+                >
+                  <XCircle class="size-3.5" />
+                  Cancel Order
+                </button>
+                <button
+                  class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50 hover:text-ink"
+                  type="button"
+                  @click="showGuide = !showGuide"
+                >
+                  <BookOpen class="size-3.5" />
+                  {{ showGuide ? "Hide guide" : "State guide" }}
+                </button>
+              </div>
+
+              <p v-if="canManage && !specialAvailableActions.length" class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-graphite">
+                No direct special-order action is available for this status.
+              </p>
+
+              <div v-if="specialBlockedActions.length" class="mt-3 space-y-1.5">
+                <div
+                  v-for="item in specialBlockedActions"
+                  :key="item.action"
+                  class="flex items-start gap-2 rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                >
+                  <Lock class="mt-0.5 size-3.5 shrink-0" />
+                  <span><strong>{{ labelize(item.action) }}:</strong> {{ item.reason }}</span>
+                </div>
+              </div>
+
+              <div v-if="showGuide" class="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50">
+                <table class="min-w-full text-xs">
+                  <thead class="bg-white text-left font-semibold uppercase text-graphite">
+                    <tr>
+                      <th class="px-3 py-2">Status</th>
+                      <th class="px-3 py-2">Client</th>
+                      <th class="px-3 py-2">Writer</th>
+                      <th class="px-3 py-2">Staff</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <tr v-for="row in SPECIAL_STATE_GUIDE" :key="row.status">
+                      <td class="px-3 py-2 font-semibold text-ink">{{ row.label }}</td>
+                      <td class="px-3 py-2 text-graphite">{{ row.client }}</td>
+                      <td class="px-3 py-2 text-graphite">{{ row.writer }}</td>
+                      <td class="px-3 py-2 text-graphite">{{ row.staff }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <!-- Assign writer form -->
-            <div v-if="showAssign" class="mt-4 flex items-end gap-3 rounded-lg bg-slate-50 p-4">
-              <div class="flex-1">
-                <label class="block text-xs font-medium text-graphite mb-1">Writer ID</label>
-                <input v-model="writerIdInput" type="number" placeholder="e.g. 42" class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus-ring" />
-              </div>
-              <button
-                class="inline-flex items-center gap-1.5 rounded-lg bg-berry px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
-                :disabled="store.isSaving || !writerIdInput"
-                @click="confirmAssign"
-              >
-                <Check class="size-4" /> Assign
-              </button>
-              <button class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-graphite hover:text-ink" @click="showAssign = false">Cancel</button>
-            </div>
           </div>
         </div>
 
@@ -239,7 +284,7 @@
               <button
                 class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60 transition-colors"
                 :disabled="approvingId === m.id || store.isSaving"
-                @click="handleApprove(m.id)"
+                @click="openSpecialActionDialog('approve_milestone', m)"
               >
                 <CheckCircle class="size-4" />
                 {{ approvingId === m.id ? 'Approving…' : 'Approve Milestone' }}
@@ -323,17 +368,143 @@
 
       </template>
     </div>
+
+    <BaseModal
+      :open="specialActionDialog.open"
+      :title="currentSpecialActionCopy?.title ?? 'Confirm special-order action'"
+      :description="currentSpecialActionCopy?.description"
+      size="md"
+      @close="closeSpecialActionDialog"
+    >
+      <div v-if="store.detail && currentSpecialActionCopy" class="space-y-4">
+        <div
+          class="rounded-lg border px-4 py-3"
+          :class="{
+            'border-slate-200 bg-slate-50': currentSpecialActionCopy.tone === 'neutral',
+            'border-emerald-200 bg-emerald-50': currentSpecialActionCopy.tone === 'success',
+            'border-rose-200 bg-rose-50': currentSpecialActionCopy.tone === 'danger',
+          }"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="font-semibold text-ink">{{ store.detail.reference }} · {{ store.detail.title }}</p>
+              <p class="mt-1 text-xs text-graphite">
+                Client {{ store.detail.client_username || "External" }} · Writer {{ store.detail.writer_username || "Unassigned" }}
+              </p>
+            </div>
+            <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="statusClass[store.detail.status] ?? 'bg-slate-100 text-graphite'">
+              {{ statusLabel[store.detail.status] ?? labelize(store.detail.status) }}
+            </span>
+          </div>
+          <div class="mt-3 grid gap-2 text-xs text-graphite sm:grid-cols-3">
+            <span>Quote: {{ store.detail.quoted_price ? formatMoney(store.detail.quoted_price, store.detail.currency) : "Not quoted" }}</span>
+            <span>Milestones: {{ store.detail.completed_milestones }}/{{ store.detail.total_milestones }}</span>
+            <span>Turnaround: {{ store.detail.duration_days ? `${store.detail.duration_days} days` : "Not set" }}</span>
+          </div>
+        </div>
+
+        <div v-if="specialActionDialog.milestone" class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm">
+          <p class="font-semibold text-ink">Milestone #{{ specialActionDialog.milestone.sequence }}: {{ specialActionDialog.milestone.label }}</p>
+          <p v-if="specialActionDialog.milestone.description" class="mt-1 text-graphite">{{ specialActionDialog.milestone.description }}</p>
+          <div class="mt-3 grid gap-2 text-xs text-graphite sm:grid-cols-3">
+            <span>Amount: {{ specialActionDialog.milestone.price ? formatMoney(specialActionDialog.milestone.price, specialActionDialog.milestone.currency) : "Not priced" }}</span>
+            <span>Due: {{ fmtDate(specialActionDialog.milestone.due_date) }}</span>
+            <span>Status: {{ labelize(specialActionDialog.milestone.deliverable_status || specialActionDialog.milestone.status) }}</span>
+          </div>
+        </div>
+
+        <label v-if="specialActionDialog.action === 'assign_writer'" class="block text-sm font-medium text-ink">
+          Writer ID <span class="text-rose-500">*</span>
+          <input
+            v-model.trim="specialActionDialog.writerId"
+            class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+            inputmode="numeric"
+            placeholder="Enter writer ID"
+          >
+        </label>
+
+        <div v-if="specialActionDialog.action === 'manual_mark_paid'" class="grid gap-3 sm:grid-cols-2">
+          <label class="block text-sm font-medium text-ink">
+            Amount <span class="text-rose-500">*</span>
+            <input
+              v-model.trim="specialActionDialog.amount"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+              inputmode="decimal"
+              placeholder="0.00"
+            >
+          </label>
+          <label class="block text-sm font-medium text-ink">
+            Transaction reference <span class="text-rose-500">*</span>
+            <input
+              v-model.trim="specialActionDialog.transactionReference"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+              placeholder="Gateway, bank, wallet, or receipt reference"
+            >
+          </label>
+          <label class="block text-sm font-medium text-ink sm:col-span-2">
+            Payment method
+            <input
+              v-model.trim="specialActionDialog.paymentMethod"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+              placeholder="Stripe, bank transfer, wallet, etc."
+            >
+          </label>
+        </div>
+
+        <label v-if="specialActionDialog.action === 'cancel_order' || specialActionDialog.action === 'manual_mark_paid'" class="block text-sm font-medium text-ink">
+          {{ specialActionDialog.action === "manual_mark_paid" ? "Verification note" : "Cancellation reason" }} <span class="text-rose-500">*</span>
+          <textarea
+            v-model.trim="specialActionDialog.reason"
+            class="focus-ring mt-1 min-h-24 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+            :placeholder="specialActionDialog.action === 'manual_mark_paid' ? 'Record how the transaction was verified and who/what confirmed it...' : 'Explain why this special order is being cancelled...'"
+          />
+          <span class="mt-1 block text-xs text-graphite">
+            Minimum 10 characters. This keeps the finance and operations trail clear.
+          </span>
+        </label>
+
+        <div v-if="currentSpecialActionCopy.tone === 'danger'" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+          This action can affect quotes, milestones, deposits, writer assignment, and client visibility. Confirm only after reviewing the current state.
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex flex-wrap justify-end gap-2">
+          <button
+            class="focus-ring h-10 rounded-md border border-slate-200 px-4 text-sm font-semibold text-graphite hover:text-ink"
+            type="button"
+            @click="closeSpecialActionDialog"
+          >
+            Cancel
+          </button>
+          <button
+            class="focus-ring h-10 rounded-md px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            :class="{
+              'bg-ink hover:bg-slate-800': currentSpecialActionCopy?.tone === 'neutral',
+              'bg-emerald-600 hover:bg-emerald-700': currentSpecialActionCopy?.tone === 'success',
+              'bg-rose-600 hover:bg-rose-700': currentSpecialActionCopy?.tone === 'danger',
+            }"
+            type="button"
+            :disabled="!specialActionCanSubmit"
+            @click="confirmSpecialActionDialog"
+          >
+            {{ store.isSaving ? "Working..." : currentSpecialActionCopy?.confirm }}
+          </button>
+        </div>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { AlertCircle, ArrowLeft, Check, CheckCircle, FileText, Lock, Paperclip, UserCheck, UserPlus, XCircle } from "@lucide/vue";
+import { AlertCircle, ArrowLeft, BookOpen, Check, CheckCircle, CircleDollarSign, FileText, Lock, Paperclip, UserCheck, UserPlus, XCircle } from "@lucide/vue";
 import { useSpecialOrdersStore } from "@/stores/specialOrders";
 import { specialOrdersApi } from "@/api/specialOrders";
 import { useAuthStore } from "@/stores/auth";
-import type { MilestoneStatus, SpecialOrderStatus } from "@/types/specialOrders";
+import BaseModal from "@/components/ui/BaseModal.vue";
+import type { MilestoneStatus, SpecialOrderMilestone, SpecialOrderStatus } from "@/types/specialOrders";
 
 const route = useRoute();
 const router = useRouter();
@@ -344,6 +515,55 @@ const auth = useAuthStore();
 const canManage = computed(() =>
   auth.role === "admin" || auth.role === "superadmin" || auth.isPreviewSession,
 );
+
+const showGuide = ref(false);
+const specialAvailableActions = computed(() => store.detail?.available_actions ?? []);
+const specialBlockedActions = computed(() => store.detail?.blocked_actions ?? []);
+const isSpecialFundedForStaffing = computed(() =>
+  store.detail?.status === "ready_for_staffing" || (store.detail?.status === "assigned" && !store.detail.writer_username),
+);
+const canAssignSpecialWriter = computed(() =>
+  Boolean(
+    canManage.value
+    && store.detail
+    && !store.detail.writer_username
+    && isSpecialFundedForStaffing.value
+    && hasSpecialAction("assign_writer", store.detail.status === "ready_for_staffing"),
+  ),
+);
+const canManualVerifySpecialPayment = computed(() =>
+  Boolean(
+    canManage.value
+    && store.detail
+    && !["ready_for_staffing", "assigned", "in_progress", "submitted", "ready_for_delivery", "completed", "approved", "cancelled", "refunded"].includes(store.detail.status)
+    && hasSpecialAction(
+      "manual_mark_paid",
+      ["quote_accepted", "awaiting_payment", "partially_funded"].includes(store.detail.status),
+    ),
+  ),
+);
+
+const SPECIAL_STATE_GUIDE = [
+  { status: "inquiry", label: "Inquiry", client: "Submit scope", writer: "-", staff: "Create quote, hold, cancel" },
+  { status: "quote_sent", label: "Quote sent", client: "Accept or reject quote", writer: "-", staff: "Revise quote, hold, cancel" },
+  { status: "awaiting_payment", label: "Awaiting payment", client: "Pay deposit/full quote", writer: "-", staff: "Monitor payment" },
+  { status: "ready_for_staffing", label: "Ready for staffing", client: "Wait for assignment", writer: "-", staff: "Assign writer, hold, cancel" },
+  { status: "assigned", label: "Assigned", client: "Track progress", writer: "Start work", staff: "Start work, hold, cancel" },
+  { status: "in_progress", label: "In progress", client: "Track milestones", writer: "Submit work", staff: "Hold, cancel, manage milestones" },
+  { status: "submitted", label: "Submitted", client: "Review delivery", writer: "-", staff: "Complete, request revision, hold" },
+  { status: "ready_for_delivery", label: "Ready for delivery", client: "Review delivery", writer: "-", staff: "Complete, request revision" },
+  { status: "completed", label: "Completed", client: "Approve or request revision", writer: "-", staff: "Approve, request revision" },
+  { status: "cancelled", label: "Cancelled", client: "-", writer: "-", staff: "No lifecycle action" },
+];
+
+function labelize(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function hasSpecialAction(action: string, fallback = false) {
+  if (specialAvailableActions.value.length) return specialAvailableActions.value.includes(action);
+  return fallback;
+}
 
 onMounted(() => store.loadDetail(route.params.id as string));
 
@@ -411,19 +631,27 @@ const milestonePct = computed(() => {
   return Math.round((d.completed_milestones / d.total_milestones) * 100);
 });
 
-// Assign writer
-const showAssign = ref(false);
-const writerIdInput = ref<number | "">("");
-
-async function confirmAssign() {
-  if (!store.detail || !writerIdInput.value) return;
-  if (!auth.isPreviewSession) {
-    await specialOrdersApi.assignWriter(store.detail.id, Number(writerIdInput.value));
-    await store.loadDetail(store.detail.id);
-  }
-  showAssign.value = false;
-  writerIdInput.value = "";
+function formatMoney(amount: string | number, currency = "USD"): string {
+  const numeric = Number(amount);
+  if (!Number.isFinite(numeric)) return `${currency} ${amount}`;
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(numeric);
 }
+
+const specialOutstandingAmount = computed(() => {
+  const detail = store.detail;
+  if (!detail) return "";
+  const milestoneBalance = detail.milestones.reduce((total, milestone) => {
+    const balance = Number(milestone.balance_amount ?? milestone.amount_due ?? 0);
+    return Number.isFinite(balance) ? total + balance : total;
+  }, 0);
+  if (milestoneBalance > 0) return milestoneBalance.toFixed(2);
+  const quoted = Number(detail.quoted_price ?? 0);
+  return Number.isFinite(quoted) && quoted > 0 ? quoted.toFixed(2) : "";
+});
 
 // Quote
 function addMilestone() {
@@ -440,16 +668,6 @@ async function handleSubmitQuote() {
 // Milestone approval
 const approvingId = ref<number | null>(null);
 
-async function handleApprove(milestoneId: number) {
-  if (!store.detail) return;
-  approvingId.value = milestoneId;
-  try {
-    await store.approveMilestone(store.detail.id, milestoneId);
-  } catch { /* non-fatal */ } finally {
-    approvingId.value = null;
-  }
-}
-
 function fmtDate(v: string | null): string {
   if (!v) return "Not set";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(v));
@@ -460,26 +678,123 @@ function fmtDateTime(v: string | null): string {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(v));
 }
 
-async function handleMarkComplete() {
-  if (!store.detail) return;
-  if (!confirm("Mark this special order as complete?")) return;
-  try {
-    await specialOrdersApi.complete(store.detail.id);
-    await store.loadDetail(store.detail.id);
-  } catch {
-    // errors surfaced by the store
+type SpecialAction = "assign_writer" | "manual_mark_paid" | "complete_order" | "cancel_order" | "approve_milestone";
+
+const specialActionDialog = reactive({
+  open: false,
+  action: null as SpecialAction | null,
+  writerId: "",
+  amount: "",
+  transactionReference: "",
+  paymentMethod: "",
+  reason: "",
+  milestone: null as SpecialOrderMilestone | null,
+});
+
+const specialActionCopy: Record<SpecialAction, { title: string; description: string; confirm: string; tone: "neutral" | "success" | "danger" }> = {
+  assign_writer: {
+    title: "Assign writer",
+    description: "Assign this special order to a writer after confirming the quote, scope, and current state.",
+    confirm: "Assign writer",
+    tone: "neutral",
+  },
+  manual_mark_paid: {
+    title: "Verify special-order payment",
+    description: "Apply a verified external payment that did not reflect automatically. Transaction reference and audit note are required.",
+    confirm: "Verify payment",
+    tone: "success",
+  },
+  complete_order: {
+    title: "Mark special order complete",
+    description: "Close the active special-order workflow after confirming all deliverables are ready for the client.",
+    confirm: "Mark complete",
+    tone: "success",
+  },
+  cancel_order: {
+    title: "Cancel special order",
+    description: "Cancel this special order and keep a clear reason for the operational and finance trail.",
+    confirm: "Cancel order",
+    tone: "danger",
+  },
+  approve_milestone: {
+    title: "Approve milestone",
+    description: "Approve the uploaded deliverable for this milestone and update the milestone progress.",
+    confirm: "Approve milestone",
+    tone: "success",
+  },
+};
+
+const currentSpecialActionCopy = computed(() =>
+  specialActionDialog.action ? specialActionCopy[specialActionDialog.action] : null,
+);
+
+const specialActionCanSubmit = computed(() => {
+  if (store.isSaving || !specialActionDialog.action) return false;
+  if (specialActionDialog.action === "assign_writer") return canAssignSpecialWriter.value && Number(specialActionDialog.writerId) > 0;
+  if (specialActionDialog.action === "manual_mark_paid") {
+    return canManualVerifySpecialPayment.value
+      && Number(specialActionDialog.amount) > 0
+      && specialActionDialog.transactionReference.trim().length >= 4
+      && specialActionDialog.reason.trim().length >= 10;
   }
+  if (specialActionDialog.action === "cancel_order") return specialActionDialog.reason.trim().length >= 10;
+  if (specialActionDialog.action === "approve_milestone") return Boolean(specialActionDialog.milestone);
+  return true;
+});
+
+function openSpecialActionDialog(action: SpecialAction, milestone: SpecialOrderMilestone | null = null) {
+  specialActionDialog.open = true;
+  specialActionDialog.action = action;
+  specialActionDialog.writerId = "";
+  specialActionDialog.amount = action === "manual_mark_paid" ? specialOutstandingAmount.value : "";
+  specialActionDialog.transactionReference = "";
+  specialActionDialog.paymentMethod = "";
+  specialActionDialog.reason = "";
+  specialActionDialog.milestone = milestone;
 }
 
-async function handleCancelOrder() {
-  const reason = prompt("Reason for cancellation (required):");
-  if (!reason?.trim()) return;
-  if (!store.detail) return;
-  try {
-    await specialOrdersApi.cancel(store.detail.id, reason.trim());
+function closeSpecialActionDialog() {
+  specialActionDialog.open = false;
+  specialActionDialog.action = null;
+  specialActionDialog.writerId = "";
+  specialActionDialog.amount = "";
+  specialActionDialog.transactionReference = "";
+  specialActionDialog.paymentMethod = "";
+  specialActionDialog.reason = "";
+  specialActionDialog.milestone = null;
+}
+
+async function confirmSpecialActionDialog() {
+  if (!store.detail || !specialActionCanSubmit.value || !specialActionDialog.action) return;
+
+  if (specialActionDialog.action === "assign_writer") {
+    if (!auth.isPreviewSession) {
+      await specialOrdersApi.assignWriter(store.detail.id, Number(specialActionDialog.writerId));
+      await store.loadDetail(store.detail.id);
+    }
+  } else if (specialActionDialog.action === "manual_mark_paid") {
+    await specialOrdersApi.manualVerifyPayment(store.detail.id, {
+      amount: specialActionDialog.amount,
+      transaction_reference: specialActionDialog.transactionReference.trim(),
+      verification_note: specialActionDialog.reason.trim(),
+      payment_method: specialActionDialog.paymentMethod.trim(),
+    });
     await store.loadDetail(store.detail.id);
-  } catch {
-    // errors surfaced by the store
+  } else if (specialActionDialog.action === "complete_order") {
+    await specialOrdersApi.complete(store.detail.id);
+    await store.loadDetail(store.detail.id);
+  } else if (specialActionDialog.action === "cancel_order") {
+    await specialOrdersApi.cancel(store.detail.id, specialActionDialog.reason.trim());
+    await store.loadDetail(store.detail.id);
+  } else if (specialActionDialog.action === "approve_milestone" && specialActionDialog.milestone) {
+    approvingId.value = specialActionDialog.milestone.id;
+    try {
+      await store.approveMilestone(store.detail.id, specialActionDialog.milestone.id);
+    } finally {
+      approvingId.value = null;
+    }
   }
+
+  closeSpecialActionDialog();
 }
 </script>

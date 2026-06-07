@@ -30,6 +30,27 @@ export interface UpdateMePayload {
   timezone?: string | null;
 }
 
+export interface ProfileUpdateRequest {
+  id: number;
+  requested_changes: Record<string, unknown>;
+  status: string;
+  submitted_note?: string;
+  review_note?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AccountDeletionState {
+  request_id: number;
+  status: string;
+  requested_at: string;
+  confirmed_at?: string | null;
+  scheduled_deletion_at?: string | null;
+  retained_until?: string | null;
+  completed_at?: string | null;
+  reason?: string | null;
+}
+
 export interface ChangePasswordPayload {
   current_password: string;
   new_password: string;
@@ -94,6 +115,10 @@ export const authApi = {
   me: () => api.get<AuthUser>(apiPath("/users/users/me/")),
   updateMe: (payload: UpdateMePayload) =>
     api.patch<AuthUser>(apiPath("/users/users/me/"), payload),
+  profileUpdateRequests: () =>
+    api.get<ProfileUpdateRequest[]>(apiPath("/users/profile-update-requests/")),
+  requestProfileUpdate: (payload: { requested_changes: Record<string, unknown>; submitted_note?: string }) =>
+    api.post<ProfileUpdateRequest>(apiPath("/users/profile-update-requests/"), payload),
   changePassword: (payload: ChangePasswordPayload) =>
     api.post(apiPath("/auth/password/change/"), payload),
   forgotPassword: (email: string) =>
@@ -118,4 +143,10 @@ export const authApi = {
     });
   },
   logout: () => api.post(apiPath("/auth/logout/")),
+  accountDeletionState: () =>
+    api.get<AccountDeletionState>(apiPath("/auth/account-deletion/")),
+  requestAccountDeletion: (reason: string) =>
+    api.post(apiPath("/auth/account-deletion/request/"), { reason }),
+  confirmAccountDeletion: () =>
+    api.post(apiPath("/auth/account-deletion/confirm/"), { confirm: true }),
 };

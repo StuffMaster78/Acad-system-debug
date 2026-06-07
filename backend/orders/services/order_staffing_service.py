@@ -30,6 +30,7 @@ from orders.models.orders.constants import (
     ORDER_INTEREST_TYPE_SHOW_INTEREST,
     ORDER_STATUS_IN_PROGRESS,
     ORDER_STATUS_READY_FOR_STAFFING,
+    ORDER_PAYMENT_STATUS_FULLY_PAID,
     ORDER_TIMELINE_EVENT_ASSIGNED,
     ORDER_TIMELINE_EVENT_INTEREST_CREATED,
     ORDER_TIMELINE_EVENT_POOL_OPENED,
@@ -105,6 +106,7 @@ class OrderStaffingService:
             allowed_statuses={ORDER_STATUS_READY_FOR_STAFFING},
             message="Only staffing ready orders can be routed.",
         )
+        cls._ensure_fully_paid(locked_order)
         cls._ensure_no_current_assignment(locked_order)
 
         if locked_order.preferred_writer is not None:
@@ -171,6 +173,7 @@ class OrderStaffingService:
             allowed_statuses={ORDER_STATUS_READY_FOR_STAFFING},
             message="Only staffing ready orders can accept interest.",
         )
+        cls._ensure_fully_paid(locked_order)
         cls._ensure_visibility_mode(
             locked_order,
             allowed_modes={ORDER_VISIBILITY_POOL},
@@ -309,6 +312,7 @@ class OrderStaffingService:
             allowed_statuses={ORDER_STATUS_READY_FOR_STAFFING},
             message="Only staffing ready orders can be taken.",
         )
+        cls._ensure_fully_paid(locked_order)
         cls._ensure_visibility_mode(
             locked_order,
             allowed_modes={ORDER_VISIBILITY_POOL},
@@ -408,6 +412,7 @@ class OrderStaffingService:
             allowed_statuses={ORDER_STATUS_READY_FOR_STAFFING},
             message="Only staffing ready orders can be assigned.",
         )
+        cls._ensure_fully_paid(locked_order)
         cls._ensure_no_current_assignment(locked_order)
 
         if locked_interest.status != ORDER_INTEREST_STATUS_PENDING:
@@ -491,6 +496,7 @@ class OrderStaffingService:
             allowed_statuses={ORDER_STATUS_READY_FOR_STAFFING},
             message="Only staffing ready orders can be assigned.",
         )
+        cls._ensure_fully_paid(locked_order)
         cls._ensure_no_current_assignment(locked_order)
         cls._validate_writer_website(writer=writer, order=locked_order)
 
@@ -572,6 +578,7 @@ class OrderStaffingService:
             allowed_statuses={ORDER_STATUS_READY_FOR_STAFFING},
             message="Only staffing ready orders can be assigned.",
         )
+        cls._ensure_fully_paid(locked_order)
         cls._ensure_no_current_assignment(locked_order)
         cls._validate_writer_website(writer=writer, order=locked_order)
 
@@ -1133,6 +1140,13 @@ class OrderStaffingService:
         """
         if order.status not in allowed_statuses:
             raise ValidationError(message)
+
+    @staticmethod
+    def _ensure_fully_paid(order: Order) -> None:
+        if getattr(order, "payment_status", None) != ORDER_PAYMENT_STATUS_FULLY_PAID:
+            raise ValidationError(
+                "Order must be fully paid before it can enter writer staffing."
+            )
 
     @classmethod
     def _ensure_visibility_mode(

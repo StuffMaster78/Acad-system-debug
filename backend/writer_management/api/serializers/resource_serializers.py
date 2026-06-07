@@ -81,7 +81,8 @@ class WriterResourceSerializer(serializers.ModelSerializer):
             "resource_type_display",
             "category",
             "category_name",
-            "file",
+            "file_url",
+            "files_app_file_id",
             "external_url",
             "video_url",
             "content",
@@ -98,7 +99,7 @@ class WriterResourceSerializer(serializers.ModelSerializer):
         return category.name if category is not None else None
 
     def get_has_file(self, obj) -> bool:
-        return bool(obj.file)
+        return bool(obj.file_url or obj.files_app_file_id)
 
     def get_has_external_url(self, obj) -> bool:
         return bool(obj.external_url)
@@ -129,7 +130,8 @@ class WriterResourceAdminSerializer(serializers.ModelSerializer):
             "resource_type_display",
             "category",
             "category_name",
-            "file",
+            "file_url",
+            "files_app_file_id",
             "external_url",
             "video_url",
             "content",
@@ -231,6 +233,7 @@ class CreateWriterResourceSerializer(serializers.Serializer):
         allow_null=True,
     )
     file_url = serializers.URLField(required=False, allow_null=True)
+    files_app_file_id = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     external_url = serializers.URLField(
         required=False, allow_blank=True, default=""
     )
@@ -244,40 +247,41 @@ class CreateWriterResourceSerializer(serializers.Serializer):
     is_active = serializers.BooleanField(default=True)
     display_order = serializers.IntegerField(default=0, min_value=0)
 
-def validate(self, attrs: dict) -> dict:
-    resource_type = attrs.get("resource_type")
+    def validate(self, attrs: dict) -> dict:
+        resource_type = attrs.get("resource_type")
+        has_file = bool(attrs.get("file_url") or attrs.get("files_app_file_id"))
 
-    if resource_type == WriterResource.ResourceType.DOCUMENT:
-        if not attrs.get("file"):
-            raise serializers.ValidationError(
-                {"file": "A file is required for document resources."}
-            )
+        if resource_type == WriterResource.ResourceType.DOCUMENT:
+            if not has_file:
+                raise serializers.ValidationError(
+                    {"file_url": "Upload a file or provide a file URL for document resources."}
+                )
 
-    elif resource_type == WriterResource.ResourceType.LINK:
-        if not attrs.get("external_url"):
-            raise serializers.ValidationError(
-                {"external_url": "An external URL is required for link resources."}
-            )
+        elif resource_type == WriterResource.ResourceType.LINK:
+            if not attrs.get("external_url"):
+                raise serializers.ValidationError(
+                    {"external_url": "An external URL is required for link resources."}
+                )
 
-    elif resource_type == WriterResource.ResourceType.VIDEO:
-        if not attrs.get("video_url"):
-            raise serializers.ValidationError(
-                {"video_url": "A video URL is required for video resources."}
-            )
+        elif resource_type == WriterResource.ResourceType.VIDEO:
+            if not attrs.get("video_url"):
+                raise serializers.ValidationError(
+                    {"video_url": "A video URL is required for video resources."}
+                )
 
-    elif resource_type == WriterResource.ResourceType.ARTICLE:
-        if not attrs.get("content", "").strip():
-            raise serializers.ValidationError(
-                {"content": "Content is required for article resources."}
-            )
+        elif resource_type == WriterResource.ResourceType.ARTICLE:
+            if not attrs.get("content", "").strip():
+                raise serializers.ValidationError(
+                    {"content": "Content is required for article resources."}
+                )
 
-    elif resource_type == WriterResource.ResourceType.TOOL:
-        if not attrs.get("external_url") and not attrs.get("file"):
-            raise serializers.ValidationError(
-                {"external_url": "A URL or file is required for tool resources."}
-            )
+        elif resource_type == WriterResource.ResourceType.TOOL:
+            if not attrs.get("external_url") and not has_file:
+                raise serializers.ValidationError(
+                    {"external_url": "A URL or uploaded file is required for tool resources."}
+                )
 
-    return attrs
+        return attrs
 
 
 class UpdateWriterResourceSerializer(serializers.Serializer):
@@ -302,7 +306,8 @@ class UpdateWriterResourceSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
     )
-    file = serializers.FileField(required=False, allow_null=True)
+    file_url = serializers.URLField(required=False, allow_null=True)
+    files_app_file_id = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     external_url = serializers.URLField(
         required=False, allow_blank=True
     )

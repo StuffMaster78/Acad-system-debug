@@ -337,6 +337,29 @@ export const useClassesStore = defineStore("classes", () => {
     }
   }
 
+  async function manualVerifyPayment(classId: number | string, payload: {
+    amount: string;
+    transaction_reference: string;
+    verification_note: string;
+    payment_method?: string;
+  }) {
+    const auth = useAuthStore();
+    isSaving.value = true;
+    try {
+      if (auth.isPreviewSession) {
+        if (detail.value) {
+          detail.value.status = "paid";
+          detail.value.payment_status = "paid";
+        }
+        return;
+      }
+      await classesApi.manualVerifyPayment(classId, payload);
+      await loadDetail(classId);
+    } finally {
+      isSaving.value = false;
+    }
+  }
+
   async function cancelClass(classId: number | string, reason = "Cancelled from staff portal") {
     const auth = useAuthStore();
     isSaving.value = true;
@@ -384,6 +407,7 @@ export const useClassesStore = defineStore("classes", () => {
     submitTask,
     gradeTask,
     assignWriter,
+    manualVerifyPayment,
     cancelClass,
     loadPortalAccess,
     reset,

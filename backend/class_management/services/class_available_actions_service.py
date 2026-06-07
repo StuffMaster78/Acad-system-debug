@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from class_management.constants import ClassOrderStatus
+from class_management.constants import ClassOrderStatus, ClassPaymentStatus
 
 
 class ClassAvailableActionsService:
@@ -37,6 +37,16 @@ class ClassAvailableActionsService:
         if is_staff:
             if status == ClassOrderStatus.SUBMITTED:
                 available.append("start_review")
+            if getattr(class_order, "payment_status", "") in {
+                ClassPaymentStatus.UNPAID,
+                ClassPaymentStatus.PARTIALLY_PAID,
+                ClassPaymentStatus.OVERDUE,
+            } or status in {
+                ClassOrderStatus.ACCEPTED,
+                ClassOrderStatus.PENDING_PAYMENT,
+                ClassOrderStatus.PARTIALLY_PAID,
+            }:
+                available.append("manual_mark_paid")
             if status in {
                 ClassOrderStatus.PAID,
                 ClassOrderStatus.ASSIGNED,
@@ -49,6 +59,24 @@ class ClassAvailableActionsService:
                 available.append("cancel")
             if status in {ClassOrderStatus.COMPLETED, ClassOrderStatus.CANCELLED}:
                 available.append("archive")
+
+            if status in {
+                ClassOrderStatus.ACCEPTED,
+                ClassOrderStatus.PENDING_PAYMENT,
+                ClassOrderStatus.PARTIALLY_PAID,
+            }:
+                blocked.append({
+                    "action": "assign_writer",
+                    "reason": "Class must be fully paid before writer assignment.",
+                })
+            elif (
+                status in {ClassOrderStatus.PAID, ClassOrderStatus.ASSIGNED, ClassOrderStatus.IN_PROGRESS}
+                and getattr(class_order, "payment_status", "") != ClassPaymentStatus.PAID
+            ):
+                blocked.append({
+                    "action": "assign_writer",
+                    "reason": "Payment status is not paid, so writer assignment is blocked.",
+                })
 
         if status in cls.TERMINAL_STATUSES and not available:
             blocked.append({"action": "lifecycle", "reason": "This class order is terminal."})

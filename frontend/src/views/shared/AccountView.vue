@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { Camera, KeyRound, Loader2, MapPin, PenLine, Phone, User } from "@lucide/vue";
+import { AlertTriangle, Camera, KeyRound, Loader2, MapPin, PenLine, Phone, Trash2, User } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
-import { authApi } from "@/api/auth";
+import { authApi, type AccountDeletionState, type ProfileUpdateRequest } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 import type { UserRole } from "@/types/roles";
@@ -63,6 +63,10 @@ const profileForm = reactive({
 const profileSaving = ref(false);
 const profileNotice = ref("");
 const profileError = ref("");
+const profileRequests = ref<ProfileUpdateRequest[]>([]);
+const profileRequestsLoading = ref(false);
+
+const latestProfileRequest = computed(() => profileRequests.value[0] ?? null);
 
 watch(() => auth.user, (u) => {
   if (!u) return;
@@ -78,19 +82,39 @@ async function saveProfile() {
   profileNotice.value = "";
   profileSaving.value = true;
   try {
-    const { data } = await authApi.updateMe({
-      full_name: profileForm.full_name || undefined,
-      bio: profileForm.bio || null,
-      phone: profileForm.phone || null,
-      location: profileForm.location || null,
-      timezone: profileForm.timezone || null,
+    const requested_changes: Record<string, unknown> = {
+      display_name: profileForm.full_name || "",
+      bio: profileForm.bio || "",
+      country: profileForm.location || "",
+      timezone: profileForm.timezone || "",
+    };
+    const { data } = await authApi.requestProfileUpdate({
+      requested_changes,
+      submitted_note: profileForm.phone
+        ? `Phone update requested: ${profileForm.phone}`
+        : "Submitted from account profile page.",
     });
-    auth.updateUser(data);
-    profileNotice.value = "Profile saved.";
-  } catch {
-    profileError.value = "Could not save profile. Please try again.";
+    profileRequests.value = [data, ...profileRequests.value];
+    profileNotice.value = "Profile change request submitted for staff review.";
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    profileError.value = detail ?? "Could not submit profile change request.";
   } finally {
     profileSaving.value = false;
+  }
+}
+
+async function loadProfileRequests() {
+  profileRequestsLoading.value = true;
+  try {
+    const { data } = await authApi.profileUpdateRequests();
+    profileRequests.value = [...data].sort((a, b) =>
+      String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")),
+    );
+  } catch {
+    profileRequests.value = [];
+  } finally {
+    profileRequestsLoading.value = false;
   }
 }
 
@@ -164,6 +188,56 @@ async function changePassword() {
   }
 }
 
+// ── Account deletion ───────────────────────────────────────────────────────
+const deletionState = ref<AccountDeletionState | null>(null);
+const deletionReason = ref("");
+const deletionBusy = ref(false);
+const deletionNotice = ref("");
+const deletionError = ref("");
+
+async function loadDeletionState() {
+  try {
+    const { data } = await authApi.accountDeletionState();
+    deletionState.value = data;
+  } catch {
+    deletionState.value = null;
+  }
+}
+
+async function requestDeletion() {
+  deletionError.value = "";
+  deletionNotice.value = "";
+  deletionBusy.value = true;
+  try {
+    await authApi.requestAccountDeletion(deletionReason.value.trim());
+    deletionNotice.value = "Account deletion request created.";
+    deletionReason.value = "";
+    await loadDeletionState();
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    deletionError.value = detail ?? "Could not create deletion request.";
+  } finally {
+    deletionBusy.value = false;
+  }
+}
+
+async function confirmDeletion() {
+  if (!confirm("Confirm account deletion scheduling? This action starts the retention and deletion workflow.")) return;
+  deletionError.value = "";
+  deletionNotice.value = "";
+  deletionBusy.value = true;
+  try {
+    await authApi.confirmAccountDeletion();
+    deletionNotice.value = "Account deletion scheduled.";
+    await loadDeletionState();
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    deletionError.value = detail ?? "Could not confirm deletion.";
+  } finally {
+    deletionBusy.value = false;
+  }
+}
+
 // ── Timezone list ─────────────────────────────────────────────────────────────
 const timezones: string[] = (() => {
   try {
@@ -191,6 +265,8 @@ onMounted(() => {
   if (isWriter.value && !writerWorkspace.profile) {
     writerWorkspace.hydrate().catch(() => undefined);
   }
+  loadProfileRequests();
+  loadDeletionState();
 });
 
 // Current display user for avatar (merges preview)
@@ -358,6 +434,28 @@ const displayUser = computed(() => ({
           <p v-if="profileNotice" class="text-sm font-medium text-signal">{{ profileNotice }}</p>
           <p v-if="profileError" class="text-sm font-medium text-berry">{{ profileError }}</p>
         </div>
+        <div class="border-t border-slate-100 bg-slate-50 px-6 py-4">
+          <div v-if="profileRequestsLoading" class="flex items-center gap-2 text-sm text-graphite">
+            <Loader2 class="h-4 w-4 animate-spin" />
+            Checking profile requests...
+          </div>
+          <div v-else-if="latestProfileRequest" class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Latest profile change request</p>
+              <p class="mt-1 text-sm text-ink">
+                Status:
+                <span class="font-semibold capitalize">{{ latestProfileRequest.status.replace(/_/g, " ") }}</span>
+              </p>
+              <p v-if="latestProfileRequest.review_note" class="mt-1 text-xs text-graphite">{{ latestProfileRequest.review_note }}</p>
+            </div>
+            <p class="text-xs text-graphite">
+              Submitted {{ latestProfileRequest.created_at ? new Date(latestProfileRequest.created_at).toLocaleString() : "recently" }}
+            </p>
+          </div>
+          <p v-else class="text-sm text-graphite">
+            Profile edits are submitted for review before they are applied.
+          </p>
+        </div>
       </section>
 
       <!-- Writer professional profile -->
@@ -502,6 +600,63 @@ const displayUser = computed(() => ({
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Timezone</p>
             <p class="mt-1 text-sm text-graphite">{{ auth.user?.timezone ?? profileForm.timezone }}</p>
           </div>
+        </div>
+      </section>
+
+      <section class="overflow-hidden rounded-lg border border-rose-200 bg-white">
+        <div class="flex items-center gap-3 border-b border-rose-100 px-6 py-4">
+          <AlertTriangle class="h-5 w-5 text-rose-600" />
+          <h2 class="text-base font-semibold text-ink">Account deletion</h2>
+        </div>
+        <div class="space-y-4 p-6">
+          <div v-if="deletionState" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <p class="font-semibold">Deletion request: {{ deletionState.status.replace(/_/g, " ") }}</p>
+            <p v-if="deletionState.scheduled_deletion_at" class="mt-1 text-xs">
+              Scheduled for {{ new Date(deletionState.scheduled_deletion_at).toLocaleString() }}
+            </p>
+            <p v-if="deletionState.reason" class="mt-1 text-xs">{{ deletionState.reason }}</p>
+          </div>
+          <p v-else class="text-sm text-graphite">
+            Requesting deletion starts a staff-visible account lifecycle. Confirmation is required before the deletion is scheduled.
+          </p>
+
+          <label class="block">
+            <span class="text-xs font-semibold uppercase tracking-wide text-graphite">Reason</span>
+            <textarea
+              v-model.trim="deletionReason"
+              class="focus-ring mt-1.5 w-full resize-none rounded-md border border-slate-200 px-3 py-2.5 text-sm"
+              rows="3"
+              placeholder="Optional context for support and compliance review"
+            />
+          </label>
+
+          <p v-if="deletionNotice" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-signal">
+            {{ deletionNotice }}
+          </p>
+          <p v-if="deletionError" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">
+            {{ deletionError }}
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-3 border-t border-rose-100 px-6 py-4">
+          <button
+            class="focus-ring inline-flex items-center gap-2 rounded-md border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+            type="button"
+            :disabled="deletionBusy"
+            @click="requestDeletion"
+          >
+            <Loader2 v-if="deletionBusy" class="h-4 w-4 animate-spin" />
+            <Trash2 v-else class="h-4 w-4" />
+            Request deletion
+          </button>
+          <button
+            v-if="deletionState && deletionState.status !== 'scheduled'"
+            class="focus-ring inline-flex items-center gap-2 rounded-md bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+            type="button"
+            :disabled="deletionBusy"
+            @click="confirmDeletion"
+          >
+            Confirm scheduling
+          </button>
         </div>
       </section>
     </div>

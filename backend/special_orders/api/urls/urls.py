@@ -4,6 +4,7 @@ from django.urls import path
 
 from special_orders.api.views.payment_views import (
     ApplyExternalPaymentView,
+    ManualVerifiedSpecialOrderPaymentView,
     ApplySplitPaymentView,
     ApplyWalletPaymentView,
 )
@@ -115,6 +116,11 @@ urlpatterns = [
         "<int:special_order_id>/available-actions/",
         SpecialOrderAvailableActionsView.as_view(),
         name="special-order-available-actions",
+    ),
+    path(
+        "<int:special_order_id>/payments/manual-verify/",
+        ManualVerifiedSpecialOrderPaymentView.as_view(),
+        name="special-order-manual-payment-verify",
     ),
     path(
         "quoted/",

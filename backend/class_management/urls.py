@@ -108,6 +108,7 @@ payment_create_equal_installments = ClassPaymentViewSet.as_view({
     "post": "create_equal_installments",
 })
 payment_prepare = ClassPaymentViewSet.as_view({"post": "prepare_payment"})
+payment_manual_verify = ClassPaymentViewSet.as_view({"post": "manual_verify"})
 payment_waive_milestone = ClassPaymentViewSet.as_view({
     "post": "waive_payment_milestone",
 })
@@ -359,6 +360,11 @@ urlpatterns = [
         "classes/<int:class_order_pk>/payments/prepare/",
         payment_prepare,
         name="class-payment-prepare",
+    ),
+    path(
+        "classes/<int:class_order_pk>/payments/manual-verify/",
+        payment_manual_verify,
+        name="class-payment-manual-verify",
     ),
     path(
         "classes/<int:class_order_pk>/payments/"

@@ -17,9 +17,10 @@ from django.utils import timezone
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_order(status, *, client_id=1, approved_at=None, completed_at=None, archived_at=None):
+def _make_order(status, *, client_id=1, approved_at=None, completed_at=None, archived_at=None, payment_status="fully_paid"):
     return SimpleNamespace(
         status=status,
+        payment_status=payment_status,
         client_id=client_id,
         approved_at=approved_at,
         completed_at=completed_at,
@@ -175,6 +176,13 @@ class TestOrderAvailableActionsService:
         actions = _build_actions(order, _make_user("client", 42), _make_lifecycle())
         assert "route_to_staffing" not in actions
         assert "assign_writer" not in actions
+
+    def test_staff_cannot_staff_unpaid_or_pending_payment_order(self):
+        for status in ["unpaid", "pending_payment"]:
+            order = _make_order(status, payment_status="unpaid")
+            actions = _build_actions(order, _make_user("admin", 99), _make_lifecycle())
+            assert "route_to_staffing" not in actions
+            assert "assign_writer" not in actions
 
     # ── role separation ────────────────────────────────────────────────────
 

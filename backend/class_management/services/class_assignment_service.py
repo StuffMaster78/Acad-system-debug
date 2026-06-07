@@ -9,6 +9,7 @@ from django.utils import timezone
 from class_management.constants import (
     ClassAssignmentStatus,
     ClassOrderStatus,
+    ClassPaymentStatus,
     ClassTimelineEventType,
 )
 from class_management.exceptions import ClassAssignmentError
@@ -37,9 +38,6 @@ class ClassAssignmentService:
     """
 
     ASSIGN_ALLOWED_STATUSES = {
-        ClassOrderStatus.ACCEPTED,
-        ClassOrderStatus.PENDING_PAYMENT,
-        ClassOrderStatus.PARTIALLY_PAID,
         ClassOrderStatus.PAID,
         ClassOrderStatus.ASSIGNED,
         ClassOrderStatus.IN_PROGRESS,
@@ -344,6 +342,10 @@ class ClassAssignmentService:
             raise ClassAssignmentError(
                 "Cannot assign writer while class order status is "
                 f"{class_order.status}."
+            )
+        if class_order.payment_status != ClassPaymentStatus.PAID:
+            raise ClassAssignmentError(
+                "Cannot assign writer before the class order is fully paid."
             )
 
     @staticmethod

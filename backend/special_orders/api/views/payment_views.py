@@ -4,6 +4,8 @@ from decimal import Decimal
 from typing import Any, cast
 
 from rest_framework import status
+from rest_framework import serializers
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,6 +24,41 @@ from special_orders.services.new_services.special_order_payment_orchestration_se
     SpecialOrderPaymentOrchestrationService,
 )
 from special_orders.integrations.wallet_bridge import SpecialOrderWalletBridge
+
+
+class ManualVerifiedSpecialOrderPaymentSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    transaction_reference = serializers.CharField(max_length=255)
+    verification_note = serializers.CharField(max_length=1000)
+    payment_method = serializers.CharField(
+        max_length=80,
+        required=False,
+        allow_blank=True,
+    )
+
+    def validate_transaction_reference(self, value: str) -> str:
+        value = value.strip()
+        if len(value) < 4:
+            raise serializers.ValidationError(
+                "Transaction reference must be at least 4 characters."
+            )
+        return value
+
+    def validate_verification_note(self, value: str) -> str:
+        value = value.strip()
+        if len(value) < 10:
+            raise serializers.ValidationError(
+                "Verification note must be at least 10 characters."
+            )
+        return value
+
+
+def _can_manually_verify_payment(user: Any) -> bool:
+    return bool(
+        getattr(user, "is_superuser", False)
+        or getattr(user, "role", None) in {"admin", "superadmin"}
+    )
+
 
 class ApplyExternalPaymentView(APIView):
     permission_classes = [IsAuthenticated, CanPaySpecialOrder]
@@ -146,3 +183,69 @@ class ApplySplitPaymentView(APIView):
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
+class ManualVerifiedSpecialOrderPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, special_order_id: int):
+        if not _can_manually_verify_payment(request.user):
+            return Response(
+                {"detail": "Only admin or superadmin can verify payments."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = ManualVerifiedSpecialOrderPaymentSerializer(
+            data=request.data,
+        )
+        serializer.is_valid(raise_exception=True)
+        data = cast(dict[str, Any], serializer.validated_data)
+
+        if (
+            request.user.is_superuser
+            or getattr(request.user, "role", None) == "superadmin"
+        ):
+            from special_orders.models import SpecialOrder
+
+            try:
+                special_order = SpecialOrder.objects.select_related(
+                    "website",
+                    "client",
+                    "writer",
+                ).get(pk=special_order_id)
+            except SpecialOrder.DoesNotExist:
+                raise NotFound("Special order not found.")
+        else:
+            special_order = SpecialOrderSelector.get_by_id(
+                website=request.user.website,
+                special_order_id=special_order_id,
+            )
+
+        transaction_reference = str(data["transaction_reference"])
+        application = (
+            SpecialOrderPaymentOrchestrationService.apply_admin_adjustment(
+                special_order=special_order,
+                amount=cast(Decimal, data["amount"]),
+                idempotency_key=(
+                    f"manual-special-payment:"
+                    f"{special_order.website_id}:{special_order.pk}:"
+                    f"{transaction_reference}"
+                ),
+                ledger_entry_reference=transaction_reference,
+                applied_by=request.user,
+                reason=str(data["verification_note"]),
+                metadata={
+                    "source": "manual_staff_verification",
+                    "transaction_reference": transaction_reference,
+                    "payment_method": str(data.get("payment_method", "")),
+                    "verified_by_user_id": request.user.id,
+                },
+            )
+        )
+
+        response_serializer = SpecialOrderPaymentApplicationSerializer(
+            application,
+        )
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED,
+        )

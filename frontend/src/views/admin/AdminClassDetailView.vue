@@ -62,59 +62,86 @@
             </div>
 
             <!-- Lifecycle actions (admin/superadmin only — support is view-only) -->
-            <div v-if="canManage" class="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-              <button
-                v-if="!store.detail.writer_username"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
-                :disabled="store.isSaving"
-                @click="showAssign = !showAssign"
-              >
-                <UserPlus class="size-3.5" />
-                Assign Writer
-              </button>
-              <template v-if="['pending', 'active'].includes(store.detail.status)">
-                <template v-if="pendingCancelClass">
+            <div class="mt-5 border-t border-slate-100 pt-4">
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  v-if="canManage && canAssignClassWriter"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
+                  :disabled="store.isSaving"
+                  type="button"
+                  @click="openClassActionDialog('assign_writer')"
+                >
+                  <UserPlus class="size-3.5" />
+                  Assign Writer
+                </button>
+                <button
+                  v-if="canManage && canManualVerifyClassPayment"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
+                  :disabled="store.isSaving"
+                  type="button"
+                  @click="openClassActionDialog('manual_mark_paid')"
+                >
+                  <CircleDollarSign class="size-3.5" />
+                  Verify Payment
+                </button>
+                <template v-if="canManage && ['pending', 'active'].includes(store.detail.status)">
                   <button
-                    class="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
                     :disabled="store.isSaving"
                     type="button"
-                    @click="cancelClass"
-                  >Confirm cancel</button>
-                  <button
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50"
-                    type="button"
-                    @click="pendingCancelClass = false"
-                  >Keep class</button>
+                    @click="openClassActionDialog('cancel_class')"
+                  >
+                    <XCircle class="size-3.5" />
+                    Cancel Class
+                  </button>
                 </template>
                 <button
-                  v-else
-                  class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
-                  :disabled="store.isSaving"
-                  @click="cancelClass"
+                  class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:bg-slate-50 hover:text-ink"
+                  type="button"
+                  @click="showGuide = !showGuide"
                 >
-                  <XCircle class="size-3.5" />
-                  Cancel Class
+                  <BookOpen class="size-3.5" />
+                  {{ showGuide ? "Hide guide" : "State guide" }}
                 </button>
-              </template>
+              </div>
+
+              <p v-if="canManage && !classAvailableActions.length" class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-graphite">
+                No direct class action is available for this status.
+              </p>
+
+              <div v-if="classBlockedActions.length" class="mt-3 space-y-1.5">
+                <div
+                  v-for="item in classBlockedActions"
+                  :key="item.action"
+                  class="flex items-start gap-2 rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                >
+                  <Lock class="mt-0.5 size-3.5 shrink-0" />
+                  <span><strong>{{ labelize(item.action) }}:</strong> {{ item.reason }}</span>
+                </div>
+              </div>
+
+              <div v-if="showGuide" class="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50">
+                <table class="min-w-full text-xs">
+                  <thead class="bg-white text-left font-semibold uppercase text-graphite">
+                    <tr>
+                      <th class="px-3 py-2">Status</th>
+                      <th class="px-3 py-2">Client</th>
+                      <th class="px-3 py-2">Writer</th>
+                      <th class="px-3 py-2">Staff</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <tr v-for="row in CLASS_STATE_GUIDE" :key="row.status">
+                      <td class="px-3 py-2 font-semibold text-ink">{{ row.label }}</td>
+                      <td class="px-3 py-2 text-graphite">{{ row.client }}</td>
+                      <td class="px-3 py-2 text-graphite">{{ row.writer }}</td>
+                      <td class="px-3 py-2 text-graphite">{{ row.staff }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <!-- Assign writer inline form -->
-            <div v-if="showAssign" class="mt-4 flex items-end gap-3 rounded-lg bg-slate-50 p-4">
-              <div class="flex-1">
-                <label class="block text-xs font-medium text-graphite mb-1">Writer ID</label>
-                <input v-model="writerIdInput" type="number" placeholder="e.g. 42" class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus-ring" />
-              </div>
-              <button
-                class="inline-flex items-center gap-1.5 rounded-lg bg-berry px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
-                :disabled="store.isSaving || !writerIdInput"
-                @click="confirmAssign"
-              >
-                <Check class="size-4" /> Assign
-              </button>
-              <button class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-graphite hover:text-ink" @click="showAssign = false">
-                Cancel
-              </button>
-            </div>
           </div>
         </div>
 
@@ -352,16 +379,132 @@
 
       </template>
     </div>
+
+    <BaseModal
+      :open="classActionDialog.open"
+      :title="currentClassActionCopy?.title ?? 'Confirm class action'"
+      :description="currentClassActionCopy?.description"
+      size="md"
+      @close="closeClassActionDialog"
+    >
+      <div v-if="store.detail && currentClassActionCopy" class="space-y-4">
+        <div
+          class="rounded-lg border px-4 py-3"
+          :class="{
+            'border-slate-200 bg-slate-50': currentClassActionCopy.tone === 'neutral',
+            'border-emerald-200 bg-emerald-50': currentClassActionCopy.tone === 'success',
+            'border-rose-200 bg-rose-50': currentClassActionCopy.tone === 'danger',
+          }"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="font-semibold text-ink">{{ store.detail.reference }} · {{ store.detail.title }}</p>
+              <p class="mt-1 text-xs text-graphite">
+                Client {{ store.detail.client_username }} · Writer {{ store.detail.writer_username || "Unassigned" }}
+              </p>
+            </div>
+            <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="statusClass(store.detail.status)">
+              {{ statusLabel(store.detail.status) }}
+            </span>
+          </div>
+          <div class="mt-3 grid gap-2 text-xs text-graphite sm:grid-cols-3">
+            <span>Payment: {{ store.detail.payment_status }}</span>
+            <span>Window: {{ fmtDate(store.detail.start_date) }} - {{ fmtDate(store.detail.end_date) }}</span>
+            <span>{{ formatMoney(store.detail.total_price, store.detail.currency) }}</span>
+          </div>
+        </div>
+
+        <label v-if="classActionDialog.action === 'assign_writer'" class="block text-sm font-medium text-ink">
+          Writer ID <span class="text-rose-500">*</span>
+          <input
+            v-model.trim="classActionDialog.writerId"
+            class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+            inputmode="numeric"
+            placeholder="Enter writer ID"
+          >
+        </label>
+
+        <div v-if="classActionDialog.action === 'manual_mark_paid'" class="grid gap-3 sm:grid-cols-2">
+          <label class="block text-sm font-medium text-ink">
+            Amount <span class="text-rose-500">*</span>
+            <input
+              v-model.trim="classActionDialog.amount"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+              inputmode="decimal"
+              placeholder="0.00"
+            >
+          </label>
+          <label class="block text-sm font-medium text-ink">
+            Transaction reference <span class="text-rose-500">*</span>
+            <input
+              v-model.trim="classActionDialog.transactionReference"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+              placeholder="Gateway, bank, wallet, or receipt reference"
+            >
+          </label>
+          <label class="block text-sm font-medium text-ink sm:col-span-2">
+            Payment method
+            <input
+              v-model.trim="classActionDialog.paymentMethod"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+              placeholder="Stripe, bank transfer, wallet, etc."
+            >
+          </label>
+        </div>
+
+        <label v-if="classActionDialog.action === 'cancel_class' || classActionDialog.action === 'manual_mark_paid'" class="block text-sm font-medium text-ink">
+          {{ classActionDialog.action === "manual_mark_paid" ? "Verification note" : "Cancellation reason" }} <span class="text-rose-500">*</span>
+          <textarea
+            v-model.trim="classActionDialog.reason"
+            class="focus-ring mt-1 min-h-24 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+            :placeholder="classActionDialog.action === 'manual_mark_paid' ? 'Record how the transaction was verified and who/what confirmed it...' : 'Explain why this class is being cancelled...'"
+          />
+          <span class="mt-1 block text-xs text-graphite">
+            Minimum 10 characters. This note is retained for verification and audit.
+          </span>
+        </label>
+
+        <div v-if="currentClassActionCopy.tone === 'danger'" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+          Cancelling a class affects tasks, installments, writer work, and client visibility. Confirm after reviewing the class state.
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex flex-wrap justify-end gap-2">
+          <button
+            class="focus-ring h-10 rounded-md border border-slate-200 px-4 text-sm font-semibold text-graphite hover:text-ink"
+            type="button"
+            @click="closeClassActionDialog"
+          >
+            Cancel
+          </button>
+          <button
+            class="focus-ring h-10 rounded-md px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            :class="{
+              'bg-ink hover:bg-slate-800': currentClassActionCopy?.tone === 'neutral',
+              'bg-emerald-600 hover:bg-emerald-700': currentClassActionCopy?.tone === 'success',
+              'bg-rose-600 hover:bg-rose-700': currentClassActionCopy?.tone === 'danger',
+            }"
+            type="button"
+            :disabled="!classActionCanSubmit"
+            @click="confirmClassActionDialog"
+          >
+            {{ store.isSaving ? "Working..." : currentClassActionCopy?.confirm }}
+          </button>
+        </div>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { AlertCircle, ArrowLeft, Award, Calendar, Check, ExternalLink, Globe, UserCheck, UserPlus, XCircle } from "@lucide/vue";
+import { AlertCircle, ArrowLeft, Award, BookOpen, Calendar, Check, CircleDollarSign, ExternalLink, Globe, Lock, UserCheck, UserPlus, XCircle } from "@lucide/vue";
 import { useClassesStore } from "@/stores/classes";
 import { useAuthStore } from "@/stores/auth";
 import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
+import BaseModal from "@/components/ui/BaseModal.vue";
 import type { ClassConfigOption, ClassPricingSnapshot, ClassStatus, ClassTaskStatus, InstallmentStatus } from "@/types/classes";
 
 const route = useRoute();
@@ -373,6 +516,37 @@ const auth = useAuthStore();
 const canManage = computed(() =>
   auth.role === "admin" || auth.role === "superadmin" || auth.isPreviewSession,
 );
+
+const showGuide = ref(false);
+
+const classAvailableActions = computed(() => store.detail?.available_actions ?? []);
+const classBlockedActions = computed(() => store.detail?.blocked_actions ?? []);
+const isClassPaidForStaffing = computed(() =>
+  store.detail?.status === "paid" && store.detail.payment_status === "paid",
+);
+const canAssignClassWriter = computed(() =>
+  Boolean(canManage.value && store.detail && !store.detail.writer_username && isClassPaidForStaffing.value),
+);
+const canManualVerifyClassPayment = computed(() =>
+  Boolean(
+    store.detail
+    && !["paid", "refunded"].includes(store.detail.payment_status)
+    && !["completed", "cancelled", "archived"].includes(store.detail.status),
+  ),
+);
+
+const CLASS_STATE_GUIDE = [
+  { status: "draft", label: "Draft", client: "Finish request", writer: "-", staff: "Review once submitted" },
+  { status: "submitted", label: "Submitted", client: "Wait for review", writer: "-", staff: "Review scope, request info, propose price" },
+  { status: "price_proposed", label: "Price proposed", client: "Accept or negotiate", writer: "-", staff: "Revise proposal if needed" },
+  { status: "pending_payment", label: "Pending payment", client: "Pay deposit/full amount", writer: "-", staff: "Monitor payment" },
+  { status: "paid", label: "Paid", client: "Wait for staffing", writer: "-", staff: "Assign writer, configure tasks" },
+  { status: "assigned", label: "Assigned", client: "Track progress", writer: "Start class work", staff: "Reassign or support writer" },
+  { status: "active", label: "Active", client: "Submit class materials", writer: "Work tasks", staff: "Cancel, grade tasks, manage installments" },
+  { status: "quality_review", label: "Quality review", client: "Wait for QA", writer: "Respond to revisions", staff: "Approve, return task, grade" },
+  { status: "completed", label: "Completed", client: "Review final work", writer: "-", staff: "Archive or support follow-up" },
+  { status: "cancelled", label: "Cancelled", client: "-", writer: "-", staff: "No lifecycle action" },
+];
 
 onMounted(() => store.loadDetail(route.params.id as string));
 
@@ -537,23 +711,91 @@ async function confirmGrade(taskId: number) {
   gradingTaskId.value = null;
 }
 
-// Assign writer
-const showAssign = ref(false);
-const writerIdInput = ref<number | "">("");
-const pendingCancelClass = ref(false);
+type ClassAction = "assign_writer" | "manual_mark_paid" | "cancel_class";
 
-async function confirmAssign() {
-  if (!store.detail || !writerIdInput.value) return;
-  await store.assignWriter(store.detail.id, Number(writerIdInput.value));
-  showAssign.value = false;
-  writerIdInput.value = "";
+const classActionDialog = reactive({
+  open: false,
+  action: null as ClassAction | null,
+  writerId: "",
+  amount: "",
+  transactionReference: "",
+  paymentMethod: "",
+  reason: "",
+});
+
+const classActionCopy: Record<ClassAction, { title: string; description: string; confirm: string; tone: "neutral" | "success" | "danger" }> = {
+  assign_writer: {
+    title: "Assign writer",
+    description: "Attach this class to a writer and move the work into a clearer ownership state.",
+    confirm: "Assign writer",
+    tone: "neutral",
+  },
+  manual_mark_paid: {
+    title: "Verify class payment",
+    description: "Apply a manually verified payment that did not reflect automatically. Transaction reference and audit note are required.",
+    confirm: "Verify payment",
+    tone: "success",
+  },
+  cancel_class: {
+    title: "Cancel class",
+    description: "Cancel the class after reviewing the client, writer, installment, and task state.",
+    confirm: "Cancel class",
+    tone: "danger",
+  },
+};
+
+const currentClassActionCopy = computed(() =>
+  classActionDialog.action ? classActionCopy[classActionDialog.action] : null,
+);
+
+const classActionCanSubmit = computed(() => {
+  if (store.isSaving || !classActionDialog.action) return false;
+  if (classActionDialog.action === "assign_writer") return canAssignClassWriter.value && Number(classActionDialog.writerId) > 0;
+  if (classActionDialog.action === "manual_mark_paid") {
+    return canManualVerifyClassPayment.value
+      && Number(classActionDialog.amount) > 0
+      && classActionDialog.transactionReference.trim().length >= 4
+      && classActionDialog.reason.trim().length >= 10;
+  }
+  if (classActionDialog.action === "cancel_class") return classActionDialog.reason.trim().length >= 10;
+  return false;
+});
+
+function openClassActionDialog(action: ClassAction) {
+  classActionDialog.open = true;
+  classActionDialog.action = action;
+  classActionDialog.writerId = "";
+  classActionDialog.amount = action === "manual_mark_paid" ? String(store.detail?.total_price ?? "") : "";
+  classActionDialog.transactionReference = "";
+  classActionDialog.paymentMethod = "";
+  classActionDialog.reason = "";
 }
 
-async function cancelClass() {
-  if (!store.detail) return;
-  if (!pendingCancelClass.value) { pendingCancelClass.value = true; return; }
-  pendingCancelClass.value = false;
-  await store.cancelClass(store.detail.id);
+function closeClassActionDialog() {
+  classActionDialog.open = false;
+  classActionDialog.action = null;
+  classActionDialog.writerId = "";
+  classActionDialog.amount = "";
+  classActionDialog.transactionReference = "";
+  classActionDialog.paymentMethod = "";
+  classActionDialog.reason = "";
+}
+
+async function confirmClassActionDialog() {
+  if (!store.detail || !classActionCanSubmit.value || !classActionDialog.action) return;
+  if (classActionDialog.action === "assign_writer") {
+    await store.assignWriter(store.detail.id, Number(classActionDialog.writerId));
+  } else if (classActionDialog.action === "manual_mark_paid") {
+    await store.manualVerifyPayment(store.detail.id, {
+      amount: classActionDialog.amount,
+      transaction_reference: classActionDialog.transactionReference.trim(),
+      verification_note: classActionDialog.reason.trim(),
+      payment_method: classActionDialog.paymentMethod.trim(),
+    });
+  } else if (classActionDialog.action === "cancel_class") {
+    await store.cancelClass(store.detail.id, classActionDialog.reason.trim());
+  }
+  closeClassActionDialog();
 }
 
 function fmtDate(v: string): string {

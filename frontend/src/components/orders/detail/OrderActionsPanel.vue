@@ -153,6 +153,15 @@
           <UserRoundCog class="h-3.5 w-3.5" /> Reassign writer
         </button>
 
+        <!-- manual_mark_paid -->
+        <button
+          v-if="has('manual_mark_paid')"
+          class="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+          @click="openForm('manual_mark_paid')"
+        >
+          <CircleDollarSign class="h-3.5 w-3.5" /> Verify payment
+        </button>
+
       </div>
 
       <!-- Inline forms -->
@@ -206,6 +215,53 @@
               placeholder="Why is the writer being reassigned?" />
             <p class="text-xs text-slate-500">The current writer will be released and the order returned to the pool for reassignment.</p>
             <FormActions label="Request reassignment" :loading="busy === 'reassign'" :disabled="!formInput.trim()" @submit="exec('reassign')" @cancel="closeForm" />
+          </template>
+
+          <!-- manual payment verification form -->
+          <template v-if="activeForm === 'manual_mark_paid'">
+            <div class="grid gap-3 sm:grid-cols-3">
+              <label class="block">
+                <span class="text-xs font-semibold text-ink">Amount <span class="text-rose-500">*</span></span>
+                <input
+                  v-model="paymentAmount"
+                  class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </label>
+              <label class="block">
+                <span class="text-xs font-semibold text-ink">Method</span>
+                <input
+                  v-model.trim="paymentMethod"
+                  class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  placeholder="M-Pesa, bank, Stripe..."
+                />
+              </label>
+              <label class="block">
+                <span class="text-xs font-semibold text-ink">Reference <span class="text-rose-500">*</span></span>
+                <input
+                  v-model.trim="paymentReference"
+                  class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  placeholder="Transaction ID"
+                />
+              </label>
+            </div>
+            <p class="text-xs font-semibold text-ink">Verification note</p>
+            <textarea v-model="formInput" rows="2"
+              class="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm resize-none"
+              placeholder="Who verified this payment and where was it confirmed?" />
+            <p class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-1.5">
+              This records a staff payment override for audit and can move the order into the paid flow.
+            </p>
+            <FormActions
+              label="Verify payment"
+              :loading="busy === 'manual_mark_paid'"
+              :disabled="!canSubmitManualPayment"
+              @submit="exec('manual_mark_paid')"
+              @cancel="closeForm"
+            />
           </template>
 
         </div>
@@ -287,12 +343,13 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, ref } from "vue";
 import {
-  AlertCircle, AlertTriangle, Archive, BookOpen, CheckCircle2, ChevronRight,
+  AlertCircle, AlertTriangle, Archive, BookOpen, CheckCircle2, ChevronRight, CircleDollarSign,
   Lock, PauseCircle, PlayCircle, RotateCcw, UserRoundCog, XCircle, Zap,
 } from "@lucide/vue";
 import type { OrderSummary, OrderLifecycle } from "@/types/orders";
 import type { UserRole } from "@/types/roles";
 import { ordersApi } from "@/api/orders";
+import { orderOpsApi } from "@/api/orderOps";
 
 const props = defineProps<{
   orderId: string;
@@ -310,6 +367,9 @@ const busy = ref<string | null>(null);
 const pendingConfirm = ref<string | null>(null);
 const activeForm = ref<string | null>(null);
 const formInput = ref("");
+const paymentAmount = ref("");
+const paymentReference = ref("");
+const paymentMethod = ref("");
 const feedback = ref<{ ok: boolean; msg: string } | null>(null);
 const showBlocked = ref(false);
 const showGuide = ref(false);
@@ -339,6 +399,12 @@ const canReassign = computed(() =>
   ["in_progress", "on_hold", "qa_review"].includes(props.order.status)
 );
 
+const canSubmitManualPayment = computed(() =>
+  Number(paymentAmount.value) > 0 &&
+  paymentReference.value.trim().length > 0 &&
+  formInput.value.trim().length > 0
+);
+
 // ── helpers ────────────────────────────────────────────────────────────────
 function has(action: string): boolean {
   return availableActions.value.includes(action);
@@ -353,12 +419,18 @@ function openForm(form: string) {
   activeForm.value = form;
   pendingConfirm.value = null;
   formInput.value = "";
+  paymentAmount.value = "";
+  paymentReference.value = "";
+  paymentMethod.value = "";
   feedback.value = null;
 }
 
 function closeForm() {
   activeForm.value = null;
   formInput.value = "";
+  paymentAmount.value = "";
+  paymentReference.value = "";
+  paymentMethod.value = "";
 }
 
 function ok(msg: string) {
@@ -366,6 +438,9 @@ function ok(msg: string) {
   pendingConfirm.value = null;
   activeForm.value = null;
   formInput.value = "";
+  paymentAmount.value = "";
+  paymentReference.value = "";
+  paymentMethod.value = "";
   emit("refresh");
 }
 
@@ -421,6 +496,15 @@ async function exec(action: string) {
         await ordersApi.reassignmentRequest(props.orderId, formInput.value);
         ok("Reassignment request submitted. Review in Staffing tab.");
         break;
+      case "manual_mark_paid":
+        await orderOpsApi.manualVerifyPayment(Number(props.orderId), {
+          amount: paymentAmount.value,
+          transaction_reference: paymentReference.value.trim(),
+          verification_note: formInput.value.trim(),
+          payment_method: paymentMethod.value.trim() || undefined,
+        });
+        ok("Payment verified. The order is ready to continue through the paid flow.");
+        break;
     }
   } catch (e: unknown) {
     const detail = (e as { response?: { data?: { detail?: string; message?: string } } })
@@ -442,6 +526,10 @@ function actionLabel(key: string): string {
     cancel_order: "Cancel order",
     archive_order: "Archive",
     request_revision: "Request revision",
+    manual_mark_paid: "Verify payment",
+    route_to_staffing: "Route to staffing",
+    assign_writer: "Assign writer",
+    release_to_pool: "Release to pool",
   };
   return map[key] ?? key.replace(/_/g, " ");
 }
@@ -563,7 +651,7 @@ const STATE_GUIDE = [
     writer: "—",
     support: "Cancel",
     editor: "—",
-    admin: "Cancel, Hold, Route to staffing",
+    admin: "Verify payment, Cancel, Hold if allowed",
   },
   {
     status: "unpaid",
@@ -572,16 +660,16 @@ const STATE_GUIDE = [
     writer: "—",
     support: "Cancel",
     editor: "—",
-    admin: "Cancel, Hold, Route to staffing",
+    admin: "Verify payment, Cancel, Hold if allowed",
   },
   {
     status: "pending_payment",
     label: "Payment processing",
     client: "—",
     writer: "—",
-    support: "—",
+    support: "Cancel",
     editor: "—",
-    admin: "—",
+    admin: "Verify payment, Cancel, Hold if allowed",
   },
   {
     status: "paid",
@@ -590,7 +678,7 @@ const STATE_GUIDE = [
     writer: "—",
     support: "—",
     editor: "—",
-    admin: "Assign writer, Hold, Cancel",
+    admin: "Route to staffing, Hold, Cancel",
   },
   {
     status: "ready_for_staffing",

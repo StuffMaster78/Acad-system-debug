@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any, cast
 
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
+from rest_framework import serializers
 from rest_framework.generics import GenericAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -38,6 +40,43 @@ from orders.api.serializers.staffing.preferred_writer_decline_serializer import 
 from orders.api.serializers.staffing.release_to_pool_serializer import (
     ReleaseToPoolSerializer,
 )
+from orders.services.order_payment_application_service import (
+    OrderPaymentApplicationService,
+)
+
+
+class ManualVerifiedOrderPaymentSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    transaction_reference = serializers.CharField(max_length=255)
+    verification_note = serializers.CharField(max_length=1000)
+    payment_method = serializers.CharField(
+        max_length=80,
+        required=False,
+        allow_blank=True,
+    )
+
+    def validate_transaction_reference(self, value: str) -> str:
+        value = value.strip()
+        if len(value) < 4:
+            raise serializers.ValidationError(
+                "Transaction reference must be at least 4 characters."
+            )
+        return value
+
+    def validate_verification_note(self, value: str) -> str:
+        value = value.strip()
+        if len(value) < 10:
+            raise serializers.ValidationError(
+                "Verification note must be at least 10 characters."
+            )
+        return value
+
+
+def _can_manually_verify_payment(user: Any) -> bool:
+    return bool(
+        getattr(user, "is_superuser", False)
+        or getattr(user, "role", None) in {"admin", "superadmin"}
+    )
 
 
 class RouteOrderToStaffingView(GenericAPIView):
@@ -91,14 +130,72 @@ class RouteOrderToStaffingView(GenericAPIView):
         order_id: int,
     ) -> Order:
         user = cast(Any, request.user)
-        return get_object_or_404(
-            Order.objects.select_related(
-                "website",
-                "client",
-                "preferred_writer",
-            ),
-            pk=order_id,
-            website=user.website,
+        queryset = Order.objects.select_related(
+            "website",
+            "client",
+            "preferred_writer",
+        )
+        if not (
+            getattr(user, "is_superuser", False)
+            or getattr(user, "role", None) == "superadmin"
+        ):
+            queryset = queryset.filter(website=user.website)
+        return get_object_or_404(queryset, pk=order_id)
+
+
+class ManualVerifiedOrderPaymentView(GenericAPIView):
+    """
+    Apply a staff-verified external payment to an unpaid/pending order.
+    """
+
+    serializer_class = ManualVerifiedOrderPaymentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(
+        self,
+        request: Request,
+        order_id: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Response:
+        if not _can_manually_verify_payment(request.user):
+            return Response(
+                {"detail": "Only admin or superadmin can verify payments."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = cast(dict[str, Any], serializer.validated_data)
+
+        order = RouteOrderToStaffingView._get_order_for_tenant(
+            request=request,
+            order_id=order_id,
+        )
+
+        updated_order = OrderPaymentApplicationService.apply_confirmed_payment(
+            order=order,
+            amount=cast(Decimal, data["amount"]),
+            payment_reference=str(data["transaction_reference"]),
+            triggered_by=request.user,
+            source="manual_staff_verification",
+            metadata={
+                "verification_note": str(data["verification_note"]),
+                "payment_method": str(data.get("payment_method", "")),
+                "verified_by_user_id": request.user.id,
+            },
+        )
+
+        return Response(
+            {
+                "message": "Manual payment verification applied.",
+                "order_id": updated_order.pk,
+                "status": updated_order.status,
+                "payment_status": updated_order.payment_status,
+                "amount_paid": str(updated_order.amount_paid),
+                "total_price": str(updated_order.total_price),
+            },
+            status=status.HTTP_200_OK,
         )
 
 

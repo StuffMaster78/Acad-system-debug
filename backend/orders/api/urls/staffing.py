@@ -10,6 +10,7 @@ from orders.api.views.staffing.staffing_views import (
 from orders.api.views.staffing.staffing_views import (
     AssignDirectView,
     AssignFromInterestView,
+    ManualVerifiedOrderPaymentView,
     WithdrawInterestView,
 )
 from orders.api.views.staffing.staffing_views import (
@@ -23,6 +24,11 @@ urlpatterns = [
         "orders/<int:order_id>/staffing/route/",
         RouteOrderToStaffingView.as_view(),
         name="route-order-to-staffing",
+    ),
+    path(
+        "orders/<int:order_id>/payments/manual-verify/",
+        ManualVerifiedOrderPaymentView.as_view(),
+        name="manual-verified-order-payment",
     ),
     path(
         "orders/<int:order_id>/staffing/interests/",

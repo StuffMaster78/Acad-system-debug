@@ -34,6 +34,7 @@ from .class_payment_serializers import (
     ClassPaymentScheduleSerializer,
     CreateEqualInstallmentPlanSerializer,
     CreateEqualPaymentScheduleSerializer,
+    ManualVerifiedClassPaymentSerializer,
     PrepareClassPaymentSerializer,
 )
 from .class_pricing_serializers import (
@@ -88,6 +89,7 @@ __all__ = [
     "CreateEqualPaymentScheduleSerializer",
     "CreatePriceProposalSerializer",
     "GrantAccessSerializer",
+    "ManualVerifiedClassPaymentSerializer",
     "PrepareClassPaymentSerializer",
     "ReassignWriterSerializer",
     "RejectProposalSerializer",

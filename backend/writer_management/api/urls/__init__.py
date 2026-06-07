@@ -51,6 +51,9 @@ from writer_management.api.views.note_views import (
     TogglePinNoteView,
 )
 from writer_management.api.views.resource_views import (
+    AdminWriterResourceCategoryListCreateView,
+    AdminWriterResourceDetailView,
+    AdminWriterResourceListCreateView,
     WriterResourceListView,
     WriterResourceDetailView,
     DownloadResourceView,
@@ -126,6 +129,9 @@ urlpatterns = [
     path("notes/<int:pk>/pin/", TogglePinNoteView.as_view(), name="writer-note-pin"),
 
     # Resources (writer)
+    path("admin/resource-categories/", AdminWriterResourceCategoryListCreateView.as_view(), name="admin-resource-category-list"),
+    path("admin/resources/", AdminWriterResourceListCreateView.as_view(), name="admin-resource-list"),
+    path("admin/resources/<int:pk>/", AdminWriterResourceDetailView.as_view(), name="admin-resource-detail"),
     path("resources/", WriterResourceListView.as_view(), name="resource-list"),
     path("resources/<int:pk>/", WriterResourceDetailView.as_view(), name="resource-detail"),
     path("resources/<int:pk>/download/", DownloadResourceView.as_view(), name="resource-download"),

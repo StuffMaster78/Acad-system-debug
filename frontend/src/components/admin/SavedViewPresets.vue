@@ -18,24 +18,30 @@
 <template>
   <div class="flex flex-wrap items-center gap-2">
     <!-- Preset chips -->
-    <button
+    <div
       v-for="sv in presets"
       :key="sv.id"
       class="group flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors"
       :class="sv.is_default
         ? 'border-signal bg-signal/5 text-signal'
         : 'border-slate-200 text-graphite hover:border-slate-300 hover:bg-slate-50'"
-      @click="load(sv)"
     >
-      <BookmarkCheck v-if="sv.is_default" class="h-3 w-3" />
-      <Bookmark v-else class="h-3 w-3 opacity-50" />
-      {{ sv.name }}
+      <button
+        class="inline-flex items-center gap-1.5"
+        type="button"
+        @click="load(sv)"
+      >
+        <BookmarkCheck v-if="sv.is_default" class="h-3 w-3" />
+        <Bookmark v-else class="h-3 w-3 opacity-50" />
+        {{ sv.name }}
+      </button>
       <button
         class="ml-0.5 rounded p-0.5 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
         title="Delete preset"
-        @click.stop="deletePreset(sv.id)"
+        type="button"
+        @click="deletePreset(sv.id)"
       >✕</button>
-    </button>
+    </div>
 
     <!-- Save current as new preset -->
     <div v-if="!saveOpen" class="flex items-center">

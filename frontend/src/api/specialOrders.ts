@@ -104,6 +104,14 @@ export const specialOrdersApi = {
   assignWriter: (id: number | string, writerId: number) =>
     api.post(apiPath(`/special-orders/${id}/assign-writer/`), { writer_id: writerId }),
 
+  manualVerifyPayment: (id: number | string, payload: {
+    amount: string;
+    transaction_reference: string;
+    verification_note: string;
+    payment_method?: string;
+  }) =>
+    api.post(apiPath(`/special-orders/${id}/payments/manual-verify/`), payload),
+
   quotes: {
     submit: (orderId: number | string, payload: SubmitQuotePayload) =>
       api.post<Quote>(apiPath(`/special-orders/${orderId}/quotes/`), payload),

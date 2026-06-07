@@ -11,6 +11,7 @@ from orders.services.policies.order_cancellation_policy import (
 
 STAFF_ROLES = {"admin", "superadmin", "support", "editor"}
 REVIEW_ROLES = {"admin", "superadmin", "editor"}
+PAID_PAYMENT_STATUSES = {"paid", "fully_paid"}
 
 
 class OrderAvailableActionsService:
@@ -81,13 +82,18 @@ class OrderAvailableActionsService:
         lifecycle: Any,
         is_reviewer: bool,
     ) -> None:
-        if status in {"paid", "unpaid", "pending_payment"}:
+        is_paid = cls._is_paid(order=order)
+
+        if status in {"created", "unpaid", "pending_payment", "paid"} and not is_paid:
+            actions.append("manual_mark_paid")
+
+        if status == "paid" and is_paid:
             actions.append("route_to_staffing")
 
-        if status in {"ready_for_staffing", "paid", "preferred_writer_pending"}:
+        if is_paid and status in {"ready_for_staffing", "paid", "preferred_writer_pending"}:
             actions.append("assign_writer")
 
-        if status in {"ready_for_staffing", "preferred_writer_pending", "assigned"}:
+        if is_paid and status in {"ready_for_staffing", "preferred_writer_pending", "assigned"}:
             actions.append("release_to_pool")
 
         if status == "in_progress":
@@ -215,6 +221,22 @@ class OrderAvailableActionsService:
         if status == "in_progress" and getattr(lifecycle, "has_active_hold", False):
             blocked["submit_for_qa"] = "Order is on hold and cannot be submitted."
 
+        if status in {"unpaid", "pending_payment"}:
+            blocked["route_to_staffing"] = (
+                "Order must be fully paid before it can enter staffing."
+            )
+            blocked["assign_writer"] = (
+                "Writers can only be assigned after payment is complete."
+            )
+        elif status in {"paid", "ready_for_staffing", "preferred_writer_pending"} and not cls._is_paid(order=order):
+            blocked["assign_writer"] = (
+                "Payment status is not fully paid, so assignment is blocked."
+            )
+            if status == "paid":
+                blocked["route_to_staffing"] = (
+                    "Payment status is not fully paid, so staffing is blocked."
+                )
+
         # approve_order — completed but already approved
         if status == "completed" and getattr(order, "approved_at", None) is not None:
             blocked["approve_order"] = "Order has already been approved."
@@ -240,3 +262,10 @@ class OrderAvailableActionsService:
             seen.add(action)
             result.append(action)
         return result
+
+    @staticmethod
+    def _is_paid(*, order: Any) -> bool:
+        payment_status = str(getattr(order, "payment_status", "") or "").lower()
+        if payment_status:
+            return payment_status in PAID_PAYMENT_STATUSES
+        return str(getattr(order, "status", "") or "").lower() == "paid"

@@ -15,8 +15,10 @@ from class_management.api.serializers import (
     ClassPaymentMilestoneSerializer,
     ClassPaymentScheduleSerializer,
     CreateEqualPaymentScheduleSerializer,
+    ManualVerifiedClassPaymentSerializer,
     PrepareClassPaymentSerializer,
 )
+from class_management.constants import ClassPaymentSourceType
 from class_management.models import ClassInstallment
 from class_management.selectors import (
     ClassOrderSelector,
@@ -164,6 +166,53 @@ class ClassPaymentViewSet(ClassTenantViewMixin, viewsets.GenericViewSet):
                 "payment_intent_id": result.payment_intent_id,
                 "allocation_id": result.allocation_id,
             }
+        )
+
+    @action(detail=False, methods=["post"], url_path="manual-verify")
+    def manual_verify(self, request, *args, **kwargs):
+        if not (
+            request.user.is_superuser
+            or getattr(request.user, "role", None) in {"admin", "superadmin"}
+        ):
+            return Response(
+                {"detail": "Only admin or superadmin can verify payments."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        class_order = self.get_class_order()
+
+        serializer = ManualVerifiedClassPaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = cast(dict, serializer.validated_data)
+
+        allocation = ClassPaymentService.apply_successful_payment(
+            class_order=class_order,
+            amount=data["amount"],
+            source_type=ClassPaymentSourceType.EXTERNAL,
+            payer=request.user,
+            external_amount=data["amount"],
+            payment_transaction_id=str(data["transaction_reference"]),
+            reference=str(data["transaction_reference"]),
+            metadata={
+                "source": "manual_staff_verification",
+                "verification_note": str(data["verification_note"]),
+                "payment_method": str(data.get("payment_method", "")),
+                "verified_by_user_id": request.user.id,
+            },
+        )
+
+        class_order.refresh_from_db()
+        return Response(
+            {
+                "message": "Manual class payment verification applied.",
+                "allocation_id": allocation.pk,
+                "class_order_id": class_order.pk,
+                "status": class_order.status,
+                "payment_status": class_order.payment_status,
+                "paid_amount": str(class_order.paid_amount),
+                "final_amount": str(class_order.final_amount),
+            },
+            status=status.HTTP_200_OK,
         )
 
     @action(

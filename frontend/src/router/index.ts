@@ -473,6 +473,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminWriterPayView.vue"),
       },
       {
+        path: "writer-resources",
+        name: "admin-writer-resources",
+        component: () => import("@/views/admin/AdminWriterResourcesView.vue"),
+      },
+      {
         path: "newsletters",
         name: "admin-newsletters",
         component: () => import("@/views/admin/AdminNewslettersView.vue"),
@@ -853,6 +858,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "writer-pay",
         name: "superadmin-writer-pay",
         component: () => import("@/views/admin/AdminWriterPayView.vue"),
+      },
+      {
+        path: "writer-resources",
+        name: "superadmin-writer-resources",
+        component: () => import("@/views/admin/AdminWriterResourcesView.vue"),
       },
       {
         path: "clients",

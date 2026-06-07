@@ -13,6 +13,16 @@ export const orderOpsApi = {
     ),
   routeToStaffing: (orderId: number) =>
     api.post(ordersApiPath(`/orders/${orderId}/staffing/route/`), {}),
+  manualVerifyPayment: (
+    orderId: number,
+    payload: {
+      amount: string;
+      transaction_reference: string;
+      verification_note: string;
+      payment_method?: string;
+    },
+  ) =>
+    api.post(ordersApiPath(`/orders/${orderId}/payments/manual-verify/`), payload),
   assignDirect: (orderId: number, writerId: number, note = "") =>
     api.post(ordersApiPath(`/orders/${orderId}/staffing/assign-direct/`), {
       writer_id: writerId,

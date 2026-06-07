@@ -93,6 +93,33 @@ class PrepareClassPaymentSerializer(serializers.Serializer):
         return attrs
 
 
+class ManualVerifiedClassPaymentSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    transaction_reference = serializers.CharField(max_length=255)
+    verification_note = serializers.CharField(max_length=1000)
+    payment_method = serializers.CharField(
+        max_length=80,
+        required=False,
+        allow_blank=True,
+    )
+
+    def validate_transaction_reference(self, value: str) -> str:
+        value = value.strip()
+        if len(value) < 4:
+            raise serializers.ValidationError(
+                "Transaction reference must be at least 4 characters."
+            )
+        return value
+
+    def validate_verification_note(self, value: str) -> str:
+        value = value.strip()
+        if len(value) < 10:
+            raise serializers.ValidationError(
+                "Verification note must be at least 10 characters."
+            )
+        return value
+
+
 class ClassPaymentAllocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClassPaymentAllocation

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
 
-from special_orders.constants import SpecialOrderStatus
+from special_orders.constants import FundingPlanStatus, SpecialOrderStatus
 from special_orders.models import SpecialOrder, SpecialOrderWriterPayRule
 from special_orders.services.new_services.special_order_state_service import (
     SpecialOrderStateService,
@@ -184,6 +185,15 @@ class SpecialOrderAssignmentService:
         if special_order.status not in cls.ASSIGNABLE_STATUSES:
             raise ValueError(
                 "Special order is not ready for writer assignment."
+            )
+        try:
+            funding_plan = special_order.funding_plan
+        except ObjectDoesNotExist:
+            funding_plan = None
+
+        if funding_plan is not None and funding_plan.status != FundingPlanStatus.FUNDED:
+            raise ValueError(
+                "Special order must be fully funded before writer assignment."
             )
 
     @staticmethod

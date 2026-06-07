@@ -217,6 +217,14 @@ export const classesApi = {
   assignWriter: (id: number | string, writerId: number) =>
     api.post(base(`/classes/${id}/assignments/`), { writer_id: writerId }),
 
+  manualVerifyPayment: (id: number | string, payload: {
+    amount: string;
+    transaction_reference: string;
+    verification_note: string;
+    payment_method?: string;
+  }) =>
+    api.post(base(`/classes/${id}/payments/manual-verify/`), payload),
+
   cancel: (id: number | string, reason?: string) =>
     api.post<unknown>(base(`/classes/${id}/cancel/`), { reason })
       .then((res) => ({ ...res, data: normalizeClassOrder(res.data) })),

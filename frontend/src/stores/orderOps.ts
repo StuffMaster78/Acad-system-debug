@@ -287,6 +287,34 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
     }
   }
 
+  async function manualVerifyPayment(orderId: number, payload: {
+    amount: string;
+    transaction_reference: string;
+    verification_note: string;
+    payment_method?: string;
+  }) {
+    const auth = useAuthStore();
+    isMutating.value = true;
+    notice.value = "";
+    error.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        rows.value = rows.value.map((row) =>
+          row.id === orderId
+            ? { ...row, payment_status: "fully_paid", status: "ready_for_staffing", amount_paid: row.total_price }
+            : row,
+        );
+        notice.value = "Preview payment verified.";
+        return;
+      }
+      await orderOpsApi.manualVerifyPayment(orderId, payload);
+      notice.value = "Payment verification applied.";
+      await refresh();
+    } finally {
+      isMutating.value = false;
+    }
+  }
+
   async function assignDirect(orderId: number, writerId: number, note = "") {
     const auth = useAuthStore();
     isMutating.value = true;
@@ -445,6 +473,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
     fetchQueue,
     refresh,
     routeToStaffing,
+    manualVerifyPayment,
     assignDirect,
     releaseToPool,
     approveForDelivery,
