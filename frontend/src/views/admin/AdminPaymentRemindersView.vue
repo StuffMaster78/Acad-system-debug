@@ -97,6 +97,13 @@ const deletionDraft = reactive({
 const isConfigModal = computed(() => modalMode.value === "create-config" || modalMode.value === "edit-config");
 const isEditModal = computed(() => modalMode.value === "edit-config" || modalMode.value === "edit-deletion");
 
+// Shared form fields — v-model cannot use ternaries so we bind to this object
+const formDraft = reactive({ message: "", send_as_notification: true, send_as_email: true, email_subject: "", is_active: true });
+
+function syncFormFrom(src: { message: string; send_as_notification: boolean; send_as_email: boolean; email_subject: string; is_active: boolean }) {
+  Object.assign(formDraft, { message: src.message, send_as_notification: src.send_as_notification, send_as_email: src.send_as_email, email_subject: src.email_subject, is_active: src.is_active });
+}
+
 // ── API helpers ───────────────────────────────────────────────────────────────
 
 async function load() {
@@ -129,24 +136,28 @@ async function load() {
 
 function openCreateConfig() {
   Object.assign(configDraft, { id: 0, name: "", deadline_percentage: "", message: "", send_as_notification: true, send_as_email: true, email_subject: "", is_active: true, display_order: 0 });
+  syncFormFrom(configDraft);
   modalMode.value = "create-config";
   showModal.value = true;
 }
 
 function openEditConfig(r: ReminderConfig) {
   Object.assign(configDraft, { id: r.id, name: r.name, deadline_percentage: r.deadline_percentage, message: r.message, send_as_notification: r.send_as_notification, send_as_email: r.send_as_email, email_subject: r.email_subject, is_active: r.is_active, display_order: r.display_order });
+  syncFormFrom(configDraft);
   modalMode.value = "edit-config";
   showModal.value = true;
 }
 
 function openCreateDeletion() {
   Object.assign(deletionDraft, { id: 0, message: "", send_as_notification: true, send_as_email: true, email_subject: "", is_active: true });
+  syncFormFrom(deletionDraft);
   modalMode.value = "create-deletion";
   showModal.value = true;
 }
 
 function openEditDeletion(d: DeletionMessage) {
   Object.assign(deletionDraft, { id: d.id, message: d.message, send_as_notification: d.send_as_notification, send_as_email: d.send_as_email, email_subject: d.email_subject, is_active: d.is_active });
+  syncFormFrom(deletionDraft);
   modalMode.value = "edit-deletion";
   showModal.value = true;
 }
@@ -159,11 +170,11 @@ async function saveModal() {
       const payload = {
         name: configDraft.name,
         deadline_percentage: Number(configDraft.deadline_percentage),
-        message: configDraft.message,
-        send_as_notification: configDraft.send_as_notification,
-        send_as_email: configDraft.send_as_email,
-        email_subject: configDraft.email_subject,
-        is_active: configDraft.is_active,
+        message: formDraft.message,
+        send_as_notification: formDraft.send_as_notification,
+        send_as_email: formDraft.send_as_email,
+        email_subject: formDraft.email_subject,
+        is_active: formDraft.is_active,
         display_order: configDraft.display_order,
       };
       if (isEditModal.value) {
@@ -173,11 +184,11 @@ async function saveModal() {
       }
     } else {
       const payload = {
-        message: deletionDraft.message,
-        send_as_notification: deletionDraft.send_as_notification,
-        send_as_email: deletionDraft.send_as_email,
-        email_subject: deletionDraft.email_subject,
-        is_active: deletionDraft.is_active,
+        message: formDraft.message,
+        send_as_notification: formDraft.send_as_notification,
+        send_as_email: formDraft.send_as_email,
+        email_subject: formDraft.email_subject,
+        is_active: formDraft.is_active,
       };
       if (isEditModal.value) {
         await api.patch(apiPath(`${BASE}/deletion-messages/${deletionDraft.id}/`), payload);
@@ -461,27 +472,27 @@ onMounted(load);
 
         <div>
           <label class="block text-sm font-medium text-ink mb-1">Message</label>
-          <textarea v-model="isConfigModal ? configDraft.message : deletionDraft.message" required rows="4" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal" placeholder="Message body sent to the client…" />
+          <textarea v-model="formDraft.message" required rows="4" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal" placeholder="Message body sent to the client…" />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-ink mb-1">Email subject (optional)</label>
-          <input v-model="isConfigModal ? configDraft.email_subject : deletionDraft.email_subject" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal" placeholder="e.g. Action required: complete your payment" />
+          <input v-model="formDraft.email_subject" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal" placeholder="e.g. Action required: complete your payment" />
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <label class="flex items-center gap-2 text-sm">
-            <input v-model="isConfigModal ? configDraft.send_as_notification : deletionDraft.send_as_notification" type="checkbox" class="rounded border-slate-300 text-signal" />
+            <input v-model="formDraft.send_as_notification" type="checkbox" class="rounded border-slate-300 text-signal" />
             Send as notification
           </label>
           <label class="flex items-center gap-2 text-sm">
-            <input v-model="isConfigModal ? configDraft.send_as_email : deletionDraft.send_as_email" type="checkbox" class="rounded border-slate-300 text-signal" />
+            <input v-model="formDraft.send_as_email" type="checkbox" class="rounded border-slate-300 text-signal" />
             Send as email
           </label>
         </div>
 
         <label class="flex items-center gap-2 text-sm">
-          <input v-model="isConfigModal ? configDraft.is_active : deletionDraft.is_active" type="checkbox" class="rounded border-slate-300 text-signal" />
+          <input v-model="formDraft.is_active" type="checkbox" class="rounded border-slate-300 text-signal" />
           Active
         </label>
 
