@@ -79,7 +79,7 @@ def audit_user_role_changed(sender, instance, created, **kwargs):
     if created:
         return
     try:
-        prev = User.objects.filter(pk=instance.pk).values("role", "is_active", "is_suspended").first()
+        prev = User.objects.filter(pk=instance.pk).values("role", "is_active").first()
         if prev is None:
             return
 
