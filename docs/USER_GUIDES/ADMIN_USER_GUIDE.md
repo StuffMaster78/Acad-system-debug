@@ -1,6 +1,6 @@
 # Admin User Guide
 
-**Last Updated**: June 2026
+**Last Updated**: June 2026 (rev 2)
 
 Admin manages a single website (tenant). For cross-website controls see the [Superadmin User Guide](SUPERADMIN_USER_GUIDE.md). For the full order state machine see [ORDER_LIFECYCLE.md](../ORDER_LIFECYCLE.md).
 
@@ -41,6 +41,7 @@ Admin manages a single website (tenant). For cross-website controls see the [Sup
 17. [Loyalty and Rewards](#17-loyalty-and-rewards)
 18. [Config Hub](#18-config-hub)
 19. [Audit Log](#19-audit-log)
+20. [Payment Reminders](#20-payment-reminders)
 
 ---
 
@@ -55,7 +56,7 @@ Navigate to the staff portal domain and log in with your admin credentials. Admi
 | Overview | Dashboard, Analytics |
 | Orders | Orders list, Operations Command Center |
 | People | Clients, Writers, Applications, Vetting |
-| Money | Payments, Refunds, Compensation, Financial Center, Ledger, Discounts |
+| Money | Payments, Payment Disclosure, Payment Reminders, Refunds, Compensation, Financial Center, Ledger, Discounts |
 | Quality | Disputes, Reviews, QA Checklists |
 | Content | Content, Publishing, Newsletters |
 | Engagement | Feedback & Requests, Changelog, Loyalty, Rewards |
@@ -261,8 +262,18 @@ Enable to include recently resolved items. Off by default.
 **URL**: `/admin/clients`
 
 - Search by name, email, or client ID
-- Filter by status, spending tier, date joined
-- Client profile: order history, payment history, wallet balance, loyalty tier, admin notes
+- Filter by status (All / Active / Suspended / Blacklisted), spending tier, date joined
+- Click a row to open the client detail panel; click **Full profile** to go to the full profile page
+
+### Client profile (`/admin/clients/:id`)
+
+The full profile page shows:
+
+- **Header strip**: email, phone number, website, join date, last login, account status
+- **Contact information sidebar**: email, phone, username, website
+- **Tabs**: Overview (spend, orders, wallet), Orders, Special Orders, Classes, Payments & Wallet, Activity, Profile Requests
+- **Profile Requests tab**: full history of profile update requests (name, email, timezone changes) with status (pending / approved / rejected)
+- **Account controls**: suspend, unsuspend, unlock, kick out, reset password, change role
 
 ---
 
@@ -272,7 +283,10 @@ Enable to include recently resolved items. Off by default.
 
 - Search by name, writer ID, or level
 - Filter by level, status (active / suspended / inactive), assignment count
-- Writer profile: assignments, performance stats, compensation history, reviews, quiz results, disciplinary notes
+- Click a row to open the writer detail panel (pen name, level, verification status, discipline state, capacity, availability, warnings, strikes)
+- Click **Full profile** to open the full writer profile page with assignment history, performance stats, compensation history, reviews, quiz results, and disciplinary notes
+
+> **Note**: writers must have a `WriterProfile` record (created via `seed_profiles` or the application process) for the Full profile button to appear.
 
 ---
 
@@ -345,6 +359,14 @@ Order detail → Quality tab: pass/fail per item, editor notes, submission times
 - Filter by status (succeeded / failed / pending), date, amount
 - Click transaction for detail: gateway reference, amount, fees, associated order
 - Saved view presets available
+
+### Payment Disclosure (`/admin/payment-disclosure`)
+
+Configure the billing statement text shown to clients before and after payment. Sets the brand name, processor display name, statement descriptor, and client disclosure text. Clients see this on the order form and in payment confirmation screens.
+
+### Payment Reminders (`/admin/payment-reminders`)
+
+Configure automated reminders sent to clients who have not paid for an order. See [Section 20](#20-payment-reminders) for full details.
 
 ### Refunds (`/admin/refunds`)
 
@@ -517,3 +539,46 @@ Expand any row to see: actor ID and role, before/after diff (red = before, green
 **Export**: CSV of filtered events for compliance or incident investigation.
 
 **Saved view presets**: save filter combos (e.g. "Critical events today", "Auth events this week", "Config changes").
+
+---
+
+## 20. Payment Reminders
+
+**URL**: `/admin/payment-reminders`
+
+Configure automated messages sent to clients who have unpaid orders. The system sends reminders based on how much of the deadline window has elapsed.
+
+### Stats strip
+
+| Tile | Meaning |
+|---|---|
+| Total Configs | Number of reminder configurations defined |
+| Active | Configs that are currently enabled |
+| Sent (last 7 days) | Reminders dispatched in the past week |
+
+### Reminders tab
+
+Each reminder fires when a specified percentage of the order's deadline window has elapsed (e.g., 30% = "a third of the time to deadline has passed").
+
+**Creating a reminder:**
+
+1. Click **Add Reminder**
+2. Enter a name (e.g., "First Reminder", "Final Warning")
+3. Set the **Deadline % elapsed** (0–100): when to send relative to order creation vs. deadline
+4. Write the **Message** body (shown in the notification and email)
+5. Optionally set an **Email subject**
+6. Toggle **Send as notification** and/or **Send as email**
+7. Set **Display order** (lower numbers sort first)
+8. Enable **Active** and click **Create**
+
+**Best practice**: configure at least two reminders — one early (e.g., 30%) and one urgent (e.g., 80%).
+
+### Deletion Messages tab
+
+Messages sent when an unpaid order is automatically cancelled after the deadline has elapsed. Configure at least one active deletion message per website.
+
+### Sent Log tab
+
+Read-only history of all reminders dispatched: which config fired, which client received it, which order, and through which channels (notification / email).
+
+---

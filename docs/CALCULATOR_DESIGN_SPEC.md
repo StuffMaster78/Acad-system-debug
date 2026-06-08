@@ -2,6 +2,8 @@
 
 This document covers everything a frontend developer or designer needs to build, extend, or re-skin the pricing calculators. Three calculator types are wired end to end: paper, design, and diagram. The CMS calculator block renders the matching frontend widget from its `service_code`.
 
+> **Status (June 2026):** Paper, design, and diagram calculators are all live. Combo (paper + design or paper + diagram) pricing is supported natively in the order form via the composite quote API — no separate "combo calculator" widget is needed. See [Section 8](#8-session-handoff-to-order-form) for handoff details.
+
 ---
 
 ## Table of Contents
@@ -433,9 +435,11 @@ Or for already-logged-in users:
 ```
 
 The order form reads this and:
-1. Pre-fills page count, deadline, paper type, academic level
-2. Calls `POST /api/pricing/quotes/{session_id}/snapshot/` to lock in the price
+1. Pre-fills page count, deadline, paper type, academic level (or design/diagram fields for those types)
+2. Calls `POST /api/v1/pricing/quotes/{session_id}/snapshot/` to lock in the price
 3. The `snapshot_id` returned is stored on the order so the price is frozen
+
+The order form also supports **combo orders** (Writing + Design or Writing + Diagrams) natively — no session_id handoff is needed for those; the user selects the service type in the form and both quote sessions are created client-side before the composite total is calculated.
 
 **What happens if session expires**: sessions are not persisted indefinitely. If the user takes more than ~30 minutes between estimate and order, re-run the estimate on order form load and show the current price. Do not show a "Your price has changed" warning unless the total has actually changed.
 

@@ -89,44 +89,89 @@ Before creating an account or logging in, you can use the **Pricing Calculator**
 3. An instant price estimate appears. Adjust any field to update the price in real time.
 4. When satisfied, click **Proceed to Order** to open the full order form.
 
-### Step 2 — Fill In the Order Form
+### Step 2 — Choose Your Service Type
 
-The order form collects everything the writer needs:
+At the top of the order form, select what you need:
+
+| Service type | Use for |
+|---|---|
+| **Writing** | Essay, research paper, report, coursework, case study |
+| **Presentation / Design** | PowerPoint slides, infographic, poster, flyer |
+| **Diagram** | Flowchart, ERD, UML diagram, system architecture diagram |
+| **Writing + Design** | A written paper combined with a presentation deck |
+| **Writing + Diagrams** | A written paper combined with supporting diagrams |
+
+The form adapts to show only the fields relevant to your selection.
+
+### Step 3 — Fill In the Order Form
+
+**All order types require:**
 
 | Field | What to enter |
-|-------|--------------|
-| Topic | The title or subject of the paper |
+|---|---|
+| Topic | Title or subject of the work |
 | Instructions | Detailed guidance — the more specific, the better |
+| Deadline | When you need the finished work |
+
+**Writing orders also require:**
+
+| Field | What to enter |
+|---|---|
 | Paper type | Essay, research paper, case study, etc. |
 | Academic level | High school, undergraduate, master's, PhD |
 | Subject / discipline | Nursing, Business, Literature, etc. |
-| Number of pages | Each page is approximately 275 words (double-spaced) |
-| Deadline | How many hours from now you need the paper |
+| Number of pages | Each page ≈ 275 words (double-spaced) |
 | Formatting style | APA, MLA, Chicago, Harvard, etc. |
 | Spacing | Single or double |
 | Writer level | Standard, Advanced, or Expert (price varies) |
-| Additional files | Upload an outline, lecture notes, or rubric |
 
-> **Tip:** Attaching a grading rubric is one of the most effective things you can do to improve quality.
+**Presentation / Design orders also require:**
 
-### Step 3 — Apply a Coupon (Optional)
+| Field | What to enter |
+|---|---|
+| Design type | Presentation, Infographic, or Poster / Flyer |
+| Number of slides | For presentations (e.g. 10) |
+| Quantity | For infographics or posters (e.g. 2) |
+
+**Diagram orders also require:**
+
+| Field | What to enter |
+|---|---|
+| Diagram type | Flowchart, ERD, UML, or System Architecture |
+| Number of diagrams | How many separate diagrams you need |
+| Complexity | Simple, Moderate, or Complex (affects price) |
+
+### Step 4 — Attach Files (Optional)
+
+Two upload sections are available:
+
+- **Reference materials** — assignment brief, rubric, lecture notes, or any context the writer needs
+- **Style guide / designs** — diagrams, templates, brand guides, or design files the writer should follow
+
+Files are uploaded automatically when you submit the order.
+
+> **Tip:** Attaching a grading rubric or style guide significantly improves quality.
+
+### Step 5 — Apply a Coupon (Optional)
 
 If you have a discount code, enter it in the **Coupon code** field before continuing. The discount is shown immediately. See [Discount & Coupon Codes](#discount--coupon-codes) for more detail.
 
-### Step 4 — Review the Price Breakdown
+### Step 6 — Review the Price Breakdown
 
 Before reaching the payment screen, you will see an itemised price summary:
 
-- Base price (pages × rate)
+- Base price (pages × rate, or slides × rate, or diagrams × rate)
 - Deadline surcharge (if applicable)
-- Academic level adjustment
+- Academic level / complexity adjustment
 - Writer level adjustment
 - Any discount applied
 - **Total due**
 
-The price is locked at this point — it will not change even if rates change before your paper is delivered.
+For combo orders (Writing + Design or Writing + Diagrams), the total reflects both components combined.
 
-### Step 5 — Pay and Confirm
+The price is locked at this point — it will not change even if rates change before your work is delivered.
+
+### Step 7 — Pay and Confirm
 
 Proceed to payment (see [Paying for Your Order](#paying-for-your-order)). Once payment is confirmed, your order is created and visible in **My Orders**.
 

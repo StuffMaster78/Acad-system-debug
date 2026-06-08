@@ -1,7 +1,7 @@
 # Developer Guide
 
-**Version**: 1.0  
-**Last Updated**: December 2025
+**Version**: 1.1  
+**Last Updated**: June 2026
 
 ---
 
@@ -38,10 +38,22 @@
 
 2. **Start with Docker**
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
-3. **Or Setup Manually**
+3. **Seed development data** (first time only)
+   ```bash
+   make seed
+   # Equivalent to:
+   #   seed_dev_data
+   #   seed_pricing_defaults localhost
+   #   seed_special_orders --with-orders
+   #   seed_orders
+   #   backfill_compensation_events
+   #   seed_profiles        ← creates WriterProfile + ClientProfile for all demo users
+   ```
+
+4. **Or Setup Manually**
    ```bash
    # Backend
    cd backend
@@ -49,10 +61,12 @@
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
    python manage.py migrate
+   python manage.py seed_dev_data
+   python manage.py seed_profiles
    python manage.py runserver
 
-   # Frontend work now lives outside this backend repo.
-   # See docs/PACKAGING_STRATEGY.md before creating a new app.
+   # Frontend
+   cd frontend && pnpm install && pnpm dev
    ```
 
 ---
@@ -131,6 +145,41 @@ services. Do not add frontend application code to this repository.
 - **MVC** - Model-View-Controller (Django)
 - **Repository Pattern** - API service layer
 - **Observer Pattern** - Event handling
+
+---
+
+## Key Architecture Notes
+
+### User services (`backend/users/services/`)
+
+All user-domain services live in `users/services/`. The `services_legacy/` subdirectory contains **compatibility shims only** — each file is a one-liner re-export. Do not add new logic to `services_legacy/`; put it in `users/services/` directly.
+
+### Order service families
+
+Orders support four `service_family` values: `paper_order`, `design_order`, `diagram_order`, `combo_order`. The `unit_type` field reflects the quantum of work:
+
+| family | unit_type | Key fields |
+|---|---|---|
+| `paper_order` | `page` | `base_quantity` = pages, `paper_type` required |
+| `design_order` | `slide` or `design_concept` | `base_quantity` = slides or designs |
+| `diagram_order` | `diagram` | `base_quantity` = diagrams |
+| `combo_order` | `page` | paper fields + `total_price_override` for combined total |
+
+### Order file URLs
+
+All order file endpoints sit under `/api/v1/orders/orders/<id>/files/` — note the double `orders/` (the router prefix + the `orders/` mount in `order_file_urls`). Examples:
+
+- `GET  /api/v1/orders/orders/{id}/files/`
+- `POST /api/v1/orders/orders/{id}/files/instructions/`
+- `POST /api/v1/orders/orders/{id}/files/style-references/`
+
+### Lifecycle permissions
+
+`CanViewOrderLifecycle` is intentionally permissive at `has_permission` (any authenticated user passes) — client ownership and writer assignment are verified in `has_object_permission`. Do not add `require_tenant = True` back to this permission class.
+
+### Payment reminder models
+
+`PaymentReminderConfig`, `PaymentReminderDeletionMessage`, `PaymentReminderSettings`, and `PaymentReminderSent` live in `orders/models/legacy_models/unpaid_order_payment_reminders.py` and are managed via `/api/v1/admin-management/payment-reminders/`.
 
 ---
 
@@ -304,4 +353,4 @@ ALLOWED_HOSTS=yourdomain.com
 
 ---
 
-**Last Updated**: December 2025
+**Last Updated**: June 2026
