@@ -236,6 +236,7 @@ class ReceiptService:
         payment_intent_reference: str = "",
         external_reference: str = "",
         payment_provider: str = "",
+        payment_intent=None,
     ) -> Receipt:
         """
         Create and issue a tenant-aware receipt.
@@ -278,6 +279,7 @@ class ReceiptService:
             payment_request=payment_request,
         )
 
+        pi = payment_intent
         return Receipt.objects.create(
             website=website,
             amount=amount,
@@ -310,6 +312,11 @@ class ReceiptService:
             payment_intent_reference=payment_intent_reference,
             external_reference=external_reference,
             payment_provider=payment_provider,
+            processor_display_name=getattr(pi, "processor_display_name", "") or "",
+            statement_descriptor_snapshot=getattr(pi, "statement_descriptor_snapshot", "") or "",
+            client_disclosure_text=getattr(pi, "client_disclosure_text", "") or "",
+            disclosure_shown_at=getattr(pi, "disclosure_shown_at", None),
+            disclosure_accepted_at=getattr(pi, "disclosure_accepted_at", None),
             status=ReceiptStatus.ISSUED,
             issued_at=timezone.now(),
         )

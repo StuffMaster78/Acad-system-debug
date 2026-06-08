@@ -203,6 +203,13 @@
       </form>
 
       <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-if="serviceFamilyLabel">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Service type</dt>
+          <dd class="mt-1 text-sm text-ink">
+            {{ serviceFamilyLabel }}
+            <span v-if="order.service_code" class="ml-1 text-xs text-graphite">({{ order.service_code.replace(/_/g, ' ') }})</span>
+          </dd>
+        </div>
         <div v-if="order.topic">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Topic</dt>
           <dd class="mt-1 text-sm text-ink">{{ order.topic }}</dd>
@@ -560,6 +567,16 @@ function displayLabel(name?: string | null, fallback?: number | string | null): 
   if (fallback == null || fallback === "") return "";
   return String(fallback);
 }
+
+const SERVICE_FAMILY_LABELS: Record<string, string> = {
+  paper_order:   "Paper",
+  design_order:  "Design",
+  diagram_order: "Diagram",
+  combo_order:   "Combo (Paper + Design/Diagram)",
+};
+const serviceFamilyLabel = computed(() =>
+  props.order.service_family ? (SERVICE_FAMILY_LABELS[props.order.service_family] ?? props.order.service_family) : ""
+);
 
 const academicLevelLabel = computed(() => displayLabel(props.order.academic_level_name, props.order.academic_level));
 const paperTypeLabel = computed(() => displayLabel(props.order.paper_type_name, props.order.paper_type));

@@ -73,7 +73,8 @@ class OrderListSerializer(serializers.ModelSerializer):
             'english_type', 'english_type_name', 'client_deadline', 'writer_deadline',
             'client', 'client_username', 'writer_username',
             'preferred_writer', 'total_price', 'writer_compensation', 'subject', 'subject_name', 'status', 'payment_status', 'flags', 'created_at', 'updated_at',
-            'is_follow_up', 'is_urgent', 'website'
+            'is_follow_up', 'is_urgent', 'website',
+            'service_family', 'service_code', 'is_composite',
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_price', 'writer_compensation',
@@ -126,6 +127,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',
             'allow_unpaid_access', 'revision_eligibility', 'style_reference_files',
             'qa_review_note', 'qa_approved_at', 'qa_returned_at',
+            'service_family', 'service_code', 'is_composite',
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_price', 'writer_compensation',

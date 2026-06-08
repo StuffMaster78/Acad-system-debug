@@ -614,6 +614,7 @@ class InvoiceOrchestrationService:
                 payment_intent_reference=payment_intent.reference,
                 external_reference=external_reference or "",
                 payment_provider=payment_intent.provider,
+                payment_intent=payment_intent,
                 send_email=True,
                 triggered_by=triggered_by,
             )

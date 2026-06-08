@@ -157,6 +157,87 @@ class Command(BaseCommand):
         {"name": "Platinum", "threshold": 5000, "discount_percentage": Decimal("12.00"), "perks": "12% discount, dedicated support."},
     ]
 
+    DEMO_WRITERS = [
+        {
+            "email": "writer1@dev.local",
+            "username": "dev_writer1",
+            "first_name": "Alice",
+            "last_name": "Nkosi",
+            "password": "writer1234",
+            "pen_name": "A. Nkosi",
+            "bio": "Experienced academic writer specialising in STEM and social sciences.",
+            "years_of_experience": 5,
+        },
+        {
+            "email": "writer2@dev.local",
+            "username": "dev_writer2",
+            "first_name": "Brian",
+            "last_name": "Omondi",
+            "password": "writer1234",
+            "pen_name": "B. Omondi",
+            "bio": "Business and finance writer with a background in MBA studies.",
+            "years_of_experience": 8,
+        },
+        {
+            "email": "writer3@dev.local",
+            "username": "dev_writer3",
+            "first_name": "Chloe",
+            "last_name": "Waweru",
+            "password": "writer1234",
+            "pen_name": "C. Waweru",
+            "bio": "Creative and academic writer with expertise in humanities.",
+            "years_of_experience": 3,
+        },
+    ]
+
+    DEMO_CLIENTS = [
+        {
+            "email": "client1@dev.local",
+            "username": "dev_client1",
+            "first_name": "David",
+            "last_name": "Smith",
+            "password": "client1234",
+        },
+        {
+            "email": "client2@dev.local",
+            "username": "dev_client2",
+            "first_name": "Eva",
+            "last_name": "Mwangi",
+            "password": "client1234",
+        },
+        {
+            "email": "client3@dev.local",
+            "username": "dev_client3",
+            "first_name": "Frank",
+            "last_name": "Ochieng",
+            "password": "client1234",
+        },
+    ]
+
+    PAYMENT_REMINDER_CONFIGS = [
+        {
+            "name": "Early Reminder",
+            "deadline_percentage": Decimal("30.00"),
+            "message": "Just a heads-up — your order payment is still pending. Complete it before the deadline to avoid cancellation.",
+            "email_subject": "Reminder: Your order payment is pending",
+            "display_order": 0,
+        },
+        {
+            "name": "Mid Reminder",
+            "deadline_percentage": Decimal("60.00"),
+            "message": "More than half your payment window has passed. Please complete your payment soon.",
+            "email_subject": "Action required: Complete your order payment",
+            "display_order": 1,
+        },
+        {
+            "name": "Final Warning",
+            "deadline_percentage": Decimal("90.00"),
+            "message": "Your order payment is about to expire. Complete payment now to prevent cancellation.",
+            "email_subject": "URGENT: Your order payment is expiring",
+            "display_order": 2,
+        },
+    ]
+
     TIP_POLICY = {
         "name": "Default Policy",
         "slug": "default",
@@ -188,6 +269,9 @@ class Command(BaseCommand):
             self._seed_writer_config(website)
             self._seed_tip_policy()
             self._seed_loyalty_tiers(website)
+            self._seed_demo_writers(website)
+            self._seed_demo_clients(website)
+            self._seed_payment_reminder_configs(website)
 
         self._backfill_class_balances()
 
@@ -324,6 +408,97 @@ class Command(BaseCommand):
                 },
             )
             self._log("LoyaltyTier", tier.name, created)
+
+    def _seed_demo_writers(self, website):
+        from writer_management.models import WriterProfile
+        from writer_management.models.writer_level import WriterLevel
+        from writer_management.enums import WriterOnboardingStatus
+
+        default_level = WriterLevel.objects.filter(
+            website=website, is_default=True
+        ).first()
+
+        for data in self.DEMO_WRITERS:
+            user, created = User.objects.update_or_create(
+                email=data["email"],
+                defaults={
+                    "username": data["username"],
+                    "first_name": data["first_name"],
+                    "last_name": data["last_name"],
+                    "role": "writer",
+                    "is_active": True,
+                    "website": website,
+                },
+            )
+            if created:
+                user.set_password(data["password"])
+                user.save(update_fields=["password"])
+
+            # Patch WriterProfile fields that the signal leaves blank
+            try:
+                wp = WriterProfile.objects.get(account_profile__user=user)
+                updated = False
+                if not wp.pen_name:
+                    wp.pen_name = data["pen_name"]
+                    updated = True
+                if not wp.bio:
+                    wp.bio = data["bio"]
+                    updated = True
+                if wp.years_of_experience is None:
+                    wp.years_of_experience = data["years_of_experience"]
+                    updated = True
+                if wp.onboarding_status == WriterOnboardingStatus.NOT_STARTED:
+                    wp.onboarding_status = WriterOnboardingStatus.COMPLETED
+                    updated = True
+                if default_level and wp.writer_level is None:
+                    wp.writer_level = default_level
+                    updated = True
+                if updated:
+                    wp.save()
+            except WriterProfile.DoesNotExist:
+                pass
+
+            self._log("DemoWriter", data["email"], created)
+
+    def _seed_demo_clients(self, website):
+        for data in self.DEMO_CLIENTS:
+            user, created = User.objects.update_or_create(
+                email=data["email"],
+                defaults={
+                    "username": data["username"],
+                    "first_name": data["first_name"],
+                    "last_name": data["last_name"],
+                    "role": "client",
+                    "is_active": True,
+                    "website": website,
+                },
+            )
+            if created:
+                user.set_password(data["password"])
+                user.save(update_fields=["password"])
+
+            self._log("DemoClient", data["email"], created)
+
+    def _seed_payment_reminder_configs(self, website):
+        from orders.models.legacy_models.unpaid_order_payment_reminders import (
+            PaymentReminderConfig,
+        )
+
+        for data in self.PAYMENT_REMINDER_CONFIGS:
+            cfg, created = PaymentReminderConfig.objects.update_or_create(
+                website=website,
+                deadline_percentage=data["deadline_percentage"],
+                defaults={
+                    "name": data["name"],
+                    "message": data["message"],
+                    "email_subject": data["email_subject"],
+                    "display_order": data["display_order"],
+                    "send_as_notification": True,
+                    "send_as_email": True,
+                    "is_active": True,
+                },
+            )
+            self._log("PaymentReminderConfig", cfg.name, created)
 
     def _backfill_class_balances(self) -> None:
         """

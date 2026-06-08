@@ -320,6 +320,7 @@ class ReceiptOrchestrationService:
         payment_intent_reference: str = "",
         external_reference: str = "",
         payment_provider: str = "",
+        payment_intent=None,
         send_email: bool = True,
         triggered_by=None,
     ) -> ReceiptIssuanceResult:
@@ -376,6 +377,7 @@ class ReceiptOrchestrationService:
                 invoice=invoice,
                 payment_provider=payment_provider,
             ),
+            payment_intent=payment_intent,
         )
 
         if send_email:
@@ -396,6 +398,7 @@ class ReceiptOrchestrationService:
         payment_intent_reference: str = "",
         external_reference: str = "",
         payment_provider: str = "",
+        payment_intent=None,
         send_email: bool = True,
         triggered_by=None,
     ) -> ReceiptIssuanceResult:
@@ -456,6 +459,7 @@ class ReceiptOrchestrationService:
                 payment_request=payment_request,
                 payment_provider=payment_provider,
             ),
+            payment_intent=payment_intent,
         )
 
         if send_email:
