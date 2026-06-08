@@ -72,12 +72,12 @@ class OrderListSerializer(serializers.ModelSerializer):
             'formatting_style', 'formatting_style_name', 'type_of_work', 'type_of_work_name',
             'english_type', 'english_type_name', 'client_deadline', 'writer_deadline',
             'client', 'client_username', 'writer_username',
-            'preferred_writer', 'total_price', 'writer_compensation', 'subject', 'subject_name', 'status', 'flags', 'created_at', 'updated_at',
+            'preferred_writer', 'total_price', 'writer_compensation', 'subject', 'subject_name', 'status', 'payment_status', 'flags', 'created_at', 'updated_at',
             'is_follow_up', 'is_urgent', 'website'
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_price', 'writer_compensation',
-            'created_at', 'updated_at',
+            'payment_status', 'created_at', 'updated_at',
             'flags', 'writer_deadline'
         ]
 
@@ -120,7 +120,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'client_deadline', 'writer_deadline',
             'client', 'client_username', 'client_email', 'client_registration_id', 'writer_username',
             'preferred_writer', 'total_price', 'writer_compensation',
-            'subject', 'subject_name', 'subject_is_technical', 'status', 'flags', 'created_at', 'updated_at',
+            'subject', 'subject_name', 'subject_is_technical', 'status', 'payment_status', 'flags', 'created_at', 'updated_at',
             'created_by_admin', 'is_follow_up',
             'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent',
             'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',
@@ -129,7 +129,7 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_price', 'writer_compensation',
-            'created_at', 'updated_at',
+            'payment_status', 'created_at', 'updated_at',
             'flags', 'writer_deadline', 'editing_skip_reason',
             'qa_review_note', 'qa_approved_at', 'qa_returned_at',
         ]

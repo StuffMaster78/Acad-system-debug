@@ -285,6 +285,7 @@ async function submit() {
     const provider = providerFor[paymentMethod.value];
     const created = await orders.createPaperOrder(quotePayload(), {
       topic: form.topic,
+      number_of_pages: form.pages,
       order_instructions: form.order_instructions,
       client_deadline: new Date(form.client_deadline).toISOString(),
       paper_type_id: form.paper_type_id,

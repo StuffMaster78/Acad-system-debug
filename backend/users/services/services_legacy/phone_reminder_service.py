@@ -30,7 +30,7 @@ class PhoneReminderService:
         """
         # Check UserProfile
         try:
-            profile = self.user.user_main_profile
+            profile = self.user.profile
             if profile and profile.phone_number:
                 return True
         except UserProfile.DoesNotExist:
@@ -56,7 +56,7 @@ class PhoneReminderService:
         """
         # Check UserProfile first
         try:
-            profile = self.user.user_main_profile
+            profile = self.user.profile
             if profile and profile.phone_number:
                 return str(profile.phone_number)
         except UserProfile.DoesNotExist:

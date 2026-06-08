@@ -849,7 +849,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             # Add phone reminder info for clients (skip for simple count queries)
             is_simple = getattr(self, '_is_simple_query', False)
             if (request.user.role in ['client', 'customer'] and not is_simple):
-                from users.services.phone_reminder_service import PhoneReminderService
+                from users.services.services_legacy.phone_reminder_service import PhoneReminderService
                 phone_service = PhoneReminderService(request.user)
 
                 # Check if reminder should be shown (user has active orders)
@@ -925,7 +925,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
 
         # Add phone reminder info for clients viewing orders
         if request.user.role in ['client', 'customer']:
-            from users.services.phone_reminder_service import PhoneReminderService
+            from users.services.services_legacy.phone_reminder_service import PhoneReminderService
             phone_service = PhoneReminderService(request.user)
 
             order = self.get_object()
@@ -1096,14 +1096,11 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
     @decorators.action(detail=False, methods=["post"], url_path="create")
     def create_order(self, request):
         """
-        Client creates a new order. Minimal required fields:
-        - topic (str)
-        - paper_type_id (int)
-        - number_of_pages (int >=1)
-        - client_deadline (datetime ISO)
-        - order_instructions (str)
-        Optional:
-        - academic_level_id, formatting_style_id, subject_id, extra_services (list[int])
+        Client creates a new order.
+        Required: topic, paper_type_id, pages (or number_of_pages), client_deadline, order_instructions
+        Optional: academic_level_id, formatting_style_id, subject_id, type_of_work_id,
+                  english_type_id, writer_level_id, pricing_snapshot_id, is_urgent,
+                  payment_provider, payment_method_code, entered_code
         """
         user = request.user
         if user.role != 'client' and not user.is_superuser:
@@ -1111,8 +1108,17 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
 
         data = request.data if isinstance(request.data, dict) else {}
 
-        required = ["topic", "paper_type_id", "number_of_pages", "client_deadline", "order_instructions"]
-        missing = [f for f in required if not data.get(f)]
+        # Accept pages or number_of_pages for backwards compatibility
+        pages_raw = data.get("pages") or data.get("number_of_pages")
+
+        required_check = {
+            "topic": data.get("topic"),
+            "paper_type_id": data.get("paper_type_id"),
+            "pages": pages_raw,
+            "client_deadline": data.get("client_deadline"),
+            "order_instructions": data.get("order_instructions"),
+        }
+        missing = [k for k, v in required_check.items() if not v]
         if missing:
             return Response({"detail": f"Missing fields: {', '.join(missing)}"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1122,20 +1128,35 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 client=user,
                 topic=data["topic"],
                 paper_type_id=int(data["paper_type_id"]),
-                number_of_pages=int(data["number_of_pages"]),
+                base_quantity=int(pages_raw),
                 client_deadline=data["client_deadline"],
                 order_instructions=data["order_instructions"],
                 created_by_admin=False,
                 payment_status='unpaid',
+                is_urgent=bool(data.get("is_urgent", False)),
+                service_family="paper_order",
+                service_code=str(data.get("service_code", "academic_writing") or "academic_writing"),
             )
 
-            # Optional fields
-            if data.get("academic_level_id"):
-                order.academic_level_id = int(data["academic_level_id"])
-            if data.get("formatting_style_id"):
-                order.formatting_style_id = int(data["formatting_style_id"])
-            if data.get("subject_id"):
-                order.subject_id = int(data["subject_id"])
+            # Optional FK fields
+            for field in ("academic_level_id", "formatting_style_id", "subject_id",
+                          "type_of_work_id", "english_type_id", "writer_level_id"):
+                val = data.get(field)
+                if val:
+                    setattr(order, field, int(val))
+
+            if data.get("pricing_snapshot_id"):
+                snapshot_id = int(data["pricing_snapshot_id"])
+                order.pricing_snapshot_id = snapshot_id
+                try:
+                    from order_pricing_core.models import PricingSnapshot
+                    snap = PricingSnapshot.objects.get(pk=snapshot_id)
+                    order.total_price = snap.final_price
+                    if snap.currency:
+                        order.currency = snap.currency
+                except Exception:
+                    pass
+
             order.save()
 
             # Extra services many-to-many
@@ -1143,7 +1164,14 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             if isinstance(extra_services, list) and extra_services:
                 order.extra_services.set(extra_services)
 
-            return Response(OrderSerializer(order, context={"request": request}).data, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    "order": OrderSerializer(order, context={"request": request}).data,
+                    "checkout_started": False,
+                    "payment_intent": None,
+                },
+                status=status.HTTP_201_CREATED,
+            )
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

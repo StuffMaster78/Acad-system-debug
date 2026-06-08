@@ -134,6 +134,7 @@ export interface CancelOrderPayload {
 
 export interface CreateOrderPayload {
   topic: string;
+  number_of_pages?: number | null;
   paper_type_id?: number | null;
   academic_level_id?: number | null;
   formatting_style_id?: number | null;
