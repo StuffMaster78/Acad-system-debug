@@ -57,6 +57,7 @@ class Command(BaseCommand):
         from django.contrib.auth import get_user_model
         from writer_management.models import WriterProfile
         from writer_management.models.writer_level import WriterLevel
+        from writer_management.models.writer_discipline_state import WriterDisciplineState
         from accounts.models.account_profile import AccountProfile
 
         User = get_user_model()
@@ -116,6 +117,9 @@ class Command(BaseCommand):
                     "onboarding_status": "completed",
                 },
             )
+
+            # Ensure discipline state exists (required by the writers view)
+            WriterDisciplineState.objects.get_or_create(writer=wp)
 
             if wp_created:
                 created += 1
