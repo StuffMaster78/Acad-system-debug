@@ -87,6 +87,8 @@ class ClientWalletService:
         metadata: dict[str, Any] | None = None,
         statement_descriptor_snapshot: str = "",
         client_disclosure_text: str = "",
+        processor_display_name: str = "",
+        disclosure_accepted_at=None,
     ) -> Wallet:
         wallet = ClientWalletService.get_wallet(
             website=website,
@@ -117,6 +119,8 @@ class ClientWalletService:
             metadata=metadata,
             statement_descriptor_snapshot=statement_descriptor_snapshot,
             client_disclosure_text=client_disclosure_text,
+            processor_display_name=processor_display_name,
+            disclosure_accepted_at=disclosure_accepted_at,
         )
 
         ClientWalletService._link_entry_to_journal(

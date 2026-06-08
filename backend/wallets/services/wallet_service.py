@@ -143,6 +143,8 @@ class WalletService:
         metadata: dict[str, Any] | None = None,
         statement_descriptor_snapshot: str = "",
         client_disclosure_text: str = "",
+        processor_display_name: str = "",
+        disclosure_accepted_at=None,
     ) -> WalletEntry:
         """
         Credit a wallet and create a posted wallet entry.
@@ -189,7 +191,9 @@ class WalletService:
             created_by=created_by,
             statement_descriptor_snapshot=statement_descriptor_snapshot,
             client_disclosure_text=client_disclosure_text,
+            processor_display_name=processor_display_name,
             disclosure_shown_at=timezone.now() if client_disclosure_text else None,
+            disclosure_accepted_at=disclosure_accepted_at,
         )
 
         cls._log_audit(

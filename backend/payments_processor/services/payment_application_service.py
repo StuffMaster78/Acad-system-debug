@@ -339,6 +339,8 @@ class PaymentApplicationService:
             },
             statement_descriptor_snapshot=getattr(payment_intent, "statement_descriptor_snapshot", ""),
             client_disclosure_text=getattr(payment_intent, "client_disclosure_text", ""),
+            processor_display_name=getattr(payment_intent, "processor_display_name", ""),
+            disclosure_accepted_at=getattr(payment_intent, "disclosure_accepted_at", None),
         )
 
         return {
