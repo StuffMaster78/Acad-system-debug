@@ -33,12 +33,12 @@ const mobileOpen = ref(false)
       </nav>
 
       <div class="hidden items-center gap-3 md:flex">
-        <a :href="app.login" class="text-sm font-medium text-slate-600 hover:text-brand-600">
+        <NuxtLink to="/login" class="text-sm font-medium text-slate-600 hover:text-brand-600">
           Sign in
-        </a>
-        <a :href="app.register" class="btn-primary py-2">
+        </NuxtLink>
+        <NuxtLink to="/register" class="btn-primary py-2">
           Get started
-        </a>
+        </NuxtLink>
       </div>
 
       <button class="md:hidden" @click="mobileOpen = !mobileOpen" aria-label="Toggle menu">
@@ -55,9 +55,9 @@ const mobileOpen = ref(false)
           class="text-sm font-medium text-slate-700 hover:text-brand-600" @click="mobileOpen = false">
           {{ item.label }}
         </NuxtLink>
-        <a :href="app.register" class="btn-primary mt-2 text-center">
+        <NuxtLink to="/register" class="btn-primary mt-2 text-center" @click="mobileOpen = false">
           Get started
-        </a>
+        </NuxtLink>
       </nav>
     </div>
   </header>

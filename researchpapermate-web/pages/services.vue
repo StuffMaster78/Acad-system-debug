@@ -127,9 +127,9 @@ useHead({
           Expert writers across every discipline — STEM, business, law, healthcare, humanities.
           If it needs to be written, we cover it.
         </p>
-        <a :href="app.register" class="btn-primary mt-8 bg-white text-brand-700 hover:bg-brand-50 px-8 py-3.5 text-base">
+        <NuxtLink to="/register" class="btn-primary mt-8 bg-white text-brand-700 hover:bg-brand-50 px-8 py-3.5 text-base">
           Get started from $15/page
-        </a>
+        </NuxtLink>
       </div>
     </section>
 
@@ -185,9 +185,9 @@ useHead({
     <section class="bg-brand-700 py-16 text-center">
       <h2 class="font-serif text-3xl font-bold text-white">Not sure what you need?</h2>
       <p class="mt-4 text-brand-200">Place an order, describe your task, and we'll match the right expert.</p>
-      <a :href="app.register" class="btn-primary mt-8 bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base">
+      <NuxtLink to="/register" class="btn-primary mt-8 bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base">
         Start your order
-      </a>
+      </NuxtLink>
     </section>
   </div>
 </template>

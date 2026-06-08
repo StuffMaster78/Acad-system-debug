@@ -65,9 +65,9 @@ useSeoMeta({
 
     <section class="bg-brand-700 py-16 text-center">
       <h2 class="font-serif text-3xl font-bold text-white">Ready to get started?</h2>
-      <a :href="app.register" class="btn-primary mt-8 bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base">
+      <NuxtLink to="/register" class="btn-primary mt-8 bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base">
         Place your first order
-      </a>
+      </NuxtLink>
     </section>
   </div>
 </template>

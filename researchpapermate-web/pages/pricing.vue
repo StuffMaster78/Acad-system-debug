@@ -143,10 +143,10 @@ const faqs = [
     <section class="bg-brand-700 py-16 text-center">
       <h2 class="font-serif text-3xl font-bold text-white">Get your exact quote now</h2>
       <p class="mt-4 text-brand-200">Fill in your requirements — see a precise price before paying anything.</p>
-      <a :href="app.register"
+      <NuxtLink to="/register"
         class="btn-primary mt-8 bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base">
         Place an order — from $15/page
-      </a>
+      </NuxtLink>
       <p class="mt-4 text-sm text-brand-200">Grade or money back · Free revisions · 24/7 support</p>
     </section>
   </div>

@@ -181,6 +181,11 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  async function adoptTokens(access: string, refresh: string) {
+    persist({ access, refresh });
+    await loadMe();
+  }
+
   return {
     accessToken,
     refresh,
@@ -200,5 +205,6 @@ export const useAuthStore = defineStore("auth", () => {
     previewAs,
     updateUser,
     loginWithMagicLink,
+    adoptTokens,
   };
 });

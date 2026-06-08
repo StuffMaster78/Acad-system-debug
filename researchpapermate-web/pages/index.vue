@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const portal = usePortalStore()
-const app = useAppUrl()
 
 const stats = [
   { value: '2,983+', label: 'Customers served' },
@@ -78,9 +77,9 @@ useHead({
             {{ portal.heroSub }}
           </p>
           <div class="mt-8 flex flex-wrap gap-4">
-            <a :href="app.register" class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-8 py-3.5 text-base shadow-lg">
+            <NuxtLink to="/register" class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-8 py-3.5 text-base shadow-lg">
               Place your order
-            </a>
+            </NuxtLink>
             <NuxtLink href="/services" class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-3.5 text-base">
               See services
             </NuxtLink>
@@ -196,9 +195,9 @@ useHead({
         Tell us your requirements. We'll match you with the right expert in minutes.
       </p>
       <div class="mt-10 flex flex-wrap justify-center gap-4">
-        <a :href="app.register" class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base shadow-lg">
+        <NuxtLink to="/register" class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base shadow-lg">
           Place your order — from $15/page
-        </a>
+        </NuxtLink>
         <NuxtLink href="/contact" class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-4 text-base">
           Talk to us first
         </NuxtLink>

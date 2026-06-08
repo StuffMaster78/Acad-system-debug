@@ -76,9 +76,9 @@ useHead({
         <p class="mt-3 text-brand-200">
           Our expert writers cover 100+ subjects. Get yours written from $15/page.
         </p>
-        <a :href="app.register" class="btn-primary mt-6 bg-white text-brand-700 hover:bg-brand-50 px-8 py-3">
+        <NuxtLink to="/register" class="btn-primary mt-6 bg-white text-brand-700 hover:bg-brand-50 px-8 py-3">
           Place an order
-        </a>
+        </NuxtLink>
       </div>
     </div>
 

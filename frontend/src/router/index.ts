@@ -1200,6 +1200,11 @@ export const router = createRouter({
       name: "magic-link",
       component: () => import("@/views/auth/MagicLinkView.vue"),
     },
+    {
+      path: "/auth/adopt",
+      name: "adopt-token",
+      component: () => import("@/views/auth/AdoptTokenView.vue"),
+    },
     roleRoute("client"),
     roleRoute("writer"),
     roleRoute("editor"),

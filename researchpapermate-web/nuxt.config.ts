@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   nitro: {
     prerender: {
       crawlLinks: true,
-      routes: ['/', '/services', '/pricing', '/blog', '/contact', '/apply'],
+      routes: ['/', '/services', '/pricing', '/blog', '/contact', '/apply', '/login', '/register', '/auth/magic-link'],
       failOnError: false,
     },
     // Dev: proxy /api/v1/* to Django so the Host header is localhost:3000
