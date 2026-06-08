@@ -28,7 +28,7 @@ const levelLabel = computed(() => {
 });
 
 const activeAssignments = computed(() =>
-  workspace.assignments.filter((a) => ["in_progress", "revision_requested"].includes(String(a.status))),
+  (workspace.assignments ?? []).filter((a) => ["in_progress", "revision_requested"].includes(String(a.status))),
 );
 
 const activeWindow = computed(() => workspace.availability?.active_window);

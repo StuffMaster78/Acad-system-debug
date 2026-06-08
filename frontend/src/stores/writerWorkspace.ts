@@ -175,8 +175,8 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
       if (Array.isArray(data)) {
         poolOrders.value = data;
       } else {
-        poolOrders.value = data.results;
-        poolPagination.value = { ...poolPagination.value, page, count: data.count };
+        poolOrders.value = data.results ?? [];
+        poolPagination.value = { ...poolPagination.value, page, count: data.count ?? 0 };
       }
     } catch {
       poolError.value = "Could not load available orders from the backend.";
@@ -202,8 +202,8 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
       if (Array.isArray(data)) {
         assignments.value = data;
       } else {
-        assignments.value = data.results;
-        assignmentsPagination.value = { ...assignmentsPagination.value, page, count: data.count };
+        assignments.value = data.results ?? [];
+        assignmentsPagination.value = { ...assignmentsPagination.value, page, count: data.count ?? 0 };
       }
     } catch {
       assignmentsError.value = "Could not load assignments from the backend.";

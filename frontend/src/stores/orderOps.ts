@@ -234,7 +234,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
       }
 
       const { data } = await orderOpsApi.queue(queueKey);
-      rows.value = data.results;
+      rows.value = data.results ?? [];
       return data;
     } catch (caught) {
       error.value = "Unable to load the operations queue.";

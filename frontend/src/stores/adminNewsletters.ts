@@ -64,7 +64,7 @@ export const useAdminNewslettersStore = defineStore("adminNewsletters", () => {
         params.search = subscriberSearch.value.trim();
       }
       const { data } = await adminNewslettersApi.subscribers(params);
-      subscribers.value = data.results;
+      subscribers.value = data.results ?? [];
       subscriberTotal.value = data.count;
     } catch {
       showNotice("error", "Failed to load subscribers.");
@@ -114,7 +114,7 @@ export const useAdminNewslettersStore = defineStore("adminNewsletters", () => {
         params.search = newsletterSearch.value.trim();
       }
       const { data } = await adminNewslettersApi.newsletters(params);
-      newsletters.value = data.results;
+      newsletters.value = data.results ?? [];
       newsletterTotal.value = data.count;
     } catch {
       showNotice("error", "Failed to load newsletters.");

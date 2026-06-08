@@ -22,6 +22,8 @@ class MyAvailabilityView(APIView):
     def get(self, request):
         website = _resolve_website(request)
         profile = get_writer_profile_for_website(request.user, website)
+        if profile is None:
+            return Response({"active_window": None, "upcoming_windows": []})
         active = AvailabilityService.get_active_window(profile)
         upcoming = list(AvailabilityService.get_upcoming_windows(profile))
 
