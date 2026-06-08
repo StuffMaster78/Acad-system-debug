@@ -8,6 +8,7 @@ import {
   type RefundRecord,
   type QueueResponse,
   type WalletEntryRecord,
+  type ReceiptRecord,
   type WriterPaymentRecord,
   type WriterPayoutRequestRecord,
 } from "@/api/adminPayments";
@@ -229,6 +230,8 @@ function previewRefunds(): RefundRecord[] {
 export const useAdminPaymentsStore = defineStore("admin-payments", () => {
   const wallets = ref<AdminWalletRecord[]>([]);
   const walletEntries = ref<WalletEntryRecord[]>([]);
+  const receipts = ref<ReceiptRecord[]>([]);
+  const receiptsLoading = ref(false);
   const payouts = ref<WriterPayoutRequestRecord[]>([]);
   const refunds = ref<RefundRecord[]>([]);
   const financialOverview = ref<FinancialOverviewResponse>({});
@@ -867,9 +870,23 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
     }
   }
 
+  async function fetchReceipts() {
+    receiptsLoading.value = true;
+    try {
+      const { data } = await adminPaymentsApi.receipts({ page_size: 50 });
+      receipts.value = Array.isArray(data) ? data : (data as { results: ReceiptRecord[] }).results ?? [];
+    } catch {
+      // non-critical
+    } finally {
+      receiptsLoading.value = false;
+    }
+  }
+
   return {
     wallets,
     walletEntries,
+    receipts,
+    receiptsLoading,
     payouts,
     refunds,
     financialOverview,
@@ -904,5 +921,6 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
     processPayout,
     rejectPayout,
     applyFinanceControl,
+    fetchReceipts,
   };
 });

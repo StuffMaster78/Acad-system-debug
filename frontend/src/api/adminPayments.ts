@@ -52,6 +52,42 @@ export interface WalletEntryRecord {
   reference_id?: string;
   description?: string;
   metadata?: Record<string, unknown>;
+  processor_display_name?: string;
+  statement_descriptor_snapshot?: string;
+  client_disclosure_text?: string;
+  disclosure_shown_at?: string | null;
+  disclosure_accepted_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ReceiptRecord {
+  id: number;
+  reference: string;
+  client?: number | null;
+  recipient_email?: string;
+  recipient_name?: string;
+  invoice?: number | null;
+  payment_request?: number | null;
+  title_snapshot?: string;
+  description_snapshot?: string;
+  company_name_snapshot?: string;
+  website_name_snapshot?: string;
+  website_domain_snapshot?: string;
+  support_email_snapshot?: string;
+  amount: string | number;
+  currency?: string;
+  status: string;
+  payment_intent_reference?: string;
+  external_reference?: string;
+  payment_provider?: string;
+  processor_display_name?: string;
+  statement_descriptor_snapshot?: string;
+  client_disclosure_text?: string;
+  disclosure_shown_at?: string | null;
+  disclosure_accepted_at?: string | null;
+  issued_at?: string | null;
+  voided_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -248,6 +284,8 @@ export const adminPaymentsApi = {
     api.get<ListResponse<RefundLogRecord>>(apiPath("/refunds/refund-logs/"), { params }),
   refundReceipts: (params?: Record<string, unknown>) =>
     api.get<ListResponse<RefundReceiptRecord>>(apiPath("/refunds/refund-receipts/"), { params }),
+  receipts: (params?: Record<string, unknown>) =>
+    api.get<ListResponse<ReceiptRecord>>(apiPath("/billing/receipts/"), { params }),
   refundDashboard: (params?: Record<string, unknown>) =>
     api.get<FinanceDashboardResponse>(
       apiPath("/admin-management/refunds/dashboard/dashboard/"),

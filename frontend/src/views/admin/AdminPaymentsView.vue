@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import {
   CalendarClock,
   CheckCircle2,
@@ -37,7 +37,7 @@ const invoicesError = ref("");
 const prList = ref<AdminPaymentRequest[]>([]);
 const prLoading = ref(false);
 
-const billingTab = ref<"invoices" | "payment-requests">("invoices");
+const billingTab = ref<"invoices" | "payment-requests" | "receipts">("invoices");
 const showInvForm = ref(false);
 const showPrForm = ref(false);
 const billingMutating = ref(false);
@@ -161,6 +161,20 @@ async function issuePaymentRequest(pr: AdminPaymentRequest) {
 }
 // ─── End Billing ─────────────────────────────────────────────────────────────
 
+const expandedEntryId = ref<number | null>(null);
+const entriesWithDisclosure = computed(() =>
+  payments.walletEntries.filter((e) => !!e.client_disclosure_text)
+);
+
+function toggleEntry(id: number) {
+  expandedEntryId.value = expandedEntryId.value === id ? null : id;
+}
+
+const expandedReceiptId = ref<number | null>(null);
+function toggleReceipt(id: number) {
+  expandedReceiptId.value = expandedReceiptId.value === id ? null : id;
+}
+
 const metricToneClasses = {
   neutral: "border-slate-200 bg-white",
   good: "border-emerald-200 bg-emerald-50",
@@ -213,6 +227,7 @@ onMounted(() => {
   websites.ensure();
   fetchInvoices();
   fetchPaymentRequests();
+  payments.fetchReceipts().catch(() => undefined);
 });
 </script>
 
@@ -498,6 +513,15 @@ onMounted(() => {
             Payment Requests
             <span v-if="prList.length" class="ml-1 text-xs text-graphite">({{ prList.length }})</span>
           </button>
+          <button
+            class="focus-ring rounded-md px-4 py-2 text-xs font-semibold transition-colors"
+            :class="billingTab === 'receipts' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+            type="button"
+            @click="billingTab = 'receipts'"
+          >
+            Receipts
+            <span v-if="payments.receipts.length" class="ml-1 text-xs text-graphite">({{ payments.receipts.length }})</span>
+          </button>
         </div>
       </div>
 
@@ -727,6 +751,105 @@ onMounted(() => {
           </table>
         </div>
       </template>
+
+      <!-- RECEIPTS TAB -->
+      <template v-else-if="billingTab === 'receipts'">
+        <div v-if="payments.receiptsLoading && !payments.receipts.length" class="space-y-2">
+          <div v-for="n in 4" :key="n" class="h-12 animate-pulse rounded-md bg-slate-100" />
+        </div>
+        <div v-else-if="!payments.receipts.length" class="rounded-lg border border-slate-200 bg-white p-8">
+          <EmptyState :icon="Receipt" title="No receipts" message="Receipts are issued automatically when an invoice or payment request is fully paid." />
+        </div>
+        <div v-else class="rounded-lg border border-slate-200 bg-white overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
+              <tr>
+                <th class="px-3 py-2">Reference</th>
+                <th class="px-3 py-2">Recipient</th>
+                <th class="px-3 py-2">Amount</th>
+                <th class="px-3 py-2">Processor</th>
+                <th class="px-3 py-2">Descriptor</th>
+                <th class="px-3 py-2">Disclosed</th>
+                <th class="px-3 py-2">Accepted</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Issued</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <template v-for="rec in payments.receipts" :key="rec.id">
+                <tr
+                  class="cursor-pointer hover:bg-slate-50"
+                  :class="{ 'bg-slate-50': expandedReceiptId === rec.id }"
+                  @click="toggleReceipt(rec.id)"
+                >
+                  <td class="px-3 py-2 font-mono text-xs text-graphite">{{ rec.reference }}</td>
+                  <td class="px-3 py-2 text-graphite">{{ rec.recipient_email || `Client #${rec.client}` || "—" }}</td>
+                  <td class="px-3 py-2 font-semibold text-ink">{{ formatAmount(rec.amount, rec.currency) }}</td>
+                  <td class="px-3 py-2 text-graphite">{{ rec.processor_display_name || "—" }}</td>
+                  <td class="px-3 py-2 font-mono text-xs text-graphite">{{ rec.statement_descriptor_snapshot || "—" }}</td>
+                  <td class="px-3 py-2 text-graphite">{{ rec.disclosure_shown_at ? formatDate(rec.disclosure_shown_at) : "—" }}</td>
+                  <td class="px-3 py-2 text-graphite">{{ rec.disclosure_accepted_at ? formatDate(rec.disclosure_accepted_at) : "—" }}</td>
+                  <td class="px-3 py-2"><StatusPill :label="rec.status" :tone="rec.status === 'issued' ? 'success' : rec.status === 'voided' ? 'danger' : 'neutral'" /></td>
+                  <td class="px-3 py-2 text-graphite">{{ rec.issued_at ? formatDate(rec.issued_at) : "—" }}</td>
+                </tr>
+                <tr v-if="expandedReceiptId === rec.id" class="bg-slate-50">
+                  <td colspan="9" class="px-4 py-3">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-1">Disclosure text shown to client</p>
+                    <p v-if="rec.client_disclosure_text" class="text-sm text-ink">{{ rec.client_disclosure_text }}</p>
+                    <p v-else class="text-sm text-graphite italic">No disclosure text recorded.</p>
+                    <p v-if="rec.payment_intent_reference" class="mt-2 text-xs text-graphite">Payment intent: <span class="font-mono">{{ rec.payment_intent_reference }}</span></p>
+                    <p v-if="rec.external_reference" class="mt-1 text-xs text-graphite">External ref: <span class="font-mono">{{ rec.external_reference }}</span></p>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </template>
+    </section>
+
+    <!-- ─── Wallet Entry Disclosure Trail ──────────────────────────────────── -->
+    <section v-if="entriesWithDisclosure.length" class="space-y-4">
+      <h2 class="text-lg font-semibold text-ink">Wallet entry disclosure trail</h2>
+      <div class="rounded-lg border border-slate-200 bg-white overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-graphite">
+            <tr>
+              <th class="px-3 py-2">Entry</th>
+              <th class="px-3 py-2">Type</th>
+              <th class="px-3 py-2">Amount</th>
+              <th class="px-3 py-2">Processor</th>
+              <th class="px-3 py-2">Descriptor</th>
+              <th class="px-3 py-2">Shown at</th>
+              <th class="px-3 py-2">Accepted at</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <template v-for="entry in entriesWithDisclosure" :key="entry.id">
+              <tr
+                class="cursor-pointer hover:bg-slate-50"
+                :class="{ 'bg-slate-50': expandedEntryId === entry.id }"
+                @click="toggleEntry(entry.id)"
+              >
+                <td class="px-3 py-2 font-mono text-xs text-graphite">#{{ entry.id }}</td>
+                <td class="px-3 py-2 capitalize text-graphite">{{ entry.entry_type?.replace(/_/g, ' ') || entry.direction }}</td>
+                <td class="px-3 py-2 font-semibold text-ink">{{ formatAmount(entry.amount) }}</td>
+                <td class="px-3 py-2 text-graphite">{{ entry.processor_display_name || "—" }}</td>
+                <td class="px-3 py-2 font-mono text-xs text-graphite">{{ entry.statement_descriptor_snapshot || "—" }}</td>
+                <td class="px-3 py-2 text-graphite">{{ entry.disclosure_shown_at ? formatDate(entry.disclosure_shown_at) : "—" }}</td>
+                <td class="px-3 py-2 text-graphite">{{ entry.disclosure_accepted_at ? formatDate(entry.disclosure_accepted_at) : "—" }}</td>
+              </tr>
+              <tr v-if="expandedEntryId === entry.id" class="bg-slate-50">
+                <td colspan="7" class="px-4 py-3">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-1">Disclosure text shown to client</p>
+                  <p class="text-sm text-ink">{{ entry.client_disclosure_text }}</p>
+                  <p v-if="entry.reference" class="mt-2 text-xs text-graphite">Reference: <span class="font-mono">{{ entry.reference }}</span></p>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 </template>
