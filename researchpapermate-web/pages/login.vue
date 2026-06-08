@@ -43,7 +43,7 @@ async function sendMagicLink() {
 }
 
 useSeoMeta({
-  title: `Sign in — ${portal.brandName}`,
+  title: 'Sign in',
   robots: 'noindex',
 })
 </script>

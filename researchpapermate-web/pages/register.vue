@@ -39,7 +39,7 @@ async function submit() {
 }
 
 useSeoMeta({
-  title: `Create an account — ${portal.brandName}`,
+  title: 'Create an account',
   robots: 'noindex',
 })
 </script>
