@@ -75,6 +75,8 @@ class PortalContextView(APIView):
                 "primary_color": getattr(branding, "primary_color", "#2563eb"),
                 "secondary_color": getattr(branding, "secondary_color", "#0f172a"),
                 "accent_color": getattr(branding, "accent_color", "#14b8a6"),
+                "homepage_headline": getattr(branding, "homepage_headline", ""),
+                "homepage_subheadline": getattr(branding, "homepage_subheadline", ""),
             }
 
             processor = getattr(branding, "payment_processor_name", "")

@@ -1,0 +1,209 @@
+<script setup lang="ts">
+const portal = usePortalStore()
+const app = useAppUrl()
+
+const stats = [
+  { value: '2,983+', label: 'Customers served' },
+  { value: '200+',   label: 'Expert writers' },
+  { value: '4.5/5',  label: 'Average quality score' },
+  { value: '50+',    label: 'Writers online now' },
+]
+
+const services = [
+  { icon: '📄', title: 'Research Papers',    desc: 'Original, citation-rich papers across STEM, business, humanities, and social sciences.' },
+  { icon: '✍️', title: 'Essays',             desc: 'Argumentative, analytical, descriptive — any format, any level.' },
+  { icon: '🎓', title: 'Dissertations',      desc: 'Full thesis support: proposal, chapters, methodology, data analysis.' },
+  { icon: '📋', title: 'Case Studies',       desc: 'In-depth analysis with structured arguments and evidence.' },
+  { icon: '📊', title: 'Data Analysis',      desc: 'SPSS, R, Python — with full write-up and interpretation.' },
+  { icon: '🔬', title: 'Lab Reports',        desc: 'Clear, structured lab write-ups with correct methodology sections.' },
+]
+
+const steps = [
+  { title: 'Fill in your brief',          desc: 'Complete the order form with your topic, deadline, level, and any instructions or sample files.' },
+  { title: 'Secure checkout',             desc: 'Pay securely. Your payment is held in escrow until you approve the completed work.' },
+  { title: 'Communicate with your writer', desc: 'Message your assigned expert directly, share files, and track progress in real time.' },
+  { title: 'Download & review',           desc: "Receive your paper and request free revisions until you're satisfied." },
+]
+
+const guarantees = [
+  { icon: '🏆', title: 'Grade or money back',     desc: "If the work doesn't meet your stated grade target, we'll refund or rewrite — no questions asked." },
+  { icon: '✅', title: '100% original papers',    desc: 'Every paper is written from scratch and checked for plagiarism before delivery.' },
+  { icon: '🔒', title: 'Your privacy protected',  desc: 'We never share your identity, order details, or personal data with third parties.' },
+  { icon: '♾️', title: 'Unlimited free revisions', desc: 'Within the revision window, request as many changes as you need at no extra cost.' },
+]
+
+const subjects = [
+  'Biology', 'Chemistry', 'Physics', 'Engineering', 'Statistics', 'Nursing',
+  'Business', 'Finance', 'Marketing', 'Law', 'Psychology', 'History',
+  'Literature', 'Philosophy', 'Public Health', 'Accounting', 'Sociology', 'Economics',
+]
+
+useSeoMeta({
+  title: 'Research Paper Writing Service from $15/Page',
+  description: 'Get research papers, essays, and assignments written by human experts. From $15/page. Grade or money back guarantee. 2,983 customers served.',
+  ogTitle: 'ResearchPaperMate — Research Paper Writing Service from $15/Page',
+  ogDescription: 'Human-written research papers, essays, and assignments across 100+ subjects. Grade or money back.',
+})
+
+useHead({
+  script: [{
+    type: 'application/ld+json',
+    innerHTML: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'ProfessionalService',
+      name: 'ResearchPaperMate',
+      description: 'Academic writing service providing research papers, essays, and assignments.',
+      url: 'https://researchpapermate.com',
+      priceRange: '$15–$50 per page',
+      aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.5', reviewCount: '2983' },
+    }),
+  }],
+})
+</script>
+
+<template>
+  <!-- Hero -->
+  <section class="relative overflow-hidden bg-gradient-to-br from-brand-900 via-brand-700 to-brand-600 py-20 sm:py-28">
+    <div class="section relative z-10">
+      <div class="grid items-center gap-12 lg:grid-cols-2">
+        <!-- Left: copy -->
+        <div>
+          <div class="mb-4 inline-flex items-center rounded-full bg-white/10 px-4 py-1.5 text-sm text-white ring-1 ring-white/20">
+            From <strong class="mx-1">$15/page</strong> · Written by humans · 24/7 support
+          </div>
+          <h1 class="font-serif text-4xl font-bold leading-tight text-white sm:text-5xl">
+            {{ portal.heroHeadline }}
+          </h1>
+          <p class="mt-5 text-lg text-brand-100 leading-relaxed">
+            {{ portal.heroSub }}
+          </p>
+          <div class="mt-8 flex flex-wrap gap-4">
+            <a :href="app.register" class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-8 py-3.5 text-base shadow-lg">
+              Place your order
+            </a>
+            <NuxtLink href="/services" class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-3.5 text-base">
+              See services
+            </NuxtLink>
+          </div>
+          <ul class="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-brand-200">
+            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Grade or money back</li>
+            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> 100% original</li>
+            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Free revisions</li>
+          </ul>
+        </div>
+        <!-- Right: calculator -->
+        <div class="lg:pl-8">
+          <ClientOnly>
+            <OrderCalculator />
+            <template #fallback>
+              <div class="h-72 animate-pulse rounded-2xl bg-white/10" />
+            </template>
+          </ClientOnly>
+        </div>
+      </div>
+    </div>
+    <div class="absolute -top-20 -right-20 h-96 w-96 rounded-full bg-brand-500 opacity-20 blur-3xl" />
+    <div class="absolute -bottom-20 -left-20 h-96 w-96 rounded-full bg-blue-400 opacity-20 blur-3xl" />
+  </section>
+
+  <!-- Stats -->
+  <section class="border-b border-slate-100 bg-white py-10">
+    <div class="section py-0">
+      <div class="grid grid-cols-2 gap-6 text-center md:grid-cols-4">
+        <div v-for="stat in stats" :key="stat.label">
+          <div class="text-3xl font-bold text-brand-700">{{ stat.value }}</div>
+          <div class="mt-1 text-sm text-slate-500">{{ stat.label }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="bg-slate-50">
+    <div class="section">
+      <div class="text-center">
+        <h2 class="section-heading">100+ Subjects, Every Paper Type</h2>
+        <p class="section-sub">STEM, business, humanities, law, nursing — if you need it written, we cover it.</p>
+      </div>
+      <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-for="service in services" :key="service.title" class="card">
+          <div class="mb-4 text-3xl">{{ service.icon }}</div>
+          <h3 class="font-semibold text-slate-900">{{ service.title }}</h3>
+          <p class="mt-2 text-sm text-slate-500 leading-relaxed">{{ service.desc }}</p>
+        </div>
+      </div>
+      <div class="mt-10 flex flex-wrap justify-center gap-2">
+        <span v-for="sub in subjects" :key="sub"
+          class="rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">
+          {{ sub }}
+        </span>
+        <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">
+          +80 more
+        </span>
+      </div>
+      <div class="mt-10 text-center">
+        <NuxtLink href="/services" class="btn-outline">View all paper types</NuxtLink>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="bg-white">
+    <div class="section">
+      <div class="text-center">
+        <h2 class="section-heading">How it works</h2>
+        <p class="section-sub">Four simple steps from brief to finished paper.</p>
+      </div>
+      <ol class="mt-12 grid gap-8 md:grid-cols-4">
+        <li v-for="(step, i) in steps" :key="step.title" class="flex flex-col items-center text-center">
+          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-700 text-lg font-bold text-white shadow-md">
+            {{ i + 1 }}
+          </div>
+          <h3 class="font-semibold text-slate-900">{{ step.title }}</h3>
+          <p class="mt-2 text-sm text-slate-500 leading-relaxed">{{ step.desc }}</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Guarantees -->
+  <section class="bg-brand-900">
+    <div class="section">
+      <div class="text-center">
+        <h2 class="font-serif text-3xl font-bold text-white sm:text-4xl">Our guarantees</h2>
+        <p class="mt-4 text-brand-200">We put our reputation on every order.</p>
+      </div>
+      <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div v-for="g in guarantees" :key="g.title" class="rounded-2xl bg-white/5 p-6 ring-1 ring-white/10">
+          <div class="mb-3 text-3xl">{{ g.icon }}</div>
+          <h3 class="font-semibold text-white">{{ g.title }}</h3>
+          <p class="mt-2 text-sm text-brand-200 leading-relaxed">{{ g.desc }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <TestimonialsSection />
+
+  <!-- CTA -->
+  <section class="bg-brand-600 py-20">
+    <div class="section py-0 text-center">
+      <h2 class="font-serif text-3xl font-bold text-white sm:text-4xl">
+        Ready? Your deadline is waiting.
+      </h2>
+      <p class="mt-4 text-brand-100">
+        Tell us your requirements. We'll match you with the right expert in minutes.
+      </p>
+      <div class="mt-10 flex flex-wrap justify-center gap-4">
+        <a :href="app.register" class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base shadow-lg">
+          Place your order — from $15/page
+        </a>
+        <NuxtLink href="/contact" class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-4 text-base">
+          Talk to us first
+        </NuxtLink>
+      </div>
+      <p class="mt-6 text-sm text-brand-200">24/7 support · 2-hour minimum turnaround · Free revisions</p>
+    </div>
+  </section>
+</template>
