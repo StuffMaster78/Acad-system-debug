@@ -12,15 +12,20 @@ from core.permissions.base import BasePlatformPermission
 class CanViewOrderLifecycle(BasePlatformPermission):
     """
     Allow lifecycle access to:
-        1. permitted internal users
-        2. client owner
-        3. current assigned writer
+        1. permitted internal users (orders.view_lifecycle)
+        2. client owner  (checked in has_object_permission)
+        3. current assigned writer  (checked in has_object_permission)
     """
 
     message = "You are not allowed to view this order lifecycle."
 
-    required_permission = "orders.view_lifecycle"
-    require_tenant = True
+    # No required_permission at the view level — ownership / staff permission
+    # is verified per-object so we only gate on authentication here.
+    required_permission = None
+    require_tenant = False
+
+    def has_permission(self, request: Request, view: APIView) -> bool:  # type: ignore[override]
+        return bool(request.user and request.user.is_authenticated)
 
     def has_object_permission( # type: ignore[override]
         self,

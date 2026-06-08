@@ -58,6 +58,7 @@ const applyingCoupon = ref(false);
 interface DiscountPreview { code: string; amount: number; final: number }
 const discountPreview = ref<DiscountPreview | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const styleFileInputRef = ref<HTMLInputElement | null>(null);
 const attempted = ref(false);
 const touched = reactive(new Set<string>());
 
@@ -337,6 +338,17 @@ function onFilesSelected(event: Event) {
   input.value = "";
 }
 
+function pickStyleFiles() {
+  styleFileInputRef.value?.click();
+}
+
+function onStyleFilesSelected(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
+  files.addToQueue(input.files, "style_reference");
+  input.value = "";
+}
+
 function fileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -607,6 +619,57 @@ watch(() => form.service_code, loadAddons);
           </div>
           <p v-else class="mt-4 rounded-md border border-dashed border-slate-200 px-4 py-5 text-center text-sm text-graphite">
             No files added yet. These are uploaded automatically when you submit.
+          </p>
+        </section>
+
+        <!-- Style references (designs, diagrams, templates) -->
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-semibold text-ink">Style guide / designs</h2>
+              <p class="mt-0.5 text-xs text-graphite">Upload diagrams, templates, brand guides, or design files the writer should follow.</p>
+            </div>
+            <button
+              class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-ink"
+              type="button"
+              @click="pickStyleFiles"
+            >
+              <Paperclip class="h-4 w-4" />
+              Add designs
+            </button>
+          </div>
+
+          <input
+            ref="styleFileInputRef"
+            class="sr-only"
+            type="file"
+            multiple
+            accept=".pdf,.png,.jpg,.jpeg,.svg,.fig,.sketch,.ai,.zip,.docx"
+            @change="onStyleFilesSelected"
+          />
+
+          <div v-if="files.uploadQueue.filter(q => q.purpose === 'style_reference').length" class="mt-4 space-y-2">
+            <div
+              v-for="item in files.uploadQueue.filter(q => q.purpose === 'style_reference')"
+              :key="item.id"
+              class="flex items-center gap-3 rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-sm"
+            >
+              <Paperclip class="h-4 w-4 shrink-0 text-graphite" />
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-medium text-ink">{{ item.file.name }}</p>
+                <p class="text-xs text-graphite">{{ fileSize(item.file.size) }}</p>
+              </div>
+              <button
+                class="focus-ring rounded p-1 text-graphite hover:text-berry"
+                type="button"
+                @click="files.removeFromQueue(item.id)"
+              >
+                <X class="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          <p v-else class="mt-4 rounded-md border border-dashed border-slate-200 px-4 py-5 text-center text-sm text-graphite">
+            No designs added. Optional — skip if not applicable.
           </p>
         </section>
 
