@@ -311,6 +311,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
         if writer_profile:
             return {
                 'id': writer_profile.id,
+                'registration_id': getattr(writer_profile, 'registration_id', None),
+                'pen_name': getattr(writer_profile, 'pen_name', None),
                 'level': getattr(writer_profile, 'level', None),
                 'specialization': getattr(writer_profile, 'specialization', None),
             }

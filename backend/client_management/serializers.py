@@ -61,8 +61,10 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "client_username",
+            "registration_id",
             "timezone",
             "country",
+            "phone_number",
             "preferred_writers",
             "loyalty_points",
             "loyalty_tier",
@@ -74,7 +76,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "is_suspended",
             "badges",
         ]
-        read_only_fields = ["user", "loyalty_points", "loyalty_tier", "wallet_balance"]
+        read_only_fields = ["user", "loyalty_points", "loyalty_tier", "wallet_balance", "registration_id"]
 
     def get_loyalty_transactions(self, obj):
         """

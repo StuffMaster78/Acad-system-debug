@@ -96,6 +96,7 @@ seed: ## Seed development data (run after first docker-up)
 	docker compose exec web python manage.py seed_special_orders --with-orders
 	docker compose exec web python manage.py seed_orders
 	docker compose exec web python manage.py backfill_compensation_events
+	docker compose exec web python manage.py seed_profiles
 
 # Cleanup
 clean: clean-backend clean-frontend ## Clean all generated files
