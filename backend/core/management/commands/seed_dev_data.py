@@ -238,6 +238,72 @@ class Command(BaseCommand):
         },
     ]
 
+    # Named test accounts — one per role, idempotent.
+    # Passwords are set on first create only (never overwritten on re-run).
+    TEST_ACCOUNTS = [
+        # Personal superadmin — always has a known dev password
+        {
+            "email": "rickawino@gmail.com",
+            "username": "rickawino",
+            "first_name": "Erick",
+            "last_name": "Awino",
+            "role": "superadmin",
+            "is_staff": True,
+            "is_superuser": True,
+            "password": "admin1234",
+        },
+        {
+            "email": "admin@test.local",
+            "username": "test_admin",
+            "first_name": "Test",
+            "last_name": "Admin",
+            "role": "admin",
+            "is_staff": True,
+            "is_superuser": False,
+            "password": "admin1234",
+        },
+        {
+            "email": "editor@test.local",
+            "username": "test_editor",
+            "first_name": "Test",
+            "last_name": "Editor",
+            "role": "editor",
+            "is_staff": False,
+            "is_superuser": False,
+            "password": "test1234",
+        },
+        {
+            "email": "support@test.local",
+            "username": "test_support",
+            "first_name": "Test",
+            "last_name": "Support",
+            "role": "support",
+            "is_staff": False,
+            "is_superuser": False,
+            "password": "test1234",
+        },
+        {
+            "email": "writer@test.local",
+            "username": "test_writer",
+            "first_name": "Test",
+            "last_name": "Writer",
+            "role": "writer",
+            "is_staff": False,
+            "is_superuser": False,
+            "password": "test1234",
+        },
+        {
+            "email": "client@test.local",
+            "username": "test_client",
+            "first_name": "Test",
+            "last_name": "Client",
+            "role": "client",
+            "is_staff": False,
+            "is_superuser": False,
+            "password": "test1234",
+        },
+    ]
+
     TIP_POLICY = {
         "name": "Default Policy",
         "slug": "default",
@@ -272,6 +338,7 @@ class Command(BaseCommand):
             self._seed_demo_writers(website)
             self._seed_demo_clients(website)
             self._seed_payment_reminder_configs(website)
+            self._seed_test_accounts(website)
 
         self._backfill_class_balances()
 
@@ -288,7 +355,7 @@ class Command(BaseCommand):
         from websites.models.websites import Website
 
         website, created = Website.objects.update_or_create(
-            slug=self.WEBSITE["slug"],
+            domain=self.WEBSITE["domain"],
             defaults=self.WEBSITE,
         )
         self._log("Website", website.name, created)
@@ -399,9 +466,9 @@ class Command(BaseCommand):
 
         for data in self.LOYALTY_TIERS:
             tier, created = LoyaltyTier.objects.update_or_create(
-                website=website,
                 name=data["name"],
                 defaults={
+                    "website": website,
                     "threshold": data["threshold"],
                     "discount_percentage": data["discount_percentage"],
                     "perks": data["perks"],
@@ -499,6 +566,44 @@ class Command(BaseCommand):
                 },
             )
             self._log("PaymentReminderConfig", cfg.name, created)
+
+    def _seed_test_accounts(self, website):
+        from accounts.models import AccountProfile
+        from accounts.enums import AccountStatus
+
+        for data in self.TEST_ACCOUNTS:
+            user, created = User.objects.get_or_create(
+                email=data["email"],
+                defaults={
+                    "username": data["username"],
+                    "first_name": data["first_name"],
+                    "last_name": data["last_name"],
+                    "role": data["role"],
+                    "is_active": True,
+                    "is_staff": data["is_staff"],
+                    "is_superuser": data["is_superuser"],
+                    "website": website,
+                },
+            )
+            if created:
+                user.set_password(data["password"])
+                user.save(update_fields=["password"])
+            else:
+                # Always keep the personal account's password in sync with the catalogue.
+                if data["email"] == "rickawino@gmail.com":
+                    user.set_password(data["password"])
+                    user.save(update_fields=["password"])
+
+            AccountProfile.objects.get_or_create(
+                user=user,
+                website=website,
+                defaults={
+                    "status": AccountStatus.ACTIVE,
+                    "is_primary": True,
+                },
+            )
+
+            self._log("TestAccount", f"{data['role']:<12} {data['email']}", created)
 
     def _backfill_class_balances(self) -> None:
         """
