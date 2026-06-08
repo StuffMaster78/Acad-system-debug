@@ -15,7 +15,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.core.exceptions import ValidationError
 
 from users.services.account_service import AccountService
-from users.services.services_legacy.phone_reminder_service import PhoneReminderService
+from users.services.phone_reminder_service import PhoneReminderService
 from users.serializers.account_serializers import (
     ChangePasswordSerializer,
     CompletePasswordResetSerializer,

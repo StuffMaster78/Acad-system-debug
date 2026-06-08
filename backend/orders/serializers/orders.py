@@ -248,7 +248,7 @@ class OrderSerializer(serializers.ModelSerializer):
             style_refs = FileAttachmentSelector.for_object_and_purpose(
                 website=obj.website,
                 obj=obj,
-                purpose=FilePurpose.STYLE_REFERENCE,
+                purpose=FilePurpose.STYLE_REFERENCE,  # type: ignore[arg-type]
             ).select_related("managed_file", "external_link")
 
             serializer = FileAttachmentDetailSerializer(
@@ -350,7 +350,7 @@ class OrderActionSerializer(serializers.Serializer):
         """
         Ensure the action is valid.
         """
-        if not get_all_registered_actions(value):
+        if value not in get_all_registered_actions():
             raise serializers.ValidationError(f"Action '{value}' is not registered.")
         return value
 

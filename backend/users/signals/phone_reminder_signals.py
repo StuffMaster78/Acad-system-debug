@@ -6,7 +6,7 @@ import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from orders.models.orders import Order
-from users.services.services_legacy.phone_reminder_service import (
+from users.services.phone_reminder_service import (
     PhoneReminderService,
 )
 

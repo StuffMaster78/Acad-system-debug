@@ -31,10 +31,21 @@ export interface AdminManagedUser {
   is_suspended?: boolean;
   is_blacklisted?: boolean;
   is_on_probation?: boolean;
+  probation_reason?: string | null;
+  probation_start_date?: string | null;
+  probation_end_date?: string | null;
+  suspension_reason?: string | null;
+  suspension_start_date?: string | null;
+  suspension_end_date?: string | null;
   date_joined?: string;
   last_login?: string | null;
   website?: AdminWebsiteSummary | null;
   website_name?: string | null;
+  writer_profile?: { registration_id: string; [key: string]: unknown } | null;
+  client_profile?: { id: number; [key: string]: unknown } | null;
+  admin_profile?: Record<string, unknown> | null;
+  editor_profile?: Record<string, unknown> | null;
+  support_profile?: Record<string, unknown> | null;
 }
 
 export interface AdminUserStats {

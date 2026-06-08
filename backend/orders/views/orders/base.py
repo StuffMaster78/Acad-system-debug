@@ -810,6 +810,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         )
         cache_ttl = 120 if is_simple_count_query else 30 # 2 minutes for count queries, 30s for others
 
+        cache_key: str | None = None
         if has_simple_filters and request.user.is_authenticated:
             # Build cache key
             cache_key_parts = [
@@ -849,7 +850,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             # Add phone reminder info for clients (skip for simple count queries)
             is_simple = getattr(self, '_is_simple_query', False)
             if (request.user.role in ['client', 'customer'] and not is_simple):
-                from users.services.services_legacy.phone_reminder_service import PhoneReminderService
+                from users.services.phone_reminder_service import PhoneReminderService
                 phone_service = PhoneReminderService(request.user)
 
                 # Check if reminder should be shown (user has active orders)
@@ -925,7 +926,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
 
         # Add phone reminder info for clients viewing orders
         if request.user.role in ['client', 'customer']:
-            from users.services.services_legacy.phone_reminder_service import PhoneReminderService
+            from users.services.phone_reminder_service import PhoneReminderService
             phone_service = PhoneReminderService(request.user)
 
             order = self.get_object()
@@ -935,33 +936,6 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     response.data['phone_reminder'] = reminder_info
 
         return response
-        """
-        Override list to ensure queryset is not filtered by object permissions.
-        DRF doesn't filter list results by object permissions by default,
-        but we want to make sure our queryset filtering works correctly.
-        """
-        try:
-            queryset = self.filter_queryset(self.get_queryset())
-
-            page = self.paginate_queryset(queryset)
-            if page is not None:
-                serializer = self.get_serializer(page, many=True)
-                return self.get_paginated_response(serializer.data)
-
-            serializer = self.get_serializer(queryset, many=True)
-            return Response(serializer.data)
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error in OrderBaseViewSet.list: {str(e)}", exc_info=True)
-            # Return empty result instead of 500 error
-            return Response({
-                'count': 0,
-                'next': None,
-                'previous': None,
-                'results': [],
-                'total_pages': 0,
-            })
 
     @decorators.action(detail=False, methods=["get"], url_path="filter-options", permission_classes=[IsAuthenticated])
     def filter_options(self, request):
@@ -1128,7 +1102,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 client=user,
                 topic=data["topic"],
                 paper_type_id=int(data["paper_type_id"]),
-                base_quantity=int(pages_raw),
+                base_quantity=int(pages_raw or 0),
                 client_deadline=data["client_deadline"],
                 order_instructions=data["order_instructions"],
                 created_by_admin=False,
@@ -1784,7 +1758,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                             status=status.HTTP_403_FORBIDDEN)
 
         result = self._svc().hard_delete_by_id(user=request.user,
-                                               order_id=int(pk))
+                                               order_id=int(pk or 0))
         code = status.HTTP_204_NO_CONTENT if result.was_deleted \
             else status.HTTP_200_OK
         return Response(status=code)

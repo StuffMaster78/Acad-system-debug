@@ -46,6 +46,11 @@ from .views_system_health import SystemHealthViewSet
 from .views.performance_monitoring import PerformanceMonitoringViewSet
 from .views.rate_limiting import RateLimitingViewSet
 from .views.compression_monitoring import CompressionMonitoringViewSet
+from .views.payment_reminders import (
+    PaymentReminderConfigViewSet,
+    PaymentReminderDeletionMessageViewSet,
+    PaymentReminderSentViewSet,
+)
 from .views.dashboard_endpoints import (
     AdminDisputeDashboardViewSet,
     AdminRefundDashboardViewSet,
@@ -162,6 +167,11 @@ router.register(r'compression', CompressionMonitoringViewSet, basename="compress
 
 # Business Operations Command Center
 router.register(r'operations-command-center', OperationsCommandCenterViewSet, basename="operations_command_center")
+
+# Payment Reminder Configuration
+router.register(r'payment-reminders/configs', PaymentReminderConfigViewSet, basename="payment_reminder_configs")
+router.register(r'payment-reminders/deletion-messages', PaymentReminderDeletionMessageViewSet, basename="payment_reminder_deletion_messages")
+router.register(r'payment-reminders/sent', PaymentReminderSentViewSet, basename="payment_reminder_sent")
 
 urlpatterns = [
     # Authentication APIs (JWT-Based)

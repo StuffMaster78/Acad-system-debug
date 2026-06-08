@@ -66,7 +66,7 @@ def assign_user_to_role_group(sender, instance, created, **kwargs):
     """
     if created and instance.role:
         try:
-            from users.services.services_legacy.group_service import UserGroupService
+            from users.services.group_service import UserGroupService
             UserGroupService.assign_user_to_group(instance, instance.role)
         except Exception as e:
             # Log but don't fail user creation
@@ -84,7 +84,7 @@ def sync_user_groups_on_role_change(sender, instance, **kwargs):
             old_user = User.objects.get(pk=instance.pk)
             if old_user.role != instance.role:
                 # Role changed - update groups
-                from users.services.services_legacy.group_service import UserGroupService
+                from users.services.group_service import UserGroupService
                 UserGroupService.update_user_groups(instance, instance.role)
         except User.DoesNotExist:
             pass

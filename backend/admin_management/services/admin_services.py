@@ -7,7 +7,7 @@ from admin_management.models import AdminProfile, BlacklistedUser
 from orders.models.legacy_models.order_disputes import Dispute
 from admin_management.models import AdminActivityLog
 from notifications_system.services.notification_service import NotificationService
-from users.services.services_legacy.group_service import UserGroupService
+from users.services.group_service import UserGroupService
 
 User = get_user_model()
 

@@ -46,7 +46,7 @@ const loading = ref(false);
 const summaryLoading = ref(false);
 const error = ref("");
 const notice = ref("");
-const activeTab = ref<"overview" | "orders" | "special" | "classes" | "payments" | "activity">("overview");
+const activeTab = ref<"overview" | "orders" | "special" | "classes" | "payments" | "activity" | "profile-requests">("overview");
 
 const newRole = ref<UserRole>("support");
 const reason = ref("Admin support review from access console.");
@@ -301,13 +301,17 @@ async function doDeleteUser() {
 function writerProfileRoute() {
   if (!user.value) return null;
   if (user.value.role !== "writer") return null;
-  return `${routePrefix.value}/writers/${user.value.id}`;
+  const regId = user.value.writer_profile?.registration_id;
+  if (!regId) return null;
+  return `${routePrefix.value}/writers/${regId}`;
 }
 
 function clientProfileRoute() {
   if (!user.value) return null;
   if (user.value.role !== "client") return null;
-  return `${routePrefix.value}/clients/${user.value.id}`;
+  const profileId = user.value.client_profile?.id;
+  if (!profileId) return null;
+  return `${routePrefix.value}/clients/${profileId}`;
 }
 
 const tabs = [
@@ -317,11 +321,27 @@ const tabs = [
   { key: "classes", label: "Classes", icon: BookOpen },
   { key: "payments", label: "Payments & Wallet", icon: Wallet },
   { key: "activity", label: "Activity", icon: Activity },
+  { key: "profile-requests", label: "Profile Requests", icon: ClipboardCopy },
 ] as const;
+
+const profileUpdateRequests = ref<import("@/types/adminAccess").ProfileUpdateRequestRecord[]>([]);
+
+async function loadProfileRequests() {
+  try {
+    const res = await api.get<{ results?: unknown[]; [key: string]: unknown }>(
+      apiPath(`/client-management/profile-update-requests/admin/?user=${userId.value}`)
+    );
+    const data = res.data;
+    profileUpdateRequests.value = (Array.isArray(data) ? data : (data.results ?? [])) as import("@/types/adminAccess").ProfileUpdateRequestRecord[];
+  } catch {
+    // Non-critical; swallow silently
+  }
+}
 
 onMounted(async () => {
   await loadUser();
   loadSummary();
+  loadProfileRequests();
 });
 </script>
 
@@ -391,7 +411,7 @@ onMounted(async () => {
         </div>
 
         <!-- Quick info strip -->
-        <dl class="grid gap-px bg-slate-100 sm:grid-cols-4">
+        <dl class="grid gap-px bg-slate-100 sm:grid-cols-5">
           <div class="bg-white px-5 py-3">
             <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Joined</dt>
             <dd class="mt-1 text-sm text-ink">{{ fmtDate(user.date_joined) }}</dd>
@@ -399,6 +419,10 @@ onMounted(async () => {
           <div class="bg-white px-5 py-3">
             <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Last login</dt>
             <dd class="mt-1 text-sm text-ink">{{ fmtDate(user.last_login) }}</dd>
+          </div>
+          <div class="bg-white px-5 py-3">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Phone</dt>
+            <dd class="mt-1 text-sm text-ink">{{ user.phone_number || '—' }}</dd>
           </div>
           <div class="bg-white px-5 py-3">
             <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Website</dt>
@@ -647,10 +671,81 @@ onMounted(async () => {
               </div>
             </div>
           </template>
+
+          <!-- Profile Requests tab -->
+          <template v-else-if="activeTab === 'profile-requests'">
+            <div v-if="profileUpdateRequests.length === 0" class="rounded-md border border-slate-200 bg-white px-4 py-10 text-center text-sm text-graphite">
+              No profile update requests found for this user.
+            </div>
+            <div v-else class="rounded-md border border-slate-200 bg-white overflow-hidden">
+              <div class="border-b border-slate-200 px-4 py-3">
+                <h3 class="text-sm font-semibold text-ink">Profile update requests ({{ profileUpdateRequests.length }})</h3>
+              </div>
+              <div class="divide-y divide-slate-100">
+                <div v-for="req in profileUpdateRequests" :key="req.id" class="px-4 py-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <StatusPill :label="req.status ?? 'unknown'" :tone="req.status === 'approved' ? 'success' : req.status === 'rejected' ? 'danger' : 'neutral'" />
+                        <time class="text-xs text-slate-400">{{ fmtDate(req.created_at) }}</time>
+                      </div>
+                      <div class="mt-2 rounded-md bg-slate-50 px-3 py-2 text-xs text-ink">
+                        <template v-for="(val, key) in (req.requested_changes ?? req.changes ?? {})" :key="key">
+                          <div class="flex gap-2 py-0.5">
+                            <span class="font-semibold text-graphite capitalize">{{ String(key).replace(/_/g, ' ') }}:</span>
+                            <span>{{ val }}</span>
+                          </div>
+                        </template>
+                      </div>
+                      <p v-if="req.reason" class="mt-1 text-xs text-graphite">Reason: {{ req.reason }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- RIGHT: Actions sidebar -->
         <aside class="space-y-4">
+
+          <!-- Contact info -->
+          <section class="rounded-md border border-slate-200 bg-white">
+            <div class="border-b border-slate-200 px-4 py-3">
+              <h2 class="text-sm font-semibold text-ink">Contact information</h2>
+            </div>
+            <dl class="divide-y divide-slate-100 px-4">
+              <div class="flex items-start gap-3 py-3">
+                <Mail class="mt-0.5 h-4 w-4 shrink-0 text-graphite" />
+                <div class="min-w-0">
+                  <dt class="text-xs font-semibold uppercase text-graphite">Email</dt>
+                  <dd class="mt-0.5 break-all text-sm text-ink">{{ user.email }}</dd>
+                </div>
+              </div>
+              <div class="flex items-start gap-3 py-3">
+                <KeyRound class="mt-0.5 h-4 w-4 shrink-0 text-graphite" />
+                <div>
+                  <dt class="text-xs font-semibold uppercase text-graphite">Phone</dt>
+                  <dd class="mt-0.5 text-sm text-ink">{{ user.phone_number || '—' }}</dd>
+                </div>
+              </div>
+              <div class="flex items-start gap-3 py-3">
+                <ShieldCheck class="mt-0.5 h-4 w-4 shrink-0 text-graphite" />
+                <div>
+                  <dt class="text-xs font-semibold uppercase text-graphite">Username</dt>
+                  <dd class="mt-0.5 text-sm font-mono text-ink">@{{ user.username }}</dd>
+                </div>
+              </div>
+              <div v-if="user.website" class="flex items-start gap-3 py-3">
+                <Link class="mt-0.5 h-4 w-4 shrink-0 text-graphite" />
+                <div>
+                  <dt class="text-xs font-semibold uppercase text-graphite">Website</dt>
+                  <dd class="mt-0.5 text-sm text-ink">{{ user.website.name }}</dd>
+                  <dd class="text-xs text-graphite">{{ user.website.domain }}</dd>
+                </div>
+              </div>
+            </dl>
+          </section>
 
           <!-- Account controls -->
           <section class="rounded-md border border-slate-200 bg-white">
