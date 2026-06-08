@@ -10,7 +10,7 @@ import { useFilesStore } from "@/stores/files";
 import { useOrderConfigStore } from "@/stores/orderConfig";
 import { useOrderStore } from "@/stores/orders";
 import { useWalletStore } from "@/stores/wallets";
-import type { PaperQuotePayload } from "@/types/orders";
+import type { DesignQuotePayload, DiagramQuotePayload, PaperQuotePayload } from "@/types/orders";
 import { useAnalytics } from "@/composables/useAnalytics";
 
 const { purchase, beginCheckout } = useAnalytics();
@@ -88,6 +88,57 @@ function defaultDeadline() {
   return new Date(Date.now() + 72 * 3600 * 1000).toISOString().slice(0, 16);
 }
 
+// ── Service mode ─────────────────────────────────────────────────────────────
+type ServiceMode = "paper" | "design" | "diagram" | "combo_paper_design" | "combo_paper_diagram";
+
+const SERVICE_MODES: { key: ServiceMode; label: string; description: string }[] = [
+  { key: "paper",              label: "Writing",               description: "Essay, report, research paper, coursework" },
+  { key: "design",             label: "Presentation / Design", description: "PowerPoint slides, infographic, poster" },
+  { key: "diagram",            label: "Diagram",               description: "Flowchart, ERD, UML, system architecture" },
+  { key: "combo_paper_design", label: "Writing + Design",      description: "Written paper with a presentation" },
+  { key: "combo_paper_diagram", label: "Writing + Diagrams",   description: "Written paper with supporting diagrams" },
+];
+
+const DESIGN_SERVICES = [
+  { code: "presentation_design", label: "Presentation (PPT/Slides)" },
+  { code: "infographic_design",  label: "Infographic" },
+  { code: "poster_flyer_design", label: "Poster / Flyer" },
+];
+
+const DIAGRAM_SERVICES = [
+  { code: "flowchart_diagram", label: "Flowchart",                         diagramType: "flowchart"      },
+  { code: "erd_diagram",       label: "Entity Relationship Diagram (ERD)", diagramType: "erd"            },
+  { code: "uml_diagram",       label: "UML Diagram",                       diagramType: "uml"            },
+  { code: "system_diagram",    label: "System Architecture Diagram",       diagramType: "system_diagram" },
+];
+
+const DIAGRAM_COMPLEXITIES = [
+  { code: "simple",   label: "Simple" },
+  { code: "moderate", label: "Moderate" },
+  { code: "complex",  label: "Complex" },
+];
+
+const serviceMode = ref<ServiceMode>("paper");
+
+const designForm = reactive({
+  service_code: "presentation_design",
+  slides: 10,
+  quantity: 1,
+});
+
+const diagramForm = reactive({
+  service_code: "flowchart_diagram",
+  quantity: 1,
+  complexity: "moderate",
+});
+
+const isDesignMode   = computed(() => serviceMode.value === "design" || serviceMode.value === "combo_paper_design");
+const isDiagramMode  = computed(() => serviceMode.value === "diagram" || serviceMode.value === "combo_paper_diagram");
+const isPaperMode    = computed(() => serviceMode.value === "paper" || serviceMode.value === "combo_paper_design" || serviceMode.value === "combo_paper_diagram");
+const isComboMode    = computed(() => serviceMode.value === "combo_paper_design" || serviceMode.value === "combo_paper_diagram");
+const isStandaloneDesign  = computed(() => serviceMode.value === "design");
+const isStandaloneDiagram = computed(() => serviceMode.value === "diagram");
+
 const form = reactive({
   topic: "",
   order_instructions: "",
@@ -141,6 +192,8 @@ const canQuote = computed(
 );
 
 const configSelectionError = computed(() => {
+  // Non-paper modes don't require paper config fields
+  if (!isPaperMode.value) return "";
   if (form.paper_type_id && form.type_of_work_id && form.academic_level_id) return "";
   return "Choose paper type, type of work, and academic level.";
 });
@@ -226,13 +279,44 @@ async function loadConfig() {
   wallets.fetchWallet().catch(() => undefined);
 }
 
+function designPayload(): DesignQuotePayload {
+  return {
+    service_code: designForm.service_code,
+    ...(designForm.service_code === "presentation_design" ? { slides: designForm.slides } : { quantity: designForm.quantity }),
+    deadline_hours: deadlineHours.value,
+    topic: form.topic,
+    instructions: form.order_instructions,
+  };
+}
+
+function diagramPayload(): DiagramQuotePayload {
+  const svc = DIAGRAM_SERVICES.find(s => s.code === diagramForm.service_code);
+  return {
+    service_code: diagramForm.service_code,
+    quantity: diagramForm.quantity,
+    deadline_hours: deadlineHours.value,
+    diagram_type: svc?.diagramType ?? diagramForm.service_code,
+    diagram_complexity: diagramForm.complexity,
+  };
+}
+
 async function calculate() {
   error.value = "";
   success.value = "";
   discountPreview.value = null;
   couponApplied.value = false;
   try {
-    await orders.pricePaperOrder(quotePayload());
+    if (serviceMode.value === "paper") {
+      await orders.pricePaperOrder(quotePayload());
+    } else if (serviceMode.value === "design") {
+      await orders.priceDesignOrder(designPayload());
+    } else if (serviceMode.value === "diagram") {
+      await orders.priceDiagramOrder(diagramPayload());
+    } else if (serviceMode.value === "combo_paper_design") {
+      await orders.priceComboOrder(quotePayload(), designPayload(), "design");
+    } else {
+      await orders.priceComboOrder(quotePayload(), diagramPayload(), "diagram");
+    }
     if (quotedPrice.value != null) beginCheckout(quotedPrice.value);
   } catch {
     error.value = "Pricing failed. Check your order details and try again.";
@@ -274,8 +358,9 @@ async function applyDiscount() {
 
 async function submit() {
   attempted.value = true;
-  if (topicError.value || instructionsError.value || configSelectionError.value) return;
-  if (!form.paper_type_id || !form.academic_level_id || !form.type_of_work_id) return;
+  if (topicError.value || instructionsError.value) return;
+  // Paper fields only required for paper-based modes
+  if (isPaperMode.value && (!form.paper_type_id || !form.academic_level_id || !form.type_of_work_id)) return;
   if (!paymentDisclosureAccepted.value) {
     error.value = "Please acknowledge the billing statement notice before placing your order.";
     return;
@@ -284,22 +369,68 @@ async function submit() {
   success.value = "";
   try {
     const provider = providerFor[paymentMethod.value];
-    const created = await orders.createPaperOrder(quotePayload(), {
+    const baseOrder = {
       topic: form.topic,
-      number_of_pages: form.pages,
       order_instructions: form.order_instructions,
       client_deadline: new Date(form.client_deadline).toISOString(),
-      paper_type_id: form.paper_type_id,
-      academic_level_id: form.academic_level_id,
-      formatting_style_id: form.formatting_style_id,
-      subject_id: form.subject_id,
-      type_of_work_id: form.type_of_work_id,
-      english_type_id: form.english_type_id,
-      writer_level_id: form.writer_level_id,
       is_urgent: deadlineHours.value <= 24,
       ...provider,
       ...(couponCode.value.trim() ? { entered_code: couponCode.value.trim() } : {}),
-    });
+    };
+
+    let created;
+    if (serviceMode.value === "paper") {
+      created = await orders.createPaperOrder(quotePayload(), {
+        ...baseOrder,
+        service_family: "paper_order",
+        service_code: form.service_code,
+        number_of_pages: form.pages,
+        paper_type_id: form.paper_type_id,
+        academic_level_id: form.academic_level_id,
+        formatting_style_id: form.formatting_style_id,
+        subject_id: form.subject_id,
+        type_of_work_id: form.type_of_work_id,
+        english_type_id: form.english_type_id,
+        writer_level_id: form.writer_level_id,
+      });
+    } else if (serviceMode.value === "design") {
+      created = await orders.createDesignOrder(designPayload(), {
+        ...baseOrder,
+        service_family: "design_order",
+        service_code: designForm.service_code,
+        ...(designForm.service_code === "presentation_design" ? { slides: designForm.slides } : { quantity: designForm.quantity }),
+      } as Parameters<typeof orders.createDesignOrder>[1]);
+    } else if (serviceMode.value === "diagram") {
+      created = await orders.createDiagramOrder(diagramPayload(), {
+        ...baseOrder,
+        service_family: "diagram_order",
+        service_code: diagramForm.service_code,
+        quantity: diagramForm.quantity,
+      } as Parameters<typeof orders.createDiagramOrder>[1]);
+    } else {
+      // Combo
+      const secondType = serviceMode.value === "combo_paper_design" ? "design" : "diagram";
+      const secondPayload = secondType === "design" ? designPayload() : diagramPayload();
+      created = await orders.createComboOrder(
+        quotePayload(),
+        secondPayload,
+        secondType,
+        {
+          ...baseOrder,
+          service_family: "combo_order",
+          service_code: form.service_code,
+          number_of_pages: form.pages,
+          paper_type_id: form.paper_type_id,
+          academic_level_id: form.academic_level_id,
+          formatting_style_id: form.formatting_style_id,
+          subject_id: form.subject_id,
+          type_of_work_id: form.type_of_work_id,
+          english_type_id: form.english_type_id,
+          writer_level_id: form.writer_level_id,
+        } as Parameters<typeof orders.createComboOrder>[3],
+        quotedPrice.value ?? 0,
+      );
+    }
 
     if (files.uploadQueue.length) {
       await files.uploadFiles(created.order.id);
@@ -388,6 +519,28 @@ watch(() => form.service_code, loadAddons);
 
     <form class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]" @submit.prevent="submit" novalidate>
       <div class="space-y-4">
+
+        <!-- Service type selector -->
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="text-base font-semibold text-ink">What do you need?</h2>
+          <p class="mt-0.5 text-xs text-graphite">Select the type of work — you can mix writing with a presentation or diagrams.</p>
+          <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            <button
+              v-for="mode in SERVICE_MODES"
+              :key="mode.key"
+              type="button"
+              class="rounded-lg border-2 px-3 py-3 text-left text-sm transition-colors"
+              :class="serviceMode === mode.key
+                ? 'border-signal bg-signal/5 text-signal'
+                : 'border-slate-200 text-ink hover:border-slate-300'"
+              @click="serviceMode = mode.key"
+            >
+              <p class="font-semibold">{{ mode.label }}</p>
+              <p class="mt-0.5 text-xs text-graphite">{{ mode.description }}</p>
+            </button>
+          </div>
+        </section>
+
         <!-- Order brief -->
         <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Order brief</h2>
@@ -436,8 +589,8 @@ watch(() => form.service_code, loadAddons);
           </div>
         </section>
 
-        <!-- Paper specifics -->
-        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <!-- Paper specifics — only shown for paper/combo modes -->
+        <section v-if="isPaperMode" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Paper specifics</h2>
 
           <!-- Loading skeleton -->
@@ -527,12 +680,63 @@ watch(() => form.service_code, loadAddons);
           </p>
         </section>
 
+        <!-- Design specifics -->
+        <section v-if="isDesignMode" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="text-base font-semibold text-ink">Design specifics</h2>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium text-ink mb-1">Design type</label>
+              <select v-model="designForm.service_code" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal">
+                <option v-for="s in DESIGN_SERVICES" :key="s.code" :value="s.code">{{ s.label }}</option>
+              </select>
+            </div>
+            <div v-if="designForm.service_code === 'presentation_design'">
+              <label class="block text-sm font-medium text-ink mb-1">Number of slides</label>
+              <input v-model.number="designForm.slides" type="number" min="1" max="200"
+                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal" />
+              <p class="mt-1 text-xs text-graphite">Total slides required including title and reference slides.</p>
+            </div>
+            <div v-else>
+              <label class="block text-sm font-medium text-ink mb-1">Quantity</label>
+              <input v-model.number="designForm.quantity" type="number" min="1" max="50"
+                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal" />
+              <p class="mt-1 text-xs text-graphite">Number of designs required.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Diagram specifics -->
+        <section v-if="isDiagramMode" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="text-base font-semibold text-ink">Diagram specifics</h2>
+          <div class="mt-4 grid gap-4 sm:grid-cols-3">
+            <div>
+              <label class="block text-sm font-medium text-ink mb-1">Diagram type</label>
+              <select v-model="diagramForm.service_code" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal">
+                <option v-for="s in DIAGRAM_SERVICES" :key="s.code" :value="s.code">{{ s.label }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-ink mb-1">Number of diagrams</label>
+              <input v-model.number="diagramForm.quantity" type="number" min="1" max="20"
+                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-ink mb-1">Complexity</label>
+              <select v-model="diagramForm.complexity" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal">
+                <option v-for="c in DIAGRAM_COMPLEXITIES" :key="c.code" :value="c.code">{{ c.label }}</option>
+              </select>
+              <p class="mt-1 text-xs text-graphite">Affects pricing — complex diagrams take longer.</p>
+            </div>
+          </div>
+        </section>
+
         <!-- Scope and deadline -->
         <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Scope &amp; deadline</h2>
 
           <div class="grid gap-4 sm:grid-cols-3">
-            <label class="block">
+            <!-- Pages: only for paper-based modes -->
+            <label v-if="isPaperMode" class="block">
               <span class="text-sm font-medium text-graphite">Pages</span>
               <input
                 v-model.number="form.pages"
@@ -546,7 +750,8 @@ watch(() => form.service_code, loadAddons);
               </span>
             </label>
 
-            <label class="block">
+            <!-- Spacing: only for paper-based modes -->
+            <label v-if="isPaperMode" class="block">
               <span class="text-sm font-medium text-graphite">Spacing</span>
               <select v-model="form.spacing" class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm">
                 <option value="double">Double spacing</option>

@@ -1070,11 +1070,15 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
     @decorators.action(detail=False, methods=["post"], url_path="create")
     def create_order(self, request):
         """
-        Client creates a new order.
-        Required: topic, paper_type_id, pages (or number_of_pages), client_deadline, order_instructions
-        Optional: academic_level_id, formatting_style_id, subject_id, type_of_work_id,
-                  english_type_id, writer_level_id, pricing_snapshot_id, is_urgent,
-                  payment_provider, payment_method_code, entered_code
+        Client creates a new order. Supports paper, design, diagram, and combo orders.
+
+        Required (all families): topic, client_deadline, order_instructions
+        Paper orders also require: paper_type_id, pages (or number_of_pages)
+        Design orders require: service_code (presentation_design / infographic_design / poster_flyer_design)
+                               slides (for presentations) or quantity
+        Diagram orders require: service_code (flowchart_diagram / erd_diagram / uml_diagram / system_diagram)
+                                quantity, diagram_complexity
+        Combo orders send the paper fields plus design/diagram fields; service_family="combo_order"
         """
         user = request.user
         if user.role != 'client' and not user.is_superuser:
@@ -1082,35 +1086,66 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
 
         data = request.data if isinstance(request.data, dict) else {}
 
-        # Accept pages or number_of_pages for backwards compatibility
+        service_family = str(data.get("service_family") or "paper_order")
+        service_code = str(data.get("service_code") or "academic_writing")
+
+        # Accept pages or number_of_pages for paper-based orders
         pages_raw = data.get("pages") or data.get("number_of_pages")
 
-        required_check = {
+        # Validate required fields based on service family
+        required_check: dict = {
             "topic": data.get("topic"),
-            "paper_type_id": data.get("paper_type_id"),
-            "pages": pages_raw,
             "client_deadline": data.get("client_deadline"),
             "order_instructions": data.get("order_instructions"),
         }
+        if service_family in ("paper_order", "combo_order"):
+            required_check["paper_type_id"] = data.get("paper_type_id")
+            required_check["pages"] = pages_raw
+        if service_family == "design_order":
+            required_check["quantity"] = data.get("slides") or data.get("quantity")
+        if service_family == "diagram_order":
+            required_check["quantity"] = data.get("quantity")
+
         missing = [k for k, v in required_check.items() if not v]
         if missing:
             return Response({"detail": f"Missing fields: {', '.join(missing)}"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Determine unit_type from service family
+        unit_type_map = {
+            "paper_order": "page",
+            "design_order": "slide" if "presentation" in service_code else "design_concept",
+            "diagram_order": "diagram",
+            "combo_order": "page",
+        }
+        unit_type = unit_type_map.get(service_family, "page")
+
+        # Quantity: pages for paper/combo, slides/qty for design/diagram
+        if service_family == "design_order":
+            quantity = int(data.get("slides") or data.get("quantity") or 1)
+        elif service_family == "diagram_order":
+            quantity = int(data.get("quantity") or 1)
+        else:
+            quantity = int(pages_raw or 1)
+
         try:
-            order = Order.objects.create(
+            create_kwargs: dict = dict(
                 website=getattr(user, 'website', None),
                 client=user,
                 topic=data["topic"],
-                paper_type_id=int(data["paper_type_id"]),
-                base_quantity=int(pages_raw or 0),
+                base_quantity=quantity,
+                unit_type=unit_type,
                 client_deadline=data["client_deadline"],
                 order_instructions=data["order_instructions"],
                 created_by_admin=False,
                 payment_status='unpaid',
                 is_urgent=bool(data.get("is_urgent", False)),
-                service_family="paper_order",
-                service_code=str(data.get("service_code", "academic_writing") or "academic_writing"),
+                service_family=service_family,
+                service_code=service_code,
             )
+            if service_family in ("paper_order", "combo_order") and data.get("paper_type_id"):
+                create_kwargs["paper_type_id"] = int(data["paper_type_id"])
+
+            order = Order.objects.create(**create_kwargs)
 
             # Optional FK fields
             for field in ("academic_level_id", "formatting_style_id", "subject_id",
@@ -1129,6 +1164,14 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     if snap.currency:
                         order.currency = snap.currency
                 except Exception:
+                    pass
+
+            # For combo orders the frontend passes the combined total directly
+            if data.get("total_price_override"):
+                from decimal import Decimal, InvalidOperation
+                try:
+                    order.total_price = Decimal(str(data["total_price_override"]))
+                except InvalidOperation:
                     pass
 
             order.save()

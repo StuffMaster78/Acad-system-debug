@@ -92,4 +92,14 @@ export const pricingApi = {
       apiPath(`/pricing/quotes/${sessionId}/snapshot/`),
       {},
     ),
+  createCompositeQuote: (componentSessionIds: string[]) =>
+    api.post<{ session_id: string; total: string; subtotal: string; currency: string; items: unknown[] }>(
+      apiPath("/pricing/quotes/composite/create/"),
+      { component_session_ids: componentSessionIds },
+    ),
+  finalizeCompositeQuote: (sessionId: string) =>
+    api.post<{ session_id: string; total: string; component_snapshot_ids: number[] }>(
+      apiPath(`/pricing/quotes/composite/${sessionId}/finalize/`),
+      {},
+    ),
 };

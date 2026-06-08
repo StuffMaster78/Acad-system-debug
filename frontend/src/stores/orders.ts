@@ -5,6 +5,8 @@ import { pricingApi } from "@/api/pricing";
 import { useAuthStore } from "@/stores/auth";
 import type {
   CreateOrderPayload,
+  DesignQuotePayload,
+  DiagramQuotePayload,
   OrderLifecycle,
   OrderSummary,
   PaperQuotePayload,
@@ -325,6 +327,137 @@ export const useOrderStore = defineStore("orders", () => {
     }
   }
 
+  async function priceDesignOrder(payload: DesignQuotePayload) {
+    isLoading.value = true;
+    error.value = "";
+    try {
+      const start = await pricingApi.startDesignQuote(payload);
+      const update = await pricingApi.updateDesignQuote(start.data.session_id, payload);
+      latestQuote.value = update.data;
+      return update.data;
+    } catch (caught) {
+      error.value = "Unable to calculate pricing.";
+      throw caught;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function priceDiagramOrder(payload: DiagramQuotePayload) {
+    isLoading.value = true;
+    error.value = "";
+    try {
+      const start = await pricingApi.startDiagramQuote(payload);
+      const update = await pricingApi.updateDiagramQuote(start.data.session_id, payload);
+      latestQuote.value = update.data;
+      return update.data;
+    } catch (caught) {
+      error.value = "Unable to calculate pricing.";
+      throw caught;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function priceComboOrder(paperPayload: PaperQuotePayload, secondPayload: DesignQuotePayload | DiagramQuotePayload, secondType: "design" | "diagram") {
+    isLoading.value = true;
+    error.value = "";
+    try {
+      // Start both quotes
+      const [paperStart, secondStart] = await Promise.all([
+        pricingApi.startPaperQuote(paperPayload),
+        secondType === "design"
+          ? pricingApi.startDesignQuote(secondPayload as DesignQuotePayload)
+          : pricingApi.startDiagramQuote(secondPayload as DiagramQuotePayload),
+      ]);
+      // Update both to set calculated_price (required by composite validator)
+      await Promise.all([
+        pricingApi.updatePaperQuote(paperStart.data.session_id, paperPayload),
+        secondType === "design"
+          ? pricingApi.updateDesignQuote(secondStart.data.session_id, secondPayload as DesignQuotePayload)
+          : pricingApi.updateDiagramQuote(secondStart.data.session_id, secondPayload as DiagramQuotePayload),
+      ]);
+      const composite = await pricingApi.createCompositeQuote([
+        paperStart.data.session_id,
+        secondStart.data.session_id,
+      ]);
+      latestQuote.value = {
+        session_id: composite.data.session_id,
+        calculated_price: composite.data.total,
+        currency: composite.data.currency,
+        total: composite.data.total,
+      } as PaperQuoteUpdateResponse;
+      return composite.data;
+    } catch (caught) {
+      error.value = "Unable to calculate pricing.";
+      throw caught;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function createDesignOrder(payload: DesignQuotePayload, order: Omit<CreateOrderPayload, "pricing_snapshot_id">) {
+    isCreating.value = true;
+    error.value = "";
+    try {
+      const quote = await priceDesignOrder(payload);
+      const snapshot = await pricingApi.createSnapshot(quote.session_id);
+      const created = await ordersApi.create({ ...order, pricing_snapshot_id: snapshot.data.snapshot_id });
+      orders.value = [created.data.order, ...orders.value];
+      return created.data;
+    } catch (caught) {
+      error.value = "Unable to create order.";
+      throw caught;
+    } finally {
+      isCreating.value = false;
+    }
+  }
+
+  async function createDiagramOrder(payload: DiagramQuotePayload, order: Omit<CreateOrderPayload, "pricing_snapshot_id">) {
+    isCreating.value = true;
+    error.value = "";
+    try {
+      const quote = await priceDiagramOrder(payload);
+      const snapshot = await pricingApi.createSnapshot(quote.session_id);
+      const created = await ordersApi.create({ ...order, pricing_snapshot_id: snapshot.data.snapshot_id });
+      orders.value = [created.data.order, ...orders.value];
+      return created.data;
+    } catch (caught) {
+      error.value = "Unable to create order.";
+      throw caught;
+    } finally {
+      isCreating.value = false;
+    }
+  }
+
+  async function createComboOrder(
+    paperPayload: PaperQuotePayload,
+    secondPayload: DesignQuotePayload | DiagramQuotePayload,
+    secondType: "design" | "diagram",
+    order: Omit<CreateOrderPayload, "pricing_snapshot_id">,
+    comboTotal: number,
+  ) {
+    isCreating.value = true;
+    error.value = "";
+    try {
+      // For combo, price the paper component and use its snapshot; pass total override
+      const paperQuote = await pricePaperOrder(paperPayload);
+      const snapshot = await pricingApi.createSnapshot(paperQuote.session_id);
+      const created = await ordersApi.create({
+        ...order,
+        pricing_snapshot_id: snapshot.data.snapshot_id,
+        total_price_override: comboTotal,
+      } as CreateOrderPayload & { total_price_override: number });
+      orders.value = [created.data.order, ...orders.value];
+      return created.data;
+    } catch (caught) {
+      error.value = "Unable to create order.";
+      throw caught;
+    } finally {
+      isCreating.value = false;
+    }
+  }
+
   return {
     orders,
     selectedOrder,
@@ -344,6 +477,12 @@ export const useOrderStore = defineStore("orders", () => {
     cancelOrder,
     raiseDispute,
     pricePaperOrder,
+    priceDesignOrder,
+    priceDiagramOrder,
+    priceComboOrder,
     createPaperOrder,
+    createDesignOrder,
+    createDiagramOrder,
+    createComboOrder,
   };
 });
