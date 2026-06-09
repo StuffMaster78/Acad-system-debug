@@ -38,3 +38,9 @@
     @apply rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md;
   }
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeIn 0.2s ease-out both; }
