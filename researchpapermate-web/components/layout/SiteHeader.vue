@@ -18,9 +18,13 @@ const nav = [
   { label: 'Contact', href: '/contact' },
 ]
 
+const route = useRoute()
 const mobileOpen   = ref(false)
 const servicesOpen = ref(false)
 let closeTimer: ReturnType<typeof setTimeout> | null = null
+
+// Close mobile menu on route change
+watch(() => route.path, () => { mobileOpen.value = false; servicesOpen.value = false })
 
 function openServices()   { if (closeTimer) clearTimeout(closeTimer); servicesOpen.value = true }
 function scheduleClose()  { closeTimer = setTimeout(() => { servicesOpen.value = false }, 120) }
@@ -38,7 +42,7 @@ const ORDER_SVG: Record<string, string> = {
 
 <template>
   <header class="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur-sm">
-    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 2xl:max-w-screen-xl 2xl:px-12">
 
       <!-- Logo + rating badge -->
       <div class="flex items-center gap-3">
@@ -187,7 +191,9 @@ const ORDER_SVG: Record<string, string> = {
         >
           <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border"
             :class="op.color.replace('text-','border-').replace('600','200') + ' ' + op.color.replace('text-','bg-').replace('600','50')">
-            <component :is="ORDER_ICONS[op.id]" class="h-3.5 w-3.5" :class="op.color" />
+            <svg class="h-3.5 w-3.5" :class="op.color" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path :d="ORDER_SVG[op.id]" />
+            </svg>
           </div>
           {{ op.label }}
         </NuxtLink>
@@ -205,9 +211,18 @@ const ORDER_SVG: Record<string, string> = {
           <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-500"></span>
           24/7 support available
         </div>
-        <NuxtLink to="/order" class="btn-primary mt-2 text-center" @click="mobileOpen = false">
-          Place an order
-        </NuxtLink>
+        <div class="flex flex-col gap-2 pt-1">
+          <NuxtLink to="/order" class="btn-primary text-center" @click="mobileOpen = false">
+            Place an order
+          </NuxtLink>
+          <NuxtLink
+            to="/login"
+            class="block rounded-lg border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            @click="mobileOpen = false"
+          >
+            Sign in
+          </NuxtLink>
+        </div>
       </nav>
     </div>
   </header>

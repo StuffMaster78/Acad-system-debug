@@ -412,7 +412,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       :class="ui.sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-[240px]'"
     >
       <!-- Header -->
-      <header class="sticky top-0 z-10 flex min-w-0 items-center gap-3 border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-3 backdrop-blur-sm lg:pl-6 lg:pr-4">
+      <header class="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+      <div class="flex min-w-0 items-center gap-3 py-2.5 pl-4 pr-3 lg:pl-6 lg:pr-4 2xl:mx-auto 2xl:max-w-screen-2xl">
 
         <!-- Mobile burger -->
         <button
@@ -508,10 +509,11 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
           </Transition>
         </div>
 
+      </div>
       </header>
 
       <!-- Page content -->
-      <main class="mx-auto w-full max-w-7xl px-4 py-4 lg:px-5">
+      <main class="mx-auto w-full max-w-7xl px-4 py-4 lg:px-5 2xl:max-w-screen-xl">
         <RouterView />
       </main>
     </div>
