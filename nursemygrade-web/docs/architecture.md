@@ -39,9 +39,9 @@ In development the Nuxt dev server proxies `/api/v1/*` and `/api/v2/*` to Django
 In production this proxy is not used — nginx routes API requests directly:
 
 ```
-researchpapermate.com/api/v1/*  →  api.researchpapermate.com (Django)
-researchpapermate.com/api/v2/*  →  api.researchpapermate.com (Wagtail)
-researchpapermate.com/*         →  .output/public/ (static files)
+nursemygrade.com/api/v1/*  →  api.nursemygrade.com (Django)
+nursemygrade.com/api/v2/*  →  api.nursemygrade.com (Wagtail)
+nursemygrade.com/*         →  .output/public/ (static files)
 ```
 
 ---
@@ -152,4 +152,4 @@ Key nginx behaviours:
 - All `.html` files served with `Cache-Control: no-cache` (so deploys are picked up immediately)
 - Static assets (`_nuxt/`, `public/`) served with `Cache-Control: max-age=31536000, immutable` (content-hashed filenames)
 - `try_files $uri $uri.html $uri/ =404` — handles clean URLs without `.html` extension
-- API proxy in production handled by a separate upstream block to `api.researchpapermate.com`
+- API proxy in production handled by a separate upstream block to `api.nursemygrade.com`

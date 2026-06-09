@@ -1,129 +1,143 @@
 # Design System
 
-Everything visual about the marketing site flows from a single deliberate decision: **this is an academic credibility brand, not a generic SaaS tool**. Every colour, type choice, and spacing value was chosen to reinforce trust with students who are making a purchase decision that involves their academic future.
+Everything visual about NurseMyGrade flows from one deliberate decision: **this is a clinical credibility brand, not a generic academic service**. Every colour, typeface choice, and icon was chosen to reinforce trust with nursing students — people making a purchase decision about their professional future in healthcare.
 
 ---
 
-## Brand colour — why #163e88
+## Brand colour — why teal
 
-The primary brand colour is a deep navy blue: **`#163e88` (brand-700)**.
+The primary brand colour family is **teal**: `#0d9488` (brand-600) through `#0f766e` (brand-700).
 
-### Why this specific blue
+### Why teal specifically
 
 We studied four direct competitors before choosing:
 
 | Competitor | Primary colour | Feeling |
 |---|---|---|
 | EssayPro | Rose red `#e74c3c` | Urgent, sales-y |
-| EduBirdie | Green `#27ae60` | Friendly, informal |
-| EssayPay | Blue-grey `#5b7fa6` | Safe, generic |
-| Custom-writing.org | Orange `#f39c12` | Cheap, commodity |
+| EduBirdie | Bright green `#27ae60` | Friendly, generic |
+| NursingPaperHelp | Royal blue `#1a56db` | Corporate, cold |
+| CustomNursingPapers | Orange/red `#e05328` | Cheap, commodity |
 
-None of them use a deep authoritative blue. We chose `#163e88` because:
+None of them use teal. We chose it because:
 
-1. **Academic association** — deep navy blue is the colour of university regalia, formal publishing (Oxford, Cambridge, Harvard presses), and professional credentials. Students already trust this colour in educational contexts.
-2. **High contrast** — `#163e88` on white achieves a contrast ratio of 7.8:1, exceeding WCAG AA (4.5:1) and passing WCAG AAA. Academic credibility requires legibility.
-3. **Differentiation** — no direct competitor uses this palette. A student who has visited EssayPro and then arrives here perceives an immediate quality step-up.
-4. **Consistency across surfaces** — the same brand scale runs across the marketing site, the client portal, and the writer workspace, so the product feels unified rather than cobbled together.
+1. **Clinical association** — teal is the colour of scrubs, surgical drapes, medical equipment packaging, and nursing uniform accents. Nursing students already associate it with their profession. The brand colour signals "we understand your world" before a word is read.
+2. **Differentiation** — no nursing writing service competitor uses this palette. The instant brand recognition it creates is valuable when students tab-compare services.
+3. **Warmth without aggression** — teal sits between the cold authority of navy and the informal warmth of green. It reads as both trustworthy and approachable — the right register for a service students confide personal academic struggles to.
+4. **High contrast** — `#0d9488` on white achieves sufficient contrast for interactive elements; `#0f766e` (brand-700) passes WCAG AA at 4.8:1 on white backgrounds.
 
 ### The full brand scale
 
+Defined in `tailwind.config.ts` under `theme.extend.colors.brand`:
+
 ```
-brand-50   #eef4ff   — page tint backgrounds, hover fills
-brand-100  #dde9ff   — light badges, credential pills
-brand-200  #bbd3ff   — borders on tinted surfaces
-brand-300  #93b8ff   — icon fills on dark backgrounds
-brand-500  #2563c8   — interactive states (focus rings)
-brand-600  #1d4fa8   — btn-primary background
-brand-700  #163e88   — primary CTA, sidebar, key headings (the core brand colour)
-brand-800  #112f6a   — hover state on brand-700 buttons
-brand-900  #0d2455   — deep backgrounds, dark nav elements
+brand-50   #f0fdfa   — page tint backgrounds, light section fills
+brand-100  #ccfbf1   — badge backgrounds, light chips
+brand-200  #99f6e4   — borders on tinted surfaces, icon fills
+brand-300  #5eead4   — decorative accents, footer icon highlights
+brand-400  #2dd4bf   — footer wordmark accent, secondary icon fills
+brand-500  #14b8a6   — interactive states, focus rings
+brand-600  #0d9488   — primary CTA buttons, key headings, header logo mark
+brand-700  #0f766e   — hover state on brand-600, sidebar panels
+brand-800  #115e59   — deep teal, gradient endpoint (logo vertical bar)
+brand-900  #134e4a   — dark backgrounds, deep accent panels
 ```
 
-`brand-400` is intentionally absent. The jump from 300 to 500 avoids a muddy mid-tone that reads as neither a background nor a foreground.
+---
+
+## Logo — the medical cross mark
+
+The logo is an inline SVG medical cross (two overlapping rounded-rect bars at 90°) with teal gradient fills, plus the "NurseMyGrade" wordmark.
+
+### Header logo
+```
+SVG size: 32×32px
+Vertical bar:  rect(x=12, y=2, w=8, h=28, rx=4) — filled with linear gradient #0d9488 → #115e59 (top to bottom)
+Horizontal bar: rect(x=2, y=12, w=28, h=8, rx=4) — filled with linear gradient #2dd4bf → #0d9488 (left to right), opacity 0.9
+```
+
+Wordmark: `font-bold tracking-tight` — `Nurse` in `text-slate-900`, `MyGrade` in `text-brand-600`.
+
+The gradient IDs (`nmg-v`, `nmg-h`) are scoped to the header SVG. The footer uses separate IDs (`nmg-vf`, `nmg-hf`) to avoid conflicts when both render on the same page.
+
+### Footer logo
+Footer version is 28×28px. Gradient stops use lighter teal (`#5eead4 → #0d9488` vertical, `#99f6e4 → #2dd4bf` horizontal) so the mark reads clearly on the dark slate footer background.
+
+Wordmark: `Nurse` in `text-white`, `MyGrade` in `text-brand-400`.
 
 ---
 
 ## Semantic colour tokens
 
-Defined in `tailwind.config.ts` and available across all components:
+Defined in `tailwind.config.ts` alongside the brand scale:
 
 | Token | Hex | Usage |
 |---|---|---|
-| `ink` | `#1a1f2e` | All primary body text — slightly warmer than pure black, easier on the eyes for long reading |
-| `graphite` | `#4b5563` | Secondary text, metadata, captions |
+| `ink` | `#1a1f2e` | All primary body text — slightly warm, reduces eye strain on clinical reading |
+| `graphite` | `#4b5563` | Secondary text, timestamps, metadata |
 | `mist` | `#f1f5f9` | Page and panel backgrounds |
-| `signal` | `#163e88` | Alias for brand-700 — used in body copy links and inline trust signals |
-| `saffron` | `#d97706` | Star ratings, urgency nudges ("3 writers available") |
-| `berry` | `#e11d48` | Danger states, form errors, destructive actions — not used for brand CTAs |
-
-### Why `ink` instead of `#000000`
-
-Pure black text on white creates too much optical harshness, particularly for long-form academic content (blog posts, guides). `#1a1f2e` has a slight warm-blue undertone that reads as "dark" while reducing eye strain. This is a standard technique used by Medium, Notion, and every major academic publisher.
+| `saffron` | `#d97706` | Star ratings, urgency nudges ("3 writers available tonight") |
+| `berry` | `#e11d48` | Form errors, danger states — never used for CTAs |
 
 ### Why `berry` is never used for CTAs
 
-Berry (`#e11d48`) appears only for errors and warnings. Using it for CTAs (as competitors do) trains users to associate your primary action colour with danger. We train users to associate brand-blue with positive actions — placing an order, registering, reading more.
+Berry (`#e11d48`) appears only for errors and warnings. Competitors (EssayPro, EduBirdie) use red/rose for primary CTAs — this trains users to associate the order action with danger. We associate brand-teal with positive actions, creating a cleaner emotional signal for nursing students who are already anxious about their coursework.
 
 ---
 
 ## Typography
 
-### Typeface: Plus Jakarta Sans
+### Typeface: Plus Jakarta Sans (body) + system serif (headings)
 
-**Why not Inter?** Inter is the default for SaaS products and is now so ubiquitous it reads as "generic tech tool." A writing services product targeting students needs to feel more considered.
+**Plus Jakarta Sans** is loaded for all body text, labels, and navigation. It was chosen because:
 
-Plus Jakarta Sans was chosen because:
+1. **Geometric warmth** — humanist details (double-story `a`, `g`) make clinical text comfortable to read at length.
+2. **Professional weight range** — 700 bold is confident without aggression. This is the right tone for a service credentialed nurses work with.
+3. **Variable axis** — one file covers all weights via `wght` axis; we load 400/600/700 statically for performance.
+4. **No licensing cost** — open source (Google Fonts).
 
-1. **Geometric warmth** — the letterforms are geometric but have humanist details (the double-story `a` and `g`) that make long blog text comfortable to read — critical for a content-heavy site.
-2. **Academic weight range** — the 700 weight is genuinely bold without looking aggressive. Academic credibility calls for confident typography, not screaming headlines.
-3. **Variable axis** — the font supports a `wght` variable axis which means one file covers all weights (we load 400/600/700 statically for performance).
-4. **No licensing cost** — open source via Google Fonts.
+Section headings use `font-serif` (the browser's serif fallback stack: Georgia, Times New Roman, serif). This creates a small but meaningful editorial register shift between body copy and structural headings — typical of medical and academic publishing.
 
 ### Weight usage
 
 | Weight | Token | Where |
 |---|---|---|
-| 400 | `font-normal` | Body copy, paragraphs, form inputs |
-| 600 | `font-semibold` | Sub-headings, labels, nav items, metadata |
-| 700 | `font-bold` | Section headings, card titles, CTA button labels |
-
-We do not load weights 500 or 800. 500 is visually indistinguishable from 400/600 at body sizes and adds payload for no perceptible gain. 800 produces letterforms that are distractingly heavy at display sizes.
+| 400 | `font-normal` | Body copy, paragraphs, descriptions |
+| 600 | `font-semibold` | Sub-headings, nav items, badge labels |
+| 700 | `font-bold` | CTA buttons, card titles, metadata callouts |
 
 ### Type scale
 
-The site uses Tailwind's default type scale without modification. Key sizes in practice:
-
-- Hero headline: `text-4xl` / `text-5xl` (36px / 48px) — `font-extrabold` (800, loaded from the 700 weight file with synthetic bold)
-- Section heading: `text-3xl` (30px) — `font-bold`
-- Card title: `text-base` or `text-lg` (16px / 18px) — `font-bold`
-- Body: `text-base` (16px) — `font-normal`, `leading-7` for reading comfort
-- Labels / meta: `text-sm` or `text-xs` (14px / 12px) — `font-medium` or `font-semibold`
+- Hero headline: `text-4xl md:text-5xl font-extrabold` (36–48px)
+- Section heading: `text-3xl font-bold font-serif`
+- Card title: `text-lg font-bold`
+- Body: `text-base leading-7`
+- Labels / meta: `text-sm font-semibold` or `text-xs font-medium`
 
 ---
 
 ## Spacing
 
-All spacing uses Tailwind's default 4px scale. Key layout conventions:
+Tailwind's default 4px scale. Key layout conventions:
 
-- Section vertical padding: `py-20` (80px) on desktop, reduces proportionally on mobile
-- Max content width: `max-w-7xl` (1280px) for wide sections, `max-w-3xl` (768px) for reading content (blog posts, legal pages)
-- Card internal padding: `p-6` (24px) standard, `p-4` (16px) for compact cards
-- Between cards in a grid: `gap-6` (24px)
+- Section vertical padding: `py-20` (80px) on desktop
+- Max content width: `max-w-7xl` (1280px) wide sections, `max-w-3xl` (768px) reading content
+- Card internal padding: `p-6` standard, `p-4` compact cards
+- Grid gap: `gap-6` between cards
 
 ---
 
 ## Shadows
 
-Three shadow levels defined in `tailwind.config.ts`:
+Three shadow levels:
 
-| Token | CSS | Usage |
-|---|---|---|
-| `shadow-panel` | `0 1px 3px rgba(26,31,46,0.08), 0 1px 2px rgba(26,31,46,0.04)` | Default card elevation — subtle, not floating |
-| `shadow-card` | `0 2px 8px rgba(26,31,46,0.07), 0 1px 2px rgba(26,31,46,0.04)` | Hover state elevation — shows interactivity |
-| `shadow-soft` | `0 4px 16px rgba(26,31,46,0.10)` | Modal dialogs, dropdown menus |
+| Token | Usage |
+|---|---|
+| `shadow-panel` | Default card elevation — barely perceptible lift |
+| `shadow-card` | Hover state — signals interactivity |
+| `shadow-soft` | Modals, dropdowns |
 
-Shadow colours use `rgba(26,31,46, ...)` — the same ink base colour — which produces shadows with a warm-blue undertone rather than the flat grey of `rgba(0,0,0, ...)`. This keeps shadows feeling cohesive with the brand rather than generic.
+All shadow colours use `rgba(26,31,46, ...)` (the ink base) — produces shadows with a warm undertone rather than flat grey.
 
 ---
 
@@ -132,17 +146,31 @@ Shadow colours use `rgba(26,31,46, ...)` — the same ink base colour — which 
 Defined in `assets/css/main.css` via `@layer components`:
 
 ```css
-.btn-primary    /* Brand blue CTA — used for "Order Now", "Get Started", "Place Order" */
-.btn-outline    /* Brand blue outline — secondary actions, "Learn more" */
+.btn-primary    /* Teal CTA — "Order Now", "Get Started", "Place Order" */
+.btn-outline    /* Teal outline — secondary actions */
 .section        /* max-w-7xl centred container with responsive padding */
 .section-heading /* 3xl/4xl bold serif heading */
 .section-sub    /* Lead paragraph beneath a section heading */
-.card           /* Rounded white card with subtle border and hover shadow */
+.card           /* Rounded white card with border and hover shadow */
 ```
 
-### Button usage rules
+### Button rules
 
-- **One `btn-primary` per visual section** — never two competing primary CTAs side by side.
+- **One `btn-primary` per visual section** — no competing primary CTAs.
 - `btn-outline` for secondary actions at the same visual level.
-- Never use `btn-primary` for navigation — navigation links are plain text with hover states.
-- CTA text should be action-oriented: "Get started", "Place my order", "See pricing" — never "Click here" or "Submit".
+- Never use `btn-primary` for navigation.
+- CTA copy should be action-oriented and nursing-specific: "Order my care plan", "Get started", "See nursing prices" — never "Click here" or "Submit".
+
+---
+
+## Announcement bar
+
+`components/marketing/AnnouncementBar.vue` renders a dismissible teal banner above the header. Used for promotions (e.g., `NURSE15` discount code). Dismissed state is persisted in `localStorage` keyed by message hash, so a new message auto-shows even if a previous one was dismissed.
+
+---
+
+## WhatsApp button
+
+`components/marketing/WhatsAppButton.vue` renders a fixed floating button (bottom-right, `z-50`) linking to the NurseMyGrade WhatsApp contact. The button is intentionally teal (`bg-[#25D366]` is the WhatsApp brand green, kept for recognition) on desktop and collapses on very small screens.
+
+WhatsApp is the primary contact channel for international nursing students — this button is a direct conversion tool, not decoration.

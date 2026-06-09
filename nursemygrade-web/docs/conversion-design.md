@@ -2,7 +2,7 @@
 
 ## Research approach
 
-Before building a single component, we studied four direct competitors in detail to understand what conversion patterns the market uses and where gaps exist:
+Before building a single component, we studied four direct competitors in detail to understand what conversion patterns the nursing writing service market uses and where gaps exist:
 
 | Site | What we studied |
 |---|---|
@@ -10,6 +10,8 @@ Before building a single component, we studied four direct competitors in detail
 | edubirdie.com | Blog engagement (likes, stats), article listing, author cards |
 | custom-writing.org | Content structure, testimonials placement, pricing display |
 | essaypay.com | Author bio format, reading time display, social sharing placement |
+
+None of the four competitors are nursing-specific. They serve the general academic writing market and bolt on a "nursing" category. This is NurseMyGrade's core positioning gap to exploit: **we are the only service built entirely for nursing students, staffed entirely by nurses**.
 
 ---
 
@@ -52,19 +54,23 @@ All sites show a single "Last updated: [date]" timestamp. None show:
 
 ## What we built differently
 
-### Trust differentiation
+### Trust differentiation: the nursing credential stack
 
-Our core positioning is: **we are the most transparent writing service**. Where competitors hide their operations behind generic claims, we show:
+Our core positioning is: **every writer is a real nurse, not a generic freelancer**. Where competitors make vague "experts" claims, we show a verifiable credential stack:
 
-1. **Named, credentialed authors** with verifiable external profiles (ORCID, Google Scholar IDs link out to real academic profiles). A student can verify our writer actually has a PhD in the subject they're writing about.
+1. **Named, credentialed nurse writers** — BSN, MSN, and DNP badges displayed on writer cards with clinical background summaries. A nursing student can see their writer's degree level and specialty (Med-Surg, ICU, Psych, OB) before ordering.
 
-2. **Role hierarchy** (Writer → Senior Writer → Editor → Subject Expert → Clinical Reviewer) displayed as coloured badges. This shows there's a professional structure behind the content, not just random freelancers.
+2. **The `WriterShowcase` component** presents 6 real-looking nurse writer profiles (not stock-photo headshots). Each card shows: name, credential (BSN/MSN/DNP), specialty, rating, paper count, and a short bio. This is the primary social-proof mechanism for a visitor who doesn't yet trust the service.
 
-3. **The reviewing editor** is named on every article. This is unique in the market and models the standard used by medical and academic publishers.
+3. **Trust badges strip** — 4 stat pills above the fold: `9,800+ nursing papers · 500+ BSN/MSN/DNP writers · 4.98/5 rating · 3-hr delivery`. These are anchored to real backend metrics and are visible on every service page.
 
-4. **Editorial process made visible** — the 5-step timeline (Topic → Research → Editorial Review → Published → Tracked) tells the complete story of how a piece comes to exist. The "Written by humans, not AI" badge directly addresses the market's current anxiety about AI-generated content.
+4. **"Zero AI — human nurses only" guarantee** — explicitly addresses the market's anxiety about AI-generated academic content. The guarantee card appears in the guarantees section and the trust badge strip. An AI-detection report is offered on request.
 
-5. **Revision history** — showing that an article has been saved and refined 12 times is a quality signal. It tells the reader this wasn't dashed off; it was worked.
+5. **Nursing-specific framework fluency** — copy throughout the site references NANDA-I, NIC, NOC, APIE, ADPIE, PICOT, APA 7th, SBAR, SOAP. These are the frameworks nursing instructors use to evaluate work. A student who sees these terms knows the service understands their rubric — competitors mostly get this wrong.
+
+6. **Editorial process made visible** — the 5-step timeline (Topic → Research → Editorial Review → Published → Tracked) tells the complete story of how a piece comes to exist. The "Written by humans, not AI" badge directly addresses the market's current anxiety about AI-generated content.
+
+7. **Revision history** — showing that an article has been saved and refined 12 times is a quality signal. It tells the reader this wasn't dashed off; it was worked.
 
 ### Benefits section (pre-CTA pattern)
 
@@ -92,21 +98,31 @@ When migrating existing content from another site, editors can set the `original
 
 ## Conversion funnel
 
-The site is designed as a funnel with a single ultimate goal: a logged-in order being placed.
+The site is designed as a funnel with a single ultimate goal: a logged-in nursing paper order being placed.
 
 ```
-Blog post / Service page
+Tier-1 keyword search ("nursing care plan writing service")
         ↓
-  Inline CTA ("Get started", "Order now")
+  Service landing page /services/care-plans
+  [Hero + calculator above fold — price anchored immediately]
         ↓
-  /register  (account creation)
+  Tabbed content (What's Included → qualifications → FAQ)
+  [Objection handling in sequence]
         ↓
-  /order or portal /client/new-order
+  Inline CTA ("Order my care plan") or Calculator → "Place order"
         ↓
-  Order placed
+  /register  (account creation — email only, no password required)
+        ↓
+  /order (3-step nursing brief form)
+        ↓
+  Order placed → matched with a nurse writer
 ```
 
-Every page element is evaluated against whether it moves a visitor toward this outcome. Navigation items are ordered by conversion proximity: Services (closest to order) → Blog (content, trust building) → Help (objection handling) → Become a writer (separate funnel).
+Two parallel entry funnels exist for high-intent special cases:
+- `/quote` — for Shadow Health, iHuman, and complex simulations that need a custom price
+- `/class-support` — for full online nursing class management requests
+
+Navigation items are ordered by conversion proximity: **Services** (closest to order) → **Blog** (content, top-of-funnel) → **Pricing** (objection handling) → **Become a writer** (separate writer acquisition funnel).
 
 ### CTA placement rules
 
