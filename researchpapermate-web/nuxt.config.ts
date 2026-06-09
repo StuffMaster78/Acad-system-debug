@@ -1,11 +1,36 @@
 export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
 
+  compatibilityDate: '2026-06-09',
+
   // SSG: pnpm build → .output/public/ → serve with nginx
   nitro: {
     prerender: {
       crawlLinks: true,
-      routes: ['/', '/services', '/pricing', '/blog', '/contact', '/apply', '/login', '/register', '/auth/magic-link'],
+      routes: [
+        '/',
+        '/services',
+        '/services/research-papers',
+        '/services/essays',
+        '/services/dissertations',
+        '/services/case-studies',
+        '/services/coursework',
+        '/services/data-analysis',
+        '/services/literature-reviews',
+        '/services/lab-reports',
+        '/services/presentations',
+        '/order',
+        '/quote',
+        '/class-support',
+        '/pricing',
+        '/blog',
+        '/about',
+        '/contact',
+        '/apply',
+        '/login',
+        '/register',
+        '/auth/magic-link',
+      ],
       failOnError: false,
     },
     // Dev: proxy /api/v1/* to Django so the Host header is localhost:3000
@@ -13,10 +38,14 @@ export default defineNuxtConfig({
     // Production: nginx handles this — API calls go to api.researchpapermate.com.
     devProxy: {
       // Nitro strips the matched prefix, then appends remainder to target.
-      // /api/v1/portal-context/ → strips /api/v1 → appends /portal-context/ → http://localhost:8000/api/v1/portal-context/
       '/api/v1': {
         target: 'http://localhost:8000/api/v1',
         changeOrigin: false, // keeps Host: localhost:3000 so Django resolves the right tenant
+      },
+      // Wagtail API v2 — service pages, blog pages, images
+      '/api/v2': {
+        target: 'http://localhost:8000/api/v2',
+        changeOrigin: false,
       },
     },
   },
@@ -32,6 +61,8 @@ export default defineNuxtConfig({
   components: [
     { path: '~/components/layout', prefix: '' },
     { path: '~/components/marketing', prefix: '' },
+    { path: '~/components/ui', prefix: '' },
+    { path: '~/components/cms', prefix: '' },
     { path: '~/components', prefix: '' },
   ],
 
@@ -48,7 +79,7 @@ export default defineNuxtConfig({
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@700&display=swap',
+          href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap',
         },
       ],
     },

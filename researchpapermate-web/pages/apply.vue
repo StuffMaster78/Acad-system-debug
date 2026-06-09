@@ -2,9 +2,9 @@
 const app = useAppUrl()
 
 const perks = [
-  { icon: '💰', title: 'Competitive pay',  desc: 'Earn up to $50 per page based on your level and performance.' },
-  { icon: '🕐', title: 'Flexible hours',   desc: 'Work when you want. Accept only the orders that suit you.' },
-  { icon: '📈', title: 'Grow your rating', desc: 'Build your reputation and unlock higher-paying order tiers.' },
+  { icon: 'dollar-sign', color: 'bg-green-100 text-green-600', title: 'Competitive pay',  desc: 'Earn up to $50 per page based on your level and performance.' },
+  { icon: 'clock',       color: 'bg-amber-100 text-amber-600', title: 'Flexible hours',   desc: 'Work when you want. Accept only the orders that suit you.' },
+  { icon: 'trending-up', color: 'bg-brand-100 text-brand-600', title: 'Grow your rating', desc: 'Build your reputation and unlock higher-paying order tiers.' },
 ]
 
 useSeoMeta({
@@ -22,7 +22,9 @@ useSeoMeta({
 
     <div class="mt-12 grid gap-6 text-left sm:grid-cols-3">
       <div v-for="perk in perks" :key="perk.title" class="card text-center">
-        <div class="mb-3 text-3xl">{{ perk.icon }}</div>
+        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl" :class="perk.color.split(' ')[0]">
+          <Icon :name="perk.icon" class="h-6 w-6" :class="perk.color.split(' ')[1]" />
+        </div>
         <h3 class="font-semibold text-slate-900">{{ perk.title }}</h3>
         <p class="mt-2 text-sm text-slate-500">{{ perk.desc }}</p>
       </div>

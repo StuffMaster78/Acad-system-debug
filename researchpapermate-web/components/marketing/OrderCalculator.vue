@@ -32,7 +32,7 @@ const orderUrl = computed(() => {
     deadline: selectedDeadline.value.label,
     pages: String(pages.value),
   })
-  return `${app.register}?${params}`
+  return `/order?${params}`
 })
 </script>
 

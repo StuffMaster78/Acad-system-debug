@@ -36,6 +36,36 @@ const deadlines = [
   { label: '2–6 hours', modifier: '+65%',        badge: 'Emergency' },
 ]
 
+const writerTiers = [
+  {
+    name: 'Standard',
+    badge: '',
+    modifier: 'Base price',
+    modColor: 'text-green-600',
+    features: ['Master\'s degree or higher', 'Verified credentials', '4.0–4.9 star rating', 'Good for most orders'],
+    cta: 'Most popular',
+    highlight: false,
+  },
+  {
+    name: 'Advanced',
+    badge: 'Best value',
+    modifier: '+10%',
+    modColor: 'text-amber-600',
+    features: ['Top-rated writers only', '4.8+ star rating', '500+ completed orders', 'Recommended for dissertations'],
+    cta: 'Recommended',
+    highlight: true,
+  },
+  {
+    name: 'Expert',
+    badge: 'Premium',
+    modifier: '+20%',
+    modColor: 'text-brand-600',
+    features: ['PhD-level writers', 'Doctoral work specialists', '1,000+ completed orders', 'For PhD & publication-level work'],
+    cta: 'For doctoral work',
+    highlight: false,
+  },
+]
+
 const faqs = [
   { q: 'How is the price calculated?',
     a: 'Price is based on academic level, deadline, and page count (1 page = 275 words, double-spaced). You\'ll see an exact quote before paying.' },
@@ -89,6 +119,47 @@ const faqs = [
       <p class="mt-4 text-center text-xs text-slate-400">
         Exact quote shown at checkout before any payment is taken.
       </p>
+    </section>
+
+    <!-- Writer tiers -->
+    <section class="bg-slate-50">
+      <div class="section">
+        <h2 class="section-heading text-center">Choose your writer tier</h2>
+        <p class="section-sub text-center">All tiers include the same guarantees. Higher tiers give access to more experienced writers.</p>
+        <div class="mt-10 grid gap-6 md:grid-cols-3">
+          <div
+            v-for="tier in writerTiers"
+            :key="tier.name"
+            class="card relative flex flex-col"
+            :class="tier.highlight ? 'ring-2 ring-brand-600 shadow-lg' : ''"
+          >
+            <div v-if="tier.badge" class="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span class="rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white shadow">{{ tier.badge }}</span>
+            </div>
+            <div class="mb-4">
+              <h3 class="text-lg font-bold text-slate-900">{{ tier.name }}</h3>
+              <p class="mt-1 text-sm font-semibold" :class="tier.modColor">{{ tier.modifier }}</p>
+            </div>
+            <ul class="flex-1 space-y-2 text-sm text-slate-600">
+              <li v-for="f in tier.features" :key="f" class="flex items-start gap-2">
+                <span class="mt-0.5 font-bold text-brand-500">✓</span>{{ f }}
+              </li>
+            </ul>
+            <NuxtLink
+              to="/register"
+              class="mt-6 block rounded-lg py-2.5 text-center text-sm font-semibold transition-colors"
+              :class="tier.highlight
+                ? 'bg-brand-600 text-white hover:bg-brand-700'
+                : 'border border-brand-200 text-brand-700 hover:bg-brand-600 hover:border-brand-600 hover:text-white'"
+            >
+              {{ tier.cta }}
+            </NuxtLink>
+          </div>
+        </div>
+        <p class="mt-6 text-center text-xs text-slate-400">
+          All writer tiers include: free revisions · plagiarism report · grade or money back · on-time guarantee
+        </p>
+      </div>
     </section>
 
     <!-- Deadline modifiers -->
