@@ -2142,8 +2142,14 @@ export function useBlog() {
   }
 
   function getByCategory(category: string): BlogPost[] {
-    return posts.filter(p => p.category === category)
+    return posts.map(withAuthor).filter(p => p.category === category)
   }
 
-  return { getAll, getBySlug, getRecent, getByCategory }
+  function getByAuthor(authorSlug: string, excludeSlug?: string): BlogPost[] {
+    return posts
+      .map(withAuthor)
+      .filter(p => p.author?.slug === authorSlug && p.slug !== excludeSlug)
+  }
+
+  return { getAll, getBySlug, getRecent, getByCategory, getByAuthor }
 }

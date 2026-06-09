@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const route = useRoute()
-const { getBySlug, getAll } = useBlog()
+const { getBySlug, getAll, getByAuthor } = useBlog()
 
 const post = getBySlug(route.params.slug as string)
 if (!post) {
@@ -10,6 +10,10 @@ if (!post) {
 const related = getAll()
   .filter(p => p.slug !== post.slug && p.category === post.category)
   .slice(0, 3)
+
+const byAuthor = post.author
+  ? getByAuthor(post.author.slug, post.slug).slice(0, 4)
+  : []
 
 const { toc, processedBody } = useToc(post.body)
 
@@ -228,6 +232,36 @@ useHead({
                 @{{ post.author.twitter }}
               </a>
             </div>
+          </div>
+
+          <!-- More articles by this author -->
+          <div v-if="byAuthor.length" class="border-t border-slate-100 px-6 py-5">
+            <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              More by {{ post.author!.name.split(' ')[0] }}
+            </p>
+            <ul class="space-y-3">
+              <li v-for="p in byAuthor" :key="p.slug">
+                <NuxtLink
+                  :href="`/blog/${p.slug}`"
+                  class="group flex items-start gap-3"
+                >
+                  <!-- Category colour dot -->
+                  <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-300 group-hover:bg-brand-600 transition-colors" />
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium leading-snug text-slate-800 group-hover:text-brand-700 transition-colors line-clamp-2">
+                      {{ p.title }}
+                    </p>
+                    <p class="mt-0.5 text-xs text-slate-400">{{ p.category }} · {{ p.readTime }}</p>
+                  </div>
+                </NuxtLink>
+              </li>
+            </ul>
+            <NuxtLink
+              :href="`/blog?author=${post.author!.slug}`"
+              class="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline"
+            >
+              All articles by {{ post.author!.name.split(' ').slice(0, 2).join(' ') }} →
+            </NuxtLink>
           </div>
         </div>
 
