@@ -1,6 +1,7 @@
 <script setup lang="ts">
-const { getAll } = useServices()
-const services = getAll()
+// CMS-driven list merged with local enrichment (icon, hero copy, includes)
+const services = useCmsServiceList()
+const { getBySlug } = useServices()
 
 const subjectAreas = [
   {
@@ -42,7 +43,7 @@ useHead({
       '@context': 'https://schema.org',
       '@type': 'ItemList',
       name: 'Academic Writing Services',
-      itemListElement: services.map((s, i) => ({
+      itemListElement: services.value.map((s, i) => ({
         '@type': 'ListItem',
         position: i + 1,
         name: s.title,
@@ -93,9 +94,12 @@ useHead({
               {{ s.navLabel }}
             </h2>
           </div>
-          <p class="flex-1 text-sm text-slate-600 leading-relaxed">{{ s.hero.sub }}</p>
-          <ul class="mt-4 space-y-1.5">
-            <li v-for="b in s.includes.slice(0, 3)" :key="b" class="flex items-start gap-2 text-sm text-slate-500">
+          <p v-if="s.heroSub" class="flex-1 text-sm text-slate-600 leading-relaxed">{{ s.heroSub }}</p>
+          <p v-else class="flex-1 text-sm text-slate-500 leading-relaxed italic">
+            Expert writing service — learn more →
+          </p>
+          <ul v-if="getBySlug(s.slug)?.includes?.length" class="mt-4 space-y-1.5">
+            <li v-for="b in getBySlug(s.slug)!.includes.slice(0, 3)" :key="b" class="flex items-start gap-2 text-sm text-slate-500">
               <span class="mt-0.5 font-bold text-brand-500">✓</span>{{ b }}
             </li>
           </ul>

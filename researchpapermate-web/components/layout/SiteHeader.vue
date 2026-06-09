@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const portal = usePortalStore()
-const { getAll } = useServices()
-const allServices = getAll()
+// CMS-driven — reflects whatever ServicePages exist in Wagtail
+const allServices = useCmsServiceList()
 
 const orderPaths = [
   { id: 'paper',   label: 'Papers & Essays',      desc: 'Research papers, essays, dissertations',  href: '/order?type=paper',   color: 'text-brand-600'  },

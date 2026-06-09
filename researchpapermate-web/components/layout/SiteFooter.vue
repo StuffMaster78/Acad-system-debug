@@ -2,14 +2,14 @@
 const portal = usePortalStore()
 const year = new Date().getFullYear()
 
-const serviceLinks = [
-  { label: 'Research Papers',     href: '/services/research-papers' },
-  { label: 'Essays',              href: '/services/essays' },
-  { label: 'Dissertations',       href: '/services/dissertations' },
-  { label: 'Case Studies',        href: '/services/case-studies' },
-  { label: 'Data Analysis',       href: '/services/data-analysis' },
-  { label: 'Literature Reviews',  href: '/services/literature-reviews' },
-]
+// CMS-driven — new service pages created in Wagtail appear automatically
+const cmsServices = useCmsServiceList()
+const serviceLinks = computed(() =>
+  cmsServices.value.slice(0, 8).map(s => ({
+    label: s.navLabel,
+    href: `/services/${s.slug}`,
+  }))
+)
 
 const companyLinks = [
   { label: 'About',           href: '/about' },

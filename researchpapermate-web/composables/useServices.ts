@@ -299,3 +299,65 @@ export function useServices() {
 
   return { getAll, getBySlug, getRelated }
 }
+
+// ── CMS-driven service list ──────────────────────────────────────────────────
+// Allows non-technical admins to create/rename service pages in Wagtail and
+// have them appear in the footer, header mega-menu, and services index without
+// any developer involvement. Static useServices() data enriches the display
+// (icons, hero copy, includes) but is NOT required for a page to appear.
+
+export interface CmsServiceSummary {
+  id: number
+  title: string
+  slug: string
+  service_category?: { name: string; slug: string } | null
+  pricing_from?: string | null
+  turnaround_hours_fastest?: number | null
+}
+
+export function useCmsServiceList() {
+  const { data } = useFetch<{ items: CmsServiceSummary[] }>('/api/v2/pages/', {
+    key: 'cms-service-list',
+    query: {
+      type: 'cms_service_pages.ServicePage',
+      live: true,
+      order: 'title',
+      fields: 'title,slug,service_category,pricing_from,turnaround_hours_fastest',
+      limit: 50,
+    },
+    default: () => ({ items: [] }),
+  })
+
+  // Merge CMS list with static data for richer display (icon, navLabel, hero sub)
+  const staticServices = services
+
+  const merged = computed(() => {
+    const cmsItems = data.value?.items ?? []
+    // If Wagtail returned nothing (dev/offline), fall back to static list
+    if (!cmsItems.length) {
+      return staticServices.map(s => ({
+        slug: s.slug,
+        title: s.title,
+        navLabel: s.navLabel,
+        icon: s.icon,
+        heroSub: s.hero.sub,
+        priceFrom: s.priceFrom,
+        category: null as string | null,
+      }))
+    }
+    return cmsItems.map(page => {
+      const local = staticServices.find(s => s.slug === page.slug)
+      return {
+        slug: page.slug,
+        title: page.title,
+        navLabel: local?.navLabel ?? page.title,
+        icon: local?.icon ?? 'file-text',
+        heroSub: local?.hero.sub ?? '',
+        priceFrom: page.pricing_from ? parseFloat(page.pricing_from) : (local?.priceFrom ?? 15),
+        category: page.service_category?.name ?? null,
+      }
+    })
+  })
+
+  return merged
+}

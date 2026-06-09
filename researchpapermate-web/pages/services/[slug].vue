@@ -2,19 +2,32 @@
 const route = useRoute()
 const { getBySlug, getRelated } = useServices()
 
+// useFetch inside useServiceCms is awaited at SSG time, so cmsPage.value
+// is populated before the 404 check below runs.
+const { page: cmsPage, hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(route.params.slug as string)
+
+// Static enrichment — may be null for pages created purely in Wagtail
 const service = getBySlug(route.params.slug as string)
-if (!service) {
+
+// Only 404 if neither the local catalogue nor Wagtail has this slug
+if (!service && !cmsPage.value) {
   throw createError({ statusCode: 404, message: 'Service not found' })
 }
 
-const related = getRelated(service.relatedSlugs)
-const { page: cmsPage, hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(service.slug)
+// Display values — static data where available, Wagtail data as fallback
+const displayTitle   = computed(() => service?.title ?? cmsPage.value?.title ?? '')
+const displayHero    = computed(() => service?.hero ?? { headline: displayTitle.value, sub: '' })
+const displayPrice   = computed(() => service?.priceFrom ?? parseFloat(cmsPage.value?.pricing_from ?? '15'))
+const displayIcon    = computed(() => service?.icon ?? 'file-text')
+const displayMeta    = computed(() => service?.meta ?? { title: displayTitle.value, description: '' })
+
+const related = service ? getRelated(service.relatedSlugs) : []
 
 useSeoMeta({
-  title: service.meta.title,
-  description: service.meta.description,
-  ogTitle: service.meta.title,
-  ogDescription: service.meta.description,
+  title: displayMeta.value.title || displayTitle.value,
+  description: displayMeta.value.description,
+  ogTitle: displayMeta.value.title || displayTitle.value,
+  ogDescription: displayMeta.value.description,
 })
 
 useHead({
@@ -23,14 +36,14 @@ useHead({
     innerHTML: JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: service.title,
-      description: service.meta.description,
+      name: displayTitle.value,
+      description: displayMeta.value.description,
       provider: { '@type': 'Organization', name: 'ResearchPaperMate', url: 'https://researchpapermate.com' },
       offers: {
         '@type': 'Offer',
-        price: service.priceFrom,
+        price: displayPrice.value,
         priceCurrency: 'USD',
-        priceSpecification: { '@type': 'UnitPriceSpecification', price: service.priceFrom, priceCurrency: 'USD', unitText: 'page' },
+        priceSpecification: { '@type': 'UnitPriceSpecification', price: displayPrice.value, priceCurrency: 'USD', unitText: 'page' },
       },
     }),
   }],
@@ -44,17 +57,17 @@ useHead({
       <div class="section py-0">
         <div class="mx-auto max-w-3xl text-center">
           <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20">
-            <Icon :name="service.icon" class="h-9 w-9 text-white" />
+            <Icon :name="displayIcon" class="h-9 w-9 text-white" />
           </div>
           <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">
-            {{ service.hero.headline }}
+            {{ displayHero.headline }}
           </h1>
-          <p class="mx-auto mt-5 max-w-2xl text-lg text-brand-100 leading-relaxed">
-            {{ service.hero.sub }}
+          <p v-if="displayHero.sub" class="mx-auto mt-5 max-w-2xl text-lg text-brand-100 leading-relaxed">
+            {{ displayHero.sub }}
           </p>
           <div class="mt-8 flex flex-wrap justify-center gap-4">
             <NuxtLink to="/order" class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-8 py-3.5 text-base shadow-lg">
-              Order from ${{ service.priceFrom }}/page
+              Order from ${{ displayPrice }}/page
             </NuxtLink>
             <NuxtLink to="/pricing" class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-3.5 text-base">
               See full pricing
@@ -75,8 +88,8 @@ useHead({
 
         <!-- Left: service detail -->
         <div>
-          <!-- What's included -->
-          <div class="card">
+          <!-- What's included (static enrichment — only when local data exists) -->
+          <div v-if="service" class="card">
             <h2 class="mb-5 font-serif text-2xl font-bold text-slate-900">What's included</h2>
             <ul class="space-y-3">
               <li v-for="item in service.includes" :key="item" class="flex items-start gap-3">
@@ -87,7 +100,7 @@ useHead({
           </div>
 
           <!-- What we deliver -->
-          <div class="card mt-6">
+          <div v-if="service" class="card mt-6">
             <h2 class="mb-5 font-serif text-2xl font-bold text-slate-900">What you receive</h2>
             <ul class="space-y-3">
               <li v-for="item in service.delivers" :key="item" class="flex items-start gap-3">
@@ -98,7 +111,7 @@ useHead({
           </div>
 
           <!-- Who it's for -->
-          <div class="card mt-6">
+          <div v-if="service" class="card mt-6">
             <h2 class="mb-3 font-serif text-xl font-bold text-slate-900">Who this is for</h2>
             <p class="text-slate-600 leading-relaxed">{{ service.whoFor }}</p>
           </div>

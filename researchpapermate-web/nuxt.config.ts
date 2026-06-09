@@ -10,15 +10,8 @@ export default defineNuxtConfig({
       routes: [
         '/',
         '/services',
-        '/services/research-papers',
-        '/services/essays',
-        '/services/dissertations',
-        '/services/case-studies',
-        '/services/coursework',
-        '/services/data-analysis',
-        '/services/literature-reviews',
-        '/services/lab-reports',
-        '/services/presentations',
+        // Individual service slugs are discovered via crawlLinks: true
+        // from the /services index page — no need to hardcode them.
         '/order',
         '/quote',
         '/class-support',
