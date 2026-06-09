@@ -17,16 +17,27 @@ const byAuthor = post.author
 
 const { toc, processedBody } = useToc(post.body)
 
-// Inject a soft CTA after the 4th paragraph so readers see it mid-scroll.
+// Mid-article CTA — nursing-specific, injected after the 4th paragraph.
 const inlineCta = `
-<div class="not-prose my-8 rounded-2xl bg-brand-50 border border-brand-100 px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-  <div>
-    <p class="font-semibold text-brand-900">Need expert help with your paper?</p>
-    <p class="mt-0.5 text-sm text-brand-700">Human-written · plagiarism-free · from $15/page · grade guarantee</p>
+<div class="not-prose my-8 overflow-hidden rounded-2xl border border-brand-100 shadow-sm">
+  <div class="flex flex-col sm:flex-row">
+    <div class="bg-brand-600 h-1.5 w-full sm:h-auto sm:w-1.5 shrink-0 rounded-t-2xl sm:rounded-t-none sm:rounded-l-2xl"></div>
+    <div class="flex flex-col gap-4 bg-gradient-to-r from-brand-50 to-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between flex-1">
+      <div>
+        <p class="text-[11px] font-bold uppercase tracking-widest text-brand-600 mb-1">Written by nurses, for nurses</p>
+        <p class="font-semibold text-slate-900">Clinical rotations + coursework is a lot. Let a qualified BSN or MSN nurse write this for you.</p>
+        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+          <span>✓ NANDA · SOAP · APA 7th — done right</span>
+          <span>✓ From $24/page</span>
+          <span>✓ As fast as 3 hours</span>
+          <span>✓ Grade guarantee</span>
+        </div>
+      </div>
+      <a href="/order" class="shrink-0 inline-flex items-center justify-center whitespace-nowrap rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-700">
+        Get my nurse writer →
+      </a>
+    </div>
   </div>
-  <a href="/order" class="shrink-0 inline-flex items-center justify-center rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
-    Place an order
-  </a>
 </div>`
 
 const bodyWithInlineCta = computed(() => {
@@ -184,21 +195,24 @@ useHead({
         <div class="mt-10 rounded-2xl bg-brand-900 p-8">
           <div class="sm:flex sm:items-center sm:justify-between sm:gap-8">
             <div>
-              <h2 class="font-serif text-2xl font-bold text-white">Need help with your paper?</h2>
+              <p class="mb-1 text-xs font-bold uppercase tracking-widest text-brand-400">500+ BSN · MSN · DNP nurses available now</p>
+              <h2 class="font-serif text-2xl font-bold text-white">Still staring at a blank page?</h2>
               <p class="mt-2 leading-relaxed text-brand-200">
-                Our expert writers cover 100+ subjects — from essays to dissertations. Human-written, plagiarism-free, from $15/page.
+                A real nurse who knows your subject can write your care plan, SOAP note, capstone,
+                or essay — from scratch, clinically accurate, from $24/page.
               </p>
               <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-brand-300">
                 <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Grade or money back</li>
-                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Zero AI content</li>
-                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> 2-hour minimum turnaround</li>
+                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Zero AI — nurse-written</li>
+                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> As fast as 3 hours</li>
+                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Free Turnitin report</li>
               </ul>
             </div>
             <NuxtLink
               to="/order"
               class="mt-6 block shrink-0 rounded-xl bg-white px-8 py-3 text-center text-sm font-bold text-brand-700 transition-colors hover:bg-brand-50 sm:mt-0"
             >
-              Place an order
+              Order my nursing paper →
             </NuxtLink>
           </div>
         </div>
