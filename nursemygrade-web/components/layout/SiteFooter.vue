@@ -111,13 +111,24 @@ const social = computed(() => portal.socialLinks)
 
         <!-- Col 1: Brand (spans 2 on lg) -->
         <div class="col-span-2 sm:col-span-2 lg:col-span-2">
-          <NuxtLink href="/" class="flex items-center gap-1.5">
-            <svg class="h-6 w-6 text-brand-400" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
-              <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/>
-              <circle cx="20" cy="10" r="2"/>
+          <NuxtLink href="/" class="flex items-center gap-2">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="nmg-vf" x1="16" y1="2" x2="16" y2="30" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#5eead4"/>
+                  <stop offset="100%" stop-color="#0d9488"/>
+                </linearGradient>
+                <linearGradient id="nmg-hf" x1="2" y1="16" x2="30" y2="16" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#99f6e4"/>
+                  <stop offset="100%" stop-color="#2dd4bf"/>
+                </linearGradient>
+              </defs>
+              <rect x="12" y="2" width="8" height="28" rx="4" fill="url(#nmg-vf)"/>
+              <rect x="2" y="12" width="28" height="8" rx="4" fill="url(#nmg-hf)" opacity="0.85"/>
             </svg>
-            <span class="font-serif text-lg font-bold text-white">Nurse<span class="text-brand-400">MyGrade</span></span>
+            <span class="text-base font-bold leading-none tracking-tight">
+              <span class="text-white">Nurse</span><span class="text-brand-400">MyGrade</span>
+            </span>
           </NuxtLink>
           <p class="mt-2 text-xs text-slate-400 leading-relaxed max-w-[180px]">Expert nursing papers by BSN, MSN &amp; DNP nurses.</p>
           <div v-if="social.length" class="mt-4 flex flex-wrap gap-1.5">

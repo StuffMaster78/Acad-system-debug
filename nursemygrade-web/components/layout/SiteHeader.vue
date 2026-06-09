@@ -57,14 +57,27 @@ const ORDER_SVG: Record<string, string> = {
       <div class="flex items-center gap-3">
         <NuxtLink href="/" class="flex items-center gap-2">
           <img v-if="portal.logo" :src="portal.logo" alt="NurseMyGrade" class="h-8 w-auto" />
-          <!-- Text logo — stethoscope icon + wordmark -->
-          <span v-else class="flex items-center gap-1.5">
-            <svg class="h-7 w-7 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
-              <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/>
-              <circle cx="20" cy="10" r="2"/>
+          <!-- Logo mark — medical cross in teal + wordmark -->
+          <span v-else class="flex items-center gap-2">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="nmg-v" x1="16" y1="2" x2="16" y2="30" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#0d9488"/>
+                  <stop offset="100%" stop-color="#115e59"/>
+                </linearGradient>
+                <linearGradient id="nmg-h" x1="2" y1="16" x2="30" y2="16" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#2dd4bf"/>
+                  <stop offset="100%" stop-color="#0d9488"/>
+                </linearGradient>
+              </defs>
+              <!-- Vertical bar of cross -->
+              <rect x="12" y="2" width="8" height="28" rx="4" fill="url(#nmg-v)"/>
+              <!-- Horizontal bar of cross -->
+              <rect x="2" y="12" width="28" height="8" rx="4" fill="url(#nmg-h)" opacity="0.9"/>
             </svg>
-            <span class="font-serif text-xl font-bold text-slate-900">Nurse<span class="text-brand-600">MyGrade</span></span>
+            <span class="text-[1.15rem] font-bold leading-none tracking-tight">
+              <span class="text-slate-900">Nurse</span><span class="text-brand-600">MyGrade</span>
+            </span>
           </span>
         </NuxtLink>
         <div class="hidden items-center gap-1 sm:flex">
