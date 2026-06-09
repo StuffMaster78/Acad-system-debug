@@ -17,6 +17,31 @@ const byAuthor = post.author
 
 const { toc, processedBody } = useToc(post.body)
 
+// Inject a soft CTA after the 4th paragraph so readers see it mid-scroll.
+const inlineCta = `
+<div class="not-prose my-8 rounded-2xl bg-brand-50 border border-brand-100 px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <div>
+    <p class="font-semibold text-brand-900">Need expert help with your paper?</p>
+    <p class="mt-0.5 text-sm text-brand-700">Human-written · plagiarism-free · from $15/page · grade guarantee</p>
+  </div>
+  <a href="/order" class="shrink-0 inline-flex items-center justify-center rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
+    Place an order
+  </a>
+</div>`
+
+const bodyWithInlineCta = computed(() => {
+  let count = 0
+  let insertAt = -1
+  const re = /<\/p>/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(processedBody)) !== null) {
+    count++
+    if (count === 4) { insertAt = m.index + m[0].length; break }
+  }
+  if (insertAt === -1) return processedBody
+  return processedBody.slice(0, insertAt) + inlineCta + processedBody.slice(insertAt)
+})
+
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
@@ -134,7 +159,7 @@ useHead({
                  prose-headings:font-serif prose-headings:font-bold
                  prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
                  prose-strong:text-slate-900"
-          v-html="processedBody"
+          v-html="bodyWithInlineCta"
         />
 
         <!-- Share buttons -->
