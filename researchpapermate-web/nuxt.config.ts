@@ -47,6 +47,11 @@ export default defineNuxtConfig({
         target: 'http://localhost:8000/api/v2',
         changeOrigin: false,
       },
+      // Custom CMS API — attachments, authors, engagement, blog history
+      '/cms-api': {
+        target: 'http://localhost:8000/cms-api',
+        changeOrigin: false,
+      },
     },
   },
 

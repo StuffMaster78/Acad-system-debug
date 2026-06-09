@@ -22,6 +22,27 @@ type DefinitionVal= { term: string; definition: string }
 type TimelineItem = { date: string; title: string; description?: string }
 type TimelineVal  = { title?: string; entries: TimelineItem[] }
 type SampleVal    = { excerpt: string; paper_type?: string; academic_level?: string; title?: string }
+type ImageVal     = {
+  url?: string
+  meta?: { download_url?: string }
+  alt_text?: string
+  caption?: string
+  display?: 'inline' | 'wide' | 'infographic'
+}
+type AttachmentVal = {
+  slug: string
+  title: string
+  description?: string
+  file_format?: string
+  file_size_bytes?: number
+  page_count?: number
+  academic_level?: string
+  formatting_style?: string
+  gate_type: 'free' | 'email' | 'account' | 'customer' | 'paid'
+  price?: string | null
+  preview_url?: string
+  display_style?: 'card' | 'list' | 'hero' | 'button'
+}
 
 const openFaqs = ref<Set<number>>(new Set())
 function toggleFaq(i: number) {
@@ -253,6 +274,43 @@ const CALLOUT_STYLES: Record<string, string> = {
             v-html="(block.value as SampleVal).excerpt" />
           <p class="mt-3 text-xs text-slate-400">Sample excerpt only — all work is written fresh to your brief.</p>
         </div>
+      </template>
+
+      <!-- image / infographic -->
+      <template v-else-if="block.type === 'image'">
+        <figure
+          :class="(block.value as ImageVal).display === 'wide' || (block.value as ImageVal).display === 'infographic'
+            ? '-mx-6 sm:-mx-10'
+            : ''"
+        >
+          <img
+            :src="(block.value as ImageVal).url ?? (block.value as ImageVal).meta?.download_url ?? ''"
+            :alt="(block.value as ImageVal).alt_text ?? ''"
+            loading="lazy"
+            :class="[
+              'w-full rounded-xl object-cover shadow-sm',
+              (block.value as ImageVal).display === 'infographic' ? 'max-h-[600px] object-contain bg-slate-50' : '',
+            ]"
+          />
+          <figcaption
+            v-if="(block.value as ImageVal).caption"
+            class="mt-2 text-center text-xs italic text-slate-400"
+          >
+            {{ (block.value as ImageVal).caption }}
+          </figcaption>
+        </figure>
+      </template>
+
+      <!-- attachment / downloadable sample -->
+      <template v-else-if="block.type === 'attachment'">
+        <ClientOnly>
+          <SampleDownload
+            :attachment="block.value as AttachmentVal"
+            :variant="(block.value as AttachmentVal).display_style === 'hero' ? 'hero'
+              : (block.value as AttachmentVal).display_style === 'list' ? 'compact'
+              : 'card'"
+          />
+        </ClientOnly>
       </template>
 
       <!-- divider -->

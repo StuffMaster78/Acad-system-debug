@@ -61,7 +61,7 @@ class ParagraphBlock(RichTextBlock):
 
 
 class ImageBlock(StructBlock):
-    """Image with required alt text and optional caption."""
+    """Image with required alt text, optional caption, and display style."""
     image = ImageChooserBlock()
     alt_text = CharBlock(
         required=True,
@@ -69,6 +69,15 @@ class ImageBlock(StructBlock):
         help_text="Required for accessibility and SEO (max 125 chars)",
     )
     caption = CharBlock(required=False, max_length=255)
+    display = ChoiceBlock(
+        choices=[
+            ("inline", "Inline — standard content width"),
+            ("wide", "Wide — full container width"),
+            ("infographic", "Infographic — full-width, contain fit, light background"),
+        ],
+        default="inline",
+        help_text="How the image is displayed on the page",
+    )
 
     class Meta:
         icon = "image"
