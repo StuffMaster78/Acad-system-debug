@@ -33,9 +33,10 @@ const col4 = [
 ]
 
 const col5 = [
+  { label: 'How it works',            href: '/how-it-works' },
+  { label: 'FAQ',                     href: '/faq' },
   { label: 'Place an Order',          href: '/order' },
   { label: 'Custom Quote',            href: '/quote' },
-  { label: 'Class Support',           href: '/class-support' },
   { label: 'Pricing',                 href: '/pricing' },
   { label: 'About Us',                href: '/about' },
   { label: 'Contact',                 href: '/contact' },

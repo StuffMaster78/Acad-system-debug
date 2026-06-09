@@ -20,7 +20,7 @@ interface MagicConfirmResponse {
   refresh_token?: string
 }
 
-export const useRpmAuthStore = defineStore('rpm-auth', {
+export const useRpmAuthStore = defineStore('auth', {
   state: () => ({
     loading: false,
     error: null as string | null,

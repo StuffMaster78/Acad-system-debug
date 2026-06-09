@@ -22,9 +22,11 @@ const orderPaths = [
 ]
 
 const nav = [
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'Blog',    href: '/blog' },
-  { label: 'Contact', href: '/contact' },
+  { label: 'How it works', href: '/how-it-works' },
+  { label: 'Pricing',      href: '/pricing' },
+  { label: 'Blog',         href: '/blog' },
+  { label: 'FAQ',          href: '/faq' },
+  { label: 'Contact',      href: '/contact' },
 ]
 
 const route = useRoute()

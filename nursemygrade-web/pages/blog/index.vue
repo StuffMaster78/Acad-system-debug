@@ -33,6 +33,7 @@ useSeoMeta({
   title: 'Nursing Writing Blog — Care Plans, SOAP Notes, Essays & Guides | NurseMyGrade',
   description: 'Practical guides for nursing students — how to write care plans, SOAP notes, capstone projects, nursing essays, and more from qualified nursing writers.',
 })
+useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/blog' }] })
 </script>
 
 <template>

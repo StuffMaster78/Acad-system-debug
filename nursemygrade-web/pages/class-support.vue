@@ -86,6 +86,7 @@ useSeoMeta({
   description: 'A dedicated nursing expert handles your entire course — all assignments, discussions, quizzes, and exams for the full semester.',
   robots: 'noindex',
 })
+useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/class-support' }] })
 </script>
 
 <template>
