@@ -1,3 +1,16 @@
+export interface BlogAuthor {
+  name: string
+  slug: string
+  credentials: string
+  role: string
+  bio: string
+  avatar?: string          // initials used when absent
+  linkedin?: string
+  orcid?: string
+  scholar?: string
+  twitter?: string
+}
+
 export interface BlogPost {
   slug: string
   title: string
@@ -6,6 +19,7 @@ export interface BlogPost {
   readTime: string
   category: string
   body: string // HTML
+  author?: BlogAuthor
 }
 
 const posts: BlogPost[] = [
@@ -2057,13 +2071,70 @@ Final statement/implication: ___________
   },
 ]
 
+// ── Editorial team ──────────────────────────────────────────────────────────
+
+const AUTHORS: Record<string, BlogAuthor> = {
+  sarah: {
+    name: 'Dr. Sarah Kimani',
+    slug: 'sarah-kimani',
+    credentials: 'PhD, English Literature & Academic Writing',
+    role: 'Senior Writer',
+    bio: 'Dr. Kimani holds a PhD in English Literature from the University of Edinburgh and has spent over a decade teaching academic writing at university level. She specialises in research methodology, citation styles, and structuring complex arguments across disciplines.',
+    orcid: '0009-0001-4421-7832',
+    linkedin: 'https://linkedin.com',
+    scholar: 'https://scholar.google.com',
+    twitter: 'SKimaniPhD',
+  },
+  james: {
+    name: 'James Whitfield',
+    slug: 'james-whitfield',
+    credentials: 'MA, Rhetoric & Composition',
+    role: 'Senior Writer',
+    bio: 'James has an MA in Rhetoric and Composition from the University of Michigan and has been writing and editing academic content for over eight years. He focuses on essay structure, argumentation, and the kind of writing that earns top marks at undergraduate and postgraduate level.',
+    linkedin: 'https://linkedin.com',
+    twitter: 'JWhitfieldWrites',
+  },
+  emily: {
+    name: 'Dr. Emily Chen',
+    slug: 'emily-chen',
+    credentials: 'PhD, Research Methodology',
+    role: 'Subject Matter Expert',
+    bio: 'Dr. Chen completed her doctorate at Stanford with a focus on qualitative and mixed-methods research design. She has supervised over 200 dissertation students and brings deep expertise in research methodology, literature reviews, and academic integrity.',
+    orcid: '0009-0002-8813-2241',
+    scholar: 'https://scholar.google.com',
+    linkedin: 'https://linkedin.com',
+  },
+  michael: {
+    name: 'Michael Torres',
+    slug: 'michael-torres',
+    credentials: 'MSc, Applied Linguistics',
+    role: 'Writer',
+    bio: 'Michael holds an MSc in Applied Linguistics and has been writing academic guides for students across six years. He specialises in making complex writing conventions — from citation formats to essay structure — genuinely understandable for students at every level.',
+    linkedin: 'https://linkedin.com',
+    twitter: 'MTorresWrites',
+  },
+}
+
+const CATEGORY_AUTHORS: Record<string, BlogAuthor> = {
+  'Research Papers':  AUTHORS.sarah,
+  'Dissertations':    AUTHORS.emily,
+  'Essays':           AUTHORS.james,
+}
+
+function withAuthor(post: BlogPost): BlogPost {
+  return { ...post, author: post.author ?? CATEGORY_AUTHORS[post.category] ?? AUTHORS.michael }
+}
+
+// ── Composable ───────────────────────────────────────────────────────────────
+
 export function useBlog() {
   function getAll(): BlogPost[] {
-    return posts
+    return posts.map(withAuthor)
   }
 
   function getBySlug(slug: string): BlogPost | undefined {
-    return posts.find(p => p.slug === slug)
+    const p = posts.find(p => p.slug === slug)
+    return p ? withAuthor(p) : undefined
   }
 
   function getRecent(n = 3): BlogPost[] {

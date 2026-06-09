@@ -95,9 +95,13 @@ useSeoMeta({
               <p class="mt-3 line-clamp-3 text-sm text-slate-500 leading-relaxed">{{ post.excerpt }}</p>
 
               <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-                <time class="text-xs text-slate-400">
-                  {{ new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) }}
-                </time>
+                <div class="flex items-center gap-2">
+                  <!-- Author avatar initial -->
+                  <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-brand-700">
+                    {{ post.author?.name?.[0] ?? '?' }}
+                  </div>
+                  <span class="text-xs text-slate-500">{{ post.author?.name?.split(' ').slice(0, 2).join(' ') }}</span>
+                </div>
                 <span class="text-xs font-medium text-brand-600 group-hover:underline">Read →</span>
               </div>
             </NuxtLink>
