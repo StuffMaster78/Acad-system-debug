@@ -69,6 +69,20 @@ const ROLE_BADGE: Record<string, string> = {
   'Editor':                'bg-violet-100 text-violet-700',
 }
 
+// TOC: closed on mobile (< 1024px), open on desktop
+const tocOpen = ref(false)
+onMounted(() => { tocOpen.value = window.innerWidth >= 1024 })
+
+// Client-side engagement (views, reactions, bookmarks) — CMS posts only
+const { stats, myReact, bookmarked, ready, react, toggleBookmark, reactionCount, fmtCount } =
+  useEngagement(post.slug)
+
+const reactions: { type: 'helpful' | 'love' | 'insightful'; emoji: string; label: string }[] = [
+  { type: 'helpful',   emoji: '👍', label: 'Helpful'   },
+  { type: 'love',      emoji: '❤️', label: 'Love this' },
+  { type: 'insightful',emoji: '💡', label: 'Insightful' },
+]
+
 const config = useRuntimeConfig()
 const siteUrl = config.public.siteUrl || 'https://nursemygrade.com'
 const canonicalUrl = `${siteUrl}/blog/${post.slug}`
@@ -135,6 +149,25 @@ useHead({
           </span>
           <span class="text-xs text-slate-400">{{ post.readTime }}</span>
           <time class="text-xs text-slate-400">{{ fmtDate(post.date) }}</time>
+
+          <!-- Live stats — only rendered when CMS engagement data is available -->
+          <ClientOnly>
+            <template v-if="stats">
+              <span class="flex items-center gap-1 text-xs text-slate-400">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                {{ fmtCount(stats.views) }} views
+              </span>
+              <span v-if="stats.shares > 0" class="flex items-center gap-1 text-xs text-slate-400">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                </svg>
+                {{ fmtCount(stats.shares) }} shares
+              </span>
+            </template>
+          </ClientOnly>
         </div>
 
         <!-- Title + excerpt -->
@@ -143,36 +176,94 @@ useHead({
         </h1>
         <p class="mt-4 text-lg leading-relaxed text-slate-600">{{ post.excerpt }}</p>
 
-        <!-- Author byline -->
+        <!-- Author byline + bookmark -->
         <div v-if="post.author" class="mt-6 flex items-center gap-3 border-t border-slate-100 pt-5">
           <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
             {{ authorInitials }}
           </div>
-          <div>
+          <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-slate-900">{{ post.author.name }}</p>
             <p class="text-xs text-slate-500">{{ post.author.credentials }}</p>
           </div>
+          <!-- Bookmark button — CMS posts only -->
+          <ClientOnly>
+            <button
+              v-if="ready && pageId"
+              class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+              :class="bookmarked
+                ? 'border-brand-200 bg-brand-50 text-brand-700'
+                : 'border-slate-200 bg-white text-slate-500 hover:border-brand-200 hover:text-brand-700'"
+              :title="bookmarked ? 'Remove bookmark' : 'Save for later'"
+              @click="toggleBookmark"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  :d="bookmarked
+                    ? 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z'
+                    : 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z'"
+                  :fill="bookmarked ? 'currentColor' : 'none'"
+                />
+              </svg>
+              {{ bookmarked ? 'Saved' : 'Save' }}
+            </button>
+          </ClientOnly>
         </div>
 
-        <!-- Table of contents -->
+        <!-- Table of contents — collapsed on mobile, expanded on desktop -->
         <nav
           v-if="toc.length >= 3"
-          class="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-5"
+          class="mt-8 rounded-xl border border-slate-200 bg-slate-50"
           aria-label="Table of contents"
         >
-          <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">In this article</p>
-          <ol class="space-y-1.5">
-            <li
-              v-for="item in toc"
-              :key="item.anchor"
-              :class="item.level === 'h3' ? 'ml-4' : ''"
+          <!-- Toggle header (always visible) -->
+          <button
+            class="flex w-full items-center justify-between px-5 py-4 text-left"
+            :aria-expanded="tocOpen"
+            @click="tocOpen = !tocOpen"
+          >
+            <span class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/>
+              </svg>
+              In this article
+              <span class="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
+                {{ toc.length }}
+              </span>
+            </span>
+            <svg
+              class="h-4 w-4 text-slate-400 transition-transform duration-200"
+              :class="tocOpen ? 'rotate-180' : ''"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
             >
-              <a
-                :href="`#${item.anchor}`"
-                class="text-sm text-brand-600 hover:underline"
-              >{{ item.text }}</a>
-            </li>
-          </ol>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+
+          <!-- Collapsible body -->
+          <Transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0 max-h-0"
+            enter-to-class="opacity-100 max-h-[600px]"
+            leave-active-class="transition-all duration-150 ease-in"
+            leave-from-class="opacity-100 max-h-[600px]"
+            leave-to-class="opacity-0 max-h-0"
+          >
+            <div v-if="tocOpen" class="overflow-hidden border-t border-slate-200 px-5 pb-5 pt-4">
+              <ol class="space-y-1.5">
+                <li
+                  v-for="item in toc"
+                  :key="item.anchor"
+                  :class="item.level === 'h3' ? 'ml-4' : ''"
+                >
+                  <a
+                    :href="`#${item.anchor}`"
+                    class="text-sm text-brand-600 hover:underline"
+                    @click="tocOpen = false"
+                  >{{ item.text }}</a>
+                </li>
+              </ol>
+            </div>
+          </Transition>
         </nav>
 
         <!-- Article body (headings have injected id attrs for anchor nav) -->
@@ -184,8 +275,39 @@ useHead({
           v-html="bodyWithInlineCta"
         />
 
+        <!-- Reactions — CMS posts only, client-side -->
+        <ClientOnly>
+          <div v-if="ready && pageId" class="mt-10 rounded-2xl border border-slate-100 bg-slate-50 px-6 py-5">
+            <p class="mb-4 text-center text-sm font-semibold text-slate-700">Was this article helpful?</p>
+            <div class="flex justify-center gap-3">
+              <button
+                v-for="r in reactions"
+                :key="r.type"
+                class="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all"
+                :class="myReact === r.type
+                  ? 'border-brand-300 bg-brand-50 text-brand-700 shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700'"
+                @click="react(r.type)"
+              >
+                <span class="text-base leading-none">{{ r.emoji }}</span>
+                <span>{{ r.label }}</span>
+                <span
+                  v-if="reactionCount(r.type) > 0"
+                  class="rounded-full px-1.5 py-0.5 text-[11px] font-bold"
+                  :class="myReact === r.type ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'"
+                >
+                  {{ fmtCount(reactionCount(r.type)) }}
+                </span>
+              </button>
+            </div>
+            <p class="mt-3 text-center text-xs text-slate-400">
+              {{ stats ? fmtCount(stats.views) + ' nursing students have read this article' : '' }}
+            </p>
+          </div>
+        </ClientOnly>
+
         <!-- Share buttons -->
-        <div class="mt-10">
+        <div class="mt-6">
           <ClientOnly>
             <ShareButtons :title="post.title" />
           </ClientOnly>
