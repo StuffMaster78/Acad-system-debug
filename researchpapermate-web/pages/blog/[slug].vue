@@ -257,7 +257,7 @@ useHead({
               </li>
             </ul>
             <NuxtLink
-              :href="`/blog?author=${post.author!.slug}`"
+              :href="`/authors/${post.author!.slug}`"
               class="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline"
             >
               All articles by {{ post.author!.name.split(' ').slice(0, 2).join(' ') }} →
