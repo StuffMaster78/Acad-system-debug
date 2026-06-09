@@ -2,12 +2,32 @@
 const { getAll } = useBlog()
 const posts = getAll()
 
+const POSTS_PER_PAGE = 6
+
 const categories = [...new Set(posts.map(p => p.category))]
 const activeCategory = ref<string | null>(null)
+const currentPage = ref(1)
 
 const filtered = computed(() =>
   activeCategory.value ? posts.filter(p => p.category === activeCategory.value) : posts
 )
+
+const totalPages = computed(() => Math.ceil(filtered.value.length / POSTS_PER_PAGE))
+
+const paginated = computed(() => {
+  const start = (currentPage.value - 1) * POSTS_PER_PAGE
+  return filtered.value.slice(start, start + POSTS_PER_PAGE)
+})
+
+function setCategory(cat: string | null) {
+  activeCategory.value = cat
+  currentPage.value = 1
+}
+
+function goToPage(p: number) {
+  currentPage.value = p
+  if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 useSeoMeta({
   title: 'Academic Writing Blog — Research, Essays & Dissertation Guides',
@@ -38,24 +58,26 @@ useSeoMeta({
             <button
               class="rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
               :class="activeCategory === null ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-brand-50 hover:text-brand-700'"
-              @click="activeCategory = null"
+              @click="setCategory(null)"
             >
-              All
+              All <span class="ml-1 text-xs opacity-60">{{ posts.length }}</span>
             </button>
             <button
               v-for="cat in categories"
               :key="cat"
               class="rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
               :class="activeCategory === cat ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-brand-50 hover:text-brand-700'"
-              @click="activeCategory = cat"
+              @click="setCategory(cat)"
             >
               {{ cat }}
+              <span class="ml-1 text-xs opacity-60">{{ posts.filter(p => p.category === cat).length }}</span>
             </button>
           </div>
 
+          <!-- Post grid -->
           <div class="grid gap-8 sm:grid-cols-2">
             <NuxtLink
-              v-for="post in filtered"
+              v-for="post in paginated"
               :key="post.slug"
               :href="`/blog/${post.slug}`"
               class="card group flex flex-col transition-shadow hover:shadow-md"
@@ -80,6 +102,51 @@ useSeoMeta({
               </div>
             </NuxtLink>
           </div>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="mt-10 flex items-center justify-center gap-2">
+            <button
+              class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-brand-300 hover:text-brand-600 disabled:opacity-30"
+              :disabled="currentPage === 1"
+              aria-label="Previous page"
+              @click="goToPage(currentPage - 1)"
+            >
+              <Icon name="chevron-right" class="h-4 w-4 rotate-180" />
+            </button>
+
+            <template v-for="p in totalPages" :key="p">
+              <!-- Show first, last, current ±1, and ellipsis -->
+              <template v-if="p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1">
+                <button
+                  class="flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition-colors"
+                  :class="p === currentPage
+                    ? 'border-brand-600 bg-brand-600 text-white'
+                    : 'border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-600'"
+                  @click="goToPage(p)"
+                >
+                  {{ p }}
+                </button>
+              </template>
+              <span
+                v-else-if="p === 2 && currentPage > 3 || p === totalPages - 1 && currentPage < totalPages - 2"
+                class="flex h-9 w-9 items-center justify-center text-slate-400 text-sm"
+              >…</span>
+            </template>
+
+            <button
+              class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-brand-300 hover:text-brand-600 disabled:opacity-30"
+              :disabled="currentPage === totalPages"
+              aria-label="Next page"
+              @click="goToPage(currentPage + 1)"
+            >
+              <Icon name="chevron-right" class="h-4 w-4" />
+            </button>
+          </div>
+
+          <!-- Post count -->
+          <p class="mt-4 text-center text-xs text-slate-400">
+            Showing {{ (currentPage - 1) * POSTS_PER_PAGE + 1 }}–{{ Math.min(currentPage * POSTS_PER_PAGE, filtered.length) }} of {{ filtered.length }} articles
+          </p>
         </div>
 
         <!-- Right: sticky sidebar -->
