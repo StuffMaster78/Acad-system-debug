@@ -73,6 +73,8 @@ export interface BlogPostSummary {
   reading_time?: number | null;
   word_count?: number | null;
   last_published_at?: string | null;
+  original_published_at?: string | null;
+  canonical_published_at?: string | null;
 }
 
 export interface BlogPost extends BlogPostSummary {
@@ -80,6 +82,21 @@ export interface BlogPost extends BlogPostSummary {
   contributing_authors?: CMSAuthor[];
   citation_mode?: string;
   toc?: { level: number; text: string; anchor: string }[];
+  reviewer?: CMSAuthor | null;
+}
+
+export interface BlogPostHistoryUpdate {
+  date: string;
+  type: "published" | "updated" | "reviewed";
+  label: string;
+}
+
+export interface BlogPostHistory {
+  first_published_at: string | null;
+  last_published_at: string | null;
+  last_substantive_update: string | null;
+  revision_count: number;
+  updates: BlogPostHistoryUpdate[];
 }
 
 // ── Service pages ─────────────────────────────────────────────────────────
@@ -238,11 +255,12 @@ const BLOG_FIELDS = [
   "title", "excerpt", "featured_image", "primary_author",
   "category", "tags", "last_substantive_update",
   "reading_time", "word_count", "last_published_at",
+  "original_published_at", "canonical_published_at",
 ].join(",");
 
 const BLOG_DETAIL_FIELDS = [
   BLOG_FIELDS, "body", "contributing_authors",
-  "citation_mode", "toc",
+  "citation_mode", "toc", "reviewer",
 ].join(",");
 
 const SERVICE_FIELDS = [
@@ -350,6 +368,9 @@ export const cmsApi = {
   // ── Citations ────────────────────────────────────────────────────────────
   citations: (blogPostId: number) =>
     api.get<Citation[]>(apiPath("/cms-api/citations/"), { params: { blog_post: blogPostId } }),
+
+  blogPostHistory: (pageId: number) =>
+    api.get<BlogPostHistory>(apiPath(`/cms-api/blog/${pageId}/history/`)),
 
   // ── Content graph ────────────────────────────────────────────────────────
   pillars: () =>

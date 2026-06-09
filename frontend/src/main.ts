@@ -11,10 +11,17 @@ async function bootstrap() {
   const pinia = createPinia();
   app.use(pinia);
 
-  // Resolve portal surface before the router starts so the navigation guard
-  // can make synchronous surface decisions on the first navigation.
+  // Resolve portal surface before mounting so the router navigation guard can
+  // make synchronous surface decisions on the very first route. We race against
+  // a 600 ms timeout so a slow mobile connection never holds the first paint —
+  // the guard is already written to be safe when portal is null (localhost and
+  // unregistered domains fall through; registered-domain surface checks re-run
+  // on the next navigation once init completes in the background).
   const portalStore = usePortalContextStore();
-  await portalStore.init();
+  await Promise.race([
+    portalStore.init(),
+    new Promise<void>((resolve) => setTimeout(resolve, 600)),
+  ]);
 
   // NOTE: websites.ensure() is intentionally NOT called here.
   // Calling it at boot with no auth token hits /websites/ → 401 → the 401

@@ -92,7 +92,7 @@ watch(
         setTimeout(() => {
           if (!navRef.value) return;
           // Find the rendered active anchor inside the nav
-          const active = navRef.value.querySelector("a.bg-white\\/\\[0\\.12\\]") as HTMLElement | null;
+          const active = navRef.value.querySelector("a.bg-brand-700") as HTMLElement | null;
           if (active) {
             active.scrollIntoView({ block: "center", behavior: "smooth" });
           } else {
@@ -158,20 +158,20 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
 
     <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
     <aside
-      class="fixed inset-y-0 left-0 z-30 flex flex-col bg-slate-800 transition-all duration-200 lg:z-20 lg:translate-x-0"
+      class="fixed inset-y-0 left-0 z-30 flex flex-col bg-[#0d1b35] transition-all duration-200 lg:z-20 lg:translate-x-0"
       :class="[
-        ui.sidebarCollapsed ? 'w-14' : 'w-[220px]',
+        ui.sidebarCollapsed ? 'w-14' : 'w-[240px]',
         ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
       ]"
     >
       <!-- Brand bar -->
       <div
-        class="flex h-11 shrink-0 items-center border-b border-slate-700"
-        :class="ui.sidebarCollapsed ? 'justify-center' : 'justify-between px-3'"
+        class="flex h-12 shrink-0 items-center border-b border-white/[0.08]"
+        :class="ui.sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-3'"
       >
-        <div ref="brandMenuRoot" class="relative">
+        <div ref="brandMenuRoot" class="relative flex min-w-0 flex-1 items-center gap-2.5">
           <button
-            class="flex h-7 w-7 items-center justify-center overflow-hidden rounded bg-white/[0.12] text-[10px] font-bold text-white transition-colors hover:bg-white/[0.2]"
+            class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-600 text-[10px] font-bold text-white transition-colors hover:bg-brand-500"
             type="button"
             :title="brandName"
             :aria-label="brandName"
@@ -185,6 +185,14 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
             <span v-else>{{ brandInitials }}</span>
           </button>
 
+          <!-- Brand name (expanded only) -->
+          <span
+            v-if="!ui.sidebarCollapsed"
+            class="min-w-0 flex-1 truncate text-sm font-semibold text-white"
+          >
+            {{ brandName }}
+          </span>
+
           <Transition
             enter-active-class="transition duration-100 ease-out"
             enter-from-class="opacity-0 scale-95 -translate-y-1"
@@ -195,23 +203,23 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
           >
             <div
               v-if="brandMenuOpen"
-              class="absolute left-0 top-9 z-50 w-52 overflow-hidden rounded-lg border border-slate-600 bg-slate-700 shadow-xl"
+              class="absolute left-0 top-10 z-50 w-52 overflow-hidden rounded-xl border border-white/[0.12] bg-[#1a2e4a] shadow-xl"
             >
-              <div class="border-b border-slate-600 px-3.5 py-3">
+              <div class="border-b border-white/[0.08] px-3.5 py-3">
                 <p class="text-sm font-semibold text-white">{{ brandName }}</p>
                 <p class="mt-0.5 text-xs text-slate-400">{{ theme.label }}</p>
               </div>
               <div class="p-1">
                 <RouterLink
                   :to="`/${role}/account`"
-                  class="flex items-center gap-2 rounded px-3 py-1.5 text-[13px] text-slate-300 transition-colors hover:bg-white/[0.1] hover:text-white"
+                  class="flex items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white"
                   @click="brandMenuOpen = false"
                 >
                   <Settings class="h-3.5 w-3.5" />
                   Account settings
                 </RouterLink>
                 <button
-                  class="flex w-full items-center gap-2 rounded px-3 py-1.5 text-[13px] text-slate-300 transition-colors hover:bg-white/[0.1] hover:text-rose-400"
+                  class="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] text-slate-300 transition-colors hover:bg-rose-500/10 hover:text-rose-400"
                   type="button"
                   @click="auth.logout(); brandMenuOpen = false"
                 >
@@ -226,7 +234,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
         <!-- Mobile close (only when expanded) -->
         <button
           v-if="!ui.sidebarCollapsed"
-          class="flex h-6 w-6 items-center justify-center rounded text-slate-400 transition-colors hover:bg-white/[0.1] hover:text-white lg:hidden"
+          class="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/[0.08] hover:text-white lg:hidden"
           type="button"
           @click="ui.closeSidebar()"
         >
@@ -251,9 +259,9 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
             >
               <RouterLink
                 :to="item.to"
-                class="flex h-9 w-full items-center justify-center rounded-md transition-colors"
+                class="flex h-9 w-full items-center justify-center rounded-lg transition-colors"
                 :class="isActive(item.to)
-                  ? 'bg-white/[0.15] text-white'
+                  ? 'bg-brand-700 text-white'
                   : 'text-slate-400 hover:bg-white/[0.08] hover:text-white'"
                 :title="item.label"
                 :aria-label="item.label"
@@ -278,7 +286,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
               class="flex w-full items-center px-2.5 py-1"
               @click="toggleGroup(group.label)"
             >
-              <span class="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+              <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400/80">
                 {{ group.label }}
               </span>
               <ChevronRight
@@ -292,10 +300,10 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
                 v-for="item in group.items"
                 :key="item.to"
                 :to="item.to"
-                class="focus-ring group flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors"
+                class="focus-ring group flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium transition-colors"
                 :class="isActive(item.to)
-                  ? 'bg-white/[0.12] text-white'
-                  : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'"
+                  ? 'bg-brand-700 text-white'
+                  : 'text-slate-400 hover:bg-white/[0.07] hover:text-white'"
                 @click="ui.closeSidebar()"
               >
                 <component
@@ -319,7 +327,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
       />
 
       <!-- Footer -->
-      <div class="shrink-0 space-y-px border-t border-slate-700 p-2">
+      <div class="shrink-0 space-y-px border-t border-white/[0.08] p-2">
 
         <!-- Collapse toggle (desktop only) -->
         <div class="group relative hidden lg:block">
@@ -401,7 +409,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleOutsideClicks)
     <!-- ── Main area ───────────────────────────────────────────────────── -->
     <div
       class="transition-[padding] duration-200"
-      :class="ui.sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-[220px]'"
+      :class="ui.sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-[240px]'"
     >
       <!-- Header -->
       <header class="sticky top-0 z-10 flex min-w-0 items-center gap-3 border-b border-slate-200 bg-white/95 py-2.5 pl-4 pr-3 backdrop-blur-sm lg:pl-6 lg:pr-4">

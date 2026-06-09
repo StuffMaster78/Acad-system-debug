@@ -161,6 +161,32 @@ class BlogPostPage(Page):
         help_text="Which content pillar / funnel this post feeds",
     )
 
+    # --- Editorial reviewer ---
+    reviewer = models.ForeignKey(
+        "cms_authors.Author",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_posts",
+        help_text="Expert who reviewed this post for accuracy — shown in editorial transparency section.",
+    )
+
+    # --- Content migration ---
+    original_published_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Fill this in ONLY when migrating content from another site. "
+            "Overrides Wagtail's first_published_at for display and Schema.org. "
+            "Leave blank for new content — Wagtail sets the date automatically."
+        ),
+    )
+    original_source_url = models.URLField(
+        max_length=500,
+        blank=True,
+        help_text="The canonical URL of this article on the source site (for records only — not displayed publicly).",
+    )
+
     # --- Freshness tracking ---
     last_substantive_update = models.DateTimeField(
         null=True,
@@ -208,6 +234,19 @@ class BlogPostPage(Page):
             heading="Funnel Routing",
         ),
         FieldPanel("last_substantive_update"),
+        FieldPanel("reviewer"),
+        MultiFieldPanel(
+            [
+                FieldPanel("original_published_at"),
+                FieldPanel("original_source_url"),
+            ],
+            heading="Content Migration",
+            help_text=(
+                "Use these fields when importing an article that was previously "
+                "published on another site. The original date will replace "
+                "Wagtail's automatic first_published_at everywhere it is displayed."
+            ),
+        ),
     ]
 
     # --- Subpage rules ---
@@ -236,6 +275,9 @@ class BlogPostPage(Page):
         APIField("primary_service"),
         APIField("pillar"),
         APIField("last_substantive_update"),
+        APIField("reviewer"),
+        APIField("original_published_at"),
+        APIField("canonical_published_at"),
     ]
 
     class Meta:
@@ -244,6 +286,15 @@ class BlogPostPage(Page):
 
     def __str__(self):
         return self.title
+
+    @property
+    def canonical_published_at(self):
+        """The date to display and use in Schema.org as datePublished.
+
+        Returns original_published_at if staff set it during a content
+        migration; otherwise falls back to Wagtail's first_published_at.
+        """
+        return self.original_published_at or self.first_published_at
 
     @property
     def word_count(self):

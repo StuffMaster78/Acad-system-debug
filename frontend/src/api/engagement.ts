@@ -21,7 +21,7 @@ export interface EngagementSummary {
 }
 
 export type ReactionType = "thumbs_up" | "thumbs_down" | "love" | "useful";
-export type SharePlatform = "twitter" | "linkedin" | "whatsapp" | "copy";
+export type SharePlatform = "twitter" | "facebook" | "linkedin" | "reddit" | "whatsapp" | "telegram" | "email" | "copy_link";
 
 export const engagementApi = {
   /** Fetch summary by Wagtail page_id (simplest for blog posts). */

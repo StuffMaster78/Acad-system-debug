@@ -535,6 +535,57 @@
         :cta-url="(block.value as CalculatorValue).cta_url || '/auth/register'"
       />
 
+      <!-- Benefits Section (pre-CTA conversion block) -->
+      <div
+        v-else-if="block.type === 'benefits_section'"
+        class="my-10 rounded-2xl border border-slate-200 bg-white px-6 py-10 sm:px-10"
+      >
+        <h2 class="text-2xl font-bold text-ink">{{ (block.value as BenefitsSectionValue).heading }}</h2>
+        <p v-if="(block.value as BenefitsSectionValue).intro" class="mt-2 text-base text-graphite">
+          {{ (block.value as BenefitsSectionValue).intro }}
+        </p>
+
+        <!-- Benefit bullets -->
+        <ul class="mt-6 space-y-4">
+          <li
+            v-for="(b, bi) in (block.value as BenefitsSectionValue).benefits"
+            :key="bi"
+            class="flex items-start gap-3"
+          >
+            <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+              <svg class="size-3 text-emerald-600" fill="none" viewBox="0 0 12 12" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2 6l3 3 5-5" />
+              </svg>
+            </span>
+            <div>
+              <p class="font-semibold text-ink">{{ b.title }}</p>
+              <p class="mt-0.5 text-sm leading-6 text-graphite">{{ b.description }}</p>
+            </div>
+          </li>
+        </ul>
+
+        <!-- Scrollable badge strip -->
+        <div
+          v-if="(block.value as BenefitsSectionValue).badges?.length"
+          class="mt-8 -mx-6 sm:-mx-10"
+        >
+          <div class="flex gap-3 overflow-x-auto px-6 pb-2 sm:px-10 sm:flex-wrap sm:overflow-visible">
+            <div
+              v-for="(badge, bi) in (block.value as BenefitsSectionValue).badges"
+              :key="bi"
+              class="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-sm font-medium text-ink"
+            >
+              <span v-if="badge.icon_emoji" class="text-base leading-none">{{ badge.icon_emoji }}</span>
+              {{ badge.label }}
+            </div>
+          </div>
+        </div>
+
+        <p v-if="(block.value as BenefitsSectionValue).closing_text" class="mt-5 text-xs text-graphite">
+          {{ (block.value as BenefitsSectionValue).closing_text }}
+        </p>
+      </div>
+
       <!-- Fallback: raw JSON for unknown blocks (dev only) -->
       <details v-else class="rounded-lg border border-dashed border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
         <summary class="cursor-pointer font-mono font-semibold">Unknown block: {{ block.type }}</summary>
@@ -589,6 +640,12 @@ interface DefinitionValue { term: string; definition: string; example?: string }
 interface TimelineEntry { date_label: string; title: string; description: string }
 interface TimelineValue { heading?: string; entries: TimelineEntry[] }
 interface EmbedValue { embed_url: string; height?: number; caption?: string }
+interface BenefitItem { title: string; description: string }
+interface BadgeItem { label: string; icon_emoji?: string }
+interface BenefitsSectionValue {
+  heading: string; intro?: string;
+  benefits: BenefitItem[]; badges?: BadgeItem[]; closing_text?: string;
+}
 interface CalculatorValue {
   title?: string; subtitle?: string; service_code?: string;
   default_pages?: number; default_deadline_hours?: number;

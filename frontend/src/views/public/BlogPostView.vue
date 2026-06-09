@@ -18,7 +18,8 @@
     </div>
 
     <template v-else-if="post">
-      <!-- Article header -->
+
+      <!-- ── Article header ──────────────────────────────────────────────── -->
       <div class="border-b border-slate-100 bg-slate-50 px-6 py-14">
         <div class="mx-auto max-w-3xl">
           <RouterLink to="/blog" class="mb-6 inline-flex items-center gap-1.5 text-sm text-graphite hover:text-ink">
@@ -48,14 +49,17 @@
                 {{ post.primary_author.name[0] }}
               </div>
               <div>
-                <p class="text-sm font-semibold text-ink">{{ post.primary_author.name }}</p>
+                <RouterLink :to="`/authors/${post.primary_author.slug}`" class="text-sm font-semibold text-ink hover:text-brand-700">
+                  {{ post.primary_author.name }}
+                </RouterLink>
                 <p v-if="post.primary_author.credentials" class="text-xs text-graphite">{{ post.primary_author.credentials }}</p>
               </div>
             </div>
+
             <div class="flex flex-wrap gap-3 text-xs text-graphite">
-              <span v-if="post.meta.first_published_at">{{ fmtDate(post.meta.first_published_at) }}</span>
+              <span v-if="displayPublishedAt">{{ fmtDate(displayPublishedAt) }}</span>
               <span
-                v-if="post.last_substantive_update && post.last_substantive_update !== post.meta.first_published_at"
+                v-if="post.last_substantive_update && post.last_substantive_update !== displayPublishedAt"
                 class="text-signal font-medium"
               >
                 · Updated {{ fmtDate(post.last_substantive_update) }}
@@ -67,7 +71,7 @@
         </div>
       </div>
 
-      <!-- Featured image -->
+      <!-- ── Featured image ─────────────────────────────────────────────── -->
       <div v-if="post.featured_image?.meta?.download_url" class="bg-slate-100">
         <img
           :src="post.featured_image.meta.download_url"
@@ -77,20 +81,14 @@
         />
       </div>
 
-      <!-- Body -->
+      <!-- ── Body ───────────────────────────────────────────────────────── -->
       <div class="mx-auto max-w-3xl px-6 py-12">
+
         <!-- Table of contents -->
-        <nav
-          v-if="post.toc?.length"
-          class="mb-10 rounded-xl border border-slate-200 bg-slate-50 p-5"
-        >
+        <nav v-if="post.toc?.length" class="mb-10 rounded-xl border border-slate-200 bg-slate-50 p-5">
           <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-graphite">In this article</p>
           <ol class="space-y-1">
-            <li
-              v-for="item in post.toc"
-              :key="item.anchor"
-              :class="item.level === 3 ? 'ml-4' : ''"
-            >
+            <li v-for="item in post.toc" :key="item.anchor" :class="item.level === 3 ? 'ml-4' : ''">
               <a :href="`#${item.anchor}`" class="text-sm text-berry hover:underline">{{ item.text }}</a>
             </li>
           </ol>
@@ -122,29 +120,37 @@
           </span>
         </div>
 
-        <!-- Author bio card -->
-        <div v-if="post.primary_author" class="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-6">
-          <div class="flex items-start gap-4">
-            <img
-              v-if="post.primary_author.profile_photo?.meta?.download_url"
-              :src="post.primary_author.profile_photo.meta.download_url"
-              :alt="post.primary_author.name"
-              class="size-14 rounded-full object-cover"
+        <!-- ── Primary author card ────────────────────────────────────── -->
+        <div v-if="post.primary_author" class="mt-10">
+          <ArticleAuthorCard :author="post.primary_author" variant="primary" />
+        </div>
+
+        <!-- ── Contributing authors ───────────────────────────────────── -->
+        <div v-if="post.contributing_authors?.length" class="mt-6">
+          <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-graphite">Contributing authors</p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <ArticleAuthorCard
+              v-for="ca in post.contributing_authors"
+              :key="ca.id"
+              :author="ca"
+              variant="contributing"
             />
-            <div v-else class="flex size-14 items-center justify-center rounded-full bg-berry/10 text-xl font-bold text-berry">
-              {{ post.primary_author.name[0] }}
-            </div>
-            <div class="min-w-0">
-              <p class="font-bold text-ink">{{ post.primary_author.name }}</p>
-              <p v-if="post.primary_author.credentials" class="text-xs text-graphite">{{ post.primary_author.credentials }}</p>
-              <p v-if="post.primary_author.bio" class="mt-2 text-sm leading-6 text-graphite">{{ post.primary_author.bio }}</p>
-              <div class="mt-3 flex flex-wrap gap-3 text-xs">
-                <a v-if="post.primary_author.linkedin_url" :href="post.primary_author.linkedin_url" target="_blank" rel="noreferrer" class="text-berry hover:underline">LinkedIn</a>
-                <a v-if="post.primary_author.orcid_id" :href="`https://orcid.org/${post.primary_author.orcid_id}`" target="_blank" rel="noreferrer" class="text-berry hover:underline">ORCID</a>
-                <a v-if="post.primary_author.google_scholar_url" :href="post.primary_author.google_scholar_url" target="_blank" rel="noreferrer" class="text-berry hover:underline">Google Scholar</a>
-              </div>
-            </div>
           </div>
+        </div>
+
+        <!-- ── Editorial process ──────────────────────────────────────── -->
+        <div class="mt-10">
+          <EditorialProcessSection
+            :published-at="displayPublishedAt"
+            :updated-at="post.last_substantive_update"
+            :reviewer-name="post.reviewer?.name"
+            :reviewer-credentials="post.reviewer?.credentials"
+          />
+        </div>
+
+        <!-- ── Revision history ───────────────────────────────────────── -->
+        <div v-if="history" class="mt-4">
+          <RevisionHistoryAccordion :history="history" />
         </div>
 
         <!-- Ask Widget -->
@@ -165,21 +171,22 @@
         </div>
       </div>
 
-        <!-- Citations / references -->
-        <CitationList
-          v-if="citations.length && post.citation_mode && post.citation_mode !== 'none'"
-          :citations="citations"
-          :mode="post.citation_mode"
-        />
+      <!-- Citations -->
+      <CitationList
+        v-if="citations.length && post.citation_mode && post.citation_mode !== 'none'"
+        :citations="citations"
+        :mode="post.citation_mode"
+      />
+
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { ArrowLeft, ArrowRight } from "@lucide/vue";
-import { cmsApi, type BlogPost, type Citation } from "@/api/cms";
+import { cmsApi, type BlogPost, type BlogPostHistory, type Citation } from "@/api/cms";
 import {
   useMeta, articleSchema, breadcrumbSchema, faqPageSchema,
   extractFaqItems, personSchema,
@@ -188,44 +195,60 @@ import BlockRenderer from "@/components/cms/BlockRenderer.vue";
 import CitationList from "@/components/cms/CitationList.vue";
 import AskWidget from "@/components/ui/AskWidget.vue";
 import ArticleEngagementBar from "@/components/cms/ArticleEngagementBar.vue";
+import ArticleAuthorCard from "@/components/cms/ArticleAuthorCard.vue";
+import EditorialProcessSection from "@/components/cms/EditorialProcessSection.vue";
+import RevisionHistoryAccordion from "@/components/cms/RevisionHistoryAccordion.vue";
 import { usePageEngagement } from "@/composables/usePageEngagement";
 import { useAuthStore } from "@/stores/auth";
-import { computed } from "vue";
 
 const route = useRoute();
 const isLoading = ref(true);
 const notFound = ref(false);
 const post = ref<BlogPost | null>(null);
 const citations = ref<Citation[]>([]);
+const history = ref<BlogPostHistory | null>(null);
 const auth = useAuthStore();
 const canonicalUrl = computed(() => window.location.href);
 
-// Engagement — page ID is available after post loads; composable handles null gracefully
 const postId = computed(() => post.value?.id ?? null);
 const engagement = usePageEngagement(postId.value);
+
+// Prefer original_published_at (set by staff during migration) over Wagtail's auto date
+const displayPublishedAt = computed(() =>
+  post.value?.canonical_published_at
+  ?? post.value?.original_published_at
+  ?? post.value?.meta.first_published_at
+  ?? null
+);
 
 async function load() {
   const slug = route.params.slug as string;
   isLoading.value = true;
   notFound.value = false;
   post.value = null;
+  history.value = null;
 
   try {
     const { data } = await cmsApi.blogPost(slug);
-    if (!data.items.length) {
-      notFound.value = true;
-      return;
-    }
+    if (!data.items.length) { notFound.value = true; return; }
     post.value = data.items[0];
 
-    // Fetch formal citations if mode requires it
-    if (post.value.citation_mode && post.value.citation_mode !== 'none') {
-      try {
-        const citRes = await cmsApi.citations(post.value.id);
-        citations.value = Array.isArray(citRes.data) ? citRes.data : [];
-      } catch { citations.value = []; }
+    // Fetch citations and history in parallel — both are non-blocking
+    const [citRes, histRes] = await Promise.allSettled([
+      post.value.citation_mode && post.value.citation_mode !== "none"
+        ? cmsApi.citations(post.value.id)
+        : Promise.resolve(null),
+      cmsApi.blogPostHistory(post.value.id),
+    ]);
+
+    if (citRes.status === "fulfilled" && citRes.value) {
+      citations.value = Array.isArray(citRes.value.data) ? citRes.value.data : [];
+    }
+    if (histRes.status === "fulfilled") {
+      history.value = histRes.value.data;
     }
 
+    // Schema.org
     const faqItems = extractFaqItems(post.value.body ?? []);
     const author   = post.value.primary_author;
 
@@ -235,31 +258,31 @@ async function load() {
         description: post.value.excerpt,
         url:         window.location.href,
         image:       post.value.featured_image?.meta?.download_url,
-        publishedAt: post.value.meta.first_published_at ?? undefined,
+        publishedAt: displayPublishedAt.value ?? undefined,
         updatedAt:   post.value.last_substantive_update ?? undefined,
         authorName:  author?.name,
-        authorUrl:   author ? `${window.location.origin}/authors/${post.value.meta?.slug?.split("/")[0] ?? ""}` : undefined,
+        authorUrl:   author ? `${window.location.origin}/authors/${author.slug}` : undefined,
       }),
       breadcrumbSchema([
-        { name: "Home",   url: window.location.origin + "/" },
-        { name: "Blog",   url: window.location.origin + "/blog" },
+        { name: "Home", url: window.location.origin + "/" },
+        { name: "Blog", url: window.location.origin + "/blog" },
         { name: post.value.title, url: window.location.href },
       ]),
       ...(faqItems.length ? [faqPageSchema(faqItems)!] : []),
       ...(author ? [personSchema({
-        name:              author.name,
-        url:               `${window.location.origin}/authors/${author.slug ?? ""}`,
-        bio:               author.bio,
-        image:             author.profile_photo?.meta?.download_url,
-        jobTitle:          author.role?.replace(/_/g, " "),
-        credentials:       author.credentials,
-        degrees:           author.degrees,
-        areasOfExpertise:  author.areas_of_expertise,
-        yearsExperience:   author.years_experience,
-        orcidId:           author.orcid_id,
-        googleScholarUrl:  author.google_scholar_url,
-        linkedinUrl:       author.linkedin_url,
-        personalWebsite:   author.personal_website,
+        name:             author.name,
+        url:              `${window.location.origin}/authors/${author.slug ?? ""}`,
+        bio:              author.bio,
+        image:            author.profile_photo?.meta?.download_url,
+        jobTitle:         author.role?.replace(/_/g, " "),
+        credentials:      author.credentials,
+        degrees:          author.degrees,
+        areasOfExpertise: author.areas_of_expertise,
+        yearsExperience:  author.years_experience,
+        orcidId:          author.orcid_id,
+        googleScholarUrl: author.google_scholar_url,
+        linkedinUrl:      author.linkedin_url,
+        personalWebsite:  author.personal_website,
       })] : []),
     ].filter(Boolean) as Record<string, unknown>[];
 
@@ -269,7 +292,7 @@ async function load() {
       image:       post.value.featured_image?.meta?.download_url,
       url:         window.location.href,
       type:        "article",
-      publishedAt: post.value.meta.first_published_at ?? undefined,
+      publishedAt: displayPublishedAt.value ?? undefined,
       author:      author?.name,
       schemas,
     });

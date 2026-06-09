@@ -34,4 +34,5 @@ urlpatterns = [
     path("newsletters/", include("cms_newsletters.urls")),
     path("files/", include("files_management.urls")),
     path("authors/", include("cms_authors.urls")),
+    path("blog/", include("cms_blog.urls")),
 ]

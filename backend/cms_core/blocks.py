@@ -920,6 +920,76 @@ class GuaranteesBlock(StructBlock):
 
 
 # ===========================================================================
+# BENEFITS SECTION BLOCK (service-page-only)
+# ===========================================================================
+
+class BenefitItemBlock(StructBlock):
+    """One bullet point in the benefits list."""
+    title = CharBlock(max_length=120)
+    description = CharBlock(max_length=400)
+
+    class Meta:
+        icon = "tick-inverse"
+        label = "Benefit"
+
+
+class BadgeItemBlock(StructBlock):
+    """One icon+label badge in the scrollable trust strip."""
+    label = CharBlock(max_length=80, help_text="Short label, e.g. '100% human expertise'")
+    icon_emoji = CharBlock(
+        required=False,
+        max_length=4,
+        help_text="Optional emoji icon, e.g. ✅ or 🎓",
+    )
+
+    class Meta:
+        icon = "pick"
+        label = "Badge"
+
+
+class BenefitsSectionBlock(StructBlock):
+    """
+    Pre-CTA benefits section — mirrors the EssayPro pattern.
+
+    Shows a heading + intro, a vertical list of benefit bullet points,
+    and a horizontally scrollable row of icon+label trust badges.
+    Place this block just above the final CTA on service pages.
+    """
+    heading = CharBlock(
+        max_length=200,
+        help_text="Section headline, e.g. 'Gain yourself endless benefits with our service'",
+    )
+    intro = CharBlock(
+        required=False,
+        max_length=400,
+        help_text="Optional supporting sentence below the heading.",
+    )
+    benefits = ListBlock(
+        BenefitItemBlock(),
+        min_num=2,
+        max_num=8,
+        help_text="Bullet-point benefits. Each gets a checkmark icon.",
+    )
+    badges = ListBlock(
+        BadgeItemBlock(),
+        required=False,
+        min_num=0,
+        max_num=10,
+        help_text="Trust badges shown in a scrollable row below the bullets.",
+    )
+    closing_text = CharBlock(
+        required=False,
+        max_length=300,
+        help_text="Optional small-print reassurance line, e.g. 'Zero tolerance for AI usage or plagiarism.'",
+    )
+
+    class Meta:
+        icon = "list-ul"
+        label = "Benefits Section"
+        template = None  # Rendered client-side by BlockRenderer.vue
+
+
+# ===========================================================================
 # COMPOSED STREAMBLOCKS — the two exports other apps use
 # ===========================================================================
 
@@ -1053,6 +1123,7 @@ SERVICE_PAGE_BLOCKS = StreamBlock([
     ("comparison_table", ComparisonTableBlock()),
     ("testimonials", TestimonialGroupBlock()),
     ("guarantees", GuaranteesBlock()),
+    ("benefits_section", BenefitsSectionBlock()),
     ("author_review", AuthorReviewBadgeBlock()),
     ("disclaimer", DisclaimerBlock()),
     ("faq", FAQItemBlock()),
