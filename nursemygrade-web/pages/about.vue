@@ -48,7 +48,7 @@ const values = [
     icon: 'lock',
     color: 'bg-green-100 text-green-600',
     title: 'Privacy by design',
-    desc: 'Your name, email, school, and order details are never sold or shared. We store only what's needed to fulfil your order.',
+    desc: "Your name, email, school, and order details are never sold or shared. We store only what's needed to fulfil your order.",
   },
   {
     icon: 'message-square',
