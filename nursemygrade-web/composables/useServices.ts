@@ -313,8 +313,6 @@ const services: ServiceData[] = [
       description: 'Qualified nurses handle your online nursing classes — discussions, quizzes, assignments. Discreet, grade-focused. From $35/page.',
     },
   },
-]
-
   {
     slug: 'shadow-health',
     navLabel: 'Shadow Health DCEs',

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const portal = usePortalStore()
+const { getAll: getAllServices } = useServices()
+const serviceStrip = getAllServices()
 
 const stats = [
   { value: '9,800+', label: 'Nursing papers delivered' },
@@ -146,6 +148,32 @@ useHead({
           <div class="text-3xl font-bold text-brand-700">{{ stat.value }}</div>
           <div class="mt-1 text-sm text-slate-500">{{ stat.label }}</div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Scrollable service strip ───────────────────────────────────── -->
+  <section class="border-b border-slate-100 bg-white py-8">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-5 flex items-center justify-between">
+        <p class="text-sm font-semibold text-slate-600">All nursing services — tap to explore</p>
+        <NuxtLink href="/services" class="text-xs font-semibold text-brand-600 hover:underline">View all →</NuxtLink>
+      </div>
+      <div class="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2" style="scrollbar-width: none;">
+        <NuxtLink
+          v-for="s in serviceStrip"
+          :key="s.slug"
+          :href="`/services/${s.slug}`"
+          class="group snap-start shrink-0 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 transition-colors hover:border-brand-200 hover:bg-brand-50 w-52"
+        >
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 transition-colors group-hover:bg-brand-600">
+            <Icon :name="s.icon" class="h-4 w-4 text-brand-600 transition-colors group-hover:text-white" />
+          </div>
+          <div class="min-w-0">
+            <p class="truncate text-xs font-semibold text-slate-800 group-hover:text-brand-700">{{ s.navLabel }}</p>
+            <p class="text-xs text-brand-600">from ${{ s.priceFrom }}/page</p>
+          </div>
+        </NuxtLink>
       </div>
     </div>
   </section>

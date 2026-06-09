@@ -30,8 +30,8 @@ function goToPage(p: number) {
 }
 
 useSeoMeta({
-  title: 'Academic Writing Blog — Research, Essays & Dissertation Guides',
-  description: 'Expert guides on research papers, essays, dissertations, outlines, and academic writing — practical help from the ResearchPaperMate team.',
+  title: 'Nursing Writing Blog — Care Plans, SOAP Notes, Essays & Guides | NurseMyGrade',
+  description: 'Practical guides for nursing students — how to write care plans, SOAP notes, capstone projects, nursing essays, and more from qualified nursing writers.',
 })
 </script>
 
@@ -40,9 +40,9 @@ useSeoMeta({
     <!-- Hero -->
     <section class="bg-gradient-to-br from-brand-900 to-brand-700 py-16 text-center">
       <div class="section py-0">
-        <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">Academic Writing Blog</h1>
+        <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">Nursing Writing Blog</h1>
         <p class="mx-auto mt-4 max-w-2xl text-lg text-brand-100">
-          Practical guides on research papers, essays, dissertations, and every other academic writing challenge.
+          Practical guides for nursing students — written by qualified nurses. Care plans, SOAP notes, APA 7th, capstone strategies, and more.
         </p>
       </div>
     </section>

@@ -82,8 +82,8 @@ async function submit() {
 }
 
 useSeoMeta({
-  title: 'Full Class Support — ResearchPaperMate',
-  description: 'We handle your entire course — all assignments, discussions, quizzes, and exams. Dedicated expert for the full semester.',
+  title: 'Online Nursing Class Help — Full Course Support | NurseMyGrade',
+  description: 'A dedicated nursing expert handles your entire course — all assignments, discussions, quizzes, and exams for the full semester.',
   robots: 'noindex',
 })
 </script>
@@ -107,16 +107,16 @@ useSeoMeta({
   <div v-else class="min-h-[calc(100vh-4rem)] bg-slate-50">
 
     <!-- Header -->
-    <div class="bg-gradient-to-br from-green-900 to-green-700 py-12 text-center">
+    <div class="bg-gradient-to-br from-brand-900 to-brand-700 py-12 text-center">
       <div class="section py-0">
         <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
           <School class="h-7 w-7 text-white" />
         </div>
-        <h1 class="font-serif text-3xl font-bold text-white sm:text-4xl">Full Class Support</h1>
-        <p class="mx-auto mt-3 max-w-xl text-green-100">
-          One dedicated expert handles your entire course — every assignment, discussion, quiz, and exam — for the full semester.
+        <h1 class="font-serif text-3xl font-bold text-white sm:text-4xl">Online Nursing Class Help</h1>
+        <p class="mx-auto mt-3 max-w-xl text-brand-100">
+          One dedicated nursing expert handles your entire course — every assignment, discussion, quiz, and exam — so you can focus on clinical hours.
         </p>
-        <div class="mt-5 flex flex-wrap justify-center gap-6 text-sm text-green-200">
+        <div class="mt-5 flex flex-wrap justify-center gap-6 text-sm text-brand-200">
           <span class="flex items-center gap-1.5"><Star class="h-4 w-4" /> Dedicated writer, whole semester</span>
           <span class="flex items-center gap-1.5"><Shield class="h-4 w-4" /> Fully confidential</span>
           <span class="flex items-center gap-1.5"><Calendar class="h-4 w-4" /> Instalment-friendly payments</span>

@@ -79,8 +79,8 @@ async function submit() {
 }
 
 useSeoMeta({
-  title: 'Request a Custom Quote — ResearchPaperMate',
-  description: 'Get a custom quote for special academic projects — nursing simulations, coding, Shadow Health, multi-part research, and more.',
+  title: 'Custom Quote — Shadow Health, iHuman & Special Projects | NurseMyGrade',
+  description: 'Get a custom quote for Shadow Health DCEs, iHuman virtual patients, multi-part nursing projects and other special assignments.',
   robots: 'noindex',
 })
 </script>
@@ -113,16 +113,16 @@ useSeoMeta({
   <div v-else class="min-h-[calc(100vh-4rem)] bg-slate-50">
 
     <!-- Header -->
-    <div class="bg-gradient-to-br from-rose-900 to-rose-700 py-12 text-center">
+    <div class="bg-gradient-to-br from-brand-900 to-brand-700 py-12 text-center">
       <div class="section py-0">
         <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
           <Sparkles class="h-7 w-7 text-white" />
         </div>
         <h1 class="font-serif text-3xl font-bold text-white sm:text-4xl">Request a Custom Quote</h1>
-        <p class="mx-auto mt-3 max-w-xl text-rose-100">
-          For special projects that need a tailored price — nursing simulations, coding assignments, multi-part research, and more.
+        <p class="mx-auto mt-3 max-w-xl text-brand-100">
+          Shadow Health DCEs, iHuman virtual patients, admission essays, multi-part projects — anything that needs a tailored price.
         </p>
-        <div class="mt-4 flex flex-wrap justify-center gap-4 text-sm text-rose-200">
+        <div class="mt-4 flex flex-wrap justify-center gap-4 text-sm text-brand-200">
           <span class="flex items-center gap-1.5"><MessageSquare class="h-4 w-4" /> Quote within 2 hours</span>
           <span class="flex items-center gap-1.5"><DollarSign class="h-4 w-4" /> No obligation</span>
           <span class="flex items-center gap-1.5"><Clock class="h-4 w-4" /> 24/7 response</span>

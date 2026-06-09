@@ -5,65 +5,67 @@ export interface SubjectOption     { id: string; label: string; category: string
 export interface FormatOption      { id: string; label: string }
 export interface WorkTypeOption    { id: string; label: string; desc: string }
 export interface OrderTypeOption   { id: string; label: string; desc: string; examples: string; priceFrom: number; color: string; external?: string }
-export interface DesignTypeOption  { id: string; label: string; desc: string; unit: string }
-export interface DiagramTypeOption { id: string; label: string; desc: string }
+export interface WriterTierOption  { id: string; label: string; desc: string; surcharge: number }
 
 export const ORDER_TYPES: OrderTypeOption[] = [
-  { id: 'paper',   label: 'Paper & Essay',      desc: 'Research papers, essays, dissertations & more', examples: 'Research paper · Essay · Dissertation · Case study · Lab report', priceFrom: 15, color: 'text-brand-600 bg-brand-50 border-brand-200' },
-  { id: 'design',  label: 'Design',             desc: 'Slides, infographics, posters & visual assets',  examples: 'PowerPoint · Infographic · Poster · Social media', priceFrom: 20, color: 'text-purple-600 bg-purple-50 border-purple-200' },
-  { id: 'diagram', label: 'Diagrams & Charts',  desc: 'Flowcharts, ER diagrams, mind maps & more',      examples: 'Flowchart · ER diagram · Mind map · Org chart', priceFrom: 25, color: 'text-teal-600 bg-teal-50 border-teal-200' },
-  { id: 'combo',   label: 'Combo Order',        desc: 'Paper + slides or diagram components together',  examples: 'Report + infographic · Essay + presentation', priceFrom: 15, color: 'text-amber-600 bg-amber-50 border-amber-200' },
-  { id: 'special', label: 'Special Project',    desc: 'Custom work — nursing sims, coding, shadow health', examples: 'Shadow Health · iHuman · Coding project · Custom research', priceFrom: 0, color: 'text-rose-600 bg-rose-50 border-rose-200', external: '/quote' },
-  { id: 'class',   label: 'Full Class Support', desc: 'We handle your entire course — all assignments', examples: 'Weekly assignments · Exams · Discussions · Full semester', priceFrom: 0, color: 'text-green-600 bg-green-50 border-green-200', external: '/class-support' },
-]
-
-export const DESIGN_TYPES: DesignTypeOption[] = [
-  { id: 'powerpoint',   label: 'PowerPoint / Slides',  desc: 'Academic & professional presentations',   unit: 'slides' },
-  { id: 'infographic',  label: 'Infographic',           desc: 'Visual data story or explainer',          unit: 'designs' },
-  { id: 'poster',       label: 'Academic Poster',       desc: 'Research or conference poster',           unit: 'designs' },
-  { id: 'social_media', label: 'Social Media Graphics', desc: 'Branded graphics for digital channels',   unit: 'designs' },
-  { id: 'report_design',label: 'Report / PDF Design',   desc: 'Professionally designed document layout', unit: 'pages' },
-  { id: 'other_design', label: 'Other Design',          desc: 'Describe your needs in requirements',     unit: 'designs' },
-]
-
-export const DIAGRAM_TYPES: DiagramTypeOption[] = [
-  { id: 'flowchart',   label: 'Flowchart',         desc: 'Process or decision flow' },
-  { id: 'er_diagram',  label: 'ER Diagram',         desc: 'Entity-relationship / database schema' },
-  { id: 'mind_map',    label: 'Mind Map',           desc: 'Concept map or knowledge tree' },
-  { id: 'org_chart',   label: 'Org Chart',          desc: 'Organisational structure' },
-  { id: 'uml',         label: 'UML Diagram',        desc: 'Class, sequence, use-case diagrams' },
-  { id: 'gantt',       label: 'Gantt Chart',        desc: 'Project timeline and schedule' },
-  { id: 'network',     label: 'Network Diagram',    desc: 'IT or architecture network map' },
-  { id: 'other_diag',  label: 'Other Diagram',      desc: 'Describe in requirements' },
-]
-
-export const DIAGRAM_SOFTWARE = [
-  { id: 'any',       label: 'Any (you choose)' },
-  { id: 'draw_io',   label: 'Draw.io / Diagrams.net' },
-  { id: 'powerpoint',label: 'PowerPoint / Word' },
-  { id: 'lucidchart',label: 'Lucidchart' },
-  { id: 'visio',     label: 'Microsoft Visio' },
-  { id: 'mermaid',   label: 'Mermaid (code)' },
+  {
+    id: 'paper',
+    label: 'Nursing Paper',
+    desc: 'Essays, care plans, SOAP notes, research papers, capstone projects & more',
+    examples: 'Care Plan · SOAP Note · Nursing Essay · Research Paper · Dissertation',
+    priceFrom: 24,
+    color: 'text-brand-600 bg-brand-50 border-brand-200',
+  },
+  {
+    id: 'class',
+    label: 'Online Class Help',
+    desc: 'Full course management — all assignments, discussions, quizzes & exams',
+    examples: 'Full semester · Individual modules · Weekly discussions · Exams',
+    priceFrom: 0,
+    color: 'text-green-600 bg-green-50 border-green-200',
+    external: '/class-support',
+  },
+  {
+    id: 'simulation',
+    label: 'Clinical Simulation',
+    desc: 'Shadow Health DCEs, iHuman virtual patients & other simulation platforms',
+    examples: 'Tina Jones · Brian Foster · iHuman cases · ATI · Kaplan',
+    priceFrom: 35,
+    color: 'text-rose-600 bg-rose-50 border-rose-200',
+    external: '/quote',
+  },
+  {
+    id: 'special',
+    label: 'Special / Custom Project',
+    desc: 'Unusual brief that needs a tailored quote — multi-part, custom scope',
+    examples: 'Multi-part project · Admission essay · Portfolio · Custom research',
+    priceFrom: 0,
+    color: 'text-amber-600 bg-amber-50 border-amber-200',
+    external: '/quote',
+  },
 ]
 
 export const PAPER_TYPES: PaperTypeOption[] = [
-  { id: 'research_paper',    label: 'Research Paper',        icon: 'FileText' },
-  { id: 'essay',             label: 'Essay',                 icon: 'PenLine' },
-  { id: 'dissertation',      label: 'Dissertation',          icon: 'GraduationCap' },
-  { id: 'case_study',        label: 'Case Study',            icon: 'Briefcase' },
-  { id: 'literature_review', label: 'Literature Review',     icon: 'Search' },
-  { id: 'lab_report',        label: 'Lab Report',            icon: 'FlaskConical' },
-  { id: 'coursework',        label: 'Coursework',            icon: 'BookOpen' },
-  { id: 'data_analysis',     label: 'Data Analysis',         icon: 'BarChart3' },
-  { id: 'presentation',      label: 'Presentation Notes',    icon: 'MonitorPlay' },
+  { id: 'care_plan',      label: 'Care Plan',            icon: 'ClipboardList' },
+  { id: 'soap_note',      label: 'SOAP Note',            icon: 'Stethoscope'   },
+  { id: 'nursing_essay',  label: 'Nursing Essay',        icon: 'PenLine'       },
+  { id: 'research_paper', label: 'Research Paper',       icon: 'Microscope'    },
+  { id: 'capstone',       label: 'Capstone Project',     icon: 'GraduationCap' },
+  { id: 'case_study',     label: 'Case Study',           icon: 'Search'        },
+  { id: 'concept_map',    label: 'Concept Map',          icon: 'Network'       },
+  { id: 'coursework',     label: 'Coursework',           icon: 'Briefcase'     },
+  { id: 'dissertation',   label: 'Dissertation / Thesis',icon: 'BookOpen'      },
+  { id: 'discussion',     label: 'Discussion Post',      icon: 'MessageSquare' },
+  { id: 'reflection',     label: 'Reflective Journal',   icon: 'FileText'      },
+  { id: 'lit_review',     label: 'Literature Review',    icon: 'BookOpen'      },
 ]
 
 export const ACADEMIC_LEVELS: LevelOption[] = [
-  { id: 'high_school',   label: 'High School',          basePrice: 15, note: 'Grades 9–12' },
-  { id: 'undergrad_1_2', label: 'Undergraduate 1–2',    basePrice: 18, note: 'Freshman / Sophomore' },
-  { id: 'undergrad_3_4', label: 'Undergraduate 3–4',    basePrice: 22, note: 'Junior / Senior' },
-  { id: 'masters',       label: "Master's",             basePrice: 28, note: 'Graduate level' },
-  { id: 'phd',           label: 'PhD / Doctoral',       basePrice: 36, note: 'Dissertation-level' },
+  { id: 'adn_lpn',      label: 'ADN / LPN',           basePrice: 24, note: 'Associate degree or practical nursing' },
+  { id: 'bsn_1_2',      label: 'BSN Year 1–2',        basePrice: 26, note: 'Freshman / Sophomore nursing' },
+  { id: 'bsn_3_4',      label: 'BSN Year 3–4',        basePrice: 28, note: 'Junior / Senior nursing' },
+  { id: 'msn',          label: 'MSN / NP Program',    basePrice: 32, note: 'Graduate nursing level' },
+  { id: 'dnp_phd',      label: 'DNP / PhD',           basePrice: 38, note: 'Doctoral nursing program' },
 ]
 
 export const DEADLINES: DeadlineOption[] = [
@@ -80,41 +82,53 @@ export const DEADLINES: DeadlineOption[] = [
 ]
 
 export const SUBJECTS: SubjectOption[] = [
-  { id: 'biology',       label: 'Biology',            category: 'STEM' },
-  { id: 'chemistry',     label: 'Chemistry',          category: 'STEM' },
-  { id: 'physics',       label: 'Physics',            category: 'STEM' },
-  { id: 'mathematics',   label: 'Mathematics',        category: 'STEM' },
-  { id: 'statistics',    label: 'Statistics',         category: 'STEM' },
-  { id: 'engineering',   label: 'Engineering',        category: 'STEM' },
-  { id: 'cs',            label: 'Computer Science',   category: 'STEM' },
-  { id: 'env_science',   label: 'Environmental Sci.', category: 'STEM' },
-  { id: 'accounting',    label: 'Accounting',         category: 'Business & Finance' },
-  { id: 'finance',       label: 'Finance',            category: 'Business & Finance' },
-  { id: 'marketing',     label: 'Marketing',          category: 'Business & Finance' },
-  { id: 'economics',     label: 'Economics',          category: 'Business & Finance' },
-  { id: 'management',    label: 'Management',         category: 'Business & Finance' },
-  { id: 'business_law',  label: 'Business Law',       category: 'Business & Finance' },
-  { id: 'nursing',       label: 'Nursing',            category: 'Healthcare' },
-  { id: 'public_health', label: 'Public Health',      category: 'Healthcare' },
-  { id: 'psychology',    label: 'Psychology',         category: 'Healthcare' },
-  { id: 'pharmacology',  label: 'Pharmacology',       category: 'Healthcare' },
-  { id: 'social_work',   label: 'Social Work',        category: 'Healthcare' },
-  { id: 'history',       label: 'History',            category: 'Humanities & Law' },
-  { id: 'literature',    label: 'Literature',         category: 'Humanities & Law' },
-  { id: 'philosophy',    label: 'Philosophy',         category: 'Humanities & Law' },
-  { id: 'law',           label: 'Law',                category: 'Humanities & Law' },
-  { id: 'political_sci', label: 'Political Science',  category: 'Humanities & Law' },
-  { id: 'education',     label: 'Education',          category: 'Humanities & Law' },
-  { id: 'sociology',     label: 'Sociology',          category: 'Humanities & Law' },
+  // Nursing — primary subjects (shown first)
+  { id: 'med_surg',        label: 'Medical-Surgical Nursing',      category: 'Nursing' },
+  { id: 'pathophysiology', label: 'Pathophysiology',               category: 'Nursing' },
+  { id: 'pharmacology',    label: 'Pharmacology',                  category: 'Nursing' },
+  { id: 'health_assess',   label: 'Health Assessment',             category: 'Nursing' },
+  { id: 'psych_nursing',   label: 'Psychiatric / Mental Health',   category: 'Nursing' },
+  { id: 'maternal_child',  label: 'Maternal & Child Health',       category: 'Nursing' },
+  { id: 'pediatric',       label: 'Pediatric Nursing',             category: 'Nursing' },
+  { id: 'community',       label: 'Community Health Nursing',      category: 'Nursing' },
+  { id: 'critical_care',   label: 'Critical Care / ICU',           category: 'Nursing' },
+  { id: 'emergency',       label: 'Emergency Nursing',             category: 'Nursing' },
+  { id: 'periop',          label: 'Perioperative Nursing',         category: 'Nursing' },
+  { id: 'geriatric',       label: 'Geriatric Nursing',             category: 'Nursing' },
+  { id: 'oncology',        label: 'Oncology Nursing',              category: 'Nursing' },
+  { id: 'leadership',      label: 'Nursing Leadership / Mgmt',     category: 'Nursing' },
+  { id: 'informatics',     label: 'Nursing Informatics',           category: 'Nursing' },
+  { id: 'ebp',             label: 'Evidence-Based Practice',       category: 'Nursing' },
+  { id: 'fundamentals',    label: 'Fundamentals of Nursing',       category: 'Nursing' },
+  // Advanced Practice
+  { id: 'fnp',             label: 'Family Nurse Practice (FNP)',   category: 'Advanced Practice' },
+  { id: 'np_adult',        label: 'Adult-Gero NP',                 category: 'Advanced Practice' },
+  { id: 'pmhnp',           label: 'Psychiatric-Mental Health NP',  category: 'Advanced Practice' },
+  { id: 'crna',            label: 'CRNA / Anesthesia Nursing',     category: 'Advanced Practice' },
+  { id: 'midwifery',       label: 'Nurse Midwifery / CNM',         category: 'Advanced Practice' },
+  { id: 'dnp_practice',    label: 'DNP Clinical Practice',         category: 'Advanced Practice' },
+  // Allied Health
+  { id: 'public_health',   label: 'Public Health',                 category: 'Allied Health' },
+  { id: 'nutrition',       label: 'Nutrition / Dietetics',         category: 'Allied Health' },
+  { id: 'social_work',     label: 'Social Work',                   category: 'Allied Health' },
+  { id: 'psychology',      label: 'Psychology',                    category: 'Allied Health' },
+  { id: 'biology',         label: 'Biology / Anatomy',             category: 'Allied Health' },
+  { id: 'microbiology',    label: 'Microbiology',                  category: 'Allied Health' },
+  // Other Academic
+  { id: 'research_methods',label: 'Research Methodology',          category: 'Other' },
+  { id: 'statistics',      label: 'Statistics / Biostatistics',    category: 'Other' },
+  { id: 'english',         label: 'English / Communications',      category: 'Other' },
+  { id: 'other',           label: 'Other (specify in topic)',       category: 'Other' },
 ]
 
 export const FORMATTING_STYLES: FormatOption[] = [
-  { id: 'apa7',      label: 'APA 7th Edition' },
+  { id: 'apa7',      label: 'APA 7th Edition (nursing standard)' },
+  { id: 'ama',       label: 'AMA (medical journals)' },
   { id: 'mla9',      label: 'MLA 9th Edition' },
   { id: 'chicago17', label: 'Chicago 17th Edition' },
   { id: 'harvard',   label: 'Harvard' },
   { id: 'vancouver', label: 'Vancouver' },
-  { id: 'none',      label: 'Not required' },
+  { id: 'none',      label: 'Not required / as instructed' },
 ]
 
 export const WORK_TYPES: WorkTypeOption[] = [
@@ -127,41 +141,24 @@ export const WORK_TYPES: WorkTypeOption[] = [
 export const ENGLISH_TYPES = [
   { id: 'us', label: 'US English' },
   { id: 'uk', label: 'UK English' },
-  { id: 'au', label: 'Australian English' },
 ]
 
-export const WRITER_TIERS = [
-  { id: 'standard', label: 'Standard', desc: "Verified Master's writer",  surcharge: 0    },
-  { id: 'advanced', label: 'Advanced', desc: 'Top-rated, 500+ orders',    surcharge: 0.10 },
-  { id: 'expert',   label: 'Expert',   desc: 'PhD-level specialist',      surcharge: 0.20 },
+export const WRITER_TIERS: WriterTierOption[] = [
+  { id: 'bsn',      label: 'BSN Writer',    desc: 'Verified BSN with clinical experience',    surcharge: 0    },
+  { id: 'msn',      label: 'MSN Writer',    desc: 'Master\'s-level nurse, 3+ years writing',  surcharge: 0.10 },
+  { id: 'dnp_phd',  label: 'DNP / PhD',     desc: 'Doctoral-level nursing expert',            surcharge: 0.20 },
 ]
-
-export const DESIGN_BASE_PRICE = 20
-export const DIAGRAM_BASE_PRICE = 25
 
 export function useOrderForm() {
   const form = reactive({
-    // Order type
     orderType:     ORDER_TYPES[0],
-    // Paper
     paperType:     PAPER_TYPES[0],
     level:         ACADEMIC_LEVELS[1],
     pages:         1,
     spacing:       'double' as 'double' | 'single',
-    // Design
-    designType:    DESIGN_TYPES[0],
-    designUnits:   1,   // slides / designs / pages
-    designStyle:   '',  // brief style notes
-    // Diagram
-    diagramType:   DIAGRAM_TYPES[0],
-    diagramCount:  1,
-    diagramSoftware: DIAGRAM_SOFTWARE[0],
-    diagramComplexity: 'standard' as 'simple' | 'standard' | 'complex',
-    // Shared
     deadline:      DEADLINES[0],
     subject:       SUBJECTS[0],
     writerTier:    WRITER_TIERS[0],
-    // Step 2
     topic:         '',
     instructions:  '',
     workType:      WORK_TYPES[0],
@@ -169,7 +166,6 @@ export function useOrderForm() {
     references:    0,
     englishType:   ENGLISH_TYPES[0],
     discountCode:  '',
-    // Step 3
     firstName:     '',
     lastName:      '',
     email:         '',
@@ -177,34 +173,13 @@ export function useOrderForm() {
     agreeToTerms:  false,
   })
 
-  const basePrice = computed(() => {
-    let base: number
-    if (form.orderType.id === 'design')       base = DESIGN_BASE_PRICE
-    else if (form.orderType.id === 'diagram') base = DIAGRAM_BASE_PRICE
-    else                                       base = form.level.basePrice
-    return base * form.deadline.multiplier * (1 + form.writerTier.surcharge)
-  })
-
-  const unitCount = computed(() => {
-    if (form.orderType.id === 'design')       return form.designUnits
-    if (form.orderType.id === 'diagram')      return form.diagramCount
-    return form.pages
-  })
-
-  const unitLabel = computed(() => {
-    if (form.orderType.id === 'design')       return form.designType.unit
-    if (form.orderType.id === 'diagram')      return 'diagrams'
-    return 'pages'
-  })
-
-  const totalPrice = computed(() => Math.ceil(basePrice.value * unitCount.value))
+  const basePrice = computed(() => form.level.basePrice * form.deadline.multiplier * (1 + form.writerTier.surcharge))
+  const unitCount = computed(() => form.pages)
+  const unitLabel = computed(() => 'pages')
+  const totalPrice = computed(() => Math.ceil(basePrice.value * form.pages))
   const pricePerUnit = computed(() => Math.ceil(basePrice.value))
 
-  const wordCount = computed(() =>
-    form.orderType.id === 'paper' || form.orderType.id === 'combo'
-      ? form.pages * (form.spacing === 'double' ? 275 : 550)
-      : 0
-  )
+  const wordCount = computed(() => form.pages * (form.spacing === 'double' ? 275 : 550))
 
   const deadlineDate = computed(() => {
     const d = new Date()
@@ -213,50 +188,36 @@ export function useOrderForm() {
   })
 
   function savePendingOrder() {
-    const payload = {
-      orderType:    form.orderType.id,
-      paperType:    form.paperType.label,
-      designType:   form.designType.label,
-      diagramType:  form.diagramType.label,
-      level:        form.level.label,
-      pages:        form.pages,
-      designUnits:  form.designUnits,
-      diagramCount: form.diagramCount,
-      spacing:      form.spacing,
-      deadline:     form.deadline.label,
-      deadlineHours: form.deadline.hours,
-      subject:      form.subject.label,
-      writerTier:   form.writerTier.id,
-      topic:        form.topic,
-      instructions: form.instructions,
-      workType:     form.workType.label,
-      formatStyle:  form.formatStyle.label,
-      references:   form.references,
-      englishType:  form.englishType.label,
-      discountCode: form.discountCode,
+    if (!import.meta.client) return
+    localStorage.setItem('nmg_pending_order', JSON.stringify({
+      orderType:      form.orderType.id,
+      paperType:      form.paperType.label,
+      level:          form.level.label,
+      pages:          form.pages,
+      spacing:        form.spacing,
+      deadline:       form.deadline.label,
+      deadlineHours:  form.deadline.hours,
+      subject:        form.subject.label,
+      writerTier:     form.writerTier.id,
+      topic:          form.topic,
+      instructions:   form.instructions,
+      workType:       form.workType.label,
+      formatStyle:    form.formatStyle.label,
+      references:     form.references,
+      discountCode:   form.discountCode,
       estimatedPrice: totalPrice.value,
-      savedAt:      new Date().toISOString(),
-    }
-    if (import.meta.client) {
-      localStorage.setItem('rpm_pending_order', JSON.stringify(payload))
-    }
+      savedAt:        new Date().toISOString(),
+    }))
   }
 
-  const step1Valid = computed(() => {
-    if (form.orderType.id === 'design')  return !!form.designType && form.designUnits >= 1 && !!form.deadline
-    if (form.orderType.id === 'diagram') return !!form.diagramType && form.diagramCount >= 1 && !!form.deadline
-    return !!form.paperType && !!form.level && form.pages >= 1 && !!form.deadline && !!form.subject
-  })
-
+  const step1Valid = computed(() =>
+    !!form.paperType && !!form.level && form.pages >= 1 && !!form.deadline && !!form.subject
+  )
   const step2Valid = computed(() =>
     form.topic.trim().length >= 3 && form.instructions.trim().length >= 10
   )
-
   const step3Valid = computed(() =>
-    form.firstName.trim().length > 0
-    && form.email.includes('@')
-    && form.password.length >= 8
-    && form.agreeToTerms
+    form.firstName.trim().length > 0 && form.email.includes('@') && form.password.length >= 8 && form.agreeToTerms
   )
 
   return {
