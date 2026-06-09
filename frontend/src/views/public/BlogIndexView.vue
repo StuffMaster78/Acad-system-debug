@@ -4,7 +4,7 @@
     <!-- Hero -->
     <div class="bg-white border-b border-slate-200 px-6 py-16">
       <div class="mx-auto max-w-4xl">
-        <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-berry">The blog</p>
+        <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-brand-700">The blog</p>
         <h1 class="text-4xl font-extrabold text-ink">Guides, tips, and academic insights</h1>
         <p class="mt-3 max-w-2xl text-lg text-graphite">
           Expert writing advice, citation guides, and academic success strategies from our team.
@@ -14,7 +14,7 @@
 
     <div class="mx-auto max-w-6xl px-6 py-12">
 
-      <!-- Loading -->
+      <!-- Loading skeleton -->
       <div v-if="isLoading" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-pulse">
         <div v-for="n in 6" :key="n" class="rounded-xl border border-slate-200 bg-white overflow-hidden">
           <div class="h-48 bg-slate-200" />
@@ -22,6 +22,10 @@
             <div class="h-3 w-20 rounded bg-slate-200" />
             <div class="h-5 w-full rounded bg-slate-200" />
             <div class="h-3 w-3/4 rounded bg-slate-100" />
+            <div class="mt-4 flex items-center gap-2">
+              <div class="size-6 rounded-full bg-slate-200" />
+              <div class="h-3 w-24 rounded bg-slate-100" />
+            </div>
           </div>
         </div>
       </div>
@@ -38,7 +42,7 @@
             v-for="post in posts"
             :key="post.id"
             :to="`/blog/${post.meta.slug}`"
-            class="group flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:border-slate-300 hover:shadow-md"
+            class="group flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:border-brand-200 hover:shadow-md"
           >
             <!-- Featured image -->
             <div class="h-48 overflow-hidden bg-slate-100">
@@ -58,25 +62,45 @@
               <!-- Category -->
               <span
                 v-if="post.category"
-                class="mb-2 inline-flex w-fit rounded-full bg-berry/10 px-2.5 py-0.5 text-xs font-semibold text-berry"
+                class="mb-2 inline-flex w-fit rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700"
               >
                 {{ post.category.name }}
               </span>
 
-              <h2 class="flex-1 text-base font-bold leading-snug text-ink group-hover:text-berry transition-colors">
+              <!-- Title -->
+              <h2 class="flex-1 text-base font-bold leading-snug text-ink transition-colors group-hover:text-brand-700">
                 {{ post.title }}
               </h2>
 
-              <p v-if="post.excerpt" class="mt-2 line-clamp-2 text-sm text-graphite">
+              <!-- Excerpt -->
+              <p v-if="post.excerpt" class="mt-2 line-clamp-2 text-sm leading-6 text-graphite">
                 {{ post.excerpt }}
               </p>
 
-              <div class="mt-4 flex items-center gap-2 text-xs text-graphite">
-                <span v-if="post.primary_author">{{ post.primary_author.name }}</span>
-                <span v-if="post.primary_author && post.reading_time">·</span>
-                <span v-if="post.reading_time">{{ post.reading_time }} min read</span>
-                <span v-if="post.meta.first_published_at" class="ml-auto">
-                  {{ fmtDate(post.meta.first_published_at) }}
+              <!-- Author + meta row -->
+              <div class="mt-4 flex items-center gap-2.5 text-xs text-graphite">
+                <!-- Author avatar -->
+                <template v-if="post.primary_author">
+                  <img
+                    v-if="post.primary_author.profile_photo?.meta?.download_url"
+                    :src="post.primary_author.profile_photo.meta.download_url"
+                    :alt="post.primary_author.name"
+                    class="size-6 rounded-full object-cover shrink-0"
+                  />
+                  <div
+                    v-else
+                    class="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-brand-700"
+                  >
+                    {{ post.primary_author.name[0] }}
+                  </div>
+                  <span class="font-medium text-ink truncate">{{ post.primary_author.name }}</span>
+                </template>
+
+                <span v-if="post.reading_time" class="ml-auto shrink-0">
+                  {{ post.reading_time }} min read
+                </span>
+                <span v-if="displayDate(post)" class="shrink-0">
+                  · {{ displayDate(post) }}
                 </span>
               </div>
             </div>
@@ -161,8 +185,10 @@ function navigate(dir: number) {
   router.replace({ query: { page: page.value > 1 ? page.value : undefined } });
 }
 
-function fmtDate(v: string) {
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(v));
+function displayDate(post: BlogPostSummary): string {
+  const raw = post.canonical_published_at ?? post.original_published_at ?? post.meta.first_published_at;
+  if (!raw) return "";
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(raw));
 }
 
 onMounted(load);
