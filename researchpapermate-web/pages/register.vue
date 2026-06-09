@@ -53,27 +53,7 @@ useSeoMeta({ title: 'Create an account | ResearchPaperMate', robots: 'noindex' }
           <div class="bg-white p-8">
             <!-- RPM logo -->
             <NuxtLink to="/" class="mb-6 flex items-center gap-2.5">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                <defs>
-                  <linearGradient id="rpm-book-l-r" x1="2" y1="6" x2="16" y2="26" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#2563c8"/>
-                    <stop offset="100%" stop-color="#163e88"/>
-                  </linearGradient>
-                  <linearGradient id="rpm-book-r-r" x1="30" y1="6" x2="16" y2="26" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#163e88"/>
-                    <stop offset="100%" stop-color="#0d2455"/>
-                  </linearGradient>
-                </defs>
-                <path d="M16 8 C12 7 7 8 4 10 L4 26 C7 24 12 23 16 24 Z" fill="url(#rpm-book-l-r)" opacity="0.95"/>
-                <path d="M16 8 C20 7 25 8 28 10 L28 26 C25 24 20 23 16 24 Z" fill="url(#rpm-book-r-r)"/>
-                <rect x="15" y="7" width="2" height="17" rx="1" fill="#1d4fa8"/>
-                <line x1="7" y1="13" x2="14" y2="12" stroke="white" stroke-width="1" stroke-opacity="0.4" stroke-linecap="round"/>
-                <line x1="7" y1="16" x2="14" y2="15" stroke="white" stroke-width="1" stroke-opacity="0.4" stroke-linecap="round"/>
-                <line x1="7" y1="19" x2="14" y2="18" stroke="white" stroke-width="1" stroke-opacity="0.4" stroke-linecap="round"/>
-              </svg>
-              <span class="text-[1.1rem] font-bold tracking-tight leading-none">
-                <span class="text-slate-900">Research</span><span class="text-brand-700">Paper</span><span class="text-slate-600">Mate</span>
-              </span>
+              <span class="font-serif text-xl font-bold text-brand-700">ResearchPaperMate</span>
             </NuxtLink>
 
             <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Create your account</h1>

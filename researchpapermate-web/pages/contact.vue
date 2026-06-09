@@ -27,7 +27,7 @@ async function submit() {
 const faq = [
   {
     q: 'How quickly will I get a response?',
-    a: 'Our support team responds within 1 hour during operating hours (Mon–Sun, 8 AM–11 PM EAT). For urgent orders, use the WhatsApp button for the fastest reply.',
+    a: 'Our support team responds within 1 hour during operating hours (Mon–Sun, 08:00–23:00). For urgent orders, use the WhatsApp button for the fastest reply.',
   },
   {
     q: 'Can I make changes to my order after placing it?',
@@ -96,7 +96,7 @@ const waUrl = `https://wa.me/${waNumber}?text=${waMessage}`
               </svg>
             </div>
             <p class="font-semibold text-white">Email</p>
-            <p class="mt-1 text-sm text-brand-300">
+            <p class="mt-1 text-xs text-brand-300 break-all">
               <a href="mailto:support@researchpapermate.com" class="text-white hover:underline">
                 support@researchpapermate.com
               </a>
@@ -159,7 +159,7 @@ const waUrl = `https://wa.me/${waNumber}?text=${waMessage}`
             </button>
 
             <p class="text-center text-xs text-slate-400">
-              We respond within 1 hour · Mon–Sun 8 AM – 11 PM EAT
+              We respond within 1 hour · Mon–Sun 08:00 – 23:00
             </p>
           </form>
         </div>
@@ -172,11 +172,11 @@ const waUrl = `https://wa.me/${waNumber}?text=${waMessage}`
             <div class="space-y-2.5 text-sm">
               <div class="flex justify-between">
                 <span class="text-slate-600">Monday – Friday</span>
-                <span class="font-semibold text-slate-900">8 AM – 11 PM EAT</span>
+                <span class="font-semibold text-slate-900">08:00 – 23:00</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-slate-600">Saturday – Sunday</span>
-                <span class="font-semibold text-slate-900">9 AM – 9 PM EAT</span>
+                <span class="font-semibold text-slate-900">09:00 – 21:00</span>
               </div>
               <div class="mt-3 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2">
                 <span class="h-2 w-2 rounded-full bg-green-500 shrink-0" />
