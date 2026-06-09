@@ -58,6 +58,10 @@ const ROLE_BADGE: Record<string, string> = {
   'Editor':                'bg-violet-100 text-violet-700',
 }
 
+const config = useRuntimeConfig()
+const siteUrl = config.public.siteUrl || 'https://nursemygrade.com'
+const canonicalUrl = `${siteUrl}/blog/${post.slug}`
+
 useSeoMeta({
   title: post.title,
   description: post.excerpt,
@@ -68,6 +72,7 @@ useSeoMeta({
 })
 
 useHead({
+  link: [{ rel: 'canonical', href: canonicalUrl }],
   script: [{
     type: 'application/ld+json',
     innerHTML: JSON.stringify({
@@ -76,6 +81,7 @@ useHead({
       headline: post.title,
       description: post.excerpt,
       datePublished: post.date,
+      url: canonicalUrl,
       author: post.author
         ? {
             '@type': 'Person',
@@ -84,11 +90,12 @@ useHead({
             honorificSuffix: post.author.credentials,
             ...(post.author.orcid ? { sameAs: [`https://orcid.org/${post.author.orcid}`] } : {}),
           }
-        : { '@type': 'Organization', name: 'ResearchPaperMate' },
+        : { '@type': 'Organization', name: 'NurseMyGrade' },
       publisher: {
         '@type': 'Organization',
-        name: 'ResearchPaperMate',
-        url: 'https://researchpapermate.com',
+        name: 'NurseMyGrade',
+        url: 'https://nursemygrade.com',
+        logo: { '@type': 'ImageObject', url: 'https://nursemygrade.com/favicon.svg' },
       },
     }),
   }],
@@ -101,10 +108,14 @@ useHead({
 
       <!-- ── Left: article content ──────────────────────────────────── -->
       <article class="min-w-0">
-        <!-- Back link -->
-        <NuxtLink href="/blog" class="mb-8 inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
-          ← Back to blog
-        </NuxtLink>
+        <!-- Breadcrumbs -->
+        <div class="mb-6">
+          <Breadcrumbs :items="[
+            { label: 'Blog', href: '/blog' },
+            { label: post.category, href: '/blog' },
+            { label: post.title },
+          ]" />
+        </div>
 
         <!-- Meta bar -->
         <div class="mb-4 flex flex-wrap items-center gap-3">

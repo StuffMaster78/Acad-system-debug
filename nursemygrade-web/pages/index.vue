@@ -74,16 +74,40 @@ useSeoMeta({
 })
 
 useHead({
+  link: [{ rel: 'canonical', href: 'https://nursemygrade.com/' }],
   script: [{
     type: 'application/ld+json',
     innerHTML: JSON.stringify({
       '@context': 'https://schema.org',
-      '@type': 'ProfessionalService',
+      '@type': ['ProfessionalService', 'Organization'],
       name: 'NurseMyGrade',
-      description: 'Nursing paper writing service with BSN, MSN, and DNP qualified writers.',
+      description: 'Nursing paper writing service staffed by BSN, MSN, and DNP credentialed nurses.',
       url: 'https://nursemygrade.com',
+      logo: 'https://nursemygrade.com/favicon.svg',
       priceRange: '$24–$50 per page',
-      aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.98', reviewCount: '9800' },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        availableLanguage: 'English',
+        hoursAvailable: 'Mo-Su 00:00-24:00',
+      },
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: '4.98',
+        reviewCount: '9800',
+        bestRating: '5',
+        worstRating: '1',
+      },
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: 'Nursing Writing Services',
+        itemListElement: [
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Nursing Care Plans' } },
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'SOAP Notes' } },
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Nursing Capstone Projects' } },
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Shadow Health DCEs' } },
+        ],
+      },
     }),
   }],
 })

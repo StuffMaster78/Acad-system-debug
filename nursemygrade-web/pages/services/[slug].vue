@@ -24,6 +24,10 @@ const displayMeta    = computed(() => service?.meta ?? { title: displayTitle.val
 const related = service ? getRelated(service.relatedSlugs) : []
 const serviceTab = ref("What's Included")
 
+const config = useRuntimeConfig()
+const siteUrl = config.public.siteUrl || 'https://nursemygrade.com'
+const canonicalUrl = `${siteUrl}/services/${route.params.slug}`
+
 useSeoMeta({
   title: displayMeta.value.title || displayTitle.value,
   description: displayMeta.value.description,
@@ -31,28 +35,53 @@ useSeoMeta({
   ogDescription: displayMeta.value.description,
 })
 
+const faqSchema = service ? {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    { '@type': 'Question', name: 'How fast can you deliver?', acceptedAnswer: { '@type': 'Answer', text: 'As fast as 3 hours for urgent orders. Most papers are matched with a qualified nurse writer within minutes of placing your order.' } },
+    { '@type': 'Question', name: 'Are your writers real nurses?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Every writer holds at minimum a BSN with active clinical experience. MSN and DNP writers are available for advanced nursing work.' } },
+    { '@type': 'Question', name: 'What if I need revisions?', acceptedAnswer: { '@type': 'Answer', text: 'Unlimited free revisions are included within the revision window, always handled by your original writer.' } },
+    { '@type': 'Question', name: 'Is using a nursing writing service legal?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. We provide model nursing papers for reference and study — similar to a tutoring service or writing centre. Every order includes an academic use acknowledgement.' } },
+  ],
+} : null
+
 useHead({
-  script: [{
-    type: 'application/ld+json',
-    innerHTML: JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'Service',
-      name: displayTitle.value,
-      description: displayMeta.value.description,
-      provider: { '@type': 'Organization', name: 'NurseMyGrade', url: 'https://nursemygrade.com' },
-      offers: {
-        '@type': 'Offer',
-        price: displayPrice.value,
-        priceCurrency: 'USD',
-        priceSpecification: { '@type': 'UnitPriceSpecification', price: displayPrice.value, priceCurrency: 'USD', unitText: 'page' },
-      },
-    }),
-  }],
+  link: [{ rel: 'canonical', href: canonicalUrl }],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Service',
+        name: displayTitle.value,
+        description: displayMeta.value.description,
+        provider: { '@type': 'Organization', name: 'NurseMyGrade', url: 'https://nursemygrade.com' },
+        offers: {
+          '@type': 'Offer',
+          price: displayPrice.value,
+          priceCurrency: 'USD',
+          priceSpecification: { '@type': 'UnitPriceSpecification', price: displayPrice.value, priceCurrency: 'USD', unitText: 'page' },
+        },
+      }),
+    },
+    ...(faqSchema ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }] : []),
+  ],
 })
 </script>
 
 <template>
   <div>
+    <!-- Breadcrumb bar -->
+    <div class="border-b border-slate-100 bg-white px-4 py-3 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-7xl">
+        <Breadcrumbs :items="[
+          { label: 'Services', href: '/services' },
+          { label: displayTitle },
+        ]" />
+      </div>
+    </div>
+
     <!-- Hero -->
     <section class="bg-gradient-to-br from-brand-900 to-brand-700 py-20">
       <div class="section py-0">
