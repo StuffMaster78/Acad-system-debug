@@ -1,5 +1,5 @@
 export default defineNuxtConfig({
-  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/sitemap'],
 
   compatibilityDate: '2026-06-09',
 
@@ -51,6 +51,25 @@ export default defineNuxtConfig({
         changeOrigin: false,
       },
     },
+  },
+
+  // Sitemap — auto-discovers all pre-rendered URLs from crawlLinks
+  // Dynamic routes (blog, authors, services) are included via URL sources
+  site: {
+    url: 'https://researchpapermate.com',
+    name: 'ResearchPaperMate',
+  },
+
+  sitemap: {
+    // Exclude auth, admin, and API routes
+    exclude: [
+      '/login', '/register', '/auth/**',
+    ],
+    // Fetch dynamic service slugs from Wagtail at build time
+    sources: [
+      '/api/v2/pages/?type=cms_service_pages.ServicePage&live=true&fields=slug&limit=100',
+      '/api/v2/pages/?type=cms_blog.BlogPostPage&live=true&fields=slug&limit=500',
+    ],
   },
 
   runtimeConfig: {

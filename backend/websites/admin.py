@@ -130,6 +130,40 @@ class WebsiteBrandingAdmin(admin.ModelAdmin):
         "payment_processor_name",
         "payment_statement_descriptor",
     )
+    fieldsets = (
+        ("Brand identity", {
+            "fields": ("website", "brand_name", "tagline", "logo_url", "favicon_url"),
+        }),
+        ("Colors", {
+            "fields": ("primary_color", "secondary_color", "accent_color"),
+        }),
+        ("Homepage copy", {
+            "fields": ("homepage_headline", "homepage_subheadline"),
+        }),
+        ("Social media", {
+            "description": "Enter the full URL of each social media profile (leave blank to hide from footer).",
+            "fields": (
+                "social_twitter_url",
+                "social_facebook_url",
+                "social_instagram_url",
+                "social_youtube_url",
+                "social_tiktok_url",
+                "social_linkedin_url",
+            ),
+        }),
+        ("Payment disclosure", {
+            "fields": (
+                "payment_processor_name",
+                "payment_statement_descriptor",
+                "payment_client_disclosure_text",
+                "payment_support_contact",
+                "payment_requires_acknowledgement",
+            ),
+        }),
+        ("Other", {
+            "fields": ("trust_claims", "footer_disclaimer", "is_public"),
+        }),
+    )
 
 
 @admin.register(PaymentDisclosureAcknowledgement)

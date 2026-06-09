@@ -55,6 +55,14 @@ class WebsiteBranding(models.Model):
         help_text="Require authenticated clients to acknowledge the disclosure before payment.",
     )
 
+    # --- Social media links ---
+    social_twitter_url   = models.URLField(blank=True, help_text="Full Twitter/X profile URL")
+    social_facebook_url  = models.URLField(blank=True, help_text="Full Facebook page URL")
+    social_instagram_url = models.URLField(blank=True, help_text="Full Instagram profile URL")
+    social_youtube_url   = models.URLField(blank=True, help_text="Full YouTube channel URL")
+    social_tiktok_url    = models.URLField(blank=True, help_text="Full TikTok profile URL")
+    social_linkedin_url  = models.URLField(blank=True, help_text="Full LinkedIn page URL")
+
     is_public = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

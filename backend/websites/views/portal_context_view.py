@@ -77,6 +77,12 @@ class PortalContextView(APIView):
                 "accent_color": getattr(branding, "accent_color", "#14b8a6"),
                 "homepage_headline": getattr(branding, "homepage_headline", ""),
                 "homepage_subheadline": getattr(branding, "homepage_subheadline", ""),
+                "social_twitter_url":   getattr(branding, "social_twitter_url", ""),
+                "social_facebook_url":  getattr(branding, "social_facebook_url", ""),
+                "social_instagram_url": getattr(branding, "social_instagram_url", ""),
+                "social_youtube_url":   getattr(branding, "social_youtube_url", ""),
+                "social_tiktok_url":    getattr(branding, "social_tiktok_url", ""),
+                "social_linkedin_url":  getattr(branding, "social_linkedin_url", ""),
             }
 
             processor = getattr(branding, "payment_processor_name", "")
