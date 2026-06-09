@@ -123,7 +123,7 @@ const trustItems = [
 
         <!-- Services col B (remaining) -->
         <div>
-          <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Simulations</h4>
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">More Services</h4>
           <ul class="mt-4 space-y-2.5">
             <li v-for="s in serviceColB" :key="s.slug">
               <NuxtLink :href="`/services/${s.slug}`" class="text-sm text-slate-400 transition-colors hover:text-white">

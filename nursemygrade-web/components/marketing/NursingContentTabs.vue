@@ -10,6 +10,13 @@ const tabs = [
 
 const active = ref('leading')
 
+const admissionTips = [
+  { n: '1', title: 'A specific moment that defines your calling', body: "Not a generic 'I want to help people' — a real, vivid scene from your life that explains why nursing, why now, why you." },
+  { n: '2', title: "Alignment with the programme's mission", body: 'Each school has specific values: community focus, research emphasis, leadership track. Your statement should mirror them.' },
+  { n: '3', title: 'Clinical evidence, not just intent', body: 'Admissions committees want to see that you understand what nursing work actually involves — not just what you imagine it to be.' },
+  { n: '4', title: 'A clear picture of your future self', body: 'Where are you going? FNP? Public health? Oncology? Specificity signals commitment — vagueness signals uncertainty.' },
+]
+
 const paperTypes = [
   'Nursing Essays', 'Care Plans (NANDA/NIC/NOC)', 'SOAP Notes',
   'Capstone Projects', 'Research Papers', 'Case Studies',
@@ -209,12 +216,7 @@ const whyItems = [
           <div class="rounded-2xl border border-slate-100 bg-slate-50 p-7">
             <h3 class="font-serif text-xl font-bold text-slate-900 mb-5">What makes a strong nursing personal statement?</h3>
             <div class="space-y-5">
-              <div v-for="tip in [
-                { n: '1', title: 'A specific moment that defines your calling', body: 'Not a generic "I want to help people" — a real, vivid scene from your life that explains why nursing, why now, why you.' },
-                { n: '2', title: 'Alignment with the programme\'s mission', body: 'Each school has specific values: community focus, research emphasis, leadership track. Your statement should mirror them.' },
-                { n: '3', title: 'Clinical evidence, not just intent', body: 'Admissions committees want to see that you understand what nursing work actually involves — not just what you imagine it to be.' },
-                { n: '4', title: 'A clear picture of your future self', body: 'Where are you going? FNP? Public health? Oncology? Specificity signals commitment — vagueness signals uncertainty.' },
-              ]" :key="tip.n" class="flex gap-3">
+              <div v-for="tip in admissionTips" :key="tip.n" class="flex gap-3">
                 <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white">{{ tip.n }}</div>
                 <div>
                   <p class="font-semibold text-slate-900 text-sm">{{ tip.title }}</p>
