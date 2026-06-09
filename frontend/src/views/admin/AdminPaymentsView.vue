@@ -645,7 +645,7 @@ onMounted(() => {
       </template>
 
       <!-- PAYMENT REQUESTS TAB -->
-      <template v-else>
+      <template v-else-if="billingTab === 'payment-requests'">
         <div class="flex justify-end">
           <button
             class="focus-ring inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white"
