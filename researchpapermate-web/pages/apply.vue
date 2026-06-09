@@ -5,6 +5,7 @@ useSeoMeta({
   title: 'Write With Us — Apply as an Academic Writer',
   description: 'Join 500+ expert writers earning competitive pay on a flexible schedule. Apply in minutes.',
 })
+useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/apply' }] })
 
 const stats = [
   { value: '500+',  label: 'Active writers' },

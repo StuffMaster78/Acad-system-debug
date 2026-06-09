@@ -86,6 +86,7 @@ useSeoMeta({
   description: 'We handle your entire course — all assignments, discussions, quizzes, and exams. Dedicated expert for the full semester.',
   robots: 'noindex',
 })
+useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/class-support' }] })
 </script>
 
 <template>

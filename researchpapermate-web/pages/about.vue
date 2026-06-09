@@ -70,6 +70,7 @@ useSeoMeta({
   title: 'About ResearchPaperMate — Our Writers, Our Standards',
   description: 'ResearchPaperMate connects students with verified academic writing experts since 2019. Learn how we vet our writers and what we stand for.',
 })
+useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/about' }] })
 </script>
 
 <template>

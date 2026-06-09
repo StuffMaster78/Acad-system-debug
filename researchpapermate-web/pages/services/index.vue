@@ -37,6 +37,7 @@ useSeoMeta({
 })
 
 useHead({
+  link: [{ rel: 'canonical', href: 'https://researchpapermate.com/services' }],
   script: [{
     type: 'application/ld+json',
     innerHTML: JSON.stringify({

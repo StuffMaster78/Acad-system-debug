@@ -3,6 +3,7 @@ useSeoMeta({
   title: 'Contact Us — ResearchPaperMate Support',
   description: 'Get in touch with our support team. We respond within 1 hour, 7 days a week.',
 })
+useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/contact' }] })
 
 const form = reactive({ name: '', email: '', subject: '', message: '' })
 const sent = ref(false)

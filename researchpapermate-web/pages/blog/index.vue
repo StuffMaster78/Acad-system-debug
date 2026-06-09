@@ -33,6 +33,7 @@ useSeoMeta({
   title: 'Academic Writing Blog — Research, Essays & Dissertation Guides',
   description: 'Expert guides on research papers, essays, dissertations, outlines, and academic writing — practical help from the ResearchPaperMate team.',
 })
+useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/blog' }] })
 </script>
 
 <template>

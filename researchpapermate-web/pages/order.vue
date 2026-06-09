@@ -87,6 +87,7 @@ useSeoMeta({
   description: 'Place your academic writing order in 3 steps. Papers, design, diagrams from $15. Human-written, plagiarism-free.',
   robots: 'noindex',
 })
+useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order' }] })
 </script>
 
 <template>
