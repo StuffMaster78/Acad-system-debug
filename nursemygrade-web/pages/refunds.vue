@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Refund Policy', description: 'ResearchPaperMate refund and revision policy — grade or money back guarantee.' })
+useSeoMeta({ title: 'Refund Policy | NurseMyGrade', description: 'NurseMyGrade refund and revision policy — grade or money back guarantee on every nursing paper.' })
 </script>
 
 <template>
@@ -36,7 +36,7 @@ useSeoMeta({ title: 'Refund Policy', description: 'ResearchPaperMate refund and 
 
       <h2>How to request a refund</h2>
       <p>
-        Email <a href="mailto:support@researchpapermate.com">support@researchpapermate.com</a> with your
+        Email <a href="mailto:support@nursemygrade.com">support@nursemygrade.com</a> with your
         order number and a description of your concern. Our team responds within 1 business hour.
       </p>
     </div>

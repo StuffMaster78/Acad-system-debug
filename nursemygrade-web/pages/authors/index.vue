@@ -21,8 +21,8 @@ const ROLE_BADGE: Record<string, string> = {
 }
 
 useSeoMeta({
-  title: 'Our Expert Writers & Editors — ResearchPaperMate',
-  description: 'Meet the credentialed academics, editors, and subject-matter experts who produce every article on ResearchPaperMate.',
+  title: 'Our Nurse Writers & Editors — NurseMyGrade',
+  description: 'Meet the BSN, MSN, and DNP nurses who write and review every article on NurseMyGrade.',
 })
 
 useHead({
@@ -40,7 +40,7 @@ useHead({
           name: a.name,
           honorificSuffix: a.credentials,
           description: a.bio,
-          url: `https://researchpapermate.com/authors/${a.slug}`,
+          url: `https://nursemygrade.com/authors/${a.slug}`,
         },
       })),
     }),
@@ -57,8 +57,8 @@ useHead({
         <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-brand-700">Our editorial team</p>
         <h1 class="font-serif text-4xl font-bold text-slate-900 sm:text-5xl">Meet the authors</h1>
         <p class="mt-4 max-w-2xl text-lg leading-relaxed text-slate-500">
-          Every article on ResearchPaperMate is written by a credentialed human — a specialist with an advanced
-          degree in the subject area, reviewed by an editor in the same field.
+          Every article on NurseMyGrade is written by a credentialed nurse — a BSN, MSN, or DNP professional
+          with real clinical experience in the subject area, reviewed by a senior nurse editor.
         </p>
         <!-- Human-written assurance -->
         <div class="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-700">

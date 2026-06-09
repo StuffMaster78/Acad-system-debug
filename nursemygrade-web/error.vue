@@ -43,7 +43,7 @@ function handleError() {
     <!-- Minimal header -->
     <header class="border-b border-slate-200 bg-white px-6 py-4">
       <NuxtLink href="/" class="font-serif text-xl font-bold text-brand-700">
-        ResearchPaperMate
+        NurseMyGrade
       </NuxtLink>
     </header>
 

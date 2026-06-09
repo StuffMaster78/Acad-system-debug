@@ -25,7 +25,7 @@ function fmtDate(d: string) {
 }
 
 useSeoMeta({
-  title: `${author.name} — ${author.role} | ResearchPaperMate`,
+  title: `${author.name} — ${author.role} | NurseMyGrade`,
   description: author.bio,
   ogTitle: author.name,
   ogDescription: author.bio,
@@ -40,7 +40,7 @@ useHead({
       name: author.name,
       honorificSuffix: author.credentials,
       description: author.bio,
-      url: `https://researchpapermate.com/authors/${author.slug}`,
+      url: `https://nursemygrade.com/authors/${author.slug}`,
       ...(author.orcid ? { sameAs: [`https://orcid.org/${author.orcid}`] } : {}),
     }),
   }],

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Terms of Use', description: 'Terms and conditions for using ResearchPaperMate services.' })
+useSeoMeta({ title: 'Terms of Use | NurseMyGrade', description: 'Terms and conditions for using NurseMyGrade nursing paper writing services.' })
 </script>
 
 <template>
@@ -8,7 +8,7 @@ useSeoMeta({ title: 'Terms of Use', description: 'Terms and conditions for using
     <p class="mt-2 text-sm text-slate-400">Last updated: June 2025</p>
     <div class="prose prose-slate mt-10 max-w-none">
       <h2>1. Service description</h2>
-      <p>ResearchPaperMate provides custom academic writing assistance as a research and reference tool. Papers produced are intended to serve as model documents for study and reference purposes only.</p>
+      <p>NurseMyGrade provides custom nursing paper writing assistance as a research and reference tool. Papers produced are intended to serve as model documents for study and reference purposes only.</p>
 
       <h2>2. Acceptable use</h2>
       <p>By placing an order, you confirm that you will use the delivered material in compliance with your institution's academic integrity policy. The service may not be used to facilitate academic fraud where prohibited by your institution.</p>

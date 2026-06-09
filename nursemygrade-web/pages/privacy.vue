@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Privacy Policy', description: 'How ResearchPaperMate collects, uses, and protects your personal information.' })
+useSeoMeta({ title: 'Privacy Policy | NurseMyGrade', description: 'How NurseMyGrade collects, uses, and protects your personal information.' })
 </script>
 
 <template>
@@ -23,7 +23,7 @@ useSeoMeta({ title: 'Privacy Policy', description: 'How ResearchPaperMate collec
       <p>We use strictly necessary cookies to maintain your session. We do not use advertising or tracking cookies.</p>
 
       <h2>Contact</h2>
-      <p>For privacy-related requests, email <a href="mailto:privacy@researchpapermate.com">privacy@researchpapermate.com</a>.</p>
+      <p>For privacy-related requests, email <a href="mailto:privacy@nursemygrade.com">privacy@nursemygrade.com</a>.</p>
     </div>
   </div>
 </template>
