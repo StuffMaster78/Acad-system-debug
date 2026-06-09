@@ -2598,6 +2598,345 @@ Final statement/implication: ___________
 </ul>
     `.trim(),
   },
+  // ── Live-site migration ──────────────────────────────────────────────────
+  {
+    slug: 'tips-for-passing-nclex-on-first-attempt',
+    title: 'Tips for Passing the NCLEX-RN Exam on the First Attempt',
+    excerpt: 'Proven strategies for NCLEX-RN success: understanding the CAT format, building an effective study plan, managing exam-day stress, and the resources that actually move the needle.',
+    date: '2024-09-04',
+    readTime: '12 min read',
+    category: 'Nursing School',
+    body: `
+<p>The NCLEX-RN is the licensing exam that stands between nursing school and a registered nurse career. The national first-attempt pass rate hovers around 87% for US-educated candidates — which means roughly 1 in 8 students does not pass on their first try. Proper preparation dramatically shifts those odds in your favour. Here is what works.</p>
+
+<h2>Understand the NCLEX Format Before You Study</h2>
+<p>The NCLEX-RN uses Computerised Adaptive Testing (CAT). The exam adapts question difficulty based on your performance — meaning there is no fixed question count. You will answer between 75 and 145 questions in a 5-hour window. The four content areas are:</p>
+<ul>
+  <li><strong>Safe and Effective Care Environment</strong> — management of care (20%), safety and infection control (12%)</li>
+  <li><strong>Health Promotion and Maintenance</strong> (9%)</li>
+  <li><strong>Psychosocial Integrity</strong> (9%)</li>
+  <li><strong>Physiological Integrity</strong> — basic care and comfort (9%), pharmacology and parenteral therapies (15%), reduction of risk potential (12%), physiological adaptation (14%)</li>
+</ul>
+<p>Pharmacology and management of care together account for 35% of the exam — prioritise both.</p>
+
+<h2>Set a Realistic Study Timeline</h2>
+<h3>6 months out</h3>
+<p>This is the ideal starting point. Use the first month to identify your weakest content areas with a baseline practice test, then build a subject-by-subject weekly schedule. Digital planners (Notion, Google Calendar) work well for tracking topic completion.</p>
+<h3>6 weeks out</h3>
+<p>Shift from content review to question-heavy practice. Do a minimum of 75–100 NCLEX-style questions daily. Review every incorrect answer — not just what the right answer was, but why each wrong answer was wrong.</p>
+<h3>4 weeks out</h3>
+<p>Full-length practice exams in exam conditions — same time limits, no distractions, at the same time of day as your scheduled exam. Simulate the real experience.</p>
+<h3>2 weeks out (minimum)</h3>
+<p>This timeline is high-risk but manageable if you've retained content from nursing school. Spend week one on your weakest areas exclusively. Week two: comprehensive review and timed practice. Leave the final day for light review and rest — no cramming.</p>
+
+<h2>The Best NCLEX Study Resources</h2>
+<ul>
+  <li><strong>NCSBN Test Plan</strong> — the official blueprint from the organisation that writes the exam. Non-negotiable reading.</li>
+  <li><strong>UWorld</strong> — the gold standard for NCLEX question banks. Rationales are detailed and written at the level of the actual exam.</li>
+  <li><strong>Nursing Plus Premium</strong> — 2,500+ practice questions with an adaptive algorithm that adjusts to your performance.</li>
+  <li><strong>Kaplan NCLEX</strong> — strong for test-taking strategies and question analysis techniques.</li>
+  <li><strong>RegisteredNursing.org</strong> — free, comprehensive topic breakdowns organised by the four NCLEX categories.</li>
+</ul>
+
+<h2>Master the Question Strategy</h2>
+<p><strong>Read every word.</strong> NCLEX questions are precisely worded. Words like "first," "immediately," "best," "highest priority," and "most important" are not filler — they change the answer. Identify these keywords before looking at the options.</p>
+<p><strong>Watch for switchback words.</strong> "But," "however," "even though," and "despite" reverse the direction of a question. Re-read the question after noticing these words to make sure you understand what is actually being asked.</p>
+<p><strong>Eliminate first.</strong> Start by ruling out clearly wrong answers. This reduces a four-option question to a two-option decision and significantly improves your statistical odds.</p>
+<p><strong>Apply Maslow and the nursing process.</strong> When two options seem equally correct, ask: which is more fundamental to survival (Maslow), or which comes first in the nursing process (assessment before intervention)?</p>
+
+<h2>Manage Exam-Day Stress</h2>
+<p>Some stress is normal and even performance-enhancing. Excessive anxiety — racing heart, shallow breathing, inability to concentrate — is not. Strategies that work:</p>
+<ul>
+  <li>Box breathing (inhale 4 counts, hold 4, exhale 4, hold 4) during breaks or between difficult questions</li>
+  <li>Visualise passing — not the exam, but receiving your pass notification. Concrete positive visualisation reduces anticipatory anxiety.</li>
+  <li>Sleep 7–8 hours the night before. Trading sleep for last-minute study actively impairs the cognitive skills NCLEX tests.</li>
+  <li>Eat a proper meal. Hypoglycaemia impairs concentration in the same way fatigue does.</li>
+</ul>
+
+<h2>Don't Cram the Night Before</h2>
+<p>Cramming loads short-term memory at the cost of the long-term retrieval the NCLEX requires. If you do not know something at this point, a frantic four-hour review session is unlikely to fix it — and the fatigue it causes will make everything harder. Light review of key frameworks (Maslow, ABCs, nursing process) is fine. Sleep is better.</p>
+
+<h2>Know Your Learning Style</h2>
+<ul>
+  <li><strong>Visual learners</strong> — use coloured concept maps, diagrams, and illustrated pharmacology references</li>
+  <li><strong>Auditory learners</strong> — record yourself summarising content and listen back; study groups work well</li>
+  <li><strong>Read/write learners</strong> — handwritten notes and detailed written rationale reviews are most effective</li>
+  <li><strong>Kinesthetic learners</strong> — teach concepts back to a study partner, simulate clinical scenarios</li>
+</ul>
+    `.trim(),
+  },
+  {
+    slug: 'ethical-dilemmas-in-nursing',
+    title: 'Common Ethical Dilemmas in Nursing — Examples and Solutions',
+    excerpt: 'Nurses face ethical dilemmas regularly. This guide explains the four core nursing ethics principles, identifies the most common dilemmas, and shows how to navigate each one correctly.',
+    date: '2023-06-10',
+    readTime: '10 min read',
+    category: 'Nursing Papers',
+    body: `
+<p>Ethical dilemmas are a routine part of nursing practice — not the exception. Whether you're navigating a patient who refuses treatment, a colleague showing incompetence, or a family demanding futile care, the ability to identify and resolve ethical situations is a core clinical skill. This guide breaks down the foundational ethics principles, the most common dilemmas, and how to address them.</p>
+
+<h2>What Is an Ethical Dilemma in Nursing?</h2>
+<p>An ethical dilemma is a situation where two or more morally defensible courses of action exist, but choosing one means compromising another. Unlike a simple clinical decision, an ethical dilemma involves genuine moral tension — there is no obviously correct answer without trade-offs.</p>
+<p>The nursing code of ethics (ANA Code of Ethics for Nurses) resolves most situations. When it does not, you must apply ethical reasoning — weighing the pros and cons of each option, consulting colleagues, and acting in the patient's best interest.</p>
+
+<h2>The Four Core Principles of Nursing Ethics</h2>
+<h3>1. Nonmaleficence — Do No Harm</h3>
+<p>Every nursing intervention must be evaluated against whether it poses harm to the patient. Nonmaleficence does not mean doing nothing — it means ensuring that the care you provide does not cause harm that outweighs the intended benefit. Example: withholding a medication until you confirm allergy status, or discontinuing an intervention when adverse reactions appear.</p>
+
+<h3>2. Beneficence — Act in the Patient's Best Interest</h3>
+<p>Beneficence means taking positive action to promote patient wellbeing — not just avoiding harm. It is characterised by compassion, charity, and a genuine orientation toward positive patient outcomes. Example: sitting with a patient to provide comfort after delivering a difficult diagnosis.</p>
+
+<h3>3. Autonomy — Respect the Patient's Right to Decide</h3>
+<p>Patients have the right to make their own decisions about their care, even if those decisions conflict with the nurse's clinical judgment. Autonomy requires providing the patient with all the information needed to decide, then respecting their choice. A nurse's role is to inform — not to override. Example: respecting a patient's informed refusal of treatment.</p>
+
+<h3>4. Justice — Fairness and Equal Treatment</h3>
+<p>Every patient receives the same quality of care regardless of their appearance, background, beliefs, finances, or history. Justice means that a convicted criminal receives the same nursing care as anyone else. Anything less constitutes a failure of the ethical principle of justice.</p>
+
+<h2>Most Common Ethical Dilemmas in Nursing (with Solutions)</h2>
+
+<h3>1. Patient Refusing Treatment</h3>
+<p>A patient refuses a medication or procedure you know is clinically beneficial.</p>
+<p><strong>Solution:</strong> Ensure the patient has full information about risks and benefits. Document the informed refusal. Respect their decision. Escalate to the care team if there is any concern about decision-making capacity.</p>
+
+<h3>2. Incompetent Colleague</h3>
+<p>You observe a colleague making errors or showing signs of impairment.</p>
+<p><strong>Solution:</strong> Report to your supervisor. Patient safety supersedes colleague loyalty. Staying silent when patient safety is at risk violates the nursing code of ethics.</p>
+
+<h3>3. Futile Care</h3>
+<p>A patient's family insists on continuing aggressive interventions when the clinical picture indicates they will not benefit.</p>
+<p><strong>Solution:</strong> Involve the care team in an ethics consultation. Communicate clearly, compassionately, and consistently with the family. Document every conversation.</p>
+
+<h3>4. Withholding vs. Disclosing Information</h3>
+<p>You feel that telling a patient the full truth about their diagnosis or prognosis may cause severe psychological harm.</p>
+<p><strong>Solution:</strong> Transparency is the default. Patients deserve accurate information to make informed decisions about their own lives. Withholding information undermines autonomy. Deliver truth with compassion and involve palliative or mental health support when needed.</p>
+
+<h3>5. Limited Resources</h3>
+<p>Ventilators, staff, or medication are scarce and multiple patients need them.</p>
+<p><strong>Solution:</strong> Triage based on clinical severity and established institutional protocols. Document the decision-making process. Involve senior leadership immediately.</p>
+
+<h3>6. Religious or Cultural Beliefs Conflicting with Care</h3>
+<p>A patient refuses a life-saving intervention (e.g., blood transfusion) on religious grounds.</p>
+<p><strong>Solution:</strong> Respect autonomy for a competent adult patient. For minors, escalate to the care team and legal counsel — the calculus is different. Document thoroughly.</p>
+
+<h2>How to Address Ethical Dilemmas — Practical Steps</h2>
+<ol>
+  <li><strong>Name the dilemma</strong> — articulate what the competing values are</li>
+  <li><strong>Gather the facts</strong> — do not act on incomplete information</li>
+  <li><strong>Consult</strong> — a trusted senior nurse, your supervisor, or your institution's ethics committee</li>
+  <li><strong>Apply the four principles</strong> — which principle takes priority in this context?</li>
+  <li><strong>Act promptly</strong> — ethical situations rarely improve by being ignored</li>
+  <li><strong>Document everything</strong> — the conversations, the reasoning, and the outcome</li>
+</ol>
+
+<h2>Consequences of Getting It Wrong</h2>
+<p>Failure to handle ethical situations correctly can result in: loss of nursing licence, legal action, job suspension or termination, patient harm, and significant personal psychological distress. The ANA Code of Ethics is not advisory — it is the professional standard against which your conduct is measured.</p>
+<p>If you have an ethical dilemma essay assignment, structure it using a reflective framework (Gibbs, Johns, or Driscoll) and anchor your analysis in the four core principles above.</p>
+    `.trim(),
+  },
+  {
+    slug: 'nursing-reflective-essay-guide',
+    title: 'How to Write a Nursing Reflective Essay — A Complete Guide',
+    excerpt: 'A step-by-step guide to writing a nursing reflective essay using Gibbs, Johns, or Driscoll frameworks. Includes structure, tips, common mistakes, and a worked example.',
+    date: '2024-01-23',
+    readTime: '10 min read',
+    category: 'Nursing Papers',
+    body: `
+<p>Reflective writing is a core skill in nursing education. Your programme uses it to develop your ability to analyse clinical experiences, link practice to theory, and identify how you will improve. Whether you're using Gibbs' Reflective Cycle, Driscoll's model, or Johns' model of structured reflection, the underlying goal is the same: turn experience into learning, and learning into better practice.</p>
+
+<h2>What Is a Nursing Reflective Essay?</h2>
+<p>A nursing reflective essay is an academic piece in which you analyse a specific clinical experience — a patient interaction, a procedure, an ethical situation, or a team dynamic — through a structured reflective framework. It is written in the first person ("I") and combines personal analysis with reference to nursing theory and evidence-based practice.</p>
+<p>Unlike a standard academic essay, you are not arguing a thesis — you are demonstrating your capacity for self-directed critical learning.</p>
+
+<h2>Choosing Your Reflective Framework</h2>
+<p>Your programme will usually specify which model to use. The three most common in nursing:</p>
+<h3>Gibbs' Reflective Cycle (1988)</h3>
+<p>Six stages: Description → Feelings → Evaluation → Analysis → Conclusion → Action Plan. The most widely used model in UK nursing programmes. Structured and cyclical — the action plan feeds back into future practice.</p>
+<h3>Driscoll's Model of Reflection (2007)</h3>
+<p>Three questions: What? (describe what happened) → So What? (analyse the significance) → Now What? (plan future action). Simpler than Gibbs, often used for shorter reflective pieces and clinical portfolios.</p>
+<h3>Johns' Model of Structured Reflection (2000)</h3>
+<p>Five cues: Describe the experience → Reflection → Influencing factors → Alternative actions → Learning. Particularly useful for ethical or complex interpersonal situations.</p>
+
+<h2>Structure of a Nursing Reflective Essay</h2>
+<p><strong>Introduction:</strong> Briefly introduce the clinical experience you will reflect on and the framework you are using. State your thesis (what you learned or what you intend to change).</p>
+<p><strong>Body — following your framework's stages:</strong></p>
+<ul>
+  <li><em>Description:</em> What happened? Who was involved? What was your role? Be specific and factual — no analysis yet.</li>
+  <li><em>Feelings:</em> What were you thinking and feeling at the time? Be honest — vulnerability here is a strength, not a weakness.</li>
+  <li><em>Evaluation:</em> What went well? What did not go well? Why? Draw on peer-reviewed nursing literature to contextualise your evaluation.</li>
+  <li><em>Analysis:</em> What theoretical frameworks, models, or EBP literature help explain what happened? This is where your academic reading appears — NANDA, Maslow, specific clinical guidelines, communication models.</li>
+  <li><em>Conclusion:</em> What have you learned? What could you have done differently? Be specific.</li>
+  <li><em>Action Plan:</em> What will you do differently in the future? This should be concrete and measurable — "I will complete additional training in..." or "I will use the SBAR framework when..."</li>
+</ul>
+<p><strong>Conclusion:</strong> Synthesise the main insights and restate the significance of the experience for your professional development.</p>
+
+<h2>Choosing What to Reflect On</h2>
+<p>The best reflective essays come from experiences that genuinely affected you — where something did not go as expected, where you felt uncertain, or where you made a mistake and learned from it. Routine uneventful experiences produce thin reflections. Choose an experience with real complexity.</p>
+
+<h2>Tips for Writing a Strong Reflective Essay</h2>
+<ul>
+  <li>Use first person throughout: "I felt," "I observed," "I realised"</li>
+  <li>Be genuinely vulnerable — honest reflection about mistakes or uncertainty is what high marks reward, not sanitised accounts</li>
+  <li>Anchor your analysis in literature — each evaluative or analytical point should reference a nursing theory, clinical guideline, or peer-reviewed study</li>
+  <li>Be specific — "I learned to communicate better" is weak; "I will use Teach-Back methodology to verify patient understanding of discharge instructions" is specific and actionable</li>
+  <li>Maintain patient confidentiality — change all identifying details (use pseudonyms: "the patient, Mrs J")</li>
+</ul>
+
+<h2>Common Mistakes to Avoid</h2>
+<ul>
+  <li>Writing a descriptive narrative without analytical depth — "this is what happened" without "this is what it means"</li>
+  <li>Skipping the feelings stage — emotional self-awareness is a learning outcome, not optional</li>
+  <li>Using only one source per stage — aim for 2–3 per analytical section</li>
+  <li>Failing to identify a specific, actionable change for the Action Plan stage</li>
+  <li>Writing about a generic experience instead of a specific clinical encounter</li>
+</ul>
+
+<h2>Word Count and Citation</h2>
+<p>Reflective essays in nursing programmes typically run 1,000–3,000 words depending on the level (BSN vs. MSN). All sources cited in APA 7th edition. Gibbs' original text, your nursing theory sources, and clinical guidelines all need full references.</p>
+    `.trim(),
+  },
+  {
+    slug: 'apa-formatting-mistakes-in-nursing-assignments',
+    title: '7 APA Formatting Mistakes in Nursing Papers — and How to Fix Them',
+    excerpt: 'These are the seven most common APA 7th edition errors nursing students make — and the precise fixes for each. Stop losing marks on formatting.',
+    date: '2024-11-26',
+    readTime: '8 min read',
+    category: 'Citation & Format',
+    body: `
+<p>APA formatting errors cost nursing students marks on every assignment. The problem is rarely ignorance — most students know APA exists. The problem is inconsistent application: a missing DOI here, a wrong heading level there, an et al. used for two authors instead of three. These seven mistakes account for the majority of APA deductions across nursing programmes.</p>
+
+<h2>Mistake 1: In-Text Citations Missing or Incorrectly Formatted</h2>
+<p>Every borrowed idea — whether a direct quote or a paraphrase — needs an in-text citation. No citation = plagiarism, even if unintentional.</p>
+<p><strong>Fix:</strong> Use author-date format throughout: (Smith, 2023) for paraphrases, (Smith, 2023, p. 45) for direct quotes. When uncertain, over-cite rather than under-cite. Use Zotero or Mendeley to generate and manage citations automatically.</p>
+
+<h2>Mistake 2: Reference List Formatting Errors</h2>
+<p>The reference list is where most marks are lost. Common errors: missing italics on journal title and volume, wrong DOI format (doi: instead of https://doi.org/), no hanging indent, double-spaced but with extra spaces between entries.</p>
+<p><strong>Fix:</strong> Journal article format: Author, A. A., & Author, B. B. (Year). Article title in sentence case. <em>Journal Name in Title Case, Volume</em>(Issue), pages. https://doi.org/xxxxx</p>
+<p>The journal name and volume number are italicised. The article title is not. Every entry has a 0.5-inch hanging indent. The DOI format is always https://doi.org/ — not "doi:" or "DOI:".</p>
+
+<h2>Mistake 3: Wrong Heading Levels</h2>
+<p>APA 7th has five heading levels. Most nursing papers use only levels 1 and 2. Students frequently centre everything (Level 1 style) regardless of hierarchy, or use bold throughout without distinguishing levels.</p>
+<p><strong>Fix:</strong></p>
+<ul>
+  <li><strong>Level 1:</strong> Centred, Bold, Title Case — major sections (Introduction, Methods, Discussion)</li>
+  <li><strong>Level 2:</strong> Left-aligned, Bold, Title Case — subsections within major sections</li>
+  <li><strong>Level 3:</strong> Left-aligned, Bold Italic, Title Case — sub-subsections</li>
+</ul>
+<p>Student papers do not need the Abstract heading on Level 1 — just begin the abstract paragraph directly.</p>
+
+<h2>Mistake 4: Incorrect et al. Usage</h2>
+<p>Students use "et al." for two-author works, or fail to use it when required for three-or-more author works.</p>
+<p><strong>Fix:</strong></p>
+<ul>
+  <li>One author: (Smith, 2023)</li>
+  <li>Two authors: (Smith & Jones, 2023) — always both names, every time</li>
+  <li>Three or more authors: (Smith et al., 2023) — from the very first citation</li>
+  <li>In reference list: up to 20 authors listed in full; for 21+, list first 19, then ellipsis, then last author</li>
+</ul>
+
+<h2>Mistake 5: Running Head on Student Papers</h2>
+<p>APA 6th required a running head on every page. APA 7th removed this requirement for student papers. Students who learned from older resources still include it.</p>
+<p><strong>Fix:</strong> Student papers in APA 7th need only a page number in the top right corner — no running head. Professional/journal submissions still use running heads; student coursework does not.</p>
+
+<h2>Mistake 6: Tables and Figures Placed Incorrectly</h2>
+<p>Tables and figures are embedded in the text immediately after the paragraph that first mentions them — not clustered at the end of the paper. Each needs a number (Table 1, Figure 2), an italicised title above it, and a Note below if needed.</p>
+<p><strong>Fix:</strong> Table number and title go above (Table 1 on its own line, then the title in italics). Figure number and title go below (Figure 1. <em>Italicised title.</em>). Any data from external sources needs a citation in the Note.</p>
+
+<h2>Mistake 7: Direct Quotes Without Page Numbers</h2>
+<p>APA 7th requires a page number or paragraph number for every direct quotation. Students often cite only author and year.</p>
+<p><strong>Fix:</strong> (Smith, 2023, p. 45) for paginated sources. For websites or unpaginated documents: (Smith, 2023, para. 3) or (Smith, 2023, "Section Heading" section, para. 2). If no page or paragraph number is available, provide the section heading that gets the reader as close as possible to the quoted text.</p>
+
+<h2>The Quick Pre-Submission Checklist</h2>
+<ul>
+  <li>☐ Every in-text citation has a matching reference list entry</li>
+  <li>☐ Every reference list entry has a matching in-text citation</li>
+  <li>☐ DOIs formatted as https://doi.org/ throughout</li>
+  <li>☐ Journal name and volume number italicised</li>
+  <li>☐ Hanging indent on reference list (0.5 inch)</li>
+  <li>☐ Correct heading levels used consistently</li>
+  <li>☐ et al. used for 3+ authors from first citation</li>
+  <li>☐ No running head (student paper)</li>
+  <li>☐ Direct quotes include page or paragraph numbers</li>
+</ul>
+    `.trim(),
+  },
+  {
+    slug: 'head-to-toe-assessment-students-guide',
+    title: 'Head-to-Toe Assessment — A Comprehensive Guide for Nursing Students',
+    excerpt: 'A step-by-step walkthrough of the complete head-to-toe nursing assessment: what each system assessment includes, correct sequence, documentation tips, and common errors.',
+    date: '2024-09-04',
+    readTime: '12 min read',
+    category: 'Nursing Papers',
+    body: `
+<p>The head-to-toe assessment is a systematic evaluation of all major body systems from head to toe. It is one of the most fundamental skills in nursing practice — and one of the most heavily assessed in nursing school. Mastering the sequence, the techniques (inspection, palpation, auscultation, percussion), and the documentation standards will serve you throughout your career.</p>
+
+<h2>What Is a Head-to-Toe Assessment?</h2>
+<p>A head-to-toe assessment is a comprehensive physical examination that evaluates every major body system in a logical sequence. It differs from a problem-focused assessment (which targets only the system related to a chief complaint) in that it surveys the entire patient. Annual physicals, admissions assessments, and clinical simulation assignments (Shadow Health, ATI) typically require the complete head-to-toe format.</p>
+
+<h2>Before You Begin: Standard Precautions and Preparation</h2>
+<ul>
+  <li>Perform hand hygiene and don gloves</li>
+  <li>Introduce yourself and confirm patient identity using two identifiers</li>
+  <li>Explain the assessment to the patient and obtain verbal consent</li>
+  <li>Ensure privacy — draw curtains, close doors</li>
+  <li>Gather equipment: stethoscope, penlight, blood pressure cuff, thermometer, pulse oximeter, tape measure, reflex hammer, tongue depressor</li>
+  <li>Begin with an ABC assessment (Airway, Breathing, Circulation) — any life-threatening abnormality found here takes precedence over completing the full assessment</li>
+</ul>
+
+<h2>Step-by-Step Assessment Sequence</h2>
+
+<h3>1. Vital Signs and Neurological Baseline</h3>
+<ul>
+  <li><strong>Orientation:</strong> "Can you tell me your name, today's date, and where you are?" (Person, place, time)</li>
+  <li><strong>Blood pressure</strong> — bilateral on initial assessment</li>
+  <li><strong>Heart rate</strong> — radial or apical; count for 60 seconds if irregular</li>
+  <li><strong>Respiratory rate</strong> — count without the patient's awareness for 30 seconds and double; normal 12–20 breaths/min</li>
+  <li><strong>Temperature, SpO2, weight, height</strong></li>
+  <li><strong>Pain</strong> — 0–10 scale, character, location, radiation, timing</li>
+</ul>
+
+<h3>2. Head and Face</h3>
+<p>Inspect hair distribution, scalp condition (lesions, dryness, parasites). Palpate the skull for tenderness or deformities. Assess facial symmetry — ask the patient to smile, raise eyebrows, and frown. Asymmetry suggests cranial nerve VII (facial nerve) involvement.</p>
+
+<h3>3. Eyes</h3>
+<p>Inspect symmetry of palpebral fissures. Check sclera (white — yellowing suggests jaundice) and conjunctiva (pink — pallor suggests anaemia; redness suggests infection or inflammation). Assess pupils: PERRL (Pupils Equal Round Reactive to Light). Check visual acuity and six cardinal gaze positions.</p>
+
+<h3>4. Ears</h3>
+<p>Inspect auricles for symmetry, skin integrity, tenderness. Use otoscope to visualise the ear canal and tympanic membrane. Perform whisper test for gross hearing assessment. Document any drainage, pain, or hearing loss.</p>
+
+<h3>5. Nose</h3>
+<p>Inspect for symmetry, flaring (sign of respiratory distress), and patent nares. Use penlight to inspect nasal mucosa (should be pink and moist, without lesions or polyps). Palpate sinuses for tenderness.</p>
+
+<h3>6. Mouth and Throat</h3>
+<p>Inspect lips (colour, moisture, lesions). Assess gums (retraction, swelling, bleeding), teeth (alignment, condition), tongue (midline position, moisture, coating, lesions). Use tongue depressor and penlight to visualise the uvula (should be midline), soft palate, tonsils, and posterior pharynx. Note any exudate or erythema.</p>
+
+<h3>7. Neck</h3>
+<p>Assess range of motion (flexion, extension, rotation, lateral flexion). Palpate lymph nodes: preauricular, postauricular, occipital, submandibular, cervical chain, supraclavicular. Palpate the trachea for midline position. Palpate the thyroid. Assess JVD (jugular venous distension) with patient at 45°.</p>
+
+<h3>8. Chest and Lungs</h3>
+<p>Inspect for symmetry, barrel chest, use of accessory muscles, and respiratory rate/depth. Palpate for tenderness, tactile fremitus. Percuss for resonance (normal), dullness (fluid/consolidation), or hyperresonance (air). Auscultate all fields — anterior, lateral, and posterior — comparing bilaterally. Document breath sounds: clear, diminished, crackles (rales), rhonchi, wheezing, or pleural friction rub.</p>
+
+<h3>9. Heart and Cardiovascular</h3>
+<p>Inspect the precordium for visible pulsations. Auscultate the four valve areas: aortic (2nd ICS right sternal border), pulmonic (2nd ICS left sternal border), tricuspid (4th ICS left sternal border), mitral (5th ICS mid-clavicular line). Note rate, rhythm, S1/S2, and any murmurs, gallops, or rubs. Assess peripheral pulses: radial, brachial, femoral, popliteal, posterior tibial, dorsalis pedis — bilaterally. Check capillary refill (normal ≤ 2 seconds).</p>
+
+<h3>10. Abdomen</h3>
+<p>The abdomen follows a different sequence: <strong>inspect → auscultate → percuss → palpate</strong> (palpation last, to avoid altering bowel sounds). Inspect for contour (flat, rounded, distended, scaphoid), symmetry, visible peristalsis, or pulsations. Auscultate all four quadrants for bowel sounds (normal: 5–30/min). Percuss for tympany (air) and dullness (solid/fluid). Light palpation first, then deep palpation. Assess for tenderness, guarding, rigidity, masses, and organomegaly.</p>
+
+<h3>11. Musculoskeletal and Extremities</h3>
+<p>Assess upper extremities: inspect skin and nail beds, capillary refill, radial pulses, grip strength, and range of motion (wrist, elbow, shoulder). Test sensation with a cotton ball and sterile pin. Assess lower extremities: skin condition, hair distribution, peripheral pulses (dorsalis pedis, posterior tibial), capillary refill, sensation, range of motion (ankle, knee, hip). Check for oedema: 1+ through 4+ pitting scale. Assess gait if the patient is ambulatory.</p>
+
+<h3>12. Skin Assessment (Throughout)</h3>
+<p>Document colour, temperature, turgor (pinch back of hand — tenting indicates dehydration), moisture, and any lesions. Use the ABCDE rule for suspicious lesions (Asymmetry, Border, Colour, Diameter, Evolution). Document wounds using the PUSH tool or similar validated instrument.</p>
+
+<h2>Documentation Tips</h2>
+<ul>
+  <li>Document both positive AND negative findings — "no lymphadenopathy" is just as important as noting a palpable node</li>
+  <li>Use precise quantitative language: "2+ pitting oedema bilateral lower extremities to mid-calf" not "swollen legs"</li>
+  <li>Use facility-approved assessment forms and terminology</li>
+  <li>Document time, your credentials, and patient response to assessment</li>
+  <li>If an abnormality is found mid-assessment, notify the appropriate member of the care team before completing the full assessment</li>
+</ul>
+    `.trim(),
+  },
 ]
 
 // ── Editorial team ──────────────────────────────────────────────────────────
