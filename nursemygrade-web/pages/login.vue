@@ -1,7 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-const portal = usePortalStore()
 const auth = useRpmAuthStore()
 const app = useAppUrl()
 
@@ -42,26 +41,41 @@ async function sendMagicLink() {
   }
 }
 
-useSeoMeta({
-  title: 'Sign in',
-  robots: 'noindex',
-})
+useSeoMeta({ title: 'Sign in | NurseMyGrade', robots: 'noindex' })
 </script>
 
 <template>
-  <div class="grid min-h-[calc(100vh-4rem)] place-items-center px-4 py-10">
+  <div class="grid min-h-[calc(100vh-4rem)] place-items-center bg-slate-50 px-4 py-10">
     <section class="w-full max-w-md">
+
       <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/60">
-        <!-- Header -->
-        <div class="mb-6">
-          <div class="mb-4 flex items-center gap-3">
-            <img v-if="portal.logo" :src="portal.logo" :alt="portal.brandName" class="h-9 w-auto object-contain" />
-            <span v-else class="flex h-9 items-center font-serif text-xl font-bold text-brand-700">
-              {{ portal.brandName }}
+
+        <!-- NurseMyGrade logo -->
+        <div class="mb-7">
+          <NuxtLink to="/" class="mb-5 flex items-center gap-2">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="lg-v-login" x1="16" y1="2" x2="16" y2="30" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#0d9488"/>
+                  <stop offset="100%" stop-color="#115e59"/>
+                </linearGradient>
+                <linearGradient id="lg-h-login" x1="2" y1="16" x2="30" y2="16" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#2dd4bf"/>
+                  <stop offset="100%" stop-color="#0d9488"/>
+                </linearGradient>
+              </defs>
+              <rect x="12" y="2" width="8" height="28" rx="4" fill="url(#lg-v-login)"/>
+              <rect x="2" y="12" width="28" height="8" rx="4" fill="url(#lg-h-login)" opacity="0.9"/>
+            </svg>
+            <span class="text-[1.15rem] font-bold tracking-tight">
+              <span class="text-slate-900">Nurse</span><span class="text-brand-600">MyGrade</span>
             </span>
-          </div>
-          <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Sign in</h1>
-          <p class="mt-1.5 text-sm text-slate-500">Use your account email and password to continue.</p>
+          </NuxtLink>
+
+          <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Welcome back</h1>
+          <p class="mt-1 text-sm text-slate-500">
+            Sign in to track your orders, message your nurse writer, and download papers.
+          </p>
         </div>
 
         <!-- Tab switcher -->
@@ -71,20 +85,16 @@ useSeoMeta({
             :class="tab === 'password' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
             type="button"
             @click="tab = 'password'; auth.error = null"
-          >
-            Password
-          </button>
+          >Password</button>
           <button
             class="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
             :class="tab === 'magic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
             type="button"
             @click="tab = 'magic'; magicState = 'idle'; magicError = ''"
-          >
-            Magic link
-          </button>
+          >Magic link</button>
         </div>
 
-        <!-- Password tab -->
+        <!-- Password form -->
         <form v-if="tab === 'password'" class="space-y-4" @submit.prevent="submit">
           <div>
             <label class="mb-1.5 block text-sm font-medium text-slate-700" for="email">Email</label>
@@ -116,16 +126,12 @@ useSeoMeta({
             />
           </div>
 
-          <div
-            v-if="auth.error"
-            class="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800"
-            role="alert"
-          >
+          <div v-if="auth.error" class="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800" role="alert">
             {{ auth.error }}
           </div>
 
           <button
-            class="relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            class="relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="!canSubmit"
             type="submit"
           >
@@ -133,7 +139,7 @@ useSeoMeta({
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
             </svg>
-            {{ auth.loading ? 'Signing in…' : 'Sign in' }}
+            {{ auth.loading ? 'Signing in…' : 'Sign in to my dashboard' }}
           </button>
         </form>
 
@@ -159,7 +165,7 @@ useSeoMeta({
               {{ magicError }}
             </div>
             <button
-              class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
+              class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="!canSendMagic"
               type="button"
               @click="sendMagicLink"
@@ -175,7 +181,7 @@ useSeoMeta({
           <template v-else>
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
               <svg class="mx-auto h-8 w-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
               </svg>
               <p class="mt-3 font-semibold text-emerald-900">Check your inbox</p>
               <p class="mt-1 text-sm text-emerald-800">
@@ -186,15 +192,27 @@ useSeoMeta({
               class="w-full text-center text-xs text-slate-500 hover:text-slate-700 hover:underline"
               type="button"
               @click="magicState = 'idle'; magicError = ''"
-            >
-              Try a different email
-            </button>
+            >Try a different email</button>
           </template>
+        </div>
+
+        <!-- Trust strip -->
+        <div class="mt-6 flex items-center justify-center gap-4 border-t border-slate-100 pt-5 text-xs text-slate-400">
+          <span class="flex items-center gap-1">
+            <svg class="h-3.5 w-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+            </svg>
+            4.98/5 rating
+          </span>
+          <span class="text-slate-200">|</span>
+          <span>9,800+ papers</span>
+          <span class="text-slate-200">|</span>
+          <span>Grade guarantee</span>
         </div>
       </div>
 
       <p class="mt-4 text-center text-sm text-slate-500">
-        New to {{ portal.brandName }}?
+        New to NurseMyGrade?
         <NuxtLink to="/register" class="ml-1 font-semibold text-brand-600 hover:underline">Create a free account</NuxtLink>
       </p>
     </section>
