@@ -38,7 +38,7 @@ useHead({
       '@type': 'Service',
       name: displayTitle.value,
       description: displayMeta.value.description,
-      provider: { '@type': 'Organization', name: 'ResearchPaperMate', url: 'https://researchpapermate.com' },
+      provider: { '@type': 'Organization', name: 'NurseMyGrade', url: 'https://nursemygrade.com' },
       offers: {
         '@type': 'Offer',
         price: displayPrice.value,
@@ -75,8 +75,8 @@ useHead({
           </div>
           <ul class="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-brand-200">
             <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Grade or money back</li>
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> 100% human-written</li>
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Free revisions</li>
+            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Written by BSN/MSN/DNP nurses</li>
+            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Free Turnitin report</li>
           </ul>
         </div>
       </div>
@@ -104,7 +104,7 @@ useHead({
             <h2 class="mb-5 font-serif text-2xl font-bold text-slate-900">What you receive</h2>
             <ul class="space-y-3">
               <li v-for="item in service.delivers" :key="item" class="flex items-start gap-3">
-                <span class="mt-0.5 text-lg">📦</span>
+                <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-brand-500" />
                 <span class="text-slate-700">{{ item }}</span>
               </li>
             </ul>
@@ -119,9 +119,9 @@ useHead({
           <!-- Guarantees row -->
           <div class="mt-6 grid gap-4 sm:grid-cols-3">
             <div v-for="g in [
-              { icon: 'trophy',      label: 'Grade or money back',  color: 'bg-amber-50 text-amber-600' },
-              { icon: 'bot',         label: 'Zero AI content',      color: 'bg-blue-50 text-blue-600' },
-              { icon: 'refresh-cw',  label: 'Unlimited revisions',  color: 'bg-green-50 text-green-600' },
+              { icon: 'trophy',      label: 'Grade or money back',      color: 'bg-amber-50 text-amber-600' },
+              { icon: 'stethoscope', label: 'Written by BSN/MSN/DNP',   color: 'bg-brand-50 text-brand-600' },
+              { icon: 'refresh-cw',  label: 'Free Turnitin report',     color: 'bg-green-50 text-green-600' },
             ]" :key="g.label" class="rounded-xl bg-brand-50 p-4 text-center">
               <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl" :class="g.color.split(' ')[0]">
                 <Icon :name="g.icon" class="h-5 w-5" :class="g.color.split(' ')[1]" />

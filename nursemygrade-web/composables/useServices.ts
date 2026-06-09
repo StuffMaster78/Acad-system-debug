@@ -16,7 +16,7 @@ const services: ServiceData[] = [
   {
     slug: 'nursing-essays',
     navLabel: 'Nursing Essays',
-    icon: '✍️',
+    icon: 'pen-line',
     title: 'Nursing Essay Writing Service',
     hero: {
       headline: 'Nursing Essays Written by BSN, MSN & DNP Experts',
@@ -46,7 +46,7 @@ const services: ServiceData[] = [
   {
     slug: 'care-plans',
     navLabel: 'Care Plans',
-    icon: '🩺',
+    icon: 'clipboard-list',
     title: 'Nursing Care Plan Writing Service',
     hero: {
       headline: 'Nursing Care Plans Built on NANDA, NIC & NOC',
@@ -76,7 +76,7 @@ const services: ServiceData[] = [
   {
     slug: 'soap-notes',
     navLabel: 'SOAP Notes',
-    icon: '📋',
+    icon: 'stethoscope',
     title: 'SOAP Note Writing Service',
     hero: {
       headline: 'SOAP Notes That Meet Clinical Documentation Standards',
@@ -106,7 +106,7 @@ const services: ServiceData[] = [
   {
     slug: 'capstone-projects',
     navLabel: 'Capstone Projects',
-    icon: '🎓',
+    icon: 'graduation-cap',
     title: 'Nursing Capstone Project Writing Service',
     hero: {
       headline: 'Nursing Capstone Projects from Proposal to Final Submission',
@@ -136,7 +136,7 @@ const services: ServiceData[] = [
   {
     slug: 'nursing-research-papers',
     navLabel: 'Research Papers',
-    icon: '📄',
+    icon: 'microscope',
     title: 'Nursing Research Paper Writing Service',
     hero: {
       headline: 'Nursing Research Papers Grounded in Current Evidence',
@@ -166,7 +166,7 @@ const services: ServiceData[] = [
   {
     slug: 'nursing-case-studies',
     navLabel: 'Case Studies',
-    icon: '🔬',
+    icon: 'search',
     title: 'Nursing Case Study Writing Service',
     hero: {
       headline: 'Nursing Case Studies That Think Like a Clinician',
@@ -196,7 +196,7 @@ const services: ServiceData[] = [
   {
     slug: 'nursing-dissertations',
     navLabel: 'Dissertations',
-    icon: '📚',
+    icon: 'book-open',
     title: 'Nursing Dissertation & Thesis Writing Service',
     hero: {
       headline: 'Nursing Dissertations Written by DNP & PhD-Level Experts',
@@ -226,7 +226,7 @@ const services: ServiceData[] = [
   {
     slug: 'concept-maps',
     navLabel: 'Concept Maps',
-    icon: '🗺️',
+    icon: 'network',
     title: 'Nursing Concept Map Writing Service',
     hero: {
       headline: 'Nursing Concept Maps That Connect the Clinical Picture',
@@ -256,7 +256,7 @@ const services: ServiceData[] = [
   {
     slug: 'nursing-coursework',
     navLabel: 'Coursework & Assignments',
-    icon: '📓',
+    icon: 'briefcase',
     title: 'Nursing Coursework & Assignment Help',
     hero: {
       headline: 'Consistent Nursing Assignment Help, Every Week',
@@ -286,7 +286,7 @@ const services: ServiceData[] = [
   {
     slug: 'online-nursing-classes',
     navLabel: 'Online Class Help',
-    icon: '💻',
+    icon: 'laptop',
     title: 'Online Nursing Class Help',
     hero: {
       headline: 'Let a Nursing Expert Handle Your Online Classes',
@@ -311,6 +311,68 @@ const services: ServiceData[] = [
     meta: {
       title: 'Online Nursing Class Help — Full Course Management',
       description: 'Qualified nurses handle your online nursing classes — discussions, quizzes, assignments. Discreet, grade-focused. From $35/page.',
+    },
+  },
+]
+
+  {
+    slug: 'shadow-health',
+    navLabel: 'Shadow Health DCEs',
+    icon: 'monitor-play',
+    title: 'Shadow Health Digital Clinical Experience Help',
+    hero: {
+      headline: 'Shadow Health DCEs Completed by Practicing Nurses',
+      sub: 'Digital Clinical Experiences — Tina, Brian, Danny, and all Shadow Health patients — documented accurately and professionally by nurses who know the platform inside out.',
+    },
+    includes: [
+      'All Shadow Health patient encounters: Tina Jones, Brian Foster, Danny Rivera, and more',
+      'Subjective, Objective, Assessment, Plan documentation for each DCE',
+      'Education section, reflection, and evidence-based rationale included',
+      'Scored to meet your programme\'s passing threshold',
+      'Completed within your deadline — usually same-day',
+    ],
+    delivers: [
+      'Completed DCE documentation submitted on your behalf or as a reference',
+      'Health history, physical exam, and clinical reasoning sections',
+      'SBAR or clinical note format where required',
+      'Full reflection and self-evaluation sections',
+    ],
+    whoFor: 'Nursing students enrolled in programmes using Shadow Health — ADN, BSN, MSN, and NP students struggling with DCE time demands or clinical reasoning documentation.',
+    priceFrom: 35,
+    relatedSlugs: ['ihuman-patients', 'soap-notes', 'care-plans'],
+    meta: {
+      title: 'Shadow Health DCE Help — Tina Jones & All Patients',
+      description: 'Expert Shadow Health Digital Clinical Experience completion by practicing nurses. Tina Jones, Brian Foster, all patients. From $35.',
+    },
+  },
+  {
+    slug: 'ihuman-patients',
+    navLabel: 'iHuman Virtual Patients',
+    icon: 'activity',
+    title: 'iHuman Virtual Patient Case Help',
+    hero: {
+      headline: 'iHuman Cases Completed by Clinical Nursing Experts',
+      sub: 'Virtual patient encounters on iHuman require clinical reasoning, differential diagnosis, and evidence-based decision-making — our nurses have done hundreds of these.',
+    },
+    includes: [
+      'Full iHuman patient case completion — history, physical, assessment',
+      'Differential diagnosis with evidence-based rationale',
+      'Diagnostic reasoning and clinical decision-making documentation',
+      'Treatment plan and patient education sections',
+      'Completed within your deadline',
+    ],
+    delivers: [
+      'All iHuman case sections completed to your rubric',
+      'Clinical reasoning narrative with supporting evidence',
+      'Differential diagnoses ranked with rationale',
+      'Follow-up and management plan',
+    ],
+    whoFor: 'Nursing and NP students using the iHuman platform for virtual patient encounters who need support with clinical reasoning documentation and case completion.',
+    priceFrom: 35,
+    relatedSlugs: ['shadow-health', 'soap-notes', 'nursing-case-studies'],
+    meta: {
+      title: 'iHuman Virtual Patient Case Help — Clinical Reasoning',
+      description: 'Expert iHuman virtual patient case completion by practicing nurses. Clinical reasoning, differentials, treatment plans. From $35.',
     },
   },
 ]
