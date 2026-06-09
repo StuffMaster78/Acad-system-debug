@@ -1,7 +1,9 @@
 <script setup lang="ts">
+// photo: optional URL — show image when available, fall back to initials avatar
 const writers = [
   {
     initials: 'AM',
+    photo: '',
     name: 'Angela M.',
     credential: 'DNP, FNP-BC',
     specialty: 'Advanced Practice Nursing',
@@ -12,6 +14,7 @@ const writers = [
   },
   {
     initials: 'RO',
+    photo: '',
     name: 'Rachel O.',
     credential: 'MSN, RN-BC',
     specialty: 'Medical-Surgical Nursing',
@@ -22,6 +25,7 @@ const writers = [
   },
   {
     initials: 'JN',
+    photo: '',
     name: 'James N.',
     credential: 'DNP, CRNA',
     specialty: 'Perioperative & Critical Care',
@@ -32,6 +36,7 @@ const writers = [
   },
   {
     initials: 'SW',
+    photo: '',
     name: 'Sophia W.',
     credential: 'MSN, CNM',
     specialty: 'Maternal & Child Health',
@@ -42,6 +47,7 @@ const writers = [
   },
   {
     initials: 'DK',
+    photo: '',
     name: 'David K.',
     credential: 'BSN, RN',
     specialty: 'Psychiatric & Mental Health Nursing',
@@ -52,6 +58,7 @@ const writers = [
   },
   {
     initials: 'TL',
+    photo: '',
     name: 'Tina L.',
     credential: 'PhD, MSN',
     specialty: 'Nursing Education & Research',
@@ -78,12 +85,31 @@ const writers = [
         <div
           v-for="w in writers"
           :key="w.name"
-          class="card group flex flex-col transition-shadow hover:shadow-md hover:border-brand-200"
+          class="card group flex flex-col transition-shadow hover:border-brand-200 hover:shadow-md"
         >
           <div class="flex items-start gap-4">
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-lg font-bold text-brand-700 ring-2 ring-brand-50">
-              {{ w.initials }}
+            <!-- Avatar — photo when available, initials fallback -->
+            <div class="relative shrink-0">
+              <img
+                v-if="w.photo"
+                :src="w.photo"
+                :alt="w.name"
+                class="h-14 w-14 rounded-2xl object-cover ring-2 ring-brand-50"
+              />
+              <div
+                v-else
+                class="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-lg font-bold text-brand-700 ring-2 ring-brand-50"
+              >
+                {{ w.initials }}
+              </div>
+              <!-- Verified badge -->
+              <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 ring-2 ring-white">
+                <svg class="h-2.5 w-2.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+              </span>
             </div>
+
             <div class="min-w-0 flex-1">
               <p class="font-semibold text-slate-900">{{ w.name }}</p>
               <p class="text-xs font-bold text-brand-600">{{ w.credential }}</p>
