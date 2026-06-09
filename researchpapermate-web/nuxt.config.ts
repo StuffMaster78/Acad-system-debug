@@ -12,9 +12,6 @@ export default defineNuxtConfig({
         '/services',
         // Individual service slugs are discovered via crawlLinks: true
         // from the /services index page — no need to hardcode them.
-        '/order',
-        '/quote',
-        '/class-support',
         '/pricing',
         '/blog',
         '/authors',

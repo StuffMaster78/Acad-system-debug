@@ -2127,6 +2127,12 @@ function withAuthor(post: BlogPost): BlogPost {
 
 // ── Composable ───────────────────────────────────────────────────────────────
 
+// Exported so author profile pages can resolve any author by slug
+// even if they have no posts yet in the static seed.
+export function getAuthorBySlug(slug: string): BlogAuthor | null {
+  return Object.values(AUTHORS).find(a => a.slug === slug) ?? null
+}
+
 export function useBlog() {
   function getAll(): BlogPost[] {
     return posts.map(withAuthor)

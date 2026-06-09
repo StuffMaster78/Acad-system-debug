@@ -4,7 +4,9 @@ const slug = route.params.slug as string
 
 const { getByAuthor } = useBlog()
 const posts = getByAuthor(slug)
-const author = posts[0]?.author
+// Prefer author resolved from their posts; fall back to the AUTHORS registry
+// so profiles render even when a writer has no static seed posts yet.
+const author = posts[0]?.author ?? getAuthorBySlug(slug)
 
 if (!author) {
   throw createError({ statusCode: 404, message: 'Author not found' })

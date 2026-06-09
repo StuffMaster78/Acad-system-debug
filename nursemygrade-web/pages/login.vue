@@ -111,9 +111,7 @@ useSeoMeta({ title: 'Sign in | NurseMyGrade', robots: 'noindex' })
           <div>
             <div class="mb-1.5 flex items-center justify-between">
               <label class="text-sm font-medium text-slate-700" for="password">Password</label>
-              <NuxtLink to="/forgot-password" class="text-xs font-medium text-brand-600 hover:underline">
-                Forgot password?
-              </NuxtLink>
+              <a :href="`${app.dashboard}/auth/reset-password`" class="text-xs font-medium text-brand-600 hover:underline">Forgot password?</a>
             </div>
             <input
               id="password"

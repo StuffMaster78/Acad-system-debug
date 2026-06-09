@@ -84,7 +84,7 @@ useSeoMeta({ title: 'Sign in | ResearchPaperMate', robots: 'noindex' })
           <div>
             <div class="mb-1.5 flex items-center justify-between">
               <label class="text-sm font-medium text-slate-700" for="password">Password</label>
-              <NuxtLink to="/forgot-password" class="text-xs font-medium text-brand-600 hover:underline">Forgot password?</NuxtLink>
+              <a :href="`${app.dashboard}/auth/reset-password`" class="text-xs font-medium text-brand-600 hover:underline">Forgot password?</a>
             </div>
             <input id="password" v-model="form.password" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200" autocomplete="current-password" type="password" placeholder="••••••••" required/>
           </div>
