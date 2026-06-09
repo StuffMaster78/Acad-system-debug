@@ -11,6 +11,8 @@ const related = getAll()
   .filter(p => p.slug !== post.slug && p.category === post.category)
   .slice(0, 3)
 
+const { toc, processedBody } = useToc(post.body)
+
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
@@ -101,13 +103,34 @@ useHead({
           </div>
         </div>
 
-        <!-- Article body -->
+        <!-- Table of contents -->
+        <nav
+          v-if="toc.length >= 3"
+          class="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-5"
+          aria-label="Table of contents"
+        >
+          <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">In this article</p>
+          <ol class="space-y-1.5">
+            <li
+              v-for="item in toc"
+              :key="item.anchor"
+              :class="item.level === 'h3' ? 'ml-4' : ''"
+            >
+              <a
+                :href="`#${item.anchor}`"
+                class="text-sm text-brand-600 hover:underline"
+              >{{ item.text }}</a>
+            </li>
+          </ol>
+        </nav>
+
+        <!-- Article body (headings have injected id attrs for anchor nav) -->
         <div
           class="prose prose-slate prose-lg mt-10 max-w-none
                  prose-headings:font-serif prose-headings:font-bold
                  prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
                  prose-strong:text-slate-900"
-          v-html="post.body"
+          v-html="processedBody"
         />
 
         <!-- Share buttons -->
