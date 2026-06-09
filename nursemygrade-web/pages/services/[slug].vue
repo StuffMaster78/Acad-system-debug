@@ -153,8 +153,39 @@ useHead({
         </div>
 
         <!-- Right: sticky sidebar -->
-        <div class="lg:sticky lg:top-24 lg:self-start">
-          <BlogSidebar />
+        <div class="lg:sticky lg:top-24 lg:self-start space-y-5">
+          <!-- Quick quote calculator -->
+          <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <p class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Get an instant quote</p>
+            <ClientOnly>
+              <SidebarCalculator />
+              <template #fallback><div class="h-48 animate-pulse rounded-xl bg-slate-100" /></template>
+            </ClientOnly>
+          </div>
+          <!-- Nursing writer badge -->
+          <div class="rounded-2xl bg-brand-900 p-5 text-white text-center">
+            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+              <Icon name="stethoscope" class="h-6 w-6 text-white" />
+            </div>
+            <p class="text-sm font-semibold">BSN, MSN &amp; DNP writers</p>
+            <p class="mt-1 text-xs text-brand-300">4.98★ · 9,800+ nursing papers</p>
+            <NuxtLink to="/order" class="mt-4 block rounded-xl bg-white py-2.5 text-sm font-bold text-brand-700 hover:bg-brand-50 transition-colors">
+              Place an order
+            </NuxtLink>
+          </div>
+          <!-- Related services -->
+          <div v-if="related.length" class="rounded-2xl border border-slate-100 bg-white p-5">
+            <p class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Related services</p>
+            <ul class="space-y-2">
+              <li v-for="r in related" :key="r.slug">
+                <NuxtLink :href="`/services/${r.slug}`"
+                  class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-brand-50 hover:text-brand-700 transition-colors">
+                  <Icon :name="r.icon" class="h-4 w-4 shrink-0 text-brand-500" />
+                  {{ r.navLabel }}
+                </NuxtLink>
+              </li>
+            </ul>
+          </div>
         </div>
 
       </div>

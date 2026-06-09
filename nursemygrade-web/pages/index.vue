@@ -279,6 +279,9 @@ useHead({
     </div>
   </section>
 
+  <!-- ─── Writing Services We Offer ──────────────────────────────────── -->
+  <WritingServicesGrid />
+
   <!-- ─── Deep content tabs ───────────────────────────────────────────── -->
   <NursingContentTabs />
 
