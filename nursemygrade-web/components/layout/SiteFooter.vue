@@ -5,58 +5,57 @@ const { getAll } = useServices()
 const allServices = getAll()
 
 // Grouped service columns
-const writingServices = [
-  { label: 'Nursing Essay Writing',      href: '/services/nursing-essays' },
-  { label: 'Nursing Care Plans',         href: '/services/care-plans' },
-  { label: 'SOAP Notes',                 href: '/services/soap-notes' },
-  { label: 'Capstone Projects',          href: '/services/capstone-projects' },
-  { label: 'Nursing Research Papers',    href: '/services/nursing-research-papers' },
-  { label: 'Case Studies',               href: '/services/nursing-case-studies' },
-  { label: 'Dissertations & Thesis',     href: '/services/nursing-dissertations' },
-  { label: 'Concept Maps',               href: '/services/concept-maps' },
-  { label: 'Coursework & Assignments',   href: '/services/nursing-coursework' },
+const col2 = [
+  { label: 'Nursing Essays',          href: '/services/nursing-essays' },
+  { label: 'Care Plans',              href: '/services/care-plans' },
+  { label: 'SOAP Notes',              href: '/services/soap-notes' },
+  { label: 'Research Papers',         href: '/services/nursing-research-papers' },
+  { label: 'Capstone Projects',       href: '/services/capstone-projects' },
+  { label: 'Dissertations',           href: '/services/nursing-dissertations' },
 ]
 
-const specialtyServices = [
-  { label: 'Online Class Help',          href: '/services/online-nursing-classes' },
-  { label: 'Shadow Health DCEs',         href: '/services/shadow-health' },
-  { label: 'iHuman Virtual Patients',    href: '/services/ihuman-patients' },
-  { label: 'BSN Writing Services',       href: '/services/bsn-writing' },
-  { label: 'MSN Writing Help',           href: '/services/msn-help' },
-  { label: 'Postgrad Nursing Help',      href: '/services/postgrad-nursing' },
-  { label: 'APA Nursing Papers',         href: '/services/apa-nursing-papers' },
-  { label: 'Nursing Reports',            href: '/services/nursing-report' },
-  { label: 'Nursing Presentations',      href: '/services/nursing-presentation' },
+const col3 = [
+  { label: 'Case Studies',            href: '/services/nursing-case-studies' },
+  { label: 'Concept Maps',            href: '/services/concept-maps' },
+  { label: 'Coursework Help',         href: '/services/nursing-coursework' },
+  { label: 'Shadow Health',           href: '/services/shadow-health' },
+  { label: 'iHuman Patients',         href: '/services/ihuman-patients' },
+  { label: 'Online Class Help',       href: '/services/online-nursing-classes' },
 ]
 
-const quickLinks = [
-  { label: 'Place an Order',            href: '/order' },
-  { label: 'Get a Custom Quote',         href: '/quote' },
-  { label: 'Online Class Support',       href: '/class-support' },
-  { label: 'Pricing',                    href: '/pricing' },
-  { label: 'About NurseMyGrade',         href: '/about' },
-  { label: 'Nursing Writing Blog',       href: '/blog' },
-  { label: 'Our Writers',                href: '/authors' },
-  { label: 'Contact & Support',          href: '/contact' },
-  { label: 'Apply as a Writer',          href: '/apply' },
+const col4 = [
+  { label: 'BSN Writing',             href: '/services/bsn-writing' },
+  { label: 'MSN Writing Help',        href: '/services/msn-help' },
+  { label: 'APA Nursing Papers',      href: '/services/apa-nursing-papers' },
+  { label: 'Nursing Reports',         href: '/services/nursing-report' },
+  { label: 'Nursing Presentations',   href: '/services/nursing-presentation' },
+  { label: 'All services →',          href: '/services' },
 ]
 
-const resourceLinks = [
-  { label: 'How to Write a Care Plan',   href: '/blog/nursing-care-plan-guide' },
-  { label: 'SOAP Note Guide',            href: '/blog/soap-notes-guide-for-nursing-students' },
-  { label: 'APA 7th for Nursing',        href: '/blog/apa-7th-edition-guide-nursing-papers' },
-  { label: 'PICOT Question Examples',    href: '/blog/nursing-picot-question-examples' },
-  { label: 'Shadow Health Tips',         href: '/blog/tips-for-succeeding-in-shadow-health-assessments' },
-  { label: 'iHuman Tips & Tricks',       href: '/blog/ihuman-tips-help-and-tricks' },
-  { label: 'Nursing Essay Guide',        href: '/blog/nursing-essay-how-to-write-guide' },
-  { label: 'Nursing Capstone Guide',     href: '/blog/how-to-write-a-nursing-capstone-paper' },
-  { label: 'View all guides →',          href: '/blog' },
+const col5 = [
+  { label: 'Place an Order',          href: '/order' },
+  { label: 'Custom Quote',            href: '/quote' },
+  { label: 'Class Support',           href: '/class-support' },
+  { label: 'Pricing',                 href: '/pricing' },
+  { label: 'About Us',                href: '/about' },
+  { label: 'Contact',                 href: '/contact' },
 ]
 
-const legalLinks = [
-  { label: 'Privacy Policy',            href: '/privacy' },
-  { label: 'Terms of Use',              href: '/terms' },
-  { label: 'Refund Policy',             href: '/refunds' },
+const col6 = [
+  { label: 'Care Plan Guide',         href: '/blog/nursing-care-plan-guide' },
+  { label: 'SOAP Note Guide',         href: '/blog/soap-notes-guide-for-nursing-students' },
+  { label: 'APA 7th for Nursing',     href: '/blog/apa-7th-edition-guide-nursing-papers' },
+  { label: 'Shadow Health Tips',      href: '/blog/tips-for-succeeding-in-shadow-health-assessments' },
+  { label: 'iHuman Tips',             href: '/blog/ihuman-tips-help-and-tricks' },
+  { label: 'Nursing Blog →',          href: '/blog' },
+]
+
+const col7 = [
+  { label: 'Privacy Policy',          href: '/privacy' },
+  { label: 'Terms of Use',            href: '/terms' },
+  { label: 'Refund Policy',           href: '/refunds' },
+  { label: 'Apply as Writer',         href: '/apply' },
+  { label: 'Our Authors',             href: '/authors' },
 ]
 
 // Social icons
@@ -107,83 +106,93 @@ const social = computed(() => portal.socialLinks)
 
     <!-- Main 6-column grid -->
     <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-6">
+      <!-- 8-column compact grid: brand + 7 link columns -->
+      <div class="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4 lg:grid-cols-8">
 
-        <!-- Col 1: Brand -->
-        <div class="col-span-2 sm:col-span-3 lg:col-span-1">
-          <NuxtLink href="/" class="font-serif text-xl font-bold text-white">{{ portal.brandName }}</NuxtLink>
-          <p class="mt-2 text-xs text-slate-400 leading-relaxed">Expert nursing papers by BSN, MSN &amp; DNP nurses. Grade or money back.</p>
-
-          <div v-if="social.length" class="mt-5 flex flex-wrap gap-2">
+        <!-- Col 1: Brand (spans 2 on lg) -->
+        <div class="col-span-2 sm:col-span-2 lg:col-span-2">
+          <NuxtLink href="/" class="font-serif text-lg font-bold text-white">{{ portal.brandName }}</NuxtLink>
+          <p class="mt-2 text-xs text-slate-400 leading-relaxed max-w-[180px]">Expert nursing papers by BSN, MSN &amp; DNP nurses.</p>
+          <div v-if="social.length" class="mt-4 flex flex-wrap gap-1.5">
             <a v-for="s in social" :key="s.name" :href="s.href" :aria-label="s.name" target="_blank" rel="noreferrer"
-              class="flex h-7 w-7 items-center justify-center rounded-md bg-slate-800 text-slate-400 transition-colors hover:bg-brand-700 hover:text-white">
-              <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <!-- eslint-disable-next-line vue/no-v-html -->
-                <g v-html="SOCIAL_ICONS[s.icon] ?? ''" />
-              </svg>
+              class="flex h-6 w-6 items-center justify-center rounded-md bg-slate-800 text-slate-400 hover:bg-brand-700 hover:text-white transition-colors">
+              <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><g v-html="SOCIAL_ICONS[s.icon] ?? ''" /></svg>
             </a>
           </div>
-
-          <div class="mt-4 flex items-center gap-2 text-xs text-slate-500">
-            <span class="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
-            24/7 support available
+          <div class="mt-3 flex items-center gap-1.5 text-xs text-slate-600">
+            <span class="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" /> 24/7 support
+          </div>
+          <div class="mt-3 rounded-lg bg-slate-800 px-3 py-2">
+            <p class="text-xs text-slate-500 leading-snug">Model papers for academic reference only.</p>
           </div>
         </div>
 
-        <!-- Col 2: Writing Services -->
+        <!-- Col 2 -->
         <div>
-          <h4 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">Writing</h4>
-          <ul class="space-y-2">
-            <li v-for="s in writingServices" :key="s.href">
-              <NuxtLink :href="s.href" class="text-xs text-slate-400 transition-colors hover:text-white">{{ s.label }}</NuxtLink>
+          <h4 class="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Writing</h4>
+          <ul class="space-y-1.5">
+            <li v-for="s in col2" :key="s.href">
+              <NuxtLink :href="s.href" class="text-xs text-slate-400 hover:text-white transition-colors">{{ s.label }}</NuxtLink>
             </li>
           </ul>
         </div>
 
-        <!-- Col 3: Specialty Services -->
+        <!-- Col 3 -->
         <div>
-          <h4 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">Specialty</h4>
-          <ul class="space-y-2">
-            <li v-for="s in specialtyServices" :key="s.href">
-              <NuxtLink :href="s.href" class="text-xs text-slate-400 transition-colors hover:text-white">{{ s.label }}</NuxtLink>
+          <h4 class="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Clinical</h4>
+          <ul class="space-y-1.5">
+            <li v-for="s in col3" :key="s.href">
+              <NuxtLink :href="s.href" class="text-xs text-slate-400 hover:text-white transition-colors">{{ s.label }}</NuxtLink>
             </li>
           </ul>
         </div>
 
-        <!-- Col 4: Quick Links -->
+        <!-- Col 4 -->
         <div>
-          <h4 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">Quick Links</h4>
-          <ul class="space-y-2">
-            <li v-for="s in quickLinks" :key="s.href">
-              <NuxtLink :href="s.href" class="text-xs text-slate-400 transition-colors hover:text-white">{{ s.label }}</NuxtLink>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Col 5: Resources / Blog -->
-        <div>
-          <h4 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">Resources</h4>
-          <ul class="space-y-2">
-            <li v-for="s in resourceLinks" :key="s.href">
-              <NuxtLink :href="s.href" class="text-xs text-slate-400 transition-colors hover:text-white" :class="s.label.endsWith('→') ? 'font-semibold text-brand-400 hover:text-brand-300' : ''">
+          <h4 class="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Specialty</h4>
+          <ul class="space-y-1.5">
+            <li v-for="s in col4" :key="s.href">
+              <NuxtLink :href="s.href"
+                class="text-xs transition-colors"
+                :class="s.label.endsWith('→') ? 'font-semibold text-brand-400 hover:text-brand-300' : 'text-slate-400 hover:text-white'">
                 {{ s.label }}
               </NuxtLink>
             </li>
           </ul>
         </div>
 
-        <!-- Col 6: Legal -->
+        <!-- Col 5 -->
         <div>
-          <h4 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">Legal</h4>
-          <ul class="space-y-2">
-            <li v-for="s in legalLinks" :key="s.href">
-              <NuxtLink :href="s.href" class="text-xs text-slate-400 transition-colors hover:text-white">{{ s.label }}</NuxtLink>
+          <h4 class="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Quick Links</h4>
+          <ul class="space-y-1.5">
+            <li v-for="s in col5" :key="s.href">
+              <NuxtLink :href="s.href" class="text-xs text-slate-400 hover:text-white transition-colors">{{ s.label }}</NuxtLink>
             </li>
           </ul>
-          <div class="mt-6 rounded-xl bg-slate-800 p-4">
-            <p class="text-xs font-semibold text-slate-300">Academic use only</p>
-            <p class="mt-1 text-xs text-slate-500 leading-relaxed">Papers are model documents for reference and study purposes only.</p>
-          </div>
+        </div>
+
+        <!-- Col 6 -->
+        <div>
+          <h4 class="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Resources</h4>
+          <ul class="space-y-1.5">
+            <li v-for="s in col6" :key="s.href">
+              <NuxtLink :href="s.href"
+                class="text-xs transition-colors"
+                :class="s.label.endsWith('→') ? 'font-semibold text-brand-400 hover:text-brand-300' : 'text-slate-400 hover:text-white'">
+                {{ s.label }}
+              </NuxtLink>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Col 7 -->
+        <div>
+          <h4 class="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Company</h4>
+          <ul class="space-y-1.5">
+            <li v-for="s in col7" :key="s.href">
+              <NuxtLink :href="s.href" class="text-xs text-slate-400 hover:text-white transition-colors">{{ s.label }}</NuxtLink>
+            </li>
+          </ul>
         </div>
 
       </div>

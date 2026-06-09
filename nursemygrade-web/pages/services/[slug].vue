@@ -263,24 +263,26 @@ useHead({
       </div>
     </div>
 
-    <!-- ── CMS Editorial Content ─────────────────────────────────────────
-         Edited in Wagtail by admins/editors. Drives SEO for this service.
-         Only rendered when content has been published for this service slug.
+    <!-- ── Long-form editorial content ─────────────────────────────────────
+         When Wagtail content exists: renders the StreamField blocks entered
+         by staff for this service. When not yet added: renders a structured
+         static layout built from the service's core data so the page is
+         always complete and SEO-ready.
     ──────────────────────────────────────────────────────────────────── -->
-    <div v-if="hasCmsContent || cmsLoading" class="border-t border-slate-100 bg-white">
-      <div class="section max-w-4xl">
+    <div class="border-t border-slate-100 bg-white">
+      <div class="section max-w-5xl">
 
-        <!-- Skeleton while fetching -->
-        <div v-if="cmsLoading" class="space-y-4">
-          <div class="h-8 w-2/3 animate-pulse rounded-lg bg-slate-100" />
-          <div class="h-4 w-full animate-pulse rounded bg-slate-100" />
-          <div class="h-4 w-5/6 animate-pulse rounded bg-slate-100" />
-          <div class="h-4 w-4/5 animate-pulse rounded bg-slate-100" />
+        <!-- Loading skeleton -->
+        <div v-if="cmsLoading" class="space-y-6">
+          <div v-for="i in 4" :key="i" class="space-y-3">
+            <div class="h-7 w-1/2 animate-pulse rounded-lg bg-slate-100" />
+            <div class="h-4 w-full animate-pulse rounded bg-slate-100" />
+            <div class="h-4 w-5/6 animate-pulse rounded bg-slate-100" />
+          </div>
         </div>
 
-        <!-- Rendered StreamField blocks -->
+        <!-- CMS content from Wagtail — rendered when staff have added it -->
         <template v-else-if="hasCmsContent && cmsPage">
-          <!-- Reviewed-by badge if set -->
           <div v-if="cmsPage.reviewer" class="mb-8 flex items-center gap-2 text-sm text-slate-500">
             <Icon name="check-circle" class="h-4 w-4 text-brand-500" />
             Reviewed by <strong class="text-slate-700">{{ cmsPage.reviewer.name }}</strong>
@@ -288,10 +290,7 @@ useHead({
               · Updated {{ new Date(cmsPage.last_substantive_update).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }}
             </span>
           </div>
-
           <ServicePageBody :blocks="cmsPage.body" />
-
-          <!-- CTA if set differently from default -->
           <div v-if="cmsPage.primary_cta_text && cmsPage.primary_cta_url" class="mt-10 text-center">
             <NuxtLink :href="cmsPage.primary_cta_url" class="btn-primary px-10 py-4 text-base">
               {{ cmsPage.primary_cta_text }}
@@ -299,7 +298,138 @@ useHead({
           </div>
         </template>
 
+        <!-- Static fallback — generated from service data; replaced by CMS content above once staff add it -->
+        <template v-else-if="service">
+          <div class="grid gap-16 lg:grid-cols-[1fr_340px]">
+
+            <!-- Left: editorial content -->
+            <div class="prose prose-slate prose-lg max-w-none
+                         prose-headings:font-serif prose-headings:font-bold
+                         prose-a:text-brand-600 prose-strong:text-slate-900">
+
+              <h2>Why {{ service.navLabel }} Matters for Nursing Students</h2>
+              <p>{{ displayHero.sub }}</p>
+              <p>
+                Nursing programmes are demanding. Between clinical rotations, simulation labs, pharmacology exams,
+                and family responsibilities, producing high-quality academic work consistently is genuinely difficult.
+                That's why thousands of nursing students — from first-year ADN programmes through DNP candidacy — rely
+                on qualified nursing professionals to support their academic writing.
+              </p>
+
+              <h2>What Sets Our Approach to {{ service.navLabel }} Apart</h2>
+              <div class="not-prose grid gap-4 sm:grid-cols-2 my-6">
+                <div v-for="(item, i) in service.includes" :key="item"
+                  class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                  <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">{{ i + 1 }}</span>
+                  <span class="text-sm text-slate-700 leading-relaxed">{{ item }}</span>
+                </div>
+              </div>
+
+              <h2>What You Receive</h2>
+              <ul>
+                <li v-for="item in service.delivers" :key="item">{{ item }}</li>
+              </ul>
+
+              <h2>Who This Service is For</h2>
+              <p>{{ service.whoFor }}</p>
+
+              <h2>We Understand Your Challenges as a Nursing Student</h2>
+              <p>
+                Nursing coursework isn't just writing — it's demonstrating clinical reasoning, applying NANDA diagnoses
+                correctly, citing current evidence-based practice, and following APA 7th edition precisely, all while
+                managing clinical hours and personal commitments. Our writers are nurses who've done this themselves.
+                They write the way nursing instructors expect — because they know what nursing instructors expect.
+              </p>
+
+              <h3>Common Challenges We Solve</h3>
+              <ul>
+                <li><strong>Time constraints:</strong> Clinical rotations, exams, and life leave little time for academic writing. We work to your deadline — as fast as 3 hours.</li>
+                <li><strong>Clinical accuracy:</strong> Generic academic writers don't understand NANDA, NIC, NOC, or ADPIE. Our nurses do — it's what they use in practice.</li>
+                <li><strong>APA 7th edition:</strong> Nursing programmes require perfect APA 7th formatting. Every paper we deliver is correctly formatted.</li>
+                <li><strong>Evidence-based sources:</strong> We source from CINAHL, PubMed, Cochrane, and current peer-reviewed nursing journals — not Wikipedia or outdated textbooks.</li>
+              </ul>
+
+              <h2>How to Order {{ service.navLabel }}</h2>
+              <ol>
+                <li><strong>Submit your brief:</strong> Complete the order form with your assignment details, word count, deadline, and any rubric or patient scenario.</li>
+                <li><strong>Get matched:</strong> We assign a nurse writer whose clinical speciality matches your assignment within minutes.</li>
+                <li><strong>Track progress:</strong> Message your writer directly through your dashboard, share additional files, and follow real-time progress.</li>
+                <li><strong>Download and review:</strong> Receive your paper with a free Turnitin report. Request unlimited free revisions within the review window.</li>
+              </ol>
+
+            </div>
+
+            <!-- Right: sticky conversion panel -->
+            <div class="space-y-5 lg:sticky lg:top-24 lg:self-start">
+
+              <!-- Price card -->
+              <div class="rounded-2xl bg-brand-900 p-6 text-white">
+                <div class="flex items-start justify-between mb-4">
+                  <div>
+                    <p class="text-sm text-brand-300">Starting from</p>
+                    <p class="text-4xl font-bold">${{ displayPrice }}<span class="text-lg font-normal text-brand-300">/page</span></p>
+                  </div>
+                  <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
+                    <Icon :name="displayIcon" class="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <NuxtLink to="/order"
+                  class="block w-full rounded-xl bg-white py-3.5 text-center text-base font-bold text-brand-700 hover:bg-brand-50 transition-colors">
+                  Place an order
+                </NuxtLink>
+                <NuxtLink to="/contact"
+                  class="mt-2 block w-full rounded-xl border border-white/20 py-2.5 text-center text-sm font-semibold text-brand-200 hover:bg-white/10 transition-colors">
+                  Talk to us first
+                </NuxtLink>
+              </div>
+
+              <!-- Nursing FAQ -->
+              <div class="rounded-2xl border border-slate-100 bg-white p-5">
+                <p class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Common questions</p>
+                <div class="divide-y divide-slate-100">
+                  <div v-for="faq in [
+                    { q: 'How fast can you deliver?', a: 'As fast as 3 hours for urgent orders. Most papers are matched with a writer within minutes of placing your order.' },
+                    { q: 'Are your writers real nurses?', a: 'Yes. Every writer holds at minimum a BSN with active clinical experience. MSN and DNP writers are available for advanced work.' },
+                    { q: 'What if I need revisions?', a: 'Unlimited free revisions within the revision window — always handled by your original writer.' },
+                  ]" :key="faq.q" class="py-3">
+                    <p class="text-sm font-semibold text-slate-900">{{ faq.q }}</p>
+                    <p class="mt-1 text-xs text-slate-500 leading-relaxed">{{ faq.a }}</p>
+                  </div>
+                </div>
+                <NuxtLink href="/contact" class="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline">
+                  More questions → talk to our team
+                </NuxtLink>
+              </div>
+
+              <!-- Testimonial -->
+              <div class="rounded-2xl border border-brand-100 bg-brand-50 p-5">
+                <div class="flex gap-0.5 mb-3">
+                  <svg v-for="i in 5" :key="i" class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                  </svg>
+                </div>
+                <p class="text-sm text-slate-700 italic leading-relaxed">"I was drowning in assignments during my clinical rotation. NurseMyGrade matched me with an MSN writer who clearly understood nursing — not just writing. Got an A."</p>
+                <p class="mt-3 text-xs font-semibold text-slate-600">— BSN Student, University of Florida</p>
+              </div>
+
+            </div>
+          </div>
+        </template>
+
       </div>
+    </div>
+
+    <!-- Final CTA strip -->
+    <div v-if="service" class="bg-brand-700 py-12 text-center">
+      <h2 class="font-serif text-2xl font-bold text-white sm:text-3xl">
+        Ready to get your {{ service.navLabel.toLowerCase() }} done?
+      </h2>
+      <p class="mt-3 text-brand-100">
+        A qualified nursing writer is ready. Grade guaranteed or full refund.
+      </p>
+      <NuxtLink to="/order" class="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-bold text-brand-700 hover:bg-brand-50 transition-colors shadow-lg">
+        Place an order — from ${{ displayPrice }}/page
+      </NuxtLink>
     </div>
 
   </div>
