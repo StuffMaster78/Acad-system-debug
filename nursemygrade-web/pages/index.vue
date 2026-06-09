@@ -279,6 +279,9 @@ useHead({
     </div>
   </section>
 
+  <!-- ─── Deep content tabs ───────────────────────────────────────────── -->
+  <NursingContentTabs />
+
   <!-- ─── Testimonials ──────────────────────────────────────────────────── -->
   <TestimonialsSection />
 

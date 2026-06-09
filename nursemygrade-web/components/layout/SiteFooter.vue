@@ -2,14 +2,11 @@
 const portal = usePortalStore()
 const year = new Date().getFullYear()
 
-// CMS-driven — new service pages created in Wagtail appear automatically
-const cmsServices = useCmsServiceList()
-const serviceLinks = computed(() =>
-  cmsServices.value.slice(0, 8).map(s => ({
-    label: s.navLabel,
-    href: `/services/${s.slug}`,
-  }))
-)
+// Static nursing services — always available, CMS enriches in production
+const { getAll } = useServices()
+const allNursingServices = getAll()
+const serviceColA = computed(() => allNursingServices.slice(0, 6))
+const serviceColB = computed(() => allNursingServices.slice(6))
 
 const companyLinks = [
   { label: 'About',           href: '/about' },
@@ -82,14 +79,13 @@ const trustItems = [
 
     <!-- Main footer grid -->
     <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-2 gap-10 md:grid-cols-4 lg:grid-cols-[2fr_1fr_1fr_1fr]">
+      <div class="grid grid-cols-2 gap-10 md:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
 
         <!-- Brand column -->
         <div class="col-span-2 md:col-span-1">
           <span class="font-serif text-xl font-bold text-white">{{ portal.brandName }}</span>
           <p class="mt-3 text-sm text-slate-400 leading-relaxed">{{ portal.tagline }}</p>
 
-          <!-- Social icons — only rendered when URLs are configured in Wagtail -->
           <div v-if="social.length" class="mt-6 flex flex-wrap gap-3">
             <a
               v-for="s in social"
@@ -106,29 +102,37 @@ const trustItems = [
               </svg>
             </a>
           </div>
-          <p v-else class="mt-4 text-xs text-slate-600 italic">
-            Social links can be set in the admin under Website Branding.
-          </p>
 
-          <!-- 24/7 indicator -->
           <div class="mt-5 flex items-center gap-2 text-sm text-slate-400">
-            <span class="inline-block h-2 w-2 rounded-full bg-green-500"></span>
+            <span class="inline-block h-2 w-2 rounded-full bg-green-500" />
             24/7 support available
           </div>
         </div>
 
-        <!-- Services links -->
+        <!-- Services col A (first 6) -->
         <div>
-          <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Services</h4>
-          <ul class="mt-4 space-y-3">
-            <li v-for="link in serviceLinks" :key="link.href">
-              <NuxtLink :href="link.href" class="text-sm text-slate-400 transition-colors hover:text-white">
-                {{ link.label }}
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Writing</h4>
+          <ul class="mt-4 space-y-2.5">
+            <li v-for="s in serviceColA" :key="s.slug">
+              <NuxtLink :href="`/services/${s.slug}`" class="text-sm text-slate-400 transition-colors hover:text-white">
+                {{ s.navLabel }}
+              </NuxtLink>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Services col B (remaining) -->
+        <div>
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Simulations</h4>
+          <ul class="mt-4 space-y-2.5">
+            <li v-for="s in serviceColB" :key="s.slug">
+              <NuxtLink :href="`/services/${s.slug}`" class="text-sm text-slate-400 transition-colors hover:text-white">
+                {{ s.navLabel }}
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink href="/services" class="text-xs font-medium text-brand-400 hover:text-brand-300">
-                View all services →
+              <NuxtLink href="/services" class="mt-1 inline-block text-xs font-semibold text-brand-400 hover:text-brand-300">
+                All services →
               </NuxtLink>
             </li>
           </ul>
@@ -137,7 +141,7 @@ const trustItems = [
         <!-- Company links -->
         <div>
           <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Company</h4>
-          <ul class="mt-4 space-y-3">
+          <ul class="mt-4 space-y-2.5">
             <li v-for="link in companyLinks" :key="link.href">
               <NuxtLink :href="link.href" class="text-sm text-slate-400 transition-colors hover:text-white">
                 {{ link.label }}
@@ -149,7 +153,7 @@ const trustItems = [
         <!-- Legal links -->
         <div>
           <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Legal</h4>
-          <ul class="mt-4 space-y-3">
+          <ul class="mt-4 space-y-2.5">
             <li v-for="link in legalLinks" :key="link.href">
               <NuxtLink :href="link.href" class="text-sm text-slate-400 transition-colors hover:text-white">
                 {{ link.label }}

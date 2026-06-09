@@ -23,6 +23,535 @@ export interface BlogPost {
 }
 
 const posts: BlogPost[] = [
+  // ── Nursing-specific posts ────────────────────────────────────────────
+  {
+    slug: 'nursing-care-plan-guide',
+    title: 'How to Write a Nursing Care Plan — Steps, Tips & NANDA Format',
+    excerpt: 'A step-by-step guide to writing a clinically accurate nursing care plan using NANDA-I diagnoses, NIC interventions, and NOC outcomes — with a worked patient example.',
+    date: '2024-07-27',
+    readTime: '12 min read',
+    category: 'Nursing Papers',
+    body: `
+<p>The nursing care plan is one of the most common — and most graded — assignments in nursing school. Whether you're in your fundamentals course or an advanced clinical practicum, the care plan follows the same structure: assessment, diagnosis, planning, implementation, and evaluation (ADPIE). Here's how to write one that earns full marks.</p>
+
+<h2>What is a Nursing Care Plan?</h2>
+<p>A nursing care plan (NCP) is a formal document that outlines a patient's nursing diagnoses, goals, planned interventions, and expected outcomes. It guides the nursing team in providing individualized, evidence-based care and demonstrates clinical reasoning to your instructor.</p>
+
+<h2>Step 1: Complete a Thorough Patient Assessment</h2>
+<p>Before you can write a care plan, you need data. Collect subjective data (what the patient tells you — pain level, history, complaints) and objective data (vital signs, lab values, physical exam findings). Organise this using a head-to-toe or systems approach.</p>
+<ul>
+  <li><strong>Subjective:</strong> "My chest hurts when I breathe deeply." (Chief complaint)</li>
+  <li><strong>Objective:</strong> SpO2 91%, respiratory rate 22, dull breath sounds on the left</li>
+</ul>
+
+<h2>Step 2: Write Your NANDA-I Nursing Diagnoses</h2>
+<p>A nursing diagnosis is different from a medical diagnosis. Use NANDA-I approved terminology. The standard format is:</p>
+<p><em>[Nursing diagnosis] related to [etiology/cause] as evidenced by [defining characteristics]</em></p>
+<p>Example: <em>Impaired Gas Exchange related to alveolar-capillary membrane changes as evidenced by SpO2 of 91%, tachypnea (RR 22), and patient report of dyspnea on exertion.</em></p>
+<p>Prioritise diagnoses using Maslow's hierarchy — life-threatening physiological problems come first.</p>
+
+<h2>Step 3: Write SMART Goals (NOC)</h2>
+<p>Goals should be Specific, Measurable, Achievable, Realistic, and Time-bound. Link each goal to a Nursing Outcomes Classification (NOC) label where possible.</p>
+<ul>
+  <li><strong>Short-term:</strong> Patient will demonstrate SpO2 ≥ 94% within 4 hours of oxygen therapy initiation.</li>
+  <li><strong>Long-term:</strong> Patient will report improved breathing comfort and ambulate 50 feet without desaturation by discharge.</li>
+</ul>
+
+<h2>Step 4: Plan Your NIC Interventions with Rationale</h2>
+<p>For each goal, list 3–5 evidence-based nursing interventions using Nursing Interventions Classification (NIC) terminology. Always include a rationale — your instructor wants to know <em>why</em> you're doing it, not just what.</p>
+<ul>
+  <li>Administer supplemental oxygen as ordered (rationale: increases FiO2 to improve alveolar diffusion)</li>
+  <li>Position patient in semi-Fowler's position (rationale: maximises diaphragmatic excursion and reduces WOB)</li>
+  <li>Encourage incentive spirometry q1h while awake (rationale: prevents atelectasis and promotes deep lung expansion)</li>
+  <li>Monitor SpO2 continuously and document (rationale: detects deterioration early and guides oxygen titration)</li>
+</ul>
+
+<h2>Step 5: Evaluate and Document Outcomes</h2>
+<p>After implementing interventions, document whether goals were met, partially met, or not met — with evidence from your reassessment. If goals were not met, revise the plan. This is the evaluation phase of ADPIE.</p>
+
+<h2>Common Nursing Care Plan Mistakes to Avoid</h2>
+<ul>
+  <li>Using medical diagnoses instead of NANDA nursing diagnoses</li>
+  <li>Writing goals that are not measurable ("patient will feel better")</li>
+  <li>Forgetting to include rationale for each intervention</li>
+  <li>Listing interventions without prioritising by urgency</li>
+  <li>Not linking assessment data to the nursing diagnosis</li>
+</ul>
+    `,
+  },
+  {
+    slug: 'soap-notes-guide-for-nursing-students',
+    title: 'How to Write a SOAP Note for Nursing — Format, Tips & Examples',
+    excerpt: 'Master the Subjective, Objective, Assessment, and Plan format for clinical documentation. Includes a complete worked SOAP note example for nursing students.',
+    date: '2024-09-04',
+    readTime: '7 min read',
+    category: 'Nursing Papers',
+    body: `
+<p>SOAP notes are the standard format for clinical documentation across nursing, medicine, and allied health. Whether you're completing a Shadow Health DCE, writing up a clinical encounter for coursework, or practising for your NP programme, mastering this format is essential.</p>
+
+<h2>What Does SOAP Stand For?</h2>
+<ul>
+  <li><strong>S — Subjective:</strong> What the patient tells you (symptoms, history, complaints in their own words)</li>
+  <li><strong>O — Objective:</strong> What you observe and measure (vital signs, physical exam findings, lab values)</li>
+  <li><strong>A — Assessment:</strong> Your clinical interpretation (diagnoses, differential diagnoses)</li>
+  <li><strong>P — Plan:</strong> What you're going to do about it (treatments, referrals, medications, patient education, follow-up)</li>
+</ul>
+
+<h2>S — Subjective Section</h2>
+<p>Start with the chief complaint (CC) in the patient's own words: "My knee has been swollen and painful for three days." Follow with the History of Present Illness (HPI) using the OLDCARTS or OPQRST mnemonic. Include relevant past medical history, medications, allergies, family history, social history, and review of systems (ROS).</p>
+
+<h2>O — Objective Section</h2>
+<p>Document everything you can measure, observe, or test:</p>
+<ul>
+  <li>Vital signs: BP, HR, RR, Temp, SpO2, Weight/BMI</li>
+  <li>Physical exam findings by system (General → Head → Cardiovascular → Respiratory → etc.)</li>
+  <li>Lab values, imaging results, diagnostic test findings</li>
+</ul>
+<p>Be precise: "2+ pitting oedema bilateral lower extremities to mid-calf" is better than "swollen legs."</p>
+
+<h2>A — Assessment Section</h2>
+<p>State your primary diagnosis and any differentials you're ruling out. In the NP setting, use ICD-10 codes. For student SOAP notes, a clear clinical statement with supporting evidence is usually sufficient:</p>
+<p><em>Assessment: Right knee effusion, likely reactive arthritis, differential includes gout and septic arthritis given joint warmth and erythema.</em></p>
+
+<h2>P — Plan Section</h2>
+<p>The plan is the most important section for advanced practice students. Organise it clearly:</p>
+<ul>
+  <li><strong>Diagnostics:</strong> Labs ordered, imaging, cultures</li>
+  <li><strong>Medications:</strong> Drug, dose, route, frequency, duration</li>
+  <li><strong>Referrals:</strong> To which specialist and why</li>
+  <li><strong>Patient education:</strong> What you taught, how, and the patient's response</li>
+  <li><strong>Follow-up:</strong> When and under what conditions to return</li>
+</ul>
+
+<h2>SOAP Note Tips for Shadow Health Assignments</h2>
+<p>Shadow Health grads your SOAP notes on clinical completeness and reasoning quality. Key tips:</p>
+<ul>
+  <li>Don't skip the Review of Systems — Shadow Health specifically grades ROS completeness</li>
+  <li>Use proper clinical terminology, not lay language</li>
+  <li>Your Assessment must connect to objective findings from the Objective section</li>
+  <li>The Plan must address every problem identified in the Assessment</li>
+</ul>
+    `,
+  },
+  {
+    slug: 'apa-7th-edition-guide-nursing-papers',
+    title: 'APA 7th Edition Guide for Nursing Papers — Everything You Need',
+    excerpt: 'A complete APA 7th edition reference for nursing students: in-text citations, reference list formatting, headings, DOI usage, and the most common mistakes.',
+    date: '2026-06-02',
+    readTime: '10 min read',
+    category: 'Citation & Format',
+    body: `
+<p>APA 7th edition is the citation and formatting standard for most nursing programmes in the US, UK, Australia, and Canada. Whether you're writing a care plan, research paper, capstone project, or discussion post, APA 7th applies. Here's a complete reference guide.</p>
+
+<h2>Key Changes from APA 6th to 7th Edition</h2>
+<ul>
+  <li>Running head is no longer required for student papers</li>
+  <li>Up to 20 authors can be listed before using an ellipsis (was 6)</li>
+  <li>DOI format changed to hyperlink style: https://doi.org/xxxx</li>
+  <li>One space after a period is now acceptable (was two)</li>
+  <li>Publisher location no longer required for books</li>
+</ul>
+
+<h2>Paper Formatting Basics</h2>
+<ul>
+  <li>Font: 12pt Times New Roman, 11pt Calibri, or 11pt Arial</li>
+  <li>Margins: 1 inch on all sides</li>
+  <li>Spacing: Double-spaced throughout (including references)</li>
+  <li>Indentation: 0.5 inch first line indent for all paragraphs</li>
+  <li>Page numbers: Top right corner, starting from page 1</li>
+</ul>
+
+<h2>APA 7th Headings for Nursing Papers</h2>
+<p>Use the five heading levels consistently. For most nursing papers (3–10 pages), you'll use Level 1 and Level 2 only:</p>
+<ul>
+  <li><strong>Level 1:</strong> Centred, Bold, Title Case</li>
+  <li><strong>Level 2:</strong> Left-aligned, Bold, Title Case</li>
+  <li><strong>Level 3:</strong> Left-aligned, Bold Italic, Title Case</li>
+</ul>
+
+<h2>In-Text Citation Format</h2>
+<p>Author-date format: (Smith, 2023) or Smith (2023) argued that…</p>
+<ul>
+  <li>One author: (Smith, 2023)</li>
+  <li>Two authors: (Smith & Jones, 2023)</li>
+  <li>Three or more: (Smith et al., 2023)</li>
+  <li>Direct quote: (Smith, 2023, p. 45)</li>
+  <li>Organisation: (American Nurses Association [ANA], 2022) — spell out first use</li>
+</ul>
+
+<h2>Reference List Format — Common Nursing Sources</h2>
+<p><strong>Journal article with DOI:</strong><br/>Smith, J. A., & Jones, B. C. (2023). Evidence-based interventions for pressure ulcer prevention. <em>Journal of Wound Care, 32</em>(4), 211–219. https://doi.org/10.12968/jowc.2023.32.4.211</p>
+<p><strong>Book:</strong><br/>Herdman, T. H., & Kamitsuru, S. (Eds.). (2021). <em>NANDA International nursing diagnoses: Definitions and classification 2021–2023</em> (12th ed.). Thieme.</p>
+<p><strong>Website/organisational report:</strong><br/>American Nurses Association. (2023). <em>Nursing: Scope and standards of practice</em> (4th ed.). https://www.nursingworld.org</p>
+
+<h2>Most Common APA 7th Mistakes in Nursing Papers</h2>
+<ul>
+  <li>Using APA 6th rules (especially running head)</li>
+  <li>Not italicising journal title and volume number</li>
+  <li>Missing DOI or using old doi: format instead of https://doi.org/</li>
+  <li>Incorrect hanging indent on reference list</li>
+  <li>Using "et al." for two authors (only use for three+)</li>
+  <li>Forgetting the ampersand (&) before the last author in reference list</li>
+</ul>
+    `,
+  },
+  {
+    slug: 'nursing-picot-question-examples',
+    title: 'PICOT Question Examples for Nursing Research (2026 Guide)',
+    excerpt: 'What is a PICOT question, how do you write one, and what do strong PICOT examples look like? A practical guide for BSN, MSN, and DNP nursing students.',
+    date: '2026-06-02',
+    readTime: '11 min read',
+    category: 'Capstone & Research',
+    body: `
+<p>The PICOT question is the foundation of evidence-based practice (EBP) in nursing. It frames your research question in a structured way that guides your literature search, your evidence appraisal, and your entire capstone or EBP project. Here's how to write one — with 15 real examples across nursing specialities.</p>
+
+<h2>What Does PICOT Stand For?</h2>
+<ul>
+  <li><strong>P — Population/Patient:</strong> Who are you studying? (Age group, diagnosis, setting)</li>
+  <li><strong>I — Intervention:</strong> What are you proposing or examining?</li>
+  <li><strong>C — Comparison:</strong> What is the current standard or alternative?</li>
+  <li><strong>O — Outcome:</strong> What do you want to measure?</li>
+  <li><strong>T — Timeframe:</strong> Over what period? (Optional in some formats)</li>
+</ul>
+
+<h2>PICOT Question Format</h2>
+<p>The standard sentence structure is: <em>"In [P], does [I] compared to [C] result in [O] within [T]?"</em></p>
+
+<h2>PICOT Examples by Nursing Speciality</h2>
+
+<h3>Medical-Surgical Nursing</h3>
+<p>In adult post-surgical patients (P), does early ambulation within 24 hours of surgery (I) compared to standard ambulation protocols (C) reduce the incidence of deep vein thrombosis (O) within the first week post-operatively (T)?</p>
+
+<h3>Psychiatric / Mental Health Nursing</h3>
+<p>In adult inpatients with schizophrenia (P), does structured therapeutic group therapy (I) compared to individual medication management alone (C) improve medication adherence rates (O) over a 6-month period (T)?</p>
+
+<h3>Paediatric Nursing</h3>
+<p>In paediatric patients aged 2–12 undergoing IV insertion (P), does the use of topical anaesthetic cream (I) compared to no topical anaesthesia (C) reduce self-reported pain scores (O) at time of procedure (T)?</p>
+
+<h3>Community Health Nursing</h3>
+<p>In adults with Type 2 diabetes living in rural communities (P), does a nurse-led telehealth coaching programme (I) compared to standard in-person clinic visits (C) improve HbA1c levels (O) over 12 months (T)?</p>
+
+<h3>Critical Care</h3>
+<p>In mechanically ventilated adult ICU patients (P), does daily spontaneous awakening and breathing trials (I) compared to continuous sedation (C) reduce ventilator-associated pneumonia rates and ICU length of stay (O)?</p>
+
+<h3>Gerontological Nursing</h3>
+<p>In nursing home residents aged 75+ with a fall history (P), does a structured fall prevention programme including balance training and environmental modification (I) compared to standard fall precautions (C) reduce fall frequency (O) over 6 months (T)?</p>
+
+<h2>PICOT Tips for Capstone and EBP Projects</h2>
+<ul>
+  <li>Your PICOT should be narrow enough to find 5–10 high-quality studies — too broad and your literature review becomes unmanageable</li>
+  <li>The Intervention must be something a nurse can implement — not a medical order</li>
+  <li>Your Outcome must be measurable — avoid vague outcomes like "improved wellbeing"</li>
+  <li>Use CINAHL, PubMed, and Cochrane to test whether your PICOT generates usable literature before committing to it</li>
+  <li>Most DNP programmes require a PICOT that aligns with the organisation's strategic priorities — check before finalising</li>
+</ul>
+    `,
+  },
+  {
+    slug: 'ihuman-tips-help-and-tricks',
+    title: 'iHuman Tips and Tricks for Nursing Students (How to Score Higher)',
+    excerpt: 'Struggling with iHuman virtual patient cases? These tips from experienced NP students and clinical nurses will help you think more clearly and score better.',
+    date: '2023-08-17',
+    readTime: '7 min read',
+    category: 'Clinical Simulations',
+    body: `
+<p>iHuman is a virtual patient platform widely used in NP, PA, and advanced nursing programmes. Cases challenge you to take a thorough history, perform a focused physical exam, develop a ranked differential diagnosis, and create a management plan. Here's how to approach them strategically.</p>
+
+<h2>Understand How iHuman is Scored</h2>
+<p>iHuman scores you on three main areas: history completeness, physical exam appropriateness, and clinical reasoning quality. Many students focus on the diagnosis and neglect the history — which is where most of the marks are lost.</p>
+
+<h2>Master the History Section First</h2>
+<p>The history is worth the most in most iHuman cases. Use a structured approach:</p>
+<ul>
+  <li>Start with the Chief Complaint and HPI (OLDCARTS or OPQRST)</li>
+  <li>Always ask about medications, allergies, PMH, family history, and social history</li>
+  <li>Complete the full Review of Systems — don't skip systems because they seem unrelated</li>
+  <li>iHuman rewards thoroughness in history over selectivity</li>
+</ul>
+
+<h2>Physical Exam Strategy</h2>
+<p>Only perform exam components that are clinically indicated — iHuman penalises for irrelevant tests. But be thorough within the relevant systems. For a chest pain case, examine cardiovascular, respiratory, and musculoskeletal. Don't examine the ear unless there's a clinical reason.</p>
+
+<h2>Building Your Differential Diagnosis</h2>
+<p>iHuman wants you to think like a clinician, not just guess the answer. Build your differential systematically:</p>
+<ol>
+  <li>List all diagnoses consistent with the chief complaint and initial history</li>
+  <li>Use your physical exam and history to rank them by probability</li>
+  <li>Include the "must not miss" diagnoses even if less likely (e.g., always include PE and ACS in chest pain)</li>
+  <li>Support each differential with specific evidence from your H&P</li>
+</ol>
+
+<h2>The Problem Statement and Assessment</h2>
+<p>Write a concise problem statement that includes the patient's age, sex, key symptoms, exam findings, and time course. This is different from your diagnosis — it's a clinical summary that sets up your reasoning.</p>
+
+<h2>Common iHuman Mistakes</h2>
+<ul>
+  <li>Skipping ROS sections that seem unrelated to the chief complaint</li>
+  <li>Not asking about substance use, sexual history, or occupation — these are often key</li>
+  <li>Listing only one or two differentials instead of a full ranked list</li>
+  <li>Writing diagnoses without supporting evidence from the case</li>
+  <li>Ordering every possible lab instead of targeted diagnostics</li>
+</ul>
+
+<h2>If You're Really Stuck</h2>
+<p>If you need help completing an iHuman case, NurseMyGrade has experienced NP and clinical nurses who work with the platform daily. We can complete the case or review your approach — contact us to discuss your specific patient encounter.</p>
+    `,
+  },
+  {
+    slug: 'tips-for-succeeding-in-shadow-health-assessments',
+    title: 'Shadow Health Tips — How to Succeed in DCEs (A Nurse Student Guide)',
+    excerpt: 'Practical strategies for Shadow Health Digital Clinical Experiences including Tina Jones, Brian Foster, and Danny Rivera — improve your scores and clinical reasoning.',
+    date: '2024-08-08',
+    readTime: '8 min read',
+    category: 'Clinical Simulations',
+    body: `
+<p>Shadow Health is a virtual patient simulation platform used by hundreds of nursing programmes across the US. The Digital Clinical Experiences (DCEs) — led by patients like Tina Jones, Brian Foster, and Danny Rivera — test your ability to gather a complete history, conduct a focused assessment, and document your findings professionally. Here's how to approach them effectively.</p>
+
+<h2>The Most Common Shadow Health Patients</h2>
+<ul>
+  <li><strong>Tina Jones:</strong> Comprehensive health assessment — used in fundamentals and health assessment courses</li>
+  <li><strong>Brian Foster:</strong> Respiratory focus — dyspnoea, oxygen therapy, adventitious breath sounds</li>
+  <li><strong>Danny Rivera:</strong> Abdominal pain, GI assessment</li>
+  <li><strong>David Rodriguez:</strong> Mental health assessment, psychiatric nursing courses</li>
+  <li><strong>Sophia Turner:</strong> Maternal health, OB nursing</li>
+</ul>
+
+<h2>Start with a Complete Subjective Assessment</h2>
+<p>Shadow Health grades your history-taking more heavily than most students expect. Common scoring losses happen because students skip:</p>
+<ul>
+  <li>Review of Systems (all 14 body systems, not just the chief complaint)</li>
+  <li>Social history (smoking, alcohol, recreational drugs, sexual history, occupation)</li>
+  <li>Family history (first-degree relatives and specific conditions)</li>
+  <li>Medication reconciliation (current meds, OTCs, supplements, adherence)</li>
+</ul>
+<p>Ask every question even if it seems unrelated — Shadow Health rewards comprehensive history-taking.</p>
+
+<h2>Objective Assessment Strategy</h2>
+<p>Perform assessment techniques in a logical, head-to-toe order. Shadow Health flags when you perform exams out of sequence or skip standard components. For each system:</p>
+<ul>
+  <li>Inspect first, then palpate, percuss, auscultate (except abdomen: inspect → auscultate → percuss → palpate)</li>
+  <li>Document positive AND negative findings — "no lymphadenopathy" is just as important as noting a node</li>
+  <li>Use correct clinical terminology in your documentation</li>
+</ul>
+
+<h2>Documentation Tips for Higher Scores</h2>
+<p>Your SOAP note documentation is where a lot of marks are earned or lost:</p>
+<ul>
+  <li>Use SBAR or SOAP format as required by your specific DCE</li>
+  <li>Quantify everything: pain is "6/10", oedema is "2+ pitting to mid-calf"</li>
+  <li>Your Assessment must link directly to your Objective findings</li>
+  <li>The Plan must address every problem in the Assessment</li>
+  <li>Include patient education in the Plan section</li>
+</ul>
+
+<h2>Time Management During DCEs</h2>
+<p>Shadow Health DCEs are timed in most programmes. Budget your time:</p>
+<ul>
+  <li>History: 30–40% of your time</li>
+  <li>Physical exam: 25–30% of your time</li>
+  <li>Documentation: 30–35% of your time</li>
+</ul>
+
+<h2>If You Need Help</h2>
+<p>Shadow Health DCEs are genuinely demanding — especially when you're juggling clinical rotations, other coursework, and family responsibilities. NurseMyGrade has nurses who complete DCEs regularly and know exactly what the grading rubrics look for. Reach out if you need support.</p>
+    `,
+  },
+  {
+    slug: 'nursing-essay-how-to-write-guide',
+    title: 'How to Write a Nursing Essay — Steps, Tips, Outline & Example',
+    excerpt: 'A practical guide to writing nursing essays that score high. Covers structure, APA 7th edition, evidence-based content, reflective writing, and common mistakes.',
+    date: '2024-09-29',
+    readTime: '15 min read',
+    category: 'Nursing Papers',
+    body: `
+<p>Nursing essays test your ability to apply clinical knowledge, critical thinking, and academic writing in one document. They appear in every year of nursing school — from first-year reflective journals to MSN-level policy analyses. Here's a systematic approach to writing nursing essays that meet your programme's standards.</p>
+
+<h2>Types of Nursing Essays</h2>
+<ul>
+  <li><strong>Reflective essays:</strong> Personal experience analysed through a reflective framework (Gibbs, Johns, Driscoll)</li>
+  <li><strong>Argumentative essays:</strong> A position supported by evidence from nursing literature</li>
+  <li><strong>Analytical essays:</strong> Examination of a clinical issue, policy, or concept from multiple angles</li>
+  <li><strong>Case analysis essays:</strong> Application of nursing theory or EBP to a patient scenario</li>
+  <li><strong>Comparative essays:</strong> Comparing two nursing interventions, theories, or approaches</li>
+</ul>
+
+<h2>Before You Write: Understand the Brief</h2>
+<p>Read the assignment brief three times. Identify: the essay type, the word count, the required sources, the citation style (almost always APA 7th for US programmes), and the marking rubric. The rubric is your roadmap — every mark is listed there.</p>
+
+<h2>Nursing Essay Structure</h2>
+<p><strong>Introduction (10–15%):</strong> Introduce the topic, state your thesis or aim, and briefly outline the structure of your essay. Do not begin with a dictionary definition.</p>
+<p><strong>Body paragraphs (70–80%):</strong> Each paragraph covers one main idea. Start with a topic sentence, develop with evidence from peer-reviewed nursing sources, analyse the evidence, and link back to your thesis. Use the PEEL structure: Point, Evidence, Evaluate, Link.</p>
+<p><strong>Conclusion (10–15%):</strong> Summarise your main points, restate your thesis in light of the evidence, and note implications for nursing practice. Do not introduce new information.</p>
+
+<h2>Using Evidence in Nursing Essays</h2>
+<ul>
+  <li>Use peer-reviewed nursing journals published within the last 5–7 years</li>
+  <li>Databases: CINAHL, PubMed, Cochrane, MEDLINE</li>
+  <li>Hierarchy of evidence: Systematic reviews > RCTs > Cohort studies > Case studies > Expert opinion</li>
+  <li>Integrate evidence into your argument — don't just summarise it</li>
+  <li>Always cite: in-text citation every time you use someone else's idea</li>
+</ul>
+
+<h2>Writing a Nursing Reflective Essay</h2>
+<p>Reflective essays require you to use a framework. Gibbs' Reflective Cycle is the most common in nursing programmes:</p>
+<ol>
+  <li><strong>Description:</strong> What happened? (Factual, no judgement)</li>
+  <li><strong>Feelings:</strong> What were you thinking and feeling?</li>
+  <li><strong>Evaluation:</strong> What was good and bad about the experience?</li>
+  <li><strong>Analysis:</strong> What sense can you make of the situation? (Link to theory)</li>
+  <li><strong>Conclusion:</strong> What else could you have done?</li>
+  <li><strong>Action plan:</strong> What will you do differently next time?</li>
+</ol>
+    `,
+  },
+  {
+    slug: 'nursing-concept-map',
+    title: 'How to Make a Nursing Concept Map — A Student\'s Guide',
+    excerpt: 'Concept maps link pathophysiology, nursing diagnoses, interventions, and outcomes visually. Here\'s how to create one that earns full marks in any nursing course.',
+    date: '2024-09-25',
+    readTime: '10 min read',
+    category: 'Nursing Papers',
+    body: `
+<p>A nursing concept map is a visual tool that shows the relationships between a patient's medical condition, nursing diagnoses, clinical manifestations, interventions, and expected outcomes. Most nursing programmes require them in clinical courses to demonstrate your clinical reasoning.</p>
+
+<h2>What Goes in a Nursing Concept Map?</h2>
+<p>A complete concept map typically includes:</p>
+<ul>
+  <li>The central medical diagnosis (in the middle of the map)</li>
+  <li>Pathophysiology linked to the diagnosis</li>
+  <li>Signs and symptoms (clinical manifestations)</li>
+  <li>Priority nursing diagnoses (NANDA format)</li>
+  <li>Short and long-term patient goals (NOC)</li>
+  <li>Nursing interventions with rationale (NIC)</li>
+  <li>Evaluation criteria</li>
+</ul>
+
+<h2>Step-by-Step: Creating Your Concept Map</h2>
+<h3>Step 1: Place the Medical Diagnosis at the Centre</h3>
+<p>Write the primary medical diagnosis (e.g., "Heart Failure — HFrEF") in a box or circle at the centre of your page.</p>
+
+<h3>Step 2: Branch Out the Pathophysiology</h3>
+<p>Draw branches showing how the disease process causes each sign and symptom. For heart failure: reduced cardiac output → decreased renal perfusion → fluid retention → oedema and dyspnoea.</p>
+
+<h3>Step 3: Identify Priority Nursing Diagnoses</h3>
+<p>Using your assessment data and the pathophysiology, identify your top 3 NANDA-I nursing diagnoses. Connect each to the signs and symptoms that support it.</p>
+
+<h3>Step 4: Set Patient Goals (NOC)</h3>
+<p>For each nursing diagnosis, write at least one short-term and one long-term goal. Goals must be SMART and measurable.</p>
+
+<h3>Step 5: List Interventions (NIC) with Rationale</h3>
+<p>For each goal, list 3–4 evidence-based nursing interventions. Always include the rationale — this is what separates an excellent concept map from a basic one.</p>
+
+<h2>Concept Map Formats</h2>
+<p>Some programmes have a specific template; others allow free-form. Common formats include spider maps (one central node), hierarchical maps (top-down), and cross-shaped maps (diagnosis in centre, four quadrants for symptoms, diagnoses, interventions, outcomes).</p>
+
+<h2>Tools for Creating Nursing Concept Maps</h2>
+<ul>
+  <li>Hand-drawn on paper (most clinical courses accept this)</li>
+  <li>Microsoft Word SmartArt (quick, easy to edit)</li>
+  <li>Canva (good visual design, free templates)</li>
+  <li>Lucidchart or draw.io (best for complex multi-node maps)</li>
+  <li>MindMeister or Coggle (collaborative, online)</li>
+</ul>
+    `,
+  },
+  {
+    slug: 'how-to-write-a-nursing-capstone-paper',
+    title: 'Nursing Capstone Paper for BSN, MSN & DNP Students — Full Guide',
+    excerpt: 'What is a nursing capstone project, how is it structured, and how do you write one that passes? A step-by-step guide covering PICOT, literature review, and implementation.',
+    date: '2023-08-21',
+    readTime: '6 min read',
+    category: 'Capstone & Research',
+    body: `
+<p>The nursing capstone project is the culminating academic experience of your BSN, MSN, or DNP programme. It demonstrates your ability to identify a clinical problem, review the evidence, and develop a practice change or quality improvement initiative. Here's how to write one that meets your committee's standards.</p>
+
+<h2>What is a Nursing Capstone?</h2>
+<p>A nursing capstone (also called a scholarly project, evidence-based practice project, or DNP project) is a systematic investigation of a clinical practice problem. It differs from a thesis in that it focuses on applying existing evidence to practice change rather than generating new knowledge.</p>
+
+<h2>Capstone Project Structure</h2>
+<h3>Chapter 1: Introduction</h3>
+<p>Introduce the clinical problem, provide background and context, state your PICOT question, explain the significance to nursing practice, and preview the rest of the paper.</p>
+
+<h3>Chapter 2: Literature Review</h3>
+<p>Systematically search CINAHL, PubMed, and Cochrane for evidence addressing your PICOT. Synthesise (don't just summarise) the findings. Use an evidence appraisal tool (Johns Hopkins, CASP, GRADE) to evaluate each study. Identify gaps in the literature that your project addresses.</p>
+
+<h3>Chapter 3: Methodology / Project Design</h3>
+<p>Describe the EBP framework you're using (Iowa Model, ACE Star, Stetler, PDSA cycle). Explain your setting, population, implementation plan, and evaluation strategy. Include IRB/ethical review information.</p>
+
+<h3>Chapter 4: Implementation</h3>
+<p>Describe how you implemented the practice change. Include barriers encountered, facilitation strategies, stakeholder engagement, and a timeline. Use data and documentation to support this chapter.</p>
+
+<h3>Chapter 5: Results and Evaluation</h3>
+<p>Present your outcome data — did the intervention produce the expected results? Use tables and figures. Compare outcomes to your PICOT and to the baseline.</p>
+
+<h3>Chapter 6: Discussion and Conclusion</h3>
+<p>Interpret your results in light of the literature. Discuss implications for nursing practice, sustainability of the change, limitations, and recommendations for future projects.</p>
+
+<h2>Common Capstone Mistakes</h2>
+<ul>
+  <li>A PICOT question that's too broad — unable to find enough focused evidence</li>
+  <li>Summarising studies instead of synthesising them in the literature review</li>
+  <li>Not aligning the implementation chapter with the EBP framework chosen in Chapter 3</li>
+  <li>Weak or absent evaluation methodology — you must define how you'll measure outcomes before implementing</li>
+  <li>APA formatting errors in tables, figures, and appendices</li>
+</ul>
+    `,
+  },
+  {
+    slug: 'nursing-care-plan-nanda-diagnoses',
+    title: 'NANDA Nursing Diagnoses — A Complete Guide for Students',
+    excerpt: 'Understanding NANDA-I nursing diagnoses: how to choose the right one, write it in the correct three-part format, and prioritise when your patient has multiple diagnoses.',
+    date: '2023-07-27',
+    readTime: '11 min read',
+    category: 'Nursing Papers',
+    body: `
+<p>NANDA-I nursing diagnoses are the clinical judgements that form the foundation of the nursing care plan. Getting the diagnosis right — and writing it in the correct format — is essential for care plan accuracy and clinical competency. Here's a thorough guide.</p>
+
+<h2>What is a NANDA Nursing Diagnosis?</h2>
+<p>NANDA International (NANDA-I) publishes the official taxonomy of nursing diagnoses used worldwide. Unlike medical diagnoses (which describe disease states), nursing diagnoses describe the patient's response to a health condition — and what the nurse can do about it.</p>
+
+<h2>Three Types of NANDA Diagnoses</h2>
+<ul>
+  <li><strong>Problem-focused (actual) diagnosis:</strong> A clinical judgement about an existing problem. E.g., "Impaired Gas Exchange"</li>
+  <li><strong>Risk diagnosis:</strong> A clinical judgement about vulnerability to a problem. E.g., "Risk for Falls"</li>
+  <li><strong>Health promotion diagnosis:</strong> A clinical judgement about motivation to improve. E.g., "Readiness for Enhanced Knowledge"</li>
+</ul>
+
+<h2>The Three-Part Diagnostic Statement</h2>
+<p>Problem-focused diagnoses are written in the PES format:</p>
+<p><em>[Problem] related to [Etiology] as evidenced by [Signs & Symptoms]</em></p>
+<p>Example: <strong>Acute Pain</strong> related to <strong>surgical tissue trauma</strong> as evidenced by <strong>patient rating pain 8/10, guarding behaviour, and refusal to ambulate.</strong></p>
+<p>Note: Risk diagnoses do NOT include "as evidenced by" — only "related to."</p>
+
+<h2>Most Common NANDA Diagnoses in Nursing School</h2>
+<ul>
+  <li>Impaired Gas Exchange</li>
+  <li>Ineffective Airway Clearance</li>
+  <li>Decreased Cardiac Output</li>
+  <li>Fluid Volume Deficit (Deficient Fluid Volume)</li>
+  <li>Acute Pain / Chronic Pain</li>
+  <li>Impaired Physical Mobility</li>
+  <li>Risk for Infection</li>
+  <li>Imbalanced Nutrition: Less than Body Requirements</li>
+  <li>Anxiety</li>
+  <li>Knowledge Deficit (Deficient Knowledge)</li>
+  <li>Self-Care Deficit</li>
+  <li>Risk for Falls</li>
+</ul>
+
+<h2>Prioritising Nursing Diagnoses</h2>
+<p>When your patient has multiple nursing diagnoses, use Maslow's Hierarchy of Needs to prioritise:</p>
+<ol>
+  <li>Physiological needs first (airway, breathing, circulation)</li>
+  <li>Safety needs second (infection risk, fall risk)</li>
+  <li>Love/belonging (isolation, relationship disruption)</li>
+  <li>Esteem (self-concept, role disruption)</li>
+  <li>Self-actualisation last</li>
+</ol>
+<p>In a clinical emergency, always address ABCs (airway, breathing, circulation) before everything else.</p>
+    `,
+  },
+  // ── General academic writing posts (carry over) ─────────────────────
   {
     slug: 'how-to-write-a-research-paper-fast',
     title: 'How to Write a Research Paper Fast (A Student\'s Guide)',
@@ -2116,12 +2645,15 @@ const AUTHORS: Record<string, BlogAuthor> = {
 }
 
 const CATEGORY_AUTHORS: Record<string, BlogAuthor> = {
-  'Research Papers':   AUTHORS.emily,
-  'Dissertations':     AUTHORS.emily,
-  'Essays':            AUTHORS.james,
-  'Nursing Practice':  AUTHORS.james,
-  'Care Plans':        AUTHORS.sarah,
-  'Clinical Writing':  AUTHORS.sarah,
+  'Nursing Papers':        AUTHORS.james,
+  'Capstone & Research':   AUTHORS.emily,
+  'Clinical Simulations':  AUTHORS.sarah,
+  'Citation & Format':     AUTHORS.michael,
+  'Nursing School':        AUTHORS.michael,
+  'Career & Study':        AUTHORS.james,
+  'Research Papers':       AUTHORS.emily,
+  'Dissertations':         AUTHORS.emily,
+  'Essays':                AUTHORS.james,
 }
 
 function withAuthor(post: BlogPost): BlogPost {
