@@ -61,15 +61,9 @@ export default defineNuxtConfig({
   },
 
   sitemap: {
-    // Exclude auth, admin, and API routes
-    exclude: [
-      '/login', '/register', '/auth/**',
-    ],
-    // Fetch dynamic service slugs from Wagtail at build time
-    sources: [
-      '/api/v2/pages/?type=cms_service_pages.ServicePage&live=true&fields=slug&limit=100',
-      '/api/v2/pages/?type=cms_blog.BlogPostPage&live=true&fields=slug&limit=500',
-    ],
+    exclude: ['/login', '/register', '/auth/**'],
+    // Server route translates Wagtail API responses into [{loc}] format
+    sources: ['/api/_sitemap-urls'],
   },
 
   runtimeConfig: {
