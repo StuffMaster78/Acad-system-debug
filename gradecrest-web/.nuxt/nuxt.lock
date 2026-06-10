@@ -1,0 +1,9 @@
+{
+  "pid": 28610,
+  "startedAt": 1781119087720,
+  "command": "dev",
+  "cwd": "/Users/awwy/writing_project/gradecrest-web",
+  "port": 5174,
+  "hostname": "::1",
+  "url": "http://[::1]:5174"
+}
