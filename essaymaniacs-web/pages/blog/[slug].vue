@@ -51,13 +51,13 @@ const inlineCta = `
   <div class="absolute -top-14 -right-14 w-52 h-52 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(255,255,255,0.13),transparent 65%);"></div>
   <div class="relative px-7 py-8 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:px-10">
     <div>
-      <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.15em]" style="color:rgba(216,180,254,0.8);">EssayManiacs &mdash; 500+ subject specialists</p>
+      <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.15em]" style="color:rgba(255,255,255,0.55);">EssayManiacs &mdash; 500+ subject specialists</p>
       <p class="text-[1.15rem] font-extrabold text-white leading-snug">Deadline looming? Get a specialist writer on it &mdash;<br class="hidden sm:block"> properly cited, original, from $10/page.</p>
       <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
-        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(216,180,254,0.88);"><span style="color:#4ade80;">&#10003;</span> Grade or money back</span>
-        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(216,180,254,0.88);"><span style="color:#4ade80;">&#10003;</span> Zero AI content</span>
-        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(216,180,254,0.88);"><span style="color:#4ade80;">&#10003;</span> As fast as 2 hours</span>
-        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(216,180,254,0.88);"><span style="color:#4ade80;">&#10003;</span> Free plagiarism report</span>
+        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(255,255,255,0.85);"><span style="color:#4ade80;">&#10003;</span> Grade or money back</span>
+        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(255,255,255,0.85);"><span style="color:#4ade80;">&#10003;</span> Zero AI content</span>
+        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(255,255,255,0.85);"><span style="color:#4ade80;">&#10003;</span> As fast as 2 hours</span>
+        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(255,255,255,0.85);"><span style="color:#4ade80;">&#10003;</span> Free plagiarism report</span>
       </div>
     </div>
     <a href="/order" class="mt-5 sm:mt-0 inline-flex shrink-0 items-center gap-2 rounded-xl font-bold text-sm px-7 py-3.5 whitespace-nowrap" style="background:white;color:#4c1d95;box-shadow:0 0 28px rgba(167,139,250,0.55);text-decoration:none;">
