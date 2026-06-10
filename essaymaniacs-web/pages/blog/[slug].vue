@@ -45,24 +45,25 @@ const reactions: { type: 'helpful' | 'love' | 'insightful'; emoji: string; label
 ]
 
 // Mid-article CTA — injected after the 4th paragraph.
+// All text colors are inline (not Tailwind classes) so prose styles can't bleed through v-html.
 const inlineCta = `
-<div class="not-prose my-12 overflow-hidden rounded-2xl relative" style="background:linear-gradient(135deg,#3b0764 0%,#5b21b6 52%,#7c3aed 100%);">
-  <div class="absolute inset-0 pointer-events-none" style="background-image:radial-gradient(circle,rgba(255,255,255,0.07) 1px,transparent 1px);background-size:26px 26px;"></div>
-  <div class="absolute -top-14 -right-14 w-52 h-52 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(255,255,255,0.13),transparent 65%);"></div>
-  <div class="relative px-7 py-8 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:px-10">
-    <div>
-      <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.15em]" style="color:rgba(255,255,255,0.55);">EssayManiacs &mdash; 500+ subject specialists</p>
-      <p class="text-[1.15rem] font-extrabold text-white leading-snug">Deadline looming? Get a specialist writer on it &mdash;<br class="hidden sm:block"> properly cited, original, from $10/page.</p>
-      <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
-        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(255,255,255,0.85);"><span style="color:#4ade80;">&#10003;</span> Grade or money back</span>
-        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(255,255,255,0.85);"><span style="color:#4ade80;">&#10003;</span> Zero AI content</span>
-        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(255,255,255,0.85);"><span style="color:#4ade80;">&#10003;</span> As fast as 2 hours</span>
-        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(255,255,255,0.85);"><span style="color:#4ade80;">&#10003;</span> Free plagiarism report</span>
+<div class="not-prose my-12" style="border-radius:1rem;overflow:hidden;background:linear-gradient(135deg,#3b0764 0%,#5b21b6 52%,#7c3aed 100%);position:relative;">
+  <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.07) 1px,transparent 1px);background-size:26px 26px;pointer-events:none;"></div>
+  <div style="position:absolute;top:-56px;right:-56px;width:208px;height:208px;border-radius:9999px;background:radial-gradient(circle,rgba(255,255,255,0.13),transparent 65%);pointer-events:none;"></div>
+  <div style="position:relative;padding:2rem 1.75rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1.5rem;">
+    <div style="flex:1;min-width:0;">
+      <p style="margin:0 0 0.5rem;font-size:0.625rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.5);">EssayManiacs &mdash; 500+ subject specialists</p>
+      <p style="margin:0 0 0.75rem;font-size:1.125rem;font-weight:800;line-height:1.35;color:#ffffff;">Deadline looming? Get a specialist writer on it &mdash; properly cited, original, from $10/page.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:0.25rem 1.25rem;">
+        <span style="font-size:0.6875rem;color:rgba(255,255,255,0.85);display:flex;align-items:center;gap:0.375rem;"><span style="color:#4ade80;">&#10003;</span> Grade or money back</span>
+        <span style="font-size:0.6875rem;color:rgba(255,255,255,0.85);display:flex;align-items:center;gap:0.375rem;"><span style="color:#4ade80;">&#10003;</span> Zero AI content</span>
+        <span style="font-size:0.6875rem;color:rgba(255,255,255,0.85);display:flex;align-items:center;gap:0.375rem;"><span style="color:#4ade80;">&#10003;</span> As fast as 2 hours</span>
+        <span style="font-size:0.6875rem;color:rgba(255,255,255,0.85);display:flex;align-items:center;gap:0.375rem;"><span style="color:#4ade80;">&#10003;</span> Free plagiarism report</span>
       </div>
     </div>
-    <a href="/order" class="mt-5 sm:mt-0 inline-flex shrink-0 items-center gap-2 rounded-xl font-bold text-sm px-7 py-3.5 whitespace-nowrap" style="background:white;color:#4c1d95;box-shadow:0 0 28px rgba(167,139,250,0.55);text-decoration:none;">
+    <a href="/order" style="flex-shrink:0;display:inline-flex;align-items:center;gap:0.5rem;background:#ffffff;color:#4c1d95;font-weight:700;font-size:0.875rem;padding:0.75rem 1.75rem;border-radius:0.75rem;text-decoration:none;white-space:nowrap;box-shadow:0 0 28px rgba(167,139,250,0.5);">
       Place my order
-      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+      <svg style="width:1rem;height:1rem;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
     </a>
   </div>
 </div>`

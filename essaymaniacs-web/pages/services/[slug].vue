@@ -173,9 +173,9 @@ useHead({
               <li
                 v-for="item in service.delivers"
                 :key="item"
-                class="flex items-start gap-4 rounded-xl border-l-4 border-brand-600 bg-slate-50 px-5 py-4"
+                class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4"
               >
-                <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                 <p class="text-sm text-slate-700">{{ item }}</p>
               </li>
             </ul>
@@ -306,8 +306,8 @@ useHead({
             <h2>What Sets Our Approach Apart</h2>
             <div class="not-prose my-6 grid gap-4 sm:grid-cols-2">
               <div v-for="(item, i) in service.includes" :key="item"
-                class="flex items-start gap-3 rounded-2xl border-l-4 border-brand-600 bg-white px-5 py-4">
-                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white">{{ i + 1 }}</span>
+                class="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{{ i + 1 }}</span>
                 <span class="text-sm leading-relaxed text-slate-700">{{ item }}</span>
               </div>
             </div>
