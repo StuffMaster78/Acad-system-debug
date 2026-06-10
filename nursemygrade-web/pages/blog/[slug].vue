@@ -17,26 +17,23 @@ const byAuthor = post.author
 
 const { toc, processedBody } = useToc(post.body)
 
-// Mid-article CTA — nursing-specific, injected after the 4th paragraph.
+// Mid-article CTA — injected after the 4th paragraph.
 const inlineCta = `
-<div class="not-prose my-8 overflow-hidden rounded-2xl border border-brand-100 shadow-sm">
-  <div class="flex flex-col sm:flex-row">
-    <div class="bg-brand-600 h-1.5 w-full sm:h-auto sm:w-1.5 shrink-0 rounded-t-2xl sm:rounded-t-none sm:rounded-l-2xl"></div>
-    <div class="flex flex-col gap-4 bg-gradient-to-r from-brand-50 to-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between flex-1">
-      <div>
-        <p class="text-[11px] font-bold uppercase tracking-widest text-brand-600 mb-1">Written by nurses, for nurses</p>
-        <p class="font-semibold text-slate-900">Clinical rotations + coursework is a lot. Let a qualified BSN or MSN nurse write this for you.</p>
-        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-          <span>✓ NANDA · SOAP · APA 7th — done right</span>
-          <span>✓ From $24/page</span>
-          <span>✓ As fast as 3 hours</span>
-          <span>✓ Grade guarantee</span>
-        </div>
+<div class="not-prose my-10 border-y border-slate-200 py-8">
+  <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">NurseMyGrade</p>
+      <p class="text-[1.05rem] font-bold leading-snug text-slate-900">Clinical rotations, coursework, and a deadline — all at once. A BSN or MSN nurse can take this off your plate.</p>
+      <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
+        <span>✓ NANDA · SOAP · APA 7th — clinically accurate</span>
+        <span>✓ From $24/page · As fast as 3 hours</span>
+        <span>✓ Grade or money back</span>
       </div>
-      <a href="/order" class="shrink-0 inline-flex items-center justify-center whitespace-nowrap rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-700">
-        Get my nurse writer →
-      </a>
     </div>
+    <a href="/order" class="mt-1 shrink-0 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-700 whitespace-nowrap">
+      Get my nurse writer
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+    </a>
   </div>
 </div>`
 
