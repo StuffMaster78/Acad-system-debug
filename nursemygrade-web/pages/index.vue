@@ -13,19 +13,19 @@ const stats = [
 // Three differentiating pillars
 const pillars = [
   {
-    icon: '✍️',
+    icon: 'pen-line',
     title: 'Writing',
     desc: 'Essays, care plans, SOAP notes, capstone projects, dissertations — written from scratch by a credentialed nurse who knows the clinical context.',
     href: '/services',
   },
   {
-    icon: '🖥️',
+    icon: 'monitor',
     title: 'Tutoring',
     desc: 'Online nursing class help — discussions, quizzes, assignments, and full course management so you can focus on your clinical rotations.',
     href: '/services/online-nursing-classes',
   },
   {
-    icon: '🎓',
+    icon: 'graduation-cap',
     title: 'Mentoring',
     desc: 'Nursing school admission essays, career statement reviews, and programme-specific guidance from nurses who\'ve been through the process.',
     href: '/contact',
@@ -33,12 +33,12 @@ const pillars = [
 ]
 
 const services = [
-  { icon: '✍️', title: 'Nursing Essays',       href: '/services/nursing-essays',         desc: 'Reflective, argumentative, and analytical essays grounded in evidence-based practice.' },
-  { icon: '🩺', title: 'Care Plans',            href: '/services/care-plans',             desc: 'NANDA-I diagnoses, NIC interventions, NOC outcomes — APIE formatted.' },
-  { icon: '📋', title: 'SOAP Notes',            href: '/services/soap-notes',             desc: 'Clinically accurate S-O-A-P documentation for NP and advanced practice programmes.' },
-  { icon: '🎓', title: 'Capstone Projects',     href: '/services/capstone-projects',      desc: 'PICOT to final paper — BSN, MSN, and DNP capstone support.' },
-  { icon: '📄', title: 'Research Papers',       href: '/services/nursing-research-papers', desc: 'Evidence-based nursing research, APA 7th, peer-reviewed sources.' },
-  { icon: '🗺️', title: 'Concept Maps',          href: '/services/concept-maps',           desc: 'Pathophysiology to nursing diagnosis — clinical linkages clearly mapped.' },
+  { icon: 'pen-line',       title: 'Nursing Essays',       href: '/services/nursing-essays',          desc: 'Reflective, argumentative, and analytical essays grounded in evidence-based practice.' },
+  { icon: 'stethoscope',    title: 'Care Plans',           href: '/services/care-plans',              desc: 'NANDA-I diagnoses, NIC interventions, NOC outcomes — APIE formatted.' },
+  { icon: 'clipboard-list', title: 'SOAP Notes',           href: '/services/soap-notes',              desc: 'Clinically accurate S-O-A-P documentation for NP and advanced practice programmes.' },
+  { icon: 'graduation-cap', title: 'Capstone Projects',    href: '/services/capstone-projects',       desc: 'PICOT to final paper — BSN, MSN, and DNP capstone support.' },
+  { icon: 'file-text',      title: 'Research Papers',      href: '/services/nursing-research-papers', desc: 'Evidence-based nursing research, APA 7th, peer-reviewed sources.' },
+  { icon: 'network',        title: 'Concept Maps',         href: '/services/concept-maps',            desc: 'Pathophysiology to nursing diagnosis — clinical linkages clearly mapped.' },
 ]
 
 const nursingSubjects = [
@@ -58,12 +58,12 @@ const steps = [
 ]
 
 const guarantees = [
-  { icon: '🏆', title: 'Grade or money back',         desc: "If the work doesn't meet your stated requirements, we'll rewrite or refund — no questions asked." },
-  { icon: '🔬', title: 'Zero AI — human nurses only', desc: 'Every paper is written by a real nurse. We provide a free AI-detection report on request.' },
-  { icon: '📋', title: 'Clinically accurate content',  desc: 'NANDA, NIC, NOC, ADPIE, APA 7th — written by people who use these frameworks in practice.' },
-  { icon: '🔒', title: 'Your privacy protected',       desc: 'We never share your name, order details, or school with any third party.' },
-  { icon: '🔄', title: 'Unlimited free revisions',     desc: 'Within the revision window, request as many changes as you need at zero extra cost.' },
-  { icon: '⚡', title: 'As fast as 3 hours',           desc: 'Need it tonight? We can deliver most nursing papers within 3 hours for urgent orders.' },
+  { icon: 'trophy',        title: 'Grade or money back',         desc: "If the work doesn't meet your stated requirements, we'll rewrite or refund — no questions asked." },
+  { icon: 'bot',           title: 'Zero AI — human nurses only', desc: 'Every paper is written by a real nurse. We provide a free AI-detection report on request.' },
+  { icon: 'stethoscope',   title: 'Clinically accurate content', desc: 'NANDA, NIC, NOC, ADPIE, APA 7th — written by people who use these frameworks in practice.' },
+  { icon: 'lock',          title: 'Your privacy protected',      desc: 'We never share your name, order details, or school with any third party.' },
+  { icon: 'refresh-cw',   title: 'Unlimited free revisions',    desc: 'Within the revision window, request as many changes as you need at zero extra cost.' },
+  { icon: 'zap',           title: 'As fast as 3 hours',          desc: 'Need it tonight? We can deliver most nursing papers within 3 hours for urgent orders.' },
 ]
 
 useSeoMeta({
@@ -216,8 +216,10 @@ useHead({
           :href="p.href"
           class="card group flex flex-col transition-shadow hover:shadow-lg hover:border-brand-300"
         >
-          <span class="text-4xl">{{ p.icon }}</span>
-          <h3 class="mt-4 text-xl font-bold text-brand-700 group-hover:text-brand-900 transition-colors">{{ p.title }}</h3>
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100 transition-colors group-hover:bg-brand-600">
+            <Icon :name="p.icon" class="h-6 w-6 text-brand-600 transition-colors group-hover:text-white" />
+          </div>
+          <h3 class="mt-4 text-xl font-bold text-brand-700 transition-colors group-hover:text-brand-900">{{ p.title }}</h3>
           <p class="mt-3 flex-1 text-sm leading-relaxed text-slate-600">{{ p.desc }}</p>
           <span class="mt-4 text-xs font-semibold text-brand-600 group-hover:underline">Learn more →</span>
         </NuxtLink>
@@ -242,9 +244,11 @@ useHead({
           :href="svc.href"
           class="card group flex flex-col transition-shadow hover:shadow-md hover:border-brand-200"
         >
-          <span class="text-3xl">{{ svc.icon }}</span>
-          <h3 class="mt-4 font-semibold text-slate-900 group-hover:text-brand-700 transition-colors">{{ svc.title }}</h3>
-          <p class="mt-2 flex-1 text-sm text-slate-500 leading-relaxed">{{ svc.desc }}</p>
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-100 transition-colors group-hover:bg-brand-600">
+            <Icon :name="svc.icon" class="h-5 w-5 text-brand-600 transition-colors group-hover:text-white" />
+          </div>
+          <h3 class="mt-4 font-semibold text-slate-900 transition-colors group-hover:text-brand-700">{{ svc.title }}</h3>
+          <p class="mt-2 flex-1 text-sm leading-relaxed text-slate-600">{{ svc.desc }}</p>
           <span class="mt-3 text-xs font-medium text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">Order now →</span>
         </NuxtLink>
       </div>
@@ -277,7 +281,7 @@ useHead({
             {{ i + 1 }}
           </div>
           <h3 class="font-semibold text-slate-900">{{ step.title }}</h3>
-          <p class="mt-2 text-sm text-slate-500 leading-relaxed">{{ step.desc }}</p>
+          <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ step.desc }}</p>
         </li>
       </ol>
       <div class="mt-12 text-center">
@@ -295,7 +299,9 @@ useHead({
       </div>
       <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <div v-for="g in guarantees" :key="g.title" class="rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition-colors hover:bg-white/10">
-          <span class="text-2xl">{{ g.icon }}</span>
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+            <Icon :name="g.icon" class="h-5 w-5 text-white" />
+          </div>
           <h3 class="mt-3 font-semibold text-white">{{ g.title }}</h3>
           <p class="mt-2 text-sm text-brand-200 leading-relaxed">{{ g.desc }}</p>
         </div>

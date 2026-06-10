@@ -36,36 +36,12 @@ const steps = [
 ]
 
 const perks = [
-  {
-    icon: '💰',
-    title: 'Earn up to $50/page',
-    desc: 'BSN writers start at $30/page. MSN writers earn $40+. DNP writers earn $50+ per page. Pay scales with your credential level and client ratings.',
-  },
-  {
-    icon: '🕐',
-    title: 'Work your own hours',
-    desc: 'No fixed shifts. Accept orders that fit your schedule — between shifts, during breaks, or full-time. You control your availability.',
-  },
-  {
-    icon: '🩺',
-    title: 'Work in your specialty',
-    desc: 'Only see orders in your clinical area. Med-Surg, ICU, Psych, OB, Paeds, FNP — orders are filtered to nurses who know the subject.',
-  },
-  {
-    icon: '📈',
-    title: 'Build your nursing reputation',
-    desc: 'Every 5-star delivery builds your profile. Higher ratings unlock premium orders, higher base pay, and priority matching.',
-  },
-  {
-    icon: '💳',
-    title: 'Weekly payouts',
-    desc: 'Earnings processed every Friday via M-Pesa, bank transfer, or PayPal. No hidden deductions, no waiting 30 days.',
-  },
-  {
-    icon: '🛡️',
-    title: 'Protected by escrow',
-    desc: 'Payment is held in escrow from the moment a client places an order. You get paid even if the client goes quiet.',
-  },
+  { icon: 'dollar-sign',  title: 'Earn up to $50/page',         desc: 'BSN writers start at $30/page. MSN writers earn $40+. DNP writers earn $50+ per page. Pay scales with your credential level and client ratings.' },
+  { icon: 'clock',        title: 'Work your own hours',          desc: 'No fixed shifts. Accept orders that fit your schedule — between shifts, during breaks, or full-time. You control your availability.' },
+  { icon: 'stethoscope',  title: 'Work in your specialty',       desc: 'Only see orders in your clinical area. Med-Surg, ICU, Psych, OB, Paeds, FNP — orders are filtered to nurses who know the subject.' },
+  { icon: 'trending-up',  title: 'Build your nursing reputation', desc: 'Every 5-star delivery builds your profile. Higher ratings unlock premium orders, higher base pay, and priority matching.' },
+  { icon: 'credit-card',  title: 'Weekly payouts',               desc: 'Earnings processed every Friday via M-Pesa, bank transfer, or PayPal. No hidden deductions, no waiting 30 days.' },
+  { icon: 'shield-check', title: 'Protected by escrow',          desc: 'Payment is held in escrow from the moment a client places an order. You get paid even if the client goes quiet.' },
 ]
 
 const requirements = [
@@ -161,9 +137,11 @@ const testimonials = [
 
         <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="perk in perks" :key="perk.title" class="card">
-            <span class="text-3xl">{{ perk.icon }}</span>
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-100">
+              <Icon :name="perk.icon" class="h-5 w-5 text-brand-700" />
+            </div>
             <h3 class="mt-4 font-semibold text-slate-900">{{ perk.title }}</h3>
-            <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ perk.desc }}</p>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ perk.desc }}</p>
           </div>
         </div>
       </div>
