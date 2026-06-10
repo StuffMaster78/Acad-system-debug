@@ -41,6 +41,7 @@ const writerTiers = [
   {
     name: 'Standard',
     badge: '',
+    credential: "Master's degree",
     modifier: 'Base price',
     modColor: 'text-green-600',
     features: ['Master\'s degree or higher', 'Verified credentials', '4.0–4.9 star rating', 'Good for most orders'],
@@ -50,6 +51,7 @@ const writerTiers = [
   {
     name: 'Advanced',
     badge: 'Best value',
+    credential: "Master's, top-rated",
     modifier: '+10%',
     modColor: 'text-amber-600',
     features: ['Top-rated writers only', '4.8+ star rating', '500+ completed orders', 'Recommended for dissertations'],
@@ -59,6 +61,7 @@ const writerTiers = [
   {
     name: 'Expert',
     badge: 'Premium',
+    credential: 'PhD / Doctoral',
     modifier: '+20%',
     modColor: 'text-brand-600',
     features: ['PhD-level writers', 'Doctoral work specialists', '1,000+ completed orders', 'For PhD & publication-level work'],
@@ -139,7 +142,8 @@ const faqs = [
             </div>
             <div class="mb-4">
               <h3 class="text-lg font-bold text-slate-900">{{ tier.name }}</h3>
-              <p class="mt-1 text-sm font-semibold" :class="tier.modColor">{{ tier.modifier }}</p>
+              <p class="mt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ tier.credential }}</p>
+              <p class="mt-1.5 text-sm font-semibold" :class="tier.modColor">{{ tier.modifier }}</p>
             </div>
             <ul class="flex-1 space-y-2 text-sm text-slate-600">
               <li v-for="f in tier.features" :key="f" class="flex items-start gap-2">
@@ -164,10 +168,10 @@ const faqs = [
     </section>
 
     <!-- Deadline modifiers -->
-    <section class="bg-slate-50">
+    <section class="bg-white">
       <div class="section">
         <h2 class="section-heading text-center">Deadline adjustments</h2>
-        <p class="section-sub text-center">Order early for the best rate.</p>
+        <p class="section-sub text-center">Plan ahead for the best rate. Rush orders are always available.</p>
         <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="d in deadlines" :key="d.label"
             class="card flex items-center justify-between">

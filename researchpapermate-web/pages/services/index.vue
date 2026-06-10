@@ -58,57 +58,109 @@ useHead({
 <template>
   <div>
     <!-- Hero -->
-    <section class="bg-gradient-to-br from-brand-900 to-brand-700 py-20 text-center">
+    <section class="bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600 py-20 text-center">
       <div class="section py-0">
-        <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">Academic Writing Services</h1>
-        <p class="mx-auto mt-4 max-w-2xl text-lg text-brand-100">
-          Expert writers across every discipline — STEM, business, law, healthcare, humanities.
-          If it needs to be written, we cover it.
-        </p>
-        <div class="mt-8 flex flex-wrap justify-center gap-4">
-          <NuxtLink to="/order" class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-8 py-3.5 text-base">
-            Get started from $15/page
-          </NuxtLink>
-          <NuxtLink to="/pricing" class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-3.5 text-base">
-            See pricing
-          </NuxtLink>
+        <div class="mx-auto max-w-3xl">
+          <span class="mb-6 inline-block rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-brand-200 ring-1 ring-white/20">
+            9 paper types · 100+ subjects covered
+          </span>
+          <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">
+            Every academic paper type,<br class="hidden sm:block" /> covered by real experts
+          </h1>
+          <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-brand-100">
+            From first-year essays to PhD dissertations — written by Master's and PhD-qualified specialists who know your subject and the academic standards behind it.
+          </p>
+          <div class="mt-8 flex flex-wrap justify-center gap-4">
+            <NuxtLink to="/order" class="btn-primary bg-white px-8 py-3.5 text-base text-brand-700 shadow-lg hover:bg-brand-50">
+              Place an order — from $15/page
+            </NuxtLink>
+            <NuxtLink to="/pricing" class="btn-outline border-white/60 px-8 py-3.5 text-base text-white hover:bg-white/10">
+              See pricing
+            </NuxtLink>
+          </div>
+          <ul class="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-brand-200">
+            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Grade or money back</li>
+            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Free Turnitin report</li>
+            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> 2-hour minimum turnaround</li>
+          </ul>
         </div>
       </div>
     </section>
 
     <!-- Paper types grid -->
-    <section class="section" id="paper-types">
-      <h2 class="section-heading text-center">Paper types we handle</h2>
-      <p class="section-sub text-center">Each service type has a dedicated team of specialists.</p>
-      <div class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <NuxtLink
-          v-for="s in services"
-          :key="s.slug"
-          :href="`/services/${s.slug}`"
-          class="card group flex flex-col transition-shadow hover:shadow-md"
-        >
-          <div class="mb-4 flex items-center gap-3">
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 transition-colors group-hover:bg-brand-600">
-              <Icon :name="s.icon" class="h-5 w-5 text-brand-600 transition-colors group-hover:text-white" />
-            </div>
-            <h2 class="text-lg font-semibold text-slate-900 group-hover:text-brand-700 transition-colors">
-              {{ s.navLabel }}
-            </h2>
+    <section class="bg-white py-16" id="paper-types">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <h2 class="section-heading">Paper types we handle</h2>
+            <p class="mt-2 text-slate-500">Each service type has a dedicated team of specialists.</p>
           </div>
-          <p v-if="s.heroSub" class="flex-1 text-sm text-slate-600 leading-relaxed">{{ s.heroSub }}</p>
-          <p v-else class="flex-1 text-sm text-slate-500 leading-relaxed italic">
-            Expert writing service — learn more →
-          </p>
-          <ul v-if="getBySlug(s.slug)?.includes?.length" class="mt-4 space-y-1.5">
-            <li v-for="b in getBySlug(s.slug)!.includes.slice(0, 3)" :key="b" class="flex items-start gap-2 text-sm text-slate-500">
-              <span class="mt-0.5 font-bold text-brand-500">✓</span>{{ b }}
-            </li>
-          </ul>
-          <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-            <span class="text-sm font-semibold text-brand-700">From ${{ s.priceFrom }}/page</span>
-            <span class="text-xs font-medium text-brand-600 group-hover:underline">Learn more →</span>
+          <NuxtLink href="/order" class="hidden shrink-0 text-sm font-semibold text-brand-600 hover:underline sm:block">
+            Place order →
+          </NuxtLink>
+        </div>
+
+        <!-- Mobile + tablet: horizontal scroll with snap -->
+        <div class="-mx-4 sm:-mx-6 lg:mx-0">
+          <div
+            class="flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory px-4 pb-4 sm:px-6 lg:hidden"
+            style="scrollbar-width: none;"
+          >
+            <NuxtLink
+              v-for="s in services"
+              :key="s.slug"
+              :href="`/services/${s.slug}`"
+              class="group flex w-72 shrink-0 snap-start flex-col rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-shadow hover:border-brand-200 hover:shadow-md"
+            >
+              <div class="mb-4 flex items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 transition-colors group-hover:bg-brand-600">
+                  <Icon :name="s.icon" class="h-5 w-5 text-brand-600 transition-colors group-hover:text-white" />
+                </div>
+                <h3 class="font-semibold leading-tight text-slate-900 transition-colors group-hover:text-brand-700">
+                  {{ s.navLabel }}
+                </h3>
+              </div>
+              <p v-if="s.heroSub" class="flex-1 text-sm leading-relaxed text-slate-500 line-clamp-3">{{ s.heroSub }}</p>
+              <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                <span class="text-sm font-bold text-brand-700">From ${{ s.priceFrom }}/page</span>
+                <span class="text-xs font-medium text-brand-600 group-hover:underline">Details →</span>
+              </div>
+            </NuxtLink>
           </div>
-        </NuxtLink>
+
+          <!-- Desktop: 3-col grid -->
+          <div class="hidden lg:grid grid-cols-3 gap-6">
+            <NuxtLink
+              v-for="s in services"
+              :key="s.slug"
+              :href="`/services/${s.slug}`"
+              class="group flex flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:border-brand-200 hover:shadow-md"
+            >
+              <div class="mb-4 flex items-center gap-3">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 transition-colors group-hover:bg-brand-600">
+                  <Icon :name="s.icon" class="h-5 w-5 text-brand-600 transition-colors group-hover:text-white" />
+                </div>
+                <h3 class="text-lg font-semibold text-slate-900 transition-colors group-hover:text-brand-700">
+                  {{ s.navLabel }}
+                </h3>
+              </div>
+              <p v-if="s.heroSub" class="flex-1 text-sm leading-relaxed text-slate-600">{{ s.heroSub }}</p>
+              <ul v-if="getBySlug(s.slug)?.includes?.length" class="mt-4 space-y-1.5">
+                <li v-for="b in getBySlug(s.slug)!.includes.slice(0, 3)" :key="b"
+                    class="flex items-start gap-2 text-sm text-slate-500">
+                  <Icon name="check" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500" />
+                  {{ b }}
+                </li>
+              </ul>
+              <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                <span class="text-sm font-bold text-brand-700">From ${{ s.priceFrom }}/page</span>
+                <span class="text-xs font-medium text-brand-600 group-hover:underline">Learn more →</span>
+              </div>
+            </NuxtLink>
+          </div>
+        </div>
+
+        <p class="mt-4 text-center text-xs text-slate-400 lg:hidden">← Scroll to see all paper types →</p>
       </div>
     </section>
 
@@ -122,7 +174,8 @@ useHead({
             <h3 class="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ group.area }}</h3>
             <ul class="space-y-2">
               <li v-for="sub in group.subjects" :key="sub"
-                class="rounded-lg border border-brand-100 bg-white px-3 py-2 text-sm text-slate-700">
+                class="flex cursor-default items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
+                <Icon name="check" class="h-3 w-3 shrink-0 text-brand-500" />
                 {{ sub }}
               </li>
             </ul>
@@ -135,6 +188,7 @@ useHead({
     <section class="bg-white">
       <div class="section">
         <h2 class="section-heading text-center">Why ResearchPaperMate?</h2>
+        <p class="section-sub text-center">Built for students who need reliable, grade-backed academic help.</p>
         <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="usp in usps" :key="usp.title" class="flex gap-4">
             <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100">
@@ -165,11 +219,18 @@ useHead({
 
     <!-- CTA -->
     <section class="bg-brand-700 py-16 text-center">
-      <h2 class="font-serif text-3xl font-bold text-white">Not sure what you need?</h2>
-      <p class="mt-4 text-brand-200">Place an order, describe your task, and we'll match you with the right expert.</p>
-      <NuxtLink to="/order" class="btn-primary mt-8 bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base">
-        Start your order — from $15/page
-      </NuxtLink>
+      <div class="mx-auto max-w-2xl px-4">
+        <h2 class="font-serif text-3xl font-bold text-white">Not sure what you need?</h2>
+        <p class="mt-4 text-lg text-brand-200">Describe your assignment and we'll match you with the right subject expert in minutes.</p>
+        <div class="mt-8 flex flex-wrap justify-center gap-4">
+          <NuxtLink to="/order" class="btn-primary bg-white px-10 py-4 text-base text-brand-700 shadow-lg hover:bg-brand-50">
+            Start your order — from $15/page
+          </NuxtLink>
+          <NuxtLink to="/contact" class="btn-outline border-white/60 px-8 py-4 text-base text-white hover:bg-white/10">
+            Ask us first
+          </NuxtLink>
+        </div>
+      </div>
     </section>
   </div>
 </template>

@@ -83,6 +83,10 @@ const ROLE_BADGE: Record<string, string> = {
   'Editor':                'bg-violet-100 text-violet-700',
 }
 
+const config = useRuntimeConfig()
+const siteUrl = config.public.siteUrl || 'https://researchpapermate.com'
+const canonicalUrl = `${siteUrl}/blog/${post.slug}`
+
 useSeoMeta({
   title: post.title,
   description: post.excerpt,
@@ -93,6 +97,7 @@ useSeoMeta({
 })
 
 useHead({
+  link: [{ rel: 'canonical', href: canonicalUrl }],
   script: [{
     type: 'application/ld+json',
     innerHTML: JSON.stringify({
@@ -101,6 +106,7 @@ useHead({
       headline: post.title,
       description: post.excerpt,
       datePublished: post.date,
+      url: canonicalUrl,
       author: post.author
         ? {
             '@type': 'Person',
@@ -114,6 +120,7 @@ useHead({
         '@type': 'Organization',
         name: 'ResearchPaperMate',
         url: 'https://researchpapermate.com',
+        logo: { '@type': 'ImageObject', url: 'https://researchpapermate.com/favicon.svg' },
       },
     }),
   }],
@@ -126,10 +133,18 @@ useHead({
 
       <!-- ── Left: article content ──────────────────────────────────── -->
       <article class="min-w-0">
-        <!-- Back link -->
-        <NuxtLink href="/blog" class="mb-8 inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
-          ← Back to blog
-        </NuxtLink>
+        <!-- Article breadcrumb trail -->
+        <nav class="mb-6 flex items-center gap-2 text-xs" aria-label="Breadcrumb">
+          <NuxtLink href="/" class="flex items-center text-slate-400 transition-colors hover:text-brand-600">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          </NuxtLink>
+          <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          <NuxtLink href="/blog" class="text-slate-400 transition-colors hover:text-brand-600">Blog</NuxtLink>
+          <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          <span class="rounded-full bg-brand-50 px-2.5 py-0.5 font-semibold text-brand-700">{{ post.category }}</span>
+          <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          <span class="max-w-[200px] truncate text-slate-500">{{ post.title }}</span>
+        </nav>
 
         <!-- Meta bar -->
         <div class="mb-4 flex flex-wrap items-center gap-3">

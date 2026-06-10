@@ -28,6 +28,18 @@ const steps = [
   },
 ]
 
+const services = [
+  { label: 'Research Papers',        href: '/services/research-papers' },
+  { label: 'Essays',                 href: '/services/essays' },
+  { label: 'Dissertations',          href: '/services/dissertations' },
+  { label: 'Case Studies',           href: '/services/case-studies' },
+  { label: 'Literature Reviews',     href: '/services/literature-reviews' },
+  { label: 'Data Analysis',          href: '/services/data-analysis' },
+  { label: 'Lab Reports',            href: '/services/lab-reports' },
+  { label: 'Coursework & Assignments', href: '/services/coursework' },
+  { label: 'Presentations',          href: '/services/presentations' },
+]
+
 const guarantees = [
   { icon: '🏆', title: 'Grade or money back', desc: 'Receive a lower grade than stated in your brief? We rewrite free or refund you — no questions asked.' },
   { icon: '🎓', title: 'Subject experts matched to your brief', desc: "Master's and PhD writers matched by subject area — not just assigned randomly." },
@@ -87,6 +99,32 @@ const guarantees = [
             <h3 class="mt-3 font-semibold text-slate-900">{{ g.title }}</h3>
             <p class="mt-1 text-sm leading-relaxed text-slate-500">{{ g.desc }}</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- What we write -->
+    <div class="px-4 py-16 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-4xl">
+        <div class="mb-8 text-center">
+          <h2 class="font-serif text-3xl font-bold text-slate-900">What we write</h2>
+          <p class="mt-2 text-slate-500">9 paper types — every major academic assignment covered.</p>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <NuxtLink
+            v-for="s in services"
+            :key="s.href"
+            :to="s.href"
+            class="flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-all hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+          >
+            <span class="text-brand-400">→</span>
+            {{ s.label }}
+          </NuxtLink>
+        </div>
+        <div class="mt-6 text-center">
+          <NuxtLink to="/services" class="text-sm font-semibold text-brand-600 hover:underline">
+            View all paper types →
+          </NuxtLink>
         </div>
       </div>
     </div>

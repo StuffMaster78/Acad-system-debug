@@ -1,5 +1,28 @@
 <script setup lang="ts">
 const portal = usePortalStore()
+const { getAll: getAllServices } = useServices()
+const serviceStrip = getAllServices()
+
+const pillars = [
+  {
+    icon: '📄',
+    title: 'Research & Essays',
+    desc: 'Research papers, essays, dissertations, case studies, literature reviews — written from scratch by subject-specialist writers with the right credentials for your level.',
+    href: '/services',
+  },
+  {
+    icon: '📊',
+    title: 'Data & Analysis',
+    desc: 'SPSS, R, Python, or Excel data analysis with full written interpretation, methodology support, and charts — for dissertations, research papers, or standalone assignments.',
+    href: '/services/data-analysis',
+  },
+  {
+    icon: '🎓',
+    title: 'Coursework & Support',
+    desc: 'Regular assignments, online class help, presentations, and lab reports — handled by the same writer throughout so your work stays consistent and on time.',
+    href: '/class-support',
+  },
+]
 
 const stats = [
   { value: '14,700+', label: 'Papers delivered' },
@@ -133,6 +156,55 @@ useHead({
     </div>
   </section>
 
+  <!-- ─── Scrollable service strip ───────────────────────────────────── -->
+  <section class="border-b border-slate-100 bg-white py-8">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-5 flex items-center justify-between">
+        <p class="text-sm font-semibold text-slate-600">All paper types — tap to explore</p>
+        <NuxtLink href="/services" class="text-xs font-semibold text-brand-600 hover:underline">View all →</NuxtLink>
+      </div>
+      <div class="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2" style="scrollbar-width: none;">
+        <NuxtLink
+          v-for="s in serviceStrip"
+          :key="s.slug"
+          :href="`/services/${s.slug}`"
+          class="group snap-start shrink-0 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 transition-colors hover:border-brand-200 hover:bg-brand-50 w-52"
+        >
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 transition-colors group-hover:bg-brand-600">
+            <Icon name="file-text" class="h-4 w-4 text-brand-600 transition-colors group-hover:text-white" />
+          </div>
+          <div class="min-w-0">
+            <p class="truncate text-xs font-semibold text-slate-800 group-hover:text-brand-700">{{ s.navLabel }}</p>
+            <p class="text-xs text-brand-600">from ${{ s.priceFrom }}/page</p>
+          </div>
+        </NuxtLink>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Three Pillars ────────────────────────────────────────────────── -->
+  <section class="bg-brand-50 py-20">
+    <div class="section py-0">
+      <div class="text-center">
+        <h2 class="section-heading">Research. Analysis. Support.</h2>
+        <p class="section-sub">Three ways we help students succeed — pick what fits your situation.</p>
+      </div>
+      <div class="mt-12 grid gap-8 md:grid-cols-3">
+        <NuxtLink
+          v-for="p in pillars"
+          :key="p.title"
+          :href="p.href"
+          class="card group flex flex-col transition-shadow hover:shadow-lg hover:border-brand-300"
+        >
+          <span class="text-4xl">{{ p.icon }}</span>
+          <h3 class="mt-4 text-xl font-bold text-brand-700 transition-colors group-hover:text-brand-900">{{ p.title }}</h3>
+          <p class="mt-3 flex-1 text-sm leading-relaxed text-slate-600">{{ p.desc }}</p>
+          <span class="mt-4 text-xs font-semibold text-brand-600 group-hover:underline">Learn more →</span>
+        </NuxtLink>
+      </div>
+    </div>
+  </section>
+
   <!-- ─── Writer Showcase ───────────────────────────────────────────────── -->
   <WriterShowcase />
 
@@ -212,6 +284,12 @@ useHead({
       </div>
     </div>
   </section>
+
+  <!-- ─── Writing Services We Offer ──────────────────────────────────── -->
+  <WritingServicesGrid />
+
+  <!-- ─── Deep content tabs ───────────────────────────────────────────── -->
+  <AcademicContentTabs />
 
   <!-- ─── Testimonials ──────────────────────────────────────────────────── -->
   <TestimonialsSection />

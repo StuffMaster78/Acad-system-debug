@@ -150,6 +150,13 @@ const testimonials = [
             <span class="text-slate-700">{{ req }}</span>
           </li>
         </ul>
+
+        <div class="mt-8 rounded-2xl border border-amber-100 bg-amber-50 p-5">
+          <p class="text-sm font-semibold text-amber-800">Not a degree holder?</p>
+          <p class="mt-1 text-sm text-amber-700">
+            ResearchPaperMate requires at minimum an undergraduate degree. We do not accept applicants without verifiable academic credentials, regardless of writing ability — this is what our clients are paying for.
+          </p>
+        </div>
       </div>
     </div>
 

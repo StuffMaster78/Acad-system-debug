@@ -1,7 +1,16 @@
 <script setup lang="ts">
 const portal = usePortalStore()
-// CMS-driven — reflects whatever ServicePages exist in Wagtail
 const allServices = useCmsServiceList()
+const { getAll: getAllStaticServices } = useServices()
+// Split services into two columns for the mega-menu
+const menuServicesA = computed(() => {
+  const list = allServices.value.length ? allServices.value : getAllStaticServices()
+  return list.slice(0, 5)
+})
+const menuServicesB = computed(() => {
+  const list = allServices.value.length ? allServices.value : getAllStaticServices()
+  return list.slice(5)
+})
 
 const orderPaths = [
   { id: 'paper',   label: 'Papers & Essays',      desc: 'Research papers, essays, dissertations',  href: '/order?type=paper',   color: 'text-brand-600'  },
@@ -84,13 +93,13 @@ const ORDER_SVG: Record<string, string> = {
           <!-- Mega-menu dropdown -->
           <div
             v-if="servicesOpen"
-            class="absolute left-1/2 top-full z-50 mt-2 w-[700px] -translate-x-1/2 rounded-2xl border border-slate-100 bg-white p-6 shadow-xl"
+            class="absolute left-1/2 top-full z-50 mt-2 w-[780px] -translate-x-1/2 rounded-2xl border border-slate-100 bg-white p-6 shadow-xl"
             @mouseenter="openServices"
             @mouseleave="scheduleClose"
           >
-            <div class="grid grid-cols-3 gap-5">
+            <div class="grid grid-cols-4 gap-5">
 
-              <!-- Col 1: Order types (2 per group) -->
+              <!-- Col 1-2: Order types -->
               <div class="col-span-2">
                 <p class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Place an order</p>
                 <div class="grid grid-cols-2 gap-2">
@@ -106,36 +115,50 @@ const ORDER_SVG: Record<string, string> = {
                       <svg class="h-4 w-4" :class="op.color" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="ORDER_SVG[op.id]" /></svg>
                     </div>
                     <div class="min-w-0">
-                      <p class="text-sm font-semibold text-slate-800 group-hover:text-brand-700 transition-colors">{{ op.label }}</p>
-                      <p class="mt-0.5 text-xs text-slate-400 leading-tight">{{ op.desc }}</p>
+                      <p class="text-sm font-semibold text-slate-800 transition-colors group-hover:text-brand-700">{{ op.label }}</p>
+                      <p class="mt-0.5 text-xs leading-tight text-slate-400">{{ op.desc }}</p>
                     </div>
                   </NuxtLink>
                 </div>
               </div>
 
-              <!-- Col 3: Paper types list + CTA -->
-              <div class="flex flex-col gap-3">
-                <div>
-                  <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Paper types</p>
-                  <ul class="space-y-1">
-                    <li v-for="s in allServices.slice(0, 7)" :key="s.slug">
-                      <NuxtLink :href="`/services/${s.slug}`"
-                        class="block rounded-lg px-2 py-1 text-xs text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
-                        @click="servicesOpen = false">
-                        {{ s.navLabel }}
-                      </NuxtLink>
-                    </li>
-                    <li>
-                      <NuxtLink href="/services" class="px-2 py-1 text-xs font-medium text-brand-600 hover:underline block" @click="servicesOpen = false">
-                        All paper types →
-                      </NuxtLink>
-                    </li>
-                  </ul>
+              <!-- Col 3-4: Paper types in two mini-columns + CTA -->
+              <div class="col-span-2 flex flex-col gap-3">
+                <div class="grid grid-cols-2 gap-x-4">
+                  <div>
+                    <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Writing</p>
+                    <ul class="space-y-0.5">
+                      <li v-for="s in menuServicesA" :key="s.slug">
+                        <NuxtLink :href="`/services/${s.slug}`"
+                          class="block rounded-lg px-2 py-1.5 text-xs text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
+                          @click="servicesOpen = false">
+                          {{ s.navLabel }}
+                        </NuxtLink>
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Research & More</p>
+                    <ul class="space-y-0.5">
+                      <li v-for="s in menuServicesB" :key="s.slug">
+                        <NuxtLink :href="`/services/${s.slug}`"
+                          class="block rounded-lg px-2 py-1.5 text-xs text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
+                          @click="servicesOpen = false">
+                          {{ s.navLabel }}
+                        </NuxtLink>
+                      </li>
+                      <li>
+                        <NuxtLink href="/services" class="block px-2 py-1.5 text-xs font-semibold text-brand-600 hover:underline" @click="servicesOpen = false">
+                          All paper types →
+                        </NuxtLink>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
                 <div class="rounded-xl bg-brand-900 p-3 text-center">
                   <p class="text-xs font-semibold text-white">Start from $15/page</p>
                   <p class="mt-0.5 text-xs text-brand-300">4.8★ · 14,700+ orders</p>
-                  <NuxtLink to="/order" class="mt-2 block rounded-lg bg-white py-1.5 text-xs font-bold text-brand-700 hover:bg-brand-50 transition-colors" @click="servicesOpen = false">
+                  <NuxtLink to="/order" class="mt-2 block rounded-lg bg-white py-1.5 text-xs font-bold text-brand-700 transition-colors hover:bg-brand-50" @click="servicesOpen = false">
                     Place an order
                   </NuxtLink>
                 </div>
