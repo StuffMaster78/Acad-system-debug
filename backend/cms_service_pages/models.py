@@ -19,6 +19,7 @@ from wagtail.fields import StreamField, RichTextField
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.search import index
+from wagtail.blocks import CharBlock
 
 from cms_core.blocks import SERVICE_PAGE_BLOCKS
 
@@ -112,6 +113,39 @@ class ServicePage(Page):
         help_text="'Last reviewed by [Author] on [date]'",
     )
 
+    # --- Hero override ---
+    hero_headline = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Override the hero headline. Leave blank to use the static default.",
+    )
+    hero_sub = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Override the hero sub-headline. Leave blank to use the static default.",
+    )
+
+    # --- Sidebar bullets (editable by admins) ---
+    includes_items = StreamField(
+        [("item", CharBlock(label="Item", max_length=300))],
+        use_json_field=True,
+        blank=True,
+        verbose_name="What's included",
+        help_text="Each block is one bullet in the 'What's included' grid.",
+    )
+    delivers_items = StreamField(
+        [("item", CharBlock(label="Item", max_length=300))],
+        use_json_field=True,
+        blank=True,
+        verbose_name="What you receive",
+        help_text="Each block is one bullet in the 'What you receive' checklist.",
+    )
+    who_for = models.TextField(
+        blank=True,
+        verbose_name="Who this is for",
+        help_text="Short paragraph describing the target customer.",
+    )
+
     # --- Content ---
     body = StreamField(
         SERVICE_PAGE_BLOCKS,
@@ -133,6 +167,13 @@ class ServicePage(Page):
     content_panels = Page.content_panels + [
         MultiFieldPanel(
             [
+                FieldPanel("hero_headline"),
+                FieldPanel("hero_sub"),
+            ],
+            heading="Hero",
+        ),
+        MultiFieldPanel(
+            [
                 FieldPanel("service_category"),
                 FieldPanel("pricing_from"),
                 FieldPanel("pricing_to"),
@@ -140,6 +181,14 @@ class ServicePage(Page):
                 FieldPanel("turnaround_hours_standard"),
             ],
             heading="Service Details",
+        ),
+        MultiFieldPanel(
+            [
+                FieldPanel("includes_items"),
+                FieldPanel("delivers_items"),
+                FieldPanel("who_for"),
+            ],
+            heading="Service Highlights (sidebar bullets)",
         ),
         MultiFieldPanel(
             [
@@ -170,11 +219,16 @@ class ServicePage(Page):
 
     # --- API exposure ---
     api_fields = [
+        APIField("hero_headline"),
+        APIField("hero_sub"),
         APIField("service_category"),
         APIField("pricing_from"),
         APIField("pricing_to"),
         APIField("turnaround_hours_fastest"),
         APIField("turnaround_hours_standard"),
+        APIField("includes_items"),
+        APIField("delivers_items"),
+        APIField("who_for"),
         APIField("primary_cta_text"),
         APIField("primary_cta_url"),
         APIField("show_aggregate_rating"),

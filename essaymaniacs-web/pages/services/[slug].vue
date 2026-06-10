@@ -9,11 +9,25 @@ if (!service && !cmsPage.value) {
   throw createError({ statusCode: 404, message: 'Service not found' })
 }
 
-const displayTitle   = computed(() => service?.title ?? cmsPage.value?.title ?? '')
-const displayHero    = computed(() => service?.hero ?? { headline: displayTitle.value, sub: '' })
-const displayPrice   = computed(() => service?.priceFrom ?? parseFloat(cmsPage.value?.pricing_from ?? '10'))
-const displayIcon    = computed(() => service?.icon ?? 'pen-line')
-const displayMeta    = computed(() => service?.meta ?? { title: displayTitle.value, description: '' })
+const displayTitle    = computed(() => service?.title ?? cmsPage.value?.title ?? '')
+const displayHero     = computed(() => ({
+  headline: cmsPage.value?.hero_headline || service?.hero.headline || displayTitle.value,
+  sub:      cmsPage.value?.hero_sub      || service?.hero.sub      || '',
+}))
+const displayPrice    = computed(() => service?.priceFrom ?? parseFloat(cmsPage.value?.pricing_from ?? '10'))
+const displayIcon     = computed(() => service?.icon ?? 'pen-line')
+const displayMeta     = computed(() => service?.meta ?? { title: displayTitle.value, description: '' })
+const displayIncludes = computed(() =>
+  cmsPage.value?.includes_items?.length
+    ? cmsPage.value.includes_items.map(i => i.value)
+    : (service?.includes ?? [])
+)
+const displayDelivers = computed(() =>
+  cmsPage.value?.delivers_items?.length
+    ? cmsPage.value.delivers_items.map(i => i.value)
+    : (service?.delivers ?? [])
+)
+const displayWhoFor   = computed(() => cmsPage.value?.who_for || service?.whoFor || '')
 
 const related = service ? getRelated(service.relatedSlugs) : []
 
@@ -135,18 +149,18 @@ useHead({
     </section>
 
     <!-- ── Main content ──────────────────────────────────────────────── -->
-    <div v-if="service" class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <div class="grid gap-12 lg:grid-cols-[1fr_340px]">
 
         <!-- Left: reading flow -->
         <div class="space-y-12">
 
           <!-- What's included — numbered grid -->
-          <div>
+          <div v-if="displayIncludes.length">
             <h2 class="mb-6 font-serif text-2xl font-bold text-slate-900">What's included</h2>
             <div class="grid gap-4 sm:grid-cols-2">
               <div
-                v-for="(item, i) in service.includes"
+                v-for="(item, i) in displayIncludes"
                 :key="item"
                 class="flex items-start gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-5"
               >
@@ -167,11 +181,11 @@ useHead({
           </div>
 
           <!-- What you receive — checklist -->
-          <div>
+          <div v-if="displayDelivers.length">
             <h2 class="mb-6 font-serif text-2xl font-bold text-slate-900">What you receive</h2>
             <ul class="space-y-3">
               <li
-                v-for="item in service.delivers"
+                v-for="item in displayDelivers"
                 :key="item"
                 class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4"
               >
@@ -185,9 +199,9 @@ useHead({
           </div>
 
           <!-- Who it's for -->
-          <div>
+          <div v-if="displayWhoFor">
             <h2 class="mb-4 font-serif text-2xl font-bold text-slate-900">Who this is for</h2>
-            <p class="text-base leading-relaxed text-slate-700">{{ service.whoFor }}</p>
+            <p class="text-base leading-relaxed text-slate-700">{{ displayWhoFor }}</p>
             <div class="mt-5 grid grid-cols-3 gap-3">
               <div
                 v-for="level in ['Undergraduate', `Master's`, 'PhD / Doctoral']"
