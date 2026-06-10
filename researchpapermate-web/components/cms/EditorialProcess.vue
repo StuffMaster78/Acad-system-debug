@@ -9,7 +9,7 @@ defineProps<{
 const steps = [
   { icon: 'search',       title: 'Topic identified',           description: 'Topics come from reader requests, keyword research, and real gaps in academic guidance — not a content calendar.' },
   { icon: 'book-open',    title: 'In-depth research & writing', description: 'A credentialed specialist — often with a postgraduate degree in the subject area — conducts primary and secondary research before writing a single word.' },
-  { icon: 'pencil',       title: 'Strict editorial review',    description: 'A senior editor reviews the draft for accuracy, clarity, and academic integrity. Subject-matter experts verify specialist claims before approval.' },
+  { icon: 'pen-line',     title: 'Strict editorial review',    description: 'A senior editor reviews the draft for accuracy, clarity, and academic integrity. Subject-matter experts verify specialist claims before approval.' },
   { icon: 'check-circle', title: 'Published',                  description: 'Once approved, the article is published with full author attribution and verified credentials.' },
   { icon: 'refresh-cw',  title: 'Tracked & updated',          description: 'Our team actively monitors articles for factual drift and new research — updating content proactively rather than waiting for readers to report errors.' },
 ]
