@@ -7,31 +7,11 @@ defineProps<{
 }>()
 
 const steps = [
-  {
-    icon: '🔍',
-    title: 'Topic identified',
-    description: 'Topics come from reader requests, keyword research, and real gaps in academic guidance — not a content calendar.',
-  },
-  {
-    icon: '📚',
-    title: 'In-depth research & writing',
-    description: 'A credentialed specialist — often with a postgraduate degree in the subject area — conducts primary and secondary research before writing a single word.',
-  },
-  {
-    icon: '✏️',
-    title: 'Strict editorial review',
-    description: 'A senior editor reviews the draft for accuracy, clarity, and academic integrity. Subject-matter experts verify specialist claims before approval.',
-  },
-  {
-    icon: '✅',
-    title: 'Published',
-    description: 'Once approved, the article is published with full author attribution and verified credentials.',
-  },
-  {
-    icon: '🔄',
-    title: 'Tracked & updated',
-    description: 'Our team actively monitors articles for factual drift and new research — updating content proactively rather than waiting for readers to report errors.',
-  },
+  { icon: 'search',       title: 'Topic identified',           description: 'Topics come from reader requests, keyword research, and real gaps in academic guidance — not a content calendar.' },
+  { icon: 'book-open',    title: 'In-depth research & writing', description: 'A credentialed specialist — often with a postgraduate degree in the subject area — conducts primary and secondary research before writing a single word.' },
+  { icon: 'pencil',       title: 'Strict editorial review',    description: 'A senior editor reviews the draft for accuracy, clarity, and academic integrity. Subject-matter experts verify specialist claims before approval.' },
+  { icon: 'check-circle', title: 'Published',                  description: 'Once approved, the article is published with full author attribution and verified credentials.' },
+  { icon: 'refresh-cw',  title: 'Tracked & updated',          description: 'Our team actively monitors articles for factual drift and new research — updating content proactively rather than waiting for readers to report errors.' },
 ]
 
 function fmtDate(v?: string) {
@@ -45,8 +25,8 @@ function fmtDate(v?: string) {
     <!-- Header -->
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-6 py-4">
       <div class="flex items-center gap-2.5">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700 text-sm text-white">
-          🛡️
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700">
+          <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         </div>
         <p class="font-semibold text-slate-900">How this article was written</p>
       </div>
@@ -67,8 +47,8 @@ function fmtDate(v?: string) {
           <div v-if="i < steps.length - 1" class="absolute bottom-0 left-[15px] top-8 w-px bg-slate-200" />
 
           <!-- Icon circle -->
-          <div class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-brand-600 bg-brand-600 text-sm leading-none">
-            {{ step.icon }}
+          <div class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-brand-600 bg-brand-600">
+            <Icon :name="step.icon" class="h-3.5 w-3.5 text-white" />
           </div>
 
           <!-- Content -->

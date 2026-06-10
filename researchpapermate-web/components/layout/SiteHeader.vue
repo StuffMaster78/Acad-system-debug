@@ -59,7 +59,25 @@ const ORDER_SVG: Record<string, string> = {
       <div class="flex items-center gap-3">
         <NuxtLink href="/" class="flex items-center gap-2">
           <img v-if="portal.logo" :src="portal.logo" :alt="portal.brandName" class="h-8 w-auto" />
-          <span v-else class="font-serif text-xl font-bold text-brand-700">{{ portal.brandName }}</span>
+          <span v-else class="flex items-center gap-2">
+            <!-- ResearchPaperMate document mark -->
+            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="rpm-mark" x1="3" y1="1" x2="27" y2="29" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#93b8ff"/>
+                  <stop offset="100%" stop-color="#163e88"/>
+                </linearGradient>
+              </defs>
+              <path d="M5 2h13l7 7v19a2 2 0 01-2 2H5a2 2 0 01-2-2V4a2 2 0 012-2z" fill="url(#rpm-mark)"/>
+              <path d="M18 2v5a2 2 0 002 2h5" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.4"/>
+              <rect x="7" y="13" width="9"  height="1.8" rx="0.9" fill="white" fill-opacity="0.85"/>
+              <rect x="7" y="17" width="12" height="1.8" rx="0.9" fill="white" fill-opacity="0.6"/>
+              <rect x="7" y="21" width="7"  height="1.8" rx="0.9" fill="white" fill-opacity="0.6"/>
+            </svg>
+            <span class="text-[1.1rem] font-bold leading-none tracking-tight">
+              <span class="text-slate-900">Research</span><span class="text-brand-600">Paper</span><span class="text-slate-900">Mate</span>
+            </span>
+          </span>
         </NuxtLink>
         <div class="hidden items-center gap-1 sm:flex">
           <div class="flex gap-0.5">

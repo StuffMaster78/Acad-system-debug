@@ -7,22 +7,22 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/how-it
 
 const steps = [
   {
-    number: '01', icon: '📋', title: 'Submit your brief',
+    number: '01', icon: 'clipboard-list', title: 'Submit your brief',
     desc: 'Tell us your assignment type, academic level, deadline, word count, and any rubric or source requirements. The more specific your brief, the better matched your writer will be.',
     detail: ['Assignment type — research paper, essay, dissertation, case study, coursework, lab report, etc.', 'Academic level — high school through PhD', 'Deadline — as fast as 2 hours, up to 14 days', 'Word count or page count', 'Rubric, marking criteria, or reading list files', 'Citation style — APA, MLA, Harvard, Chicago, Vancouver, etc.'],
   },
   {
-    number: '02', icon: '💳', title: 'Pay securely — then we match you',
+    number: '02', icon: 'credit-card', title: 'Pay securely — then we match you',
     desc: 'Payment is handled by our regulated third-party processor. Once confirmed, we match your order to a subject-specialist writer whose academic background and credential level align with your requirements.',
     detail: ["Master's-level writers for undergraduate work", 'PhD-qualified writers for dissertations and doctoral papers', 'Subject matching — not just level matching', 'You receive an email notification when your writer accepts the order'],
   },
   {
-    number: '03', icon: '💬', title: 'Communicate directly with your writer',
+    number: '03', icon: 'message-square', title: 'Communicate directly with your writer',
     desc: "From the moment a writer accepts, you have a direct message channel in your dashboard. Share additional files, clarify requirements, or check progress — all in real time.",
     detail: ['Direct messaging — no support ticket middlemen', 'Share rubrics, reading lists, or instructor feedback at any time', 'Writer provides progress updates and can flag questions proactively', 'All messages stored for the full order lifecycle'],
   },
   {
-    number: '04', icon: '📥', title: 'Download your completed paper',
+    number: '04', icon: 'download', title: 'Download your completed paper',
     desc: 'Your writer uploads the completed paper to your dashboard. Download in Word, PDF, or PowerPoint — your free Turnitin originality report is included.',
     detail: ['Email notification when your paper is ready', 'Download from the Files section of your dashboard', 'Free Turnitin originality report included with every order', 'AI-detection report available free on request', 'Free unlimited revisions within the revision window', 'Grade guarantee — if you receive a lower grade than stated in your brief, contact us within 14 days'],
   },
@@ -41,12 +41,12 @@ const services = [
 ]
 
 const guarantees = [
-  { icon: '🏆', title: 'Grade or money back', desc: 'Receive a lower grade than stated in your brief? We rewrite free or refund you — no questions asked.' },
-  { icon: '🎓', title: 'Subject experts matched to your brief', desc: "Master's and PhD writers matched by subject area — not just assigned randomly." },
-  { icon: '🤖', title: 'Zero AI — plagiarism-free', desc: 'All papers written by a real human. Free Turnitin and AI-detection reports included.' },
-  { icon: '🔒', title: 'Your privacy protected', desc: 'Your name, school, and order details are never shared with third parties.' },
-  { icon: '🔄', title: 'Unlimited free revisions', desc: 'Request as many revisions as needed within your revision window at zero extra cost.' },
-  { icon: '⚡', title: 'As fast as 2 hours', desc: 'Most papers up to 4 pages can be delivered in 2 hours for urgent orders, 24/7.' },
+  { icon: 'trophy',        title: 'Grade or money back',                desc: 'Receive a lower grade than stated in your brief? We rewrite free or refund you — no questions asked.' },
+  { icon: 'graduation-cap', title: 'Subject experts matched to your brief', desc: "Master's and PhD writers matched by subject area — not just assigned randomly." },
+  { icon: 'bot',           title: 'Zero AI — plagiarism-free',            desc: 'All papers written by a real human. Free Turnitin and AI-detection reports included.' },
+  { icon: 'lock',          title: 'Your privacy protected',               desc: 'Your name, school, and order details are never shared with third parties.' },
+  { icon: 'refresh-cw',   title: 'Unlimited free revisions',             desc: 'Request as many revisions as needed within your revision window at zero extra cost.' },
+  { icon: 'zap',           title: 'As fast as 2 hours',                  desc: 'Most papers up to 4 pages can be delivered in 2 hours for urgent orders, 24/7.' },
 ]
 </script>
 
@@ -74,7 +74,9 @@ const guarantees = [
           <div v-if="i < steps.length - 1" class="mt-4 h-full w-0.5 bg-brand-100" />
         </div>
         <div class="pb-4">
-          <div class="mb-1 text-2xl">{{ step.icon }}</div>
+          <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
+            <Icon :name="step.icon" class="h-5 w-5 text-brand-700" />
+          </div>
           <h2 class="font-serif text-2xl font-bold text-slate-900">{{ step.title }}</h2>
           <p class="mt-2 text-base leading-relaxed text-slate-600">{{ step.desc }}</p>
           <ul class="mt-4 space-y-2">
@@ -95,9 +97,11 @@ const guarantees = [
         </div>
         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="g in guarantees" :key="g.title" class="card">
-            <span class="text-3xl">{{ g.icon }}</span>
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15">
+              <Icon :name="g.icon" class="h-5 w-5 text-white" />
+            </div>
             <h3 class="mt-3 font-semibold text-slate-900">{{ g.title }}</h3>
-            <p class="mt-1 text-sm leading-relaxed text-slate-500">{{ g.desc }}</p>
+            <p class="mt-1 text-sm leading-relaxed text-slate-600">{{ g.desc }}</p>
           </div>
         </div>
       </div>

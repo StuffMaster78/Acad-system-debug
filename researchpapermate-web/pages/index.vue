@@ -5,19 +5,19 @@ const serviceStrip = getAllServices()
 
 const pillars = [
   {
-    icon: '📄',
+    icon: 'file-text',
     title: 'Research & Essays',
     desc: 'Research papers, essays, dissertations, case studies, literature reviews — written from scratch by subject-specialist writers with the right credentials for your level.',
     href: '/services',
   },
   {
-    icon: '📊',
+    icon: 'bar-chart-3',
     title: 'Data & Analysis',
     desc: 'SPSS, R, Python, or Excel data analysis with full written interpretation, methodology support, and charts — for dissertations, research papers, or standalone assignments.',
     href: '/services/data-analysis',
   },
   {
-    icon: '🎓',
+    icon: 'graduation-cap',
     title: 'Coursework & Support',
     desc: 'Regular assignments, online class help, presentations, and lab reports — handled by the same writer throughout so your work stays consistent and on time.',
     href: '/class-support',
@@ -196,7 +196,9 @@ useHead({
           :href="p.href"
           class="card group flex flex-col transition-shadow hover:shadow-lg hover:border-brand-300"
         >
-          <span class="text-4xl">{{ p.icon }}</span>
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100 transition-colors group-hover:bg-brand-600">
+            <Icon :name="p.icon" class="h-6 w-6 text-brand-600 transition-colors group-hover:text-white" />
+          </div>
           <h3 class="mt-4 text-xl font-bold text-brand-700 transition-colors group-hover:text-brand-900">{{ p.title }}</h3>
           <p class="mt-3 flex-1 text-sm leading-relaxed text-slate-600">{{ p.desc }}</p>
           <span class="mt-4 text-xs font-semibold text-brand-600 group-hover:underline">Learn more →</span>

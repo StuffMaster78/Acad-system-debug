@@ -33,12 +33,12 @@ const steps = [
 ]
 
 const perks = [
-  { icon: '💰', title: 'Earn up to $50/page',       desc: 'Pay scales with your level and performance. Advanced and Expert writers earn 10–20% more per order.' },
-  { icon: '🕐', title: 'Work your own hours',         desc: 'No fixed shifts. Accept orders that fit your timetable and decline anything that doesn\'t.' },
-  { icon: '📈', title: 'Grow your reputation',        desc: 'Build ratings with every delivery. Higher ratings unlock access to premium, better-paying orders.' },
-  { icon: '💳', title: 'Weekly payouts',              desc: 'Earnings are processed every Friday via M-Pesa, bank transfer, or PayPal. No hidden deductions.' },
-  { icon: '🎯', title: 'Pick your subjects',          desc: 'Only see orders in your field. 100+ subject categories — from nursing to law to computer science.' },
-  { icon: '🛡️', title: 'Protected by escrow',       desc: 'Your payment is held in escrow from the moment a client places an order. You get paid even if the client goes quiet.' },
+  { icon: 'dollar-sign',  title: 'Earn up to $50/page',  desc: 'Pay scales with your level and performance. Advanced and Expert writers earn 10–20% more per order.' },
+  { icon: 'clock',        title: 'Work your own hours',  desc: 'No fixed shifts. Accept orders that fit your timetable and decline anything that doesn\'t.' },
+  { icon: 'trending-up',  title: 'Grow your reputation', desc: 'Build ratings with every delivery. Higher ratings unlock access to premium, better-paying orders.' },
+  { icon: 'credit-card',  title: 'Weekly payouts',       desc: 'Earnings are processed every Friday via M-Pesa, bank transfer, or PayPal. No hidden deductions.' },
+  { icon: 'target',       title: 'Pick your subjects',   desc: 'Only see orders in your field. 100+ subject categories — from law to engineering to social sciences.' },
+  { icon: 'shield-check', title: 'Protected by escrow',  desc: 'Your payment is held in escrow from the moment a client places an order. You get paid even if the client goes quiet.' },
 ]
 
 const requirements = [
@@ -130,9 +130,11 @@ const testimonials = [
 
         <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="perk in perks" :key="perk.title" class="card">
-            <span class="text-3xl">{{ perk.icon }}</span>
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-100">
+              <Icon :name="perk.icon" class="h-5 w-5 text-brand-700" />
+            </div>
             <h3 class="mt-4 font-semibold text-slate-900">{{ perk.title }}</h3>
-            <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ perk.desc }}</p>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ perk.desc }}</p>
           </div>
         </div>
       </div>

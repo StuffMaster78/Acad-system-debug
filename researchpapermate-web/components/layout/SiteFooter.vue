@@ -88,7 +88,24 @@ const trustItems = [
 
         <!-- Brand column -->
         <div class="col-span-2 md:col-span-1">
-          <span class="font-serif text-xl font-bold text-white">{{ portal.brandName }}</span>
+          <span class="flex items-center gap-2">
+            <svg width="26" height="26" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="rpm-foot" x1="3" y1="1" x2="27" y2="29" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#93b8ff"/>
+                  <stop offset="100%" stop-color="#2563c8"/>
+                </linearGradient>
+              </defs>
+              <path d="M5 2h13l7 7v19a2 2 0 01-2 2H5a2 2 0 01-2-2V4a2 2 0 012-2z" fill="url(#rpm-foot)"/>
+              <path d="M18 2v5a2 2 0 002 2h5" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.4"/>
+              <rect x="7" y="13" width="9"  height="1.8" rx="0.9" fill="white" fill-opacity="0.85"/>
+              <rect x="7" y="17" width="12" height="1.8" rx="0.9" fill="white" fill-opacity="0.6"/>
+              <rect x="7" y="21" width="7"  height="1.8" rx="0.9" fill="white" fill-opacity="0.6"/>
+            </svg>
+            <span class="text-[1.05rem] font-bold leading-none tracking-tight">
+              <span class="text-white">Research</span><span class="text-brand-300">Paper</span><span class="text-white">Mate</span>
+            </span>
+          </span>
           <p class="mt-3 text-sm text-slate-400 leading-relaxed">{{ portal.tagline }}</p>
 
           <!-- Social icons — only rendered when URLs are configured in Wagtail -->

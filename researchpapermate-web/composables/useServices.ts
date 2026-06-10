@@ -16,7 +16,7 @@ const services: ServiceData[] = [
   {
     slug: 'research-papers',
     navLabel: 'Research Papers',
-    icon: '📄',
+    icon: 'file-text',
     title: 'Research Paper Writing Service',
     hero: {
       headline: 'Research Papers Written by Specialists',
