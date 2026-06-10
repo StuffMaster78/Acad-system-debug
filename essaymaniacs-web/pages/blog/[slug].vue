@@ -371,12 +371,15 @@ useHead({
 
           </div><!-- end left column -->
 
-          <!-- Right: sticky share sidebar (desktop only) -->
+          <!-- Right: sticky sidebar (desktop only) -->
           <aside class="hidden lg:block">
-            <div class="sticky top-24 flex flex-col items-center gap-4">
-              <ClientOnly>
-                <ShareButtons :title="post.title" :url="canonicalUrl" :vertical="true" />
-              </ClientOnly>
+            <div class="sticky top-24 space-y-6">
+              <SidebarCalculator />
+              <div class="flex flex-col items-center">
+                <ClientOnly>
+                  <ShareButtons :title="post.title" :url="canonicalUrl" :vertical="true" />
+                </ClientOnly>
+              </div>
             </div>
           </aside>
 
