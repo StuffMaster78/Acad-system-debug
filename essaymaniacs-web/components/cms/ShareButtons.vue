@@ -2,6 +2,7 @@
 const props = defineProps<{
   url?: string
   title?: string
+  vertical?: boolean
 }>()
 
 const copied = ref(false)
@@ -87,10 +88,43 @@ async function nativeShare() {
 </script>
 
 <template>
-  <div class="rounded-xl border border-slate-200 bg-white px-5 py-4">
+  <!-- ── Vertical strip (sidebar / floating) ── -->
+  <div v-if="vertical" class="flex flex-col items-center gap-2">
+    <p class="mb-1 text-[9px] font-bold uppercase tracking-widest text-slate-400">Share</p>
+
+    <!-- Platform icon buttons -->
+    <button
+      v-for="s in SHARES"
+      :key="s.id"
+      class="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:scale-110 hover:shadow-md"
+      :style="hovered === s.id ? { borderColor: s.color, color: s.color, background: s.bg } : {}"
+      :title="s.label"
+      @mouseenter="hovered = s.id"
+      @mouseleave="hovered = null"
+      @click="share(s)"
+      v-html="s.icon"
+    />
+
+    <!-- Copy link -->
+    <button
+      class="flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-all hover:scale-110 hover:shadow-md"
+      :class="copied ? 'border-emerald-300 bg-emerald-50 text-emerald-600' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'"
+      title="Copy link"
+      @click="copyLink"
+    >
+      <svg v-if="!copied" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+      </svg>
+      <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── Horizontal (inline, below article) ── -->
+  <div v-else class="rounded-xl border border-slate-200 bg-white px-5 py-4">
     <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Share this article</p>
     <div class="flex flex-wrap gap-2">
-      <!-- Native share (mobile) -->
       <button
         v-if="canNativeShare"
         class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
@@ -101,8 +135,6 @@ async function nativeShare() {
         </svg>
         Share
       </button>
-
-      <!-- Platform buttons -->
       <button
         v-for="s in SHARES"
         :key="s.id"
@@ -114,8 +146,6 @@ async function nativeShare() {
         @click="share(s)"
         v-html="s.icon"
       />
-
-      <!-- Copy link -->
       <button
         class="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-all"
         :class="copied ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'"
