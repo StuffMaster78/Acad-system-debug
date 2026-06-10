@@ -132,6 +132,10 @@ function applyRouteFilter() {
 
 // Defensive wrapper: guards against stale HMR store instances where
 // scanDuplicates may not yet exist on the cached singleton.
+function copyInviteLink(link: string) {
+  navigator.clipboard.writeText(link).catch(() => undefined);
+}
+
 async function runScan() {
   if (typeof access.scanDuplicates === "function") {
     await access.scanDuplicates().catch(() => undefined);
@@ -371,13 +375,24 @@ watch(() => route.meta?.roleFilter, applyRouteFilter);
                 </select>
               </label>
             </div>
-            <label class="block">
+            <!-- Password — hidden when send_invite is on -->
+            <label v-if="!access.createUserForm.send_invite" class="block">
               <span class="text-xs font-semibold uppercase text-graphite">Password</span>
-              <input v-model="access.createUserForm.password" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="Leave empty to auto-generate" type="password" />
+              <input v-model="access.createUserForm.password" class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" placeholder="At least 8 characters" type="password" />
             </label>
           </div>
+
+          <!-- Invite toggle -->
+          <label class="flex items-center gap-3 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm">
+            <input v-model="access.createUserForm.send_invite" type="checkbox" class="rounded accent-signal" />
+            <span class="text-graphite">
+              <span class="font-semibold text-ink">Generate invite link</span>
+              — skip password, give the new staff member a one-time link to set their own.
+            </span>
+          </label>
+
           <button
-            class="focus-ring mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:opacity-60"
+            class="focus-ring inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:opacity-60"
             type="button"
             :disabled="access.isMutating"
             @click="access.createUser().catch(() => undefined)"
@@ -385,6 +400,26 @@ watch(() => route.meta?.roleFilter, applyRouteFilter);
             <UserPlus class="h-4 w-4" />
             Create user
           </button>
+
+          <!-- Invite link result -->
+          <div v-if="access.lastInviteLink" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 space-y-2">
+            <p class="text-xs font-semibold text-emerald-800">Invite link generated — share this with the new staff member:</p>
+            <div class="flex gap-2">
+              <input
+                :value="access.lastInviteLink"
+                readonly
+                class="h-9 flex-1 rounded-md border border-emerald-200 bg-white px-3 text-xs font-mono text-graphite"
+              />
+              <button
+                class="focus-ring h-9 shrink-0 rounded-md border border-emerald-300 bg-white px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                type="button"
+                @click="copyInviteLink(access.lastInviteLink!)"
+              >
+                Copy
+              </button>
+            </div>
+            <p class="text-xs text-emerald-600">Link expires in 1 hour. The staff member will be prompted to set their password.</p>
+          </div>
         </section>
 
         <!-- Email blacklist -->

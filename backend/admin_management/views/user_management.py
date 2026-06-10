@@ -161,7 +161,23 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Create a new user (writer, editor, support, or client)."""
-        serializer = CreateUserSerializer(data=request.data)
+        import secrets
+        import string
+
+        send_invite = bool(request.data.get("send_invite", False))
+
+        # When send_invite is requested, inject a strong random password so the
+        # serializer's required-password validation passes. The staff member will
+        # set their own password via the invite link returned in the response.
+        data = request.data.copy()
+        if send_invite and not data.get("password"):
+            random_pw = "".join(
+                secrets.choice(string.ascii_letters + string.digits + "!@#$%")
+                for _ in range(24)
+            )
+            data["password"] = random_pw
+
+        serializer = CreateUserSerializer(data=data)
         serializer.is_valid(raise_exception=True)
 
         role = serializer.validated_data.get('role')
@@ -185,6 +201,8 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
+        invite_link = None
+
         with transaction.atomic():
             user = serializer.save()
 
@@ -202,10 +220,30 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                 details=f"Created user: {user.email}"
             )
 
-        return Response(
-            UserDetailSerializer(user).data,
-            status=status.HTTP_201_CREATED
-        )
+            # Generate a one-time invite link the admin can share with the new
+            # staff member so they can set their own password.
+            if send_invite:
+                try:
+                    from authentication.services.password_reset_service import PasswordResetService
+                    from authentication.services.token_service import TokenService
+
+                    service = PasswordResetService(user=user, website=user.website)
+                    _, raw_token, _, _ = service.create_reset_request()
+
+                    scheme = "https" if request.is_secure() else "http"
+                    host = request.get_host()
+                    invite_link = (
+                        f"{scheme}://{host}/auth/reset-password"
+                        f"?token={raw_token}&email={user.email}"
+                    )
+                except Exception:
+                    pass  # invite link generation is best-effort — account is still created
+
+        response_data = UserDetailSerializer(user).data
+        if invite_link:
+            response_data["invite_link"] = invite_link
+
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
     def update(self, request, pk=None):
         """Update user information."""

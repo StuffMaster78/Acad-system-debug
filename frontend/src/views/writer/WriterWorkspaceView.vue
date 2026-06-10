@@ -16,6 +16,7 @@ import {
 } from "@lucide/vue";
 import MetricTile from "@/components/ui/MetricTile.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import WriterOnboardingGate from "@/components/writer/WriterOnboardingGate.vue";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 
 const workspace = useWriterWorkspaceStore();
@@ -93,14 +94,28 @@ async function submitWindow() {
   }
 }
 
+const onboardingStatus = computed(() => workspace.profile?.onboarding_status ?? null);
+const isOnboarded = computed(() => onboardingStatus.value === "completed" || onboardingStatus.value === null);
+
 onMounted(async () => {
   await workspace.hydrate();
-  if (!workspace.assignments.length) workspace.fetchAssignments(1, "in_progress,revision_requested").catch(() => undefined);
+  if (isOnboarded.value && !workspace.assignments.length) {
+    workspace.fetchAssignments(1, "in_progress,revision_requested").catch(() => undefined);
+  }
 });
 </script>
 
 <template>
   <div class="space-y-4">
+
+    <!-- Onboarding gate — shown until admin approves the writer ─────────── -->
+    <WriterOnboardingGate
+      v-if="!isOnboarded && onboardingStatus"
+      :status="onboardingStatus"
+      :rejection-reason="workspace.profile?.rejection_reason as string | null | undefined"
+    />
+
+    <template v-else>
     <section class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold text-ink">
@@ -439,5 +454,7 @@ onMounted(async () => {
         <ChevronRight class="h-4 w-4" />
       </RouterLink>
     </section>
+    </template><!-- end v-else onboarded -->
+
   </div>
 </template>

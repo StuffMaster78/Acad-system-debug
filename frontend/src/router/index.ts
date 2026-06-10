@@ -1166,6 +1166,7 @@ export const router = createRouter({
         {
           path: "apply",
           name: "writer-apply",
+          meta: { surface: "writer" },
           component: () => import("@/views/public/WriterApplyView.vue"),
         },
       ],

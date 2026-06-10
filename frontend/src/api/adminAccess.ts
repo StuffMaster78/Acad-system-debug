@@ -22,6 +22,11 @@ export interface CreateUserPayload {
   first_name?: string;
   last_name?: string;
   website?: number | null;
+  send_invite?: boolean;
+}
+
+export interface CreateUserResponse extends AdminManagedUser {
+  invite_link?: string;
 }
 
 export interface DuplicateDetectResponse {
@@ -44,7 +49,7 @@ export const adminAccessApi = {
       apiPath("/admin-management/user-management/stats/"),
     ),
   createUser: (payload: CreateUserPayload) =>
-    api.post<AdminManagedUser>(
+    api.post<CreateUserResponse>(
       apiPath("/admin-management/user-management/"),
       payload,
     ),

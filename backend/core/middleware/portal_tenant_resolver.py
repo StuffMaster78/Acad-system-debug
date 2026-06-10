@@ -71,13 +71,13 @@ class PortalTenantResolverMiddleware(MiddlewareMixin):
         if website:
             request.website = website
 
-        # Fallback mapping (optional safety)
-        if host == "ordermanagement.com":
-            request.portal = PortalDefinition.objects.filter(
-                code="internal_admin"
-            ).first()
-
-        if host == "writers.ordermanagement.com":
-            request.portal = PortalDefinition.objects.filter(
-                code="writer_portal"
-            ).first()
+        # Fallback mapping — kick in if domain lookup above misses (e.g. DB not yet seeded)
+        if not request.portal:
+            if host in ("admin.writerscreek.com",):
+                request.portal = PortalDefinition.objects.filter(
+                    code="internal_admin"
+                ).first()
+            elif host in ("writerscreek.com", "www.writerscreek.com"):
+                request.portal = PortalDefinition.objects.filter(
+                    code="writer_portal"
+                ).first()

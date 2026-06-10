@@ -52,7 +52,20 @@ onMounted(() => {
         Sign in
       </RouterLink>
 
-      <p class="mt-6 text-xs text-slate-400">
+      <template v-if="portalCtx.surface === 'writer'">
+        <RouterLink
+          class="focus-ring mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-ink hover:bg-slate-50"
+          to="/auth/register"
+        >
+          <ArrowRight class="h-4 w-4" />
+          Create a writer account
+        </RouterLink>
+        <p class="mt-4 text-xs text-slate-400">
+          New here? Register above or
+          <RouterLink to="/apply" class="underline hover:text-ink">submit an application</RouterLink>.
+        </p>
+      </template>
+      <p v-else class="mt-6 text-xs text-slate-400">
         Access is by invitation only.
       </p>
     </div>

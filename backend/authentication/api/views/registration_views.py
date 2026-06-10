@@ -55,6 +55,19 @@ class RegistrationRequestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        portal = getattr(request, "portal", None)
+        portal_code = portal.code if portal else None
+
+        # Staff accounts are created by admins, not self-registered.
+        if portal_code == "internal_admin":
+            return Response(
+                {"detail": "Staff accounts cannot be self-registered."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Assign role from portal surface; default to client.
+        default_role = "writer" if portal_code == "writer_portal" else "client"
+
         email = validated_data["email"]
         username = validated_data["username"]
         password = validated_data["password"]
@@ -101,6 +114,7 @@ class RegistrationRequestView(APIView):
             first_name=validated_data.get("first_name", ""),
             last_name=validated_data.get("last_name", ""),
             website=website,
+            role=default_role,
             is_active=False,
         )
 

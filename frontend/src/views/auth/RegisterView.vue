@@ -31,7 +31,8 @@ const agreedToTerms = ref(false);
 const isSubmitting  = ref(false);
 const formError     = ref("");
 
-const brand = computed(() => portal.branding?.brand_name ?? "the platform");
+const brand = computed(() => portal.branding?.brand_name ?? "the platform")
+const isWriterSurface = computed(() => portal.surface === "writer");
 
 const passwordsMatch = computed(() =>
   !form.confirm || form.password === form.confirm
@@ -119,10 +120,10 @@ async function confirmEmail() {
         id:        data.user?.id ?? (data as any).user_id,
         email:     data.user?.email ?? form.email,
         full_name: data.user?.full_name ?? `${form.first_name} ${form.last_name}`.trim(),
-        role:      data.user?.role ?? "client",
+        role:      data.user?.role ?? (isWriterSurface.value ? "writer" : "client"),
       },
     );
-    await router.push("/client");
+    await router.push(portal.homeRoute);
   } catch {
     verifyError.value = "Invalid or expired code. Please try again or request a new one.";
   } finally {
@@ -159,8 +160,14 @@ async function resendCode() {
         <!-- ── REGISTRATION FORM ─────────────────────────────────────────── -->
         <template v-if="step === 'form'">
           <div class="text-center">
-            <h1 class="text-2xl font-bold text-ink">Create your account</h1>
-            <p class="mt-1.5 text-sm text-graphite">Place orders, track progress, download completed work.</p>
+            <h1 class="text-2xl font-bold text-ink">
+              {{ isWriterSurface ? 'Join our writing team' : 'Create your account' }}
+            </h1>
+            <p class="mt-1.5 text-sm text-graphite">
+              {{ isWriterSurface
+                ? 'Create your writer account to access jobs, submit work, and track your earnings.'
+                : 'Place orders, track progress, download completed work.' }}
+            </p>
           </div>
 
           <div class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm space-y-5">

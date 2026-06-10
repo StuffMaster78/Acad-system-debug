@@ -1,3 +1,11 @@
+export type WriterOnboardingStatus =
+  | "not_started"
+  | "in_progress"
+  | "documents_pending"
+  | "review_pending"
+  | "rejected"
+  | "completed";
+
 export interface WriterProfile {
   id?: number | string;
   registration_id?: string;
@@ -8,6 +16,8 @@ export interface WriterProfile {
   rating?: number | string;
   status?: string;
   is_accepting_orders?: boolean;
+  onboarding_status?: WriterOnboardingStatus;
+  rejection_reason?: string | null;
   [key: string]: unknown;
 }
 

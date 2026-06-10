@@ -127,7 +127,9 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     first_name: "New",
     last_name: "Support",
     website: null,
+    send_invite: true,
   });
+  const lastInviteLink = ref<string | null>(null);
   const blacklistForm = ref({
     email: "risk@example.com",
     reason: "Chargeback, abuse, or duplicate-risk review.",
@@ -466,7 +468,8 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
       }
 
       const { data } = await adminAccessApi.createUser(createUserForm.value);
-      notice.value = `User ${data.email} created.`;
+      lastInviteLink.value = data.invite_link ?? null;
+      notice.value = `User ${data.email} created.${lastInviteLink.value ? " Invite link ready." : ""}`;
       ui.toast(notice.value, "success");
       await hydrate();
       selectedUserId.value = data.id;
@@ -648,6 +651,7 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     newRole,
     generatedToken,
     createUserForm,
+    lastInviteLink,
     blacklistForm,
     duplicateFilters,
     isLoading,

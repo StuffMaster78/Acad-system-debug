@@ -27,7 +27,7 @@ class WriterPayoutPreference(models.Model):
     writer = models.ForeignKey(
         "writer_management.WriterProfile",
         on_delete=models.CASCADE,
-        related_name="payout_preferences"
+        related_name="+",
     )
     preferred_method = models.CharField(
         max_length=20, choices=PAYMENT_METHOD_CHOICES,
