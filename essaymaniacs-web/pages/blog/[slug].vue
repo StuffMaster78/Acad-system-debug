@@ -46,18 +46,21 @@ const reactions: { type: 'helpful' | 'love' | 'insightful'; emoji: string; label
 
 // Mid-article CTA — injected after the 4th paragraph.
 const inlineCta = `
-<div class="not-prose my-10 border-y border-slate-200 py-8">
-  <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+<div class="not-prose my-12 overflow-hidden rounded-2xl relative" style="background:linear-gradient(135deg,#3b0764 0%,#5b21b6 52%,#7c3aed 100%);">
+  <div class="absolute inset-0 pointer-events-none" style="background-image:radial-gradient(circle,rgba(255,255,255,0.07) 1px,transparent 1px);background-size:26px 26px;"></div>
+  <div class="absolute -top-14 -right-14 w-52 h-52 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(255,255,255,0.13),transparent 65%);"></div>
+  <div class="relative px-7 py-8 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:px-10">
     <div>
-      <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">EssayManiacs</p>
-      <p class="text-[1.05rem] font-bold leading-snug text-slate-900">Deadline coming up? A subject-specialist writer can handle this for you — properly cited, from scratch, from $10/page.</p>
-      <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
-        <span>✓ 100+ subjects · Master&apos;s &amp; PhD writers</span>
-        <span>✓ From $10/page · As fast as 2 hours</span>
-        <span>✓ Grade or money back</span>
+      <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.15em]" style="color:rgba(216,180,254,0.8);">EssayManiacs &mdash; 500+ subject specialists</p>
+      <p class="text-[1.15rem] font-extrabold text-white leading-snug">Deadline looming? Get a specialist writer on it &mdash;<br class="hidden sm:block"> properly cited, original, from $10/page.</p>
+      <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
+        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(216,180,254,0.88);"><span style="color:#4ade80;">&#10003;</span> Grade or money back</span>
+        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(216,180,254,0.88);"><span style="color:#4ade80;">&#10003;</span> Zero AI content</span>
+        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(216,180,254,0.88);"><span style="color:#4ade80;">&#10003;</span> As fast as 2 hours</span>
+        <span class="text-[11px] flex items-center gap-1.5" style="color:rgba(216,180,254,0.88);"><span style="color:#4ade80;">&#10003;</span> Free plagiarism report</span>
       </div>
     </div>
-    <a href="/order" class="mt-1 shrink-0 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-700 whitespace-nowrap">
+    <a href="/order" class="mt-5 sm:mt-0 inline-flex shrink-0 items-center gap-2 rounded-xl font-bold text-sm px-7 py-3.5 whitespace-nowrap" style="background:white;color:#4c1d95;box-shadow:0 0 28px rgba(167,139,250,0.55);text-decoration:none;">
       Place my order
       <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
     </a>
