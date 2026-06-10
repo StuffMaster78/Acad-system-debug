@@ -1,39 +1,47 @@
 <script setup lang="ts">
-// CMS-driven list merged with local enrichment (icon, hero copy, includes)
 const services = useCmsServiceList()
-const { getBySlug } = useServices()
+const { getAll, getBySlug } = useServices()
 
-const subjectAreas = [
-  {
-    area: 'STEM',
-    subjects: ['Biology', 'Chemistry', 'Physics', 'Mathematics', 'Statistics', 'Engineering', 'Computer Science', 'Environmental Science'],
-  },
-  {
-    area: 'Business & Finance',
-    subjects: ['Accounting', 'Finance', 'Marketing', 'HR Management', 'Supply Chain', 'Economics', 'Entrepreneurship', 'Business Law'],
-  },
-  {
-    area: 'Healthcare & Social Sciences',
-    subjects: ['Nursing', 'Public Health', 'Psychology', 'Sociology', 'Social Work', 'Counseling', 'Pharmacology'],
-  },
-  {
-    area: 'Humanities & Law',
-    subjects: ['History', 'Literature', 'Philosophy', 'Law', 'Political Science', 'Cultural Studies', 'Media Studies', 'Education'],
-  },
+// Category tabs — group services by type
+const tabs = [
+  { id: 'all',       label: 'All services' },
+  { id: 'essays',    label: 'Essays' },
+  { id: 'research',  label: 'Research & Theses' },
+  { id: 'admission', label: 'Admission' },
+  { id: 'editing',   label: 'Editing & Other' },
 ]
 
-const usps = [
-  { icon: 'message-square', title: 'Direct writer communication', desc: 'Message your writer throughout the order — share files, ask questions, give feedback in real time.' },
-  { icon: 'bot',            title: 'Zero AI content guarantee',   desc: 'Every paper is 100% human-written. We provide a free AI-detection report on request.' },
-  { icon: 'zap',            title: '2-hour minimum turnaround',   desc: 'Need it urgently? We can deliver in as little as 2 hours for shorter assignments.' },
-  { icon: 'shield-check',   title: 'Anti-plagiarism guarantee',   desc: 'Every paper is checked against major databases. Free Turnitin-style report included.' },
-  { icon: 'trophy',         title: 'Grade or money back',         desc: "We stand behind our work. If the stated grade target isn't met, we refund or rewrite." },
-  { icon: 'lock',           title: 'Complete privacy',            desc: 'Your identity and order details are never shared with any third party.' },
+const slugsByTab: Record<string, string[]> = {
+  essays:    ['essays', 'argumentative-essays', 'reflective-essays', 'term-papers', 'coursework', 'book-reports', 'creative-writing'],
+  research:  ['research-papers', 'dissertations', 'literature-reviews', 'annotated-bibliographies', 'lab-reports', 'data-analysis'],
+  admission: ['admission-essays', 'scholarship-essays', 'personal-statements'],
+  editing:   ['proofreading', 'presentations', 'business-reports', 'case-studies'],
+}
+
+const activeTab = ref('all')
+
+const displayed = computed(() => {
+  const all = services.value.length ? services.value : getAll().map(s => ({
+    slug: s.slug, title: s.title, navLabel: s.navLabel, icon: s.icon,
+    heroSub: s.hero.sub, priceFrom: s.priceFrom, category: null,
+  }))
+  if (activeTab.value === 'all') return all
+  const slugs = slugsByTab[activeTab.value] ?? []
+  return all.filter(s => slugs.includes(s.slug))
+})
+
+const trustItems = [
+  { icon: 'bot',          text: 'Zero AI content — every essay is human-written' },
+  { icon: 'shield-check', text: 'Free plagiarism report with every order' },
+  { icon: 'refresh-cw',  text: 'Unlimited free revisions within your window' },
+  { icon: 'trophy',       text: 'Grade or money back — no questions asked' },
+  { icon: 'zap',          text: 'As fast as 2 hours for urgent orders' },
+  { icon: 'lock',         text: 'Complete confidentiality, always' },
 ]
 
 useSeoMeta({
-  title: 'Academic Writing Services — 100+ Subjects | EssayManiacs',
-  description: 'Expert help with research papers, essays, dissertations, case studies, lab reports, data analysis, and more — across 100+ academic subjects. From $10/page.',
+  title: 'Essay & Academic Writing Services — 20 Types | EssayManiacs',
+  description: 'Expert essays, research papers, dissertations, admission essays, and more — written by subject-obsessed specialists. From $10/page.',
 })
 
 useHead({
@@ -43,11 +51,11 @@ useHead({
     innerHTML: JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'ItemList',
-      name: 'Academic Writing Services',
-      itemListElement: services.value.map((s, i) => ({
+      name: 'Essay Writing Services',
+      itemListElement: (services.value.length ? services.value : getAll()).map((s, i) => ({
         '@type': 'ListItem',
         position: i + 1,
-        name: s.title,
+        name: s.title ?? s.navLabel,
         url: `https://essaymaniacs.com/services/${s.slug}`,
       })),
     }),
@@ -57,174 +65,165 @@ useHead({
 
 <template>
   <div>
-    <!-- Hero -->
-    <section class="bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600 py-20 text-center">
+
+    <!-- ── Hero ──────────────────────────────────────────────────────── -->
+    <section class="overflow-hidden bg-brand-900 py-20">
       <div class="section py-0">
-        <div class="mx-auto max-w-3xl">
-          <span class="mb-6 inline-block rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-brand-200 ring-1 ring-white/20">
-            9 paper types · 100+ subjects covered
-          </span>
-          <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">
-            Every academic paper type,<br class="hidden sm:block" /> covered by real experts
-          </h1>
-          <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-brand-100">
-            From first-year essays to PhD dissertations — written by Master's and PhD-qualified specialists who know your subject and the academic standards behind it.
-          </p>
-          <div class="mt-8 flex flex-wrap justify-center gap-4">
-            <NuxtLink to="/order" class="btn-primary bg-white px-8 py-3.5 text-base text-brand-700 shadow-lg hover:bg-brand-50">
-              Place an order — from $10/page
-            </NuxtLink>
-            <NuxtLink to="/pricing" class="btn-outline border-white/60 px-8 py-3.5 text-base text-white hover:bg-white/10">
-              See pricing
-            </NuxtLink>
+        <div class="grid items-center gap-12 lg:grid-cols-[1fr_420px]">
+          <div>
+            <p class="mb-4 text-sm font-bold uppercase tracking-widest text-brand-400">20 essay types · 100+ subjects</p>
+            <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl lg:text-6xl">
+              Find your<br />essay type
+            </h1>
+            <p class="mt-5 max-w-xl text-lg leading-relaxed text-brand-200">
+              From a 500-word argumentative essay to a PhD dissertation — matched to a writer who has written dozens of them in your exact subject.
+            </p>
+            <div class="mt-8 flex flex-wrap gap-3">
+              <NuxtLink to="/order" class="btn-primary bg-white px-8 py-3.5 text-base text-brand-700 hover:bg-brand-50 shadow-lg">
+                Place an order
+              </NuxtLink>
+              <NuxtLink to="/pricing" class="btn-outline border-white/30 px-8 py-3.5 text-base text-white hover:bg-white/10">
+                See pricing
+              </NuxtLink>
+            </div>
           </div>
-          <ul class="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-brand-200">
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Grade or money back</li>
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Free Turnitin report</li>
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> 2-hour minimum turnaround</li>
-          </ul>
+
+          <!-- Trust grid -->
+          <div class="grid grid-cols-2 gap-3">
+            <div
+              v-for="item in trustItems"
+              :key="item.text"
+              class="flex items-start gap-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10"
+            >
+              <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-700">
+                <Icon :name="item.icon" class="h-4 w-4 text-brand-300" />
+              </div>
+              <p class="text-sm leading-snug text-brand-200">{{ item.text }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Paper types grid -->
-    <section class="bg-white py-16" id="paper-types">
+    <!-- ── Category tabs ─────────────────────────────────────────────── -->
+    <section class="sticky top-16 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="mb-8 flex items-end justify-between gap-4">
-          <div>
-            <h2 class="section-heading">Paper types we handle</h2>
-            <p class="mt-2 text-slate-500">Each service type has a dedicated team of specialists.</p>
-          </div>
-          <NuxtLink href="/order" class="hidden shrink-0 text-sm font-semibold text-brand-600 hover:underline sm:block">
-            Place order →
-          </NuxtLink>
-        </div>
-
-        <!-- Mobile + tablet: horizontal scroll with snap -->
-        <div class="-mx-4 sm:-mx-6 lg:mx-0">
-          <div
-            class="flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory px-4 pb-4 sm:px-6 lg:hidden"
-            style="scrollbar-width: none;"
+        <div class="flex overflow-x-auto" style="scrollbar-width: none;">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            class="shrink-0 border-b-2 px-5 py-4 text-sm font-semibold transition-colors"
+            :class="activeTab === tab.id
+              ? 'border-brand-600 text-brand-700'
+              : 'border-transparent text-slate-500 hover:text-slate-900'"
+            @click="activeTab = tab.id"
           >
-            <NuxtLink
-              v-for="s in services"
-              :key="s.slug"
-              :href="`/services/${s.slug}`"
-              class="group flex w-72 shrink-0 snap-start flex-col rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-shadow hover:border-brand-200 hover:shadow-md"
-            >
-              <div class="mb-4 flex items-center gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 transition-colors group-hover:bg-brand-600">
-                  <Icon :name="s.icon" class="h-5 w-5 text-brand-600 transition-colors group-hover:text-white" />
-                </div>
-                <h3 class="font-semibold leading-tight text-slate-900 transition-colors group-hover:text-brand-700">
-                  {{ s.navLabel }}
-                </h3>
-              </div>
-              <p v-if="s.heroSub" class="flex-1 text-sm leading-relaxed text-slate-500 line-clamp-3">{{ s.heroSub }}</p>
-              <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                <span class="text-sm font-bold text-brand-700">From ${{ s.priceFrom }}/page</span>
-                <span class="text-xs font-medium text-brand-600 group-hover:underline">Details →</span>
-              </div>
-            </NuxtLink>
-          </div>
+            {{ tab.label }}
+            <span
+              v-if="tab.id !== 'all'"
+              class="ml-1.5 rounded-full px-1.5 py-0.5 text-[10px]"
+              :class="activeTab === tab.id ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'"
+            >{{ slugsByTab[tab.id]?.length }}</span>
+          </button>
+        </div>
+      </div>
+    </section>
 
-          <!-- Desktop: 3-col grid -->
-          <div class="hidden lg:grid grid-cols-3 gap-6">
+    <!-- ── Service cards ─────────────────────────────────────────────── -->
+    <section class="bg-white py-16">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+        <Transition name="fade" mode="out-in">
+          <div :key="activeTab" class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             <NuxtLink
-              v-for="s in services"
+              v-for="s in displayed"
               :key="s.slug"
               :href="`/services/${s.slug}`"
-              class="group flex flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:border-brand-200 hover:shadow-md"
+              class="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white p-7 transition-all hover:border-brand-200 hover:shadow-md"
             >
-              <div class="mb-4 flex items-center gap-3">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 transition-colors group-hover:bg-brand-600">
-                  <Icon :name="s.icon" class="h-5 w-5 text-brand-600 transition-colors group-hover:text-white" />
-                </div>
-                <h3 class="text-lg font-semibold text-slate-900 transition-colors group-hover:text-brand-700">
-                  {{ s.navLabel }}
-                </h3>
+              <!-- Accent corner -->
+              <div class="absolute right-0 top-0 h-16 w-16 overflow-hidden rounded-bl-none rounded-br-none rounded-tl-none rounded-tr-3xl">
+                <div class="absolute right-0 top-0 h-10 w-10 translate-x-4 -translate-y-4 rotate-45 bg-brand-50 transition-colors group-hover:bg-brand-100" />
               </div>
+
+              <div class="mb-5 flex items-center gap-4">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-100 transition-colors group-hover:bg-brand-700">
+                  <Icon :name="s.icon" class="h-6 w-6 text-brand-700 transition-colors group-hover:text-white" />
+                </div>
+                <div>
+                  <h2 class="font-bold text-slate-900 transition-colors group-hover:text-brand-700 leading-tight">{{ s.navLabel }}</h2>
+                  <p class="text-sm font-semibold text-brand-600">From ${{ s.priceFrom }}/page</p>
+                </div>
+              </div>
+
               <p v-if="s.heroSub" class="flex-1 text-sm leading-relaxed text-slate-600">{{ s.heroSub }}</p>
-              <ul v-if="getBySlug(s.slug)?.includes?.length" class="mt-4 space-y-1.5">
-                <li v-for="b in getBySlug(s.slug)!.includes.slice(0, 3)" :key="b"
-                    class="flex items-start gap-2 text-sm text-slate-500">
-                  <Icon name="check" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500" />
+
+              <!-- Includes preview -->
+              <ul v-if="getBySlug(s.slug)?.includes?.length" class="mt-4 space-y-1.5 border-t border-slate-100 pt-4">
+                <li
+                  v-for="b in getBySlug(s.slug)!.includes.slice(0, 2)"
+                  :key="b"
+                  class="flex items-start gap-2 text-xs text-slate-500"
+                >
+                  <svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
                   {{ b }}
                 </li>
               </ul>
-              <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-                <span class="text-sm font-bold text-brand-700">From ${{ s.priceFrom }}/page</span>
-                <span class="text-xs font-medium text-brand-600 group-hover:underline">Learn more →</span>
+
+              <div class="mt-5 flex items-center justify-between">
+                <span class="text-xs font-semibold text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">
+                  View details →
+                </span>
               </div>
             </NuxtLink>
           </div>
-        </div>
+        </Transition>
 
-        <p class="mt-4 text-center text-xs text-slate-400 lg:hidden">← Scroll to see all paper types →</p>
       </div>
     </section>
 
-    <!-- Subjects -->
-    <section class="bg-slate-50" id="subjects">
-      <div class="section">
-        <h2 class="section-heading text-center">100+ subjects covered</h2>
-        <p class="section-sub text-center">Writers hired for subject-matter expertise, not just writing ability.</p>
-        <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          <div v-for="group in subjectAreas" :key="group.area">
-            <h3 class="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ group.area }}</h3>
-            <ul class="space-y-2">
-              <li v-for="sub in group.subjects" :key="sub"
-                class="flex cursor-default items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
-                <Icon name="check" class="h-3 w-3 shrink-0 text-brand-500" />
-                {{ sub }}
-              </li>
-            </ul>
-          </div>
+    <!-- ── Subjects band ─────────────────────────────────────────────── -->
+    <section class="bg-brand-900 py-16">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mb-10 text-center">
+          <h2 class="font-serif text-3xl font-bold text-white">100+ subjects covered</h2>
+          <p class="mt-3 text-brand-300">Writers hired for subject-matter expertise, not just writing ability.</p>
+        </div>
+        <div class="flex flex-wrap justify-center gap-2">
+          <span
+            v-for="sub in ['History', 'Psychology', 'Sociology', 'Business', 'Law', 'Economics', 'Literature', 'Philosophy', 'Biology', 'Chemistry', 'Engineering', 'Nursing', 'Marketing', 'Finance', 'Political Science', 'Education', 'Statistics', 'Media Studies', 'Accounting', 'Environmental Science']"
+            :key="sub"
+            class="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-brand-200"
+          >{{ sub }}</span>
+          <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-brand-400">+80 more</span>
         </div>
       </div>
     </section>
 
-    <!-- Why us -->
-    <section class="bg-white">
-      <div class="section">
-        <h2 class="section-heading text-center">Why EssayManiacs?</h2>
-        <p class="section-sub text-center">Built for students who need reliable, grade-backed academic help.</p>
-        <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="usp in usps" :key="usp.title" class="flex gap-4">
-            <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100">
-              <Icon :name="usp.icon" class="h-5 w-5 text-brand-600" />
-            </div>
-            <div>
-              <h3 class="font-semibold text-slate-900">{{ usp.title }}</h3>
-              <p class="mt-1 text-sm text-slate-500 leading-relaxed">{{ usp.desc }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Calculator -->
-    <section class="bg-slate-50">
-      <div class="section max-w-2xl">
-        <h2 class="section-heading text-center">Get your instant quote</h2>
-        <p class="section-sub text-center">Pick your level and deadline — see your price in seconds.</p>
+    <!-- ── Calculator ────────────────────────────────────────────────── -->
+    <section class="bg-white py-20">
+      <div class="mx-auto max-w-xl px-4 sm:px-6">
+        <h2 class="text-center font-serif text-3xl font-bold text-slate-900">Get your instant price</h2>
+        <p class="mt-3 text-center text-slate-600">Pick type, level, and deadline — see your price in seconds.</p>
         <div class="mt-10">
           <ClientOnly>
             <OrderCalculator />
-            <template #fallback><div class="h-72 animate-pulse rounded-2xl bg-slate-200" /></template>
+            <template #fallback><div class="h-72 animate-pulse rounded-3xl bg-slate-100" /></template>
           </ClientOnly>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="bg-brand-700 py-16 text-center">
+    <!-- ── CTA ───────────────────────────────────────────────────────── -->
+    <section class="bg-brand-600 py-16 text-center">
       <div class="mx-auto max-w-2xl px-4">
-        <h2 class="font-serif text-3xl font-bold text-white">Not sure what you need?</h2>
-        <p class="mt-4 text-lg text-brand-200">Describe your assignment and we'll match you with the right subject expert in minutes.</p>
+        <h2 class="font-serif text-3xl font-bold text-white">Not sure which type fits your assignment?</h2>
+        <p class="mt-4 text-lg text-brand-100">Describe it and we'll match you with the right specialist in minutes.</p>
         <div class="mt-8 flex flex-wrap justify-center gap-4">
           <NuxtLink to="/order" class="btn-primary bg-white px-10 py-4 text-base text-brand-700 shadow-lg hover:bg-brand-50">
-            Start your order — from $10/page
+            Start my order — from $10/page
           </NuxtLink>
           <NuxtLink to="/contact" class="btn-outline border-white/60 px-8 py-4 text-base text-white hover:bg-white/10">
             Ask us first
@@ -232,5 +231,17 @@ useHead({
         </div>
       </div>
     </section>
+
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

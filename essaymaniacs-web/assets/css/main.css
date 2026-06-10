@@ -43,4 +43,28 @@
   .prose li {
     @apply text-slate-800;
   }
+
+  /* EM: accent-border card variant */
+  .card-accent {
+    @apply rounded-2xl border-l-4 border-brand-600 bg-slate-50 p-6 transition-colors hover:bg-brand-50;
+  }
 }
+
+/* EM: reading drop-cap — applied only to the first paragraph in prose blocks */
+.em-dropcap .prose > p:first-of-type::first-letter {
+  float: left;
+  font-size: 4rem;
+  line-height: 0.75;
+  margin-right: 0.125rem;
+  margin-top: 0.25rem;
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui;
+  font-weight: 700;
+  color: #7c3aed;
+}
+
+/* EM: smooth tab content fade */
+@keyframes em-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.em-fade { animation: em-fade-in 0.18s ease-out both; }

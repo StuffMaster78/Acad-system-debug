@@ -17,11 +17,24 @@ const byAuthor = post.author
 
 const { toc, processedBody } = useToc(post.body)
 
-// TOC: closed on mobile, open on desktop
+// Reading progress bar
+const readingProgress = ref(0)
 const tocOpen = ref(false)
-onMounted(() => { tocOpen.value = window.innerWidth >= 1024 })
 
-// Client-side engagement — CMS posts only
+onMounted(() => {
+  tocOpen.value = window.innerWidth >= 1024
+
+  function updateProgress() {
+    const doc = document.documentElement
+    const scrollTop = doc.scrollTop || document.body.scrollTop
+    const scrollHeight = doc.scrollHeight - doc.clientHeight
+    readingProgress.value = scrollHeight > 0 ? Math.round((scrollTop / scrollHeight) * 100) : 0
+  }
+  window.addEventListener('scroll', updateProgress, { passive: true })
+  onUnmounted(() => window.removeEventListener('scroll', updateProgress))
+})
+
+// Engagement
 const { stats, myReact, bookmarked, ready, react, toggleBookmark, reactionCount, fmtCount } =
   useEngagement(post.slug)
 
@@ -105,13 +118,8 @@ useHead({
       datePublished: post.date,
       url: canonicalUrl,
       author: post.author
-        ? {
-            '@type': 'Person',
-            name: post.author.name,
-            description: post.author.bio,
-            honorificSuffix: post.author.credentials,
-            ...(post.author.orcid ? { sameAs: [`https://orcid.org/${post.author.orcid}`] } : {}),
-          }
+        ? { '@type': 'Person', name: post.author.name, description: post.author.bio, honorificSuffix: post.author.credentials,
+            ...(post.author.orcid ? { sameAs: [`https://orcid.org/${post.author.orcid}`] } : {}) }
         : { '@type': 'Organization', name: 'EssayManiacs' },
       publisher: {
         '@type': 'Organization',
@@ -125,73 +133,102 @@ useHead({
 </script>
 
 <template>
-  <div class="section">
-    <div class="grid gap-10 lg:grid-cols-[1fr_300px]">
+  <div>
 
-      <!-- ── Left: article content ──────────────────────────────────── -->
-      <article class="min-w-0">
-        <!-- Article breadcrumb trail -->
-        <nav class="mb-6 flex items-center gap-2 text-xs" aria-label="Breadcrumb">
-          <NuxtLink href="/" class="flex items-center text-slate-400 transition-colors hover:text-brand-600">
+    <!-- ── Reading progress bar ──────────────────────────────────────── -->
+    <ClientOnly>
+      <div
+        class="fixed left-0 top-0 z-50 h-1 bg-brand-600 transition-all duration-75"
+        :style="{ width: `${readingProgress}%` }"
+      />
+    </ClientOnly>
+
+    <!-- ── Article header ────────────────────────────────────────────── -->
+    <div class="border-b border-slate-100 bg-white">
+      <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+
+        <!-- Breadcrumb trail -->
+        <nav class="mb-8 flex items-center gap-2 text-xs" aria-label="Breadcrumb">
+          <NuxtLink href="/" class="text-slate-400 transition-colors hover:text-brand-600">
             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
           </NuxtLink>
           <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
           <NuxtLink href="/blog" class="text-slate-400 transition-colors hover:text-brand-600">Blog</NuxtLink>
           <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-          <span class="rounded-full bg-brand-50 px-2.5 py-0.5 font-semibold text-brand-700">{{ post.category }}</span>
-          <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-          <span class="max-w-[200px] truncate text-slate-500">{{ post.title }}</span>
+          <span class="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700">{{ post.category }}</span>
         </nav>
 
-        <!-- Meta bar -->
+        <!-- Meta -->
         <div class="mb-4 flex flex-wrap items-center gap-3">
-          <span class="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">{{ post.category }}</span>
           <span class="text-xs text-slate-400">{{ post.readTime }}</span>
           <time class="text-xs text-slate-400">{{ fmtDate(post.date) }}</time>
           <ClientOnly>
-            <template v-if="stats">
-              <span class="flex items-center gap-1 text-xs text-slate-400">
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                {{ fmtCount(stats.views) }} views
-              </span>
-              <span v-if="stats.shares > 0" class="flex items-center gap-1 text-xs text-slate-400">
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
-                {{ fmtCount(stats.shares) }} shares
-              </span>
-            </template>
+            <span v-if="stats" class="flex items-center gap-1 text-xs text-slate-400">
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              {{ fmtCount(stats.views) }} views
+            </span>
           </ClientOnly>
         </div>
 
-        <!-- Title + excerpt -->
-        <h1 class="font-serif text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">
+        <!-- Title -->
+        <h1 class="font-serif text-3xl font-bold leading-tight text-slate-900 sm:text-4xl lg:text-5xl">
           {{ post.title }}
         </h1>
-        <p class="mt-4 text-lg leading-relaxed text-slate-600">{{ post.excerpt }}</p>
+        <p class="mt-5 text-lg leading-relaxed text-slate-600">{{ post.excerpt }}</p>
 
-        <!-- Author byline + bookmark -->
-        <div v-if="post.author" class="mt-6 flex items-center gap-3 border-t border-slate-100 pt-5">
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">{{ authorInitials }}</div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-slate-900">{{ post.author.name }}</p>
+        <!-- Author + bookmark -->
+        <div v-if="post.author" class="mt-8 flex items-center gap-4 border-t border-slate-100 pt-6">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-700 text-sm font-bold text-white">
+            {{ authorInitials }}
+          </div>
+          <div class="flex-1">
+            <p class="font-semibold text-slate-900">{{ post.author.name }}</p>
             <p class="text-xs text-slate-500">{{ post.author.credentials }}</p>
           </div>
           <ClientOnly>
-            <button v-if="ready && pageId" class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors" :class="bookmarked ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-500 hover:border-brand-200 hover:text-brand-700'" @click="toggleBookmark">
+            <button
+              v-if="ready && pageId"
+              class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+              :class="bookmarked ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-500 hover:border-brand-200 hover:text-brand-700'"
+              @click="toggleBookmark"
+            >
               <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" :d="'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z'" :fill="bookmarked ? 'currentColor' : 'none'"/></svg>
               {{ bookmarked ? 'Saved' : 'Save' }}
             </button>
           </ClientOnly>
         </div>
+      </div>
+    </div>
 
-        <!-- Table of contents — collapsible, closed on mobile / open on desktop -->
-        <nav v-if="toc.length >= 3" class="mt-8 rounded-xl border border-slate-200 bg-slate-50" aria-label="Table of contents">
-          <button class="flex w-full items-center justify-between px-5 py-4 text-left" :aria-expanded="tocOpen" @click="tocOpen = !tocOpen">
+    <!-- ── Article body — constrained reading width ───────────────────── -->
+    <div class="relative bg-white">
+
+      <!-- Floating share — desktop only -->
+      <ClientOnly>
+        <div class="fixed left-6 top-1/2 z-20 hidden -translate-y-1/2 flex-col gap-3 xl:flex">
+          <ShareButtons :title="post.title" orientation="vertical" />
+        </div>
+      </ClientOnly>
+
+      <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+
+        <!-- Table of contents -->
+        <nav
+          v-if="toc.length >= 3"
+          class="mb-10 rounded-2xl border border-slate-200 bg-slate-50"
+          aria-label="Table of contents"
+        >
+          <button
+            class="flex w-full items-center justify-between px-5 py-4"
+            :aria-expanded="tocOpen"
+            @click="tocOpen = !tocOpen"
+          >
             <span class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/></svg>
               In this article
               <span class="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{{ toc.length }}</span>
             </span>
-            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="tocOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            <svg class="h-4 w-4 text-slate-400 transition-transform" :class="tocOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </button>
           <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 max-h-0" enter-to-class="opacity-100 max-h-[600px]" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 max-h-[600px]" leave-to-class="opacity-0 max-h-0">
             <div v-if="tocOpen" class="overflow-hidden border-t border-slate-200 px-5 pb-5 pt-4">
@@ -204,51 +241,57 @@ useHead({
           </Transition>
         </nav>
 
-        <!-- Article body (headings have injected id attrs for anchor nav) -->
+        <!-- Article prose -->
         <div
-          class="prose prose-slate prose-lg mt-10 max-w-none
+          class="prose prose-slate prose-lg max-w-none
                  prose-headings:font-serif prose-headings:font-bold
                  prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
-                 prose-strong:text-slate-900"
+                 prose-strong:text-slate-900
+                 first-letter:float-left first-letter:mr-3 first-letter:font-serif first-letter:text-5xl first-letter:font-bold first-letter:leading-none first-letter:text-brand-700"
           v-html="bodyWithInlineCta"
         />
 
-        <!-- Reactions — CMS posts only -->
+        <!-- Reactions -->
         <ClientOnly>
-          <div v-if="ready && pageId" class="mt-10 rounded-2xl border border-slate-100 bg-slate-50 px-6 py-5">
-            <p class="mb-4 text-center text-sm font-semibold text-slate-700">Was this article helpful?</p>
+          <div v-if="ready && pageId" class="mt-12 rounded-2xl border border-slate-100 bg-slate-50 px-6 py-6">
+            <p class="mb-4 text-center text-sm font-semibold text-slate-700">Was this guide helpful?</p>
             <div class="flex justify-center gap-3">
-              <button v-for="r in reactions" :key="r.type" class="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all" :class="myReact === r.type ? 'border-brand-300 bg-brand-50 text-brand-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700'" @click="react(r.type)">
+              <button
+                v-for="r in reactions"
+                :key="r.type"
+                class="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all"
+                :class="myReact === r.type ? 'border-brand-300 bg-brand-50 text-brand-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700'"
+                @click="react(r.type)"
+              >
                 <span class="text-base leading-none">{{ r.emoji }}</span>
                 <span>{{ r.label }}</span>
-                <span v-if="reactionCount(r.type) > 0" class="rounded-full px-1.5 py-0.5 text-[11px] font-bold" :class="myReact === r.type ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'">{{ fmtCount(reactionCount(r.type)) }}</span>
+                <span v-if="reactionCount(r.type) > 0" class="rounded-full px-1.5 py-0.5 text-[11px] font-bold" :class="myReact === r.type ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'">
+                  {{ fmtCount(reactionCount(r.type)) }}
+                </span>
               </button>
             </div>
-            <p class="mt-3 text-center text-xs text-slate-400">{{ stats ? fmtCount(stats.views) + ' students have read this article' : '' }}</p>
           </div>
         </ClientOnly>
 
-        <!-- Share buttons -->
-        <div class="mt-6">
-          <ClientOnly>
-            <ShareButtons :title="post.title" />
-          </ClientOnly>
+        <!-- Mobile share -->
+        <div class="mt-8 xl:hidden">
+          <ClientOnly><ShareButtons :title="post.title" /></ClientOnly>
         </div>
 
-        <!-- End-of-article CTA -->
-        <div class="mt-10 rounded-2xl bg-brand-900 p-8">
+        <!-- End-of-article CTA (keep existing dark panel style) -->
+        <div class="mt-10 overflow-hidden rounded-3xl bg-brand-900 p-8">
           <div class="sm:flex sm:items-center sm:justify-between sm:gap-8">
             <div>
-              <p class="mb-1 text-xs font-bold uppercase tracking-widest text-brand-400">Expert writers across 100+ subjects</p>
+              <p class="mb-1 text-xs font-bold uppercase tracking-widest text-brand-400">500+ subject specialists available</p>
               <h2 class="font-serif text-2xl font-bold text-white">Still staring at a blank page?</h2>
               <p class="mt-2 leading-relaxed text-brand-200">
-                A subject-specialist writer can handle your paper from scratch — properly cited, plagiarism-free, from $10/page.
+                A writer who loves your subject can handle this essay from scratch — properly cited, from $10/page.
               </p>
               <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-brand-300">
                 <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Grade or money back</li>
-                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Zero AI — human-written</li>
+                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Zero AI content</li>
                 <li class="flex items-center gap-1"><span class="text-green-400">✓</span> As fast as 2 hours</li>
-                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Free Turnitin report</li>
+                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Free plagiarism report</li>
               </ul>
             </div>
             <NuxtLink to="/order" class="mt-6 block shrink-0 rounded-xl bg-white px-8 py-3 text-center text-sm font-bold text-brand-700 transition-colors hover:bg-brand-50 sm:mt-0">
@@ -257,139 +300,87 @@ useHead({
           </div>
         </div>
 
-        <!-- ── Author card ─────────────────────────────────────────── -->
-        <div v-if="post.author" class="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <!-- Header band -->
+        <!-- Author card -->
+        <div v-if="post.author" class="mt-10 overflow-hidden rounded-3xl border border-slate-200 bg-white">
           <div class="flex items-start gap-5 border-b border-slate-100 bg-slate-50 px-6 py-6">
-            <!-- Avatar -->
-            <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-2xl font-bold text-brand-700 ring-2 ring-white shadow-sm">
+            <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-brand-700 text-2xl font-bold text-white ring-2 ring-white shadow-sm">
               {{ authorInitials }}
             </div>
-
-            <!-- Identity -->
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
                 <p class="text-lg font-bold text-slate-900">{{ post.author.name }}</p>
-                <span
-                  class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                  :class="ROLE_BADGE[post.author.role] ?? 'bg-slate-100 text-slate-600'"
-                >
-                  {{ post.author.role }}
-                </span>
+                <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="ROLE_BADGE[post.author.role] ?? 'bg-slate-100 text-slate-600'">{{ post.author.role }}</span>
               </div>
               <p class="mt-0.5 text-sm font-medium text-slate-500">{{ post.author.credentials }}</p>
-
-              <!-- Verified credential pills -->
               <div class="mt-2 flex flex-wrap gap-2">
-                <a
-                  v-if="post.author.orcid"
-                  :href="`https://orcid.org/${post.author.orcid}`"
-                  target="_blank" rel="noreferrer"
-                  class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
-                >
+                <a v-if="post.author.orcid" :href="`https://orcid.org/${post.author.orcid}`" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors">
                   <span class="font-bold">iD</span> ORCID
                 </a>
-                <a
-                  v-if="post.author.scholar"
-                  :href="post.author.scholar"
-                  target="_blank" rel="noreferrer"
-                  class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
-                >
-                  Scholar
-                </a>
+                <a v-if="post.author.scholar" :href="post.author.scholar" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 transition-colors">Scholar</a>
               </div>
             </div>
           </div>
-
-          <!-- Bio + socials -->
           <div class="px-6 py-5">
             <p class="text-sm leading-7 text-slate-600">{{ post.author.bio }}</p>
             <div class="mt-4 flex flex-wrap gap-2">
-              <a
-                v-if="post.author.linkedin"
-                :href="post.author.linkedin"
-                target="_blank" rel="noreferrer"
-                class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700"
-              >
-                LinkedIn
-              </a>
-              <a
-                v-if="post.author.twitter"
-                :href="`https://twitter.com/${post.author.twitter}`"
-                target="_blank" rel="noreferrer"
-                class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700"
-              >
-                @{{ post.author.twitter }}
-              </a>
+              <a v-if="post.author.linkedin" :href="post.author.linkedin" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700">LinkedIn</a>
+              <a v-if="post.author.twitter" :href="`https://twitter.com/${post.author.twitter}`" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700">@{{ post.author.twitter }}</a>
             </div>
           </div>
-
-          <!-- More articles by this author -->
           <div v-if="byAuthor.length" class="border-t border-slate-100 px-6 py-5">
-            <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              More by {{ post.author!.name.split(' ')[0] }}
-            </p>
+            <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">More by {{ post.author!.name.split(' ')[0] }}</p>
             <ul class="space-y-3">
               <li v-for="p in byAuthor" :key="p.slug">
-                <NuxtLink
-                  :href="`/blog/${p.slug}`"
-                  class="group flex items-start gap-3"
-                >
-                  <!-- Category colour dot -->
-                  <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-300 group-hover:bg-brand-600 transition-colors" />
+                <NuxtLink :href="`/blog/${p.slug}`" class="group flex items-start gap-3">
+                  <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-300 transition-colors group-hover:bg-brand-600" />
                   <div class="min-w-0">
-                    <p class="text-sm font-medium leading-snug text-slate-800 group-hover:text-brand-700 transition-colors line-clamp-2">
-                      {{ p.title }}
-                    </p>
+                    <p class="text-sm font-medium leading-snug text-slate-800 transition-colors group-hover:text-brand-700 line-clamp-2">{{ p.title }}</p>
                     <p class="mt-0.5 text-xs text-slate-400">{{ p.category }} · {{ p.readTime }}</p>
                   </div>
                 </NuxtLink>
               </li>
             </ul>
-            <NuxtLink
-              :href="`/authors/${post.author!.slug}`"
-              class="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline"
-            >
+            <NuxtLink :href="`/authors/${post.author!.slug}`" class="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">
               All articles by {{ post.author!.name.split(' ').slice(0, 2).join(' ') }} →
             </NuxtLink>
           </div>
         </div>
 
-        <!-- ── Editorial process ───────────────────────────────────── -->
+        <!-- Editorial process -->
         <div class="mt-6">
           <EditorialProcess :published-at="post.date" />
         </div>
+      </div>
+    </div>
 
-        <!-- Related posts -->
-        <div v-if="related.length" class="mt-16">
-          <h2 class="mb-6 font-serif text-xl font-bold text-slate-900">More on {{ post.category }}</h2>
-          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <NuxtLink
-              v-for="r in related"
-              :key="r.slug"
-              :href="`/blog/${r.slug}`"
-              class="card group flex flex-col transition-shadow hover:border-brand-200 hover:shadow-md"
-            >
-              <div class="mb-2 flex items-center gap-2">
+    <!-- ── Related articles — full width ─────────────────────────────── -->
+    <div v-if="related.length" class="border-t border-slate-100 bg-slate-50 py-16">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <h2 class="mb-8 font-serif text-2xl font-bold text-slate-900">More on {{ post.category }}</h2>
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <NuxtLink
+            v-for="r in related"
+            :key="r.slug"
+            :href="`/blog/${r.slug}`"
+            class="group flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white transition-all hover:border-brand-200 hover:shadow-sm"
+          >
+            <div class="h-1 w-full bg-brand-200 transition-colors group-hover:bg-brand-600" />
+            <div class="flex flex-1 flex-col p-6">
+              <div class="mb-3 flex items-center gap-2">
                 <span class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">{{ r.category }}</span>
                 <span class="text-xs text-slate-400">{{ r.readTime }}</span>
               </div>
-              <h3 class="flex-1 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-brand-700">{{ r.title }}</h3>
+              <h3 class="flex-1 font-serif font-bold leading-snug text-slate-900 transition-colors group-hover:text-brand-700">{{ r.title }}</h3>
               <p class="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">{{ r.excerpt }}</p>
               <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
                 <time class="text-xs text-slate-400">{{ new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</time>
                 <span class="text-xs font-semibold text-brand-600 group-hover:underline">Read →</span>
               </div>
-            </NuxtLink>
-          </div>
+            </div>
+          </NuxtLink>
         </div>
-      </article>
-
-      <!-- ── Right: sticky sidebar ──────────────────────────────────── -->
-      <div class="lg:sticky lg:top-24 lg:self-start">
-        <BlogSidebar />
       </div>
-
     </div>
+
   </div>
 </template>
