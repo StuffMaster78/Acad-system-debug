@@ -403,12 +403,7 @@ onMounted(() => publishing.hydrate().catch(() => undefined));
               v-for="metric in publishing.metrics"
               :key="metric.label"
               class="flex items-center justify-between rounded-lg px-3 py-2 text-xs"
-              :class="{
-                'bg-green-50 border border-green-100': metric.tone === 'good',
-                'bg-amber-50 border border-amber-100': metric.tone === 'warn',
-                'bg-red-50 border border-red-100'   : metric.tone === 'risk',
-                'bg-gray-50 border border-gray-100'  : metric.tone === 'neutral',
-              }"
+              class="bg-white border border-slate-200"
             >
               <span class="font-medium text-gray-700">{{ metric.label }}</span>
               <span

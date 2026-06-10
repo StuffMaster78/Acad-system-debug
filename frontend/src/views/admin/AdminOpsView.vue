@@ -19,9 +19,9 @@ const ops = useAdminOpsStore();
 
 const metricToneClasses = {
   neutral: "border-slate-200 bg-white",
-  good: "border-emerald-200 bg-emerald-50",
-  warn: "border-amber-200 bg-amber-50",
-  risk: "border-rose-200 bg-rose-50",
+  good:    "border-slate-200 bg-white",
+  warn:    "border-slate-200 bg-white",
+  risk:    "border-slate-200 bg-white",
 };
 
 const performanceColumns: DataTableColumn[] = [

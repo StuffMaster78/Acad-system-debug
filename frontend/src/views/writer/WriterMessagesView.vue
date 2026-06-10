@@ -16,7 +16,7 @@ onMounted(() => {
       <p class="text-sm font-semibold uppercase tracking-wide text-signal">Writer</p>
       <h1 class="mt-2 text-3xl font-semibold text-ink">Messages</h1>
       <p class="mt-2 max-w-2xl text-sm leading-6 text-graphite">
-        Order-scoped conversations with clients, editors, and support.
+        Conversations about your active and past orders.
       </p>
     </section>
 

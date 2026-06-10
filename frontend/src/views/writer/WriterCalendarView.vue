@@ -38,8 +38,11 @@ const MONTH_NAMES = [
 
 // ── Data loading ─────────────────────────────────────────────────────────────
 
+const loadError = ref("");
+
 async function load() {
   loading.value = true;
+  loadError.value = "";
   try {
     const [assignRes, availRes] = await Promise.all([
       writerApi.assignments({
@@ -59,6 +62,8 @@ async function load() {
     if (av.active_window) windows.push(av.active_window);
     if (av.upcoming_windows?.length) windows.push(...av.upcoming_windows);
     availabilityWindows.value = windows;
+  } catch {
+    loadError.value = "Could not load calendar data. Please try again.";
   } finally {
     loading.value = false;
   }
@@ -330,6 +335,15 @@ const dueThisWeekCount = computed(() => {
         <CalendarDays class="size-4 text-neutral-500" />
         <span class="text-sm font-medium text-neutral-700">{{ availabilityWindows.length }} unavailability window{{ availabilityWindows.length > 1 ? "s" : "" }}</span>
       </div>
+    </div>
+
+    <!-- Load error -->
+    <div
+      v-if="loadError"
+      class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 flex items-center justify-between"
+    >
+      {{ loadError }}
+      <button class="text-rose-500 hover:text-rose-700 text-xs font-semibold underline" @click="load">Retry</button>
     </div>
 
     <div class="flex gap-6 items-start">

@@ -90,13 +90,18 @@ const searchQuery = ref("");
 const filterKind = ref("all");
 const filterUnread = ref(false);
 
+// Only threads this role can actually open
+const accessibleThreads = computed(() =>
+  comms.inboxThreads.filter((t) => canAccessThread(t)),
+);
+
 const availableKinds = computed(() => {
-  const kinds = new Set(comms.inboxThreads.map((t) => t.kind));
+  const kinds = new Set(accessibleThreads.value.map((t) => t.kind));
   return Array.from(kinds);
 });
 
 const filteredThreads = computed(() => {
-  let list = comms.inboxThreads;
+  let list = accessibleThreads.value;
   if (filterUnread.value) list = list.filter((t) => unreadCount(t) > 0);
   if (filterKind.value !== "all") list = list.filter((t) => t.kind === filterKind.value);
   if (searchQuery.value.trim()) {
@@ -111,7 +116,7 @@ const filteredThreads = computed(() => {
 });
 
 const totalUnread = computed(() =>
-  comms.inboxThreads.reduce((sum, t) => sum + unreadCount(t), 0),
+  accessibleThreads.value.reduce((sum, t) => sum + unreadCount(t), 0),
 );
 
 // ── Thread resolve ─────────────────────────────────────────────────────────────
