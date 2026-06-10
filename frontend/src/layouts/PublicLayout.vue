@@ -19,6 +19,8 @@ const brandInitials = computed(() => {
 const showClientNav = computed(() =>
   portalCtx.surface === "client" || (!portalCtx.portal && !portalCtx.website)
 );
+const showWriterNav = computed(() => portalCtx.surface === "writer");
+const isStaffSurface = computed(() => portalCtx.surface === "staff");
 
 const drawerOpen = ref(false);
 function closeDrawer() { drawerOpen.value = false; }
@@ -56,8 +58,11 @@ watch(() => route.path, closeDrawer);
             <RouterLink class="nav-link" active-class="nav-link-active" to="/blog">Blog</RouterLink>
             <RouterLink class="nav-link" active-class="nav-link-active" to="/resources">Resources</RouterLink>
             <RouterLink class="nav-link" active-class="nav-link-active" to="/help">Help</RouterLink>
+            <RouterLink class="nav-link" active-class="nav-link-active" to="/apply">Become a writer</RouterLink>
           </template>
-          <RouterLink class="nav-link" active-class="nav-link-active" to="/apply">Become a writer</RouterLink>
+          <template v-if="showWriterNav">
+            <RouterLink class="nav-link" active-class="nav-link-active" to="/apply">How it works</RouterLink>
+          </template>
         </nav>
 
         <!-- Desktop CTAs (lg+) -->
@@ -69,21 +74,23 @@ watch(() => route.path, closeDrawer);
             Sign in
           </RouterLink>
           <RouterLink
+            v-if="!isStaffSurface"
             class="inline-flex h-9 items-center rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800"
             to="/auth/register"
           >
-            Get started
+            {{ showWriterNav ? 'Apply now' : 'Get started' }}
           </RouterLink>
         </div>
 
         <!-- Mobile right: CTA + burger -->
         <div class="flex items-center gap-2 lg:hidden">
           <RouterLink
+            v-if="!isStaffSurface"
             class="inline-flex h-9 items-center rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
             to="/auth/register"
             @click="closeDrawer"
           >
-            Get started
+            {{ showWriterNav ? 'Apply now' : 'Get started' }}
           </RouterLink>
           <button
             type="button"
@@ -111,8 +118,11 @@ watch(() => route.path, closeDrawer);
               <RouterLink to="/blog" class="drawer-link" active-class="drawer-link-active" @click="closeDrawer">Blog</RouterLink>
               <RouterLink to="/resources" class="drawer-link" active-class="drawer-link-active" @click="closeDrawer">Resources</RouterLink>
               <RouterLink to="/help" class="drawer-link" active-class="drawer-link-active" @click="closeDrawer">Help</RouterLink>
+              <RouterLink to="/apply" class="drawer-link" active-class="drawer-link-active" @click="closeDrawer">Become a writer</RouterLink>
             </template>
-            <RouterLink to="/apply" class="drawer-link" active-class="drawer-link-active" @click="closeDrawer">Become a writer</RouterLink>
+            <template v-if="showWriterNav">
+              <RouterLink to="/apply" class="drawer-link" active-class="drawer-link-active" @click="closeDrawer">How it works</RouterLink>
+            </template>
           </div>
 
           <!-- Auth CTAs -->
@@ -125,11 +135,12 @@ watch(() => route.path, closeDrawer);
               Sign in
             </RouterLink>
             <RouterLink
+              v-if="!isStaffSurface"
               to="/auth/register"
               class="flex h-11 w-full items-center justify-center rounded-xl bg-brand-700 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
               @click="closeDrawer"
             >
-              Get started — it's free
+              {{ showWriterNav ? 'Apply now — it\'s free' : 'Get started — it\'s free' }}
             </RouterLink>
           </div>
         </nav>

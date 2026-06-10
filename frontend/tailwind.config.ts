@@ -11,11 +11,36 @@ export default {
         ink:      "#1a1f2e",  // primary text — slightly warmer
         graphite: "#4b5563",  // secondary text
         mist:     "#f1f5f9",  // page / panel background
-        // Brand blue (aligns with marketing site)
-        signal:   "#163e88",
+        // Brand blue (aligns with marketing site) — flat alias kept for compat
+        signal: {
+          DEFAULT: "#163e88",
+          50:  "#eef4ff",
+          100: "#dde9ff",
+          200: "#bbd3ff",
+          300: "#93b8ff",
+          400: "#5b8de0",
+          500: "#2563c8",
+          600: "#1d4fa8",
+          700: "#163e88",
+          800: "#112f6a",
+          900: "#0d2455",
+        },
         // Status accents
-        saffron:  "#d97706",  // amber / ratings
-        berry:    "#e11d48",  // rose / danger
+        saffron: "#d97706",  // amber / ratings
+        // Rose / danger — flat alias kept for compat
+        berry: {
+          DEFAULT: "#e11d48",
+          50:  "#fff1f2",
+          100: "#ffe4e6",
+          200: "#fecdd3",
+          300: "#fda4af",
+          400: "#fb7185",
+          500: "#f43f5e",
+          600: "#e11d48",
+          700: "#be123c",
+          800: "#9f1239",
+          900: "#881337",
+        },
         // Brand scale (matches marketing site)
         brand: {
           50:  "#eef4ff",
