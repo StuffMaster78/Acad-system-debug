@@ -157,6 +157,7 @@ export function useOrderForm() {
     diagramCount:  1,
     diagramSoftware: DIAGRAM_SOFTWARE[0],
     diagramComplexity: 'standard' as 'simple' | 'standard' | 'complex',
+    comboComponent: 'design' as 'design' | 'diagram',
     // Shared
     deadline:      DEADLINES[0],
     subject:       SUBJECTS[0],
@@ -185,6 +186,14 @@ export function useOrderForm() {
     return base * form.deadline.multiplier * (1 + form.writerTier.surcharge)
   })
 
+  // For combo: paper cost + design/diagram cost
+  const comboPlusPrice = computed(() => {
+    if (form.orderType.id !== 'combo') return 0
+    const mult = form.deadline.multiplier * (1 + form.writerTier.surcharge)
+    if (form.comboComponent === 'design')  return DESIGN_BASE_PRICE * mult * form.designUnits
+    return DIAGRAM_BASE_PRICE * mult * form.diagramCount
+  })
+
   const unitCount = computed(() => {
     if (form.orderType.id === 'design')       return form.designUnits
     if (form.orderType.id === 'diagram')      return form.diagramCount
@@ -197,7 +206,7 @@ export function useOrderForm() {
     return 'pages'
   })
 
-  const totalPrice = computed(() => Math.ceil(basePrice.value * unitCount.value))
+  const totalPrice = computed(() => Math.ceil(basePrice.value * unitCount.value + comboPlusPrice.value))
   const pricePerUnit = computed(() => Math.ceil(basePrice.value))
 
   const wordCount = computed(() =>
@@ -222,6 +231,7 @@ export function useOrderForm() {
       pages:        form.pages,
       designUnits:  form.designUnits,
       diagramCount: form.diagramCount,
+      comboComponent: form.comboComponent,
       spacing:      form.spacing,
       deadline:     form.deadline.label,
       deadlineHours: form.deadline.hours,
@@ -245,6 +255,13 @@ export function useOrderForm() {
   const step1Valid = computed(() => {
     if (form.orderType.id === 'design')  return !!form.designType && form.designUnits >= 1 && !!form.deadline
     if (form.orderType.id === 'diagram') return !!form.diagramType && form.diagramCount >= 1 && !!form.deadline
+    if (form.orderType.id === 'combo') {
+      const paperOk = !!form.paperType && !!form.level && form.pages >= 1 && !!form.subject
+      const plusOk = form.comboComponent === 'design'
+        ? !!form.designType && form.designUnits >= 1
+        : !!form.diagramType && form.diagramCount >= 1
+      return paperOk && plusOk && !!form.deadline
+    }
     return !!form.paperType && !!form.level && form.pages >= 1 && !!form.deadline && !!form.subject
   })
 

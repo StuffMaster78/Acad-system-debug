@@ -448,6 +448,15 @@ useHead({
       </div>
     </div>
 
+    <!-- ── Sample templates for this service ────────────────────────── -->
+    <ClientOnly>
+      <ServiceTemplates
+        v-if="service"
+        :service-slug="service.slug"
+        :service-name="service.navLabel"
+      />
+    </ClientOnly>
+
     <!-- Final CTA strip -->
     <div v-if="service" class="bg-brand-700 py-12 text-center">
       <h2 class="font-serif text-2xl font-bold text-white sm:text-3xl">

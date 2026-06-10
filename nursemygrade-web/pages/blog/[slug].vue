@@ -80,6 +80,19 @@ const reactions: { type: 'helpful' | 'love' | 'insightful'; emoji: string; label
   { type: 'insightful',emoji: '💡', label: 'Insightful' },
 ]
 
+// Category → cover gradient
+const CAT_COVER: Record<string, { bg: string; icon: string }> = {
+  'Nursing Papers':       { bg: 'from-brand-800 to-brand-600',      icon: 'stethoscope' },
+  'Capstone & Research':  { bg: 'from-slate-800 to-slate-600',       icon: 'graduation-cap' },
+  'Citation & Format':    { bg: 'from-indigo-800 to-indigo-600',     icon: 'book-open' },
+  'Clinical Simulations': { bg: 'from-emerald-800 to-emerald-600',   icon: 'monitor' },
+  'Dissertations':        { bg: 'from-slate-800 to-slate-600',       icon: 'file-text' },
+  'Essays':               { bg: 'from-brand-800 to-brand-600',       icon: 'pen-line' },
+  'Nursing School':       { bg: 'from-rose-800 to-rose-600',         icon: 'book-open' },
+  'Research Papers':      { bg: 'from-blue-900 to-blue-700',         icon: 'search' },
+}
+const postCover = CAT_COVER[post.category] ?? { bg: 'from-brand-800 to-brand-600', icon: 'pen-line' }
+
 const config = useRuntimeConfig()
 const siteUrl = config.public.siteUrl || 'https://nursemygrade.com'
 const canonicalUrl = `${siteUrl}/blog/${post.slug}`
@@ -126,6 +139,24 @@ useHead({
 
 <template>
   <div class="section">
+
+    <!-- Cover image band -->
+    <div
+      class="relative -mx-4 mb-10 flex h-56 items-center justify-center overflow-hidden bg-gradient-to-br sm:-mx-6 sm:h-72 lg:-mx-8"
+      :class="postCover.bg"
+    >
+      <div class="absolute inset-0 opacity-10"
+        style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 28px 28px;" />
+      <div class="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
+        <Icon :name="postCover.icon" class="h-12 w-12 text-white" />
+      </div>
+      <nav class="absolute bottom-4 left-4 flex items-center gap-2 text-xs" aria-label="Breadcrumb">
+        <NuxtLink href="/blog" class="font-semibold text-white/70 hover:text-white transition-colors">Blog</NuxtLink>
+        <svg class="h-3 w-3 text-white/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <span class="rounded-full bg-white/20 px-2.5 py-0.5 font-semibold text-white backdrop-blur-sm">{{ post.category }}</span>
+      </nav>
+    </div>
+
     <div class="grid gap-10 lg:grid-cols-[1fr_300px]">
 
       <!-- ── Left: article content ──────────────────────────────────── -->

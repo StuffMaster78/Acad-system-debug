@@ -306,9 +306,101 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 </div>
                 <p class="mt-1.5 text-xs text-slate-400">Selected: <strong class="text-slate-600">{{ form.subject.label }}</strong></p>
               </div>
+              <!-- COMBO: plus component picker (appears below paper fields) -->
+              <template v-if="form.orderType.id === 'combo'">
+                <div class="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50 p-5">
+                  <div class="mb-4 flex items-center gap-2">
+                    <div class="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">+</div>
+                    <h2 class="font-semibold text-slate-900">Plus component</h2>
+                    <span class="text-xs text-slate-500">— choose what accompanies your paper</span>
+                  </div>
+
+                  <!-- Design vs Diagram toggle -->
+                  <div class="mb-4 flex gap-2">
+                    <button type="button"
+                      class="flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-all"
+                      :class="form.comboComponent === 'design' ? 'border-purple-600 bg-purple-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-purple-300'"
+                      @click="form.comboComponent = 'design'"
+                    >
+                      Design
+                      <span class="ml-1 text-xs font-normal opacity-75">PPT · infographic · poster</span>
+                    </button>
+                    <button type="button"
+                      class="flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-all"
+                      :class="form.comboComponent === 'diagram' ? 'border-teal-600 bg-teal-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300'"
+                      @click="form.comboComponent = 'diagram'"
+                    >
+                      Diagram
+                      <span class="ml-1 text-xs font-normal opacity-75">flowchart · ER · mind map</span>
+                    </button>
+                  </div>
+
+                  <!-- Design sub-fields -->
+                  <div v-if="form.comboComponent === 'design'" class="space-y-4">
+                    <div>
+                      <label class="form-label">Design type</label>
+                      <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        <button v-for="dt in DESIGN_TYPES" :key="dt.id" type="button"
+                          class="rounded-xl border p-3 text-left transition-all"
+                          :class="form.designType.id === dt.id ? 'border-purple-600 bg-purple-600 text-white shadow-sm' : 'border-slate-200 bg-white hover:border-purple-300'"
+                          @click="form.designType = dt"
+                        >
+                          <p class="text-sm font-semibold" :class="form.designType.id === dt.id ? 'text-white' : 'text-slate-900'">{{ dt.label }}</p>
+                          <p class="mt-0.5 text-xs" :class="form.designType.id === dt.id ? 'text-purple-200' : 'text-slate-400'">{{ dt.desc }}</p>
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="form-label">Number of {{ form.designType.unit }}</label>
+                      <div class="mt-2 flex items-center gap-4">
+                        <button type="button" class="stepper-btn" :disabled="form.designUnits <= 1" @click="form.designUnits = Math.max(1, form.designUnits - 1)"><Minus class="h-4 w-4" /></button>
+                        <span class="w-8 text-center text-lg font-bold text-slate-900">{{ form.designUnits }}</span>
+                        <button type="button" class="stepper-btn" @click="form.designUnits++"><Plus class="h-4 w-4" /></button>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="form-label">Style notes <span class="text-xs font-normal text-slate-400">(optional — colours, theme, brand kit)</span></label>
+                      <input v-model="form.designStyle" type="text" class="form-input mt-2" placeholder="e.g. Corporate blue, minimal, matches university branding" />
+                    </div>
+                  </div>
+
+                  <!-- Diagram sub-fields -->
+                  <div v-else class="space-y-4">
+                    <div>
+                      <label class="form-label">Diagram type</label>
+                      <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <button v-for="dt in DIAGRAM_TYPES" :key="dt.id" type="button"
+                          class="rounded-xl border p-3 text-left transition-all"
+                          :class="form.diagramType.id === dt.id ? 'border-teal-600 bg-teal-600 text-white shadow-sm' : 'border-slate-200 bg-white hover:border-teal-300'"
+                          @click="form.diagramType = dt"
+                        >
+                          <p class="text-sm font-semibold" :class="form.diagramType.id === dt.id ? 'text-white' : 'text-slate-900'">{{ dt.label }}</p>
+                          <p class="mt-0.5 text-xs" :class="form.diagramType.id === dt.id ? 'text-teal-200' : 'text-slate-400'">{{ dt.desc }}</p>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label class="form-label">Number of diagrams</label>
+                        <div class="mt-2 flex items-center gap-4">
+                          <button type="button" class="stepper-btn" :disabled="form.diagramCount <= 1" @click="form.diagramCount = Math.max(1, form.diagramCount - 1)"><Minus class="h-4 w-4" /></button>
+                          <span class="w-8 text-center text-lg font-bold text-slate-900">{{ form.diagramCount }}</span>
+                          <button type="button" class="stepper-btn" @click="form.diagramCount++"><Plus class="h-4 w-4" /></button>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="form-label">Output software</label>
+                        <select v-model="form.diagramSoftware" class="form-input mt-2">
+                          <option v-for="s in DIAGRAM_SOFTWARE" :key="s.id" :value="s">{{ s.label }}</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
             </template>
 
-            <!-- DESIGN fields -->
+            <!-- DESIGN fields (standalone — not combo) -->
             <template v-else-if="form.orderType.id === 'design'">
               <div>
                 <label class="form-label">Design type</label>
