@@ -306,8 +306,6 @@ useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/order' }] }
                 </div>
                 <p class="mt-1.5 text-xs text-slate-400">Selected: <strong class="text-slate-600">{{ form.subject.label }}</strong></p>
               </div>
-            </template>
-
               <!-- COMBO: plus component picker (appears below paper fields) -->
               <template v-if="form.orderType.id === 'combo'">
                 <div class="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50 p-5">
