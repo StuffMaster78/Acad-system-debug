@@ -36,7 +36,7 @@ onMounted(() => {
 })
 
 // Engagement
-const { stats, myReact, bookmarked, ready, react, toggleBookmark, reactionCount, fmtCount } =
+const { pageId, stats, myReact, bookmarked, ready, react, toggleBookmark, reactionCount, fmtCount } =
   useEngagement(post.slug)
 
 const reactions: { type: 'helpful' | 'love' | 'insightful'; emoji: string; label: string }[] = [
