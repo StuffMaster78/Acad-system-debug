@@ -93,6 +93,15 @@ const ROLE_BADGE: Record<string, string> = {
   'Editor':                'bg-violet-100 text-violet-700',
 }
 
+// Category → cover gradient (mirrors blog/index.vue)
+const CAT_COVER: Record<string, { bg: string; icon: string }> = {
+  'Essays':          { bg: 'from-brand-800 to-brand-600',     icon: 'pen-line' },
+  'Research Papers': { bg: 'from-blue-900 to-blue-600',       icon: 'file-text' },
+  'Dissertations':   { bg: 'from-slate-800 to-slate-600',     icon: 'graduation-cap' },
+  'Academic Tips':   { bg: 'from-emerald-800 to-emerald-600', icon: 'book-open' },
+}
+const postCover = CAT_COVER[post.category] ?? { bg: 'from-brand-800 to-brand-600', icon: 'pen-line' }
+
 const config = useRuntimeConfig()
 const siteUrl = config.public.siteUrl || 'https://essaymaniacs.com'
 const canonicalUrl = `${siteUrl}/blog/${post.slug}`
@@ -143,20 +152,29 @@ useHead({
       />
     </ClientOnly>
 
+    <!-- ── Cover image band ──────────────────────────────────────────── -->
+    <div
+      class="relative flex h-56 items-center justify-center overflow-hidden bg-gradient-to-br sm:h-72"
+      :class="postCover.bg"
+    >
+      <!-- Dot grid overlay -->
+      <div class="absolute inset-0 opacity-10"
+        style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 28px 28px;" />
+      <!-- Centre icon -->
+      <div class="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
+        <Icon :name="postCover.icon" class="h-12 w-12 text-white" />
+      </div>
+      <!-- Breadcrumb overlay bottom-left -->
+      <nav class="absolute bottom-4 left-4 flex items-center gap-2 text-xs" aria-label="Breadcrumb">
+        <NuxtLink href="/blog" class="font-semibold text-white/70 hover:text-white transition-colors">Blog</NuxtLink>
+        <svg class="h-3 w-3 text-white/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <span class="rounded-full bg-white/20 px-2.5 py-0.5 font-semibold text-white backdrop-blur-sm">{{ post.category }}</span>
+      </nav>
+    </div>
+
     <!-- ── Article header ────────────────────────────────────────────── -->
     <div class="border-b border-slate-100 bg-white">
-      <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-
-        <!-- Breadcrumb trail -->
-        <nav class="mb-8 flex items-center gap-2 text-xs" aria-label="Breadcrumb">
-          <NuxtLink href="/" class="text-slate-400 transition-colors hover:text-brand-600">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-          </NuxtLink>
-          <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-          <NuxtLink href="/blog" class="text-slate-400 transition-colors hover:text-brand-600">Blog</NuxtLink>
-          <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-          <span class="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700">{{ post.category }}</span>
-        </nav>
+      <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6">
 
         <!-- Meta -->
         <div class="mb-4 flex flex-wrap items-center gap-3">
