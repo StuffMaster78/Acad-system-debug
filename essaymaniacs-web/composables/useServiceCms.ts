@@ -1,0 +1,48 @@
+export interface CmsServicePage {
+  id: number
+  title: string
+  slug: string
+  pricing_from: string | null
+  pricing_to: string | null
+  turnaround_hours_fastest: number | null
+  turnaround_hours_standard: number | null
+  primary_cta_text: string
+  primary_cta_url: string
+  reviewer: { name: string; role: string } | null
+  last_substantive_update: string | null
+  body: CmsBlock[]
+}
+
+export interface CmsBlock {
+  type: string
+  id: string
+  value: unknown
+}
+
+export function useServiceCms(serviceSlug: string) {
+  // Map frontend service slugs → Wagtail page slugs
+  // Convention: Wagtail page slug = frontend slug (e.g. research-papers → research-papers)
+  // Override here if they differ.
+  const wagtailSlug = serviceSlug
+
+  const { data, status, error } = useFetch<{ items: CmsServicePage[] }>('/api/v2/pages/', {
+    query: {
+      type: 'cms_service_pages.ServicePage',
+      slug: wagtailSlug,
+      fields: [
+        'title', 'slug', 'pricing_from', 'pricing_to',
+        'turnaround_hours_fastest', 'turnaround_hours_standard',
+        'primary_cta_text', 'primary_cta_url',
+        'reviewer', 'last_substantive_update', 'body',
+      ].join(','),
+    },
+    // Don't throw on 404 — service page may not have CMS content yet
+    onResponseError() {},
+  })
+
+  const page = computed<CmsServicePage | null>(() => data.value?.items?.[0] ?? null)
+  const hasContent = computed(() => !!page.value?.body?.length)
+  const loading = computed(() => status.value === 'pending')
+
+  return { page, hasContent, loading, error }
+}
