@@ -26,6 +26,7 @@ interface BlogPost {
 }
 
 const config = useRuntimeConfig()
+const apiBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
 const PAGE_SIZE = 12
 
 const page     = ref(1)
@@ -39,7 +40,7 @@ async function loadPage(p: number) {
   error.value   = false
   try {
     const res = await $fetch<{ meta: { total_count: number }; items: BlogPost[] }>(
-      `${config.public.apiBase}/api/v2/pages/`,
+      `${apiBase}/api/v2/pages/`,
       { params: {
         type:   'cms_blog.BlogPostPage',
         fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name',

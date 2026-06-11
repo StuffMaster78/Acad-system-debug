@@ -13,7 +13,8 @@ export async function fetchSiteSettings(): Promise<SiteSettings | null> {
   if (_cache.value) return _cache.value
   const config = useRuntimeConfig()
   try {
-    const data = await $fetch<SiteSettings>(`${config.public.apiBase}/cms-api/site-settings/`)
+    const effectiveBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase
+    const data = await $fetch<SiteSettings>(`${effectiveBase}/cms-api/site-settings/`)
     _cache.value = data
     return data
   } catch {

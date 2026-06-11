@@ -45,8 +45,9 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    apiBaseInternal: '', // NUXT_API_BASE_INTERNAL — http://web:8000 (server-only, bypasses nginx)
     public: {
-      apiBase: '',       // NUXT_PUBLIC_API_BASE — Django backend
+      apiBase: '',       // NUXT_PUBLIC_API_BASE — https://gradecrest.com (browser-accessible)
       appUrl: '',        // NUXT_PUBLIC_APP_URL  — client portal (for login/register links)
       siteUrl: 'https://gradecrest.com',
     },

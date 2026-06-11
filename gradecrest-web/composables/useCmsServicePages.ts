@@ -2,7 +2,7 @@ import type { CmsServicePage, CmsServicePageListItem } from '~/types/cms'
 
 export async function fetchCmsServicePage(slug: string) {
   const config = useRuntimeConfig()
-  const apiBase = config.public.apiBase || ''
+  const apiBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
 
   if (import.meta.server && !apiBase) {
     return null
@@ -19,7 +19,7 @@ export async function fetchCmsServicePage(slug: string) {
 
 export async function fetchCmsServicePages() {
   const config = useRuntimeConfig()
-  const apiBase = config.public.apiBase || ''
+  const apiBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
 
   if (import.meta.server && !apiBase) {
     return []

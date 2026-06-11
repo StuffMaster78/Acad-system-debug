@@ -242,6 +242,33 @@ services:
       timeout: 10s
       retries: 3
 
+  # ── GradeCrest marketing site (Nuxt SSR) ──────────────────────────────────
+  gradecrest-web:
+    env_file: !reset []
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy     # nginx → gradecrest-web:3000
+      - internal  # gradecrest-web → web:8000 (SSR API calls)
+    build:
+      context: ./gradecrest-web
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-https://gradecrest.com}
+      NUXT_PUBLIC_APP_URL: ${NUXT_PUBLIC_APP_URL}
+      NUXT_API_BASE_INTERNAL: "http://web:8000"
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   # ── Database backup ────────────────────────────────────────────────────────
   # Runs pg_dump daily at 03:00, compresses, and uploads to S3/DO Spaces.
   # Keeps last 7 local backups and enforces 30-day S3 retention.
