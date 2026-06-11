@@ -194,7 +194,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
       <!-- Hero -->
       <section class="bg-navy-900 pb-10 pt-10 relative overflow-hidden print:bg-white print:pb-4">
         <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none print:hidden" />
-        <div class="relative mx-auto max-w-4xl px-4 sm:px-6">
+        <div class="relative mx-auto max-w-5xl px-4 sm:px-6">
 
           <!-- Breadcrumbs / separator -->
           <nav class="mb-5 flex items-center gap-1.5 text-xs text-slate-500 flex-wrap print:text-slate-400">
@@ -258,14 +258,14 @@ const tags             = computed(() => article.value?.tag_names ?? [])
 
       <!-- Featured image -->
       <div v-if="article.thumbnail?.url" class="bg-navy-900 print:hidden">
-        <div class="mx-auto max-w-4xl px-4 sm:px-6">
+        <div class="mx-auto max-w-5xl px-4 sm:px-6">
           <img :src="article.thumbnail.url" :alt="article.title" class="w-full rounded-t-2xl object-cover max-h-96" />
         </div>
       </div>
 
       <!-- Body -->
       <section class="bg-white py-10" id="article-body">
-        <div class="mx-auto max-w-4xl px-4 sm:px-6">
+        <div class="mx-auto max-w-5xl px-4 sm:px-6">
           <div class="lg:grid lg:grid-cols-[1fr_260px] lg:gap-12 lg:items-start">
 
             <!-- Main content -->
@@ -465,7 +465,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
 
       <!-- Connected articles -->
       <section v-if="connectedPosts?.length" class="bg-slate-50 border-t border-slate-100 py-12 print:hidden">
-        <div class="mx-auto max-w-4xl px-4 sm:px-6">
+        <div class="mx-auto max-w-5xl px-4 sm:px-6">
           <h2 class="text-lg font-bold text-ink mb-6">You might also like</h2>
           <div class="grid gap-5 sm:grid-cols-3">
             <NuxtLink

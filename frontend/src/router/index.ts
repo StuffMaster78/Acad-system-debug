@@ -1215,7 +1215,7 @@ export const router = createRouter({
     {
       path: "/unauthorized",
       name: "unauthorized",
-      component: () => import("@/views/public/HomeView.vue"),
+      component: () => import("@/views/public/UnauthorizedView.vue"),
     },
     {
       path: "/:pathMatch(.*)*",
