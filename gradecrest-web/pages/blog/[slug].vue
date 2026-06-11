@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ArrowLeft, ArrowRight, Calendar, Clock } from '@lucide/vue'
+import BlockRenderer from '~/components/cms/BlockRenderer.vue'
 
 const app   = useAppUrl()
 const route = useRoute()
@@ -117,21 +118,9 @@ function formatDate(iso: string) {
       <!-- Article body -->
       <section class="bg-white py-12">
         <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <!-- Wagtail StreamField body — render raw HTML blocks -->
-          <div class="prose prose-sm prose-slate max-w-none prose-headings:font-bold prose-headings:text-ink prose-a:text-gc-600 prose-a:no-underline hover:prose-a:underline">
-            <template v-for="block in article.body" :key="block.type + Math.random()">
-              <!-- Rich text block -->
-              <div v-if="block.type === 'rich_text'" v-html="block.value as string" />
-              <!-- Image block -->
-              <figure v-else-if="block.type === 'image' && (block.value as { url?: string })?.url" class="my-6">
-                <img :src="(block.value as { url: string }).url" :alt="(block.value as { alt?: string }).alt || ''" class="w-full rounded-xl" />
-                <figcaption v-if="(block.value as { caption?: string }).caption" class="text-center text-xs text-graphite mt-2">{{ (block.value as { caption?: string }).caption }}</figcaption>
-              </figure>
-              <!-- Callout / pull quote block -->
-              <blockquote v-else-if="block.type === 'pull_quote'" class="my-6 border-l-4 border-gc-500 pl-5 italic text-ink">
-                {{ block.value }}
-              </blockquote>
-            </template>
+          <!-- StreamField body rendered via shared BlockRenderer -->
+          <div class="prose prose-sm prose-slate max-w-none prose-headings:font-bold prose-headings:text-ink prose-a:text-gc-600 prose-a:no-underline hover:prose-a:underline [&_.prose-content]:mb-4 [&_.prose-content_p]:mb-4 [&_.not-prose]:not-prose">
+            <BlockRenderer :blocks="article.body" />
           </div>
 
           <!-- Author bio -->

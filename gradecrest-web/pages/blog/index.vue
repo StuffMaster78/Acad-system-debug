@@ -26,35 +26,55 @@ interface BlogPost {
 }
 
 const config = useRuntimeConfig()
+const PAGE_SIZE = 12
 
-const { data: posts, pending, error } = await useAsyncData<BlogPost[]>(
-  'blog-posts',
-  async () => {
-    try {
-      const res = await $fetch<{ items: BlogPost[] }>(
-        `${config.public.apiBase}/api/v2/pages/`,
-        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name', order: '-first_published_at', limit: 20 } },
-      )
-      return res.items ?? []
-    } catch {
-      return []
-    }
-  },
-)
+const page     = ref(1)
+const total    = ref(0)
+const allPosts = ref<BlogPost[]>([])
+const pending  = ref(false)
+const error    = ref(false)
+
+async function loadPage(p: number) {
+  pending.value = true
+  error.value   = false
+  try {
+    const res = await $fetch<{ meta: { total_count: number }; items: BlogPost[] }>(
+      `${config.public.apiBase}/api/v2/pages/`,
+      { params: {
+        type:   'cms_blog.BlogPostPage',
+        fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name',
+        order:  '-first_published_at',
+        limit:  PAGE_SIZE,
+        offset: (p - 1) * PAGE_SIZE,
+      }},
+    )
+    total.value    = res.meta.total_count
+    allPosts.value = res.items ?? []
+    page.value     = p
+  } catch {
+    error.value = true
+  } finally {
+    pending.value = false
+  }
+}
+
+await loadPage(1)
+
+const totalPages = computed(() => Math.ceil(total.value / PAGE_SIZE))
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const categories = computed(() => {
-  const cats = new Set((posts.value ?? []).map(p => p.category_name).filter(Boolean))
+  const cats = new Set(allPosts.value.map(p => p.category_name).filter(Boolean))
   return ['All', ...cats]
 })
 const activeCategory = ref('All')
 const filtered = computed(() =>
   activeCategory.value === 'All'
-    ? (posts.value ?? [])
-    : (posts.value ?? []).filter(p => p.category_name === activeCategory.value),
+    ? allPosts.value
+    : allPosts.value.filter(p => p.category_name === activeCategory.value),
 )
 </script>
 
@@ -137,7 +157,7 @@ const filtered = computed(() =>
               <!-- Meta -->
               <div class="flex flex-col flex-1 p-5 space-y-3">
                 <div class="flex items-center gap-3 text-xs text-graphite">
-                  <span v-if="post.category" class="rounded-full bg-gc-50 px-2.5 py-0.5 font-semibold text-gc-700">{{ post.category }}</span>
+                  <span v-if="post.category_name" class="rounded-full bg-gc-50 px-2.5 py-0.5 font-semibold text-gc-700">{{ post.category_name }}</span>
                   <span v-if="post.reading_time_minutes" class="flex items-center gap-1">
                     <Clock class="size-3" /> {{ post.reading_time_minutes }} min read
                   </span>
@@ -154,6 +174,27 @@ const filtered = computed(() =>
               </div>
             </NuxtLink>
           </div>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="mt-12 flex items-center justify-center gap-2">
+            <button
+              :disabled="page === 1"
+              class="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-sm text-graphite hover:border-gc-400 hover:text-gc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              @click="loadPage(page - 1)"
+            >←</button>
+            <button
+              v-for="p in totalPages" :key="p"
+              class="flex size-9 items-center justify-center rounded-lg border text-sm font-medium transition-colors"
+              :class="p === page ? 'bg-gc-600 border-gc-600 text-white' : 'border-slate-200 text-graphite hover:border-gc-400 hover:text-gc-600'"
+              @click="loadPage(p)"
+            >{{ p }}</button>
+            <button
+              :disabled="page === totalPages"
+              class="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-sm text-graphite hover:border-gc-400 hover:text-gc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              @click="loadPage(page + 1)"
+            >→</button>
+          </div>
+
         </template>
 
       </div>

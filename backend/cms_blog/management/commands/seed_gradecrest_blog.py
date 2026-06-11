@@ -338,4 +338,37 @@ class Command(BaseCommand):
         page.primary_author = author
         page.category = category
         page.citation_mode = "sources_list"
-        page.body = data.get("body", [])
+        page.body = [self._normalize_block(b) for b in data.get("body", [])]
+
+    @staticmethod
+    def _normalize_block(block: dict) -> dict:
+        """Coerce seed shorthand into the exact field names Wagtail block definitions use."""
+        t = block.get("type")
+        raw = block.get("value")
+
+        # paragraph / rich_text values are plain strings — return as-is
+        if not isinstance(raw, dict):
+            return {"type": t, "value": raw}
+
+        v = dict(raw)
+
+        if t == "checklist":
+            # ChecklistBlock uses 'title' not 'heading'; items need {text, detail}
+            if "heading" in v and "title" not in v:
+                v["title"] = v.pop("heading")
+            v["items"] = [
+                item if isinstance(item, dict) and "detail" in item
+                else {"text": item.get("text", item) if isinstance(item, dict) else item, "detail": ""}
+                for item in v.get("items", [])
+            ]
+
+        elif t == "cta":
+            # CTABlock only has text, url, style — map verbose seed keys
+            if "button_text" in v:
+                v["text"] = v.pop("button_text")
+            if "button_url" in v:
+                v["url"] = v.pop("button_url")
+            # Drop extra keys the block doesn't know about
+            v = {k: v[k] for k in ("text", "url", "style") if k in v}
+
+        return {"type": t, "value": v}
