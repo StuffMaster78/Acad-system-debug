@@ -15,7 +15,7 @@ function asArr(v: unknown): unknown[] { return Array.isArray(v) ? v : [] }
 
 function heading(v: unknown) {
   const o = asObj(v)
-  return { text: asStr(o.text), level: asStr(o.level) || 'h2' }
+  return { text: asStr(o.text), level: asStr(o.level) || 'h2', id: slugifyHeading(asStr(o.text)) }
 }
 
 function ctaUrl(raw: string): string {
@@ -39,7 +39,8 @@ function ctaUrl(raw: string): string {
     <component
       :is="heading(block.value).level"
       v-else-if="block.type === 'heading'"
-      class="font-bold text-ink mt-8 mb-3"
+      :id="heading(block.value).id"
+      class="font-bold text-ink mt-8 mb-3 scroll-mt-24"
       :class="{
         'text-2xl': heading(block.value).level === 'h2',
         'text-xl':  heading(block.value).level === 'h3',

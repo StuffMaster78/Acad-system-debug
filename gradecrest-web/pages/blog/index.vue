@@ -48,7 +48,7 @@ async function loadPage(p: number) {
         offset: (p - 1) * PAGE_SIZE,
       }},
     )
-    total.value    = res.meta.total_count
+    total.value    = res?.meta?.total_count ?? 0
     allPosts.value = res.items ?? []
     page.value     = p
   } catch {
@@ -134,46 +134,78 @@ const filtered = computed(() =>
             </a>
           </div>
 
-          <!-- Post grid -->
-          <div v-else class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <template v-else>
+            <!-- Featured hero post (first article only) -->
             <NuxtLink
-              v-for="post in filtered" :key="post.id"
-              :to="`/blog/${post.meta.slug}`"
-              class="group flex flex-col rounded-2xl border border-slate-200 bg-white shadow-card hover:shadow-lift hover:-translate-y-0.5 transition-all overflow-hidden"
+              v-if="activeCategory === 'All' && page === 1 && filtered.length > 0"
+              :to="`/blog/${filtered[0]?.meta?.slug}`"
+              class="group mb-10 flex flex-col sm:flex-row rounded-2xl border border-slate-200 bg-white shadow-card hover:shadow-lift hover:-translate-y-0.5 transition-all overflow-hidden"
             >
-              <!-- Thumbnail -->
-              <div class="h-44 bg-slate-100 overflow-hidden">
+              <div class="sm:w-2/5 h-52 sm:h-auto bg-slate-100 overflow-hidden shrink-0">
                 <img
-                  v-if="post.thumbnail?.url"
-                  :src="post.thumbnail.url"
-                  :alt="post.title"
+                  v-if="filtered[0].thumbnail?.url"
+                  :src="filtered[0].thumbnail.url"
+                  :alt="filtered[0].title"
                   class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div v-else class="h-full flex items-center justify-center">
-                  <span class="text-2xl font-extrabold text-slate-200 select-none">G</span>
+                  <span class="text-5xl font-extrabold text-slate-200 select-none">G</span>
                 </div>
               </div>
-
-              <!-- Meta -->
-              <div class="flex flex-col flex-1 p-5 space-y-3">
+              <div class="flex flex-col justify-center p-6 sm:p-8 flex-1 space-y-3">
                 <div class="flex items-center gap-3 text-xs text-graphite">
-                  <span v-if="post.category_name" class="rounded-full bg-gc-50 px-2.5 py-0.5 font-semibold text-gc-700">{{ post.category_name }}</span>
-                  <span v-if="post.reading_time_minutes" class="flex items-center gap-1">
-                    <Clock class="size-3" /> {{ post.reading_time_minutes }} min read
-                  </span>
+                  <span v-if="filtered[0].category_name" class="rounded-full bg-gc-50 px-2.5 py-0.5 font-semibold text-gc-700">{{ filtered[0].category_name }}</span>
+                  <span class="flex items-center gap-1"><Clock class="size-3" />{{ filtered[0].reading_time_minutes || 1 }} min read</span>
                 </div>
-                <h2 class="text-sm font-bold text-ink leading-snug group-hover:text-gc-600 transition-colors line-clamp-2">{{ post.title }}</h2>
-                <p v-if="post.excerpt" class="text-xs text-graphite leading-relaxed line-clamp-3 flex-1">{{ post.excerpt }}</p>
-                <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+                <h2 class="text-xl font-bold text-ink group-hover:text-gc-600 transition-colors leading-snug">{{ filtered[0].title }}</h2>
+                <p v-if="filtered[0].excerpt" class="text-sm text-graphite leading-relaxed line-clamp-3">{{ filtered[0].excerpt }}</p>
+                <div class="flex items-center gap-4 pt-1">
                   <div class="flex items-center gap-1.5 text-xs text-graphite">
-                    <Calendar class="size-3" />
-                    {{ formatDate(post.meta.first_published_at) }}
+                    <Calendar class="size-3" /> {{ formatDate(filtered[0]?.meta?.first_published_at) }}
                   </div>
-                  <ArrowRight class="size-3.5 text-gc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span class="text-xs font-semibold text-gc-600 group-hover:underline flex items-center gap-1">
+                    Read article <ArrowRight class="size-3" />
+                  </span>
                 </div>
               </div>
             </NuxtLink>
-          </div>
+
+            <!-- Post grid (remaining posts) -->
+            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <NuxtLink
+                v-for="post in (activeCategory === 'All' && page === 1 ? filtered.slice(1) : filtered)"
+                :key="post.id"
+                :to="`/blog/${post.meta?.slug}`"
+                class="group flex flex-col rounded-2xl border border-slate-200 bg-white shadow-card hover:shadow-lift hover:-translate-y-0.5 transition-all overflow-hidden"
+              >
+                <div class="h-44 bg-slate-100 overflow-hidden">
+                  <img
+                    v-if="post.thumbnail?.url"
+                    :src="post.thumbnail.url"
+                    :alt="post.title"
+                    class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div v-else class="h-full flex items-center justify-center">
+                    <span class="text-2xl font-extrabold text-slate-200 select-none">G</span>
+                  </div>
+                </div>
+                <div class="flex flex-col flex-1 p-5 space-y-2.5">
+                  <div class="flex items-center gap-2.5 text-xs text-graphite">
+                    <span v-if="post.category_name" class="rounded-full bg-gc-50 px-2.5 py-0.5 font-semibold text-gc-700">{{ post.category_name }}</span>
+                    <span v-if="post.reading_time_minutes" class="flex items-center gap-1"><Clock class="size-3" />{{ post.reading_time_minutes }} min</span>
+                  </div>
+                  <h2 class="text-sm font-bold text-ink leading-snug group-hover:text-gc-600 transition-colors line-clamp-2 flex-1">{{ post.title }}</h2>
+                  <p v-if="post.excerpt" class="text-xs text-graphite leading-relaxed line-clamp-2">{{ post.excerpt }}</p>
+                  <div class="flex items-center justify-between pt-1.5 border-t border-slate-100">
+                    <div class="flex items-center gap-1 text-xs text-graphite">
+                      <Calendar class="size-3" />{{ formatDate(post.meta?.first_published_at) }}
+                    </div>
+                    <ArrowRight class="size-3.5 text-gc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </div>
+              </NuxtLink>
+            </div>
+          </template>
 
           <!-- Pagination -->
           <div v-if="totalPages > 1" class="mt-12 flex items-center justify-center gap-2">
