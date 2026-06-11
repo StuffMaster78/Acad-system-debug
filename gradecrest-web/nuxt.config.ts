@@ -14,6 +14,8 @@ export default defineNuxtConfig({
   // - Service pages rendered per-request so Wagtail edits go live immediately
   routeRules: {
     '/services/**': { isr: 3600 },
+    '/blog/**':     { isr: 1800 },
+    '/blog':        { isr: 1800 },
   },
 
   nitro: {

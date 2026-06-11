@@ -20,7 +20,7 @@ interface BlogPost {
   title: string
   excerpt: string
   reading_time_minutes: number
-  category: string
+  category_name: string
   thumbnail: { url: string } | null
   author_name: string
 }
@@ -33,7 +33,7 @@ const { data: posts, pending, error } = await useAsyncData<BlogPost[]>(
     try {
       const res = await $fetch<{ items: BlogPost[] }>(
         `${config.public.apiBase}/api/v2/pages/`,
-        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,excerpt,reading_time_minutes,category,thumbnail,author_name', order: '-first_published_at', limit: 24 } },
+        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name', order: '-first_published_at', limit: 20 } },
       )
       return res.items ?? []
     } catch {
@@ -47,14 +47,14 @@ function formatDate(iso: string) {
 }
 
 const categories = computed(() => {
-  const cats = new Set((posts.value ?? []).map(p => p.category).filter(Boolean))
+  const cats = new Set((posts.value ?? []).map(p => p.category_name).filter(Boolean))
   return ['All', ...cats]
 })
 const activeCategory = ref('All')
 const filtered = computed(() =>
   activeCategory.value === 'All'
     ? (posts.value ?? [])
-    : (posts.value ?? []).filter(p => p.category === activeCategory.value),
+    : (posts.value ?? []).filter(p => p.category_name === activeCategory.value),
 )
 </script>
 

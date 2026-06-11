@@ -19,6 +19,7 @@ from django.db import models
 
 from modelcluster.fields import ParentalKey, ParentalManyToManyField
 from modelcluster.contrib.taggit import ClusterTaggableManager
+from rest_framework import serializers as drf_serializers
 from wagtail.models import Page, Orderable
 from wagtail.fields import StreamField, RichTextField
 from wagtail.admin.panels import (
@@ -30,6 +31,24 @@ from wagtail.api import APIField
 from wagtail.search import index
 
 from cms_core.blocks import BLOG_BLOCKS
+
+
+class _CategoryNameSerializer(drf_serializers.Serializer):
+    def to_representation(self, category):
+        if category is None:
+            return None
+        return getattr(category, "name", str(category))
+
+
+class _ThumbnailSerializer(drf_serializers.Serializer):
+    def to_representation(self, image):
+        if image is None:
+            return None
+        try:
+            return {"url": image.get_rendition("width-800").url}
+        except Exception:
+            url = getattr(getattr(image, "file", None), "url", None)
+            return {"url": url} if url else None
 
 
 class BlogIndexPage(Page):
@@ -278,7 +297,30 @@ class BlogPostPage(Page):
         APIField("reviewer"),
         APIField("original_published_at"),
         APIField("canonical_published_at"),
+        # Frontend-friendly aliases used by gradecrest-web and other marketing sites
+        APIField("author_name"),
+        APIField("reading_time_minutes"),
+        APIField("thumbnail", serializer=_ThumbnailSerializer()),
+        APIField("category_name", serializer=_CategoryNameSerializer()),
     ]
+
+    @property
+    def author_name(self) -> str:
+        author = getattr(self, "primary_author", None)
+        return author.name if author else ""
+
+    @property
+    def reading_time_minutes(self) -> int:
+        return getattr(self, "reading_time", 0) or 0
+
+    @property
+    def thumbnail(self):
+        return self.featured_image
+
+    @property
+    def category_name(self) -> str:
+        cat = getattr(self, "category", None)
+        return cat.name if cat else ""
 
     class Meta:
         verbose_name = "Blog Post"

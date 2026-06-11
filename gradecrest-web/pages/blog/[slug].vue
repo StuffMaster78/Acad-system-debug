@@ -18,7 +18,7 @@ interface ArticleDetail {
   excerpt: string
   body: Block[]
   reading_time_minutes: number
-  category: string
+  category_name: string
   thumbnail: { url: string } | null
   author_name: string
   author_bio: string
@@ -99,7 +99,7 @@ function formatDate(iso: string) {
             <ArrowLeft class="size-3.5" /> All articles
           </NuxtLink>
           <div class="flex items-center gap-3 mb-4 text-xs text-slate-400">
-            <span v-if="article.category" class="rounded-full bg-gc-500/20 px-2.5 py-0.5 font-semibold text-gc-300">{{ article.category }}</span>
+            <span v-if="article.category_name" class="rounded-full bg-gc-500/20 px-2.5 py-0.5 font-semibold text-gc-300">{{ article.category_name }}</span>
             <span class="flex items-center gap-1"><Clock class="size-3" /> {{ article.reading_time_minutes }} min read</span>
             <span class="flex items-center gap-1"><Calendar class="size-3" /> {{ formatDate(article.meta.first_published_at) }}</span>
           </div>

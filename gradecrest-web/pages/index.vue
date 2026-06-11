@@ -4,9 +4,12 @@ import {
   Clock, FileText, GraduationCap, Lock, RefreshCw,
   Shield, Star, Trophy, Users, Zap,
 } from '@lucide/vue'
+import { markRaw } from 'vue'
 import PricingCalculator from '~/components/ui/PricingCalculator.vue'
 
 const app = useAppUrl()
+const siteSettings = await fetchSiteSettings()
+const ogImage = siteSettings?.og_image_url ?? '/og-default.svg'
 
 // ── Structured data ───────────────────────────────────────────────────────────
 useSeoMeta({
@@ -14,7 +17,7 @@ useSeoMeta({
   description: 'Get essays, research papers, dissertations, and assignments written by human experts. From $13/page. Grade or money back. Zero AI content. 50,000+ papers delivered.',
   ogTitle: 'GradeCrest — Academic Writing Service',
   ogDescription: 'Human-written papers across every subject. Grade or money back guarantee. 50,000+ papers delivered. 4.9/5 rated.',
-  ogImage: 'https://gradecrest.com/og-home.jpg',
+  ogImage,
   twitterCard: 'summary_large_image',
 })
 
@@ -63,15 +66,15 @@ const stats = [
 ]
 
 const services = [
-  { icon: FileText,      title: 'Essays',              href: '/services/essay-writing',       desc: 'Argumentative, analytical, descriptive — any format, any level, any subject.' },
-  { icon: BookOpen,      title: 'Research Papers',     href: '/services/research-papers',     desc: 'Original, citation-rich papers across STEM, business, humanities, and social sciences.' },
-  { icon: GraduationCap, title: 'Dissertations',       href: '/services/dissertations',       desc: 'Full thesis support from proposal through defence — chapters, methodology, data.' },
-  { icon: FileText,      title: 'Term Papers',         href: '/services/term-papers',         desc: 'Well-structured semester papers delivered before your deadline.' },
-  { icon: FileText,      title: 'Nursing Essays',      href: '/services/nursing-essays',      desc: 'SOAP notes, care plans, EBP papers — handled by registered nursing experts.' },
-  { icon: FileText,      title: 'Admission Essays',    href: '/services/admission-essays',    desc: 'Personal statements and college essays that get noticed.' },
-  { icon: FileText,      title: 'Case Studies',        href: '/services/case-studies',        desc: 'Deep-dive analysis with structured arguments and supporting evidence.' },
-  { icon: Zap,           title: 'Editing & Proofread', href: '/services/editing-proofreading',desc: 'Grammar, clarity, flow, and formatting corrected by professional editors.' },
-  { icon: FileText,      title: 'Coursework Help',     href: '/services/coursework',          desc: 'Ongoing assignment support — consistent writer, consistent voice.' },
+  { icon: markRaw(FileText),      title: 'Essays',              href: '/services/essay-writing',       desc: 'Argumentative, analytical, descriptive — any format, any level, any subject.' },
+  { icon: markRaw(BookOpen),      title: 'Research Papers',     href: '/services/research-papers',     desc: 'Original, citation-rich papers across STEM, business, humanities, and social sciences.' },
+  { icon: markRaw(GraduationCap), title: 'Dissertations',       href: '/services/dissertations',       desc: 'Full thesis support from proposal through defence — chapters, methodology, data.' },
+  { icon: markRaw(FileText),      title: 'Term Papers',         href: '/services/term-papers',         desc: 'Well-structured semester papers delivered before your deadline.' },
+  { icon: markRaw(FileText),      title: 'Nursing Essays',      href: '/services/nursing-essays',      desc: 'SOAP notes, care plans, EBP papers — handled by registered nursing experts.' },
+  { icon: markRaw(FileText),      title: 'Admission Essays',    href: '/services/admission-essays',    desc: 'Personal statements and college essays that get noticed.' },
+  { icon: markRaw(FileText),      title: 'Case Studies',        href: '/services/case-studies',        desc: 'Deep-dive analysis with structured arguments and supporting evidence.' },
+  { icon: markRaw(Zap),           title: 'Editing & Proofread', href: '/services/editing-proofreading',desc: 'Grammar, clarity, flow, and formatting corrected by professional editors.' },
+  { icon: markRaw(FileText),      title: 'Coursework Help',     href: '/services/coursework',          desc: 'Ongoing assignment support — consistent writer, consistent voice.' },
 ]
 
 const steps = [
@@ -82,12 +85,12 @@ const steps = [
 ]
 
 const guarantees = [
-  { icon: Trophy,      title: 'Grade or money back',    desc: "If the work doesn't meet your stated grade target we rewrite it free or refund in full." },
-  { icon: CheckCircle2,title: '100% original work',     desc: 'Every paper is written from scratch and verified against plagiarism databases before delivery.' },
-  { icon: Bot,         title: 'Zero AI content',        desc: 'Human experts only. Every order includes a free AI-detection certificate on request.' },
-  { icon: Lock,        title: 'Your privacy protected', desc: 'Your identity, order details, and personal data are never shared with any third party.' },
-  { icon: RefreshCw,   title: 'Unlimited revisions',    desc: 'Within the revision window, request as many changes as you need at absolutely zero cost.' },
-  { icon: Users,       title: 'Dedicated writer',       desc: 'The same expert handles your revisions — context and tone stay consistent throughout.' },
+  { icon: markRaw(Trophy),      title: 'Grade or money back',    desc: "If the work doesn't meet your stated grade target we rewrite it free or refund in full." },
+  { icon: markRaw(CheckCircle2),title: '100% original work',     desc: 'Every paper is written from scratch and verified against plagiarism databases before delivery.' },
+  { icon: markRaw(Bot),         title: 'Zero AI content',        desc: 'Human experts only. Every order includes a free AI-detection certificate on request.' },
+  { icon: markRaw(Lock),        title: 'Your privacy protected', desc: 'Your identity, order details, and personal data are never shared with any third party.' },
+  { icon: markRaw(RefreshCw),   title: 'Unlimited revisions',    desc: 'Within the revision window, request as many changes as you need at absolutely zero cost.' },
+  { icon: markRaw(Users),       title: 'Dedicated writer',       desc: 'The same expert handles your revisions — context and tone stay consistent throughout.' },
 ]
 
 const testimonials = [
