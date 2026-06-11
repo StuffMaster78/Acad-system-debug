@@ -13,7 +13,7 @@ from django.utils.text import slugify
 
 from wagtail.models import Page
 from wagtail.fields import RichTextField
-from wagtail.admin.panels import FieldPanel
+from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.search import index
@@ -288,6 +288,27 @@ class TenantSEOSettings(BaseSiteSetting):
     """Per-tenant SEO and branding configuration.
     Accessible via TenantSEOSettings.for_site(site) in templates and views."""
 
+    site_name = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Display name used in page titles and Schema.org (e.g. 'GradeCrest')",
+    )
+    favicon = models.ForeignKey(
+        "wagtailimages.Image",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Site favicon — upload a square PNG or SVG (recommended: 512×512px)",
+    )
+    default_og_image = models.ForeignKey(
+        "wagtailimages.Image",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Default Open Graph image for pages without a featured image (1200×630px)",
+    )
     default_citation_style = models.CharField(
         max_length=20,
         choices=[
@@ -297,14 +318,6 @@ class TenantSEOSettings(BaseSiteSetting):
             ("none", "No formal citations"),
         ],
         default="apa7",
-    )
-    default_og_image = models.ForeignKey(
-        "wagtailimages.Image",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="+",
-        help_text="Default Open Graph image for pages without a featured image",
     )
     google_analytics_id = models.CharField(
         max_length=50,
@@ -335,13 +348,21 @@ class TenantSEOSettings(BaseSiteSetting):
     )
 
     panels = [
+        MultiFieldPanel([
+            FieldPanel("site_name"),
+            FieldPanel("favicon"),
+            FieldPanel("default_og_image"),
+        ], heading="Branding"),
+        MultiFieldPanel([
+            FieldPanel("google_analytics_id"),
+            FieldPanel("gsc_property_url"),
+            FieldPanel("ga4_property_id"),
+        ], heading="Analytics"),
+        MultiFieldPanel([
+            FieldPanel("schema_org_name"),
+            FieldPanel("schema_org_logo"),
+        ], heading="Schema.org"),
         FieldPanel("default_citation_style"),
-        FieldPanel("default_og_image"),
-        FieldPanel("google_analytics_id"),
-        FieldPanel("gsc_property_url"),
-        FieldPanel("ga4_property_id"),
-        FieldPanel("schema_org_name"),
-        FieldPanel("schema_org_logo"),
     ]
 
     class Meta:

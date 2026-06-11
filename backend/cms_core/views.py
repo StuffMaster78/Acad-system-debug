@@ -460,6 +460,45 @@ class CreatePageDraftView(APIView):
         return page.id, edit_url
 
 
+class PublicSiteSettingsView(APIView):
+    """GET /cms-api/site-settings/
+    Returns branding and SEO settings for the current site (tenant-scoped).
+    Used by marketing frontends to apply favicon, OG image, GA4, and Schema.org.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from cms_core.models import TenantSEOSettings
+        from cms_core.services.tenant_service import get_current_site
+
+        site = get_current_site(request)
+        if not site:
+            return Response({})
+
+        try:
+            settings = TenantSEOSettings.for_site(site)
+        except Exception:
+            return Response({})
+
+        def image_url(image, spec="original"):
+            if not image:
+                return None
+            try:
+                return image.get_rendition(spec).url
+            except Exception:
+                return getattr(getattr(image, "file", None), "url", None)
+
+        return Response({
+            "site_name": settings.site_name or site.site_name or "",
+            "favicon_url": image_url(settings.favicon, "max-512x512"),
+            "og_image_url": image_url(settings.default_og_image, "width-1200"),
+            "schema_org_logo_url": image_url(settings.schema_org_logo, "max-512x512"),
+            "google_analytics_id": settings.google_analytics_id or "",
+            "schema_org_name": settings.schema_org_name or site.site_name or "",
+        })
+
+
 class PublicContactView(APIView):
     """POST /cms-api/contact/
     Accepts a contact enquiry from any marketing site.

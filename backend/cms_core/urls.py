@@ -19,7 +19,7 @@ via the api_router in cms_core/api.py::
 """
 
 from django.urls import include, path
-from cms_core.views import ContentHealthView, CreatePageDraftView, PublicContactView
+from cms_core.views import ContentHealthView, CreatePageDraftView, PublicContactView, PublicSiteSettingsView
 
 app_name = "cms"
 
@@ -37,4 +37,5 @@ urlpatterns = [
     path("blog/", include("cms_blog.urls")),
     path("service-pages/", include("cms_service_pages.urls")),
     path("contact/", PublicContactView.as_view(), name="public-contact"),
+    path("site-settings/", PublicSiteSettingsView.as_view(), name="site-settings"),
 ]
