@@ -24,6 +24,17 @@ from wagtail.blocks import CharBlock
 from cms_core.blocks import SERVICE_PAGE_BLOCKS
 
 
+class ServicePageTemplate(models.TextChoices):
+    STANDARD = "standard_service", "Standard service"
+    ESSAY = "essay_service", "Essay / writing service"
+    TECHNICAL = "technical_service", "Technical / data service"
+    HEALTHCARE = "healthcare_service", "Healthcare / nursing service"
+    ADMISSIONS = "admissions_service", "Admissions service"
+    EDITING = "editing_service", "Editing / proofreading service"
+    ONLINE_CLASS = "online_class_service", "Online class / coursework service"
+    SEO_LANDING = "seo_landing_page", "SEO landing page"
+
+
 class ServiceIndexPage(Page):
     """Container page for service pages. One per tenant site.
     Can live at /services/ or be hidden (service pages can also
@@ -55,6 +66,15 @@ class ServicePage(Page):
     """
 
     # --- Service details ---
+    template_key = models.CharField(
+        max_length=50,
+        choices=ServicePageTemplate.choices,
+        default=ServicePageTemplate.STANDARD,
+        help_text=(
+            "Frontend template used by marketing sites such as GradeCrest. "
+            "Controls layout emphasis while this page's copy remains editable."
+        ),
+    )
     service_category = models.ForeignKey(
         "cms_core.ServiceCategory",
         on_delete=models.SET_NULL,
@@ -174,6 +194,7 @@ class ServicePage(Page):
         ),
         MultiFieldPanel(
             [
+                FieldPanel("template_key"),
                 FieldPanel("service_category"),
                 FieldPanel("pricing_from"),
                 FieldPanel("pricing_to"),
@@ -221,6 +242,7 @@ class ServicePage(Page):
     api_fields = [
         APIField("hero_headline"),
         APIField("hero_sub"),
+        APIField("template_key"),
         APIField("service_category"),
         APIField("pricing_from"),
         APIField("pricing_to"),

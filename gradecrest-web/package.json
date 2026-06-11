@@ -4,18 +4,15 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt generate",
-    "preview": "npx serve .output/public",
+    "build": "nuxt build",
+    "preview": "node .output/server/index.mjs",
     "lint": "eslint ."
   },
   "dependencies": {
-    "@lucide/vue": "^1.17.0",
     "@nuxtjs/sitemap": "^8.1.0",
     "@nuxtjs/tailwindcss": "^6.12.2",
-    "@pinia/nuxt": "^0.9.0",
     "@tailwindcss/typography": "^0.5.20",
-    "nuxt": "3.16.2",
-    "pinia": "^2.3.0"
+    "nuxt": "3.16.2"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

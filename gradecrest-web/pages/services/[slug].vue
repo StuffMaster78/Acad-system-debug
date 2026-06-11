@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { ArrowRight, CheckCircle2 } from '@lucide/vue'
+import ServiceBlocks from '~/components/cms/ServiceBlocks.vue'
 import PricingCalculator from '~/components/ui/PricingCalculator.vue'
+import type { CmsServicePage } from '~/types/cms'
 
 const app    = useAppUrl()
 const route  = useRoute()
 const slug   = route.params.slug as string
 
-// ── Service definitions (CMS-ready: can swap to Wagtail API fetch) ────────────
-const SERVICE_MAP: Record<string, {
+const { data: cmsService } = await useAsyncData(
+  `cms-service-${slug}`,
+  () => fetchCmsServicePage(slug),
+  { default: () => null },
+)
+
+type ServiceView = {
   title: string
   tagline: string
   description: string
@@ -19,7 +26,12 @@ const SERVICE_MAP: Record<string, {
   process: { title: string; desc: string }[]
   faqs: { q: string; a: string }[]
   related: string[]
-}> = {
+  ctaText?: string
+  ctaUrl?: string
+}
+
+// ── Service definitions (CMS-ready: can swap to Wagtail API fetch) ────────────
+const SERVICE_MAP: Record<string, ServiceView> = {
   'essay-writing': {
     title: 'Essay Writing Service',
     tagline: 'Any type. Any subject. Any level.',
@@ -480,40 +492,92 @@ const DEFAULT_SERVICE = {
   related: ['essay-writing', 'research-papers'],
 }
 
-const svc = SERVICE_MAP[slug] ?? DEFAULT_SERVICE
+const fallbackService = SERVICE_MAP[slug] ?? DEFAULT_SERVICE
 
-const titleSlug = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+const processFromBlocks = (page: CmsServicePage) => {
+  const howItWorks = page.body.find(block => block.type === 'how_it_works')
+  const value = howItWorks?.value as { steps?: Array<{ title?: string; description?: string }> } | undefined
+
+  return value?.steps?.length
+    ? value.steps.map(step => ({
+        title: step.title || 'Step',
+        desc: step.description || '',
+      }))
+    : fallbackService.process
+}
+
+const serviceFromCms = (page: CmsServicePage): ServiceView => {
+  const price = Number(page.pricing_from ?? fallbackService.price) || fallbackService.price
+  const faqs = page.faqs.map(faq => ({ q: faq.question, a: faq.answer }))
+  const description = page.search_description
+    || page.meta?.search_description
+    || page.hero?.subheadline
+    || fallbackService.description
+
+  return {
+    title: page.hero?.headline || page.title,
+    tagline: page.hero?.subheadline || description,
+    description,
+    price,
+    metaTitle: page.meta?.seo_title || page.title,
+    metaDesc: page.meta?.search_description || description,
+    intro: page.who_for || page.hero?.subheadline || fallbackService.intro,
+    bullets: page.includes_items.length
+      ? page.includes_items
+      : page.delivers_items.length
+        ? page.delivers_items
+        : fallbackService.bullets,
+    process: processFromBlocks(page),
+    faqs: faqs.length ? faqs : fallbackService.faqs,
+    related: page.related_services.map(service => service.slug),
+    ctaText: page.primary_cta_text || 'Order now',
+    ctaUrl: page.primary_cta_url || app.order,
+  }
+}
+
+const svc = computed(() => cmsService.value ? serviceFromCms(cmsService.value) : fallbackService)
 
 useSeoMeta({
-  title:       svc.metaTitle,
-  description: svc.metaDesc,
-  ogTitle:     svc.metaTitle,
-  ogDescription: svc.metaDesc,
+  title:       () => svc.value.metaTitle,
+  description: () => svc.value.metaDesc,
+  ogTitle:     () => svc.value.metaTitle,
+  ogDescription: () => svc.value.metaDesc,
 })
 
 useSeoBase(`https://gradecrest.com/services/${slug}`)
 useBreadcrumbs([
   { name: 'Home',     url: 'https://gradecrest.com/' },
   { name: 'Services', url: 'https://gradecrest.com/services' },
-  { name: svc.title,  url: `https://gradecrest.com/services/${slug}` },
+  { name: svc.value.title,  url: `https://gradecrest.com/services/${slug}` },
 ])
-useServiceLd({
-  name:        svc.title,
-  description: svc.description,
-  url:         `https://gradecrest.com/services/${slug}`,
-  price:       String(svc.price),
-  ratingValue: 4.9,
-  reviewCount: 1200,
-})
-useFaqLd(svc.faqs)
+
+if (cmsService.value?.schema) {
+  useHead({
+    script: [{
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(cmsService.value.schema),
+    }],
+  })
+} else {
+  useServiceLd({
+    name:        svc.value.title,
+    description: svc.value.description,
+    url:         `https://gradecrest.com/services/${slug}`,
+    price:       String(svc.value.price),
+    ratingValue: 4.9,
+    reviewCount: 1200,
+  })
+}
+
+useFaqLd(svc.value.faqs)
 useHead({
   script: [{
     type: 'application/ld+json',
     innerHTML: JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'HowTo',
-      name: `How to order ${svc.title}`,
-      step: svc.process.map((s, i) => ({
+      name: `How to order ${svc.value.title}`,
+      step: svc.value.process.map((s, i) => ({
         '@type': 'HowToStep',
         position: i + 1,
         name: s.title,
@@ -551,8 +615,8 @@ useHead({
               <span>·</span>
               <span>Zero AI content</span>
             </div>
-            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
-              Order now <ArrowRight class="size-4" />
+            <a :href="svc.ctaUrl || app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+              {{ svc.ctaText || 'Order now' }} <ArrowRight class="size-4" />
             </a>
           </div>
           <div>
@@ -592,6 +656,8 @@ useHead({
       </div>
     </section>
 
+    <ServiceBlocks v-if="cmsService?.body?.length" :blocks="cmsService.body" />
+
     <!-- FAQ -->
     <section class="bg-white py-14">
       <div class="mx-auto max-w-3xl px-4 sm:px-6">
@@ -630,8 +696,8 @@ useHead({
       <div class="relative mx-auto max-w-xl px-4 space-y-5">
         <h2 class="text-2xl font-bold text-white">Ready to get started?</h2>
         <p class="text-slate-300 text-sm">Place your order in under 2 minutes. Grade or money back guaranteed.</p>
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
-          Order {{ svc.title.toLowerCase() }} <ArrowRight class="size-4" />
+        <a :href="svc.ctaUrl || app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+          {{ svc.ctaText || `Order ${svc.title.toLowerCase()}` }} <ArrowRight class="size-4" />
         </a>
       </div>
     </section>

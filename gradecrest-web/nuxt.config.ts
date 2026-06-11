@@ -1,9 +1,21 @@
+import { fileURLToPath } from 'node:url'
+
 export default defineNuxtConfig({
-  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/sitemap'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/sitemap'],
 
   compatibilityDate: '2026-06-10',
 
-  // SSG — every marketing page pre-rendered at build time
+  alias: {
+    '@lucide/vue': fileURLToPath(new URL('./utils/lucide-icons.ts', import.meta.url)),
+  },
+
+  // Hybrid rendering:
+  // - Static marketing pages pre-rendered at build time (fast, cacheable)
+  // - Service pages rendered per-request so Wagtail edits go live immediately
+  routeRules: {
+    '/services/**': { ssr: true },
+  },
+
   nitro: {
     prerender: {
       crawlLinks: true,
@@ -26,21 +38,6 @@ export default defineNuxtConfig({
         '/auth/login',
         '/auth/register',
         '/auth/magic-link',
-        // Core service pages — crawlLinks discovers more from /services
-        '/services/essay-writing',
-        '/services/research-papers',
-        '/services/dissertations',
-        '/services/term-papers',
-        '/services/case-studies',
-        '/services/coursework',
-        '/services/nursing-essays',
-        '/services/admission-essays',
-        '/services/editing-proofreading',
-        '/services/literature-review',
-        '/services/thesis-writing',
-        '/services/data-analysis',
-        '/services/online-class-help',
-        '/services/homework-help',
       ],
     },
   },
@@ -51,6 +48,10 @@ export default defineNuxtConfig({
       appUrl: '',        // NUXT_PUBLIC_APP_URL  — client portal (for login/register links)
       siteUrl: 'https://gradecrest.com',
     },
+  },
+
+  site: {
+    url: 'https://gradecrest.com',
   },
 
   app: {

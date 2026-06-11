@@ -30,8 +30,8 @@ const { data: article, error } = await useAsyncData<ArticleDetail | null>(
   async () => {
     try {
       const res = await $fetch<{ items: ArticleDetail[] }>(
-        `${config.public.apiBase}/api/v1/cms/pages/`,
-        { params: { type: 'blog.ArticlePage', slug, fields: '*' } },
+        `${config.public.apiBase}/api/v2/pages/`,
+        { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' } },
       )
       return res.items?.[0] ?? null
     } catch {

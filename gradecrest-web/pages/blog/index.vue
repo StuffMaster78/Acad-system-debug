@@ -32,8 +32,8 @@ const { data: posts, pending, error } = await useAsyncData<BlogPost[]>(
   async () => {
     try {
       const res = await $fetch<{ items: BlogPost[] }>(
-        `${config.public.apiBase}/api/v1/cms/pages/`,
-        { params: { type: 'blog.ArticlePage', fields: 'title,excerpt,reading_time_minutes,category,thumbnail,author_name', order: '-first_published_at', limit: 24 } },
+        `${config.public.apiBase}/api/v2/pages/`,
+        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,excerpt,reading_time_minutes,category,thumbnail,author_name', order: '-first_published_at', limit: 24 } },
       )
       return res.items ?? []
     } catch {

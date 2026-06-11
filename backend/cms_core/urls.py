@@ -19,7 +19,7 @@ via the api_router in cms_core/api.py::
 """
 
 from django.urls import include, path
-from cms_core.views import ContentHealthView, CreatePageDraftView
+from cms_core.views import ContentHealthView, CreatePageDraftView, PublicContactView
 
 app_name = "cms"
 
@@ -35,4 +35,6 @@ urlpatterns = [
     path("files/", include("files_management.urls")),
     path("authors/", include("cms_authors.urls")),
     path("blog/", include("cms_blog.urls")),
+    path("service-pages/", include("cms_service_pages.urls")),
+    path("contact/", PublicContactView.as_view(), name="public-contact"),
 ]

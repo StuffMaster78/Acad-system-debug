@@ -16,6 +16,8 @@ Usage in frontend:
     GET /api/v2/pages/<id>/?fields=body,primary_author,category,...
 """
 
+from rest_framework.permissions import AllowAny
+
 from wagtail.api.v2.views import PagesAPIViewSet
 from wagtail.api.v2.router import WagtailAPIRouter
 from wagtail.images.api.v2.views import ImagesAPIViewSet
@@ -29,6 +31,10 @@ class TenantFilteredPagesAPIViewSet(PagesAPIViewSet):
         GET /api/v2/pages/?site=<site_id>
         GET /api/v2/pages/?site=<site_id>&type=cms_blog.BlogPostPage
     """
+
+    # Public read — Wagtail pages contain no sensitive data.
+    # Sensitive business data lives in the DRF API, not the page tree.
+    permission_classes = [AllowAny]
 
     # Additional fields that can be used for filtering
     known_query_parameters = PagesAPIViewSet.known_query_parameters.union(

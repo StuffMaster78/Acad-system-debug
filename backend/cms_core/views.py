@@ -458,3 +458,39 @@ class CreatePageDraftView(APIView):
 
         edit_url = f"/cms-admin/pages/{page.id}/edit/"
         return page.id, edit_url
+
+
+class PublicContactView(APIView):
+    """POST /cms-api/contact/
+    Accepts a contact enquiry from any marketing site.
+    No authentication required.
+    Tries email notification; always returns 201 so the form never fails visibly.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        name = (request.data.get("name") or "").strip()
+        email = (request.data.get("email") or "").strip()
+        subject = (request.data.get("subject") or "General enquiry").strip()
+        message = (request.data.get("message") or "").strip()
+
+        if not name or not email or not message:
+            return Response(
+                {"error": "name, email, and message are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        import logging
+        logger = logging.getLogger("cms_core.contact")
+
+        body = f"Name: {name}\nEmail: {email}\nSubject: {subject}\n\n{message}"
+        logger.info("Contact enquiry received from %s <%s>: %s", name, email, subject)
+
+        try:
+            from django.core.mail import mail_managers
+            mail_managers(f"[Contact] {subject}", body, fail_silently=True)
+        except Exception:
+            pass
+
+        return Response({"ok": True}, status=status.HTTP_201_CREATED)

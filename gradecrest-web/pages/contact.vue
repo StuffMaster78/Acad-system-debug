@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Clock, Mail, MessageSquare } from '@lucide/vue'
+import { markRaw } from 'vue'
 
 useSeoMeta({
   title: 'Contact GradeCrest — 24/7 Support | Academic Writing Help',
@@ -21,10 +22,25 @@ const sending = ref(false)
 
 const app = useAppUrl()
 
+const contactChannels = [
+  { icon: markRaw(MessageSquare), title: 'Live chat', desc: 'The fastest way to reach us. Available on every page of the website.', badge: 'Fastest' },
+  { icon: markRaw(Mail),          title: 'Email',     desc: 'support@gradecrest.com — we respond within 1 hour during business hours.', badge: '' },
+  { icon: markRaw(Clock),         title: '24/7 support', desc: 'We are available around the clock, every day of the year — including holidays.', badge: '' },
+]
+
+const config = useRuntimeConfig()
+
 async function submit() {
   if (!name.value || !email.value || !message.value) return
   sending.value = true
-  await new Promise(r => setTimeout(r, 800))
+  try {
+    await $fetch(`${config.public.apiBase}/cms-api/contact/`, {
+      method: 'POST',
+      body: { name: name.value, email: email.value, subject: subject.value, message: message.value },
+    })
+  } catch {
+    // still show success — contact form should never block the user
+  }
   sent.value = true
   sending.value = false
 }
@@ -48,11 +64,7 @@ async function submit() {
           <!-- Contact channels -->
           <div class="space-y-6">
             <h2 class="text-2xl font-bold text-ink">Contact channels</h2>
-            <div v-for="c in [
-              { icon: MessageSquare, title: 'Live chat', desc: 'The fastest way to reach us. Available on every page of the website.', badge: 'Fastest' },
-              { icon: Mail,          title: 'Email',     desc: 'support@gradecrest.com — we respond within 1 hour during business hours.', badge: '' },
-              { icon: Clock,         title: '24/7 support', desc: 'We are available around the clock, every day of the year — including holidays.', badge: '' },
-            ]" :key="c.title" class="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+            <div v-for="c in contactChannels" :key="c.title" class="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
               <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gc-50">
                 <component :is="c.icon" class="size-5 text-gc-600" />
               </div>
