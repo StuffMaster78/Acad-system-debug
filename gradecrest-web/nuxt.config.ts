@@ -13,7 +13,7 @@ export default defineNuxtConfig({
   // - Static marketing pages pre-rendered at build time (fast, cacheable)
   // - Service pages rendered per-request so Wagtail edits go live immediately
   routeRules: {
-    '/services/**': { ssr: true },
+    '/services/**': { isr: 3600 },
   },
 
   nitro: {
