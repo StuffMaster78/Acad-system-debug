@@ -39,6 +39,9 @@ from order_pricing_core.api.views.paper_order_quote_views import (
 from order_pricing_core.api.views.pricing_snapshot_views import (
     PricingSnapshotCreateView,
 )
+from order_pricing_core.api.views.public_estimate_views import (
+    PublicPaperEstimateView,
+)
 from order_pricing_core.api.views.pricing_config_views import (
     AcademicLevelRateDetailView,
     AcademicLevelRateListCreateView,
@@ -68,6 +71,11 @@ from order_pricing_core.api.views.service_catalog_views import (
 )
 
 urlpatterns = [
+    path(
+        "public/estimate/",
+        PublicPaperEstimateView.as_view(),
+        name="public-paper-estimate",
+    ),
     path(
         "quotes/paper/start/",
         PaperOrderQuoteStartView.as_view(),

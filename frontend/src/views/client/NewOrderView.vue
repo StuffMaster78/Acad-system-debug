@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { Calculator, CheckCircle2, Clock, FileText, Loader2, Paperclip, RefreshCw, Send, X } from "@lucide/vue";
 import ConfigSelect from "@/components/forms/ConfigSelect.vue";
 import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector.vue";
@@ -15,6 +15,7 @@ import { useAnalytics } from "@/composables/useAnalytics";
 
 const { purchase, beginCheckout } = useAnalytics();
 
+const route  = useRoute();
 const router = useRouter();
 const orders = useOrderStore();
 const config = useOrderConfigStore();
@@ -222,6 +223,78 @@ function applyConfigDefaults() {
   form.writer_level_id ??= config.collections.writerLevels[0]?.id ?? null;
 }
 
+const DEADLINE_HOURS: Record<string, number> = {
+  '14d': 336, '7d': 168, '5d': 120, '3d': 72, '24h': 24, '12h': 12, '6h': 6,
+};
+
+// Marketing-site keys → ordered candidate names in the portal's config.
+// Exact match wins; falls back to starts-with so "Bachelor's" matches "Bachelor".
+const LEVEL_NAMES: Record<string, string[]> = {
+  high_school:   ['High School'],
+  undergrad_1_2: ['College'],
+  undergrad_3_4: ["Bachelor's", 'Undergraduate'],
+  masters:       ["Master's"],
+  phd:           ['PhD', 'Doctorate'],
+};
+const TYPE_NAMES: Record<string, string[]> = {
+  // Keys from the marketing calculator (usePricing.ts PAPER_TYPES)
+  essay:        ['Essay'],
+  research:     ['Research Paper'],
+  dissertation: ['Dissertation', 'Thesis'],
+  coursework:   ['Coursework'],
+  case_study:   ['Case Study'],
+  term_paper:   ['Term Paper'],
+  admission:    ['Admission Essay'],
+  editing:      ['Editing'],
+  // Service page slugs passed via ?type=<slug>
+  'essay-writing':        ['Essay'],
+  'research-papers':      ['Research Paper'],
+  'dissertations':        ['Dissertation', 'Thesis'],
+  'thesis-writing':       ['Thesis', 'Dissertation'],
+  'term-papers':          ['Term Paper'],
+  'case-studies':         ['Case Study'],
+  'literature-review':    ['Research Paper'],
+  'data-analysis':        ['Research Paper'],
+  'editing-proofreading': ['Editing'],
+  'homework-help':        ['Coursework'],
+  'online-class-help':    ['Coursework'],
+  'capstone-projects':    ['Capstone Project', 'Research Paper'],
+};
+
+function matchOption(items: typeof config.collections.academicLevels, candidates: string[]): number | null {
+  for (const name of candidates) {
+    const q = name.toLowerCase();
+    const item = items.find(i => i.name.toLowerCase() === q)
+               ?? items.find(i => i.name.toLowerCase().startsWith(q));
+    if (item) return item.id;
+  }
+  return null;
+}
+
+function applyUrlParams() {
+  const q = route.query;
+
+  const pages = parseInt(String(q.pages ?? ''), 10);
+  if (!isNaN(pages) && pages >= 1 && pages <= 100) form.pages = pages;
+
+  const levelKey = String(q.level ?? '');
+  if (levelKey && LEVEL_NAMES[levelKey]) {
+    const id = matchOption(config.collections.academicLevels, LEVEL_NAMES[levelKey]);
+    if (id !== null) form.academic_level_id = id;
+  }
+
+  const typeKey = String(q.type ?? '');
+  if (typeKey && TYPE_NAMES[typeKey]) {
+    const id = matchOption(config.collections.paperTypes, TYPE_NAMES[typeKey]);
+    if (id !== null) form.paper_type_id = id;
+  }
+
+  const hours = DEADLINE_HOURS[String(q.deadline ?? '')];
+  if (hours) {
+    form.client_deadline = new Date(Date.now() + hours * 3600 * 1000).toISOString().slice(0, 16);
+  }
+}
+
 const selectedBrief = computed(() => [
   {
     label: "Paper type",
@@ -273,6 +346,7 @@ async function loadConfig() {
   try {
     await config.fetchAll();
     applyConfigDefaults();
+    applyUrlParams();
   } catch {
     // error surfaced via config.error
   }

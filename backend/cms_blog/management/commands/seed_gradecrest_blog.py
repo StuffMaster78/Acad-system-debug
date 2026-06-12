@@ -42,6 +42,7 @@ POSTS = [
         "seo_title": "How to Write an Argumentative Essay | Step-by-Step Guide | GradeCrest",
         "search_description": "Learn how to write a perfect argumentative essay with a clear thesis, strong evidence, and persuasive structure. Includes examples and a step-by-step guide.",
         "category_slug": "essay-writing",
+        "tags": ["argumentative essay", "essay writing", "thesis statement", "academic writing"],
         "excerpt": "An argumentative essay is one of the most common types of academic writing. This guide walks you through structure, evidence, counterarguments, and the exact formula top-scoring essays follow.",
         "reading_time": 8,
         "body": [
@@ -85,6 +86,7 @@ POSTS = [
         "seo_title": "How to Write a Literature Review | Complete Guide | GradeCrest",
         "search_description": "A complete guide to writing a literature review: how to search for sources, synthesise findings, structure your review, and avoid the most common mistakes.",
         "category_slug": "research-dissertations",
+        "tags": ["literature review", "dissertation", "academic research", "sources"],
         "excerpt": "A literature review is not a summary of sources — it is a critical synthesis of the field. This guide covers the structure, source selection, and synthesis techniques that distinguish good literature reviews from great ones.",
         "reading_time": 10,
         "body": [
@@ -125,6 +127,7 @@ POSTS = [
         "seo_title": "Dissertation Methodology Chapter — Complete Writing Guide | GradeCrest",
         "search_description": "How to write a dissertation methodology chapter: research design, data collection, analysis methods, ethical considerations, and what your supervisor is actually looking for.",
         "category_slug": "research-dissertations",
+        "tags": ["dissertation", "methodology", "research design", "data analysis"],
         "excerpt": "The methodology chapter is where your dissertation lives or dies. This guide covers research design, data collection methods, analysis approaches, and the critical detail most students miss.",
         "reading_time": 12,
         "body": [
@@ -161,6 +164,7 @@ POSTS = [
         "seo_title": "How to Write a Nursing Care Plan | NANDA Format Guide | GradeCrest",
         "search_description": "Step-by-step guide to writing a nursing care plan using NANDA diagnoses, NOC outcomes, and NIC interventions. Includes examples and the exact format nursing schools require.",
         "category_slug": "nursing-healthcare",
+        "tags": ["nursing care plan", "NANDA", "nursing essay", "healthcare"],
         "excerpt": "A nursing care plan is a formal document that maps patient assessment to nursing diagnoses, outcomes, and interventions. This guide walks through the NANDA format with real examples.",
         "reading_time": 9,
         "body": [
@@ -195,6 +199,7 @@ POSTS = [
         "seo_title": "APA 7th Edition Citation Guide — Complete Reference Examples | GradeCrest",
         "search_description": "Complete APA 7th edition guide with in-text citation formats, reference list examples for journals, books, websites, and the most common citation mistakes to avoid.",
         "category_slug": "academic-skills",
+        "tags": ["APA 7th edition", "citations", "referencing", "academic writing"],
         "excerpt": "APA 7th edition is the most widely used citation style in psychology, education, nursing, and social sciences. This guide covers every format you need with real examples.",
         "reading_time": 7,
         "body": [
@@ -310,6 +315,7 @@ class Command(BaseCommand):
                 page = BlogPostPage.objects.child_of(blog_index).get(slug=slug)
                 self._apply_fields(page, post_data, author, category)
                 page.save_revision().publish()
+                self._apply_tags(page, post_data, site)
                 self.stdout.write(self.style.WARNING(f"  UPDATE post: {slug}"))
                 updated += 1
             else:
@@ -322,6 +328,7 @@ class Command(BaseCommand):
                 self._apply_fields(page, post_data, author, category)
                 blog_index.add_child(instance=page)
                 page.save_revision().publish()
+                self._apply_tags(page, post_data, site)
                 self.stdout.write(self.style.SUCCESS(f"  CREATE post: {slug}"))
                 created_count += 1
 
@@ -339,6 +346,23 @@ class Command(BaseCommand):
         page.category = category
         page.citation_mode = "sources_list"
         page.body = [self._normalize_block(b) for b in data.get("body", [])]
+
+        # Tags are applied after save (M2M requires a saved instance)
+        # stored on data for the post-save step in handle()
+
+    @staticmethod
+    def _apply_tags(page, data, site):
+        from cms_core.models import BlogTag
+        tag_names = data.get("tags", [])
+        if not tag_names:
+            return
+        page.tags.clear()
+        for name in tag_names:
+            from django.utils.text import slugify
+            tag, _ = BlogTag.objects.get_or_create(
+                site=site, slug=slugify(name), defaults={"name": name}
+            )
+            page.tags.add(tag)
 
     @staticmethod
     def _normalize_block(block: dict) -> dict:

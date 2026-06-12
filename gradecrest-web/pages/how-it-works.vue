@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ArrowRight, CheckCircle2, Clock, DollarSign, Lock, MessageSquare, RefreshCw, Shield } from '@lucide/vue'
+import { markRaw } from 'vue'
 
 const app = useAppUrl()
 
@@ -34,25 +35,25 @@ useHead({
 
 const steps = [
   {
-    n: '01', icon: MessageSquare, color: 'bg-gc-50 text-gc-600',
+    n: '01', icon: markRaw(MessageSquare), color: 'bg-gc-50 text-gc-600',
     title: 'Fill in your brief',
     desc: 'Tell us what you need. Subject, paper type, academic level, deadline, word count, and any specific instructions, reading materials, or rubric files.',
     details: ['Takes less than 2 minutes', 'No account required to get a quote', 'Attach files, rubrics, and reading lists', 'Describe grade expectations in plain language'],
   },
   {
-    n: '02', icon: Lock, color: 'bg-emerald-50 text-emerald-600',
+    n: '02', icon: markRaw(Lock), color: 'bg-emerald-50 text-emerald-600',
     title: 'Secure checkout',
     desc: 'Pay securely via card or PayPal. Your payment is held in escrow — it is only released to your writer after you approve the completed work.',
     details: ['Visa, Mastercard, American Express, PayPal', 'Payment held in escrow until you approve', '256-bit SSL encryption on all transactions', 'No charge if we cannot fulfil your order'],
   },
   {
-    n: '03', icon: MessageSquare, color: 'bg-amber-50 text-amber-600',
+    n: '03', icon: markRaw(MessageSquare), color: 'bg-amber-50 text-amber-600',
     title: 'Communicate with your writer',
     desc: 'A verified subject expert is assigned and begins work. Message them directly, share additional files, and check progress at any point in the process.',
     details: ['Direct writer messaging included free', 'Share additional instructions at any time', 'Request progress updates or early drafts', 'Your writer stays with your order through revisions'],
   },
   {
-    n: '04', icon: RefreshCw, color: 'bg-violet-50 text-violet-600',
+    n: '04', icon: markRaw(RefreshCw), color: 'bg-violet-50 text-violet-600',
     title: 'Review and download',
     desc: 'Receive your paper alongside a plagiarism report. Read it carefully and request any changes — revisions are free and unlimited within the revision window.',
     details: ['Plagiarism report included on delivery', 'AI-detection certificate on request', 'Unlimited free revisions within the window', 'Full refund if requirements are not met'],
@@ -60,10 +61,10 @@ const steps = [
 ]
 
 const guarantees = [
-  { icon: Shield,    title: 'Your payment is protected', desc: 'Funds are held in escrow until you approve the work. You are never charged for work that is not delivered.' },
-  { icon: Lock,      title: 'Complete confidentiality',  desc: 'Your identity, order details, and personal data are never shared with any third party under any circumstances.' },
-  { icon: DollarSign,title: 'Grade or money back',       desc: 'If the work does not meet your stated requirements, we rewrite it free of charge or issue a full refund.' },
-  { icon: Clock,     title: 'On-time delivery — always', desc: 'If your paper is delivered late, you are entitled to a partial or full refund depending on the delay.' },
+  { icon: markRaw(Shield),    title: 'Your payment is protected', desc: 'Funds are held in escrow until you approve the work. You are never charged for work that is not delivered.' },
+  { icon: markRaw(Lock),      title: 'Complete confidentiality',  desc: 'Your identity, order details, and personal data are never shared with any third party under any circumstances.' },
+  { icon: markRaw(DollarSign),title: 'Grade or money back',       desc: 'If the work does not meet your stated requirements, we rewrite it free of charge or issue a full refund.' },
+  { icon: markRaw(Clock),     title: 'On-time delivery — always', desc: 'If your paper is delivered late, you are entitled to a partial or full refund depending on the delay.' },
 ]
 </script>
 

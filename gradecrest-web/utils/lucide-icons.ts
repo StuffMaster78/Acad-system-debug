@@ -54,6 +54,10 @@ export const CheckCircle2 = createIcon('CheckCircle2', [
   ['path', { d: 'm9 12 2 2 4-4' }],
 ])
 
+export const Check = createIcon('Check', [
+  ['path', { d: 'M20 6 9 17l-5-5' }],
+])
+
 export const Clock = createIcon('Clock', [
   ['circle', { cx: 12, cy: 12, r: 10 }],
   ['path', { d: 'M12 6v6l4 2' }],
@@ -99,6 +103,12 @@ export const Plus = createIcon('Plus', [
   ['path', { d: 'M12 5v14' }],
 ])
 
+export const Printer = createIcon('Printer', [
+  ['path', { d: 'M6 9V2h12v7' }],
+  ['path', { d: 'M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2' }],
+  ['path', { d: 'M6 14h12v8H6z' }],
+])
+
 export const RefreshCw = createIcon('RefreshCw', [
   ['path', { d: 'M3 12a9 9 0 0 1 15.3-6.4L21 8' }],
   ['path', { d: 'M21 3v5h-5' }],
@@ -117,6 +127,11 @@ export const Shield = createIcon('Shield', [
 
 export const Star = createIcon('Star', [
   ['path', { d: 'm12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.3L5.8 21 7 14.2 2 9.3l6.9-1z' }],
+])
+
+export const Tag = createIcon('Tag', [
+  ['path', { d: 'M20.6 13.1 13 20.7a2 2 0 0 1-2.8 0L3 13.4V3h10.4l7.2 7.2a2 2 0 0 1 0 2.9z' }],
+  ['path', { d: 'M7.5 7.5h.01' }],
 ])
 
 export const X = createIcon('X', [

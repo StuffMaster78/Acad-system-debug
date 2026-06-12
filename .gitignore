@@ -131,6 +131,8 @@ frontend/.vite/
 frontend/coverage/
 frontend/.vitest/
 frontend/node_modules/.vite/
+gradecrest-web/.nuxt/
+**/.output/
 .npm
 .yarn-integrity
 *.tgz

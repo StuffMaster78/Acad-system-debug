@@ -299,7 +299,11 @@ class BlogPostPage(Page):
         APIField("canonical_published_at"),
         # Frontend-friendly aliases used by gradecrest-web and other marketing sites
         APIField("author_name"),
+        APIField("author_credentials"),
+        APIField("author_bio"),
         APIField("reading_time_minutes"),
+        APIField("word_count"),
+        APIField("tag_names"),
         APIField("thumbnail", serializer=_ThumbnailSerializer()),
         APIField("category_name", serializer=_CategoryNameSerializer()),
     ]
@@ -308,6 +312,16 @@ class BlogPostPage(Page):
     def author_name(self) -> str:
         author = getattr(self, "primary_author", None)
         return author.name if author else ""
+
+    @property
+    def author_credentials(self) -> str:
+        author = getattr(self, "primary_author", None)
+        return getattr(author, "credentials", "") or ""
+
+    @property
+    def author_bio(self) -> str:
+        author = getattr(self, "primary_author", None)
+        return getattr(author, "bio", "") or ""
 
     @property
     def reading_time_minutes(self) -> int:
@@ -321,6 +335,10 @@ class BlogPostPage(Page):
     def category_name(self) -> str:
         cat = getattr(self, "category", None)
         return cat.name if cat else ""
+
+    @property
+    def tag_names(self) -> list[str]:
+        return [t.name for t in self.tags.all()]
 
     class Meta:
         verbose_name = "Blog Post"

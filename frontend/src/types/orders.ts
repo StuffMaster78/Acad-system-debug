@@ -161,6 +161,11 @@ export interface CreateOrderPayload {
   allow_unpaid_access?: boolean;
   pricing_snapshot_id?: number | null;
   pricing_snapshot_ids?: number[];
+  service_family?: string;
+  service_code?: string;
+  quantity?: number;
+  slides?: number;
+  entered_code?: string;
   payment_provider?: string;
   payment_method_code?: string;
 }

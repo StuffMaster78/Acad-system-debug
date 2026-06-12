@@ -383,10 +383,12 @@ export const useOrderStore = defineStore("orders", () => {
       ]);
       latestQuote.value = {
         session_id: composite.data.session_id,
+        status: "completed",
+        current_step: 0,
         calculated_price: composite.data.total,
         currency: composite.data.currency,
-        total: composite.data.total,
-      } as PaperQuoteUpdateResponse;
+        lines: [],
+      };
       return composite.data;
     } catch (caught) {
       error.value = "Unable to calculate pricing.";

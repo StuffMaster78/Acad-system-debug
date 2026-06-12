@@ -171,6 +171,15 @@ class Author(index.Indexed, models.Model):
         index.FilterField("role"),
     ]
 
+    # Expose key fields via Wagtail API so blog/service pages can resolve
+    # primary_author and reviewer without a second request.
+    api_fields = [
+        APIField("name"),
+        APIField("slug"),
+        APIField("credentials"),
+        APIField("bio"),
+    ]
+
     class Meta:
         unique_together = ["site", "slug"]
         ordering = ["display_order", "name"]

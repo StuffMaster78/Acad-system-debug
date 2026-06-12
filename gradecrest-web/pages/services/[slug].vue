@@ -568,6 +568,14 @@ const serviceFromCms = (page: CmsServicePage): ServiceView => {
 
 const svc = computed(() => cmsService.value ? serviceFromCms(cmsService.value) : fallbackService)
 
+// When the CTA points to the bare order URL, append ?type=<slug> so the portal
+// pre-selects the matching paper type.
+const ctaOrderUrl = computed(() => {
+  const url = svc.value.ctaUrl || app.order
+  if (url === app.order) return `${app.order}?type=${encodeURIComponent(slug)}`
+  return url
+})
+
 useSeoMeta({
   title:       () => svc.value.metaTitle,
   description: () => svc.value.metaDesc,
@@ -646,7 +654,7 @@ useHead({
               <span>·</span>
               <span>Zero AI content</span>
             </div>
-            <a :href="svc.ctaUrl || app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+            <a :href="ctaOrderUrl" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
               {{ svc.ctaText || 'Order now' }} <ArrowRight class="size-4" />
             </a>
           </div>
@@ -727,7 +735,7 @@ useHead({
       <div class="relative mx-auto max-w-xl px-4 space-y-5">
         <h2 class="text-2xl font-bold text-white">Ready to get started?</h2>
         <p class="text-slate-300 text-sm">Place your order in under 2 minutes. Grade or money back guaranteed.</p>
-        <a :href="svc.ctaUrl || app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+        <a :href="ctaOrderUrl" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
           {{ svc.ctaText || `Order ${svc.title.toLowerCase()}` }} <ArrowRight class="size-4" />
         </a>
       </div>

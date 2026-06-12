@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ArrowRight } from '@lucide/vue'
+import type { CmsServicePageListItem } from '~/types/cms'
 
 useSeoMeta({
   title: 'Academic Writing Services — Essays, Research Papers, Dissertations | GradeCrest',
@@ -14,6 +15,24 @@ useBreadcrumbs([
 ])
 
 const app = useAppUrl()
+
+const { data: cmsServices } = await useAsyncData(
+  'cms-service-pages',
+  () => fetchCmsServicePages(),
+  { default: () => [] },
+)
+
+type ServiceCard = {
+  slug: string
+  title: string
+  price: number
+  desc: string
+}
+
+type ServiceCategory = {
+  title: string
+  services: ServiceCard[]
+}
 
 const categories = [
   {
@@ -51,7 +70,35 @@ const categories = [
       { slug: 'editing-proofreading',  title: 'Editing & Proofreading',  price: 8,  desc: 'Grammar, clarity, structure, flow, and formatting corrected by professional editors.' },
     ],
   },
-]
+] satisfies ServiceCategory[]
+
+const servicePrice = (service: CmsServicePageListItem) => {
+  const parsed = Number(service.pricing_from)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 14
+}
+
+const cmsCategories = computed<ServiceCategory[]>(() => {
+  const grouped = new Map<string, ServiceCard[]>()
+
+  for (const service of cmsServices.value) {
+    const category = service.category?.name || 'Services'
+    const current = grouped.get(category) ?? []
+    current.push({
+      slug: service.slug,
+      title: service.title,
+      price: servicePrice(service),
+      desc: service.search_description || 'Custom academic support from verified GradeCrest experts.',
+    })
+    grouped.set(category, current)
+  }
+
+  return Array.from(grouped.entries()).map(([title, services]) => ({
+    title,
+    services,
+  }))
+})
+
+const visibleCategories = computed(() => cmsCategories.value.length ? cmsCategories.value : categories)
 </script>
 
 <template>
@@ -72,7 +119,7 @@ const categories = [
     <!-- Categories -->
     <section class="bg-white py-16">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-16">
-        <div v-for="cat in categories" :key="cat.title">
+        <div v-for="cat in visibleCategories" :key="cat.title">
           <h2 class="text-xl font-bold text-ink mb-6 pb-3 border-b border-slate-200">{{ cat.title }}</h2>
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <NuxtLink

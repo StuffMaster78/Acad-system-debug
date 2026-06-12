@@ -4,6 +4,7 @@ import {
   CheckCircle2, ChevronDown, Clock, GraduationCap,
   Star, Upload, Users, X,
 } from '@lucide/vue'
+import { markRaw } from 'vue'
 
 const app = useAppUrl()
 
@@ -89,27 +90,27 @@ const heroStats = [
 ]
 
 const perks = [
-  { icon: Banknote,      title: 'Competitive rates',     desc: 'Tiered per-page rates that increase with your level and order performance.' },
-  { icon: Clock,         title: 'Fully flexible hours',  desc: 'Accept only the orders you want. Work mornings, evenings, weekends — your call.' },
-  { icon: BookOpen,      title: '100+ subject areas',    desc: 'STEM, humanities, business, nursing, law — steady order flow across every discipline.' },
-  { icon: Users,         title: 'Direct client chat',    desc: 'Communicate with clients directly through the platform. No third-party go-betweens.' },
-  { icon: Banknote,      title: 'Reliable payouts',      desc: 'Weekly or bi-weekly withdrawals. Multiple payout methods, no surprise deductions.' },
-  { icon: Star,          title: 'Grow your tier',        desc: 'Standard → Advanced → Expert. Higher tier means better rates and priority matching.' },
+  { icon: markRaw(Banknote), title: 'Competitive rates',     desc: 'Tiered per-page rates that increase with your level and order performance.' },
+  { icon: markRaw(Clock),    title: 'Fully flexible hours',  desc: 'Accept only the orders you want. Work mornings, evenings, weekends — your call.' },
+  { icon: markRaw(BookOpen), title: '100+ subject areas',    desc: 'STEM, humanities, business, nursing, law — steady order flow across every discipline.' },
+  { icon: markRaw(Users),    title: 'Direct client chat',    desc: 'Communicate with clients directly through the platform. No third-party go-betweens.' },
+  { icon: markRaw(Banknote), title: 'Reliable payouts',      desc: 'Weekly or bi-weekly withdrawals. Multiple payout methods, no surprise deductions.' },
+  { icon: markRaw(Star),     title: 'Grow your tier',        desc: 'Standard → Advanced → Expert. Higher tier means better rates and priority matching.' },
 ]
 
 const requirements = [
   {
-    icon: GraduationCap,
+    icon: markRaw(GraduationCap),
     title: 'Postgraduate degree',
     desc: "Master's or PhD (or equivalent professional qualification). You must be able to upload your degree certificate during the onboarding process.",
   },
   {
-    icon: BadgeCheck,
+    icon: markRaw(BadgeCheck),
     title: 'Demonstrated writing ability',
     desc: 'We review a writing sample and administer a short skills assessment. Strong grammar, clear argumentation, and correct citation style are essential.',
   },
   {
-    icon: Briefcase,
+    icon: markRaw(Briefcase),
     title: 'Professionalism & reliability',
     desc: 'We look for writers who meet deadlines, communicate proactively, and maintain the quality standards that keep clients returning.',
   },
