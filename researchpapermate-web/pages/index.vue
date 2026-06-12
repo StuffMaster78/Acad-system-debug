@@ -1,74 +1,12 @@
 <script setup lang="ts">
-const portal = usePortalStore()
-const { getAll: getAllServices } = useServices()
-const serviceStrip = getAllServices()
-
-const pillars = [
-  {
-    icon: 'file-text',
-    title: 'Research & Essays',
-    desc: 'Research papers, essays, dissertations, case studies, literature reviews — written from scratch by subject-specialist writers with the right credentials for your level.',
-    href: '/services',
-  },
-  {
-    icon: 'bar-chart-3',
-    title: 'Data & Analysis',
-    desc: 'SPSS, R, Python, or Excel data analysis with full written interpretation, methodology support, and charts — for dissertations, research papers, or standalone assignments.',
-    href: '/services/data-analysis',
-  },
-  {
-    icon: 'graduation-cap',
-    title: 'Coursework & Support',
-    desc: 'Regular assignments, online class help, presentations, and lab reports — handled by the same writer throughout so your work stays consistent and on time.',
-    href: '/class-support',
-  },
-]
-
-const stats = [
-  { value: '14,700+', label: 'Papers delivered' },
-  { value: '200+',    label: 'Expert writers' },
-  { value: '4.8/5',   label: 'Average rating' },
-  { value: '98%',     label: 'On-time delivery' },
-]
-
-const services = [
-  { icon: 'file-text',      title: 'Research Papers', href: '/services/research-papers', desc: 'Original, citation-rich papers across STEM, business, humanities, and social sciences.' },
-  { icon: 'pen-line',       title: 'Essays',          href: '/services/essays',          desc: 'Argumentative, analytical, descriptive — any format, any level.' },
-  { icon: 'graduation-cap', title: 'Dissertations',   href: '/services/dissertations',   desc: 'Full thesis support: proposal, chapters, methodology, data analysis.' },
-  { icon: 'briefcase',      title: 'Case Studies',    href: '/services/case-studies',    desc: 'In-depth analysis with structured arguments and evidence.' },
-  { icon: 'bar-chart-3',    title: 'Data Analysis',   href: '/services/data-analysis',   desc: 'SPSS, R, Python — with full write-up and interpretation.' },
-  { icon: 'flask-conical',  title: 'Lab Reports',     href: '/services/lab-reports',     desc: 'Clear, structured lab write-ups with correct methodology sections.' },
-]
-
-const steps = [
-  { title: 'Fill in your brief',           desc: 'Complete the order form with your topic, deadline, level, and any instructions or sample files.' },
-  { title: 'Secure checkout',              desc: 'Pay securely. Your payment is held in escrow until you approve the completed work.' },
-  { title: 'Communicate with your writer', desc: 'Message your assigned expert directly, share files, and track progress in real time.' },
-  { title: 'Download & review',            desc: "Receive your paper and request free revisions until you're fully satisfied." },
-]
-
-const guarantees = [
-  { icon: 'trophy',       title: 'Grade or money back',       desc: "If the work doesn't meet your stated grade target, we'll refund or rewrite — no questions asked." },
-  { icon: 'check-circle', title: '100% original papers',      desc: 'Every paper is written from scratch and verified against plagiarism databases before delivery.' },
-  { icon: 'bot',          title: 'Zero AI content',           desc: 'Every paper is written by a human expert. We provide a free AI-detection report on request.' },
-  { icon: 'lock',         title: 'Your privacy protected',    desc: 'We never share your identity, order details, or personal data with any third party.' },
-  { icon: 'refresh-cw',  title: 'Unlimited free revisions',  desc: 'Within the revision window, request as many changes as you need at zero extra cost.' },
-  { icon: 'user-check',  title: 'Dedicated assigned writer', desc: 'The same expert handles your revisions so context and tone stay consistent throughout.' },
-]
-
-const subjects = [
-  'Biology', 'Chemistry', 'Physics', 'Engineering', 'Statistics', 'Nursing',
-  'Business', 'Finance', 'Marketing', 'Law', 'Psychology', 'History',
-  'Literature', 'Philosophy', 'Public Health', 'Accounting', 'Sociology', 'Economics',
-]
+const app = useAppUrl()
 
 useSeoMeta({
-  title: 'Research Paper Writing Service from $15/Page',
-  description: 'Get research papers, essays, and assignments written by human experts. From $15/page. Grade or money back guarantee. 14,700+ papers delivered. 4.8/5 rated.',
-  ogTitle: 'ResearchPaperMate — Research Paper Writing Service from $15/Page',
-  ogDescription: 'Human-written research papers, essays, and assignments across 100+ subjects. Grade or money back. Zero AI content.',
+  title: 'Research Paper Writing Service from $15/Page | ResearchPaperMate',
+  description: 'Research papers written by verified PhD and Master\'s specialists — not AI. From $15/page. Grade or money back. 14,700+ papers delivered, 4.8/5 rated.',
+  ogTitle: 'ResearchPaperMate — Research Papers by Real Researchers',
+  ogDescription: 'Human-written research papers, essays and dissertations across 100+ subjects. Grade or money back. Zero AI content.',
 })
-
 useHead({
   link: [{ rel: 'canonical', href: 'https://researchpapermate.com/' }],
   script: [{
@@ -77,249 +15,377 @@ useHead({
       '@context': 'https://schema.org',
       '@type': 'ProfessionalService',
       name: 'ResearchPaperMate',
-      description: 'Academic writing service providing research papers, essays, and assignments.',
+      description: 'Academic writing service providing research papers, essays, and assignments by verified human experts.',
       url: 'https://researchpapermate.com',
       priceRange: '$15–$50 per page',
       aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '14700' },
     }),
   }],
 })
+
+const stats = [
+  { value: '14,700+', label: 'Papers delivered',   note: 'Across 100+ subjects' },
+  { value: '200+',    label: 'Expert researchers',  note: "Master's & PhD level" },
+  { value: '4.8/5',   label: 'Average rating',      note: 'Based on 8,200+ reviews' },
+  { value: '98%',     label: 'On-time delivery',    note: 'Delivered by deadline' },
+]
+
+const differences = [
+  {
+    headline: 'Written by a researcher, not generated by one.',
+    body: 'Every paper is handwritten by a verified specialist — a real human who has read the literature, worked in the field, and understands what your marker is looking for.',
+    icon: '👩‍🔬',
+  },
+  {
+    headline: 'Your exact subject, not a generalist.',
+    body: 'We match you with a writer who holds relevant qualifications in your specific discipline. A nursing paper goes to a nursing specialist. A finance dissertation to a finance PhD.',
+    icon: '🎯',
+  },
+  {
+    headline: 'Grade guaranteed, or your money back.',
+    body: "We stand behind the quality of every paper. If the work doesn't meet your stated grade target, we rewrite it free or issue a full refund. No conditions, no runaround.",
+    icon: '🏆',
+  },
+]
+
+const services = [
+  { title: 'Research Papers',  href: '/services/research-papers',   badge: 'Most popular', desc: 'Original, citation-rich papers across STEM, business, humanities and social sciences.' },
+  { title: 'Essays',           href: '/services/essays',            badge: null,           desc: 'Argumentative, analytical, descriptive — any format, any level, any subject.' },
+  { title: 'Dissertations',    href: '/services/dissertations',     badge: 'Full support', desc: 'Proposal, literature review, methodology, data analysis, discussion — complete chapters.' },
+  { title: 'Case Studies',     href: '/services/case-studies',      badge: null,           desc: 'In-depth analysis with structured arguments, evidence and clear recommendations.' },
+  { title: 'Data Analysis',    href: '/services/data-analysis',     badge: null,           desc: 'SPSS, R, Python or Excel — full written interpretation and methodology.' },
+  { title: 'Lab Reports',      href: '/services/lab-reports',       badge: null,           desc: 'Structured write-ups with correct methodology, results and discussion sections.' },
+]
+
+const steps = [
+  { n: '01', title: 'Fill in your brief',          desc: 'Paper type, subject, level, deadline, word count. Attach files, rubrics, or reading lists.' },
+  { n: '02', title: 'Your payment is held safely', desc: 'Pay securely. Your money sits in escrow — only released to your writer after you approve.' },
+  { n: '03', title: 'Your writer gets to work',    desc: 'Message them directly, share extra files, request progress updates anytime.' },
+  { n: '04', title: 'Download + request revisions',desc: 'Receive your paper. Unlimited free revisions within the revision window.' },
+]
+
+const guarantees = [
+  { emoji: '🎓', title: 'Grade or full refund',       desc: "We set a grade target. If we miss it, we rewrite for free or refund completely — no conditions." },
+  { emoji: '✍️', title: 'Zero AI content',            desc: 'Every paper is handwritten. Request a free AI-detection report if you need proof.' },
+  { emoji: '🔒', title: '100% confidential',          desc: 'Your identity and order details are never shared with any third party — ever.' },
+  { emoji: '📋', title: 'Plagiarism report included', desc: 'Every paper is checked against academic databases. Report included free of charge.' },
+  { emoji: '🔁', title: 'Unlimited free revisions',   desc: 'Within the revision window, request as many changes as needed at zero extra cost.' },
+  { emoji: '💬', title: 'Direct writer access',       desc: 'Message your assigned expert directly — no tickets, no queues, no third party.' },
+]
+
+const testimonials = [
+  {
+    grade: 'A',
+    subject: 'Business Strategy (MBA)',
+    quote: "My writer clearly understood Porter's Five Forces and BCG matrix at a graduate level. The analysis was sharp, well-sourced, and exactly what the brief asked for. Got an A.",
+    name: 'Marcus L.',
+    university: 'University of Edinburgh',
+  },
+  {
+    grade: 'A+',
+    subject: 'Nursing Literature Review',
+    quote: "I needed a systematic literature review in APA 7 for my nursing dissertation. The writer found sources I hadn't come across and synthesised them perfectly. Above and beyond.",
+    name: 'Priya T.',
+    university: 'King\'s College London',
+  },
+  {
+    grade: 'B+',
+    subject: 'Quantitative Data Analysis (SPSS)',
+    quote: "Stats is not my thing. The writer ran the SPSS analysis, wrote it up in the right format, and explained what each result meant so I actually understood it. Lifesaver.",
+    name: 'Daniel O.',
+    university: 'Northumbria University',
+  },
+]
+
+const subjects = [
+  'Nursing', 'Business', 'Psychology', 'Biology', 'Chemistry', 'History',
+  'Law', 'Finance', 'Sociology', 'Literature', 'Statistics', 'Engineering',
+  'Public Health', 'Marketing', 'Economics', 'Philosophy', 'Education', 'Politics',
+]
 </script>
 
 <template>
   <!-- ─── Hero ─────────────────────────────────────────────────────────── -->
-  <section class="relative overflow-hidden bg-gradient-to-br from-brand-900 via-brand-700 to-brand-600 py-20 sm:py-28">
-    <div class="section relative z-10">
-      <div class="grid items-center gap-12 lg:grid-cols-2">
+  <section class="relative overflow-hidden bg-brand-900 py-20 sm:py-28">
+    <!-- Subtle grid overlay -->
+    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+    <!-- Warm ambient glow -->
+    <div class="pointer-events-none absolute -top-40 right-0 h-[500px] w-[500px] rounded-full bg-brand-600 opacity-20 blur-[100px]" />
+    <div class="pointer-events-none absolute bottom-0 -left-20 h-64 w-64 rounded-full bg-blue-500 opacity-10 blur-3xl" />
 
-        <!-- Left: copy -->
-        <div>
-          <!-- Urgency pill -->
-          <div class="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm text-white ring-1 ring-white/20">
-            <span class="inline-block h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
-            <span><strong>52 writers</strong> online right now · From <strong>$15/page</strong></span>
+    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="grid items-center gap-14 lg:grid-cols-2">
+
+        <!-- Left: positioning + CTAs -->
+        <div class="max-w-xl">
+          <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-brand-200 backdrop-blur-sm">
+            <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+            <span>47 researchers available right now</span>
           </div>
 
-          <h1 class="font-serif text-4xl font-bold leading-tight text-white sm:text-5xl">
-            {{ portal.heroHeadline }}
+          <h1 class="font-serif text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-[3.25rem]">
+            Research papers written by<br class="hidden sm:block" />
+            <span class="relative">
+              <span class="relative z-10 text-brand-300">actual researchers.</span>
+            </span>
           </h1>
-          <p class="mt-5 text-lg text-brand-100 leading-relaxed">
-            {{ portal.heroSub }}
+
+          <p class="mt-6 text-lg leading-relaxed text-brand-200">
+            Not AI. Not a bot. A verified PhD or Master's specialist who has read the literature, understands your subject, and knows what your marker expects.
           </p>
 
-          <div class="mt-8 flex flex-wrap gap-4">
-            <NuxtLink
-              to="/order"
-              class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-8 py-3.5 text-base shadow-lg"
-            >
-              Place your order
-            </NuxtLink>
-            <NuxtLink
-              href="/pricing"
-              class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-3.5 text-base"
-            >
-              See pricing
-            </NuxtLink>
+          <div class="mt-3 flex items-center gap-3 text-sm text-brand-300">
+            <span class="flex items-center gap-1.5"><span class="text-amber-400">✦</span> From $15/page</span>
+            <span class="text-brand-600">·</span>
+            <span class="flex items-center gap-1.5"><span class="text-amber-400">✦</span> Grade or money back</span>
+            <span class="text-brand-600">·</span>
+            <span class="flex items-center gap-1.5"><span class="text-amber-400">✦</span> Zero AI</span>
           </div>
 
-          <!-- Trust badge row -->
-          <div class="mt-8">
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+              Start my order
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+            </a>
+            <a href="/pricing" class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10">
+              See pricing
+            </a>
+          </div>
+
+          <div class="mt-8 pt-6 border-t border-white/10">
             <TrustBadges />
           </div>
         </div>
 
         <!-- Right: order form -->
-        <div class="lg:pl-8">
+        <div>
           <MultiStepOrderForm />
         </div>
 
       </div>
     </div>
-    <div class="absolute -top-20 -right-20 h-96 w-96 rounded-full bg-brand-500 opacity-20 blur-3xl pointer-events-none" />
-    <div class="absolute -bottom-20 -left-20 h-96 w-96 rounded-full bg-blue-400 opacity-20 blur-3xl pointer-events-none" />
   </section>
 
-  <!-- ─── Stats ─────────────────────────────────────────────────────────── -->
-  <section class="border-b border-slate-100 bg-white py-10">
-    <div class="section py-0">
-      <div class="grid grid-cols-2 gap-6 text-center md:grid-cols-4">
-        <div v-for="stat in stats" :key="stat.label">
-          <div class="text-3xl font-bold text-brand-700">{{ stat.value }}</div>
-          <div class="mt-1 text-sm text-slate-500">{{ stat.label }}</div>
+  <!-- ─── Stats bar ─────────────────────────────────────────────────────── -->
+  <section class="border-y border-slate-100 bg-white">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-2 divide-x divide-y divide-slate-100 md:grid-cols-4 md:divide-y-0">
+        <div v-for="stat in stats" :key="stat.label" class="flex flex-col items-center py-8 px-6 text-center">
+          <span class="text-3xl font-extrabold tabular-nums text-brand-700">{{ stat.value }}</span>
+          <span class="mt-1 text-sm font-semibold text-slate-800">{{ stat.label }}</span>
+          <span class="mt-0.5 text-xs text-slate-400">{{ stat.note }}</span>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── Scrollable service strip ───────────────────────────────────── -->
-  <section class="border-b border-slate-100 bg-white py-8">
+  <!-- ─── The Difference ───────────────────────────────────────────────── -->
+  <section class="bg-slate-50 py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="mb-5 flex items-center justify-between">
-        <p class="text-sm font-semibold text-slate-600">All paper types — tap to explore</p>
-        <NuxtLink href="/services" class="text-xs font-semibold text-brand-600 hover:underline">View all →</NuxtLink>
+      <div class="mb-14 text-center">
+        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Why students choose us</p>
+        <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl">The research paper service that's actually different.</h2>
       </div>
-      <div class="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2" style="scrollbar-width: none;">
-        <NuxtLink
-          v-for="s in serviceStrip"
-          :key="s.slug"
-          :href="`/services/${s.slug}`"
-          class="group snap-start shrink-0 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 transition-colors hover:border-brand-200 hover:bg-brand-50 w-52"
+
+      <div class="grid gap-8 md:grid-cols-3">
+        <div
+          v-for="d in differences"
+          :key="d.headline"
+          class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-shadow hover:shadow-md"
         >
-          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 transition-colors group-hover:bg-brand-600">
-            <Icon name="file-text" class="h-4 w-4 text-brand-600 transition-colors group-hover:text-white" />
-          </div>
-          <div class="min-w-0">
-            <p class="truncate text-xs font-semibold text-slate-800 group-hover:text-brand-700">{{ s.navLabel }}</p>
-            <p class="text-xs text-brand-600">from ${{ s.priceFrom }}/page</p>
-          </div>
-        </NuxtLink>
+          <div class="mb-5 text-4xl">{{ d.emoji }}</div>
+          <h3 class="text-lg font-bold leading-snug text-slate-900">{{ d.headline }}</h3>
+          <p class="mt-3 text-sm leading-relaxed text-slate-500">{{ d.body }}</p>
+          <div class="pointer-events-none absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-brand-50 transition-transform group-hover:scale-150" />
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── Three Pillars ────────────────────────────────────────────────── -->
-  <section class="bg-brand-50 py-20">
-    <div class="section py-0">
-      <div class="text-center">
-        <h2 class="section-heading">Research. Analysis. Support.</h2>
-        <p class="section-sub">Three ways we help students succeed — pick what fits your situation.</p>
-      </div>
-      <div class="mt-12 grid gap-8 md:grid-cols-3">
-        <NuxtLink
-          v-for="p in pillars"
-          :key="p.title"
-          :href="p.href"
-          class="card group flex flex-col transition-shadow hover:shadow-lg hover:border-brand-300"
-        >
-          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100 transition-colors group-hover:bg-brand-600">
-            <Icon :name="p.icon" class="h-6 w-6 text-brand-600 transition-colors group-hover:text-white" />
-          </div>
-          <h3 class="mt-4 text-xl font-bold text-brand-700 transition-colors group-hover:text-brand-900">{{ p.title }}</h3>
-          <p class="mt-3 flex-1 text-sm leading-relaxed text-slate-600">{{ p.desc }}</p>
-          <span class="mt-4 text-xs font-semibold text-brand-600 group-hover:underline">Learn more →</span>
-        </NuxtLink>
-      </div>
-    </div>
-  </section>
-
-  <!-- ─── Writer Showcase ───────────────────────────────────────────────── -->
+  <!-- ─── Writer showcase ───────────────────────────────────────────────── -->
   <WriterShowcase />
 
   <!-- ─── Services ─────────────────────────────────────────────────────── -->
-  <section class="bg-slate-50">
-    <div class="section">
-      <div class="text-center">
-        <h2 class="section-heading">100+ Subjects, Every Paper Type</h2>
-        <p class="section-sub">STEM, business, humanities, law, nursing — if you need it written, we cover it.</p>
+  <section class="bg-white py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-12 flex items-end justify-between">
+        <div>
+          <p class="mb-2 text-xs font-bold uppercase tracking-widest text-brand-600">100+ subjects covered</p>
+          <h2 class="text-3xl font-bold text-slate-900">Every paper type. Every subject.</h2>
+        </div>
+        <a href="/services" class="hidden text-sm font-semibold text-brand-600 hover:underline sm:block">All services →</a>
       </div>
-      <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <NuxtLink v-for="service in services" :key="service.title" :href="service.href"
-          class="card group flex flex-col transition-shadow hover:shadow-md hover:border-brand-200">
-          <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-100 transition-colors group-hover:bg-brand-600">
-            <Icon :name="service.icon" class="h-5 w-5 text-brand-600 transition-colors group-hover:text-white" />
-          </div>
-          <h3 class="font-semibold text-slate-900 group-hover:text-brand-700 transition-colors">{{ service.title }}</h3>
-          <p class="mt-2 flex-1 text-sm text-slate-500 leading-relaxed">{{ service.desc }}</p>
-          <span class="mt-3 text-xs font-medium text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">Learn more →</span>
-        </NuxtLink>
-      </div>
-      <div class="mt-10 flex flex-wrap justify-center gap-2">
-        <span
-          v-for="sub in subjects"
-          :key="sub"
-          class="rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
+
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <a
+          v-for="svc in services"
+          :key="svc.title"
+          :href="svc.href"
+          class="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
         >
-          {{ sub }}
-        </span>
-        <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">
-          +80 more
-        </span>
+          <div v-if="svc.badge" class="absolute right-4 top-4 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
+            {{ svc.badge }}
+          </div>
+          <h3 class="text-base font-bold text-slate-900 transition-colors group-hover:text-brand-700">{{ svc.title }}</h3>
+          <p class="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{{ svc.desc }}</p>
+          <span class="mt-4 text-xs font-semibold text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">Learn more →</span>
+        </a>
       </div>
-      <div class="mt-10 text-center">
-        <NuxtLink href="/services" class="btn-outline">View all paper types</NuxtLink>
+
+      <div class="mt-10 flex flex-wrap gap-2">
+        <span v-for="sub in subjects" :key="sub" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700">{{ sub }}</span>
+        <span class="rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs text-slate-400">+80 more subjects</span>
+      </div>
+      <div class="mt-8 text-center sm:hidden">
+        <a href="/services" class="text-sm font-semibold text-brand-600 hover:underline">View all services →</a>
       </div>
     </div>
   </section>
 
   <!-- ─── How it works ──────────────────────────────────────────────────── -->
-  <section class="bg-white">
-    <div class="section">
-      <div class="text-center">
-        <h2 class="section-heading">How it works</h2>
-        <p class="section-sub">Four simple steps from brief to finished paper.</p>
+  <section class="bg-brand-50 py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-14 text-center">
+        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Simple process</p>
+        <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl">From brief to finished paper in four steps.</h2>
       </div>
-      <ol class="mt-12 grid gap-8 md:grid-cols-4">
-        <li v-for="(step, i) in steps" :key="step.title" class="flex flex-col items-center text-center">
-          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-700 text-lg font-bold text-white shadow-md">
-            {{ i + 1 }}
+
+      <!-- Desktop: horizontal timeline -->
+      <div class="hidden md:block">
+        <div class="relative grid grid-cols-4 gap-0">
+          <!-- Connecting line -->
+          <div class="absolute top-7 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-brand-300 via-brand-500 to-brand-300" />
+
+          <div v-for="step in steps" :key="step.n" class="flex flex-col items-center px-4 text-center">
+            <div class="relative z-10 mb-6 flex size-14 items-center justify-center rounded-full border-4 border-brand-100 bg-white shadow-md">
+              <span class="text-lg font-extrabold text-brand-700">{{ step.n }}</span>
+            </div>
+            <h3 class="text-sm font-bold text-slate-900">{{ step.title }}</h3>
+            <p class="mt-2 text-xs leading-relaxed text-slate-500">{{ step.desc }}</p>
           </div>
-          <h3 class="font-semibold text-slate-900">{{ step.title }}</h3>
-          <p class="mt-2 text-sm text-slate-500 leading-relaxed">{{ step.desc }}</p>
-        </li>
-      </ol>
+        </div>
+      </div>
+
+      <!-- Mobile: vertical -->
+      <div class="space-y-8 md:hidden">
+        <div v-for="step in steps" :key="step.n" class="flex gap-5">
+          <div class="flex size-12 shrink-0 items-center justify-center rounded-full border-2 border-brand-200 bg-white text-sm font-extrabold text-brand-700 shadow-sm">
+            {{ step.n }}
+          </div>
+          <div class="pt-1.5">
+            <h3 class="text-sm font-bold text-slate-900">{{ step.title }}</h3>
+            <p class="mt-1 text-sm leading-relaxed text-slate-500">{{ step.desc }}</p>
+          </div>
+        </div>
+      </div>
+
       <div class="mt-12 text-center">
-        <NuxtLink to="/order" class="btn-primary">Start your order now</NuxtLink>
+        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-8 py-3.5 text-sm font-bold text-white shadow transition-colors hover:bg-brand-800">
+          Start my order now
+        </a>
       </div>
     </div>
   </section>
 
   <!-- ─── Guarantees ────────────────────────────────────────────────────── -->
-  <section class="bg-brand-900">
-    <div class="section">
-      <div class="text-center">
-        <h2 class="font-serif text-3xl font-bold text-white sm:text-4xl">Our guarantees</h2>
-        <p class="mt-4 text-brand-200">We put our reputation behind every single order.</p>
+  <section class="bg-brand-900 py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-12 text-center">
+        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-300">Our promise</p>
+        <h2 class="text-3xl font-bold text-white sm:text-4xl">We put our name behind every order.</h2>
+        <p class="mt-3 text-brand-300">Not small print. Actual guarantees that mean something.</p>
       </div>
-      <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <div v-for="g in guarantees" :key="g.title" class="rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition-colors hover:bg-white/10">
-          <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-            <Icon :name="g.icon" class="h-5 w-5 text-white" />
+
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          v-for="g in guarantees"
+          :key="g.title"
+          class="group flex gap-4 rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition-colors hover:bg-white/10"
+        >
+          <div class="text-2xl">{{ g.emoji }}</div>
+          <div>
+            <h3 class="font-semibold text-white">{{ g.title }}</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-brand-200">{{ g.desc }}</p>
           </div>
-          <h3 class="font-semibold text-white">{{ g.title }}</h3>
-          <p class="mt-2 text-sm text-brand-200 leading-relaxed">{{ g.desc }}</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── Writing Services We Offer ──────────────────────────────────── -->
-  <WritingServicesGrid />
+  <!-- ─── Grade-result testimonials ────────────────────────────────────── -->
+  <section class="bg-white py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-12 text-center">
+        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Real results</p>
+        <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl">Students. Papers. Grades.</h2>
+      </div>
 
-  <!-- ─── Deep content tabs ───────────────────────────────────────────── -->
-  <AcademicContentTabs />
+      <div class="grid gap-6 md:grid-cols-3">
+        <div
+          v-for="t in testimonials"
+          :key="t.name"
+          class="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-7"
+        >
+          <!-- Grade badge -->
+          <div class="absolute right-6 top-6 flex size-14 items-center justify-center rounded-full border-2 border-amber-400 bg-amber-50 text-2xl font-extrabold text-amber-700 shadow-sm">
+            {{ t.grade }}
+          </div>
 
-  <!-- ─── Testimonials ──────────────────────────────────────────────────── -->
-  <TestimonialsSection />
+          <p class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-brand-600">{{ t.subject }}</p>
+          <blockquote class="mt-3 text-sm leading-relaxed text-slate-700 italic pr-16">
+            "{{ t.quote }}"
+          </blockquote>
+          <div class="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4">
+            <div class="flex size-8 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
+              {{ t.name.charAt(0) }}
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-slate-800">{{ t.name }}</p>
+              <p class="text-xs text-slate-400">{{ t.university }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- ─── FAQ ───────────────────────────────────────────────────────────── -->
   <HomeFaq />
 
   <!-- ─── Final CTA ─────────────────────────────────────────────────────── -->
-  <section class="bg-brand-600 py-20">
-    <div class="section py-0 text-center">
-      <h2 class="font-serif text-3xl font-bold text-white sm:text-4xl">
-        Ready? Your deadline is waiting.
+  <section class="relative overflow-hidden bg-gradient-to-br from-brand-800 to-brand-900 py-20">
+    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
+    <div class="relative z-10 mx-auto max-w-3xl px-4 text-center sm:px-6">
+      <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">Writers available now</p>
+      <h2 class="text-3xl font-bold text-white sm:text-4xl">
+        Your deadline isn't getting any further away.
       </h2>
-      <p class="mt-4 text-brand-100 text-lg">
-        Tell us your requirements. We'll match you with the right expert in minutes.
+      <p class="mt-5 text-lg leading-relaxed text-brand-200">
+        Tell us your requirements. We'll match you with the right researcher in minutes.
       </p>
+
       <div class="mt-10 flex flex-wrap justify-center gap-4">
-        <NuxtLink
-          to="/order"
-          class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base shadow-lg"
+        <a
+          :href="app.order"
+          class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50"
         >
-          Place your order — from $15/page
-        </NuxtLink>
-        <NuxtLink
+          Place my order — from $15/page
+          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+        </a>
+        <a
           href="/contact"
-          class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-4 text-base"
+          class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10"
         >
           Talk to us first
-        </NuxtLink>
+        </a>
       </div>
-      <p class="mt-6 text-sm text-brand-200">
-        24/7 support · 2-hour minimum turnaround · Free revisions · Grade or money back
-      </p>
+
+      <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-brand-300">
+        <span>✓ No payment until you approve</span>
+        <span>✓ Free revisions included</span>
+        <span>✓ Grade or full refund</span>
+        <span>✓ 24/7 support</span>
+      </div>
     </div>
   </section>
 </template>

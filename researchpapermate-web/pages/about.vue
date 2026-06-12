@@ -1,194 +1,139 @@
 <script setup lang="ts">
 const app = useAppUrl()
 
-const heroStats = [
-  { value: '14,700+', label: 'Papers delivered' },
-  { value: '200+',    label: 'Expert writers' },
-  { value: '4.8/5',   label: 'Average rating' },
-  { value: '98%',     label: 'On-time delivery' },
+useSeoMeta({
+  title: 'About ResearchPaperMate — Our Researchers, Our Standards',
+  description: 'ResearchPaperMate connects students with verified PhD and Master\'s researchers since 2019. Only 2 in 100 applicants pass our vetting process.',
+})
+useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/about' }] })
+
+const stats = [
+  { value: '14,700+', label: 'Papers delivered',  sub: 'Across 100+ subjects' },
+  { value: '2/100',   label: 'Acceptance rate',    sub: 'Writer applications' },
+  { value: '4.8/5',   label: 'Average rating',     sub: 'Based on 8,200+ reviews' },
+  { value: '2019',    label: 'Founded',             sub: 'Still human-only' },
 ]
 
 const vettingSteps = [
   {
-    step: '01',
-    title: 'Academic credential check',
-    desc: 'We verify every degree certificate against the issuing institution. Only Master\'s-level and above applicants advance.',
+    n: '01',
+    title: 'Degree certificate verification',
+    desc: 'Every application requires certified degree documents. We verify directly with the issuing institution. No unverifiable claims make it through.',
   },
   {
-    step: '02',
-    title: 'Subject knowledge test',
-    desc: 'Writers sit a subject-specific written test in their field. This filters generalists and surfaces real specialists.',
+    n: '02',
+    title: 'Subject-specific knowledge test',
+    desc: 'A written test in the applicant\'s declared subject area. Designed to surface actual domain knowledge — not general writing ability.',
   },
   {
-    step: '03',
-    title: 'Sample writing assessment',
-    desc: 'An original sample paper is reviewed by our editorial team for structure, argument, and citation accuracy.',
+    n: '03',
+    title: 'Original sample paper review',
+    desc: 'Our editorial team reviews an original academic sample against our quality rubric: argument structure, citation accuracy, and disciplinary conventions.',
   },
   {
-    step: '04',
+    n: '04',
     title: 'Supervised trial period',
-    desc: 'New writers complete their first 5 orders under editorial oversight. Only those who maintain our quality standard stay on.',
+    desc: 'New writers complete their first five orders under editorial oversight. Only those who sustain our quality standard earn their full writer status.',
   },
 ]
 
 const values = [
-  {
-    icon: 'trophy',
-    color: 'bg-amber-100 text-amber-600',
-    title: 'Quality over volume',
-    desc: 'We accept only 2 in every 100 writer applicants. Every paper is reviewed before delivery.',
-  },
-  {
-    icon: 'handshake',
-    color: 'bg-brand-100 text-brand-600',
-    title: 'Academic integrity',
-    desc: 'We provide reference and model papers. We never encourage academic dishonesty and include a legal-use disclosure on every order.',
-  },
-  {
-    icon: 'lock',
-    color: 'bg-green-100 text-green-600',
-    title: 'Privacy by design',
-    desc: 'Your name, email, and order details are never sold, shared, or stored beyond what\'s needed to fulfil your order.',
-  },
-  {
-    icon: 'message-square',
-    color: 'bg-purple-100 text-purple-600',
-    title: 'Real human support',
-    desc: 'Every query reaches a real person. No chatbots, no scripted replies — just direct, knowledgeable support.',
-  },
+  { emoji: '🏆', title: 'Quality over volume', desc: 'We turn away 98% of applicants. Every paper is reviewed by a senior editor before delivery.' },
+  { emoji: '🤝', title: 'Academic integrity', desc: 'We provide model and reference papers. We never encourage misrepresentation and include a legal-use disclosure on every order.' },
+  { emoji: '🔒', title: 'Privacy by design', desc: 'Your identity and order details are never sold, shared, or stored beyond what\'s required to deliver your paper.' },
+  { emoji: '💬', title: 'Real human support', desc: 'Every query reaches a real person. No chatbots, no queues, no scripted replies — direct and knowledgeable.' },
 ]
 
 const milestones = [
-  { year: '2019', label: 'Founded with 20 core writers across 12 subjects' },
-  { year: '2021', label: 'Reached 1,000 completed orders with 4.7/5 average rating' },
-  { year: '2023', label: 'Expanded to 100+ subject areas and 150+ active writers' },
-  { year: '2024', label: '200+ writers, 10,000+ papers delivered, launched dissertation tier' },
-  { year: '2025', label: 'AI-detection guarantee introduced; 14,700+ orders and counting' },
+  { year: '2019', event: 'Founded with 20 core writers across 12 subject areas.' },
+  { year: '2021', event: 'Reached 1,000 completed orders — 4.7/5 average rating at scale.' },
+  { year: '2022', event: 'Dissertation tier launched with dedicated PhD-level specialists.' },
+  { year: '2023', event: 'Expanded to 100+ subject areas and 150+ active expert writers.' },
+  { year: '2024', event: '200+ writers, 10,000+ papers delivered, data analysis division added.' },
+  { year: '2025', event: 'AI-detection guarantee introduced. 14,700+ orders and counting.' },
 ]
-
-useSeoMeta({
-  title: 'About ResearchPaperMate — Our Writers, Our Standards',
-  description: 'ResearchPaperMate connects students with verified academic writing experts since 2019. Learn how we vet our writers and what we stand for.',
-})
-useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/about' }] })
 </script>
 
 <template>
   <div>
-    <!-- Hero with stat overlay -->
-    <section class="relative bg-gradient-to-br from-brand-900 to-brand-700 pb-0 pt-20">
-      <div class="section py-0 text-center">
-        <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-300">About us</p>
-        <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">
-          Expert academic writing,<br class="hidden sm:block" /> built on trust
+
+    <!-- ── Hero ──────────────────────────────────────────────────────────── -->
+    <section class="relative overflow-hidden bg-brand-900 py-24">
+      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <div class="pointer-events-none absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-600 opacity-20 blur-[120px]" />
+      <div class="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
+        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">Our story</p>
+        <h1 class="text-4xl font-bold leading-tight text-white sm:text-5xl">
+          We built the research paper service<br class="hidden sm:block" />
+          we wished existed.
         </h1>
-        <p class="mx-auto mt-5 max-w-2xl text-lg text-brand-100 leading-relaxed">
-          Since 2019, we've connected students with verified, degree-holding experts who write
-          original papers from scratch — not AI, not templates.
+        <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-brand-200">
+          Since 2019, ResearchPaperMate has connected students with verified, degree-holding researchers who write original papers from scratch — no AI, no templates, no shortcuts.
         </p>
       </div>
+    </section>
 
-      <!-- Stats bar — floats at bottom of hero -->
-      <div class="mt-16 border-t border-white/10">
-        <div class="section py-0">
-          <div class="grid grid-cols-2 gap-0 md:grid-cols-4">
-            <div v-for="(stat, i) in heroStats" :key="stat.label"
-              class="border-r border-white/10 py-6 text-center last:border-r-0"
-              :class="i % 2 === 0 ? 'border-r border-white/10' : ''"
-            >
-              <div class="text-3xl font-bold text-white">{{ stat.value }}</div>
-              <div class="mt-1 text-sm text-brand-200">{{ stat.label }}</div>
-            </div>
+    <!-- ── Stats ─────────────────────────────────────────────────────────── -->
+    <section class="border-b border-slate-100 bg-white">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 divide-x divide-y divide-slate-100 md:grid-cols-4 md:divide-y-0">
+          <div v-for="stat in stats" :key="stat.label" class="flex flex-col items-center py-10 px-6 text-center">
+            <span class="text-3xl font-extrabold tabular-nums text-brand-700">{{ stat.value }}</span>
+            <span class="mt-1 text-sm font-semibold text-slate-800">{{ stat.label }}</span>
+            <span class="mt-0.5 text-xs text-slate-400">{{ stat.sub }}</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Mission -->
-    <section class="bg-white">
-      <div class="section">
-        <div class="grid items-center gap-12 lg:grid-cols-2">
+    <!-- ── Mission ───────────────────────────────────────────────────────── -->
+    <section class="bg-white py-20">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div class="grid items-center gap-16 lg:grid-cols-2">
           <div>
-            <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-600">Our mission</p>
-            <h2 class="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">
-              Every student deserves expert academic support
+            <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-600">What we believe</p>
+            <h2 class="text-3xl font-bold leading-snug text-slate-900 sm:text-4xl">
+              Good research takes a real researcher — not a language model.
             </h2>
-            <p class="mt-5 text-slate-600 leading-relaxed text-lg">
-              ResearchPaperMate was founded on a simple belief: access to expert academic help shouldn't
-              depend on your first language, time zone, or budget. We built a platform where students connect
-              directly with writers who hold advanced degrees in their exact subject area — not generalists,
-              not AI, but specialists.
+            <p class="mt-5 text-base leading-relaxed text-slate-500">
+              AI can write sentences. It cannot read your university's rubric, anticipate what your supervisor values, or know that your subject has a convention that the textbook doesn't mention. That's what a specialist knows — and it's what makes the difference between a pass and a distinction.
             </p>
-            <p class="mt-4 text-slate-600 leading-relaxed">
-              Every paper is written from scratch to your specific brief. Every writer is vetted through
-              a four-stage process. And every order is backed by our grade-or-money-back guarantee.
+            <p class="mt-4 text-base leading-relaxed text-slate-500">
+              Every writer on ResearchPaperMate holds a verified postgraduate degree in their subject. They've written at this level before. They know the literature. They know the expectations. That's the only standard we work to.
             </p>
-            <NuxtLink to="/order" class="btn-primary mt-8 inline-flex">
-              Place your first order
-            </NuxtLink>
           </div>
-
-          <!-- Visual trust card -->
           <div class="grid gap-4 sm:grid-cols-2">
-            <div v-for="v in values" :key="v.title" class="card">
-              <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" :class="v.color.split(' ')[0]">
-                <Icon :name="v.icon" class="h-5 w-5" :class="v.color.split(' ')[1]" />
-              </div>
-              <h3 class="font-semibold text-slate-900">{{ v.title }}</h3>
-              <p class="mt-2 text-sm text-slate-500 leading-relaxed">{{ v.desc }}</p>
+            <div v-for="v in values" :key="v.title" class="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <div class="mb-3 text-3xl">{{ v.emoji }}</div>
+              <h3 class="font-bold text-slate-900">{{ v.title }}</h3>
+              <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ v.desc }}</p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- How we vet writers -->
-    <section class="bg-slate-50">
-      <div class="section">
-        <div class="mx-auto max-w-3xl text-center">
-          <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-600">Writer quality</p>
-          <h2 class="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">
-            Only 2 in 100 applicants make it through
-          </h2>
-          <p class="section-sub">
-            Our vetting process is designed to find subject-matter experts, not just capable writers.
-          </p>
-        </div>
-        <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div v-for="step in vettingSteps" :key="step.step" class="card relative">
-            <div class="mb-4 font-mono text-4xl font-bold text-brand-100">{{ step.step }}</div>
-            <h3 class="font-semibold text-slate-900">{{ step.title }}</h3>
-            <p class="mt-2 text-sm text-slate-500 leading-relaxed">{{ step.desc }}</p>
+    <!-- ── Writer vetting ─────────────────────────────────────────────────── -->
+    <section class="bg-slate-50 py-20">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div class="grid items-center gap-16 lg:grid-cols-2">
+          <div>
+            <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-600">Our vetting process</p>
+            <h2 class="text-3xl font-bold text-slate-900">
+              Only 2 in 100 applicants<br class="hidden sm:block" /> make the cut.
+            </h2>
+            <p class="mt-5 text-base leading-relaxed text-slate-500">
+              Generous acceptance rates might look good as a headline. We don't think they serve students. The writers on this platform have cleared four independent checkpoints — and they stay only as long as they maintain the standard.
+            </p>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Milestones timeline -->
-    <section class="bg-white">
-      <div class="section">
-        <div class="mx-auto max-w-3xl">
-          <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-600 text-center">Our story</p>
-          <h2 class="font-serif text-3xl font-bold text-slate-900 text-center sm:text-4xl">
-            Growing with every order
-          </h2>
-          <div class="mt-12 space-y-0">
-            <div
-              v-for="(m, i) in milestones"
-              :key="m.year"
-              class="relative flex gap-6 pb-10 last:pb-0"
-            >
-              <!-- Line -->
-              <div class="flex flex-col items-center">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white shadow-md">
-                  {{ m.year.slice(2) }}'
-                </div>
-                <div v-if="i < milestones.length - 1" class="mt-2 h-full w-0.5 bg-brand-100"></div>
+          <div class="space-y-5">
+            <div v-for="step in vettingSteps" :key="step.n" class="flex gap-5">
+              <div class="flex size-10 shrink-0 items-center justify-center rounded-xl border-2 border-brand-200 bg-white text-sm font-extrabold text-brand-700">
+                {{ step.n }}
               </div>
-              <!-- Content -->
-              <div class="pt-1.5 pb-2">
-                <p class="text-sm font-bold text-brand-700">{{ m.year }}</p>
-                <p class="mt-1 text-slate-700 leading-relaxed">{{ m.label }}</p>
+              <div>
+                <h3 class="font-bold text-slate-900">{{ step.title }}</h3>
+                <p class="mt-1 text-sm leading-relaxed text-slate-500">{{ step.desc }}</p>
               </div>
             </div>
           </div>
@@ -196,55 +141,46 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/about'
       </div>
     </section>
 
-    <!-- Commitments -->
-    <section class="bg-brand-50 border-y border-brand-100">
-      <div class="section">
-        <div class="grid gap-6 sm:grid-cols-3 text-center">
-          <div>
-            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100">
-              <Icon name="check-circle" class="h-6 w-6 text-green-600" />
+    <!-- ── Timeline ───────────────────────────────────────────────────────── -->
+    <section class="bg-white py-20">
+      <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+        <div class="mb-12 text-center">
+          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Our journey</p>
+          <h2 class="text-3xl font-bold text-slate-900">How we got here.</h2>
+        </div>
+        <div class="relative space-y-0">
+          <!-- Vertical line -->
+          <div class="absolute left-[39px] top-4 bottom-4 w-px bg-brand-100" />
+          <div v-for="m in milestones" :key="m.year" class="relative flex gap-6 pb-8 last:pb-0">
+            <div class="flex size-[42px] shrink-0 items-center justify-center rounded-full border-2 border-brand-200 bg-white text-xs font-extrabold text-brand-700 shadow-sm z-10">
+              {{ m.year.slice(2) }}'
             </div>
-            <h3 class="font-semibold text-slate-900">100% original</h3>
-            <p class="mt-1 text-sm text-slate-500">Every paper written from scratch, checked for plagiarism before delivery.</p>
-          </div>
-          <div>
-            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100">
-              <Icon name="bot" class="h-6 w-6 text-blue-600" />
+            <div class="pt-2">
+              <p class="text-xs font-bold text-brand-600">{{ m.year }}</p>
+              <p class="mt-0.5 text-sm leading-relaxed text-slate-600">{{ m.event }}</p>
             </div>
-            <h3 class="font-semibold text-slate-900">Zero AI content</h3>
-            <p class="mt-1 text-sm text-slate-500">All work is 100% human-written. AI-detection report available on request.</p>
-          </div>
-          <div>
-            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100">
-              <Icon name="lock" class="h-6 w-6 text-brand-600" />
-            </div>
-            <h3 class="font-semibold text-slate-900">Private by default</h3>
-            <p class="mt-1 text-sm text-slate-500">Your data is never sold or shared. Payment handled by a regulated third party.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="bg-brand-700 py-20 text-center">
-      <h2 class="font-serif text-3xl font-bold text-white sm:text-4xl">Ready to get started?</h2>
-      <p class="mt-4 text-brand-200 text-lg">
-        Join 14,700+ students who've trusted us with their academic work.
-      </p>
-      <div class="mt-10 flex flex-wrap justify-center gap-4">
-        <NuxtLink
-          to="/order"
-          class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base shadow-lg"
-        >
-          Place your first order — from $15/page
-        </NuxtLink>
-        <NuxtLink
-          href="/contact"
-          class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-4 text-base"
-        >
-          Talk to us first
-        </NuxtLink>
+    <!-- ── CTA ────────────────────────────────────────────────────────────── -->
+    <section class="bg-brand-900 py-20 text-center">
+      <div class="mx-auto max-w-xl px-4">
+        <h2 class="text-3xl font-bold text-white">Work with a real researcher.</h2>
+        <p class="mt-4 text-lg text-brand-200">
+          Tell us your subject, level, and deadline. We'll match you with the right specialist within minutes.
+        </p>
+        <div class="mt-8 flex flex-wrap justify-center gap-4">
+          <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+            Start my order — from $15/page
+          </a>
+          <a href="/how-it-works" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+            How it works →
+          </a>
+        </div>
       </div>
     </section>
+
   </div>
 </template>
