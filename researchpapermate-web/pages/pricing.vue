@@ -208,10 +208,7 @@ const faqs = [
       <h2 class="section-heading text-center">Try the price calculator</h2>
       <p class="section-sub text-center">Pick your level and deadline — see your total instantly.</p>
       <div class="mt-10">
-        <ClientOnly>
-          <OrderCalculator />
-          <template #fallback><div class="h-72 animate-pulse rounded-2xl bg-slate-100" /></template>
-        </ClientOnly>
+        <MultiStepOrderForm />
       </div>
     </section>
 

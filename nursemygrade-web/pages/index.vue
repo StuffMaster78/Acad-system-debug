@@ -148,14 +148,9 @@ useHead({
           </div>
         </div>
 
-        <!-- Right: calculator -->
+        <!-- Right: order form -->
         <div class="lg:pl-8">
-          <ClientOnly>
-            <OrderCalculator />
-            <template #fallback>
-              <div class="h-72 animate-pulse rounded-2xl bg-white/10" />
-            </template>
-          </ClientOnly>
+          <MultiStepOrderForm />
         </div>
 
       </div>

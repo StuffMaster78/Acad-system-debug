@@ -3,9 +3,10 @@ export function useAppUrl() {
   const base = config.public.appUrl || 'https://app.essaymaniacs.com'
 
   return {
-    login:    `${base}/login`,
-    register: `${base}/register`,
-    apply:    `${base}/apply`,
+    login:     `${base}/auth/login`,
+    register:  `${base}/auth/register`,
+    apply:     `${base}/apply`,
     dashboard: base,
+    order:     `${base}/client/new-order`,
   }
 }

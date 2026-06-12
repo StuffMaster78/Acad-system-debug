@@ -207,12 +207,11 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Right: floating calculator card -->
+          <!-- Right: multi-step order form -->
           <div class="relative">
             <div class="absolute -inset-4 rounded-3xl bg-gc-600/10 blur-2xl" />
             <div class="relative">
-              <p class="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">Get an instant quote</p>
-              <PricingCalculator />
+              <MultiStepOrderForm />
             </div>
           </div>
 

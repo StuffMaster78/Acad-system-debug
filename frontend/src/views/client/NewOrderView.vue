@@ -282,6 +282,9 @@ function applyUrlParams() {
   const pages = parseInt(String(q.pages ?? ''), 10);
   if (!isNaN(pages) && pages >= 1 && pages <= 100) form.pages = pages;
 
+  const topic = String(q.topic ?? '').trim().slice(0, 300);
+  if (topic) form.topic = topic;
+
   const levelKey = String(q.level ?? '');
   if (levelKey && LEVEL_NAMES[levelKey]) {
     const id = matchOption(config.collections.academicLevels, LEVEL_NAMES[levelKey]);
