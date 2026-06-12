@@ -67,40 +67,19 @@ useHead({
   <div>
 
     <!-- ── Hero ──────────────────────────────────────────────────────── -->
-    <section class="overflow-hidden bg-brand-900 py-20">
-      <div class="section py-0">
-        <div class="grid items-center gap-12 lg:grid-cols-[1fr_420px]">
-          <div>
-            <p class="mb-4 text-sm font-bold uppercase tracking-widest text-brand-400">20 essay types · 100+ subjects</p>
-            <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl lg:text-6xl">
-              Find your<br />essay type
-            </h1>
-            <p class="mt-5 max-w-xl text-lg leading-relaxed text-brand-200">
-              From a 500-word argumentative essay to a PhD dissertation — matched to a writer who has written dozens of them in your exact subject.
-            </p>
-            <div class="mt-8 flex flex-wrap gap-3">
-              <NuxtLink to="/order" class="btn-primary bg-white px-8 py-3.5 text-base text-brand-700 hover:bg-brand-50 shadow-lg">
-                Place an order
-              </NuxtLink>
-              <NuxtLink to="/pricing" class="btn-outline border-white/30 px-8 py-3.5 text-base text-white hover:bg-white/10">
-                See pricing
-              </NuxtLink>
-            </div>
-          </div>
-
-          <!-- Trust grid -->
-          <div class="grid grid-cols-2 gap-3">
-            <div
-              v-for="item in trustItems"
-              :key="item.text"
-              class="flex items-start gap-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10"
-            >
-              <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-700">
-                <Icon :name="item.icon" class="h-4 w-4 text-brand-300" />
-              </div>
-              <p class="text-sm leading-snug text-brand-200">{{ item.text }}</p>
-            </div>
-          </div>
+    <section class="relative overflow-hidden bg-brand-900 py-20 text-center">
+      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <div class="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-brand-500 opacity-20 blur-[80px]" />
+      <div class="relative mx-auto max-w-3xl px-4 sm:px-6">
+        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">20 essay types · 100+ subjects</p>
+        <h1 class="text-4xl font-bold text-white sm:text-5xl">Find your essay type.<br class="hidden sm:block" /> Find your subject specialist.</h1>
+        <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-brand-200">From a 500-word argumentative essay to a PhD dissertation — matched to a writer who has a degree in your exact subject and has written dozens of them.</p>
+        <div class="mt-8 flex flex-wrap justify-center gap-4">
+          <NuxtLink to="/order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">Place an order — from $10/page</NuxtLink>
+          <NuxtLink to="/pricing" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">See pricing</NuxtLink>
+        </div>
+        <div class="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-brand-300">
+          <span>✓ Grade or money back</span><span>✓ Zero AI</span><span>✓ Subject-matched writer</span>
         </div>
       </div>
     </section>
@@ -202,32 +181,22 @@ useHead({
       </div>
     </section>
 
-    <!-- ── Calculator ────────────────────────────────────────────────── -->
-    <section class="bg-white py-20">
-      <div class="mx-auto max-w-xl px-4 sm:px-6">
-        <h2 class="text-center font-serif text-3xl font-bold text-slate-900">Get your instant price</h2>
-        <p class="mt-3 text-center text-slate-600">Pick type, level, and deadline — see your price in seconds.</p>
-        <div class="mt-10">
-          <ClientOnly>
-            <OrderCalculator />
-            <template #fallback><div class="h-72 animate-pulse rounded-3xl bg-slate-100" /></template>
-          </ClientOnly>
-        </div>
+    <!-- ── Order form ────────────────────────────────────────────────── -->
+    <section class="bg-brand-50 py-16">
+      <div class="mx-auto max-w-2xl px-4 sm:px-6">
+        <p class="mb-6 text-center text-xs font-bold uppercase tracking-widest text-brand-600">Get your instant quote</p>
+        <MultiStepOrderForm />
       </div>
     </section>
 
     <!-- ── CTA ───────────────────────────────────────────────────────── -->
-    <section class="bg-brand-600 py-16 text-center">
+    <section class="bg-brand-900 py-16 text-center">
       <div class="mx-auto max-w-2xl px-4">
-        <h2 class="font-serif text-3xl font-bold text-white">Not sure which type fits your assignment?</h2>
-        <p class="mt-4 text-lg text-brand-100">Describe it and we'll match you with the right specialist in minutes.</p>
+        <h2 class="text-3xl font-bold text-white">Not sure which type fits your assignment?</h2>
+        <p class="mt-4 text-lg text-brand-200">Describe it and we'll match you with the right specialist in minutes.</p>
         <div class="mt-8 flex flex-wrap justify-center gap-4">
-          <NuxtLink to="/order" class="btn-primary bg-white px-10 py-4 text-base text-brand-700 shadow-lg hover:bg-brand-50">
-            Start my order — from $10/page
-          </NuxtLink>
-          <NuxtLink to="/contact" class="btn-outline border-white/60 px-8 py-4 text-base text-white hover:bg-white/10">
-            Ask us first
-          </NuxtLink>
+          <NuxtLink to="/order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">Start my order — from $10/page</NuxtLink>
+          <NuxtLink to="/contact" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">Ask us first</NuxtLink>
         </div>
       </div>
     </section>

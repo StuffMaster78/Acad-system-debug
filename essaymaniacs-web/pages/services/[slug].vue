@@ -235,15 +235,7 @@ useHead({
 
         <!-- Right: sticky sidebar -->
         <div class="lg:sticky lg:top-24 lg:self-start space-y-5">
-
-          <!-- Calculator -->
-          <div class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-            <p class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Get an instant quote</p>
-            <ClientOnly>
-              <SidebarCalculator />
-              <template #fallback><div class="h-48 animate-pulse rounded-xl bg-slate-100" /></template>
-            </ClientOnly>
-          </div>
+          <MultiStepOrderForm />
 
           <!-- Quick FAQ -->
           <div class="rounded-3xl border border-slate-100 bg-white p-6">

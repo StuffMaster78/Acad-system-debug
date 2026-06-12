@@ -1,145 +1,166 @@
 <script setup lang="ts">
+const app = useAppUrl()
+
 useSeoMeta({
-  title: 'How It Works — Academic Writing Service | EssayManiacs',
-  description: 'How EssayManiacs works: submit your brief, get matched with a subject expert, track progress, and download your paper. Takes minutes to start.',
+  title: 'How It Works | EssayManiacs',
+  description: 'How EssayManiacs works: submit your brief, pay securely, get matched with a subject expert, communicate directly, and download your paper.',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/how-it-works' }] })
 
 const steps = [
   {
-    number: '01', icon: 'clipboard-list', title: 'Submit your brief',
-    desc: 'Tell us your assignment type, academic level, deadline, word count, and any rubric or source requirements. The more specific your brief, the better matched your writer will be.',
-    detail: ['Assignment type — research paper, essay, dissertation, case study, coursework, lab report, etc.', 'Academic level — high school through PhD', 'Deadline — as fast as 2 hours, up to 14 days', 'Word count or page count', 'Rubric, marking criteria, or reading list files', 'Citation style — APA, MLA, Harvard, Chicago, Vancouver, etc.'],
+    n: '01',
+    emoji: '📋',
+    title: 'Fill in your brief',
+    sub: 'Takes 2 minutes',
+    desc: 'Tell us your assignment type, academic level, deadline, word count, and any rubric or reading list. The more you share upfront, the better your match.',
+    bullets: [
+      'Paper type — essay, research paper, dissertation, case study, lab report…',
+      'Academic level — high school through PhD',
+      'Deadline — as fast as 3 hours or up to 14 days',
+      'Citation style — APA, MLA, Harvard, Chicago, Vancouver…',
+      'Attach rubrics, reading lists, or grading criteria',
+    ],
+    color: 'border-brand-200 bg-brand-50',
+    numColor: 'bg-brand-700 text-white',
   },
   {
-    number: '02', icon: 'credit-card', title: 'Pay securely — then we match you',
-    desc: 'Payment is handled by our regulated third-party processor. Once confirmed, we match your order to a subject-specialist writer whose academic background and credential level align with your requirements.',
-    detail: ["Master's-level writers for undergraduate work", 'PhD-qualified writers for dissertations and doctoral papers', 'Subject matching — not just level matching', 'You receive an email notification when your writer accepts the order'],
+    n: '02',
+    emoji: '🔒',
+    title: 'Pay — your money is held safely',
+    sub: 'Your payment is in escrow',
+    desc: 'Pay via card or PayPal. Your payment is held in escrow by our billing partner — it is only released to your writer after you have approved the completed work.',
+    bullets: [
+      'Visa, Mastercard, PayPal accepted',
+      'Payment held in escrow until you approve',
+      '256-bit SSL encryption on all transactions',
+      'No charge if we cannot fulfil your order',
+    ],
+    color: 'border-green-200 bg-green-50',
+    numColor: 'bg-green-700 text-white',
   },
   {
-    number: '03', icon: 'message-square', title: 'Communicate directly with your writer',
-    desc: "From the moment a writer accepts, you have a direct message channel in your dashboard. Share additional files, clarify requirements, or check progress — all in real time.",
-    detail: ['Direct messaging — no support ticket middlemen', 'Share rubrics, reading lists, or instructor feedback at any time', 'Writer provides progress updates and can flag questions proactively', 'All messages stored for the full order lifecycle'],
+    n: '03',
+    emoji: '💬',
+    title: 'Your writer gets matched and starts',
+    sub: 'Direct communication included',
+    desc: 'We match your order to a verified specialist whose degree and subject background align with your requirements. Message them directly, share files, and track progress.',
+    bullets: [
+      'Matched by subject area, not just academic level',
+      "Master's writers for undergraduate work",
+      'PhD writers for dissertations and doctoral papers',
+      'Direct messaging — no support ticket middlemen',
+      'Writer can flag questions and share drafts proactively',
+    ],
+    color: 'border-amber-200 bg-amber-50',
+    numColor: 'bg-amber-600 text-white',
   },
   {
-    number: '04', icon: 'download', title: 'Download your completed paper',
-    desc: 'Your writer uploads the completed paper to your dashboard. Download in Word, PDF, or PowerPoint — your free Turnitin originality report is included.',
-    detail: ['Email notification when your paper is ready', 'Download from the Files section of your dashboard', 'Free Turnitin originality report included with every order', 'AI-detection report available free on request', 'Free unlimited revisions within the revision window', 'Grade guarantee — if you receive a lower grade than stated in your brief, contact us within 14 days'],
+    n: '04',
+    emoji: '⬇️',
+    title: 'Download, review, and request revisions',
+    sub: 'Free revisions included',
+    desc: 'Your writer uploads the completed paper. Download in Word or PDF. Your plagiarism report is included free. Request as many revisions as you need within the revision window.',
+    bullets: [
+      'Download via your dashboard (Word, PDF)',
+      'Free Turnitin plagiarism report included',
+      'Free AI-detection certificate available on request',
+      'Unlimited free revisions within revision window',
+      'Grade guarantee — rewrite or full refund if grade target missed',
+    ],
+    color: 'border-purple-200 bg-purple-50',
+    numColor: 'bg-purple-700 text-white',
   },
-]
-
-const services = [
-  { label: 'Research Papers',        href: '/services/research-papers' },
-  { label: 'Essays',                 href: '/services/essays' },
-  { label: 'Dissertations',          href: '/services/dissertations' },
-  { label: 'Case Studies',           href: '/services/case-studies' },
-  { label: 'Literature Reviews',     href: '/services/literature-reviews' },
-  { label: 'Data Analysis',          href: '/services/data-analysis' },
-  { label: 'Lab Reports',            href: '/services/lab-reports' },
-  { label: 'Coursework & Assignments', href: '/services/coursework' },
-  { label: 'Presentations',          href: '/services/presentations' },
 ]
 
 const guarantees = [
-  { icon: 'trophy',        title: 'Grade or money back',                desc: 'Receive a lower grade than stated in your brief? We rewrite free or refund you — no questions asked.' },
-  { icon: 'graduation-cap', title: 'Subject experts matched to your brief', desc: "Master's and PhD writers matched by subject area — not just assigned randomly." },
-  { icon: 'bot',           title: 'Zero AI — plagiarism-free',            desc: 'All papers written by a real human. Free Turnitin and AI-detection reports included.' },
-  { icon: 'lock',          title: 'Your privacy protected',               desc: 'Your name, school, and order details are never shared with third parties.' },
-  { icon: 'refresh-cw',   title: 'Unlimited free revisions',             desc: 'Request as many revisions as needed within your revision window at zero extra cost.' },
-  { icon: 'zap',           title: 'As fast as 2 hours',                  desc: 'Most papers up to 4 pages can be delivered in 2 hours for urgent orders, 24/7.' },
+  { emoji: '💰', title: 'Escrow payment protection', desc: 'Your money only moves to the writer when you approve the work.' },
+  { emoji: '🎓', title: 'Grade or money back', desc: "State your grade target. If we miss it, we rewrite or refund." },
+  { emoji: '🤖', title: 'Zero AI content', desc: 'Every paper is human-written. Free AI-detection report on request.' },
+  { emoji: '🔁', title: 'Unlimited free revisions', desc: 'Within the revision window, revisions are always free.' },
 ]
 </script>
 
 <template>
-  <div class="bg-white">
-    <div class="bg-gradient-to-br from-brand-900 to-brand-700 px-4 py-16 text-white sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-3xl text-center">
-        <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-300">Simple. Fast. Expert-written.</p>
-        <h1 class="font-serif text-4xl font-bold sm:text-5xl">How EssayManiacs Works</h1>
-        <p class="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-brand-200">
-          From submitting your brief to downloading a polished, properly cited paper — the entire process takes minutes to start and is backed by a grade guarantee.
+  <div>
+
+    <!-- ── Hero ──────────────────────────────────────────────────────────── -->
+    <section class="relative overflow-hidden bg-brand-900 py-20 text-center">
+      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <div class="relative mx-auto max-w-2xl px-4 sm:px-6">
+        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">The process</p>
+        <h1 class="text-4xl font-bold text-white sm:text-5xl">
+          From brief to finished paper<br class="hidden sm:block" /> in four steps.
+        </h1>
+        <p class="mx-auto mt-5 max-w-xl text-lg text-brand-200">
+          No account needed to get a quote. No payment until you're matched with a writer. Revisions included throughout.
         </p>
-        <NuxtLink to="/order" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-10 py-4 text-base font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
-          Get started now
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-        </NuxtLink>
-        <p class="mt-3 text-sm text-brand-300">From $10/page · 100+ subjects · Grade or money back</p>
-      </div>
-    </div>
-
-    <div class="mx-auto max-w-4xl space-y-12 px-4 py-16 sm:px-6 lg:px-8">
-      <div v-for="(step, i) in steps" :key="step.number" class="grid gap-8 md:grid-cols-[72px_1fr]">
-        <div class="flex flex-col items-center">
-          <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-700 text-xl font-bold text-white shadow-md">{{ step.number }}</div>
-          <div v-if="i < steps.length - 1" class="mt-4 h-full w-0.5 bg-brand-100" />
-        </div>
-        <div class="pb-4">
-          <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
-            <Icon :name="step.icon" class="h-5 w-5 text-brand-700" />
-          </div>
-          <h2 class="font-serif text-2xl font-bold text-slate-900">{{ step.title }}</h2>
-          <p class="mt-2 text-base leading-relaxed text-slate-600">{{ step.desc }}</p>
-          <ul class="mt-4 space-y-2">
-            <li v-for="d in step.detail" :key="d" class="flex items-start gap-2.5 text-sm text-slate-600">
-              <span class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-bold text-brand-700">✓</span>
-              {{ d }}
-            </li>
-          </ul>
+        <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-brand-300">
+          <span>✓ Minimum 3-hour turnaround</span>
+          <span>✓ Grade or money back</span>
+          <span>✓ Direct writer access</span>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="bg-slate-50 px-4 py-16 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-5xl">
-        <div class="mb-10 text-center">
-          <h2 class="font-serif text-3xl font-bold text-slate-900">Every order, every time</h2>
-          <p class="mt-3 text-slate-500">These guarantees apply to every single order — no exceptions.</p>
-        </div>
-        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="g in guarantees" :key="g.title" class="card">
-            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15">
-              <Icon :name="g.icon" class="h-5 w-5 text-white" />
+    <!-- ── Steps ─────────────────────────────────────────────────────────── -->
+    <section class="bg-white py-20">
+      <div class="mx-auto max-w-4xl space-y-6 px-4 sm:px-6 lg:px-8">
+        <div
+          v-for="step in steps"
+          :key="step.n"
+          class="overflow-hidden rounded-2xl border"
+          :class="step.color"
+        >
+          <div class="flex items-start gap-6 p-8">
+            <!-- Step number -->
+            <div class="flex size-14 shrink-0 items-center justify-center rounded-2xl text-xl font-extrabold shadow-sm" :class="step.numColor">
+              {{ step.n }}
             </div>
-            <h3 class="mt-3 font-semibold text-slate-900">{{ g.title }}</h3>
-            <p class="mt-1 text-sm leading-relaxed text-slate-600">{{ g.desc }}</p>
+            <!-- Content -->
+            <div class="flex-1">
+              <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ step.sub }}</p>
+              <h2 class="mt-1 text-xl font-bold text-slate-900">
+                {{ step.emoji }} {{ step.title }}
+              </h2>
+              <p class="mt-3 leading-relaxed text-slate-600">{{ step.desc }}</p>
+              <ul class="mt-5 grid gap-2 sm:grid-cols-2">
+                <li v-for="b in step.bullets" :key="b" class="flex items-start gap-2 text-sm text-slate-600">
+                  <span class="mt-0.5 font-bold text-slate-400">—</span>
+                  {{ b }}
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- What we write -->
-    <div class="px-4 py-16 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-4xl">
-        <div class="mb-8 text-center">
-          <h2 class="font-serif text-3xl font-bold text-slate-900">What we write</h2>
-          <p class="mt-2 text-slate-500">9 paper types — every major academic assignment covered.</p>
-        </div>
-        <div class="grid gap-3 sm:grid-cols-3">
-          <NuxtLink
-            v-for="s in services"
-            :key="s.href"
-            :to="s.href"
-            class="flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-all hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-          >
-            <span class="text-brand-400">→</span>
-            {{ s.label }}
-          </NuxtLink>
-        </div>
-        <div class="mt-6 text-center">
-          <NuxtLink to="/services" class="text-sm font-semibold text-brand-600 hover:underline">
-            View all paper types →
-          </NuxtLink>
+    <!-- ── Guarantees ─────────────────────────────────────────────────────── -->
+    <section class="bg-slate-50 py-16">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <p class="mb-8 text-center text-xs font-bold uppercase tracking-widest text-brand-600">What's always included</p>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div v-for="g in guarantees" :key="g.title" class="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+            <div class="mb-3 text-3xl">{{ g.emoji }}</div>
+            <h3 class="font-bold text-slate-900">{{ g.title }}</h3>
+            <p class="mt-2 text-xs leading-relaxed text-slate-500">{{ g.desc }}</p>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="bg-brand-700 px-4 py-16 text-center sm:px-6 lg:px-8">
-      <h2 class="font-serif text-3xl font-bold text-white">Ready to get started?</h2>
-      <p class="mt-3 text-brand-200">Submit your brief in under 5 minutes. A subject expert is ready.</p>
-      <div class="mt-8 flex flex-wrap justify-center gap-4">
-        <NuxtLink to="/order" class="btn-primary bg-white px-10 py-4 text-base text-brand-700 hover:bg-brand-50 shadow-lg">Place my order — from $10/page</NuxtLink>
-        <NuxtLink to="/faq" class="btn-outline border-white/60 px-8 py-4 text-base text-white hover:bg-white/10">Read the FAQ first</NuxtLink>
+    <!-- ── CTA ────────────────────────────────────────────────────────────── -->
+    <section class="bg-brand-900 py-20 text-center">
+      <div class="mx-auto max-w-xl px-4">
+        <h2 class="text-3xl font-bold text-white">Ready to get started?</h2>
+        <p class="mt-4 text-brand-200">Takes 2 minutes to fill in your brief. Free quote before you pay anything.</p>
+        <a :href="app.order" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+          Start my order — from $10/page
+        </a>
+        <p class="mt-4 text-xs text-brand-300">No payment until you approve · Free revisions · Grade or money back</p>
       </div>
-    </div>
+    </section>
+
   </div>
 </template>
