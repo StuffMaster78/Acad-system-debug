@@ -1,70 +1,5 @@
 <script setup lang="ts">
-const portal = usePortalStore()
-const { getAll: getAllServices } = useServices()
-const serviceStrip = getAllServices()
-
-const stats = [
-  { value: '9,800+', label: 'Nursing papers delivered' },
-  { value: '500+',   label: 'BSN/MSN/DNP writers' },
-  { value: '4.98/5', label: 'Average rating' },
-  { value: '3 hrs',  label: 'Fastest turnaround' },
-]
-
-// Three differentiating pillars
-const pillars = [
-  {
-    icon: 'pen-line',
-    title: 'Writing',
-    desc: 'Essays, care plans, SOAP notes, capstone projects, dissertations — written from scratch by a credentialed nurse who knows the clinical context.',
-    href: '/services',
-  },
-  {
-    icon: 'monitor',
-    title: 'Tutoring',
-    desc: 'Online nursing class help — discussions, quizzes, assignments, and full course management so you can focus on your clinical rotations.',
-    href: '/services/online-nursing-classes',
-  },
-  {
-    icon: 'graduation-cap',
-    title: 'Mentoring',
-    desc: 'Nursing school admission essays, career statement reviews, and programme-specific guidance from nurses who\'ve been through the process.',
-    href: '/contact',
-  },
-]
-
-const services = [
-  { icon: 'pen-line',       title: 'Nursing Essays',       href: '/services/nursing-essays',          desc: 'Reflective, argumentative, and analytical essays grounded in evidence-based practice.' },
-  { icon: 'stethoscope',    title: 'Care Plans',           href: '/services/care-plans',              desc: 'NANDA-I diagnoses, NIC interventions, NOC outcomes — APIE formatted.' },
-  { icon: 'clipboard-list', title: 'SOAP Notes',           href: '/services/soap-notes',              desc: 'Clinically accurate S-O-A-P documentation for NP and advanced practice programmes.' },
-  { icon: 'graduation-cap', title: 'Capstone Projects',    href: '/services/capstone-projects',       desc: 'PICOT to final paper — BSN, MSN, and DNP capstone support.' },
-  { icon: 'file-text',      title: 'Research Papers',      href: '/services/nursing-research-papers', desc: 'Evidence-based nursing research, APA 7th, peer-reviewed sources.' },
-  { icon: 'network',        title: 'Concept Maps',         href: '/services/concept-maps',            desc: 'Pathophysiology to nursing diagnosis — clinical linkages clearly mapped.' },
-]
-
-const nursingSubjects = [
-  'Med-Surgical Nursing', 'Psychiatric Nursing', 'Pediatric Nursing',
-  'OB & Maternal Health', 'Critical Care / ICU', 'Community Health',
-  'Pharmacology', 'Pathophysiology', 'Family Nurse Practice',
-  'Nursing Informatics', 'Evidence-Based Practice', 'Health Assessment',
-  'Nursing Leadership', 'Public Health Nursing', 'Geriatric Nursing',
-  'Oncology Nursing', 'Emergency Nursing', 'Perioperative Care',
-]
-
-const steps = [
-  { title: 'Submit your nursing brief',     desc: 'Share your assignment type, course level, deadline, and any rubric or clinical scenario details.' },
-  { title: 'Matched with a nurse expert',   desc: 'We assign a writer whose clinical background fits your specific subject — not a generic writer.' },
-  { title: 'Track progress & communicate',  desc: 'Message your writer directly, share files, and follow progress in your dashboard.' },
-  { title: 'Download & request revisions',  desc: 'Receive your paper with a free Turnitin report. Request unlimited free revisions until satisfied.' },
-]
-
-const guarantees = [
-  { icon: 'trophy',        title: 'Grade or money back',         desc: "If the work doesn't meet your stated requirements, we'll rewrite or refund — no questions asked." },
-  { icon: 'bot',           title: 'Zero AI — human nurses only', desc: 'Every paper is written by a real nurse. We provide a free AI-detection report on request.' },
-  { icon: 'stethoscope',   title: 'Clinically accurate content', desc: 'NANDA, NIC, NOC, ADPIE, APA 7th — written by people who use these frameworks in practice.' },
-  { icon: 'lock',          title: 'Your privacy protected',      desc: 'We never share your name, order details, or school with any third party.' },
-  { icon: 'refresh-cw',   title: 'Unlimited free revisions',    desc: 'Within the revision window, request as many changes as you need at zero extra cost.' },
-  { icon: 'zap',           title: 'As fast as 3 hours',          desc: 'Need it tonight? We can deliver most nursing papers within 3 hours for urgent orders.' },
-]
+const app = useAppUrl()
 
 useSeoMeta({
   title: 'Nursing Paper Writing Service — BSN, MSN & DNP Writers | NurseMyGrade',
@@ -72,270 +7,331 @@ useSeoMeta({
   ogTitle: 'NurseMyGrade — Nursing Papers Written by Real Nurses',
   ogDescription: 'SOAP notes, care plans, capstone projects, nursing essays — written by BSN/MSN/DNP experts. Grade or money back. Free Turnitin report.',
 })
-
 useHead({
   link: [{ rel: 'canonical', href: 'https://nursemygrade.com/' }],
   script: [{
     type: 'application/ld+json',
     innerHTML: JSON.stringify({
       '@context': 'https://schema.org',
-      '@type': ['ProfessionalService', 'Organization'],
+      '@type': 'ProfessionalService',
       name: 'NurseMyGrade',
-      description: 'Nursing paper writing service staffed by BSN, MSN, and DNP credentialed nurses.',
+      description: 'Nursing paper writing service by BSN, MSN and DNP specialists.',
       url: 'https://nursemygrade.com',
-      logo: 'https://nursemygrade.com/favicon.svg',
-      priceRange: '$24–$50 per page',
-      contactPoint: {
-        '@type': 'ContactPoint',
-        contactType: 'customer support',
-        availableLanguage: 'English',
-        hoursAvailable: 'Mo-Su 00:00-24:00',
-      },
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: '4.98',
-        reviewCount: '9800',
-        bestRating: '5',
-        worstRating: '1',
-      },
-      hasOfferCatalog: {
-        '@type': 'OfferCatalog',
-        name: 'Nursing Writing Services',
-        itemListElement: [
-          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Nursing Care Plans' } },
-          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'SOAP Notes' } },
-          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Nursing Capstone Projects' } },
-          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Shadow Health DCEs' } },
-        ],
-      },
+      priceRange: '$24–$60 per page',
+      aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.98', reviewCount: '9800' },
     }),
   }],
 })
+
+const stats = [
+  { value: '9,800+',  label: 'Nursing papers delivered',  note: 'By credentialed nurses' },
+  { value: '500+',    label: 'BSN/MSN/DNP writers',        note: 'Clinically verified' },
+  { value: '4.98/5',  label: 'Average rating',             note: 'Highest in class' },
+  { value: '3 hrs',   label: 'Fastest turnaround',         note: 'For urgent orders' },
+]
+
+const pillars = [
+  {
+    emoji: '✍️',
+    title: 'Nursing Writing',
+    headline: 'Written by nurses who've done it.',
+    body: 'Essays, care plans, SOAP notes, PICOT papers, capstone projects, dissertations — written from scratch by a credentialed nurse who knows the clinical context, the NANDA diagnoses, and what your faculty expects.',
+    href: '/services',
+  },
+  {
+    emoji: '🖥️',
+    title: 'Online Class Help',
+    headline: 'We handle the coursework. You handle clinicals.',
+    body: 'Discussions, quizzes, assignments, and full course management for online nursing programmes. Handled by BSN/MSN specialists who know the curriculum.',
+    href: '/services/online-nursing-classes',
+  },
+  {
+    emoji: '🎓',
+    title: 'Mentoring',
+    headline: 'Into nursing school. Into your career.',
+    body: 'Nursing school admission essays, career statement reviews, and programme-specific guidance from nurses who have navigated the process themselves.',
+    href: '/contact',
+  },
+]
+
+const services = [
+  { emoji: '📋', title: 'Care Plans',        href: '/services/care-plans',              badge: 'Most requested', desc: 'NANDA-I diagnoses, NIC interventions, NOC outcomes — ADPIE formatted and clinically grounded.' },
+  { emoji: '📝', title: 'SOAP Notes',        href: '/services/soap-notes',              badge: null,             desc: 'Accurate S-O-A-P documentation for NP and advanced practice programmes.' },
+  { emoji: '🏥', title: 'Nursing Essays',    href: '/services/nursing-essays',          badge: null,             desc: 'Reflective, argumentative, and EBP essays grounded in current nursing science.' },
+  { emoji: '🎯', title: 'Capstone Projects', href: '/services/capstone-projects',       badge: 'Full support',   desc: 'PICOT to final paper — BSN, MSN, and DNP capstone support from start to submission.' },
+  { emoji: '🔬', title: 'Research Papers',   href: '/services/nursing-research-papers', badge: null,             desc: 'Evidence-based nursing research, APA 7th, peer-reviewed nursing journals.' },
+  { emoji: '🌐', title: 'Concept Maps',      href: '/services/concept-maps',            badge: null,             desc: 'Pathophysiology to nursing diagnosis — clinical linkages clearly mapped.' },
+]
+
+const nursingAreas = [
+  'Med-Surgical', 'Psychiatric Nursing', 'Pediatric Nursing', 'OB & Maternal Health',
+  'Critical Care / ICU', 'Community Health', 'Pharmacology', 'Pathophysiology',
+  'Family Nurse Practice', 'Nursing Informatics', 'Evidence-Based Practice',
+  'Health Assessment', 'Nursing Leadership', 'Geriatric Nursing', 'Oncology',
+  'Emergency Nursing', 'Public Health', 'Perioperative Care',
+]
+
+const steps = [
+  { n: '01', title: 'Submit your nursing brief',    desc: 'Assignment type, course level, deadline, rubric, clinical scenario — the more detail, the better the match.' },
+  { n: '02', title: 'Matched with your nurse',      desc: 'Your order goes to a writer whose clinical background fits your subject — not a random academic.' },
+  { n: '03', title: 'Communicate directly',         desc: 'Message your writer, share additional files, and track progress. Direct access, no ticket queue.' },
+  { n: '04', title: 'Download + free revisions',    desc: 'Receive your paper with a free Turnitin report. Unlimited free revisions until you are satisfied.' },
+]
+
+const guarantees = [
+  { emoji: '🏆', title: 'Grade or money back',           desc: "If the work doesn't meet your stated requirements, we'll rewrite or refund — no questions asked." },
+  { emoji: '🤖', title: 'Zero AI — human nurses only',   desc: 'Every paper is written by a real nurse. We provide a free AI-detection report on request.' },
+  { emoji: '🩺', title: 'Clinically accurate content',   desc: 'NANDA, NIC, NOC, ADPIE, APA 7th — written by practitioners who use these frameworks in their work.' },
+  { emoji: '🔒', title: 'Your privacy protected',        desc: 'Your name, order details, and school are never shared with any third party.' },
+  { emoji: '🔁', title: 'Unlimited free revisions',      desc: 'Within the revision window, as many changes as you need at zero extra cost.' },
+  { emoji: '⚡', title: 'As fast as 3 hours',            desc: 'Need it tonight? We can deliver most nursing papers within 3 hours for urgent orders.' },
+]
+
+const testimonials = [
+  {
+    initials: 'SK', name: 'Sarah K.', program: 'BSN, 3rd year', grade: 'A',
+    quote: "My Med-Surg care plan was wrong from the start — wrong NANDA diagnoses, wrong interventions. My writer rebuilt the whole thing in 6 hours. She clearly knew what she was doing.",
+  },
+  {
+    initials: 'MT', name: 'Marcus T.', program: 'MSN, Family NP', grade: 'A+',
+    quote: "SOAP notes for NP school are a completely different level. The writer nailed the clinical reasoning and pharmacological plan. I learned from reading it back.",
+  },
+  {
+    initials: 'AO', name: 'Amina O.', program: 'DNP capstone', grade: 'A',
+    quote: "I was stuck on my PICOT question for three weeks. They turned it into a full literature review framework in 48 hours. Genuine DNP-level thinking.",
+  },
+]
 </script>
 
 <template>
-  <!-- ─── Hero ─────────────────────────────────────────────────────────── -->
-  <section class="relative overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600 py-20 sm:py-28">
-    <div class="section relative z-10">
+  <AnnouncementBar />
+
+  <!-- ─── Hero ─────────────────────────────────────────────────────────────── -->
+  <section class="relative overflow-hidden bg-brand-900 py-20 sm:py-28">
+    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+    <div class="pointer-events-none absolute -top-32 right-0 h-[500px] w-[500px] rounded-full bg-brand-600 opacity-15 blur-[130px]" />
+    <div class="pointer-events-none absolute bottom-0 -left-20 h-64 w-64 rounded-full bg-teal-400 opacity-10 blur-3xl" />
+
+    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="grid items-center gap-12 lg:grid-cols-2">
 
-        <!-- Left: copy -->
-        <div>
-          <div class="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm text-white ring-1 ring-white/20">
-            <span class="inline-block h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
-            <span><strong>38 nursing writers</strong> online now · From <strong>$24/page</strong></span>
+        <div class="max-w-xl">
+          <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-brand-200 backdrop-blur-sm">
+            <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+            <span>38 nursing writers online now · from <strong class="text-white">$24/page</strong></span>
           </div>
 
-          <h1 class="font-serif text-4xl font-bold leading-tight text-white sm:text-5xl">
-            Nursing papers written by<br class="hidden sm:block" />
-            <span class="text-brand-300">BSN, MSN &amp; DNP experts</span>
+          <h1 class="text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-[3.25rem]">
+            Nursing papers written<br class="hidden sm:block" />
+            <span class="text-brand-300">by real nurses.</span>
           </h1>
-          <p class="mt-5 text-lg text-brand-100 leading-relaxed">
-            Care plans, SOAP notes, capstone projects, nursing essays — written by nurses who know the clinical context. Not generic writers. Real nurses.
+
+          <p class="mt-6 text-lg leading-relaxed text-brand-200">
+            Care plans, SOAP notes, PICOT papers, capstone projects, nursing essays — written by BSN, MSN, and DNP specialists who know the clinical context. Not generic writers. Real nurses.
           </p>
 
-          <div class="mt-8 flex flex-wrap gap-4">
-            <NuxtLink to="/order" class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-8 py-3.5 text-base shadow-lg">
-              Place your order
-            </NuxtLink>
-            <NuxtLink href="/pricing" class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-3.5 text-base">
-              See pricing
-            </NuxtLink>
+          <div class="mt-4 flex flex-wrap gap-3 text-sm text-brand-300">
+            <span class="flex items-center gap-1.5"><span class="text-brand-400">🩺</span> NANDA/ADPIE accurate</span>
+            <span class="text-brand-700">·</span>
+            <span>✦ From $24/page</span>
+            <span class="text-brand-700">·</span>
+            <span>✦ Grade or money back</span>
           </div>
 
-          <div class="mt-8">
+          <div class="mt-7 flex flex-wrap gap-3">
+            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+              Place my order
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+            </a>
+            <a href="/pricing" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10">
+              See pricing
+            </a>
+          </div>
+
+          <div class="mt-7 border-t border-white/10 pt-5">
             <TrustBadges />
           </div>
         </div>
 
-        <!-- Right: order form -->
-        <div class="lg:pl-8">
+        <div>
           <MultiStepOrderForm />
         </div>
 
       </div>
     </div>
-    <div class="absolute -top-20 -right-20 h-96 w-96 rounded-full bg-brand-400 opacity-20 blur-3xl pointer-events-none" />
-    <div class="absolute -bottom-20 -left-20 h-96 w-96 rounded-full bg-teal-200 opacity-10 blur-3xl pointer-events-none" />
   </section>
 
-  <!-- ─── Stats ─────────────────────────────────────────────────────────── -->
-  <section class="border-b border-slate-100 bg-white py-10">
-    <div class="section py-0">
-      <div class="grid grid-cols-2 gap-6 text-center md:grid-cols-4">
-        <div v-for="stat in stats" :key="stat.label">
-          <div class="text-3xl font-bold text-brand-700">{{ stat.value }}</div>
-          <div class="mt-1 text-sm text-slate-500">{{ stat.label }}</div>
+  <!-- ─── Stats ─────────────────────────────────────────────────────────────── -->
+  <section class="border-y border-slate-100 bg-white">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-2 divide-x divide-y divide-slate-100 md:grid-cols-4 md:divide-y-0">
+        <div v-for="stat in stats" :key="stat.label" class="flex flex-col items-center py-8 px-6 text-center">
+          <span class="text-3xl font-extrabold tabular-nums text-brand-700">{{ stat.value }}</span>
+          <span class="mt-1 text-sm font-semibold text-slate-800">{{ stat.label }}</span>
+          <span class="mt-0.5 text-xs text-slate-400">{{ stat.note }}</span>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── Scrollable service strip ───────────────────────────────────── -->
-  <section class="border-b border-slate-100 bg-white py-8">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="mb-5 flex items-center justify-between">
-        <p class="text-sm font-semibold text-slate-600">All nursing services — tap to explore</p>
-        <NuxtLink href="/services" class="text-xs font-semibold text-brand-600 hover:underline">View all →</NuxtLink>
-      </div>
-      <div class="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2" style="scrollbar-width: none;">
-        <NuxtLink
-          v-for="s in serviceStrip"
-          :key="s.slug"
-          :href="`/services/${s.slug}`"
-          class="group snap-start shrink-0 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 transition-colors hover:border-brand-200 hover:bg-brand-50 w-52"
-        >
-          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 transition-colors group-hover:bg-brand-600">
-            <Icon :name="s.icon" class="h-4 w-4 text-brand-600 transition-colors group-hover:text-white" />
-          </div>
-          <div class="min-w-0">
-            <p class="truncate text-xs font-semibold text-slate-800 group-hover:text-brand-700">{{ s.navLabel }}</p>
-            <p class="text-xs text-brand-600">from ${{ s.priceFrom }}/page</p>
-          </div>
-        </NuxtLink>
-      </div>
-    </div>
-  </section>
-
-  <!-- ─── Three Pillars ────────────────────────────────────────────────── -->
+  <!-- ─── Three pillars ─────────────────────────────────────────────────────── -->
   <section class="bg-brand-50 py-20">
-    <div class="section py-0">
-      <div class="text-center">
-        <h2 class="section-heading">Writing. Tutoring. Mentoring.</h2>
-        <p class="section-sub">Three ways we help nursing students succeed — pick what fits your situation.</p>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-14 text-center">
+        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Everything you need to pass</p>
+        <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl">Nursing school is hard enough.<br class="hidden sm:block" /> Your assignments don't have to be.</h2>
       </div>
-      <div class="mt-12 grid gap-8 md:grid-cols-3">
-        <NuxtLink
-          v-for="p in pillars"
-          :key="p.title"
-          :href="p.href"
-          class="card group flex flex-col transition-shadow hover:shadow-lg hover:border-brand-300"
+      <div class="grid gap-8 md:grid-cols-3">
+        <a
+          v-for="p in pillars" :key="p.title" :href="p.href"
+          class="group relative overflow-hidden rounded-2xl border border-brand-100 bg-white p-8 shadow-sm transition-shadow hover:shadow-md"
         >
-          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100 transition-colors group-hover:bg-brand-600">
-            <Icon :name="p.icon" class="h-6 w-6 text-brand-600 transition-colors group-hover:text-white" />
-          </div>
-          <h3 class="mt-4 text-xl font-bold text-brand-700 transition-colors group-hover:text-brand-900">{{ p.title }}</h3>
-          <p class="mt-3 flex-1 text-sm leading-relaxed text-slate-600">{{ p.desc }}</p>
-          <span class="mt-4 text-xs font-semibold text-brand-600 group-hover:underline">Learn more →</span>
-        </NuxtLink>
+          <div class="mb-4 text-4xl">{{ p.emoji }}</div>
+          <p class="text-xs font-bold uppercase tracking-widest text-brand-600">{{ p.title }}</p>
+          <h3 class="mt-2 text-lg font-bold text-slate-900">{{ p.headline }}</h3>
+          <p class="mt-3 text-sm leading-relaxed text-slate-500">{{ p.body }}</p>
+          <span class="mt-5 block text-xs font-semibold text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">Learn more →</span>
+          <div class="pointer-events-none absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-brand-50 transition-transform group-hover:scale-150" />
+        </a>
       </div>
     </div>
   </section>
 
-  <!-- ─── Writer Showcase ───────────────────────────────────────────────── -->
+  <!-- ─── Writer showcase ───────────────────────────────────────────────────── -->
   <WriterShowcase />
 
-  <!-- ─── Nursing Services Grid ───────────────────────────────────────── -->
-  <section class="bg-slate-50">
-    <div class="section">
-      <div class="text-center">
-        <h2 class="section-heading">Every nursing paper type covered</h2>
-        <p class="section-sub">From first-year essays to DNP dissertations — we've got the right nurse for the job.</p>
+  <!-- ─── Services ─────────────────────────────────────────────────────────── -->
+  <section class="bg-white py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-12 flex items-end justify-between">
+        <div>
+          <p class="mb-2 text-xs font-bold uppercase tracking-widest text-brand-600">Every nursing assignment type</p>
+          <h2 class="text-3xl font-bold text-slate-900">What we write.</h2>
+        </div>
+        <a href="/services" class="hidden text-sm font-semibold text-brand-600 hover:underline sm:block">All services →</a>
       </div>
-      <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <NuxtLink
-          v-for="svc in services"
-          :key="svc.title"
-          :href="svc.href"
-          class="card group flex flex-col transition-shadow hover:shadow-md hover:border-brand-200"
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <a
+          v-for="svc in services" :key="svc.title" :href="svc.href"
+          class="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
         >
-          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-100 transition-colors group-hover:bg-brand-600">
-            <Icon :name="svc.icon" class="h-5 w-5 text-brand-600 transition-colors group-hover:text-white" />
-          </div>
-          <h3 class="mt-4 font-semibold text-slate-900 transition-colors group-hover:text-brand-700">{{ svc.title }}</h3>
-          <p class="mt-2 flex-1 text-sm leading-relaxed text-slate-600">{{ svc.desc }}</p>
-          <span class="mt-3 text-xs font-medium text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">Order now →</span>
-        </NuxtLink>
+          <div v-if="svc.badge" class="absolute right-4 top-4 rounded-full bg-brand-100 px-2.5 py-0.5 text-[11px] font-bold text-brand-700">{{ svc.badge }}</div>
+          <div class="mb-3 text-2xl">{{ svc.emoji }}</div>
+          <h3 class="font-bold text-slate-900 transition-colors group-hover:text-brand-700">{{ svc.title }}</h3>
+          <p class="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{{ svc.desc }}</p>
+          <span class="mt-4 text-xs font-semibold text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">Learn more →</span>
+        </a>
       </div>
-
-      <!-- Nursing subjects pill cloud -->
-      <div class="mt-10 flex flex-wrap justify-center gap-2">
-        <span
-          v-for="sub in nursingSubjects"
-          :key="sub"
-          class="rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
-        >{{ sub }}</span>
-        <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">+30 more</span>
-      </div>
-      <div class="mt-10 text-center">
-        <NuxtLink href="/services" class="btn-outline">View all nursing services</NuxtLink>
+      <div class="mt-10 flex flex-wrap gap-2">
+        <span v-for="area in nursingAreas" :key="area" class="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100">{{ area }}</span>
+        <span class="rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs text-slate-400">+ all specialisms</span>
       </div>
     </div>
   </section>
 
-  <!-- ─── How it works ──────────────────────────────────────────────────── -->
-  <section class="bg-white">
-    <div class="section">
-      <div class="text-center">
-        <h2 class="section-heading">How it works</h2>
-        <p class="section-sub">From brief to finished nursing paper — in four simple steps.</p>
+  <!-- ─── How it works ──────────────────────────────────────────────────────── -->
+  <section class="bg-slate-50 py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-14 text-center">
+        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Simple process</p>
+        <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl">Submit your brief. Receive your paper. Pass.</h2>
       </div>
-      <ol class="mt-12 grid gap-8 md:grid-cols-4">
-        <li v-for="(step, i) in steps" :key="step.title" class="flex flex-col items-center text-center">
-          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-700 text-lg font-bold text-white shadow-md">
-            {{ i + 1 }}
+      <div class="hidden md:block">
+        <div class="relative grid grid-cols-4">
+          <div class="absolute top-7 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-brand-300 via-brand-500 to-brand-300" />
+          <div v-for="step in steps" :key="step.n" class="flex flex-col items-center px-4 text-center">
+            <div class="relative z-10 mb-6 flex size-14 items-center justify-center rounded-full border-4 border-brand-100 bg-white shadow-md">
+              <span class="text-lg font-extrabold text-brand-700">{{ step.n }}</span>
+            </div>
+            <h3 class="text-sm font-bold text-slate-900">{{ step.title }}</h3>
+            <p class="mt-2 text-xs leading-relaxed text-slate-500">{{ step.desc }}</p>
           </div>
-          <h3 class="font-semibold text-slate-900">{{ step.title }}</h3>
-          <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ step.desc }}</p>
-        </li>
-      </ol>
+        </div>
+      </div>
+      <div class="space-y-4 md:hidden">
+        <div v-for="step in steps" :key="step.n" class="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-sm font-extrabold text-brand-700">{{ step.n }}</div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">{{ step.title }}</h3>
+            <p class="mt-1 text-sm text-slate-500">{{ step.desc }}</p>
+          </div>
+        </div>
+      </div>
       <div class="mt-12 text-center">
-        <NuxtLink to="/order" class="btn-primary">Start your order now</NuxtLink>
+        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-8 py-3.5 text-sm font-bold text-white shadow transition-colors hover:bg-brand-800">
+          Start my order now
+        </a>
       </div>
     </div>
   </section>
 
-  <!-- ─── Guarantees ────────────────────────────────────────────────────── -->
-  <section class="bg-brand-900">
-    <div class="section">
-      <div class="text-center">
-        <h2 class="font-serif text-3xl font-bold text-white sm:text-4xl">Our guarantees</h2>
-        <p class="mt-4 text-brand-200">We put our reputation behind every nursing order.</p>
+  <!-- ─── Guarantees ────────────────────────────────────────────────────────── -->
+  <section class="bg-brand-900 py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-12 text-center">
+        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-300">Every nursing order</p>
+        <h2 class="text-3xl font-bold text-white sm:text-4xl">What every paper includes.</h2>
+        <p class="mt-3 text-brand-300">Not extras. Standard.</p>
       </div>
-      <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <div v-for="g in guarantees" :key="g.title" class="rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition-colors hover:bg-white/10">
-          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
-            <Icon :name="g.icon" class="h-5 w-5 text-white" />
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-for="g in guarantees" :key="g.title" class="flex gap-4 rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition-colors hover:bg-white/10">
+          <div class="text-2xl">{{ g.emoji }}</div>
+          <div>
+            <h3 class="font-semibold text-white">{{ g.title }}</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-brand-200">{{ g.desc }}</p>
           </div>
-          <h3 class="mt-3 font-semibold text-white">{{ g.title }}</h3>
-          <p class="mt-2 text-sm text-brand-200 leading-relaxed">{{ g.desc }}</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── Writing Services We Offer ──────────────────────────────────── -->
-  <WritingServicesGrid />
+  <!-- ─── Testimonials ──────────────────────────────────────────────────────── -->
+  <section class="bg-white py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-12 text-center">
+        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Clinical results</p>
+        <h2 class="text-3xl font-bold text-slate-900">Nurses writing for nursing students.</h2>
+      </div>
+      <div class="grid gap-6 md:grid-cols-3">
+        <div v-for="t in testimonials" :key="t.name" class="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-7">
+          <div class="absolute right-5 top-5 flex size-12 items-center justify-center rounded-full border-2 border-brand-300 bg-brand-50 text-xl font-extrabold text-brand-700">{{ t.grade }}</div>
+          <p class="text-xs font-bold text-brand-600">{{ t.program }}</p>
+          <blockquote class="mt-3 pr-14 text-sm italic leading-relaxed text-slate-700">"{{ t.quote }}"</blockquote>
+          <div class="mt-5 flex items-center gap-3 border-t border-slate-200 pt-4">
+            <div class="flex size-8 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">{{ t.initials }}</div>
+            <p class="text-xs font-bold text-slate-800">{{ t.name }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <!-- ─── Deep content tabs ───────────────────────────────────────────── -->
-  <NursingContentTabs />
-
-  <!-- ─── Testimonials ──────────────────────────────────────────────────── -->
-  <TestimonialsSection />
-
-  <!-- ─── FAQ ───────────────────────────────────────────────────────────── -->
+  <!-- ─── FAQ ─────────────────────────────────────────────────────────────── -->
   <HomeFaq />
 
-  <!-- ─── Final CTA ─────────────────────────────────────────────────────── -->
-  <section class="bg-brand-600 py-20">
-    <div class="section py-0 text-center">
-      <h2 class="font-serif text-3xl font-bold text-white sm:text-4xl">
-        Your deadline is waiting. Let's nurse your grade.
-      </h2>
-      <p class="mt-4 text-brand-100 text-lg">
-        Tell us what you need. We'll match you with the right nurse expert in minutes.
-      </p>
+  <!-- ─── Final CTA ───────────────────────────────────────────────────────── -->
+  <section class="relative overflow-hidden bg-gradient-to-br from-brand-800 to-brand-900 py-20">
+    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
+    <div class="pointer-events-none absolute -top-20 right-0 h-64 w-64 rounded-full bg-brand-500 opacity-15 blur-[80px]" />
+    <div class="relative z-10 mx-auto max-w-3xl px-4 text-center sm:px-6">
+      <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">Nurses ready to help</p>
+      <h2 class="text-3xl font-bold text-white sm:text-4xl">Your next assignment deserves a nurse who's been there.</h2>
+      <p class="mt-5 text-lg text-brand-200">Submit your brief. We'll match you with the right clinical specialist in minutes.</p>
       <div class="mt-10 flex flex-wrap justify-center gap-4">
-        <NuxtLink to="/order" class="btn-primary bg-white text-brand-700 hover:bg-brand-50 px-10 py-4 text-base shadow-lg">
-          Place your order — from $24/page
-        </NuxtLink>
-        <NuxtLink href="/contact" class="btn-outline border-white/60 text-white hover:bg-white/10 px-8 py-4 text-base">
+        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+          Place my order — from $24/page
+          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+        </a>
+        <a href="/contact" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10">
           Talk to us first
-        </NuxtLink>
+        </a>
       </div>
-      <p class="mt-6 text-sm text-brand-200">
-        24/7 support · 3-hour minimum turnaround · Free Turnitin report · Grade or money back
-      </p>
+      <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-brand-300">
+        <span>✓ BSN/MSN/DNP verified writers</span>
+        <span>✓ NANDA/ADPIE accurate</span>
+        <span>✓ Grade or full refund</span>
+        <span>✓ Free Turnitin report</span>
+      </div>
     </div>
   </section>
 </template>
