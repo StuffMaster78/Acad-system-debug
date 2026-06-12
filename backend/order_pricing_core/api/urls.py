@@ -42,6 +42,9 @@ from order_pricing_core.api.views.pricing_snapshot_views import (
 from order_pricing_core.api.views.public_estimate_views import (
     PublicPaperEstimateView,
 )
+from order_pricing_core.api.views.public_config_views import (
+    PublicPricingConfigView,
+)
 from order_pricing_core.api.views.pricing_config_views import (
     AcademicLevelRateDetailView,
     AcademicLevelRateListCreateView,
@@ -71,6 +74,11 @@ from order_pricing_core.api.views.service_catalog_views import (
 )
 
 urlpatterns = [
+    path(
+        "public/config/",
+        PublicPricingConfigView.as_view(),
+        name="public-pricing-config",
+    ),
     path(
         "public/estimate/",
         PublicPaperEstimateView.as_view(),

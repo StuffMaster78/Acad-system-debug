@@ -223,6 +223,8 @@ function applyConfigDefaults() {
   form.writer_level_id ??= config.collections.writerLevels[0]?.id ?? null;
 }
 
+// Shorthand keys kept for backwards-compat with old marketing links.
+// New calculator passes max_hours directly as a numeric string.
 const DEADLINE_HOURS: Record<string, number> = {
   '14d': 336, '7d': 168, '5d': 120, '3d': 72, '24h': 24, '12h': 12, '6h': 6,
 };
@@ -230,11 +232,14 @@ const DEADLINE_HOURS: Record<string, number> = {
 // Marketing-site keys → ordered candidate names in the portal's config.
 // Exact match wins; falls back to starts-with so "Bachelor's" matches "Bachelor".
 const LEVEL_NAMES: Record<string, string[]> = {
+  // Backend AcademicLevelRate codes (from seed_pricing_defaults)
   high_school:   ['High School'],
-  undergrad_1_2: ['College'],
-  undergrad_3_4: ["Bachelor's", 'Undergraduate'],
+  undergrad:     ['Undergraduate', "Bachelor's", 'College'],
   masters:       ["Master's"],
   phd:           ['PhD', 'Doctorate'],
+  // Legacy keys from old static usePricing.ts constants
+  undergrad_1_2: ['College'],
+  undergrad_3_4: ["Bachelor's", 'Undergraduate'],
 };
 const TYPE_NAMES: Record<string, string[]> = {
   // Keys from the marketing calculator (usePricing.ts PAPER_TYPES)
@@ -289,8 +294,10 @@ function applyUrlParams() {
     if (id !== null) form.paper_type_id = id;
   }
 
-  const hours = DEADLINE_HOURS[String(q.deadline ?? '')];
-  if (hours) {
+  const deadlineRaw = String(q.deadline ?? '');
+  // Accept either a shorthand key ('14d', '24h') or numeric hours ('336', '24').
+  const hours = DEADLINE_HOURS[deadlineRaw] ?? (parseInt(deadlineRaw, 10) || 0);
+  if (hours > 0) {
     form.client_deadline = new Date(Date.now() + hours * 3600 * 1000).toISOString().slice(0, 16);
   }
 }
