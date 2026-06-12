@@ -58,31 +58,29 @@ useHead({
 <template>
   <div>
     <!-- Hero -->
-    <section class="bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600 py-20 text-center">
-      <div class="section py-0">
-        <div class="mx-auto max-w-3xl">
-          <span class="mb-6 inline-block rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-brand-200 ring-1 ring-white/20">
-            9 paper types · 100+ subjects covered
-          </span>
-          <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">
-            Every academic paper type,<br class="hidden sm:block" /> covered by real experts
-          </h1>
-          <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-brand-100">
-            From first-year essays to PhD dissertations — written by Master's and PhD-qualified specialists who know your subject and the academic standards behind it.
-          </p>
-          <div class="mt-8 flex flex-wrap justify-center gap-4">
-            <NuxtLink to="/order" class="btn-primary bg-white px-8 py-3.5 text-base text-brand-700 shadow-lg hover:bg-brand-50">
-              Place an order — from $15/page
-            </NuxtLink>
-            <NuxtLink to="/pricing" class="btn-outline border-white/60 px-8 py-3.5 text-base text-white hover:bg-white/10">
-              See pricing
-            </NuxtLink>
-          </div>
-          <ul class="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-brand-200">
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Grade or money back</li>
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Free Turnitin report</li>
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> 2-hour minimum turnaround</li>
-          </ul>
+    <section class="relative overflow-hidden bg-brand-900 py-20 text-center">
+      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <div class="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-brand-600 opacity-20 blur-[100px]" />
+      <div class="relative mx-auto max-w-3xl px-4 sm:px-6">
+        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">9 service types · 100+ subjects</p>
+        <h1 class="text-4xl font-bold text-white sm:text-5xl">
+          Every paper type.<br class="hidden sm:block" /> Every subject. Real experts.
+        </h1>
+        <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-brand-200">
+          From first-year essays to PhD dissertations — written by verified Master's and PhD specialists who understand your subject and your marker's expectations.
+        </p>
+        <div class="mt-8 flex flex-wrap justify-center gap-4">
+          <NuxtLink to="/order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+            Place an order — from $15/page
+          </NuxtLink>
+          <NuxtLink to="/pricing" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10">
+            See pricing
+          </NuxtLink>
+        </div>
+        <div class="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-brand-300">
+          <span>✓ Grade or money back</span>
+          <span>✓ Free Turnitin report</span>
+          <span>✓ Zero AI content</span>
         </div>
       </div>
     </section>
@@ -203,30 +201,24 @@ useHead({
       </div>
     </section>
 
-    <!-- Calculator -->
-    <section class="bg-slate-50">
-      <div class="section max-w-2xl">
-        <h2 class="section-heading text-center">Get your instant quote</h2>
-        <p class="section-sub text-center">Pick your level and deadline — see your price in seconds.</p>
-        <div class="mt-10">
-          <ClientOnly>
-            <OrderCalculator />
-            <template #fallback><div class="h-72 animate-pulse rounded-2xl bg-slate-200" /></template>
-          </ClientOnly>
-        </div>
+    <!-- Order form -->
+    <section class="bg-brand-50 py-16">
+      <div class="mx-auto max-w-2xl px-4 sm:px-6">
+        <p class="mb-6 text-center text-xs font-bold uppercase tracking-widest text-brand-600">Get your instant quote</p>
+        <MultiStepOrderForm />
       </div>
     </section>
 
     <!-- CTA -->
-    <section class="bg-brand-700 py-16 text-center">
+    <section class="bg-brand-900 py-16 text-center">
       <div class="mx-auto max-w-2xl px-4">
-        <h2 class="font-serif text-3xl font-bold text-white">Not sure what you need?</h2>
-        <p class="mt-4 text-lg text-brand-200">Describe your assignment and we'll match you with the right subject expert in minutes.</p>
+        <h2 class="text-3xl font-bold text-white">Not sure what you need?</h2>
+        <p class="mt-4 text-brand-200">Describe your assignment and we'll match you with the right subject expert in minutes.</p>
         <div class="mt-8 flex flex-wrap justify-center gap-4">
-          <NuxtLink to="/order" class="btn-primary bg-white px-10 py-4 text-base text-brand-700 shadow-lg hover:bg-brand-50">
+          <NuxtLink to="/order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
             Start your order — from $15/page
           </NuxtLink>
-          <NuxtLink to="/contact" class="btn-outline border-white/60 px-8 py-4 text-base text-white hover:bg-white/10">
+          <NuxtLink to="/contact" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
             Ask us first
           </NuxtLink>
         </div>

@@ -78,31 +78,27 @@ useHead({
     </div>
 
     <!-- Hero -->
-    <section class="bg-gradient-to-br from-brand-900 to-brand-700 py-20">
-      <div class="section py-0">
-        <div class="mx-auto max-w-3xl text-center">
-          <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20">
-            <Icon :name="displayIcon" class="h-9 w-9 text-white" />
-          </div>
-          <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">
-            {{ displayHero.headline }}
-          </h1>
-          <p v-if="displayHero.sub" class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-brand-100">
-            {{ displayHero.sub }}
-          </p>
-          <div class="mt-8 flex flex-wrap justify-center gap-4">
-            <NuxtLink to="/order" class="btn-primary bg-white px-8 py-3.5 text-base text-brand-700 shadow-lg hover:bg-brand-50">
-              Order from ${{ displayPrice }}/page
-            </NuxtLink>
-            <NuxtLink to="/pricing" class="btn-outline border-white/60 px-8 py-3.5 text-base text-white hover:bg-white/10">
-              See full pricing
-            </NuxtLink>
-          </div>
-          <ul class="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-brand-200">
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Grade or money back</li>
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Master's &amp; PhD writers</li>
-            <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Free Turnitin report</li>
-          </ul>
+    <section class="relative overflow-hidden bg-brand-900 py-20 text-center">
+      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <div class="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-brand-600 opacity-20 blur-[80px]" />
+      <div class="relative mx-auto max-w-3xl px-4 sm:px-6">
+        <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+          <Icon :name="displayIcon" class="h-7 w-7 text-white" />
+        </div>
+        <h1 class="text-4xl font-bold text-white sm:text-5xl">{{ displayHero.headline }}</h1>
+        <p v-if="displayHero.sub" class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-brand-200">{{ displayHero.sub }}</p>
+        <div class="mt-8 flex flex-wrap justify-center gap-4">
+          <NuxtLink to="/order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+            Order from ${{ displayPrice }}/page
+          </NuxtLink>
+          <NuxtLink to="/pricing" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10">
+            See full pricing
+          </NuxtLink>
+        </div>
+        <div class="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-brand-300">
+          <span>✓ Grade or money back</span>
+          <span>✓ Master's &amp; PhD writers</span>
+          <span>✓ Free Turnitin report</span>
         </div>
       </div>
     </section>
@@ -250,13 +246,7 @@ useHead({
 
         <!-- Right: sticky sidebar -->
         <div class="lg:sticky lg:top-24 lg:self-start space-y-5">
-          <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-            <p class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Get an instant quote</p>
-            <ClientOnly>
-              <SidebarCalculator />
-              <template #fallback><div class="h-48 animate-pulse rounded-xl bg-slate-100" /></template>
-            </ClientOnly>
-          </div>
+          <MultiStepOrderForm />
           <div class="rounded-2xl bg-brand-900 p-5 text-center text-white">
             <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
               <Icon name="graduation-cap" class="h-6 w-6 text-white" />
