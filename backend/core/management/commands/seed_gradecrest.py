@@ -1,12 +1,19 @@
 """
-Management command to seed researchpapermate.com as a client portal tenant.
+Management command to seed gradecrest.com as a client portal tenant.
 
 Run once per environment:
-    python manage.py seed_researchpapermate
-    python manage.py seed_researchpapermate --domain https://researchpapermate.com
-    python manage.py seed_researchpapermate --domain http://localhost:3000  # dev
+    python manage.py seed_gradecrest
+    python manage.py seed_gradecrest --domain https://gradecrest.com
+    python manage.py seed_gradecrest --domain http://localhost:5174  # dev
 
 This is safe to re-run — all creates use update_or_create.
+
+What it seeds:
+  1. Website          gradecrest.com (or --domain)
+  2. WebsiteBranding  brand identity + payment disclosure
+  3. PortalDefinition client_portal (ensures it exists; does not change its domain
+                      — the middleware resolves app.gradecrest.com via parent-domain
+                      fallback so no explicit portal domain mapping is needed)
 """
 from __future__ import annotations
 
@@ -14,34 +21,34 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Seed researchpapermate.com Website, WebsiteBranding, and client PortalDefinition."
+    help = "Seed gradecrest.com Website, WebsiteBranding, and client PortalDefinition."
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--domain",
-            default="https://researchpapermate.com",
-            help="Primary domain for the website record (default: https://researchpapermate.com)",
+            default="https://gradecrest.com",
+            help="Marketing domain for the website record (default: https://gradecrest.com)",
         )
         parser.add_argument(
             "--app-domain",
-            default="https://app.researchpapermate.com",
-            help="Dashboard subdomain for the client portal (default: https://app.researchpapermate.com)",
+            default="https://app.gradecrest.com",
+            help="Portal SPA subdomain — used only in CORS reminder output (default: https://app.gradecrest.com)",
         )
 
     def handle(self, *args, **options):
-        domain = options["domain"].rstrip("/")
+        domain     = options["domain"].rstrip("/")
         app_domain = options["app_domain"].rstrip("/")
 
         self.stdout.write(self.style.MIGRATE_HEADING(
-            f"\n🔧  Seeding ResearchPaperMate tenant ({domain})\n"
+            f"\nSeeding GradeCrest tenant ({domain})\n"
         ))
 
-        website  = self._seed_website(domain)
-        branding = self._seed_branding(website)
+        website = self._seed_website(domain)
+        self._seed_branding(website)
         self._seed_portal()
         self._seed_cors_reminder(domain, app_domain)
 
-        self.stdout.write(self.style.SUCCESS("\n✅  Done. ResearchPaperMate tenant is ready.\n"))
+        self.stdout.write(self.style.SUCCESS("\nDone. GradeCrest tenant is ready.\n"))
 
     # ----------------------------------------------------------------
     # Internal seeders
@@ -53,10 +60,10 @@ class Command(BaseCommand):
         website, created = Website.objects.update_or_create(
             domain=domain,
             defaults={
-                "name": "ResearchPaperMate",
-                "slug": "researchpapermate",
+                "name": "GradeCrest",
+                "slug": "gradecrest",
                 "is_active": True,
-                "contact_email": "support@researchpapermate.com",
+                "contact_email": "support@gradecrest.com",
             },
         )
         self._log("Website", website.name, created)
@@ -68,17 +75,16 @@ class Command(BaseCommand):
         branding, created = WebsiteBranding.objects.update_or_create(
             website=website,
             defaults={
-                "brand_name": "ResearchPaperMate",
-                "tagline": "Reliable academic writing by humans, from $15/page.",
-                "homepage_headline": "Get Research Papers, Essays & Assignments Done!",
+                "brand_name": "GradeCrest",
+                "tagline": "Expert academic writing by verified human specialists.",
+                "homepage_headline": "Academic Writing Help from Real Experts",
                 "homepage_subheadline": (
-                    "Reliable research paper writing service from $15/page — "
-                    "written by human experts across 100+ subjects."
+                    "Human-written papers from $13/page — essays, dissertations, "
+                    "research papers, and more across 100+ subjects."
                 ),
-                "primary_color": "#163e88",
-                "secondary_color": "#0d2455",
-                "accent_color": "#14b8a6",
-                # Payment disclosure — update processor_name once Stripe is live
+                "primary_color": "#0e7a61",     # gc-600 (brand green)
+                "secondary_color": "#0f172a",   # navy-900
+                "accent_color": "#0d9488",      # teal-600
                 "payment_processor_name": "OrderBridge Payments",
                 "payment_statement_descriptor": "ORDERBRIDGE PAYMENTS",
                 "payment_client_disclosure_text": (
@@ -94,12 +100,16 @@ class Command(BaseCommand):
         return branding
 
     def _seed_portal(self):
+        """
+        Ensure the global client_portal PortalDefinition exists.
+
+        We deliberately do NOT update its domain — app.gradecrest.com is
+        resolved to the GradeCrest website via the middleware's parent-domain
+        fallback (app.gradecrest.com → gradecrest.com), so no explicit portal
+        domain entry is required for branding to work.
+        """
         from accounts.models.portal_definition import PortalDefinition
 
-        # Ensure the global client_portal exists. We deliberately do NOT update
-        # its domain — app.* subdomains resolve to their tenant website via the
-        # middleware's parent-domain fallback, so no per-tenant domain entry is
-        # needed. Overwriting the domain here would break other client tenants.
         portal, created = PortalDefinition.objects.get_or_create(
             code="client_portal",
             defaults={
@@ -111,11 +121,11 @@ class Command(BaseCommand):
         self._log("PortalDefinition (client_portal)", portal.domain, created)
 
     def _seed_cors_reminder(self, domain: str, app_domain: str):
-        bare = domain.replace("https://", "").replace("http://", "")
+        bare     = domain.replace("https://", "").replace("http://", "")
         app_bare = app_domain.replace("https://", "").replace("http://", "")
         self.stdout.write(
             self.style.WARNING(
-                f"\n⚠️  Add these to your production .env:\n\n"
+                f"\nAdd these to your production .env:\n\n"
                 f"  ALLOWED_HOSTS=...,{bare},{app_bare}\n"
                 f"  CORS_ALLOWED_ORIGINS=...,{domain},{app_domain}\n"
                 f"  CSRF_TRUSTED_ORIGINS=...,{domain},{app_domain}\n"

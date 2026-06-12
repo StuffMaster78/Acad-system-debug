@@ -74,6 +74,12 @@ export const HelpCircle = createIcon('HelpCircle', [
   ['path', { d: 'M12 17h.01' }],
 ])
 
+export const Home = createIcon('Home', [
+  ['path', { d: 'm3 10 9-7 9 7' }],
+  ['path', { d: 'M5 10v10h14V10' }],
+  ['path', { d: 'M9 20v-6h6v6' }],
+])
+
 export const Lock = createIcon('Lock', [
   ['rect', { x: 3, y: 11, width: 18, height: 11, rx: 2, ry: 2 }],
   ['path', { d: 'M7 11V7a5 5 0 0 1 10 0v4' }],

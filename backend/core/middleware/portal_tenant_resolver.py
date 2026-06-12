@@ -61,12 +61,24 @@ class PortalTenantResolverMiddleware(MiddlewareMixin):
         if portal:
             request.portal = portal
 
-        # Resolve website (tenant)
+        # Resolve website (tenant) — try exact host first, then parent domain.
+        # The parent-domain fallback lets portal SPAs on app.* subdomains resolve
+        # their tenant's branding: app.gradecrest.com → gradecrest.com Website.
         website = Website.objects.filter(
             _domain_query("domain", candidates),
             is_active=True,
             is_deleted=False,
         ).first()
+
+        if website is None:
+            parts = host.split(".")
+            if len(parts) > 2:
+                parent = ".".join(parts[1:])
+                website = Website.objects.filter(
+                    _domain_query("domain", _domain_candidates(parent)),
+                    is_active=True,
+                    is_deleted=False,
+                ).first()
 
         if website:
             request.website = website
