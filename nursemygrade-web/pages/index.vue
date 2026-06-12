@@ -34,7 +34,7 @@ const pillars = [
   {
     emoji: '✍️',
     title: 'Nursing Writing',
-    headline: 'Written by nurses who've done it.',
+    headline: "Written by nurses who've done it.",
     body: 'Essays, care plans, SOAP notes, PICOT papers, capstone projects, dissertations — written from scratch by a credentialed nurse who knows the clinical context, the NANDA diagnoses, and what your faculty expects.',
     href: '/services',
   },
