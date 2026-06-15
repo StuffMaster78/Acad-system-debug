@@ -1,8 +1,9 @@
 from django.contrib.auth import get_user_model
 from rest_framework import status
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from authentication.api.permissions.impersonation_permissions import (
     NotImpersonatingPermission,
@@ -26,7 +27,7 @@ class AdminGenerateUserMagicLinkView(APIView):
 
     permission_classes = [
         IsAuthenticated,
-        IsAdminUser,
+        IsAdminOrSuperAdmin,
         NotImpersonatingPermission,
     ]
 
@@ -72,7 +73,7 @@ class AdminGenerateUserPasswordResetLinkView(APIView):
 
     permission_classes = [
         IsAuthenticated,
-        IsAdminUser,
+        IsAdminOrSuperAdmin,
         NotImpersonatingPermission,
     ]
 

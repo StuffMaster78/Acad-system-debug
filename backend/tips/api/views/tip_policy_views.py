@@ -1,14 +1,15 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from tips.api.serializers.tip_policy_serializers import TipPolicySerializer
 from tips.models.tip_policy import TipPolicy
-from rest_framework.permissions import IsAdminUser
+
 
 
 class TipPolicyUpdateAPIView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def patch(self, request, policy_id: int):
         policy = TipPolicy.objects.get(id=policy_id)

@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
+
 
 from django.shortcuts import get_object_or_404
 
@@ -11,7 +12,7 @@ from event_system.api.serializers.event_outbox_serializer import EventOutboxSeri
 
 
 class EventDetailAPIView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request, event_id: str):
         event = get_object_or_404(EventOutbox, id=event_id)

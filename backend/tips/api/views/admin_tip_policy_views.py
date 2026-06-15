@@ -1,7 +1,8 @@
 # tips/api/views/admin_tip_policy_views.py
 from rest_framework import status
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
-from rest_framework.permissions import IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -14,7 +15,7 @@ from tips.services.tip_policy_activation_service import TipPolicyActivationServi
 
 
 class AdminTipPolicyListCreateAPIView(ListCreateAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     queryset = TipPolicy.objects.order_by("-created_at")
 
     def get_serializer_class(self):
@@ -24,7 +25,7 @@ class AdminTipPolicyListCreateAPIView(ListCreateAPIView):
 
 
 class AdminTipPolicyDetailAPIView(RetrieveUpdateAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     queryset = TipPolicy.objects.all()
 
     def get_serializer_class(self):
@@ -34,7 +35,7 @@ class AdminTipPolicyDetailAPIView(RetrieveUpdateAPIView):
 
 
 class AdminActivateTipPolicyAPIView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
         try:

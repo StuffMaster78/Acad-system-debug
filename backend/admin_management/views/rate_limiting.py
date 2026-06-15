@@ -6,7 +6,8 @@ Admin-only access to view rate limit statistics and violations.
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
+
 from core.throttling.monitoring import (
     get_rate_limit_stats,
     clear_rate_limit_stats,
@@ -21,7 +22,7 @@ class RateLimitingViewSet(viewsets.ViewSet):
     API endpoints for rate limiting monitoring and management.
     Accessible only by admin users.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     @action(detail=False, methods=['get'], url_path='stats')
     def stats(self, request):

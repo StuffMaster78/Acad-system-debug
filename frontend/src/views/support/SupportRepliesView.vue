@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { sanitize } from "@/composables/useSanitize";
 import { onMounted, ref } from "vue";
 import { MessageSquareText, Plus, RefreshCw, Trash2, ToggleLeft, ToggleRight } from "@lucide/vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
@@ -152,7 +153,7 @@ onMounted(() => {
                 </button>
               </div>
             </div>
-            <div class="mt-3 rounded-md bg-slate-50 px-3 py-3 text-sm leading-6 text-graphite" v-html="reply.body" />
+            <div class="mt-3 rounded-md bg-slate-50 px-3 py-3 text-sm leading-6 text-graphite" v-html="sanitize(reply.body)" />
 
             <!-- Inline delete confirm -->
             <div v-if="confirmDeleteId === reply.id" class="mt-3 flex items-center justify-between gap-3 rounded-md border border-rose-200 bg-rose-50 px-4 py-2.5">

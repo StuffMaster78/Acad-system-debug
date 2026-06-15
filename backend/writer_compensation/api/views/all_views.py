@@ -6,13 +6,14 @@ from __future__ import annotations
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from writer_compensation.api.serializers.compensation_event_serializers import (
     CompensationEventSerializer,
 )
 from writer_compensation.models.compensation_event import CompensationEvent
 from writer_compensation.permissions.base import IsFinanceStaff
-from writer_compensation.permissions.permissions import IsAdminUser
+
 
 
 def _get_website(request):
@@ -111,7 +112,7 @@ class RunSettlementView(APIView):
     Run the full settlement pipeline for one writer in one window.
     Body: { writer_id, window_id, auto_finalize (optional, default true) }
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request):
         website = _get_website(request)
@@ -193,7 +194,7 @@ class ExposureRecomputeView(APIView):
     POST /exposure/{pk}/recompute/
     Full authoritative recompute from raw event log.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
         website = _get_website(request)
@@ -296,7 +297,7 @@ writer_compensation/api/views/wallet_views.py
 """
 from wallets.models import Wallet
 from wallets.serializers import WalletSerializer
-from writer_compensation.permissions.permissions import IsAdminUser as _IsAdmin
+from authentication.permissions import IsAdminOrSuperAdmin as _IsAdmin
 
 
 class WalletListView(generics.ListAPIView):
@@ -560,7 +561,8 @@ from writer_compensation.api.serializers.advance_serializers import (
 from writer_compensation.enums.compensation_enums import AdvancePaymentStatus
 from writer_compensation.models.advance_payment import AdvancePaymentRequest
 from writer_compensation.models.exposure_ledger import ExposureLedger
-from writer_compensation.permissions.permissions import IsAdminUser, IsWriter
+from authentication.permissions import IsAdminOrSuperAdmin
+from writer_compensation.permissions.permissions import IsWriter
 from writer_compensation.services.advance_payment_service import AdvancePaymentService
 
 
@@ -624,7 +626,7 @@ class WriterAdvanceRequestView(APIView):
 class AdminAdvanceListView(generics.ListAPIView):
     """GET /admin/advances/ — all advance requests for this site."""
     serializer_class = AdvancePaymentRequestSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
         website = _get_website(self.request)
@@ -643,7 +645,7 @@ class AdminAdvanceListView(generics.ListAPIView):
 
 class AdminAdvanceApproveView(APIView):
     """POST /admin/advances/{pk}/approve/"""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
         website = _get_website(request)
@@ -688,7 +690,7 @@ class AdminAdvanceApproveView(APIView):
 
 class AdminAdvanceRejectView(APIView):
     """POST /admin/advances/{pk}/reject/"""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
         website = _get_website(request)
@@ -712,7 +714,7 @@ class AdminAdvanceRejectView(APIView):
 
 class AdminAdvanceRecoveryView(APIView):
     """POST /admin/advances/{pk}/recover/ — record a repayment instalment."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
         website = _get_website(request)

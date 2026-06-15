@@ -5,7 +5,8 @@ Shows query counts, response times, cache statistics, and optimization effective
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
+
 from django.core.cache import cache
 from django.db import connection
 from django.conf import settings
@@ -19,7 +20,7 @@ class PerformanceMonitoringViewSet(viewsets.ViewSet):
     """
     ViewSet for viewing performance metrics and optimization effectiveness.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     @action(detail=False, methods=['get'], url_path='metrics')
     def get_metrics(self, request):

@@ -1,6 +1,7 @@
 from rest_framework import generics, status, views
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
+from authentication.permissions import IsAdminOrSuperAdmin
 from client_management.models import ClientProfile, ProfileUpdateRequest
 from loyalty_management.models import LoyaltyTier, LoyaltyTransaction
 from client_management.serializers import (
@@ -199,19 +200,19 @@ class ProfileUpdateRequestListView(generics.ListAPIView):
     """
     queryset = ProfileUpdateRequest.objects.all()
     serializer_class = ProfileUpdateRequestSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
 
 class BlacklistEmailListView(generics.ListAPIView):
     """Get a list of all blacklisted emails"""
     queryset = BlacklistedEmail.objects.all()
     serializer_class = BlacklistedEmailSerializer
-    permission_classes = [IsAdminUser] # Only admins can view
+    permission_classes = [IsAdminOrSuperAdmin] # Only admins can view
 
 class BlacklistEmailAddView(generics.CreateAPIView):
     """Add an email to the blacklist"""
     serializer_class = BlacklistedEmailSerializer
-    permission_classes = [IsAdminUser] # Only admins can add
+    permission_classes = [IsAdminOrSuperAdmin] # Only admins can add
 
     def create(self, request, *args, **kwargs):
         email = request.data.get("email")
@@ -224,7 +225,7 @@ class BlacklistEmailAddView(generics.CreateAPIView):
 
 class BlacklistEmailRemoveView(generics.DestroyAPIView):
     """Remove an email from the blacklist"""
-    permission_classes = [IsAdminUser] # Only admins can remove
+    permission_classes = [IsAdminOrSuperAdmin] # Only admins can remove
 
     def delete(self, request, *args, **kwargs):
         email = request.data.get("email")

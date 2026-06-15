@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from authentication.permissions import IsAdminOrSuperAdmin
 from websites.models.websites import Website
 from websites.models.action_log import WebsiteActionLog
 from websites.models.website_settings import WebsiteTermsAcceptance
@@ -168,7 +169,7 @@ class WebsiteActionLogViewSet(viewsets.ReadOnlyModelViewSet):
     """Handles retrieving admin action logs for website updates."""
 
     serializer_class = WebsiteActionLogSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     pagination_class = LogPagination # Enable pagination
 
     def get_queryset(self):

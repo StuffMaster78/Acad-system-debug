@@ -422,7 +422,7 @@ class WriterDeadlineConfigViewSet(viewsets.ModelViewSet):
 class RevisionPolicyConfigViewSet(viewsets.ModelViewSet):
     queryset = RevisionPolicyConfig.objects.all().order_by('-created_at')
     serializer_class = RevisionPolicyConfigSerializer
-    permission_classes = [permissions.IsAdminUser] # Only admins can manage revision configs
+    permission_classes = [IsAdminOrSuperAdmin] # Only admins can manage revision configs
 
     def perform_create(self, serializer):
         # Ensure the new config is set to active and others are deactivated
@@ -703,14 +703,12 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                     "english_types": counts['english_types'],
                 }
             }, status=status.HTTP_200_OK)
-        except Exception as e:
-            import traceback
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("clone_from_defaults failed")
             return Response(
-                {
-                    "detail": f"Error cloning defaults: {str(e)}",
-                    "error_details": traceback.format_exc() if hasattr(e, '__traceback__') else None
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"detail": "An error occurred while cloning defaults. Check server logs."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @action(detail=False, methods=['get'], url_path='usage-analytics')

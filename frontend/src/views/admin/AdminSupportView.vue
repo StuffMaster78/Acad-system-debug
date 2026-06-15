@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { sanitize } from "@/composables/useSanitize";
 import { computed, onMounted } from "vue";
 import {
   CheckCircle2,
@@ -324,7 +325,7 @@ onMounted(() => {
                 </div>
                 <StatusPill :label="reply.is_active === false ? 'inactive' : 'active'" :tone="reply.is_active === false ? 'neutral' : 'success'" />
               </div>
-              <div class="mt-2 text-sm leading-5 text-graphite" v-html="reply.body" />
+              <div class="mt-2 text-sm leading-5 text-graphite" v-html="sanitize(reply.body)" />
             </article>
           </div>
         </section>

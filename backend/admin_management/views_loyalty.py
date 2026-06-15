@@ -5,7 +5,8 @@ Shows how points are awarded, redeemed, and explains the system.
 from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
+
 from django.db.models import Count, Q, Sum, Avg
 from django.utils.timezone import now, timedelta
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier, LoyaltyPointsConversionConfig
@@ -74,7 +75,7 @@ class AdminLoyaltyTrackingViewSet(viewsets.ReadOnlyModelViewSet):
         'client', 'client__user', 'website', 'redemption_request'
     ).order_by('-timestamp')
     serializer_class = LoyaltyTransactionDetailSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['website', 'transaction_type', 'client']
     search_fields = ['client__user__username', 'client__user__email', 'reason']

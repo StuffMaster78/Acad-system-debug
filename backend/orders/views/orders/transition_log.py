@@ -1,9 +1,10 @@
 from rest_framework import generics, permissions
+from authentication.permissions import IsAdminOrSuperAdmin
 from orders.models.legacy_models.logs import OrderTransitionLog
 from orders.serializers_legacy import OrderTransitionLogSerializer
 
 class OrderTransitionLogListView(generics.ListAPIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     serializer_class = OrderTransitionLogSerializer
 
     def get_queryset(self):

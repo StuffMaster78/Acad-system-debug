@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from rest_framework.permissions import IsAdminUser
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from writer_compensation.models.writer_reward import (
     WriterReward,
@@ -22,7 +23,7 @@ class RewardRevocationView(
     """
 
     permission_classes = [
-        IsAdminUser,
+        IsAdminOrSuperAdmin,
     ]
 
     def post(

@@ -3,6 +3,7 @@ from __future__ import annotations
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from writer_compensation.api.serializers.exposure_serializers import (
     ExposureLedgerSerializer,
@@ -11,7 +12,7 @@ from writer_compensation.exceptions.exceptions import CompensationError
 from writer_compensation.facade.payments_facade import CompensationFacade
 from writer_compensation.models.exposure_ledger import ExposureLedger
 from writer_compensation.permissions.payout_permissions import CanViewPayouts
-from writer_compensation.permissions.permissions import IsAdminUser
+
 
 
 def _get_website(request):
@@ -55,7 +56,7 @@ class ExposureRecomputeView(APIView):
     Full authoritative recompute of an exposure ledger from the raw event log.
     Use for drift detection, reconciliation, and disaster recovery.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
         website = _get_website(request)

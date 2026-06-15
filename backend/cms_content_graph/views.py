@@ -9,6 +9,7 @@ and internal linking suggestions.
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from cms_content_graph.models import (
     BlogServiceLink,
@@ -70,7 +71,7 @@ class BlogServiceLinkViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
             return [permissions.AllowAny()]
-        return [permissions.IsAdminUser()]
+        return [IsAdminOrSuperAdmin()]
 
     def get_queryset(self):
         qs = BlogServiceLink.objects.select_related(

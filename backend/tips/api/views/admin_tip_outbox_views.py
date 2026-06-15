@@ -1,8 +1,9 @@
 # tips/api/views/admin_tip_outbox_views.py
 
-from rest_framework.permissions import IsAdminUser
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from tips.models.tip_outbox_event import TipOutboxEvent
 
@@ -13,7 +14,7 @@ from tips.services.tip_outbox_requeue_service import (
 
 class AdminOutboxEventListAPIView(APIView):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
 
@@ -38,7 +39,7 @@ class AdminOutboxEventListAPIView(APIView):
 
 class AdminRequeueOutboxAPIView(APIView):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
 

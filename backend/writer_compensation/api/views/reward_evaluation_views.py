@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from rest_framework.permissions import IsAdminUser
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from writer_compensation.services.reward_evaluation_orchestrator import (
     RewardEvaluationOrchestrator,
@@ -19,7 +20,7 @@ class RunWeeklyRewardsView(
     """
 
     permission_classes = [
-        IsAdminUser,
+        IsAdminOrSuperAdmin,
     ]
 
     def post(
@@ -51,7 +52,7 @@ class RunMonthlyRewardsView(
     """
 
     permission_classes = [
-        IsAdminUser,
+        IsAdminOrSuperAdmin,
     ]
 
     def post(

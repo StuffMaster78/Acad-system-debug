@@ -656,7 +656,7 @@ PASSKEY_REDIS_PREFIX = env("PASSKEY_REDIS_PREFIX", "passkey")
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
-        minutes=env_int("JWT_ACCESS_TOKEN_MINUTES", 24 * 60),
+        minutes=env_int("JWT_ACCESS_TOKEN_MINUTES", 30),
     ),
     "REFRESH_TOKEN_LIFETIME": timedelta(
         minutes=env_int("JWT_REFRESH_TOKEN_MINUTES", 7 * 24 * 60),

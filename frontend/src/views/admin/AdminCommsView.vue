@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { sanitize } from "@/composables/useSanitize";
 import { computed, onMounted, ref } from "vue";
 import {
   BarChart3,
@@ -462,7 +463,7 @@ onMounted(() => {
               class="rounded-md border border-slate-200 p-3"
             >
               <p class="font-semibold text-ink">{{ broadcast.title }}</p>
-              <div class="mt-1 text-sm leading-5 text-graphite" v-html="broadcast.message" />
+              <div class="mt-1 text-sm leading-5 text-graphite" v-html="sanitize(broadcast.message)" />
               <div class="mt-3 flex flex-wrap gap-2">
                 <StatusPill :label="broadcast.is_active === false ? 'inactive' : 'active'" :tone="broadcast.is_active === false ? 'neutral' : 'success'" />
                 <StatusPill v-if="broadcast.is_blocking" label="blocking" tone="warning" />
@@ -558,7 +559,7 @@ onMounted(() => {
             </label>
             <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
               <p class="text-xs font-semibold uppercase text-graphite">Preview</p>
-              <div class="mt-2 rounded-md bg-white p-3 text-sm leading-6 text-ink" v-html="comms.campaignComposer.body" />
+              <div class="mt-2 rounded-md bg-white p-3 text-sm leading-6 text-ink" v-html="sanitize(comms.campaignComposer.body)" />
             </div>
 
             <!-- Schedule time (optional) -->
@@ -801,7 +802,7 @@ onMounted(() => {
               <p class="font-semibold text-ink">{{ ann.title }}</p>
               <StatusPill :label="ann.category" :tone="categoryTone(ann.category)" />
             </div>
-            <p class="mt-1 text-sm text-graphite line-clamp-2" v-html="ann.message" />
+            <p class="mt-1 text-sm text-graphite line-clamp-2" v-html="sanitize(ann.message)" />
             <p class="mt-2 text-xs text-slate-400">
               {{ annDate(ann.created_at) }}
               <span v-if="ann.created_by_name"> · {{ ann.created_by_name }}</span>
@@ -914,7 +915,7 @@ onMounted(() => {
             </div>
             <span v-if="tpl.is_global" class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-graphite">Global</span>
           </div>
-          <div class="flex-1 rounded-md bg-slate-50 p-2 text-xs leading-5 text-graphite line-clamp-3" v-html="tpl.body" />
+          <div class="flex-1 rounded-md bg-slate-50 p-2 text-xs leading-5 text-graphite line-clamp-3" v-html="sanitize(tpl.body)" />
           <div class="flex gap-2">
             <button
               class="focus-ring flex-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50"

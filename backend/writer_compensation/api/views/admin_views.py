@@ -3,6 +3,7 @@ from __future__ import annotations
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from typing import Any, cast
 
@@ -27,9 +28,9 @@ from writer_compensation.models.payout_record import (
     PayoutRecord,
 )
 
+from authentication.permissions import IsAdminOrSuperAdmin
 from writer_compensation.permissions.permissions import (
     IsAdminOrSupport,
-    IsAdminUser,
     IsSupport,
     IsWriter,
 )
@@ -111,7 +112,7 @@ class AdminWindowListCreateView(APIView):
     GET /admin/windows/ — list all windows for this site
     POST /admin/windows/ — create a new window
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
         website = _get_website(request)
@@ -169,7 +170,7 @@ class AdminWindowCloseView(APIView):
     POST /admin/windows/{window_id}/close/
     OPEN → CLOSED. Aggregates events. Creates batch + items.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, window_id):
         website = _get_website(request)
@@ -217,7 +218,7 @@ class AdminWindowStartProcessingView(APIView):
     CLOSED → PROCESSING.
     Writers now see 'Payment being processed' on their dashboard.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, window_id):
         website = _get_website(request)
@@ -238,7 +239,7 @@ class AdminWindowMarkDoneView(APIView):
     POST /admin/windows/{window_id}/mark-done/
     PROCESSING → DONE. Held items remain open.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, window_id):
         website = _get_website(request)
@@ -260,7 +261,7 @@ class AdminWindowAdjustView(APIView):
     Post-close adjustment for a writer — creates an ADJUSTMENT event
     in the next open window referencing this closed window.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, window_id):
         website = _get_website(request)
@@ -385,7 +386,7 @@ class AdminBatchBulkConfirmView(APIView):
     POST /admin/batches/{batch_id}/bulk-confirm/
     Confirm all PENDING payout items in one action.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, batch_id):
         try:
@@ -406,7 +407,7 @@ class AdminBatchBulkMarkPaidView(APIView):
     POST /admin/batches/{batch_id}/bulk-mark-paid/
     Mark all CONFIRMED items paid. Stamps underlying events as PAID.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, batch_id):
         try:
@@ -427,7 +428,7 @@ class AdminPayoutRecordConfirmView(APIView):
     POST /admin/payout-items/{record_id}/confirm/
     Admin reviews one writer and confirms their total.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, record_id):
         try:
@@ -450,7 +451,7 @@ class AdminPayoutItemMarkPaidView(APIView):
     POST /admin/payout-items/{record_id}/mark-paid/
     Admin has paid this writer externally — marks item PAID.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, record_id):
         try:
@@ -483,7 +484,7 @@ class AdminPayoutItemHoldView(APIView):
     POST /admin/payout-items/{record_id}/hold/
     Hold one writer's payout — other writers in the batch unaffected.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, record_id):
         try:
@@ -514,7 +515,7 @@ class AdminPayoutRecordReleaseView(APIView):
     POST /admin/payout-items/{record_id}/release/
     Release a held item back to PENDING.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, record_id):
         try:
@@ -541,7 +542,7 @@ class AdminCycleChangeListView(APIView):
     GET /admin/cycle-changes/
     All pending cycle change requests for this site.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
         website = _get_website(request)
@@ -553,7 +554,7 @@ class AdminCycleChangeListView(APIView):
 
 class AdminCycleChangeApproveView(APIView):
     """POST /admin/cycle-changes/{request_id}/approve/"""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, request_id):
         try:
@@ -574,7 +575,7 @@ class AdminCycleChangeApproveView(APIView):
 
 class AdminCycleChangeRejectView(APIView):
     """POST /admin/cycle-changes/{request_id}/reject/"""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, request_id):
         try:

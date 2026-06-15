@@ -1,8 +1,9 @@
 # tips/api/views/admin_tip_idempotency_views.py
 
-from rest_framework.permissions import IsAdminUser
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from tips.models.tip_idempotency import (
     TipIdempotencyKey,
@@ -13,7 +14,7 @@ class AdminTipIdempotencyListAPIView(
     APIView
 ):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
 

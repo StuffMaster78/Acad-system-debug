@@ -47,7 +47,7 @@
         <!-- Simple Markdown-lite: convert **bold** and `code` and line breaks -->
         <div
           class="mt-2 text-sm leading-6 text-graphite"
-          v-html="renderBody(entry.body)"
+          v-html="sanitize(renderBody(entry.body))"
         />
       </article>
     </div>
@@ -55,6 +55,7 @@
 </template>
 
 <script setup lang="ts">
+import { sanitize } from "@/composables/useSanitize";
 import { onMounted, ref } from "vue";
 import { Newspaper, Pin } from "@lucide/vue";
 import { changelogApi, type ChangelogEntry } from "@/api/changelog";

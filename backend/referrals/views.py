@@ -328,7 +328,7 @@ class ReferralBonusConfigViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing referral bonus configurations.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     serializer_class = ReferralBonusConfigSerializer
     queryset = ReferralBonusConfig.objects.all()
 
@@ -583,7 +583,7 @@ class ReferralBonusConfigViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing referral bonus configurations.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     serializer_class = ReferralBonusConfigSerializer
     queryset = ReferralBonusConfig.objects.all()
 

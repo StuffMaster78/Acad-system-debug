@@ -4,15 +4,16 @@ import csv
 
 from django.http import HttpResponse
 
-from rest_framework.permissions import IsAdminUser
+
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from tips.models.tip import Tip
 
 
 class AdminTipExportCSVAPIView(APIView):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
 
@@ -70,7 +71,7 @@ class AdminSettlementExportAPIView(
     APIView
 ):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
 

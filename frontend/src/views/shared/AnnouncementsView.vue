@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { sanitize } from "@/composables/useSanitize";
 import { onMounted, ref } from "vue";
 import {
   Bell,
@@ -160,7 +161,7 @@ onMounted(async () => {
                 <span v-if="item.expires_at">· Expires {{ formatDate(item.expires_at) }}</span>
               </div>
 
-              <div class="mt-3 text-sm leading-6 text-graphite prose prose-sm max-w-none" v-html="item.message" />
+              <div class="mt-3 text-sm leading-6 text-graphite prose prose-sm max-w-none" v-html="sanitize(item.message)" />
 
               <div class="mt-4 flex flex-wrap items-center gap-3">
                 <a

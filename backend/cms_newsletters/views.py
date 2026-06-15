@@ -1,6 +1,7 @@
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from cms_newsletters.serializers import (
     SubscribeSerializer,
@@ -67,7 +68,7 @@ class UnsubscribeView(APIView):
 
 class SubscriberStatsView(APIView):
     """GET /cms-api/newsletters/stats/ — admin only."""
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
         site = getattr(request, "site", None)
@@ -83,7 +84,7 @@ class SubscriberStatsView(APIView):
 
 class AdminSubscriberListView(APIView):
     """GET /cms-api/newsletters/admin/subscribers/"""
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
         from cms_newsletters.models import Subscriber
@@ -130,7 +131,7 @@ class AdminSubscriberListView(APIView):
 
 class AdminSubscriberActionView(APIView):
     """POST /cms-api/newsletters/admin/subscribers/<pk>/deactivate|reactivate/"""
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk, action):
         from cms_newsletters.models import Subscriber
@@ -160,7 +161,7 @@ class AdminSubscriberActionView(APIView):
 
 class AdminNewsletterListView(APIView):
     """GET /cms-api/newsletters/admin/newsletters/"""
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
         from cms_newsletters.models import Newsletter
@@ -197,7 +198,7 @@ class AdminNewsletterListView(APIView):
 
 class AdminNewsletterDetailView(APIView):
     """GET /cms-api/newsletters/admin/newsletters/<pk>/"""
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request, pk):
         from cms_newsletters.models import Newsletter
@@ -216,7 +217,7 @@ class AdminSubscriberCategoryListView(APIView):
     """GET  /cms-api/newsletters/admin/categories/
        POST /cms-api/newsletters/admin/categories/
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
         from cms_newsletters.models import SubscriberCategory

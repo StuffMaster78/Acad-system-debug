@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from class_management.analytics.class_dashboard_metrics import (
     ClassDashboardMetrics,
@@ -22,7 +23,7 @@ class ClassDashboardView(APIView):
     Admin dashboard for class management.
     """
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
 
     def get(self, request):
         website = request.website

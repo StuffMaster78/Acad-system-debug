@@ -5,8 +5,8 @@ from decimal import Decimal
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from writer_compensation.permissions.permissions import IsAdminUser, IsWriter
+from authentication.permissions import IsAdminOrSuperAdmin
+from writer_compensation.permissions.permissions import IsWriter
 from writer_compensation.permissions.base import IsFinanceStaff
 from writer_compensation.services.bonus_service import BonusService
 from writer_compensation.services.earnings_query_service import EarningsQueryService
@@ -37,7 +37,7 @@ class AdminWriterEarningsView(APIView):
     Period earnings totals for one writer.
     Broken down by base, bonus, tips, deductions, reversals, advances, net.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request, writer_id):
         website = _get_website(request)
@@ -70,7 +70,7 @@ class AdminWriterEarningsBreakdownView(APIView):
     Per-event-type subtotals for one writer in a date range.
     Useful for debugging mismatches and admin reporting.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request, writer_id):
         website = _get_website(request)
@@ -103,7 +103,7 @@ class AdminWriterFullEarningsView(APIView):
     Full earnings reconstruction grouped by window.
     Includes anomaly audit flags.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request, writer_id):
         try:
@@ -135,7 +135,7 @@ class AdminWindowEarningsBreakdownView(APIView):
     All writers' earnings grouped by writer for a window.
     Powers the payout batch overview with per-writer nets.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request, window_id):
         website = _get_website(request)
@@ -159,7 +159,7 @@ class AdminApplyMilestoneBonusView(APIView):
     Manually trigger a milestone bonus for a writer.
     Idempotent — safe to call multiple times for the same milestone.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, writer_id):
         try:
@@ -211,7 +211,7 @@ class AdminApplyPerformanceBonusView(APIView):
     Manually trigger a performance bonus calculation and application
     for a completed order.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, writer_id):
         try:
@@ -265,7 +265,7 @@ class AdminApplyRetentionBonusView(APIView):
     Apply a retention bonus for the current month if the writer qualifies.
     Idempotent — the monthly idempotency key prevents double awards.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, writer_id):
         try:
@@ -302,7 +302,7 @@ class AdminWriterBonusHistoryView(APIView):
 
     Full bonus event history for a writer.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request, writer_id):
         try:

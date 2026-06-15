@@ -1,7 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
+
 from django.core.cache import cache
 from django.conf import settings
 
@@ -12,7 +13,7 @@ DEFAULT_LIMIT = 1000
 class CompressionMonitoringViewSet(viewsets.ViewSet):
     """Admin-only endpoints for compression monitoring and statistics."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def _get_compression_settings(self):
         return {

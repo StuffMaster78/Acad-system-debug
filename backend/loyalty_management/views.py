@@ -1,6 +1,7 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
+from authentication.permissions import IsAdminOrSuperAdmin
 from .models import (
     LoyaltyTier, LoyaltyTransaction,
     Milestone, ClientBadge,
@@ -100,7 +101,7 @@ class LoyaltyPointsConversionConfigViewSet(viewsets.ModelViewSet):
     """
     queryset = LoyaltyPointsConversionConfig.objects.all()
     serializer_class = LoyaltyPointsConversionConfigSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
         from websites.models.websites import Website
@@ -118,7 +119,7 @@ class LoyaltyPointsConversionConfigViewSet(viewsets.ModelViewSet):
 
 
 class AdminForceConversionView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, client_id):
         points = int(request.data.get("points", 0))
@@ -182,7 +183,7 @@ class LoyaltyTransactionListView(ListAPIView):
         return LoyaltyTransaction.objects.filter(client=self.request.user.client_profile).order_by("-timestamp")
 
 class AdminLoyaltyAwardView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request):
         serializer = AdminLoyaltyAwardSerializer(data=request.data)
@@ -203,7 +204,7 @@ class AdminLoyaltyAwardView(APIView):
         return Response(LoyaltyTransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
 
 class AdminLoyaltyDeductView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request):
         serializer = AdminLoyaltyDeductSerializer(data=request.data)
@@ -224,7 +225,7 @@ class AdminLoyaltyDeductView(APIView):
         return Response(LoyaltyTransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
 
 class AdminLoyaltyTransferView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request):
         serializer = AdminLoyaltyTransferSerializer(data=request.data)
@@ -260,7 +261,7 @@ class AdminLoyaltyTransferView(APIView):
         return Response(LoyaltyTransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
 
 class AdminLoyaltyConversionConfigView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
         website = get_current_website(request)
@@ -290,7 +291,7 @@ class AdminLoyaltyConversionConfigView(APIView):
         return Response(LoyaltyPointsConversionConfigSerializer(config).data, status=status.HTTP_200_OK)
 
 class AdminLoyaltyAwardView(APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request):
         serializer = AdminLoyaltyAwardSerializer(data=request.data)
@@ -308,7 +309,7 @@ class AdminLoyaltyAwardView(APIView):
 
 
 class AdminLoyaltyForceConvertView(APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request):
         serializer = AdminLoyaltyForceConvertSerializer(data=request.data)
@@ -429,7 +430,7 @@ class RedemptionRequestViewSet(viewsets.ModelViewSet):
         )
         serializer.instance = redemption
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrSuperAdmin])
     def approve(self, request, pk=None):
         """Approve a redemption request."""
         redemption = self.get_object()
@@ -442,7 +443,7 @@ class RedemptionRequestViewSet(viewsets.ModelViewSet):
         except ValidationError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrSuperAdmin])
     def reject(self, request, pk=None):
         """Reject a redemption request."""
         redemption = self.get_object()
@@ -495,7 +496,7 @@ class LoyaltyAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = LoyaltyAnalytics.objects.all()
     serializer_class = LoyaltyAnalyticsSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
         """Filter by website."""
@@ -505,7 +506,7 @@ class LoyaltyAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(website=website)
         return queryset
 
-    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminOrSuperAdmin])
     def calculate(self, request):
         """Calculate analytics for a date range."""
         from datetime import datetime, date
@@ -528,7 +529,7 @@ class LoyaltyAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
             status=status.HTTP_200_OK
         )
 
-    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminOrSuperAdmin])
     def points_trend(self, request):
         """Get points trend over time."""
         website = get_current_website(request)
@@ -538,7 +539,7 @@ class LoyaltyAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = PointsTrendSerializer(trend, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminOrSuperAdmin])
     def top_redemptions(self, request):
         """Get top redemption items."""
         website = get_current_website(request)
@@ -548,7 +549,7 @@ class LoyaltyAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = TopRedemptionItemSerializer(items, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminOrSuperAdmin])
     def tier_distribution(self, request):
         """Get tier distribution."""
         website = get_current_website(request)
@@ -569,7 +570,7 @@ class LoyaltyAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = TierDistributionSerializer(data, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminOrSuperAdmin])
     def engagement_stats(self, request):
         """Get client engagement statistics."""
         website = get_current_website(request)
@@ -586,7 +587,7 @@ class DashboardWidgetViewSet(viewsets.ModelViewSet):
     """
     queryset = DashboardWidget.objects.all()
     serializer_class = DashboardWidgetSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
         """Filter by website."""

@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
+
 
 from event_system.services.event_timeline_service import EventTimelineService
 from event_system.api.serializers.event_timeline_serializer import (
@@ -9,7 +10,7 @@ from event_system.api.serializers.event_timeline_serializer import (
 
 
 class EventTimelineAPIView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
         event_id = request.query_params.get("event_id")

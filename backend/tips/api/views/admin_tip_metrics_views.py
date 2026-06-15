@@ -1,8 +1,9 @@
 # tips/api/views/admin_tip_metrics_views.py
 
-from rest_framework.permissions import IsAdminUser
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from tips.services.tip_metrics_service import (
     TipMetricsService,
@@ -11,7 +12,7 @@ from tips.services.tip_metrics_service import (
 
 class AdminPlatformAnalyticsAPIView(APIView):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
 
@@ -41,7 +42,7 @@ class AdminPlatformAnalyticsAPIView(APIView):
 
 class AdminTopTippersAPIView(APIView):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
 
@@ -54,7 +55,7 @@ class AdminTopTippersAPIView(APIView):
 
 class AdminTopWritersAPIView(APIView):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
 
@@ -67,7 +68,7 @@ class AdminTopWritersAPIView(APIView):
 
 class AdminTipTimeseriesAPIView(APIView):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
 

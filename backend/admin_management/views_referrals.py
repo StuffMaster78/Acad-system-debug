@@ -4,7 +4,8 @@ Admin views for referral tracking and abuse management.
 from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
+
 from django.db.models import Count, Q, Sum
 from django.utils.timezone import now, timedelta
 from referrals.models import Referral, ReferralCode, ReferralStats
@@ -55,7 +56,7 @@ class AdminReferralTrackingViewSet(viewsets.ReadOnlyModelViewSet):
 
         return queryset
     serializer_class = ReferralSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     def get_filterset_fields(self):
         """Get filterset fields, handling case where migration hasn't run yet."""
@@ -169,7 +170,7 @@ class AdminReferralAbuseViewSet(viewsets.ModelViewSet):
             'referral', 'referral__referrer', 'referral__referee', 'reviewed_by'
         ).order_by('-detected_at')
     serializer_class = ReferralAbuseFlagSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['status', 'abuse_type', 'referral__website']
     search_fields = ['reason', 'referral__referrer__username', 'referral__referee__username']
@@ -233,7 +234,7 @@ class AdminReferralCodeViewSet(viewsets.ReadOnlyModelViewSet):
         'user', 'website'
     ).order_by('-created_at')
     serializer_class = ReferralCodeSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['website', 'user__is_active']
     search_fields = ['code', 'user__username', 'user__email', 'user__full_name']

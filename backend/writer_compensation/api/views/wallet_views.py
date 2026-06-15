@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from rest_framework import generics
+from authentication.permissions import IsAdminOrSuperAdmin
 
-from writer_compensation.permissions.permissions import IsAdminUser
+
 from writer_compensation.api.serializers.wallet_serializers import (
     WalletSerializer,
 )
@@ -12,7 +13,7 @@ def _get_website(request):
 
 
 class WalletListView(generics.ListAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_serializer_class( # pyright: ignore[reportIncompatibleMethodOverride]
             self,
@@ -27,7 +28,7 @@ class WalletListView(generics.ListAPIView):
 
 
 class WalletDetailView(generics.RetrieveAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_serializer_class( # pyright: ignore[reportIncompatibleMethodOverride]
             self,

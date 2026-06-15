@@ -1,6 +1,7 @@
-from rest_framework.permissions import IsAdminUser
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from tips.models.tip_policy_snapshot import (
     TipPolicySnapshot,
@@ -21,7 +22,7 @@ from tips.api.serializers.tip_settlement_snapshot_serializers import (
 
 class AdminPolicySnapshotListAPIView(APIView):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
 
@@ -44,7 +45,7 @@ class AdminSettlementSnapshotListAPIView(
     APIView
 ):
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
 

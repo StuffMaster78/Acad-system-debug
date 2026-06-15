@@ -231,3 +231,9 @@ if SENTRY_DSN:
         environment=env("SENTRY_ENVIRONMENT", "production"),
         release=env("APP_VERSION", "unknown"),
     )
+
+# ── API schema & docs: restrict to admin users in production ─────────────────
+SPECTACULAR_SETTINGS = {
+    **SPECTACULAR_SETTINGS,  # noqa: F405
+    "SERVE_PERMISSIONS": ["authentication.permissions.IsAdminOrSuperAdmin"],
+}

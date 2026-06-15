@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, filters
+from authentication.permissions import IsAdminOrSuperAdmin
 from django_filters.rest_framework import DjangoFilterBackend # type: ignore
 from orders.models.legacy_models.logs import WriterReassignmentLog
 from orders.serializers_legacy import (
@@ -14,7 +15,7 @@ class WriterReassignmentLogViewSet(viewsets.ReadOnlyModelViewSet):
         "order", "previous_writer", "new_writer", "reassigned_by"
     )
     serializer_class = WriterReassignmentLogSerializer
-    permission_classes = [permissions.IsAdminUser] # override as needed
+    permission_classes = [IsAdminOrSuperAdmin] # override as needed
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = [

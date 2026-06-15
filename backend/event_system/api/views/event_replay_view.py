@@ -1,7 +1,8 @@
 from typing import cast
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
+
 
 from event_system.models.event_outbox import EventOutbox
 from event_system.services.event_inspection_service import(
@@ -15,7 +16,7 @@ from event_system.api.serializers.event_outbox_serializer import (
 )
 
 class EventReplayAPIView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request):
         serializer = EventReplaySerializer(data=request.data)

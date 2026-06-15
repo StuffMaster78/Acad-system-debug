@@ -5,8 +5,9 @@ from decimal import Decimal
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
-from writer_compensation.permissions.permissions import IsAdminUser
+
 
 
 def _get_website(request):
@@ -18,7 +19,7 @@ def _error(message: str, code: int = 400) -> Response:
 
 
 class WalletCreditView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request):
         from writer_compensation.selectors.wallet_selectors import WalletSelectors
@@ -47,7 +48,7 @@ class WalletCreditView(APIView):
 
 
 class WalletDebitView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request):
         from writer_compensation.selectors.wallet_selectors import WalletSelectors

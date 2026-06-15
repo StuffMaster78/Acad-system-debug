@@ -8,6 +8,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.request import Request
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from writer_compensation.api.serializers.advance_serializers import (
     AdvancePaymentRequestSerializer,
@@ -24,10 +25,8 @@ from writer_compensation.models.advance_payment import (
 from writer_compensation.models.exposure_ledger import (
     ExposureLedger,
 )
-from writer_compensation.permissions.permissions import (
-    IsAdminUser,
-    IsWriter,
-)
+from authentication.permissions import IsAdminOrSuperAdmin
+from writer_compensation.permissions.permissions import IsWriter
 from writer_compensation.selectors.writer_selectors import (
     WriterSelectors,
 )
@@ -178,7 +177,7 @@ class AdminAdvanceListView(generics.ListAPIView):
     """
 
     serializer_class = AdvancePaymentRequestSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     request: Request
 
     def get_queryset( # pyright: ignore[reportIncompatibleMethodOverride]
@@ -218,7 +217,7 @@ class AdminAdvanceApproveView(APIView):
     Approve an advance request.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
         website = _get_website(request)
@@ -319,7 +318,7 @@ class AdminAdvanceRejectView(APIView):
     Reject an advance request.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
         website = _get_website(request)
@@ -381,7 +380,7 @@ class AdminAdvanceRecoveryView(APIView):
     Record an advance repayment installment.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
         website = _get_website(request)

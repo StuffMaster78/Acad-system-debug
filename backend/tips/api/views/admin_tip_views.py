@@ -7,7 +7,8 @@ from rest_framework.generics import (
     ListAPIView,
     RetrieveAPIView,
 )
-from rest_framework.permissions import IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -41,7 +42,7 @@ class AdminTipListAPIView(ListAPIView):
     Full admin tip listing endpoint.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     serializer_class = TipDetailSerializer
 
     queryset = (
@@ -61,7 +62,7 @@ class AdminTipDetailAPIView(RetrieveAPIView):
     Full admin tip detail.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     serializer_class = TipDetailSerializer
     lookup_field = "pk"
 
@@ -86,7 +87,7 @@ class AdminRetryTipAPIView(APIView):
     Retry failed/pending tip processing.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
         tip = get_object_or_404(Tip, pk=pk)
@@ -125,7 +126,7 @@ class AdminCancelTipAPIView(APIView):
     Cancel pending tip.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
 
@@ -147,7 +148,7 @@ class AdminFailTipAPIView(APIView):
     Force mark a tip as failed.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, pk):
 

@@ -1,6 +1,7 @@
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from authentication.permissions import IsAdminOrSuperAdmin
 
 from reputation_system.services.reputation_query_service import ReputationQueryService
 from reputation_system.services.writer_leaderboard_service import WriterLeaderboardService
@@ -22,7 +23,7 @@ def _snap_to_dict(snap):
 
 class WriterReputationView(APIView):
     """GET /api/v1/reputation/writers/<writer_id>/"""
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request, writer_id):
         snap = ReputationQueryService.get_writer_reputation(writer_id)
@@ -33,7 +34,7 @@ class WriterReputationView(APIView):
 
 class WebsiteReputationView(APIView):
     """GET /api/v1/reputation/websites/<website_id>/"""
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request, website_id):
         snap = ReputationQueryService.get_website_reputation(website_id)
