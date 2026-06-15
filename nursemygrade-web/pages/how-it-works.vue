@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {
+  Bot, ClipboardList, CreditCard, Download, Lock,
+  MessageSquare, RefreshCw, Stethoscope, Trophy, Zap,
+} from '@lucide/vue'
+
 useSeoMeta({
   title: 'How It Works — Nursing Paper Writing Service | NurseMyGrade',
   description: 'How NurseMyGrade works: submit your nursing brief, get matched with a qualified nurse writer, track progress, and download your completed paper. Takes minutes to start.',
@@ -10,7 +15,7 @@ useHead({
 const steps = [
   {
     number: '01',
-    icon: 'clipboard-list',
+    icon: ClipboardList,
     title: 'Submit your nursing brief',
     desc: 'Tell us your assignment type (care plan, SOAP note, essay, capstone…), your programme level, deadline, word count, and any rubric or clinical scenario details. The more specific your brief, the better matched your writer will be.',
     detail: [
@@ -24,7 +29,7 @@ const steps = [
   },
   {
     number: '02',
-    icon: 'credit-card',
+    icon: CreditCard,
     title: 'Pay securely — then we match you',
     desc: 'Payment is handled by our regulated third-party processor. Once confirmed, our matching system identifies nurse writers whose clinical speciality and credential level align with your assignment and assigns the best available match.',
     detail: [
@@ -37,7 +42,7 @@ const steps = [
   },
   {
     number: '03',
-    icon: 'message-square',
+    icon: MessageSquare,
     title: 'Communicate directly with your nurse writer',
     desc: 'From the moment a writer accepts, you have a direct message channel in your dashboard. Share additional files, clarify requirements, ask questions, or just check in on progress. Your writer knows nursing — you can speak the same clinical language.',
     detail: [
@@ -49,7 +54,7 @@ const steps = [
   },
   {
     number: '04',
-    icon: 'download',
+    icon: Download,
     title: 'Download your completed paper',
     desc: 'Your nurse writer uploads the completed paper to your dashboard. You receive an email notification. Download in Word, PDF, or PowerPoint — your Turnitin originality report is included at no extra charge.',
     detail: [
@@ -64,12 +69,12 @@ const steps = [
 ]
 
 const guarantees = [
-  { icon: 'trophy',      title: 'Grade or money back',       desc: 'Receive a grade lower than stated in your brief? We rewrite it free or refund you — no questions asked.' },
-  { icon: 'stethoscope', title: 'Real nurses only',           desc: 'BSN minimum for every writer. MSN and DNP writers for graduate work. We verify every licence before a writer can accept orders.' },
-  { icon: 'bot',         title: 'Zero AI — verified',         desc: 'All papers are written by a real nurse. Free AI-detection report on request. Free Turnitin report with every order.' },
-  { icon: 'lock',        title: 'Your privacy protected',     desc: 'Your name, school, and order details are never shared. Your writer receives only the assignment brief.' },
-  { icon: 'refresh-cw', title: 'Unlimited free revisions',   desc: 'Request as many revisions as needed within the revision window. Always handled by your original nurse writer.' },
-  { icon: 'zap',         title: 'As fast as 3 hours',         desc: 'Urgent order? Most nursing papers up to 4 pages can be delivered in 3 hours. Available 24/7.' },
+  { icon: Trophy,      title: 'Grade or money back',       desc: 'Receive a grade lower than stated in your brief? We rewrite it free or refund you — no questions asked.' },
+  { icon: Stethoscope, title: 'Real nurses only',           desc: 'BSN minimum for every writer. MSN and DNP writers for graduate work. We verify every licence before a writer can accept orders.' },
+  { icon: Bot,         title: 'Zero AI — verified',         desc: 'All papers are written by a real nurse. Free AI-detection report on request. Free Turnitin report with every order.' },
+  { icon: Lock,        title: 'Your privacy protected',     desc: 'Your name, school, and order details are never shared. Your writer receives only the assignment brief.' },
+  { icon: RefreshCw,   title: 'Unlimited free revisions',   desc: 'Request as many revisions as needed within the revision window. Always handled by your original nurse writer.' },
+  { icon: Zap,         title: 'As fast as 3 hours',         desc: 'Urgent order? Most nursing papers up to 4 pages can be delivered in 3 hours. Available 24/7.' },
 ]
 
 const services = [
@@ -128,7 +133,7 @@ const services = [
           <!-- Step content -->
           <div class="pb-4">
             <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
-              <Icon :name="step.icon" class="h-5 w-5 text-brand-700" />
+              <component :is="step.icon" class="h-5 w-5 text-brand-700" />
             </div>
             <h2 class="font-serif text-2xl font-bold text-slate-900">{{ step.title }}</h2>
             <p class="mt-2 text-base leading-relaxed text-slate-600">{{ step.desc }}</p>
@@ -157,7 +162,7 @@ const services = [
         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="g in guarantees" :key="g.title" class="card">
             <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-100">
-              <Icon :name="g.icon" class="h-5 w-5 text-brand-700" />
+              <component :is="g.icon" class="h-5 w-5 text-brand-700" />
             </div>
             <h3 class="mt-3 font-semibold text-slate-900">{{ g.title }}</h3>
             <p class="mt-1 text-sm leading-relaxed text-slate-600">{{ g.desc }}</p>

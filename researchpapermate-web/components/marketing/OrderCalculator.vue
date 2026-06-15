@@ -1,38 +1,39 @@
 <script setup lang="ts">
+import {
+  fetchPricingConfig, FALLBACK_LEVELS, FALLBACK_DEADLINES,
+  type PricingLevel, type PricingDeadline,
+} from '~/composables/usePricingConfig'
+
 const app = useAppUrl()
 
-const levels = [
-  { label: 'High School',         value: 15 },
-  { label: 'Undergraduate 1–2',   value: 18 },
-  { label: 'Undergraduate 3–4',   value: 22 },
-  { label: "Master's",            value: 28 },
-  { label: 'PhD / Doctoral',      value: 36 },
-]
+const levels    = ref<PricingLevel[]>(FALLBACK_LEVELS)
+const deadlines = ref<PricingDeadline[]>(FALLBACK_DEADLINES)
 
-const deadlines = [
-  { label: '14 days',   multiplier: 1.0 },
-  { label: '7 days',    multiplier: 1.1 },
-  { label: '3 days',    multiplier: 1.2 },
-  { label: '24 hours',  multiplier: 1.35 },
-  { label: '12 hours',  multiplier: 1.5 },
-  { label: '6 hours',   multiplier: 1.65 },
-]
+const selectedLevel    = ref<PricingLevel>(FALLBACK_LEVELS[1])
+const selectedDeadline = ref<PricingDeadline>(FALLBACK_DEADLINES[0])
+const pages            = ref(1)
 
-const selectedLevel = ref(levels[1])
-const selectedDeadline = ref(deadlines[0])
-const pages = ref(1)
+onMounted(async () => {
+  const cfg       = await fetchPricingConfig()
+  levels.value    = cfg.academic_levels
+  deadlines.value = cfg.deadlines
+  selectedLevel.value    = cfg.academic_levels[1] ?? cfg.academic_levels[0]
+  selectedDeadline.value = cfg.deadlines[0]
+})
 
-const total = computed(() =>
-  Math.ceil(selectedLevel.value.value * selectedDeadline.value.multiplier * pages.value)
-)
+const total = computed(() => {
+  const base = selectedLevel.value.price_per_page ?? 15
+  const mult = selectedDeadline.value.multiplier  ?? 1
+  return (Math.ceil(base * mult * pages.value * 100) / 100).toFixed(2)
+})
 
 const orderUrl = computed(() => {
-  const params = new URLSearchParams({
-    level: selectedLevel.value.label,
-    deadline: selectedDeadline.value.label,
-    pages: String(pages.value),
+  const p = new URLSearchParams({
+    level:    selectedLevel.value.code,
+    deadline: String(selectedDeadline.value.max_hours),
+    pages:    String(pages.value),
   })
-  return `/order?${params}`
+  return `/order?${p}`
 })
 </script>
 
@@ -49,14 +50,15 @@ const orderUrl = computed(() => {
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <button
             v-for="l in levels"
-            :key="l.label"
+            :key="l.code"
             class="rounded-lg border px-3 py-2 text-sm transition-colors"
-            :class="selectedLevel === l
+            :class="selectedLevel.code === l.code
               ? 'border-brand-600 bg-brand-600 text-white font-semibold'
               : 'border-slate-200 text-slate-600 hover:border-brand-300'"
             @click="selectedLevel = l"
           >
             {{ l.label }}
+            <span v-if="l.price_per_page" class="block text-[10px] opacity-70">from ${{ l.price_per_page }}/pg</span>
           </button>
         </div>
       </div>
@@ -69,9 +71,9 @@ const orderUrl = computed(() => {
         <div class="grid grid-cols-3 gap-2">
           <button
             v-for="d in deadlines"
-            :key="d.label"
+            :key="d.max_hours"
             class="rounded-lg border px-3 py-2 text-sm transition-colors"
-            :class="selectedDeadline === d
+            :class="selectedDeadline.max_hours === d.max_hours
               ? 'border-brand-600 bg-brand-600 text-white font-semibold'
               : 'border-slate-200 text-slate-600 hover:border-brand-300'"
             @click="selectedDeadline = d"
@@ -91,16 +93,12 @@ const orderUrl = computed(() => {
             class="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-30"
             :disabled="pages <= 1"
             @click="pages = Math.max(1, pages - 1)"
-          >
-            −
-          </button>
+          >−</button>
           <span class="w-8 text-center text-lg font-bold text-slate-900">{{ pages }}</span>
           <button
             class="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600"
             @click="pages++"
-          >
-            +
-          </button>
+          >+</button>
         </div>
       </div>
     </div>
@@ -108,12 +106,10 @@ const orderUrl = computed(() => {
     <!-- Result -->
     <div class="mt-6 flex items-center justify-between rounded-xl bg-brand-50 px-5 py-4">
       <div>
-        <p class="text-xs text-brand-600 font-medium">Estimated total</p>
+        <p class="text-xs font-medium text-brand-600">Estimated total</p>
         <p class="text-3xl font-bold text-brand-700">${{ total }}</p>
       </div>
-      <a :href="orderUrl" class="btn-primary px-6 py-3 text-sm">
-        Order now
-      </a>
+      <a :href="orderUrl" class="btn-primary px-6 py-3 text-sm">Order now</a>
     </div>
     <p class="mt-3 text-center text-xs text-slate-400">
       Final price confirmed at checkout · No payment required to place order
