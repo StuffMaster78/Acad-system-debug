@@ -23,6 +23,7 @@ const orderPaths = [
 
 const nav = [
   { label: 'How it works', href: '/how-it-works' },
+  { label: 'Our nurses',   href: '/writers' },
   { label: 'Pricing',      href: '/pricing' },
   { label: 'Blog',         href: '/blog' },
   { label: 'FAQ',          href: '/faq' },
