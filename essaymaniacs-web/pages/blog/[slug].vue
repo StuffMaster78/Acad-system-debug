@@ -167,29 +167,43 @@ const config2 = useRuntimeConfig()
 const siteUrl = config2.public.siteUrl || 'https://essaymaniacs.com'
 const canonicalUrl = `${siteUrl}/blog/${slug}`
 
-const postTitle   = computed(() => cmsArticle.value?.title   || staticPost?.title   || '')
-const postExcerpt = computed(() => cmsArticle.value?.excerpt || staticPost?.excerpt || '')
-const postDate    = computed(() => cmsArticle.value?.canonical_published_at || cmsArticle.value?.meta?.first_published_at || staticPost?.date || '')
+const postTitle     = computed(() => cmsArticle.value?.title   || staticPost?.title   || '')
+const postExcerpt   = computed(() => cmsArticle.value?.excerpt || staticPost?.excerpt || '')
+const postDate      = computed(() => cmsArticle.value?.canonical_published_at || cmsArticle.value?.meta?.first_published_at || staticPost?.date || '')
+const postModified  = computed(() => cmsArticle.value?.last_substantive_update || null)
+const postImage     = computed(() => cmsArticle.value?.thumbnail?.url || null)
+
+// FAQ blocks → FAQPage schema (when 2+ FAQ items present in CMS article)
+const faqBlocks = computed(() =>
+  (cmsArticle.value?.body ?? []).filter(b => b.type === 'faq') as Array<{ type: string; value: { question: string; answer: string } }>
+)
 
 useSeoMeta({
-  title:         computed(() => cmsArticle.value?.meta?.seo_title || postTitle.value),
-  description:   computed(() => cmsArticle.value?.meta?.search_description || postExcerpt.value),
-  ogTitle:       postTitle,
-  ogDescription: postExcerpt,
+  title:                computed(() => cmsArticle.value?.meta?.seo_title || postTitle.value),
+  description:          computed(() => cmsArticle.value?.meta?.search_description || postExcerpt.value),
+  ogTitle:              postTitle,
+  ogDescription:        postExcerpt,
+  ogImage:              postImage,
+  ogType:               'article',
   articlePublishedTime: postDate,
-  articleAuthor: computed(() => cmsArticle.value?.author_name || staticPost?.author?.name),
+  articleModifiedTime:  postModified,
+  articleAuthor:        computed(() => cmsArticle.value?.author_name || staticPost?.author?.name),
 })
 
-useHead({
-  link: [{ rel: 'canonical', href: canonicalUrl }],
-  script: [{
+const ldScripts = computed(() => {
+  const scripts: { type: string; innerHTML: string }[] = []
+
+  // Article schema
+  scripts.push({
     type: 'application/ld+json',
     innerHTML: JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'Article',
-      headline:    postTitle.value,
-      description: postExcerpt.value,
+      headline:      postTitle.value,
+      description:   postExcerpt.value,
       datePublished: postDate.value,
+      ...(postModified.value ? { dateModified: postModified.value } : {}),
+      ...(postImage.value ? { image: postImage.value } : {}),
       url: canonicalUrl,
       author: cmsArticle.value
         ? { '@type': 'Person', name: cmsArticle.value.author_name || 'EssayManiacs', description: cmsArticle.value.author_bio }
@@ -204,7 +218,44 @@ useHead({
         logo: { '@type': 'ImageObject', url: 'https://essaymaniacs.com/favicon.svg' },
       },
     }),
-  }],
+  })
+
+  // BreadcrumbList schema
+  scripts.push({
+    type: 'application/ld+json',
+    innerHTML: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home',    item: 'https://essaymaniacs.com/' },
+        { '@type': 'ListItem', position: 2, name: 'Blog',    item: 'https://essaymaniacs.com/blog' },
+        { '@type': 'ListItem', position: 3, name: postTitle.value, item: canonicalUrl },
+      ],
+    }),
+  })
+
+  // FAQPage schema (when 2+ FAQ blocks are in the article)
+  if (faqBlocks.value.length >= 2) {
+    scripts.push({
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqBlocks.value.map(b => ({
+          '@type': 'Question',
+          name: b.value.question,
+          acceptedAnswer: { '@type': 'Answer', text: b.value.answer },
+        })),
+      }),
+    })
+  }
+
+  return scripts
+})
+
+useHead({
+  link: [{ rel: 'canonical', href: canonicalUrl }],
+  script: ldScripts,
 })
 </script>
 
@@ -387,7 +438,7 @@ useHead({
                      prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
                      prose-strong:text-slate-900"
             >
-              <BlockRenderer :blocks="cmsArticle.body" />
+              <BlockRenderer :blocks="cmsArticle.body" :inline-cta="inlineCta" />
             </div>
 
             <!-- Static body: v-html -->

@@ -4,6 +4,25 @@ import BlockRenderer from '~/components/cms/BlockRenderer.vue'
 
 const app    = useAppUrl()
 const route  = useRoute()
+
+const gcInlineCta = `
+<div class="not-prose my-10 border-y border-slate-200 py-8">
+  <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">GradeCrest</p>
+      <p class="text-[1.05rem] font-bold leading-snug text-slate-900">Deadline coming up? Get a subject-specialist writer on it — properly cited, from scratch, from $13/page.</p>
+      <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
+        <span>✓ Grade or money back</span>
+        <span>✓ Zero AI — human-written</span>
+        <span>✓ From $13/page · Unlimited revisions</span>
+      </div>
+    </div>
+    <a href="/order" class="mt-1 shrink-0 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-700 whitespace-nowrap">
+      Place my order
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+    </a>
+  </div>
+</div>`
 const slug   = route.params.slug as string
 const config = useRuntimeConfig()
 const apiBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
@@ -69,6 +88,7 @@ if (article.value) {
     ogTitle:       article.value.title,
     ogDescription: article.value.excerpt,
     ogImage:       article.value.thumbnail?.url,
+    ogType:        'article',
   })
   useSeoBase(`https://gradecrest.com/blog/${slug}`)
   useBreadcrumbs([
@@ -76,23 +96,41 @@ if (article.value) {
     { name: 'Blog', url: 'https://gradecrest.com/blog' },
     { name: article.value.title, url: `https://gradecrest.com/blog/${slug}` },
   ])
-  useHead({
-    script: [{
+
+  const gcFaqBlocks = (article.value.body ?? []).filter(b => b.type === 'faq') as Array<{ type: string; value: { question: string; answer: string } }>
+
+  const gcLdScripts: { type: string; innerHTML: string }[] = [{
+    type: 'application/ld+json',
+    innerHTML: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline:      article.value.title,
+      description:   article.value.excerpt,
+      datePublished: article.value.canonical_published_at || article.value.meta.first_published_at,
+      ...(article.value.last_substantive_update ? { dateModified: article.value.last_substantive_update } : {}),
+      author: { '@type': 'Person', name: article.value.author_name || 'GradeCrest Editorial Team' },
+      publisher: { '@type': 'Organization', name: 'GradeCrest', url: 'https://gradecrest.com' },
+      image: article.value.thumbnail?.url,
+      wordCount: article.value.word_count,
+    }),
+  }]
+
+  if (gcFaqBlocks.length >= 2) {
+    gcLdScripts.push({
       type: 'application/ld+json',
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
-        '@type': 'Article',
-        headline:      article.value.title,
-        description:   article.value.excerpt,
-        datePublished: article.value.canonical_published_at || article.value.meta.first_published_at,
-        ...(article.value.last_substantive_update ? { dateModified: article.value.last_substantive_update } : {}),
-        author: { '@type': 'Person', name: article.value.author_name || 'GradeCrest Editorial Team' },
-        publisher: { '@type': 'Organization', name: 'GradeCrest', url: 'https://gradecrest.com' },
-        image: article.value.thumbnail?.url,
-        wordCount: article.value.word_count,
+        '@type': 'FAQPage',
+        mainEntity: gcFaqBlocks.map(b => ({
+          '@type': 'Question',
+          name: b.value.question,
+          acceptedAnswer: { '@type': 'Answer', text: b.value.answer },
+        })),
       }),
-    }],
-  })
+    })
+  }
+
+  useHead({ script: gcLdScripts })
 }
 
 // TOC
@@ -301,7 +339,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
 
               <!-- Article body -->
               <div class="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-ink prose-headings:scroll-mt-24 prose-a:text-gc-600 prose-a:no-underline hover:prose-a:underline prose-p:text-graphite prose-p:leading-relaxed prose-li:text-graphite prose-strong:text-ink">
-                <BlockRenderer :blocks="article.body" />
+                <BlockRenderer :blocks="article.body" :inline-cta="gcInlineCta" />
               </div>
 
               <!-- Tags -->
