@@ -181,10 +181,14 @@ class StripePaymentProvider(BasePaymentProvider):
         webhook_secret = getattr(settings, "STRIPE_WEBHOOK_SECRET", "")
 
         if not webhook_secret:
-            log.warning(
-                "STRIPE_WEBHOOK_SECRET not configured — skipping signature verification."
+            log.error(
+                "STRIPE_WEBHOOK_SECRET not configured — rejecting webhook request. "
+                "Set STRIPE_WEBHOOK_SECRET in the environment."
             )
-            return ProviderWebhookVerificationResult(is_verified=True)
+            return ProviderWebhookVerificationResult(
+                is_verified=False,
+                error_message="Webhook secret not configured on this server.",
+            )
 
         raw_body: bytes = headers.get("_raw_body", b"")
         sig_header: str = headers.get("HTTP_STRIPE_SIGNATURE", "")

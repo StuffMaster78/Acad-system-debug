@@ -164,16 +164,27 @@ class SESWebhookView(View):
 
         message_type = body.get('Type', '')
 
-        # Auto-confirm SNS subscription
+        # Auto-confirm SNS subscription.
+        # SECURITY: validate the URL is an AWS SNS endpoint before fetching —
+        # an unauthenticated caller could supply an internal IP to trigger SSRF.
         if message_type == 'SubscriptionConfirmation':
+            import re
             import urllib.request
             url = body.get('SubscribeURL', '')
-            if url:
+            _SNS_URL_RE = re.compile(
+                r'^https://sns\.[a-z0-9-]+\.amazonaws\.com/'
+            )
+            if url and _SNS_URL_RE.match(url):
                 try:
-                    urllib.request.urlopen(url)
+                    urllib.request.urlopen(url)  # noqa: S310
                     logger.info("SESWebhookView: SNS subscription confirmed.")
                 except Exception as exc:
                     logger.warning("SESWebhookView: subscription confirm failed: %s", exc)
+            elif url:
+                logger.error(
+                    "SESWebhookView: rejected suspicious SubscribeURL (not an AWS SNS endpoint): %s",
+                    url[:200],
+                )
             return HttpResponse(status=200)
 
         if message_type != 'Notification':
