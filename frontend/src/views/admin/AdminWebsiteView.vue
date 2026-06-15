@@ -788,7 +788,8 @@ async function loadIntegrations() {
 async function loadPopup() {
   loadingPopup.value = true;
   try {
-    const resp = await websitesApi.exitPopup();
+    const params = website.value ? { website_id: website.value.id } : undefined;
+    const resp = await websitesApi.exitPopup(params);
     popupConfig.value = resp.data;
     syncPopupDraft(resp.data);
   } catch {
@@ -863,11 +864,15 @@ async function saveFeatures() {
 async function savePopup() {
   savingPopup.value = true;
   try {
-    const resp = await websitesApi.updateExitPopup({
-      ...popupDraft,
-      show_on_paths: textToPaths(popupShowPathsText.value),
-      suppress_on_paths: textToPaths(popupSuppressPathsText.value),
-    });
+    const params = website.value ? { website_id: website.value.id } : undefined;
+    const resp = await websitesApi.updateExitPopup(
+      {
+        ...popupDraft,
+        show_on_paths: textToPaths(popupShowPathsText.value),
+        suppress_on_paths: textToPaths(popupSuppressPathsText.value),
+      },
+      params,
+    );
     popupConfig.value = resp.data;
     syncPopupDraft(resp.data);
     showToast("Popup settings saved");
