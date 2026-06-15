@@ -6,11 +6,13 @@ import {
   Search, Network, Briefcase, BookOpen, MessageSquare, FileText,
   ChevronRight, ArrowLeft, ArrowRight, Loader2, Check, Clock,
   Trophy, ShieldCheck, RefreshCw, Lock, Bot, Plus, Minus,
+  LayoutTemplate, GitBranch,
 } from '@lucide/vue'
 
 import {
   ORDER_TYPES, PAPER_TYPES, ACADEMIC_LEVELS, DEADLINES, SUBJECTS,
   FORMATTING_STYLES, WORK_TYPES, ENGLISH_TYPES, WRITER_TIERS,
+  DESIGN_TYPES, DIAGRAM_TYPES, DIAGRAM_SOFTWARE,
 } from '~/composables/useOrderForm'
 
 const {
@@ -45,11 +47,17 @@ const subjectGroups = computed(() => {
   return groups
 })
 
-const steps = [
-  { n: 1, label: 'Paper details' },
+const step1Label = computed(() => {
+  if (form.orderType.id === 'design')  return 'Design details'
+  if (form.orderType.id === 'diagram') return 'Diagram details'
+  return 'Paper details'
+})
+
+const steps = computed(() => [
+  { n: 1, label: step1Label.value },
   { n: 2, label: 'Instructions' },
   { n: 3, label: 'Account' },
-]
+])
 
 const PAPER_ICONS: Record<string, any> = {
   ClipboardList, Stethoscope, PenLine, Microscope, GraduationCap,
@@ -102,10 +110,21 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
       <div class="mt-8 rounded-2xl border border-brand-100 bg-brand-50 p-6 text-left">
         <h2 class="mb-4 font-semibold text-brand-800">Your order summary</h2>
         <dl class="space-y-2 text-sm">
-          <div class="flex justify-between"><dt class="text-slate-500">Paper type</dt><dd class="font-medium">{{ form.paperType.label }}</dd></div>
-          <div class="flex justify-between"><dt class="text-slate-500">Level</dt><dd class="font-medium">{{ form.level.label }}</dd></div>
+          <div class="flex justify-between"><dt class="text-slate-500">Order type</dt><dd class="font-medium">{{ form.orderType.label }}</dd></div>
+          <template v-if="form.orderType.id === 'paper'">
+            <div class="flex justify-between"><dt class="text-slate-500">Paper type</dt><dd class="font-medium">{{ form.paperType.label }}</dd></div>
+            <div class="flex justify-between"><dt class="text-slate-500">Level</dt><dd class="font-medium">{{ form.level.label }}</dd></div>
+            <div class="flex justify-between"><dt class="text-slate-500">Pages</dt><dd class="font-medium">{{ unitCount }}</dd></div>
+          </template>
+          <template v-else-if="form.orderType.id === 'design'">
+            <div class="flex justify-between"><dt class="text-slate-500">Design</dt><dd class="font-medium">{{ form.designType.label }}</dd></div>
+            <div class="flex justify-between"><dt class="text-slate-500">{{ form.designType.unit }}</dt><dd class="font-medium">{{ unitCount }}</dd></div>
+          </template>
+          <template v-else-if="form.orderType.id === 'diagram'">
+            <div class="flex justify-between"><dt class="text-slate-500">Diagram</dt><dd class="font-medium">{{ form.diagramType.label }}</dd></div>
+            <div class="flex justify-between"><dt class="text-slate-500">Diagrams</dt><dd class="font-medium">{{ unitCount }}</dd></div>
+          </template>
           <div class="flex justify-between"><dt class="text-slate-500">Deadline</dt><dd class="font-medium">{{ form.deadline.label }} — {{ deadlineDate }}</dd></div>
-          <div class="flex justify-between"><dt class="text-slate-500">Pages</dt><dd class="font-medium">{{ unitCount }}</dd></div>
           <div class="flex justify-between border-t border-brand-200 pt-2">
             <dt class="font-semibold text-brand-800">Estimated total</dt>
             <dd class="text-lg font-bold text-brand-700">${{ totalPrice }}</dd>
@@ -172,10 +191,12 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             @click="selectType(ot)"
           >
             <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border" :class="ot.color">
-              <Stethoscope v-if="ot.id === 'paper'"      class="h-6 w-6" />
-              <BookOpen    v-else-if="ot.id === 'class'"      class="h-6 w-6" />
-              <Microscope  v-else-if="ot.id === 'simulation'" class="h-6 w-6" />
-              <FileText    v-else                              class="h-6 w-6" />
+              <Stethoscope    v-if="ot.id === 'paper'"      class="h-6 w-6" />
+              <LayoutTemplate v-else-if="ot.id === 'design'"      class="h-6 w-6" />
+              <GitBranch      v-else-if="ot.id === 'diagram'"     class="h-6 w-6" />
+              <BookOpen       v-else-if="ot.id === 'class'"       class="h-6 w-6" />
+              <Microscope     v-else-if="ot.id === 'simulation'"  class="h-6 w-6" />
+              <FileText       v-else                               class="h-6 w-6" />
             </div>
             <div class="flex items-start justify-between gap-2">
               <h2 class="font-semibold text-slate-900">{{ ot.label }}</h2>
@@ -204,90 +225,167 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
         <!-- Form panel -->
         <div>
 
-          <!-- ── STEP 1: Paper details ── -->
+          <!-- ── STEP 1 ── -->
           <div v-show="step === 1" class="space-y-6">
-            <h1 class="font-serif text-2xl font-bold text-slate-900">Paper details</h1>
+            <h1 class="font-serif text-2xl font-bold text-slate-900">{{ step1Label }}</h1>
 
-            <!-- Paper type grid -->
-            <div>
-              <label class="form-label">Nursing paper type</label>
-              <div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                <button v-for="pt in PAPER_TYPES" :key="pt.id" type="button"
-                  class="flex flex-col items-center gap-2 rounded-xl border p-3 text-center text-xs font-medium transition-all hover:-translate-y-0.5"
-                  :class="form.paperType.id === pt.id ? 'border-brand-600 bg-brand-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50'"
-                  @click="form.paperType = pt"
-                >
-                  <component :is="PAPER_ICONS[pt.icon]" class="h-5 w-5" />
-                  {{ pt.label }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Academic level -->
-            <div>
-              <label class="form-label">Program level</label>
-              <div class="mt-2 flex flex-wrap gap-2">
-                <button v-for="l in ACADEMIC_LEVELS" :key="l.id" type="button"
-                  class="rounded-lg border px-3 py-2 text-sm transition-all"
-                  :class="form.level.id === l.id ? 'border-brand-600 bg-brand-600 text-white font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'"
-                  @click="form.level = l"
-                >{{ l.label }}</button>
-              </div>
-              <p class="mt-1.5 text-xs text-slate-400">{{ form.level.note }}</p>
-            </div>
-
-            <!-- Pages + spacing -->
-            <div class="grid gap-4 sm:grid-cols-2">
+            <!-- ── PAPER form ── -->
+            <template v-if="form.orderType.id === 'paper'">
               <div>
-                <label class="form-label">Number of pages</label>
-                <div class="mt-2 flex items-center gap-4">
-                  <button type="button" class="stepper-btn" :disabled="form.pages <= 1" @click="form.pages = Math.max(1, form.pages - 1)">
-                    <Minus class="h-4 w-4" />
-                  </button>
-                  <span class="w-8 text-center text-lg font-bold text-slate-900">{{ form.pages }}</span>
-                  <button type="button" class="stepper-btn" @click="form.pages++">
-                    <Plus class="h-4 w-4" />
-                  </button>
-                  <span class="text-sm text-slate-500">≈ {{ wordCount.toLocaleString() }} words</span>
-                </div>
-              </div>
-              <div>
-                <label class="form-label">Spacing</label>
-                <div class="mt-2 flex gap-2">
-                  <button v-for="sp in [{ id: 'double', label: 'Double (275 words/page)' }, { id: 'single', label: 'Single (550 words/page)' }]" :key="sp.id"
-                    type="button"
-                    class="flex-1 rounded-lg border py-2 text-xs font-medium transition-colors"
-                    :class="form.spacing === sp.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'"
-                    @click="form.spacing = sp.id as any"
-                  >{{ sp.label }}</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Subject -->
-            <div>
-              <label class="form-label">Nursing subject / speciality</label>
-              <div class="relative mt-2">
-                <input v-model="subjectSearch" type="text" class="form-input pl-9" placeholder="Search a nursing subject…" />
-                <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              </div>
-              <div class="mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white">
-                <template v-for="(subjects, category) in subjectGroups" :key="category">
-                  <p class="sticky top-0 border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">{{ category }}</p>
-                  <button v-for="s in subjects" :key="s.id" type="button"
-                    class="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-brand-50"
-                    :class="form.subject.id === s.id ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'"
-                    @click="form.subject = s; subjectSearch = ''"
+                <label class="form-label">Nursing paper type</label>
+                <div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  <button v-for="pt in PAPER_TYPES" :key="pt.id" type="button"
+                    class="flex flex-col items-center gap-2 rounded-xl border p-3 text-center text-xs font-medium transition-all hover:-translate-y-0.5"
+                    :class="form.paperType.id === pt.id ? 'border-brand-600 bg-brand-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50'"
+                    @click="form.paperType = pt"
                   >
-                    {{ s.label }}
-                    <Check v-if="form.subject.id === s.id" class="h-4 w-4 text-brand-600" />
+                    <component :is="PAPER_ICONS[pt.icon]" class="h-5 w-5" />
+                    {{ pt.label }}
                   </button>
-                </template>
+                </div>
               </div>
-              <p class="mt-1.5 text-xs text-slate-400">Selected: <strong class="text-slate-600">{{ form.subject.label }}</strong></p>
-            </div>
 
-            <!-- Deadline -->
+              <div>
+                <label class="form-label">Program level</label>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button v-for="l in ACADEMIC_LEVELS" :key="l.id" type="button"
+                    class="rounded-lg border px-3 py-2 text-sm transition-all"
+                    :class="form.level.id === l.id ? 'border-brand-600 bg-brand-600 text-white font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'"
+                    @click="form.level = l"
+                  >{{ l.label }}</button>
+                </div>
+                <p class="mt-1.5 text-xs text-slate-400">{{ form.level.note }}</p>
+              </div>
+
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label class="form-label">Number of pages</label>
+                  <div class="mt-2 flex items-center gap-4">
+                    <button type="button" class="stepper-btn" :disabled="form.pages <= 1" @click="form.pages = Math.max(1, form.pages - 1)"><Minus class="h-4 w-4" /></button>
+                    <span class="w-8 text-center text-lg font-bold text-slate-900">{{ form.pages }}</span>
+                    <button type="button" class="stepper-btn" @click="form.pages++"><Plus class="h-4 w-4" /></button>
+                    <span class="text-sm text-slate-500">≈ {{ wordCount.toLocaleString() }} words</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label">Spacing</label>
+                  <div class="mt-2 flex gap-2">
+                    <button v-for="sp in [{ id: 'double', label: 'Double (275 words/page)' }, { id: 'single', label: 'Single (550 words/page)' }]" :key="sp.id"
+                      type="button"
+                      class="flex-1 rounded-lg border py-2 text-xs font-medium transition-colors"
+                      :class="form.spacing === sp.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'"
+                      @click="form.spacing = sp.id as any"
+                    >{{ sp.label }}</button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label">Nursing subject / speciality</label>
+                <div class="relative mt-2">
+                  <input v-model="subjectSearch" type="text" class="form-input pl-9" placeholder="Search a nursing subject…" />
+                  <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                </div>
+                <div class="mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+                  <template v-for="(subjects, category) in subjectGroups" :key="category">
+                    <p class="sticky top-0 border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">{{ category }}</p>
+                    <button v-for="s in subjects" :key="s.id" type="button"
+                      class="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-brand-50"
+                      :class="form.subject.id === s.id ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'"
+                      @click="form.subject = s; subjectSearch = ''"
+                    >
+                      {{ s.label }}
+                      <Check v-if="form.subject.id === s.id" class="h-4 w-4 text-brand-600" />
+                    </button>
+                  </template>
+                </div>
+                <p class="mt-1.5 text-xs text-slate-400">Selected: <strong class="text-slate-600">{{ form.subject.label }}</strong></p>
+              </div>
+            </template>
+
+            <!-- ── DESIGN form ── -->
+            <template v-else-if="form.orderType.id === 'design'">
+              <div>
+                <label class="form-label">Design type</label>
+                <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <button v-for="dt in DESIGN_TYPES" :key="dt.id" type="button"
+                    class="rounded-xl border px-3 py-3 text-left transition-all hover:-translate-y-0.5"
+                    :class="form.designType.id === dt.id ? 'border-violet-600 bg-violet-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-50'"
+                    @click="form.designType = dt"
+                  >
+                    <p class="text-sm font-semibold">{{ dt.label }}</p>
+                    <p class="mt-0.5 text-xs" :class="form.designType.id === dt.id ? 'text-violet-200' : 'text-slate-400'">from ${{ dt.basePrice }}/{{ dt.unit.replace(/s$/, '') }}</p>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label">{{ form.designType.unit === 'slides' ? 'Number of slides' : form.designType.unit === 'pages' ? 'Number of pages' : 'Number of designs' }}</label>
+                <div class="mt-2 flex items-center gap-4">
+                  <button type="button" class="stepper-btn" :disabled="form.designUnits <= 1" @click="form.designUnits = Math.max(1, form.designUnits - 1)"><Minus class="h-4 w-4" /></button>
+                  <span class="w-10 text-center text-xl font-bold text-slate-900">{{ form.designUnits }}</span>
+                  <button type="button" class="stepper-btn" @click="form.designUnits++"><Plus class="h-4 w-4" /></button>
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label">Program level <span class="ml-1 font-normal text-slate-400">(optional — helps match the right writer)</span></label>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button v-for="l in ACADEMIC_LEVELS" :key="l.id" type="button"
+                    class="rounded-lg border px-3 py-2 text-sm transition-all"
+                    :class="form.level.id === l.id ? 'border-violet-600 bg-violet-600 text-white font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-violet-300'"
+                    @click="form.level = l"
+                  >{{ l.label }}</button>
+                </div>
+              </div>
+            </template>
+
+            <!-- ── DIAGRAM form ── -->
+            <template v-else-if="form.orderType.id === 'diagram'">
+              <div>
+                <label class="form-label">Diagram type</label>
+                <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <button v-for="dt in DIAGRAM_TYPES" :key="dt.id" type="button"
+                    class="rounded-xl border px-3 py-3 text-left transition-all hover:-translate-y-0.5"
+                    :class="form.diagramType.id === dt.id ? 'border-teal-600 bg-teal-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-teal-300 hover:bg-teal-50'"
+                    @click="form.diagramType = dt"
+                  >
+                    <p class="text-sm font-semibold">{{ dt.label }}</p>
+                    <p class="mt-0.5 text-xs" :class="form.diagramType.id === dt.id ? 'text-teal-200' : 'text-slate-400'">{{ dt.desc }}</p>
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label class="form-label">Number of diagrams</label>
+                  <div class="mt-2 flex items-center gap-4">
+                    <button type="button" class="stepper-btn" :disabled="form.diagramCount <= 1" @click="form.diagramCount = Math.max(1, form.diagramCount - 1)"><Minus class="h-4 w-4" /></button>
+                    <span class="w-10 text-center text-xl font-bold text-slate-900">{{ form.diagramCount }}</span>
+                    <button type="button" class="stepper-btn" @click="form.diagramCount++"><Plus class="h-4 w-4" /></button>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label">Preferred software</label>
+                  <select class="form-input mt-2" :value="form.diagramSoftware.id" @change="form.diagramSoftware = DIAGRAM_SOFTWARE.find(s => s.id === ($event.target as HTMLSelectElement).value) ?? DIAGRAM_SOFTWARE[0]">
+                    <option v-for="sw in DIAGRAM_SOFTWARE" :key="sw.id" :value="sw.id">{{ sw.label }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label">Program level <span class="ml-1 font-normal text-slate-400">(optional)</span></label>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button v-for="l in ACADEMIC_LEVELS" :key="l.id" type="button"
+                    class="rounded-lg border px-3 py-2 text-sm transition-all"
+                    :class="form.level.id === l.id ? 'border-teal-600 bg-teal-600 text-white font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300'"
+                    @click="form.level = l"
+                  >{{ l.label }}</button>
+                </div>
+              </div>
+            </template>
+
+            <!-- ── Shared: deadline + writer tier ── -->
             <div>
               <label class="form-label">Deadline</label>
               <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -307,7 +405,6 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
               </p>
             </div>
 
-            <!-- Writer tier -->
             <div>
               <label class="form-label">Writer credentials</label>
               <div class="mt-2 grid grid-cols-3 gap-3">
@@ -415,10 +512,20 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <h2 class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Order summary</h2>
               <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                <span class="text-slate-500">Paper type</span>  <span class="font-medium">{{ form.paperType.label }}</span>
-                <span class="text-slate-500">Level</span>       <span class="font-medium">{{ form.level.label }}</span>
+                <template v-if="form.orderType.id === 'paper'">
+                  <span class="text-slate-500">Paper type</span>  <span class="font-medium">{{ form.paperType.label }}</span>
+                  <span class="text-slate-500">Level</span>       <span class="font-medium">{{ form.level.label }}</span>
+                  <span class="text-slate-500">Pages</span>       <span class="font-medium">{{ unitCount }} × ${{ pricePerUnit }}/page</span>
+                </template>
+                <template v-else-if="form.orderType.id === 'design'">
+                  <span class="text-slate-500">Design type</span> <span class="font-medium">{{ form.designType.label }}</span>
+                  <span class="text-slate-500">{{ form.designType.unit }}</span> <span class="font-medium">{{ unitCount }} × ${{ pricePerUnit }}</span>
+                </template>
+                <template v-else-if="form.orderType.id === 'diagram'">
+                  <span class="text-slate-500">Diagram type</span> <span class="font-medium">{{ form.diagramType.label }}</span>
+                  <span class="text-slate-500">Diagrams</span>     <span class="font-medium">{{ unitCount }} × ${{ pricePerUnit }}</span>
+                </template>
                 <span class="text-slate-500">Deadline</span>    <span class="font-medium">{{ form.deadline.label }}</span>
-                <span class="text-slate-500">Pages</span>       <span class="font-medium">{{ unitCount }} × ${{ pricePerUnit }}/page</span>
                 <span class="text-slate-500">Topic</span>       <span class="font-medium truncate">{{ form.topic }}</span>
               </div>
               <div class="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
@@ -465,11 +572,25 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             <div class="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
               <h3 class="mb-4 font-serif text-base font-bold text-slate-900">Price estimate</h3>
               <dl class="space-y-2 text-sm">
-                <div class="flex justify-between"><dt class="text-slate-500">Paper type</dt><dd class="font-medium text-slate-700">{{ form.paperType.label }}</dd></div>
-                <div class="flex justify-between"><dt class="text-slate-500">Level</dt><dd class="font-medium text-slate-700">{{ form.level.label }}</dd></div>
+                <!-- paper -->
+                <template v-if="form.orderType.id === 'paper'">
+                  <div class="flex justify-between"><dt class="text-slate-500">Paper type</dt><dd class="font-medium text-slate-700">{{ form.paperType.label }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-slate-500">Level</dt><dd class="font-medium text-slate-700">{{ form.level.label }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-slate-500">Pages</dt><dd class="font-medium text-slate-700">{{ unitCount }}</dd></div>
+                </template>
+                <!-- design -->
+                <template v-else-if="form.orderType.id === 'design'">
+                  <div class="flex justify-between"><dt class="text-slate-500">Design type</dt><dd class="font-medium text-slate-700">{{ form.designType.label }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-slate-500">{{ form.designType.unit === 'slides' ? 'Slides' : form.designType.unit === 'pages' ? 'Pages' : 'Designs' }}</dt><dd class="font-medium text-slate-700">{{ unitCount }}</dd></div>
+                </template>
+                <!-- diagram -->
+                <template v-else-if="form.orderType.id === 'diagram'">
+                  <div class="flex justify-between"><dt class="text-slate-500">Diagram type</dt><dd class="font-medium text-slate-700">{{ form.diagramType.label }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-slate-500">Software</dt><dd class="font-medium text-slate-700">{{ form.diagramSoftware.label }}</dd></div>
+                  <div class="flex justify-between"><dt class="text-slate-500">Diagrams</dt><dd class="font-medium text-slate-700">{{ unitCount }}</dd></div>
+                </template>
                 <div class="flex justify-between"><dt class="text-slate-500">Deadline</dt><dd class="font-medium text-slate-700">{{ form.deadline.label }}</dd></div>
-                <div class="flex justify-between"><dt class="text-slate-500">Pages</dt><dd class="font-medium text-slate-700">{{ unitCount }}</dd></div>
-                <div class="flex justify-between"><dt class="text-slate-500">Per page</dt><dd class="font-medium text-slate-700">${{ pricePerUnit }}</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-500">Per {{ unitLabel.replace(/s$/, '') }}</dt><dd class="font-medium text-slate-700">${{ pricePerUnit }}</dd></div>
               </dl>
               <div class="mt-4 rounded-xl bg-brand-50 px-4 py-3">
                 <p class="text-xs font-medium text-brand-600">Estimated total</p>

@@ -6,6 +6,8 @@ export interface FormatOption      { id: string; label: string }
 export interface WorkTypeOption    { id: string; label: string; desc: string }
 export interface OrderTypeOption   { id: string; label: string; desc: string; examples: string; priceFrom: number; color: string; external?: string }
 export interface WriterTierOption  { id: string; label: string; desc: string; surcharge: number }
+export interface DesignTypeOption  { id: string; label: string; unit: string; basePrice: number }
+export interface DiagramTypeOption { id: string; label: string; desc: string; basePrice: number }
 
 export const ORDER_TYPES: OrderTypeOption[] = [
   {
@@ -15,6 +17,22 @@ export const ORDER_TYPES: OrderTypeOption[] = [
     examples: 'Care Plan · SOAP Note · Nursing Essay · Research Paper · Dissertation',
     priceFrom: 24,
     color: 'text-brand-600 bg-brand-50 border-brand-200',
+  },
+  {
+    id: 'design',
+    label: 'Slides & Visuals',
+    desc: 'Clinical presentations, care pathway visuals, patient-education posters & handouts',
+    examples: 'Case presentation · Care pathway · Infographic · Conference poster',
+    priceFrom: 20,
+    color: 'text-violet-600 bg-violet-50 border-violet-200',
+  },
+  {
+    id: 'diagram',
+    label: 'Diagrams & Maps',
+    desc: 'Concept maps, pathophysiology diagrams, genograms, ecomaps & flowcharts',
+    examples: 'Concept map · Pathophysiology · Genogram · Ecomap · Process flowchart',
+    priceFrom: 30,
+    color: 'text-teal-600 bg-teal-50 border-teal-200',
   },
   {
     id: 'class',
@@ -43,6 +61,33 @@ export const ORDER_TYPES: OrderTypeOption[] = [
     color: 'text-amber-600 bg-amber-50 border-amber-200',
     external: '/quote',
   },
+]
+
+export const DESIGN_TYPES: DesignTypeOption[] = [
+  { id: 'clinical_slides',  label: 'Clinical Presentation',     unit: 'slides',  basePrice: 20 },
+  { id: 'care_pathway',     label: 'Care Pathway / Journey Map', unit: 'designs', basePrice: 35 },
+  { id: 'nursing_poster',   label: 'Research / Conference Poster', unit: 'designs', basePrice: 45 },
+  { id: 'infographic',      label: 'Nursing Infographic',        unit: 'designs', basePrice: 35 },
+  { id: 'patient_handout',  label: 'Patient Education Handout',  unit: 'pages',   basePrice: 20 },
+  { id: 'other_design',     label: 'Other (describe in brief)',   unit: 'designs', basePrice: 30 },
+]
+
+export const DIAGRAM_TYPES: DiagramTypeOption[] = [
+  { id: 'concept_map',      label: 'Concept Map',               desc: 'Nursing diagnosis concept linkages',      basePrice: 30 },
+  { id: 'care_map',         label: 'Care Map',                   desc: 'Patient-centered care relationship map',  basePrice: 35 },
+  { id: 'pathophysiology',  label: 'Pathophysiology Diagram',    desc: 'Disease process & system involvement',    basePrice: 40 },
+  { id: 'genogram',         label: 'Genogram',                   desc: 'Family health history diagram',           basePrice: 30 },
+  { id: 'ecomap',           label: 'Ecomap',                     desc: 'Patient-environment relationship map',    basePrice: 30 },
+  { id: 'flowchart',        label: 'Clinical Flowchart',         desc: 'Decision or process flow diagram',        basePrice: 35 },
+  { id: 'other_diagram',    label: 'Other (describe in brief)',   desc: 'Custom diagram — specify in brief',       basePrice: 30 },
+]
+
+export const DIAGRAM_SOFTWARE = [
+  { id: 'any',        label: 'Writer\'s choice (best tool for the job)' },
+  { id: 'powerpoint', label: 'PowerPoint / Word' },
+  { id: 'draw_io',    label: 'Draw.io / Diagrams.net' },
+  { id: 'lucidchart', label: 'Lucidchart' },
+  { id: 'hand_drawn', label: 'Hand-drawn & scanned' },
 ]
 
 export const PAPER_TYPES: PaperTypeOption[] = [
@@ -151,35 +196,62 @@ export const WRITER_TIERS: WriterTierOption[] = [
 
 export function useOrderForm() {
   const form = reactive({
-    orderType:     ORDER_TYPES[0],
-    paperType:     PAPER_TYPES[0],
-    level:         ACADEMIC_LEVELS[1],
-    pages:         1,
-    spacing:       'double' as 'double' | 'single',
-    deadline:      DEADLINES[0],
-    subject:       SUBJECTS[0],
-    writerTier:    WRITER_TIERS[0],
-    topic:         '',
-    instructions:  '',
-    workType:      WORK_TYPES[0],
-    formatStyle:   FORMATTING_STYLES[0],
-    references:    0,
-    englishType:   ENGLISH_TYPES[0],
-    discountCode:  '',
-    firstName:     '',
-    lastName:      '',
-    email:         '',
-    password:      '',
-    agreeToTerms:  false,
+    orderType:      ORDER_TYPES[0],
+    // paper fields
+    paperType:      PAPER_TYPES[0],
+    level:          ACADEMIC_LEVELS[1],
+    pages:          1,
+    spacing:        'double' as 'double' | 'single',
+    subject:        SUBJECTS[0],
+    writerTier:     WRITER_TIERS[0],
+    // design fields
+    designType:     DESIGN_TYPES[0],
+    designUnits:    1,
+    // diagram fields
+    diagramType:    DIAGRAM_TYPES[0],
+    diagramSoftware: DIAGRAM_SOFTWARE[0],
+    diagramCount:   1,
+    // shared
+    deadline:       DEADLINES[0],
+    topic:          '',
+    instructions:   '',
+    workType:       WORK_TYPES[0],
+    formatStyle:    FORMATTING_STYLES[0],
+    references:     0,
+    englishType:    ENGLISH_TYPES[0],
+    discountCode:   '',
+    firstName:      '',
+    lastName:       '',
+    email:          '',
+    password:       '',
+    agreeToTerms:   false,
   })
 
-  const basePrice = computed(() => form.level.basePrice * form.deadline.multiplier * (1 + form.writerTier.surcharge))
-  const unitCount = computed(() => form.pages)
-  const unitLabel = computed(() => 'pages')
-  const totalPrice = computed(() => Math.ceil(basePrice.value * form.pages))
-  const pricePerUnit = computed(() => Math.ceil(basePrice.value))
+  const isDesign  = computed(() => form.orderType.id === 'design')
+  const isDiagram = computed(() => form.orderType.id === 'diagram')
 
-  const wordCount = computed(() => form.pages * (form.spacing === 'double' ? 275 : 550))
+  const unitLabel = computed(() => {
+    if (isDesign.value)  return form.designType.unit
+    if (isDiagram.value) return 'diagrams'
+    return 'pages'
+  })
+  const unitCount = computed(() => {
+    if (isDesign.value)  return form.designUnits
+    if (isDiagram.value) return form.diagramCount
+    return form.pages
+  })
+
+  const basePrice = computed(() => {
+    const deadlineMult = form.deadline.multiplier
+    const tierMult     = 1 + form.writerTier.surcharge
+    if (isDesign.value)  return form.designType.basePrice  * deadlineMult * tierMult
+    if (isDiagram.value) return form.diagramType.basePrice * deadlineMult * tierMult
+    return form.level.basePrice * deadlineMult * tierMult
+  })
+
+  const totalPrice   = computed(() => Math.ceil(basePrice.value * unitCount.value))
+  const pricePerUnit = computed(() => Math.ceil(basePrice.value))
+  const wordCount    = computed(() => form.pages * (form.spacing === 'double' ? 275 : 550))
 
   const deadlineDate = computed(() => {
     const d = new Date()
@@ -190,29 +262,36 @@ export function useOrderForm() {
   function savePendingOrder() {
     if (!import.meta.client) return
     localStorage.setItem('nmg_pending_order', JSON.stringify({
-      orderType:      form.orderType.id,
-      paperType:      form.paperType.label,
-      level:          form.level.label,
-      pages:          form.pages,
-      spacing:        form.spacing,
-      deadline:       form.deadline.label,
-      deadlineHours:  form.deadline.hours,
-      subject:        form.subject.label,
-      writerTier:     form.writerTier.id,
-      topic:          form.topic,
-      instructions:   form.instructions,
-      workType:       form.workType.label,
-      formatStyle:    form.formatStyle.label,
-      references:     form.references,
-      discountCode:   form.discountCode,
-      estimatedPrice: totalPrice.value,
-      savedAt:        new Date().toISOString(),
+      orderType:       form.orderType.id,
+      paperType:       form.paperType.label,
+      level:           form.level.label,
+      pages:           form.pages,
+      spacing:         form.spacing,
+      deadline:        form.deadline.label,
+      deadlineHours:   form.deadline.hours,
+      subject:         form.subject.label,
+      writerTier:      form.writerTier.id,
+      designType:      form.designType.label,
+      designUnits:     form.designUnits,
+      diagramType:     form.diagramType.label,
+      diagramSoftware: form.diagramSoftware.label,
+      diagramCount:    form.diagramCount,
+      topic:           form.topic,
+      instructions:    form.instructions,
+      workType:        form.workType.label,
+      formatStyle:     form.formatStyle.label,
+      references:      form.references,
+      discountCode:    form.discountCode,
+      estimatedPrice:  totalPrice.value,
+      savedAt:         new Date().toISOString(),
     }))
   }
 
-  const step1Valid = computed(() =>
-    !!form.paperType && !!form.level && form.pages >= 1 && !!form.deadline && !!form.subject
-  )
+  const step1Valid = computed(() => {
+    if (isDesign.value)  return form.designUnits >= 1  && !!form.deadline
+    if (isDiagram.value) return form.diagramCount >= 1 && !!form.deadline
+    return !!form.paperType && !!form.level && form.pages >= 1 && !!form.deadline && !!form.subject
+  })
   const step2Valid = computed(() =>
     form.topic.trim().length >= 3 && form.instructions.trim().length >= 10
   )
