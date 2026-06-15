@@ -166,6 +166,35 @@ class PaymentRequest(BillingBaseModel):
         blank=True,
         help_text="Linked payment intent reference from the processor.",
     )
+
+    # ── Payment disclosure snapshot ───────────────────────────────────────────
+    # Captured at creation from WebsiteBranding so the audit trail reflects
+    # exactly what was shown to the client at the time, even if branding changes.
+    processor_display_name = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Human-readable payment processor name shown to the client.",
+    )
+    statement_descriptor_snapshot = models.CharField(
+        max_length=22,
+        blank=True,
+        help_text="Exact card/bank statement descriptor shown to the client.",
+    )
+    client_disclosure_text = models.TextField(
+        blank=True,
+        help_text="Full disclosure text presented to the client before payment.",
+    )
+    disclosure_shown_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when the disclosure was first presented.",
+    )
+    disclosure_accepted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when the client explicitly acknowledged the disclosure.",
+    )
+
     invoice = models.ForeignKey(
         "billing.Invoice",
         on_delete=models.SET_NULL,

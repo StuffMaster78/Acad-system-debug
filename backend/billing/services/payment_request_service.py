@@ -91,6 +91,15 @@ class PaymentRequestService:
             recipient_email=recipient_email,
         )
 
+        _branding = getattr(website, "public_branding", None)
+        _descriptor = getattr(_branding, "payment_statement_descriptor", "") or ""
+        _processor = getattr(_branding, "payment_processor_name", "") or ""
+        _disclosure_text = (
+            f"Your payment is securely processed by {_processor}. "
+            f"Your card or bank statement may show: {_descriptor or _processor}."
+            if _processor else ""
+        )
+
         return PaymentRequest.objects.create(
             website=website,
             title=title,
@@ -107,6 +116,10 @@ class PaymentRequestService:
             due_at=due_at,
             currency=currency,
             status=PaymentRequestStatus.DRAFT,
+            processor_display_name=_processor,
+            statement_descriptor_snapshot=_descriptor,
+            client_disclosure_text=_disclosure_text,
+            disclosure_shown_at=timezone.now() if _disclosure_text else None,
         )
 
     @staticmethod

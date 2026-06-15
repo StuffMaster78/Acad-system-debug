@@ -445,6 +445,12 @@ class ReceiptOrchestrationService:
                 created=False,
             )
 
+        # Use the payment_intent as the primary disclosure source (most
+        # accurate — snapshotted at checkout time).  Fall back to the
+        # payment_request's own disclosure snapshot (captured at creation)
+        # so the receipt always carries audit-ready disclosure data.
+        disclosure_source = payment_intent if payment_intent is not None else payment_request
+
         receipt = ReceiptService.issue_receipt(
             website=payment_request.website,
             amount=amount,
@@ -459,7 +465,7 @@ class ReceiptOrchestrationService:
                 payment_request=payment_request,
                 payment_provider=payment_provider,
             ),
-            payment_intent=payment_intent,
+            payment_intent=disclosure_source,
         )
 
         if send_email:
