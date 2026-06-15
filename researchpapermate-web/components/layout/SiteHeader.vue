@@ -26,6 +26,7 @@ const nav = [
   { label: 'Pricing',      href: '/pricing' },
   { label: 'Blog',         href: '/blog' },
   { label: 'FAQ',          href: '/faq' },
+  { label: 'Reviews',      href: '/reviews' },
   { label: 'Contact',      href: '/contact' },
 ]
 
