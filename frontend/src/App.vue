@@ -2,24 +2,33 @@
 import { onErrorCaptured, ref, watch, watchEffect } from "vue";
 import { RouterView, useRouter } from "vue-router";
 import ToastContainer from "@/components/ui/ToastContainer.vue";
+import CookieConsentBanner from "@/components/privacy/CookieConsentBanner.vue";
 import { usePortalContextStore } from "@/stores/portalContext";
 import { injectGa4Script, useAnalytics } from "@/composables/useAnalytics";
+import { useCookieConsent } from "@/composables/useCookieConsent";
 import { captureUtmFromUrl } from "@/composables/useUtm";
 
 const router = useRouter();
 const fatalError = ref<{ message: string } | null>(null);
 const portalCtx = usePortalContextStore();
 const { pageView } = useAnalytics();
+const consent = useCookieConsent();
 
-// Capture UTM params from landing URL on every cold load
-captureUtmFromUrl();
+consent.init().then(() => {
+  if (consent.marketingAllowed.value) captureUtmFromUrl();
+  if (portalCtx.ga4MeasurementId) injectGa4Script(portalCtx.ga4MeasurementId);
+});
 
 // Inject GA4 once we know the measurement ID
 watch(
-  () => portalCtx.ga4MeasurementId,
-  (id) => { if (id) injectGa4Script(id); },
+  [() => portalCtx.ga4MeasurementId, consent.analyticsAllowed],
+  ([id, allowed]) => { if (id && allowed) injectGa4Script(id); },
   { immediate: true },
 );
+
+watch(consent.marketingAllowed, (allowed) => {
+  if (allowed) captureUtmFromUrl();
+});
 
 // Track SPA route changes as page views
 router.afterEach((to) => {
@@ -72,5 +81,6 @@ function reload() {
   <template v-else>
     <RouterView />
     <ToastContainer />
+    <CookieConsentBanner />
   </template>
 </template>

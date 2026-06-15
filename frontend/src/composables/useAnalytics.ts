@@ -43,7 +43,7 @@ export interface GenerateLeadParams {
 let _injected = false;
 
 export function injectGa4Script(measurementId: string): void {
-  if (_injected || !measurementId || typeof document === "undefined") return;
+  if (_injected || !measurementId || typeof document === "undefined" || !hasAnalyticsConsent()) return;
   _injected = true;
 
   // Initialise dataLayer and gtag stub before the script loads
@@ -68,6 +68,7 @@ export function injectGa4Script(measurementId: string): void {
 
 export function useAnalytics() {
   function _gtag(): Gtag | null {
+    if (!hasAnalyticsConsent()) return null;
     if (typeof window !== "undefined" && typeof window.gtag === "function") {
       return window.gtag;
     }
@@ -128,3 +129,4 @@ export function useAnalytics() {
     quizCompleted,
   };
 }
+import { hasAnalyticsConsent } from "@/composables/useCookieConsent";

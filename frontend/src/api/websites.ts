@@ -133,6 +133,29 @@ export interface PaymentDisclosureAckPayload {
   reference_id?: string | number;
 }
 
+export interface ExitPopupConfig {
+  id: number;
+  website: number;
+  website_name: string | null;
+  is_enabled: boolean;
+  trigger: "exit_intent" | "delay" | "scroll_depth";
+  title: string;
+  body: string;
+  primary_cta_label: string;
+  primary_cta_url: string;
+  secondary_cta_label: string;
+  image_url: string;
+  show_on_paths: string[];
+  suppress_on_paths: string[];
+  delay_seconds: number;
+  scroll_depth_percent: number;
+  cooldown_hours: number;
+  max_shows_per_session: number;
+  requires_marketing_consent: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CreateIntegrationPayload {
   website: number;
   integration_type: string;
@@ -207,4 +230,9 @@ export const websitesApi = {
     api.patch<PaymentDisclosureConfig>(apiPath("/websites/payment-disclosure/"), payload, { params }),
   acknowledgePaymentDisclosure: (payload: PaymentDisclosureAckPayload) =>
     api.post(apiPath("/websites/payment-disclosure/acknowledge/"), payload),
+
+  exitPopup: (params?: Record<string, unknown>) =>
+    api.get<ExitPopupConfig>(apiPath("/privacy/admin/exit-popup/"), { params }),
+  updateExitPopup: (payload: Partial<ExitPopupConfig>, params?: Record<string, unknown>) =>
+    api.patch<ExitPopupConfig>(apiPath("/privacy/admin/exit-popup/"), payload, { params }),
 };

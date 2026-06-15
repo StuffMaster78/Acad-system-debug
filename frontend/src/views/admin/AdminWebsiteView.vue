@@ -417,6 +417,107 @@
       </div>
     </div>
 
+    <!-- ── Popups ────────────────────────────────────────────────────────── -->
+    <div v-if="activeTab === 'popups'" class="space-y-4">
+      <div v-if="loadingPopup" class="text-center py-10 text-gray-400">Loading…</div>
+      <template v-else>
+        <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="font-semibold text-gray-800">Exit Popup</h2>
+              <p class="mt-1 text-sm text-gray-500">Show a configured message when visitors are about to leave or after a timed/scroll trigger.</p>
+            </div>
+            <label class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">
+              <input v-model="popupDraft.is_enabled" type="checkbox" class="rounded" />
+              Enabled
+            </label>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Trigger</label>
+              <select v-model="popupDraft.trigger" class="input">
+                <option value="exit_intent">Exit intent</option>
+                <option value="delay">Time delay</option>
+                <option value="scroll_depth">Scroll depth</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Image URL (optional)</label>
+              <input v-model="popupDraft.image_url" class="input" placeholder="https://..." />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Title</label>
+              <input v-model="popupDraft.title" class="input" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Message</label>
+              <textarea v-model="popupDraft.body" class="input h-24 resize-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Primary CTA Label</label>
+              <input v-model="popupDraft.primary_cta_label" class="input" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Primary CTA URL</label>
+              <input v-model="popupDraft.primary_cta_url" class="input" placeholder="/quote" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Secondary CTA Label</label>
+              <input v-model="popupDraft.secondary_cta_label" class="input" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Cooldown (hours)</label>
+              <input v-model.number="popupDraft.cooldown_hours" class="input" type="number" min="0" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Delay Seconds</label>
+              <input v-model.number="popupDraft.delay_seconds" class="input" type="number" min="1" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Scroll Depth %</label>
+              <input v-model.number="popupDraft.scroll_depth_percent" class="input" type="number" min="1" max="100" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Max Shows Per Session</label>
+              <input v-model.number="popupDraft.max_shows_per_session" class="input" type="number" min="1" />
+            </div>
+            <label class="flex items-center gap-3 rounded-lg border border-gray-100 p-3 text-sm text-gray-700">
+              <input v-model="popupDraft.requires_marketing_consent" type="checkbox" class="rounded" />
+              Require marketing consent
+            </label>
+            <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Show on paths</label>
+                <input v-model="popupShowPathsText" class="input" placeholder="/, /services, /blog" />
+                <p class="mt-1 text-xs text-gray-400">Comma-separated path prefixes. Empty means all public pages.</p>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Suppress on paths</label>
+                <input v-model="popupSuppressPathsText" class="input" placeholder="/order, /login, /privacy" />
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <p class="text-xs font-semibold uppercase text-gray-500">Preview</p>
+            <p class="mt-2 text-lg font-bold text-gray-900">{{ popupDraft.title || "Before you go" }}</p>
+            <p class="mt-1 text-sm text-gray-600">{{ popupDraft.body }}</p>
+            <div class="mt-3 flex gap-2">
+              <span class="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white">{{ popupDraft.primary_cta_label }}</span>
+              <span v-if="popupDraft.secondary_cta_label" class="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600">{{ popupDraft.secondary_cta_label }}</span>
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <button @click="savePopup" :disabled="savingPopup" class="btn-primary text-sm">
+              {{ savingPopup ? 'Saving…' : 'Save Popup' }}
+            </button>
+          </div>
+        </section>
+      </template>
+    </div>
+
     <!-- Soft-delete confirm dialog -->
     <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
@@ -443,13 +544,14 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
 import { websitesApi } from "@/api/websites";
-import type { Website, TenantBranding, TenantFeatureToggle, WebsiteIntegrationConfig, WebsiteActionLog } from "@/api/websites";
+import type { Website, TenantBranding, TenantFeatureToggle, WebsiteIntegrationConfig, WebsiteActionLog, ExitPopupConfig } from "@/api/websites";
 
 const tabs = [
   { key: "settings", label: "Site Settings" },
   { key: "branding", label: "Branding" },
   { key: "features", label: "Features" },
   { key: "integrations", label: "Integrations" },
+  { key: "popups", label: "Popups" },
 ] as const;
 
 type TabKey = (typeof tabs)[number]["key"];
@@ -461,18 +563,21 @@ const branding = ref<TenantBranding | null>(null);
 const featureToggle = ref<TenantFeatureToggle | null>(null);
 const integrations = ref<WebsiteIntegrationConfig[]>([]);
 const actionLogs = ref<WebsiteActionLog[]>([]);
+const popupConfig = ref<ExitPopupConfig | null>(null);
 
 const loadingWebsite = ref(false);
 const loadingBranding = ref(false);
 const loadingFeatures = ref(false);
 const loadingIntegrations = ref(false);
 const loadingLogs = ref(false);
+const loadingPopup = ref(false);
 
 const savingSettings = ref(false);
 const savingSeo = ref(false);
 const savingBranding = ref(false);
 const savingFeatures = ref(false);
 const savingIntegration = ref(false);
+const savingPopup = ref(false);
 const actioning = ref(false);
 
 const showDeleteConfirm = ref(false);
@@ -485,6 +590,9 @@ const toast = ref<{ message: string; type: "success" | "error" } | null>(null);
 const settingsDraft = reactive<Partial<Website>>({});
 const brandingDraft = reactive<Partial<TenantBranding>>({});
 const featureDraft = reactive<Partial<TenantFeatureToggle> & Record<string, unknown>>({});
+const popupDraft = reactive<Partial<ExitPopupConfig>>({});
+const popupShowPathsText = ref("");
+const popupSuppressPathsText = ref("");
 const newIntg = reactive({
   integration_type: "",
   name: "",
@@ -585,6 +693,34 @@ function syncFeatureDraft(ft: TenantFeatureToggle) {
   });
 }
 
+function pathsToText(paths: string[] | undefined) {
+  return (paths || []).join(", ");
+}
+
+function textToPaths(value: string) {
+  return value.split(",").map((path) => path.trim()).filter(Boolean);
+}
+
+function syncPopupDraft(cfg: ExitPopupConfig) {
+  Object.assign(popupDraft, {
+    is_enabled: cfg.is_enabled,
+    trigger: cfg.trigger,
+    title: cfg.title,
+    body: cfg.body,
+    primary_cta_label: cfg.primary_cta_label,
+    primary_cta_url: cfg.primary_cta_url,
+    secondary_cta_label: cfg.secondary_cta_label,
+    image_url: cfg.image_url,
+    delay_seconds: cfg.delay_seconds,
+    scroll_depth_percent: cfg.scroll_depth_percent,
+    cooldown_hours: cfg.cooldown_hours,
+    max_shows_per_session: cfg.max_shows_per_session,
+    requires_marketing_consent: cfg.requires_marketing_consent,
+  });
+  popupShowPathsText.value = pathsToText(cfg.show_on_paths);
+  popupSuppressPathsText.value = pathsToText(cfg.suppress_on_paths);
+}
+
 // ── Fetch ──────────────────────────────────────────────────────────────────
 async function loadWebsite() {
   loadingWebsite.value = true;
@@ -649,6 +785,19 @@ async function loadIntegrations() {
   }
 }
 
+async function loadPopup() {
+  loadingPopup.value = true;
+  try {
+    const resp = await websitesApi.exitPopup();
+    popupConfig.value = resp.data;
+    syncPopupDraft(resp.data);
+  } catch {
+    showToast("Failed to load popup settings", "error");
+  } finally {
+    loadingPopup.value = false;
+  }
+}
+
 // ── Save ───────────────────────────────────────────────────────────────────
 async function saveSettings() {
   if (!website.value) return;
@@ -708,6 +857,24 @@ async function saveFeatures() {
     showToast("Failed to save features", "error");
   } finally {
     savingFeatures.value = false;
+  }
+}
+
+async function savePopup() {
+  savingPopup.value = true;
+  try {
+    const resp = await websitesApi.updateExitPopup({
+      ...popupDraft,
+      show_on_paths: textToPaths(popupShowPathsText.value),
+      suppress_on_paths: textToPaths(popupSuppressPathsText.value),
+    });
+    popupConfig.value = resp.data;
+    syncPopupDraft(resp.data);
+    showToast("Popup settings saved");
+  } catch {
+    showToast("Failed to save popup settings", "error");
+  } finally {
+    savingPopup.value = false;
   }
 }
 
@@ -806,6 +973,7 @@ onMounted(() => {
   loadBranding();
   loadFeatures();
   loadIntegrations();
+  loadPopup();
 });
 </script>
 

@@ -2,8 +2,14 @@
   "name": "gradecrest-web",
   "private": true,
   "type": "module",
+  "imports": {
+    "#internal/nuxt/paths": "./nuxt-internal-paths.mjs"
+  },
   "scripts": {
+    "postinstall": "node ../scripts/patch-nuxt-site-config.mjs",
+    "predev": "node ../scripts/patch-nuxt-site-config.mjs",
     "dev": "nuxt dev",
+    "prebuild": "node ../scripts/patch-nuxt-site-config.mjs",
     "build": "nuxt build",
     "preview": "node .output/server/index.mjs",
     "lint": "eslint ."

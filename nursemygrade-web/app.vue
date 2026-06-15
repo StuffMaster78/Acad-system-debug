@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import CookieConsentBanner from '~/components/privacy/CookieConsentBanner.vue'
+import ExitIntentPopup from '~/components/marketing/ExitIntentPopup.vue'
+
 const portal = usePortalStore()
+const consent = useCookieConsent()
 
 useSeoMeta({
   titleTemplate: (title) => title ? `${title} — ${portal.brandName}` : portal.brandName,
@@ -7,22 +11,20 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
 })
 
-// Inject GA4 once portal context resolves with a measurement ID
-watch(() => portal.ga4Id, (id) => {
-  if (!id || typeof window === 'undefined') return
-  const script = document.createElement('script')
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${id}`
-  script.async = true
-  document.head.appendChild(script)
-  window.dataLayer = window.dataLayer || []
-  function gtag(...args: unknown[]) { window.dataLayer.push(args) }
-  gtag('js', new Date())
-  gtag('config', id)
+onMounted(async () => {
+  await consent.init()
+  injectConsentAwareGa4(portal.ga4Id, consent.analyticsAllowed.value)
+})
+
+watch([() => portal.ga4Id, consent.analyticsAllowed], ([id, allowed]) => {
+  injectConsentAwareGa4(id, allowed)
 }, { immediate: true })
 </script>
 
 <template>
   <NuxtLayout>
     <NuxtPage />
+    <CookieConsentBanner />
+    <ExitIntentPopup />
   </NuxtLayout>
 </template>

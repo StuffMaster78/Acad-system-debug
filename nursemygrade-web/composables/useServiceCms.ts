@@ -20,12 +20,14 @@ export interface CmsBlock {
 }
 
 export function useServiceCms(serviceSlug: string) {
+  const config = useRuntimeConfig()
   // Map frontend service slugs → Wagtail page slugs
   // Convention: Wagtail page slug = frontend slug (e.g. research-papers → research-papers)
   // Override here if they differ.
   const wagtailSlug = serviceSlug
 
   const { data, status, error } = useFetch<{ items: CmsServicePage[] }>('/api/v2/pages/', {
+    baseURL: String(config.public.apiBase || ''),
     query: {
       type: 'cms_service_pages.ServicePage',
       slug: wagtailSlug,

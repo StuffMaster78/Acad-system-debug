@@ -2,8 +2,14 @@
   "name": "researchpapermate-web",
   "private": true,
   "type": "module",
+  "imports": {
+    "#internal/nuxt/paths": "./nuxt-internal-paths.mjs"
+  },
   "scripts": {
+    "postinstall": "node ../scripts/patch-nuxt-site-config.mjs",
+    "predev": "node ../scripts/patch-nuxt-site-config.mjs",
     "dev": "nuxt dev",
+    "prebuild": "node ../scripts/patch-nuxt-site-config.mjs",
     "build": "nuxt generate",
     "preview": "npx serve .output/public",
     "lint": "eslint ."

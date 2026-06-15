@@ -1,13 +1,36 @@
 """
 Privacy & data rights endpoints.
-Views are registered here as they are implemented.
 """
 from django.urls import path
 
+from privacy.api.views import (
+    AdminExitIntentPopupConfigView,
+    CookieConfigView,
+    CookieConsentCurrentView,
+    CookieConsentRevokeView,
+    CookieConsentView,
+    PublicExitIntentPopupConfigView,
+)
+
 app_name = "privacy"
 
-urlpatterns: list = [
-    # Account deletion requests: POST /api/v1/privacy/deletion-requests/
-    # Privacy export requests: POST /api/v1/privacy/export-requests/
-    # Placeholders — views in privacy/api/views/ when implemented
+urlpatterns = [
+    path("cookie-config/", CookieConfigView.as_view(), name="cookie-config"),
+    path("cookie-consent/", CookieConsentView.as_view(), name="cookie-consent"),
+    path("exit-popup/", PublicExitIntentPopupConfigView.as_view(), name="exit-popup"),
+    path(
+        "admin/exit-popup/",
+        AdminExitIntentPopupConfigView.as_view(),
+        name="admin-exit-popup",
+    ),
+    path(
+        "cookie-consent/current/",
+        CookieConsentCurrentView.as_view(),
+        name="cookie-consent-current",
+    ),
+    path(
+        "cookie-consent/revoke/",
+        CookieConsentRevokeView.as_view(),
+        name="cookie-consent-revoke",
+    ),
 ]

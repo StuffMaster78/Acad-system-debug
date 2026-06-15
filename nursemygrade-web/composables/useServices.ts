@@ -701,8 +701,10 @@ export interface CmsServiceSummary {
 }
 
 export function useCmsServiceList() {
+  const config = useRuntimeConfig()
   const { data } = useFetch<{ items: CmsServiceSummary[] }>('/api/v2/pages/', {
     key: 'cms-service-list',
+    baseURL: String(config.public.apiBase || ''),
     query: {
       type: 'cms_service_pages.ServicePage',
       live: true,
