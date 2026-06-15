@@ -13,6 +13,8 @@ const serviceLinks = computed(() =>
 
 const companyLinks = [
   { label: 'How it works',    href: '/how-it-works' },
+  { label: 'Our Researchers', href: '/writers' },
+  { label: 'Reviews',         href: '/reviews' },
   { label: 'FAQ',             href: '/faq' },
   { label: 'About',           href: '/about' },
   { label: 'Blog',            href: '/blog' },

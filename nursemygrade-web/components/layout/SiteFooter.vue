@@ -34,6 +34,8 @@ const col4 = [
 
 const col5 = [
   { label: 'How it works',            href: '/how-it-works' },
+  { label: 'Our Nurse Writers',       href: '/writers' },
+  { label: 'Student Reviews',         href: '/reviews' },
   { label: 'FAQ',                     href: '/faq' },
   { label: 'Place an Order',          href: '/order' },
   { label: 'Custom Quote',            href: '/quote' },
