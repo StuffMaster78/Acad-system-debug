@@ -44,7 +44,6 @@ class PublicPricingConfigView(APIView):
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
-    throttle_classes = []
 
     def get(self, request) -> Response:
         website = getattr(request, "website", None)

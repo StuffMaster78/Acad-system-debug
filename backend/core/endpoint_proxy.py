@@ -116,10 +116,6 @@ def make_internal_request(request: HttpRequest, actual_path: str):
         if website_header:
             client.credentials(HTTP_X_WEBSITE=website_header)
 
-    # Also set user directly if available (for additional context)
-    if hasattr(request, 'user') and request.user.is_authenticated:
-        client.force_authenticate(user=request.user)
-
     # Prepare query parameters
     query_params = dict(request.GET)
 
@@ -250,8 +246,8 @@ def endpoint_proxy(request, masked_path=''):
     if not actual_path:
         logger.warning(f'Proxy: No actual path found for masked_path={masked_path}, user_role={user_role}')
         return Response(
-            {'error': 'Endpoint not found', 'masked_path': masked_path, 'user_role': user_role},
-            status=status.HTTP_404_NOT_FOUND
+            {'error': 'Endpoint not found.'},
+            status=status.HTTP_404_NOT_FOUND,
         )
 
     # Make internal request to actual endpoint

@@ -54,9 +54,10 @@ class LegalDocumentAdmin(admin.ModelAdmin):
     def content_preview(self, obj):
         if not obj.content:
             return "—"
+        from django.utils.html import strip_tags
         return format_html(
-            '<div style="max-height:300px;overflow-y:auto;border:1px solid #ddd;padding:12px">{}</div>',
-            format_html(obj.content[:3000]),
+            '<div style="max-height:300px;overflow-y:auto;border:1px solid #ddd;padding:12px;white-space:pre-wrap">{}</div>',
+            strip_tags(obj.content[:3000]),
         )
     content_preview.short_description = "Content preview"
 

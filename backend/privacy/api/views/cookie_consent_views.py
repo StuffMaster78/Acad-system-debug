@@ -98,7 +98,6 @@ class CookieConfigView(APIView):
 
     authentication_classes = []
     permission_classes = []
-    throttle_classes = []
 
     def get(self, request):
         website = getattr(request, "website", None)
@@ -168,7 +167,6 @@ class CookieConfigView(APIView):
 class CookieConsentCurrentView(APIView):
     authentication_classes = []
     permission_classes = []
-    throttle_classes = []
 
     def get(self, request):
         anonymous_id = _anonymous_id_from_request(request)
@@ -196,7 +194,6 @@ class CookieConsentCurrentView(APIView):
 class CookieConsentView(APIView):
     authentication_classes = []
     permission_classes = []
-    throttle_classes = []
 
     def post(self, request):
         serializer = CookieConsentWriteSerializer(data=request.data)
@@ -237,7 +234,6 @@ class CookieConsentView(APIView):
 class CookieConsentRevokeView(APIView):
     authentication_classes = []
     permission_classes = []
-    throttle_classes = []
 
     def post(self, request):
         anonymous_id = _anonymous_id_from_request(request)

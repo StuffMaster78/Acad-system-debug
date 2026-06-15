@@ -114,7 +114,7 @@ def _check_database() -> dict:
         return {"status": "healthy", "response_time_ms": _ms(t0)}
     except Exception as exc:
         logger.warning("DB health check failed: %s", exc)
-        return {"status": "error", "error": str(exc)}
+        return {"status": "error", "error": "database check failed"}
 
 
 def _check_cache() -> dict:
@@ -126,10 +126,10 @@ def _check_cache() -> dict:
         cache.delete(key)
         if val == "ok":
             return {"status": "healthy", "response_time_ms": _ms(t0)}
-        return {"status": "error", "error": "cache get/set mismatch"}
+        return {"status": "error", "error": "cache check failed"}
     except Exception as exc:
         logger.warning("Cache health check failed: %s", exc)
-        return {"status": "error", "error": str(exc)}
+        return {"status": "error", "error": "cache check failed"}
 
 
 def _check_celery() -> dict:

@@ -12,6 +12,7 @@ import mimetypes
 from pathlib import Path
 from typing import Iterable
 
+import filetype as _filetype
 from django.core.files.uploadedfile import UploadedFile
 from django.utils.text import get_valid_filename
 
@@ -20,6 +21,10 @@ from files_management.constants import (
     DEFAULT_MAX_FILE_SIZE_BYTES,
 )
 from files_management.exceptions import FileValidationError
+
+# Number of bytes read for magic-byte MIME detection. 2 048 is enough for
+# all formats in our allowlist; larger reads would slow every upload.
+_MAGIC_READ_SIZE = 2048
 
 
 def normalize_filename(filename: str) -> str:
@@ -110,10 +115,22 @@ def validate_uploaded_file(
     """
 
     normalized_name = normalize_filename(uploaded_file.name)
-    detected_mime_type = uploaded_file.content_type
 
-    if not detected_mime_type:
-        detected_mime_type = guess_mime_type(normalized_name)
+    # ── Magic-byte MIME detection ─────────────────────────────────────────
+    # Read the file header to detect the true type regardless of what the
+    # client sent in the Content-Type header of the multipart form part.
+    uploaded_file.seek(0)
+    header = uploaded_file.read(_MAGIC_READ_SIZE)
+    uploaded_file.seek(0)
+
+    detected_kind = _filetype.guess(header)
+    if detected_kind is not None:
+        # filetype recognised the format; use its MIME, not the header.
+        detected_mime_type = detected_kind.mime
+    else:
+        # No magic bytes matched (common for plain text / CSV / JSON).
+        # Fall back to the declared Content-Type then to filename guess.
+        detected_mime_type = uploaded_file.content_type or guess_mime_type(normalized_name)
 
     validate_file_size(uploaded_file, max_size_bytes=max_size_bytes)
     validate_mime_type(

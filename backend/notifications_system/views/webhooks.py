@@ -21,11 +21,14 @@ Security:
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
 import logging
+import re
 import time
+import urllib.request
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseForbidden
@@ -40,6 +43,76 @@ from notifications_system.models.email_suppression import (
 )
 
 logger = logging.getLogger(__name__)
+
+# ── Security helpers ───────────────────────────────────────────────────────────
+
+_AWS_SNS_URL_RE = re.compile(r'^https://sns\.[a-z0-9-]+\.amazonaws\.com/')
+
+# SNS field ordering per AWS signature specification
+_SNS_SIGN_FIELDS: dict[str, list[str]] = {
+    'Notification': ['Message', 'MessageId', 'Subject', 'Timestamp', 'TopicArn', 'Type'],
+    'SubscriptionConfirmation': ['Message', 'MessageId', 'SubscribeURL', 'Timestamp', 'Token', 'TopicArn', 'Type'],
+    'UnsubscribeConfirmation': ['Message', 'MessageId', 'SubscribeURL', 'Timestamp', 'Token', 'TopicArn', 'Type'],
+}
+
+
+def _verify_sendgrid_ecdsa(public_key_pem: str, body: bytes, signature: str, timestamp: str) -> bool:
+    """
+    Verify a SendGrid Event Webhook ECDSA-SHA256 signature.
+
+    SendGrid signs: timestamp_value + raw_body (bytes, then encoded as UTF-8).
+    The public key is the ECDSA P-256 key from the SendGrid settings panel.
+    """
+    try:
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives.serialization import load_pem_public_key
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.exceptions import InvalidSignature
+
+        public_key = load_pem_public_key(public_key_pem.encode())
+        sig_bytes = base64.b64decode(signature)
+        signed_payload = (timestamp + body.decode('utf-8')).encode('utf-8')
+        public_key.verify(sig_bytes, signed_payload, ec.ECDSA(hashes.SHA256()))
+        return True
+    except Exception:
+        return False
+
+
+def _verify_sns_signature(body: dict) -> bool:
+    """
+    Verify an AWS SNS message RSA-SHA1 signature.
+
+    Downloads the signing certificate from `SigningCertURL` (validated as
+    an AWS endpoint), then verifies the canonical string-to-sign.
+    Returns False on any verification failure rather than raising.
+    """
+    try:
+        from cryptography.hazmat.primitives.asymmetric import padding
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.x509 import load_pem_x509_certificate
+        from cryptography.exceptions import InvalidSignature
+
+        cert_url = body.get('SigningCertURL', '')
+        if not _AWS_SNS_URL_RE.match(cert_url):
+            logger.error("SNS: rejected cert URL not from AWS: %s", cert_url[:200])
+            return False
+
+        cert_pem = urllib.request.urlopen(cert_url, timeout=5).read()
+        cert = load_pem_x509_certificate(cert_pem)
+        public_key = cert.public_key()
+
+        msg_type = body.get('Type', '')
+        fields = _SNS_SIGN_FIELDS.get(msg_type, [])
+        string_to_sign = ''.join(
+            f'{key}\n{body[key]}\n' for key in fields if key in body
+        )
+
+        sig_bytes = base64.b64decode(body.get('Signature', ''))
+        public_key.verify(sig_bytes, string_to_sign.encode('utf-8'), padding.PKCS1v15(), hashes.SHA1())
+        return True
+    except Exception:
+        return False
+
 
 # Event types that should suppress the address
 SENDGRID_SUPPRESS_EVENTS = {'bounce', 'spamreport', 'unsubscribe', 'group_unsubscribe'}
@@ -86,15 +159,15 @@ class SendgridWebhookView(View):
     """
 
     def post(self, request):
-        # --- Basic signature check
-        # For full ECDSA validation install the sendgrid Python library
-        # and use EventWebhook.verify_signature().
-        # This simpler check is sufficient for most deployments.
-        expected_key = getattr(settings, 'SENDGRID_WEBHOOK_VERIFICATION_KEY', '')
-        if expected_key:
-            provided = request.headers.get('X-Twilio-Email-Event-Webhook-Signature', '')
-            if not hmac.compare_digest(provided, expected_key):
-                logger.warning("SendgridWebhookView: invalid signature.")
+        public_key = getattr(settings, 'SENDGRID_WEBHOOK_VERIFICATION_KEY', '')
+        if public_key:
+            signature = request.headers.get('X-Twilio-Email-Event-Webhook-Signature', '')
+            timestamp = request.headers.get('X-Twilio-Email-Event-Webhook-Timestamp', '')
+            if not signature or not timestamp:
+                logger.warning("SendgridWebhookView: missing signature or timestamp header.")
+                return HttpResponseForbidden("Missing signature headers.")
+            if not _verify_sendgrid_ecdsa(public_key, request.body, signature, timestamp):
+                logger.warning("SendgridWebhookView: ECDSA signature verification failed.")
                 return HttpResponseForbidden("Invalid signature.")
 
         try:
@@ -164,17 +237,17 @@ class SESWebhookView(View):
 
         message_type = body.get('Type', '')
 
+        # Verify AWS SNS message signature before processing any event.
+        # This prevents forged Notification bodies from suppressing addresses.
+        if not _verify_sns_signature(body):
+            logger.error("SESWebhookView: SNS signature verification failed — rejecting message.")
+            return HttpResponseForbidden("Invalid SNS message signature.")
+
         # Auto-confirm SNS subscription.
-        # SECURITY: validate the URL is an AWS SNS endpoint before fetching —
-        # an unauthenticated caller could supply an internal IP to trigger SSRF.
+        # SECURITY: URL already validated as AWS endpoint inside _verify_sns_signature.
         if message_type == 'SubscriptionConfirmation':
-            import re
-            import urllib.request
             url = body.get('SubscribeURL', '')
-            _SNS_URL_RE = re.compile(
-                r'^https://sns\.[a-z0-9-]+\.amazonaws\.com/'
-            )
-            if url and _SNS_URL_RE.match(url):
+            if url and _AWS_SNS_URL_RE.match(url):
                 try:
                     urllib.request.urlopen(url)  # noqa: S310
                     logger.info("SESWebhookView: SNS subscription confirmed.")

@@ -797,6 +797,20 @@ class AdminLoginView(views.APIView):
             )
 
         try:
+            # Verify the role BEFORE issuing any tokens so a non-admin
+            # user never gets a JWT from this endpoint, even transiently.
+            from django.contrib.auth import get_user_model
+            _User = get_user_model()
+            try:
+                candidate = _User.objects.get(email=email)
+                if candidate.role not in ["admin", "superadmin"]:
+                    return Response(
+                        {"error": "This endpoint is for admin/superadmin users only."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+            except _User.DoesNotExist:
+                pass  # Let the login service return the correct auth error
+
             result = AuthenticationService.login(
                 request=request,
                 email=email,
@@ -804,17 +818,14 @@ class AdminLoginView(views.APIView):
                 remember_me=request.data.get("remember_me", False)
             )
 
-            # Check if user is admin/superadmin
+            # Secondary role guard in case the user record changed between checks
             user_id = result.get("user", {}).get("id")
             if user_id:
-                from django.contrib.auth import get_user_model
-                User = get_user_model()
-                user = User.objects.get(id=user_id)
-
+                user = _User.objects.get(id=user_id)
                 if user.role not in ["admin", "superadmin"]:
                     return Response(
                         {"error": "This endpoint is for admin/superadmin users only."},
-                        status=status.HTTP_403_FORBIDDEN
+                        status=status.HTTP_403_FORBIDDEN,
                     )
 
                 # Log admin activity
