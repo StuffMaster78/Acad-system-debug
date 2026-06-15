@@ -51,10 +51,11 @@ class AnnouncementAnalyticsService:
 
         # Views over time (last 30 days)
         thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
+        from django.db.models.functions import TruncDay
         views_over_time = views.filter(
             viewed_at__gte=thirty_days_ago
-        ).extra(
-            select={'date': 'date(viewed_at)'}
+        ).annotate(
+            date=TruncDay('viewed_at')
         ).values('date').annotate(
             count=Count('id')
         ).order_by('date')

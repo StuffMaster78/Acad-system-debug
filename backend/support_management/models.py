@@ -1,5 +1,9 @@
+import logging
+
 from django.db import models
 from django.utils.timezone import now, timedelta
+
+logger = logging.getLogger(__name__)
 from websites.models.websites import Website
 from orders.models.orders import Order
 from tickets.models import Ticket
@@ -827,7 +831,7 @@ class OrderDisputeSLA(models.Model):
 
         for task in breached_tasks:
             # Send an internal notification to support (logic to be handled in Notifications App)
-            print(f"ALERT: SLA breached for {task.sla_type} - ID: {task.id}")
+            logger.warning("SLA breached: type=%s id=%s", task.sla_type, task.id)
 
     def __str__(self):
         return f"SLA for {self.sla_type} - {self.get_status_display()}"

@@ -13,7 +13,7 @@ full-reindex task.
 
 Configuration::
 
-    OPENAI_API_KEY = "sk-..."
+    OPENAI_API_KEY = "<your-openai-api-key>"
     EMBEDDING_MODEL = "text-embedding-3-small" # default
     EMBEDDING_ENABLED = True # False to skip in dev
 """

@@ -35,6 +35,28 @@ TOKEN_ENCRYPTION_KEY = env(
     "dev-token-encryption-key",
 )
 
+# ── Encryption key guards ─────────────────────────────────────────────────────
+# Fail fast in non-development environments so a misconfigured deployment
+# never silently runs with a public dev key or an invalid Fernet key.
+if DJANGO_ENV != "development":
+    from django.core.exceptions import ImproperlyConfigured  # noqa: PLC0415
+
+    if FIELD_ENCRYPTION_KEY == DEFAULT_FIELD_ENCRYPTION_KEY:
+        raise ImproperlyConfigured(
+            "FIELD_ENCRYPTION_KEY is set to the public development default. "
+            "Generate a proper Fernet key: python -c "
+            "\"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+        )
+
+    try:
+        base64.urlsafe_b64decode(TOKEN_ENCRYPTION_KEY + "==")
+    except Exception as _e:
+        raise ImproperlyConfigured(
+            "TOKEN_ENCRYPTION_KEY is not a valid URL-safe base64 string. "
+            "Generate one: python -c "
+            "\"import secrets, base64; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())\""
+        ) from _e
+
 ALLOWED_HOSTS = env_list(
     "ALLOWED_HOSTS",
     "localhost,127.0.0.1",

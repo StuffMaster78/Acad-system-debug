@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
@@ -6,6 +8,8 @@ from django.contrib.auth.signals import user_logged_in
 from .models import ClientProfile, SuspiciousLogin
 from core.utils.location import get_geolocation_from_ip, get_client_ip
 from django.core.mail import send_mail
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -20,7 +24,7 @@ def create_client_profile(sender, instance, created, **kwargs):
             user=instance,
             defaults={"website": instance.website},
         )
-        print(f"ClientProfile created for user: {instance.username}")
+        logger.info("ClientProfile created for user: %s", instance.username)
 
 
 @receiver(user_logged_in)
@@ -43,9 +47,9 @@ def update_client_geolocation(sender, request, user, **kwargs):
 
                 # Check for location mismatch
                 if previous_country and detected_country != previous_country:
-                    print(
-                        f"Location mismatch detected for user {user.username}: "
-                        f"{previous_country} (previous) vs {detected_country} (current)."
+                    logger.warning(
+                        "Location mismatch for user %s: %s (previous) vs %s (current).",
+                        user.username, previous_country, detected_country,
                     )
                     # Log the suspicious login
                     SuspiciousLogin.objects.create(
@@ -62,13 +66,13 @@ def update_client_geolocation(sender, request, user, **kwargs):
                 client_profile.ip_address = ip_address
                 client_profile.location_verified = True
                 client_profile.save()
-                print(f"Geolocation updated for user {user.username}: {detected_country}.")
+                logger.info("Geolocation updated for user %s: %s.", user.username, detected_country)
 
             else:
-                print(f"Geolocation error for user {user.username}: {geo_data['error']}")
+                logger.warning("Geolocation error for user %s: %s", user.username, geo_data['error'])
 
         except ClientProfile.DoesNotExist:
-            print(f"No ClientProfile found for user {user.username}")
+            logger.warning("No ClientProfile found for user %s", user.username)
 
 
 def send_location_alert(user, previous_country, current_country, ip_address):

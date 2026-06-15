@@ -295,11 +295,12 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
 
         # Revenue Trends (last 30 days)
         thirty_days_ago = timezone.now() - timedelta(days=30)
+        from django.db.models.functions import TruncDay
         revenue_trends = Order.objects.filter(
             created_at__gte=thirty_days_ago,
             payment_status="paid"
-        ).extra(
-            select={'day': "DATE(created_at)"}
+        ).annotate(
+            day=TruncDay('created_at')
         ).values('day').annotate(
             revenue=Sum("total_price", default=0),
             order_count=Count("id"),

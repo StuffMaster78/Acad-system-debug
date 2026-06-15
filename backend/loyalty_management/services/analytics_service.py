@@ -162,12 +162,13 @@ class LoyaltyAnalyticsService:
         end_date = date.today()
         start_date = end_date - timedelta(days=days)
 
+        from django.db.models.functions import TruncDay
         transactions = LoyaltyTransaction.objects.filter(
             website=website,
             timestamp__date__gte=start_date,
             timestamp__date__lte=end_date
-        ).extra(
-            select={'day': "DATE(timestamp)"}
+        ).annotate(
+            day=TruncDay('timestamp')
         ).values('day', 'transaction_type').annotate(
             total_points=Sum('points')
         )

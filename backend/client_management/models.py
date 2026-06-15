@@ -1,6 +1,9 @@
+import logging
 from decimal import Decimal
 
 from django.db import models
+
+logger = logging.getLogger(__name__)
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils.timezone import now
@@ -235,7 +238,7 @@ class ClientProfile(models.Model):
             self.location_verified = True
             self.save()
         else:
-            print(f"Geolocation error: {geo_data['error']}")
+            logger.warning("Geolocation error: %s", geo_data['error'])
 
 
     def _update_tier(self):

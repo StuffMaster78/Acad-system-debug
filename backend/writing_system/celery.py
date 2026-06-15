@@ -1,7 +1,10 @@
 # writing_system/celery.py
 from __future__ import annotations
+import logging
 import os, json
 import warnings
+
+logger = logging.getLogger(__name__)
 
 warnings.filterwarnings(
     "ignore",
@@ -95,7 +98,7 @@ if CELERY_AVAILABLE:
 
 @app.task(bind=True)
 def debug_task(self):
-    print(f"Request: {self.request!r}")
+    logger.debug("Request: %r", self.request)
 
 # ---------- Static Beat Schedule (safe even with shim) ----------
 # Using crontab() stub returns None when Celery isn't installed; harmless.
