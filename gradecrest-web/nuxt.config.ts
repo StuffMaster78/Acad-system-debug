@@ -34,6 +34,12 @@ export default defineNuxtConfig({
         '/apply',
         '/blog',
         '/services',
+        '/services/essay-writing',
+        '/services/research-papers',
+        '/services/dissertations',
+        '/services/nursing-essays',
+        '/services/editing-proofreading',
+        '/services/data-analysis',
         '/legal/terms',
         '/legal/privacy',
         '/legal/refunds',
@@ -76,5 +82,7 @@ export default defineNuxtConfig({
   sitemap: {
     hostname: 'https://gradecrest.com',
     exclude: ['/auth/**', '/legal/**'],
+    // Pulls all 160 CMS service page slugs at build/generate time
+    sources: ['/api/__sitemap__/services'],
   },
 })
