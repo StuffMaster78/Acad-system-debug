@@ -133,6 +133,27 @@ const writers = [
   { name: 'Prof. Nadia F.', degree: "PhD · Psychology",    orders: 1730, rating: 4.9, subjects: ['Psychology', 'Sociology']   },
 ]
 
+const heroWriters = [
+  {
+    initials: 'SK', name: 'Dr. Sarah K.', degree: 'PhD · Nursing & Health Sciences',
+    specialty: 'Care Plans · Dissertations · EBP Research',
+    orders: 1840, rating: 5.0, available: true,
+    quote: 'Distinction on every nursing capstone I have handled this semester.',
+  },
+  {
+    initials: 'JW', name: 'Prof. James W.', degree: 'PhD · Literature & History',
+    specialty: 'Essays · Critical Analysis · Dissertations',
+    orders: 2310, rating: 5.0, available: true,
+    quote: 'Published author. I write the kind of argument your professor will remember.',
+  },
+  {
+    initials: 'PM', name: 'Dr. Priya M.', degree: 'PhD · Business & Finance',
+    specialty: 'MBA Papers · Case Studies · Financial Analysis',
+    orders: 1560, rating: 4.9, available: false,
+    quote: 'Former strategy consultant. I know what real business writing looks like.',
+  },
+]
+
 // Animated stat counter (IntersectionObserver approach)
 const statsRef = ref<HTMLElement | null>(null)
 const statsVisible = ref(false)
@@ -149,77 +170,122 @@ onMounted(() => {
   <div>
 
     <!-- ── HERO ─────────────────────────────────────────────────────────────── -->
-    <section class="relative min-h-screen bg-navy-900 pt-16 overflow-hidden">
+    <section class="relative min-h-screen overflow-hidden bg-forest-950 pt-16">
 
-      <!-- Subtle grid pattern -->
-      <div class="absolute inset-0 bg-hero-grid bg-grid-40 opacity-100 pointer-events-none" />
+      <!-- Gold dot grid — unique welcoming pattern -->
+      <div class="pointer-events-none absolute inset-0 bg-hero-grid bg-grid-40" />
 
-      <!-- Soft radial glow -->
-      <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full bg-gc-600/10 blur-3xl pointer-events-none" />
+      <!-- Gold bloom — upper right -->
+      <div class="pointer-events-none absolute -top-40 right-0 h-[600px] w-[600px] rounded-full bg-gold-400/10 blur-[120px]" />
+      <!-- Forest glow — lower left -->
+      <div class="pointer-events-none absolute bottom-0 -left-32 h-[400px] w-[400px] rounded-full bg-gc-600/15 blur-[100px]" />
+      <!-- Warm amber centre pulse -->
+      <div class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[700px] w-[700px] rounded-full bg-gold-500/5 blur-3xl" />
 
       <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
-        <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div class="grid items-start gap-12 lg:grid-cols-2">
 
           <!-- Left: copy -->
-          <div class="space-y-7">
-            <div class="inline-flex items-center gap-2 rounded-full border border-gc-500/30 bg-gc-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-gc-300">
-              <span class="size-1.5 rounded-full bg-gc-400 animate-pulse" />
+          <div class="space-y-7 pt-4">
+            <div class="inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-gold-300">
+              <span class="size-1.5 rounded-full bg-gold-400 animate-pulse" />
               Human experts · Zero AI
             </div>
 
             <h1 class="text-4xl font-bold leading-[1.1] text-white sm:text-5xl lg:text-6xl">
               The grade you need,<br />
-              <span class="text-gc-400">written by experts</span><br />
+              <span class="text-gold-400">written by experts</span><br />
               who know your subject.
             </h1>
 
-            <p class="max-w-lg text-lg text-slate-300 leading-relaxed">
+            <p class="max-w-lg text-lg leading-relaxed text-slate-300">
               Essays, research papers, dissertations — delivered by verified human writers with postgraduate degrees. Not AI. Not outsourced. Real experts.
             </p>
 
             <!-- Trust signals row -->
             <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-400">
               <span class="flex items-center gap-1.5">
-                <Star class="size-4 fill-amber-400 text-amber-400" />
-                <span class="text-white font-semibold">4.9</span> / 5 · 12,400+ reviews
+                <Star class="size-4 fill-gold-400 text-gold-400" />
+                <span class="font-semibold text-white">4.9</span> / 5 · 12,400+ reviews
               </span>
-              <span class="hidden sm:block text-slate-700">|</span>
+              <span class="hidden text-forest-700 sm:block">|</span>
               <span class="flex items-center gap-1.5">
-                <BadgeCheck class="size-4 text-gc-400" />
+                <BadgeCheck class="size-4 text-gold-400" />
                 Grade or money back
               </span>
-              <span class="hidden sm:block text-slate-700">|</span>
+              <span class="hidden text-forest-700 sm:block">|</span>
               <span class="flex items-center gap-1.5">
-                <Clock class="size-4 text-gc-400" />
+                <Clock class="size-4 text-gold-400" />
                 From 6 hours
               </span>
             </div>
 
             <div class="flex flex-wrap gap-3">
               <a :href="app.order"
-                class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-4 text-base font-bold text-white shadow-lg hover:bg-gc-700 transition-colors">
+                class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-4 text-base font-bold text-white shadow-lg transition-colors hover:bg-gc-700">
                 Place your order <ArrowRight class="size-5" />
               </a>
               <NuxtLink to="/pricing"
-                class="inline-flex items-center gap-2 rounded-xl border border-slate-600 px-8 py-4 text-base font-semibold text-slate-300 hover:border-slate-400 hover:text-white transition-colors">
+                class="inline-flex items-center gap-2 rounded-xl border border-white/20 px-8 py-4 text-base font-semibold text-slate-300 transition-colors hover:border-white/40 hover:text-white">
                 See pricing
               </NuxtLink>
             </div>
+
+            <div class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-500">
+              <span>✓ Free plagiarism report</span>
+              <span>✓ AI-detection certificate</span>
+              <span>✓ 100% confidential</span>
+            </div>
           </div>
 
-          <!-- Right: multi-step order form -->
-          <div class="relative">
-            <div class="absolute -inset-4 rounded-3xl bg-gc-600/10 blur-2xl" />
-            <div class="relative">
-              <MultiStepOrderForm />
+          <!-- Right: writer showcase cards -->
+          <div class="space-y-3 lg:pt-4">
+            <p class="mb-4 text-xs font-bold uppercase tracking-widest text-slate-500">Writers available now</p>
+
+            <div
+              v-for="w in heroWriters" :key="w.name"
+              class="group rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition-all hover:bg-white/10"
+            >
+              <div class="flex items-start gap-4">
+                <!-- Avatar -->
+                <div class="relative shrink-0">
+                  <div class="flex size-12 items-center justify-center rounded-xl bg-gc-700 text-sm font-bold text-white">
+                    {{ w.initials }}
+                  </div>
+                  <div
+                    class="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full text-[8px] font-extrabold leading-none shadow"
+                    :class="w.available ? 'bg-gc-400 text-forest-900' : 'bg-slate-500 text-white'"
+                  >{{ w.available ? '●' : '○' }}</div>
+                </div>
+
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-2">
+                    <p class="text-sm font-bold text-white">{{ w.name }}</p>
+                    <div class="flex items-center gap-1 text-xs">
+                      <Star class="size-3 fill-gold-400 text-gold-400" />
+                      <span class="font-semibold text-white">{{ w.rating.toFixed(1) }}</span>
+                      <span class="text-slate-400">· {{ w.orders.toLocaleString() }} orders</span>
+                    </div>
+                  </div>
+                  <p class="mt-0.5 text-xs font-medium text-gold-300">{{ w.degree }}</p>
+                  <p class="mt-1 text-xs text-slate-400">{{ w.specialty }}</p>
+                  <p class="mt-2 border-l-2 border-gold-500/40 pl-2.5 text-xs italic leading-relaxed text-slate-400">
+                    "{{ w.quote }}"
+                  </p>
+                </div>
+              </div>
             </div>
+
+            <a :href="app.order" class="block pt-1 text-center text-xs font-semibold text-gold-400 transition-colors hover:text-gold-300">
+              Get matched with your writer →
+            </a>
           </div>
 
         </div>
       </div>
 
-      <!-- Bottom wave -->
-      <div class="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-white to-transparent" />
+      <!-- Bottom fade to white -->
+      <div class="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent" />
     </section>
 
     <!-- ── TRUST BAR ──────────────────────────────────────────────────────────── -->
@@ -324,14 +390,15 @@ onMounted(() => {
     </section>
 
     <!-- ── ZERO AI SECTION ───────────────────────────────────────────────────── -->
-    <section class="bg-navy-900 py-20 overflow-hidden relative">
-      <div class="absolute inset-0 bg-hero-grid bg-grid-40 opacity-100 pointer-events-none" />
+    <section class="relative overflow-hidden bg-forest-950 py-20">
+      <div class="pointer-events-none absolute inset-0 bg-hero-grid bg-grid-40" />
+      <div class="pointer-events-none absolute -top-20 right-0 h-96 w-96 rounded-full bg-gold-400/8 blur-3xl" />
       <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div class="grid items-center gap-12 lg:grid-cols-2">
 
           <!-- Left copy -->
           <div class="space-y-6">
-            <div class="inline-flex items-center gap-2 rounded-full border border-gc-500/30 bg-gc-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-gc-300">
+            <div class="inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-gold-300">
               <Bot class="size-3.5" />
               Zero AI Content
             </div>
@@ -339,7 +406,7 @@ onMounted(() => {
               Every word written<br class="hidden sm:block" />
               by a human expert.
             </h2>
-            <p class="text-slate-300 leading-relaxed max-w-md">
+            <p class="max-w-md leading-relaxed text-slate-300">
               AI-generated text is detectable, inconsistent, and doesn't know your subject the way a PhD expert does. Every GradeCrest paper is written by a verified human — and we can prove it.
             </p>
             <ul class="space-y-3">
@@ -349,18 +416,18 @@ onMounted(() => {
                 'Writers verified with degree credentials',
                 'Revision if AI content is ever detected',
               ]" :key="point" class="flex items-start gap-3 text-sm text-slate-300">
-                <CheckCircle2 class="size-5 text-gc-400 shrink-0 mt-0.5" />
+                <CheckCircle2 class="mt-0.5 size-5 shrink-0 text-gold-400" />
                 {{ point }}
               </li>
             </ul>
           </div>
 
-          <!-- Right: certificate visual -->
+          <!-- Right: certificate card -->
           <div class="flex justify-center">
-            <div class="w-full max-w-sm rounded-2xl border border-slate-700 bg-navy-800 p-8 space-y-5">
-              <div class="flex items-center justify-between border-b border-slate-700 pb-4">
+            <div class="w-full max-w-sm space-y-5 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm">
+              <div class="flex items-center justify-between border-b border-white/10 pb-4">
                 <span class="text-sm font-bold text-white">Verification Certificate</span>
-                <Shield class="size-5 text-gc-400" />
+                <Shield class="size-5 text-gold-400" />
               </div>
               <div class="space-y-4">
                 <div v-for="check in [
@@ -373,11 +440,11 @@ onMounted(() => {
                   class="flex items-center justify-between text-sm"
                 >
                   <span class="text-slate-400">{{ check.label }}</span>
-                  <span class="font-semibold" :class="check.ok ? 'text-emerald-400' : 'text-rose-400'">{{ check.value }}</span>
+                  <span class="font-semibold" :class="check.ok ? 'text-gc-400' : 'text-rose-400'">{{ check.value }}</span>
                 </div>
               </div>
-              <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-center">
-                <p class="text-xs font-bold uppercase tracking-widest text-emerald-400">Verified · Human Written</p>
+              <div class="rounded-xl border border-gold-400/30 bg-gold-400/10 px-4 py-3 text-center">
+                <p class="text-xs font-bold uppercase tracking-widest text-gold-300">Verified · Human Written</p>
               </div>
             </div>
           </div>
@@ -568,25 +635,29 @@ onMounted(() => {
     </section>
 
     <!-- ── FINAL CTA ─────────────────────────────────────────────────────────── -->
-    <section class="bg-navy-900 py-20 relative overflow-hidden">
-      <div class="absolute inset-0 bg-hero-grid bg-grid-40 opacity-100 pointer-events-none" />
-      <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div class="size-[600px] rounded-full bg-gc-600/10 blur-3xl" />
+    <section class="relative overflow-hidden bg-forest-950 py-20">
+      <div class="pointer-events-none absolute inset-0 bg-hero-grid bg-grid-40" />
+      <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div class="size-[600px] rounded-full bg-gold-400/8 blur-3xl" />
       </div>
-      <div class="relative mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center space-y-7">
+      <div class="relative mx-auto max-w-3xl space-y-7 px-4 text-center sm:px-6 lg:px-8">
+        <div class="inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-gold-300">
+          <span class="size-1.5 animate-pulse rounded-full bg-gold-400" />
+          Writers available now
+        </div>
         <h2 class="text-3xl font-bold text-white sm:text-4xl">
           Ready to improve your grade?
         </h2>
-        <p class="text-slate-300 text-lg max-w-xl mx-auto">
+        <p class="mx-auto max-w-xl text-lg text-slate-300">
           Join 20,000+ students who trust GradeCrest. Place your order in under 2 minutes.
         </p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div class="flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a :href="app.order"
-            class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-10 py-4 text-base font-bold text-white shadow-lg hover:bg-gc-700 transition-colors">
+            class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-10 py-4 text-base font-bold text-white shadow-lg transition-colors hover:bg-gc-700">
             Place your order <ArrowRight class="size-5" />
           </a>
           <NuxtLink to="/pricing"
-            class="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors">
+            class="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 transition-colors hover:text-white">
             View pricing first →
           </NuxtLink>
         </div>
@@ -595,7 +666,7 @@ onMounted(() => {
     </section>
 
     <!-- Mobile sticky CTA -->
-    <div class="fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 bg-white px-4 py-3 lg:hidden shadow-lift">
+    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white px-4 py-3 shadow-lift lg:hidden">
       <a :href="app.order"
         class="flex h-12 w-full items-center justify-center rounded-xl bg-gc-600 text-sm font-bold text-white">
         Place your order
