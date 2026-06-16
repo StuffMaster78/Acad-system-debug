@@ -129,7 +129,7 @@ const nurses = [
 
   <!-- ─── Hero ─────────────────────────────────────────────────────────────── -->
   <section class="relative overflow-hidden bg-brand-900 py-20 sm:py-28">
-    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+    <div class="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,rgba(255,255,255,0.03),rgba(255,255,255,0.03)_1px,transparent_1px,transparent_18px)]" />
     <div class="pointer-events-none absolute -top-32 right-0 h-[500px] w-[500px] rounded-full bg-brand-600 opacity-15 blur-[130px]" />
     <div class="pointer-events-none absolute bottom-0 -left-20 h-64 w-64 rounded-full bg-teal-400 opacity-10 blur-3xl" />
 
