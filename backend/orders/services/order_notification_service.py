@@ -228,6 +228,15 @@ class OrderNotificationService:
         )
 
     @classmethod
+    def notify_bid_reactivated(cls, *, interest) -> None:
+        cls._notify(
+            event_key="order.bid.reactivated",
+            order=interest.order,
+            recipient=interest.writer,
+            context={"interest_id": interest.pk},
+        )
+
+    @classmethod
     def notify_file_uploaded(
         cls, *, order, uploaded_by, attachment, recipient
     ) -> None:

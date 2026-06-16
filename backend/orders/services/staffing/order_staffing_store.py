@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any, Optional
 
 from django.utils import timezone
@@ -8,6 +9,9 @@ from orders.models import Order, OrderAssignment, OrderInterest
 from orders.models.orders.constants import (
     ORDER_ASSIGNMENT_STATUS_ACTIVE,
     ORDER_INTEREST_STATUS_PENDING,
+    ORDER_INTEREST_STATUS_SUPERSEDED,
+    ORDER_INTEREST_TYPE_BID,
+    ORDER_INTEREST_TYPE_SHOW_INTEREST,
 )
 
 
@@ -183,3 +187,36 @@ class OrderStaffingStore:
             status=superseded_status,
             reviewed_at=timezone.now(),
         )
+
+    @staticmethod
+    def reactivate_superseded_interests(
+        *,
+        order: Order,
+        window_days: int = 7,
+    ) -> list[OrderInterest]:
+        """
+        Restore SUPERSEDED bids/interests to PENDING when an order returns
+        to the pool, so writers who were passed over are automatically
+        re-entered without having to re-bid.
+
+        Only interests created within the past ``window_days`` days are
+        reactivated — older ones are considered stale.
+
+        Returns the list of reactivated interests (for notification).
+        """
+        cutoff = timezone.now() - timedelta(days=window_days)
+        queryset = OrderInterest.objects.select_for_update().filter(
+            order=order,
+            status=ORDER_INTEREST_STATUS_SUPERSEDED,
+            interest_type__in=[
+                ORDER_INTEREST_TYPE_SHOW_INTEREST,
+                ORDER_INTEREST_TYPE_BID,
+            ],
+            created_at__gte=cutoff,
+        )
+        reactivated = list(queryset)
+        queryset.update(
+            status=ORDER_INTEREST_STATUS_PENDING,
+            reviewed_at=None,
+        )
+        return reactivated

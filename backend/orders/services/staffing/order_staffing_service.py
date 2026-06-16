@@ -43,6 +43,7 @@ from orders.services.staffing.order_staffing_policy import (
 from orders.services.staffing.order_staffing_store import (
     OrderStaffingStore,
 )
+from orders.services.order_notification_service import OrderNotificationService
 from communications.constants import CommunicationThreadKind
 from communications.models.thread import CommunicationThread
 from communications.services.participant_sync_service import (
@@ -620,6 +621,29 @@ class OrderStaffingService:
             actor=released_by,
             metadata={"reason": reason},
         )
+
+        # Reactivate bids from writers who were superseded when the previous
+        # writer was assigned, so they re-enter the pool without re-bidding.
+        reactivated = OrderStaffingStore.reactivate_superseded_interests(
+            order=locked_order,
+        )
+        if reactivated:
+            OrderStaffingEvents.interests_reactivated(
+                order=locked_order,
+                actor=released_by,
+                metadata={
+                    "reactivated_count": len(reactivated),
+                    "interest_ids": [i.pk for i in reactivated],
+                },
+            )
+            for interest in reactivated:
+                try:
+                    OrderNotificationService.notify_bid_reactivated(
+                        interest=interest,
+                    )
+                except Exception:
+                    pass  # non-fatal — don't block the release
+
         return locked_order
 
     @classmethod

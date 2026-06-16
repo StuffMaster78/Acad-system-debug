@@ -7,6 +7,7 @@ from orders.models.orders.constants import (
     ORDER_TIMELINE_EVENT_ASSIGNED,
     ORDER_TIMELINE_EVENT_INTEREST_CREATED,
     ORDER_TIMELINE_EVENT_INTEREST_WITHDRAWN,
+    ORDER_TIMELINE_EVENT_INTERESTS_REACTIVATED,
     ORDER_TIMELINE_EVENT_POOL_OPENED,
     ORDER_TIMELINE_EVENT_PREFERRED_WRITER_DECLINED,
     ORDER_TIMELINE_EVENT_PREFERRED_WRITER_EXPIRED,
@@ -63,6 +64,21 @@ class OrderStaffingEvents:
         cls.create(
             order=order,
             event_type=ORDER_TIMELINE_EVENT_INTEREST_WITHDRAWN,
+            actor=actor,
+            metadata=metadata,
+        )
+
+    @classmethod
+    def interests_reactivated(
+        cls,
+        *,
+        order: Order,
+        actor: Optional[Any],
+        metadata: dict,
+    ) -> None:
+        cls.create(
+            order=order,
+            event_type=ORDER_TIMELINE_EVENT_INTERESTS_REACTIVATED,
             actor=actor,
             metadata=metadata,
         )

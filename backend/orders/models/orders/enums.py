@@ -163,6 +163,7 @@ class OrderTimelineEventType(models.TextChoices):
 
     INTEREST_CREATED = "interest_created", "Interest Created"
     INTEREST_WITHDRAWN = "interest_withdrawn", "Interest Withdrawn"
+    INTERESTS_REACTIVATED = "interests_reactivated", "Interests Reactivated"
 
     ASSIGNED = "assigned", "Assigned"
     REASSIGNED = "reassigned", "Reassigned"
