@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
 import {
   ArrowDownLeft,
@@ -249,6 +249,17 @@ function copyReferralCode() {
   });
 }
 
+type LedgerFilter = "all" | "credits" | "debits";
+const ledgerFilter = ref<LedgerFilter>("all");
+const filteredEntries = computed(() => {
+  if (ledgerFilter.value === "credits")  return wallets.entries.filter(e => e.direction === "credit");
+  if (ledgerFilter.value === "debits")   return wallets.entries.filter(e => e.direction === "debit");
+  return wallets.entries;
+});
+
+type SecondaryTab = "holds" | "loyalty" | "referral";
+const secondaryTab = ref<SecondaryTab>("holds");
+
 onMounted(() => {
   wallets.hydrate().catch(() => undefined);
   fetchReferralCode();
@@ -258,278 +269,130 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
+  <div class="space-y-6">
+
+    <!-- ── Page header ──────────────────────────────────────────────────── -->
+    <div class="flex items-center justify-between gap-4">
       <div>
-        <p class="text-sm font-semibold uppercase tracking-wide text-signal">Client</p>
-        <h1 class="mt-2 text-3xl font-semibold text-ink">Wallet</h1>
-        <p class="mt-2 max-w-2xl text-sm text-graphite">
-          Your platform balance, transaction history, and active holds.
-        </p>
+        <p class="text-xs font-semibold uppercase tracking-widest text-signal">Client</p>
+        <h1 class="mt-1 text-2xl font-bold text-ink">Wallet</h1>
       </div>
       <button
-        class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+        class="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-graphite hover:text-ink disabled:opacity-50"
         type="button"
         :disabled="wallets.isLoading"
         @click="wallets.hydrate().catch(() => undefined)"
       >
-        <RefreshCw class="h-4 w-4" :class="wallets.isLoading ? 'animate-spin' : ''" />
+        <RefreshCw class="h-3.5 w-3.5" :class="wallets.isLoading ? 'animate-spin' : ''" />
         Refresh
       </button>
-    </section>
-
-    <div v-if="wallets.error" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-      {{ wallets.error }}
     </div>
 
-    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <div class="rounded-lg border border-slate-200 bg-white p-5">
-        <div class="flex items-center gap-2">
-          <Banknote class="h-4 w-4 text-signal" />
-          <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Available</p>
-        </div>
-        <p class="mt-3 text-2xl font-semibold text-ink">
-          {{ money(wallets.wallet?.available_balance) }}
-        </p>
-        <p class="mt-1 text-xs text-graphite">Ready to use for orders</p>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-5">
-        <div class="flex items-center gap-2">
-          <Clock3 class="h-4 w-4 text-saffron" />
-          <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Pending</p>
-        </div>
-        <p class="mt-3 text-2xl font-semibold text-ink">
-          {{ money(wallets.wallet?.pending_balance) }}
-        </p>
-        <p class="mt-1 text-xs text-graphite">Processing — not yet available</p>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-5">
-        <div class="flex items-center gap-2">
-          <ArrowDownLeft class="h-4 w-4 text-emerald-500" />
-          <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Total credited</p>
-        </div>
-        <p class="mt-3 text-2xl font-semibold text-ink">
-          {{ money(wallets.wallet?.total_credited) }}
-        </p>
-        <p class="mt-1 text-xs text-graphite">All-time funds added</p>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-white p-5">
-        <div class="flex items-center gap-2">
-          <ArrowUpRight class="h-4 w-4 text-rose-400" />
-          <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Total spent</p>
-        </div>
-        <p class="mt-3 text-2xl font-semibold text-ink">
-          {{ money(wallets.wallet?.total_debited) }}
-        </p>
-        <p class="mt-1 text-xs text-graphite">All-time funds used</p>
-      </div>
-    </section>
+    <div v-if="wallets.error" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ wallets.error }}</div>
 
-    <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
-      <section class="rounded-lg border border-slate-200 bg-white">
-        <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
-          <TrendingUp class="h-5 w-5 text-signal" />
-          <div>
-            <h2 class="text-base font-semibold text-ink">Transaction ledger</h2>
-            <p class="text-sm text-graphite">Credits and debits on your wallet account.</p>
-          </div>
-        </div>
+    <!-- ── Balance hero + top-up ─────────────────────────────────────────── -->
+    <section class="relative overflow-hidden rounded-2xl bg-slate-900 text-white">
+      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:32px_32px]" />
+      <div class="relative grid gap-0 lg:grid-cols-[1fr_380px]">
 
-        <div v-if="wallets.isLoading && !wallets.entries.length" class="space-y-px">
-          <div
-            v-for="n in 5"
-            :key="n"
-            class="animate-pulse border-b border-slate-100 px-5 py-4"
-            aria-hidden="true"
-          >
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex-1 space-y-2">
-                <div class="h-4 w-1/2 rounded bg-slate-200" />
-                <div class="h-3 w-1/3 rounded bg-slate-100" />
-              </div>
-              <div class="h-4 w-20 rounded bg-slate-100" />
+        <!-- Balance side -->
+        <div class="px-6 py-7 lg:border-r lg:border-white/10">
+          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Available balance</p>
+          <p class="mt-2 text-5xl font-extrabold tabular-nums tracking-tight">
+            <span v-if="wallets.isLoading" class="inline-block h-12 w-36 animate-pulse rounded-lg bg-white/10" />
+            <span v-else>{{ money(wallets.wallet?.available_balance) }}</span>
+          </p>
+          <p class="mt-1.5 text-xs text-slate-500">Ready to use for orders</p>
+
+          <div class="mt-6 flex flex-wrap gap-5 border-t border-white/10 pt-5">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Pending</p>
+              <p class="mt-1 text-lg font-bold tabular-nums">{{ money(wallets.wallet?.pending_balance) }}</p>
+              <p class="text-xs text-slate-500">Processing</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">All-time in</p>
+              <p class="mt-1 text-lg font-bold tabular-nums text-emerald-400">{{ money(wallets.wallet?.total_credited) }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">All-time out</p>
+              <p class="mt-1 text-lg font-bold tabular-nums text-rose-400">{{ money(wallets.wallet?.total_debited) }}</p>
             </div>
           </div>
         </div>
 
-        <div v-else-if="!wallets.entries.length" class="p-8">
-          <EmptyState
-            :icon="TrendingUp"
-            title="No transactions yet"
-            message="Wallet entries will appear here once funds are added or orders are placed."
-          />
-        </div>
-
-        <div v-else class="divide-y divide-slate-100">
-          <div
-            v-for="entry in wallets.entries"
-            :key="entry.id"
-            class="grid gap-4 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_auto_auto]"
-          >
-            <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-2">
-                <component
-                  :is="entry.direction === 'credit' ? ArrowDownLeft : ArrowUpRight"
-                  class="h-3.5 w-3.5 shrink-0"
-                  :class="entry.direction === 'credit' ? 'text-emerald-500' : 'text-rose-400'"
-                />
-                <p class="truncate font-semibold text-ink">
-                  {{ entry.description || entry.entry_type || (entry.direction === "credit" ? "Credit" : "Debit") }}
-                </p>
-                <StatusPill :label="entry.status ?? 'posted'" :tone="entryTone(entry.direction)" />
-              </div>
-              <p class="mt-1 text-xs text-graphite">
-                {{ entry.reference_type ? `${entry.reference_type} · ` : "" }}{{ dateLabel(entry.created_at) }}
-              </p>
-            </div>
-            <div class="text-right">
-              <p
-                class="font-semibold"
-                :class="entry.direction === 'credit' ? 'text-emerald-700' : 'text-rose-700'"
-              >
-                {{ entry.direction === "credit" ? "+" : "−" }}{{ money(entry.amount) }}
-              </p>
-              <p v-if="entry.balance_after != null" class="mt-0.5 text-xs text-graphite">
-                Balance: {{ money(entry.balance_after) }}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <aside class="space-y-4">
-        <section class="rounded-lg border border-slate-200 bg-white">
-          <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
-            <Lock class="h-4 w-4 text-signal" />
-            <h2 class="text-base font-semibold text-ink">Active holds</h2>
-          </div>
-
-          <div v-if="!wallets.holds.length" class="px-5 py-8">
-            <EmptyState
-              :icon="Lock"
-              title="No holds"
-              message="Funds reserved for pending orders appear here."
-            />
-          </div>
-
-          <div v-else class="divide-y divide-slate-100">
-            <div
-              v-for="hold in wallets.holds"
-              :key="hold.id"
-              class="px-5 py-4"
-            >
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <p class="text-sm font-semibold text-ink">{{ money(hold.amount) }}</p>
-                  <p v-if="hold.reason" class="mt-0.5 text-xs text-graphite">{{ hold.reason }}</p>
-                  <p class="mt-0.5 text-xs text-graphite">{{ dateLabel(hold.created_at) }}</p>
-                  <p v-if="hold.expires_at" class="mt-0.5 text-xs text-graphite">
-                    Expires {{ dateLabel(hold.expires_at) }}
-                  </p>
-                </div>
-                <StatusPill :label="hold.status" :tone="holdStatusTone(hold.status)" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
-            <CreditCard class="h-4 w-4 text-signal" />
-            <h2 class="text-base font-semibold text-ink">Top up wallet</h2>
-          </div>
+        <!-- Top-up side -->
+        <div class="border-t border-white/10 px-6 py-7 lg:border-t-0">
+          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Add funds</p>
 
           <!-- Preview success -->
-          <div v-if="previewSuccess" class="space-y-4 px-5 py-6">
-            <div class="flex items-center gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4">
-              <CheckCircle2 class="h-5 w-5 shrink-0 text-signal" />
-              <p class="text-sm font-semibold text-ink">Wallet topped up (preview mode)</p>
+          <div v-if="previewSuccess" class="mt-4 space-y-3">
+            <div class="flex items-center gap-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4">
+              <CheckCircle2 class="h-5 w-5 shrink-0 text-emerald-400" />
+              <p class="text-sm font-semibold text-emerald-300">Wallet topped up (preview mode)</p>
             </div>
-            <button
-              class="focus-ring w-full rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-graphite hover:bg-slate-50"
-              type="button"
-              @click="previewSuccess = false"
-            >
+            <button class="focus-ring w-full rounded-xl border border-white/20 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10 transition-colors" type="button" @click="previewSuccess = false">
               Top up again
             </button>
           </div>
 
-          <!-- Checkout form -->
-          <div v-else-if="!previewSuccess" class="space-y-4 px-5 py-5">
+          <div v-else class="mt-4 space-y-4">
             <!-- Amount presets -->
-            <div>
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Amount</p>
-              <div class="grid grid-cols-5 gap-1.5">
-                <button
-                  v-for="preset in PRESETS"
-                  :key="preset"
-                  class="focus-ring rounded-md border py-2 text-sm font-semibold transition-colors"
-                  :class="topup.preset === preset
-                    ? 'border-ink bg-ink text-white'
-                    : 'border-slate-200 bg-white text-ink hover:border-slate-400'"
-                  type="button"
-                  @click="selectPreset(preset)"
-                >
-                  {{ preset }}
-                </button>
-              </div>
-              <div class="relative mt-2">
-                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-graphite">
-                  {{ wallets.currency }}
-                </span>
-                <input
-                  v-model="topup.custom"
-                  class="focus-ring h-10 w-full rounded-md border border-slate-200 pl-14 pr-3 text-sm"
-                  :class="topup.preset === null && topup.custom ? 'border-ink ring-1 ring-ink' : ''"
-                  type="number"
-                  min="1"
-                  step="0.01"
-                  placeholder="Custom amount"
-                  @input="onCustomInput"
-                />
-              </div>
+            <div class="grid grid-cols-5 gap-1.5">
+              <button
+                v-for="preset in PRESETS" :key="preset"
+                class="focus-ring rounded-xl border py-2.5 text-sm font-bold transition-colors"
+                :class="topup.preset === preset ? 'border-white bg-white text-slate-900' : 'border-white/20 text-white hover:border-white/50'"
+                type="button"
+                @click="selectPreset(preset)"
+              >{{ preset }}</button>
+            </div>
+            <div class="relative">
+              <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">{{ wallets.currency }}</span>
+              <input
+                v-model="topup.custom"
+                class="focus-ring h-10 w-full rounded-xl border border-white/20 bg-white/10 pl-14 pr-3 text-sm text-white placeholder:text-slate-500"
+                :class="topup.preset === null && topup.custom ? 'border-white' : ''"
+                type="number" min="1" step="0.01" placeholder="Custom amount"
+                @input="onCustomInput"
+              />
             </div>
 
             <!-- Payment method -->
-            <div>
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Pay with</p>
-              <div class="space-y-2">
-                <label
-                  class="flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors"
-                  :class="topup.provider === 'stripe' ? 'border-ink bg-slate-50 ring-1 ring-ink' : 'border-slate-200 hover:border-slate-400'"
-                >
-                  <input v-model="topup.provider" class="sr-only" type="radio" value="stripe" />
-                  <CreditCard class="h-4 w-4 shrink-0 text-graphite" />
-                  <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-ink">Card</p>
-                    <p class="text-xs text-graphite">Visa, Mastercard — you'll be redirected to checkout</p>
-                  </div>
-                  <CheckCircle2 v-if="topup.provider === 'stripe'" class="h-4 w-4 shrink-0 text-ink" />
-                </label>
-
-                <label
-                  v-if="isDev"
-                  class="flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors"
-                  :class="topup.provider === 'mock' ? 'border-ink bg-slate-50 ring-1 ring-ink' : 'border-slate-200 hover:border-slate-400'"
-                >
-                  <input v-model="topup.provider" class="sr-only" type="radio" value="mock" />
-                  <Smartphone class="h-4 w-4 shrink-0 text-graphite" />
-                  <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-ink">Mock <span class="text-xs font-normal text-graphite">(dev only)</span></p>
-                    <p class="text-xs text-graphite">Simulates checkout without a real payment</p>
-                  </div>
-                  <CheckCircle2 v-if="topup.provider === 'mock'" class="h-4 w-4 shrink-0 text-ink" />
-                </label>
-              </div>
+            <div class="space-y-1.5">
+              <label
+                class="flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors"
+                :class="topup.provider === 'stripe' ? 'border-white bg-white/10' : 'border-white/20 hover:border-white/40'"
+              >
+                <input v-model="topup.provider" class="sr-only" type="radio" value="stripe" />
+                <CreditCard class="h-4 w-4 shrink-0 text-slate-300" />
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-white">Card</p>
+                  <p class="text-xs text-slate-400">Visa, Mastercard — redirected to checkout</p>
+                </div>
+                <CheckCircle2 v-if="topup.provider === 'stripe'" class="h-4 w-4 shrink-0 text-white" />
+              </label>
+              <label
+                v-if="isDev"
+                class="flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors"
+                :class="topup.provider === 'mock' ? 'border-white bg-white/10' : 'border-white/20 hover:border-white/40'"
+              >
+                <input v-model="topup.provider" class="sr-only" type="radio" value="mock" />
+                <Smartphone class="h-4 w-4 shrink-0 text-slate-300" />
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-white">Mock <span class="text-xs font-normal text-slate-400">(dev only)</span></p>
+                  <p class="text-xs text-slate-400">Simulates checkout without a real payment</p>
+                </div>
+                <CheckCircle2 v-if="topup.provider === 'mock'" class="h-4 w-4 shrink-0 text-white" />
+              </label>
             </div>
 
-            <p v-if="topupError" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">
-              {{ topupError }}
-            </p>
+            <p v-if="topupError" class="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">{{ topupError }}</p>
 
             <PaymentDisclosureBanner v-model="paymentDisclosureAccepted" context="wallet_topup" />
+
             <button
-              class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm font-bold text-slate-900 transition-colors hover:bg-slate-100 disabled:opacity-50"
               type="button"
               :disabled="wallets.isMutating || !paymentDisclosureAccepted"
               @click="checkout"
@@ -537,175 +400,208 @@ onMounted(() => {
               <Loader2 v-if="wallets.isMutating" class="h-4 w-4 animate-spin" />
               <template v-else>
                 {{ topup.provider === "mock" ? "Simulate top-up" : "Proceed to checkout" }}
-                <span v-if="topupAmount()">— {{ wallets.currency }} {{ topupAmount() }}</span>
+                <span v-if="topupAmount()" class="opacity-70">— {{ wallets.currency }} {{ topupAmount() }}</span>
               </template>
             </button>
           </div>
-        </section>
+        </div>
+      </div>
+    </section>
 
-        <!-- Loyalty points -->
-        <section v-if="loyalty || loyaltyLoading" class="rounded-lg border border-slate-200 bg-white">
-          <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
-            <Star class="h-4 w-4 text-saffron" />
-            <h2 class="text-base font-semibold text-ink">Loyalty points</h2>
+    <!-- ── Transaction ledger ────────────────────────────────────────────── -->
+    <section class="rounded-xl border border-slate-200 bg-white">
+      <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
+        <div class="flex items-center gap-2">
+          <TrendingUp class="h-4 w-4 text-signal" />
+          <h2 class="text-sm font-semibold text-ink">Transaction ledger</h2>
+        </div>
+        <div class="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold">
+          <button
+            v-for="tab in ([{ id: 'all', label: 'All' }, { id: 'credits', label: 'Credits' }, { id: 'debits', label: 'Debits' }] as const)"
+            :key="tab.id"
+            type="button"
+            class="rounded-md px-2.5 py-1 transition-colors"
+            :class="ledgerFilter === tab.id ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+            @click="ledgerFilter = tab.id"
+          >{{ tab.label }}</button>
+        </div>
+      </div>
+
+      <div v-if="wallets.isLoading && !wallets.entries.length" class="divide-y divide-slate-100">
+        <div v-for="n in 5" :key="n" class="flex animate-pulse items-center gap-3 px-5 py-4">
+          <div class="h-8 w-8 rounded-full bg-slate-100" />
+          <div class="flex-1 space-y-1.5">
+            <div class="h-3.5 w-2/5 rounded bg-slate-100" />
+            <div class="h-3 w-1/4 rounded bg-slate-100" />
           </div>
+          <div class="h-3.5 w-16 rounded bg-slate-100" />
+        </div>
+      </div>
 
-          <div v-if="loyaltyLoading" class="flex items-center justify-center px-5 py-6">
-            <Loader2 class="h-5 w-5 animate-spin text-slate-400" />
+      <div v-else-if="!filteredEntries.length" class="px-5 py-14 text-center">
+        <TrendingUp class="mx-auto h-9 w-9 text-slate-200" />
+        <p class="mt-3 text-sm font-medium text-ink">
+          {{ ledgerFilter === 'all' ? 'No transactions yet' : `No ${ledgerFilter} yet` }}
+        </p>
+        <p class="mt-1 text-xs text-graphite">Entries appear here once funds are added or orders are placed.</p>
+      </div>
+
+      <div v-else class="divide-y divide-slate-100">
+        <div
+          v-for="entry in filteredEntries"
+          :key="entry.id"
+          class="flex items-center gap-3 px-5 py-4"
+        >
+          <div
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+            :class="entry.direction === 'credit' ? 'bg-emerald-50' : 'bg-rose-50'"
+          >
+            <ArrowDownLeft v-if="entry.direction === 'credit'" class="h-3.5 w-3.5 text-emerald-500" />
+            <ArrowUpRight v-else class="h-3.5 w-3.5 text-rose-400" />
           </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium text-ink">
+              {{ entry.description || entry.entry_type || (entry.direction === "credit" ? "Credit" : "Debit") }}
+            </p>
+            <p class="mt-0.5 text-xs text-graphite">
+              {{ entry.reference_type ? `${entry.reference_type} · ` : "" }}{{ dateLabel(entry.created_at) }}
+            </p>
+          </div>
+          <div class="shrink-0 text-right">
+            <p class="text-sm font-semibold tabular-nums" :class="entry.direction === 'credit' ? 'text-emerald-700' : 'text-rose-600'">
+              {{ entry.direction === "credit" ? "+" : "−" }}{{ money(entry.amount) }}
+            </p>
+            <p v-if="entry.balance_after != null" class="mt-0.5 text-xs text-graphite">
+              bal. {{ money(entry.balance_after) }}
+            </p>
+          </div>
+          <StatusPill :label="entry.status ?? 'posted'" :tone="entryTone(entry.direction)" />
+        </div>
+      </div>
+    </section>
 
-          <div v-else-if="loyalty" class="space-y-4 px-5 py-5">
-            <div class="flex items-end justify-between gap-3">
-              <div>
-                <p class="text-3xl font-semibold text-ink">{{ loyalty.loyalty_points.toLocaleString() }}</p>
-                <p class="mt-0.5 text-xs text-graphite">points available</p>
-              </div>
-              <span class="inline-block rounded-full border border-saffron/30 bg-saffron/10 px-3 py-1 text-xs font-semibold text-saffron">
-                {{ loyalty.tier }}
-              </span>
+    <!-- ── Secondary tabs: Holds | Loyalty | Referral ───────────────────── -->
+    <section class="rounded-xl border border-slate-200 bg-white">
+      <div class="flex gap-0 border-b border-slate-100">
+        <button
+          v-for="tab in ([
+            { id: 'holds',    label: 'Active holds',    icon: Lock },
+            { id: 'loyalty',  label: 'Loyalty points',  icon: Star },
+            { id: 'referral', label: 'Refer a friend',  icon: Gift },
+          ] as const)"
+          :key="tab.id"
+          type="button"
+          class="flex items-center gap-1.5 border-b-2 px-5 py-3 text-sm font-semibold transition-colors"
+          :class="secondaryTab === tab.id ? 'border-ink text-ink' : 'border-transparent text-graphite hover:text-ink'"
+          @click="secondaryTab = tab.id"
+        >
+          <component :is="tab.icon" class="h-4 w-4" />
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <!-- Holds -->
+      <div v-if="secondaryTab === 'holds'">
+        <div v-if="!wallets.holds.length" class="px-5 py-12 text-center">
+          <Lock class="mx-auto h-8 w-8 text-slate-200" />
+          <p class="mt-2 text-sm text-graphite">No holds. Funds reserved for pending orders appear here.</p>
+        </div>
+        <div v-else class="divide-y divide-slate-100">
+          <div v-for="hold in wallets.holds" :key="hold.id" class="flex items-start gap-4 px-5 py-4">
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-ink">{{ money(hold.amount) }}</p>
+              <p v-if="hold.reason" class="mt-0.5 text-xs text-graphite">{{ hold.reason }}</p>
+              <p class="mt-0.5 text-xs text-graphite">{{ dateLabel(hold.created_at) }}</p>
+              <p v-if="hold.expires_at" class="mt-0.5 text-xs text-graphite">Expires {{ dateLabel(hold.expires_at) }}</p>
             </div>
-
-            <!-- Tab switcher -->
-            <div class="flex gap-1 rounded-md border border-slate-200 bg-slate-50 p-1">
-              <button
-                class="flex-1 rounded py-1.5 text-xs font-semibold transition-colors"
-                :class="loyaltyTab === 'convert' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
-                type="button"
-                @click="loyaltyTab = 'convert'"
-              >
-                Convert
-              </button>
-              <button
-                class="flex-1 rounded py-1.5 text-xs font-semibold transition-colors"
-                :class="loyaltyTab === 'redeem' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
-                type="button"
-                @click="loyaltyTab = 'redeem'"
-              >
-                Redeem
-              </button>
-            </div>
-
-            <!-- Convert tab -->
-            <template v-if="loyaltyTab === 'convert'">
-              <p class="text-xs text-graphite">{{ loyalty.conversion_rate }} points = $1.00 wallet credit</p>
-              <div class="space-y-2">
-                <div class="flex gap-2">
-                  <input
-                    id="loyalty-pts"
-                    v-model="loyaltyConvertPoints"
-                    class="focus-ring h-9 flex-1 rounded-md border border-slate-200 px-3 text-sm"
-                    type="number"
-                    min="1"
-                    :max="loyalty.loyalty_points"
-                    placeholder="Points to convert"
-                  />
-                  <button
-                    class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md bg-ink px-3 text-xs font-semibold text-white disabled:opacity-60"
-                    type="button"
-                    :disabled="loyaltyConvertSubmitting || loyalty.loyalty_points === 0"
-                    @click="convertLoyaltyPoints"
-                  >
-                    <Loader2 v-if="loyaltyConvertSubmitting" class="h-3 w-3 animate-spin" />
-                    <CheckCircle2 v-else class="h-3 w-3" />
-                    Convert
-                  </button>
-                </div>
-                <p v-if="loyaltyConvertError" class="text-xs text-berry">{{ loyaltyConvertError }}</p>
-                <p v-if="loyaltyConvertSuccess" class="text-xs font-semibold text-signal">
-                  Converted {{ loyaltyConvertSuccess.converted }} pts → ${{ loyaltyConvertSuccess.amount }} added
-                </p>
-              </div>
-            </template>
-
-            <!-- Redeem tab -->
-            <template v-else>
-              <p v-if="redemptionError" class="text-xs text-berry">{{ redemptionError }}</p>
-              <p v-if="redemptionSuccess" class="text-xs font-semibold text-signal">{{ redemptionSuccess }}</p>
-
-              <div v-if="redemptionLoading" class="flex items-center justify-center py-4">
-                <Loader2 class="h-4 w-4 animate-spin text-slate-400" />
-              </div>
-              <div v-else-if="!redemptionItems.length" class="py-4 text-center text-xs text-graphite">
-                No rewards available right now.
-              </div>
-              <div v-else class="space-y-2">
-                <div
-                  v-for="item in redemptionItems"
-                  :key="item.id"
-                  class="flex items-start gap-3 rounded-md border border-slate-200 p-3"
-                  :class="item.can_redeem?.can_redeem ? 'bg-white' : 'bg-slate-50 opacity-70'"
-                >
-                  <div class="min-w-0 flex-1">
-                    <p class="text-xs font-semibold text-ink">{{ item.name }}</p>
-                    <p v-if="item.description" class="mt-0.5 text-xs text-graphite">{{ item.description }}</p>
-                    <p class="mt-1 text-xs font-semibold text-saffron">{{ item.points_required.toLocaleString() }} pts</p>
-                    <p v-if="item.can_redeem && !item.can_redeem.can_redeem" class="mt-0.5 text-xs text-graphite">
-                      {{ item.can_redeem.message }}
-                    </p>
-                  </div>
-                  <button
-                    v-if="item.can_redeem?.can_redeem"
-                    class="focus-ring mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md bg-ink px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-                    type="button"
-                    :disabled="redeemingItemId === item.id"
-                    @click="redeemItem(item.id)"
-                  >
-                    <Loader2 v-if="redeemingItemId === item.id" class="h-3 w-3 animate-spin" />
-                    <CheckCircle2 v-else class="h-3 w-3" />
-                    Redeem
-                  </button>
-                </div>
-              </div>
-            </template>
+            <StatusPill :label="hold.status" :tone="holdStatusTone(hold.status)" />
           </div>
-        </section>
+        </div>
+      </div>
 
-        <!-- Refer a friend -->
-        <section v-if="referralCode || referralCodeLoading" class="rounded-lg border border-slate-200 bg-white">
-          <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
-            <Gift class="h-4 w-4 text-amber-500" />
-            <h2 class="text-base font-semibold text-ink">Refer a friend</h2>
-          </div>
-
-          <div v-if="referralCodeLoading" class="flex items-center justify-center px-5 py-6">
-            <Loader2 class="h-5 w-5 animate-spin text-slate-400" />
-          </div>
-
-          <div v-else-if="referralCode" class="px-5 py-5 space-y-4">
+      <!-- Loyalty -->
+      <div v-if="secondaryTab === 'loyalty'">
+        <div v-if="loyaltyLoading" class="flex items-center justify-center py-12">
+          <Loader2 class="h-5 w-5 animate-spin text-slate-300" />
+        </div>
+        <div v-else-if="!loyalty" class="px-5 py-12 text-center">
+          <Star class="mx-auto h-8 w-8 text-slate-200" />
+          <p class="mt-2 text-sm text-graphite">Loyalty programme not available on your account.</p>
+        </div>
+        <div v-else class="p-5 space-y-5">
+          <div class="flex items-end justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Your referral code</p>
-              <div class="mt-2 flex items-center gap-2">
-                <code class="flex-1 rounded-md bg-slate-100 px-3 py-2 text-base font-bold tracking-widest text-ink">
-                  {{ referralCode.code }}
-                </code>
-                <button
-                  class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 px-3 text-xs font-semibold text-ink transition-colors hover:bg-slate-50"
-                  type="button"
-                  @click="copyReferralCode"
-                >
-                  <Copy class="h-3.5 w-3.5" />
-                  {{ referralCodeCopied ? "Copied!" : "Copy" }}
+              <p class="text-4xl font-extrabold text-ink tabular-nums">{{ loyalty.loyalty_points.toLocaleString() }}</p>
+              <p class="mt-0.5 text-xs text-graphite">points available</p>
+            </div>
+            <span class="rounded-full border border-saffron/30 bg-saffron/10 px-3 py-1 text-xs font-semibold text-saffron">{{ loyalty.tier }}</span>
+          </div>
+
+          <div class="flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+            <button class="flex-1 rounded-md py-1.5 text-xs font-semibold transition-colors" :class="loyaltyTab === 'convert' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'" type="button" @click="loyaltyTab = 'convert'">Convert</button>
+            <button class="flex-1 rounded-md py-1.5 text-xs font-semibold transition-colors" :class="loyaltyTab === 'redeem' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'" type="button" @click="loyaltyTab = 'redeem'">Redeem</button>
+          </div>
+
+          <template v-if="loyaltyTab === 'convert'">
+            <p class="text-xs text-graphite">{{ loyalty.conversion_rate }} points = $1.00 wallet credit</p>
+            <div class="flex gap-2">
+              <input v-model="loyaltyConvertPoints" class="focus-ring h-9 flex-1 rounded-lg border border-slate-200 px-3 text-sm" type="number" min="1" :max="loyalty.loyalty_points" placeholder="Points to convert" />
+              <button class="focus-ring inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-semibold text-white disabled:opacity-60" type="button" :disabled="loyaltyConvertSubmitting || loyalty.loyalty_points === 0" @click="convertLoyaltyPoints">
+                <Loader2 v-if="loyaltyConvertSubmitting" class="h-3 w-3 animate-spin" /><CheckCircle2 v-else class="h-3 w-3" /> Convert
+              </button>
+            </div>
+            <p v-if="loyaltyConvertError" class="text-xs text-berry">{{ loyaltyConvertError }}</p>
+            <p v-if="loyaltyConvertSuccess" class="text-xs font-semibold text-signal">Converted {{ loyaltyConvertSuccess.converted }} pts → ${{ loyaltyConvertSuccess.amount }} added</p>
+          </template>
+
+          <template v-else>
+            <p v-if="redemptionError" class="text-xs text-berry">{{ redemptionError }}</p>
+            <p v-if="redemptionSuccess" class="text-xs font-semibold text-signal">{{ redemptionSuccess }}</p>
+            <div v-if="redemptionLoading" class="flex justify-center py-4"><Loader2 class="h-4 w-4 animate-spin text-slate-400" /></div>
+            <div v-else-if="!redemptionItems.length" class="py-4 text-center text-xs text-graphite">No rewards available right now.</div>
+            <div v-else class="space-y-2">
+              <div v-for="item in redemptionItems" :key="item.id" class="flex items-start gap-3 rounded-xl border border-slate-200 p-3" :class="item.can_redeem?.can_redeem ? 'bg-white' : 'bg-slate-50 opacity-70'">
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-semibold text-ink">{{ item.name }}</p>
+                  <p v-if="item.description" class="mt-0.5 text-xs text-graphite">{{ item.description }}</p>
+                  <p class="mt-1 text-xs font-semibold text-saffron">{{ item.points_required.toLocaleString() }} pts</p>
+                  <p v-if="item.can_redeem && !item.can_redeem.can_redeem" class="mt-0.5 text-xs text-graphite">{{ item.can_redeem.message }}</p>
+                </div>
+                <button v-if="item.can_redeem?.can_redeem" class="focus-ring mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-lg bg-ink px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-60" type="button" :disabled="redeemingItemId === item.id" @click="redeemItem(item.id)">
+                  <Loader2 v-if="redeemingItemId === item.id" class="h-3 w-3 animate-spin" /><CheckCircle2 v-else class="h-3 w-3" /> Redeem
                 </button>
               </div>
             </div>
+          </template>
+        </div>
+      </div>
 
-            <div v-if="referralCode.usage_stats" class="flex gap-4 text-sm">
-              <div>
-                <span class="font-semibold text-ink">{{ referralCode.usage_stats.total_referrals ?? 0 }}</span>
-                <span class="ml-1 text-graphite">referred</span>
-              </div>
-              <div>
-                <span class="font-semibold text-ink">{{ referralCode.usage_stats.successful_referrals ?? 0 }}</span>
-                <span class="ml-1 text-graphite">converted</span>
-              </div>
+      <!-- Referral -->
+      <div v-if="secondaryTab === 'referral'">
+        <div v-if="referralCodeLoading" class="flex justify-center py-12"><Loader2 class="h-5 w-5 animate-spin text-slate-300" /></div>
+        <div v-else-if="!referralCode" class="px-5 py-12 text-center">
+          <Gift class="mx-auto h-8 w-8 text-slate-200" />
+          <p class="mt-2 text-sm text-graphite">No referral code available on your account.</p>
+        </div>
+        <div v-else class="p-5 space-y-5">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest text-graphite">Your referral code</p>
+            <div class="mt-2 flex items-center gap-2">
+              <code class="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-lg font-bold tracking-widest text-ink">{{ referralCode.code }}</code>
+              <button class="focus-ring inline-flex h-11 items-center gap-1.5 rounded-xl border border-slate-200 px-4 text-xs font-semibold text-ink transition-colors hover:bg-slate-50" type="button" @click="copyReferralCode">
+                <Copy class="h-3.5 w-3.5" />{{ referralCodeCopied ? "Copied!" : "Copy" }}
+              </button>
             </div>
-
-            <p class="text-xs text-graphite leading-5">
-              Share your code and earn a bonus when friends place their first order.
-            </p>
           </div>
-        </section>
-      </aside>
-    </div>
+          <div v-if="referralCode.usage_stats" class="flex gap-6 text-sm">
+            <div><span class="text-2xl font-bold text-ink">{{ referralCode.usage_stats.total_referrals ?? 0 }}</span><p class="mt-0.5 text-xs text-graphite">referred</p></div>
+            <div><span class="text-2xl font-bold text-ink">{{ referralCode.usage_stats.successful_referrals ?? 0 }}</span><p class="mt-0.5 text-xs text-graphite">converted</p></div>
+          </div>
+          <p class="text-sm text-graphite leading-relaxed">Share your code and earn a bonus when friends place their first order.</p>
+        </div>
+      </div>
+
+    </section>
+
   </div>
 </template>
