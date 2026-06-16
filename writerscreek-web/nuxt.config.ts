@@ -8,6 +8,7 @@ export default defineNuxtConfig({
       crawlLinks: true,
       routes: [
         '/',
+        '/about',
         '/apply',
         '/how-it-works',
         '/earnings',
