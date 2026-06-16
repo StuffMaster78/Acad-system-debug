@@ -568,12 +568,12 @@ const serviceFromCms = (page: CmsServicePage): ServiceView => {
 
 const svc = computed(() => cmsService.value ? serviceFromCms(cmsService.value) : fallbackService)
 
-// When the CTA points to the bare order URL, append ?type=<slug> so the portal
-// pre-selects the matching paper type.
+// Route to the on-site /order page with this service pre-selected.
+// The /order page reads ?service= on mount and skips to step 1.
 const ctaOrderUrl = computed(() => {
-  const url = svc.value.ctaUrl || app.order
-  if (url === app.order) return `${app.order}?type=${encodeURIComponent(slug)}`
-  return url
+  const override = svc.value.ctaUrl
+  if (override && override !== app.order) return override
+  return `/order?service=${encodeURIComponent(slug)}`
 })
 
 useSeoMeta({

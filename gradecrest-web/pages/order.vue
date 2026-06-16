@@ -139,8 +139,37 @@ function scheduleEstimate() {
   priceTimer = setTimeout(() => void refreshEstimate(), 400)
 }
 
+// ── Service slug → paper type pre-fill (from /services/[slug] CTAs) ──────────
+const SERVICE_TO_PAPER: Record<string, string> = {
+  'essay-writing':        'essay',
+  'research-papers':      'research_paper',
+  'dissertations':        'dissertation',
+  'thesis-writing':       'dissertation',
+  'term-papers':          'term_paper',
+  'case-studies':         'case_study',
+  'literature-review':    'literature_review',
+  'coursework':           'coursework',
+  'nursing-essays':       'essay',
+  'data-analysis':        'data_analysis',
+  'capstone-projects':    'capstone',
+  'admission-essays':     'admission_essay',
+  'homework-help':        'essay',
+  'editing-proofreading': 'essay',
+}
+
 watch([orderTypeId, paperCode, levelCode, deadlineHrs, units], scheduleEstimate)
-onMounted(() => void refreshEstimate())
+onMounted(() => {
+  // Pre-fill from service page CTA (?service=essay-writing)
+  const route = useRoute()
+  const serviceSlug = route.query.service as string | undefined
+  if (serviceSlug) {
+    const mappedCode = SERVICE_TO_PAPER[serviceSlug]
+    if (mappedCode) paperCode.value = mappedCode
+    orderTypeId.value = 'paper'
+    step.value = 1
+  }
+  void refreshEstimate()
+})
 
 // ── Portal redirect URL ────────────────────────────────────────────────────
 const portalUrl = computed(() => {
