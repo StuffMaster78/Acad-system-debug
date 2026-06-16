@@ -1,8 +1,15 @@
 <script setup lang="ts">
 const dismissed = ref(false)
+const settings  = ref<Awaited<ReturnType<typeof fetchSiteSettings>> | null>(null)
 
-onMounted(() => {
+const enabled  = computed(() => settings.value?.promo_bar_enabled ?? true)
+const code     = computed(() => settings.value?.promo_code    || 'GRADE15')
+const message  = computed(() => settings.value?.promo_message || 'First order?')
+const suffix   = computed(() => settings.value?.promo_suffix  || 'for 15% off')
+
+onMounted(async () => {
   dismissed.value = sessionStorage.getItem('gc-promo-bar') === '1'
+  settings.value  = await fetchSiteSettings()
 })
 
 function dismiss() {
@@ -13,16 +20,15 @@ function dismiss() {
 
 <template>
   <div
-    v-if="!dismissed"
+    v-if="enabled && !dismissed"
     class="relative bg-forest-950 px-10 py-2.5 text-center text-sm"
   >
-    <!-- Gold left accent line -->
     <div class="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gold-400" />
 
-    <span class="font-semibold text-gold-400">First order?</span>
+    <span class="font-semibold text-gold-400">{{ message }}</span>
     <span class="text-white/70"> Use code </span>
-    <code class="rounded bg-gold-400/20 px-1.5 py-0.5 font-mono text-xs font-bold text-gold-300 ring-1 ring-gold-400/30">GRADE15</code>
-    <span class="text-white/70"> for 15% off</span>
+    <code class="rounded bg-gold-400/20 px-1.5 py-0.5 font-mono text-xs font-bold text-gold-300 ring-1 ring-gold-400/30">{{ code }}</code>
+    <span class="text-white/70"> {{ suffix }}</span>
     <span class="mx-2 text-white/30">·</span>
     <NuxtLink to="/order" class="font-semibold text-gc-400 transition-colors hover:text-gc-300">
       Start my paper →

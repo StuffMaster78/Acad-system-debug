@@ -39,6 +39,7 @@ export interface PortalContext {
   } | null
   allowed_roles: string[]
   ga4_measurement_id: string | null
+  promo_bar: { enabled: boolean; code: string; message: string; suffix: string } | null
 }
 
 // Shown before the real context loads — always has valid strings
@@ -75,6 +76,7 @@ const FALLBACK: PortalContext = {
   },
   allowed_roles: ['client'],
   ga4_measurement_id: null,
+  promo_bar: null,
 }
 
 export const usePortalStore = defineStore('portal', {

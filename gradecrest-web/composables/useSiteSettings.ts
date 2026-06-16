@@ -5,6 +5,10 @@ interface SiteSettings {
   schema_org_logo_url: string | null
   google_analytics_id: string
   schema_org_name: string
+  promo_bar_enabled: boolean
+  promo_code: string
+  promo_message: string
+  promo_suffix: string
 }
 
 const _cache = ref<SiteSettings | null>(null)

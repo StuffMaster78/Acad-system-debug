@@ -10,12 +10,9 @@ let closeTimer: ReturnType<typeof setTimeout> | null = null
 
 const isHome = computed(() => route.path === '/')
 
-const headerClass = computed(() => {
-  if (!isHome.value) return 'bg-white border-b border-slate-200 shadow-sm'
-  return scrolled.value ? 'bg-white border-b border-slate-200 shadow-sm' : 'bg-transparent'
-})
-const logoClass  = computed(() => isHome.value && !scrolled.value ? 'text-white' : 'text-ink')
-const linkClass  = computed(() => isHome.value && !scrolled.value ? 'text-white/80 hover:text-white' : 'text-graphite hover:text-ink')
+const headerClass = computed(() => 'bg-white/95 border-b border-slate-200 backdrop-blur-sm shadow-sm')
+const logoClass   = computed(() => 'text-ink')
+const linkClass   = computed(() => 'text-graphite hover:text-ink')
 
 onMounted(() => {
   window.addEventListener('scroll', () => { scrolled.value = window.scrollY > 60 }, { passive: true })
@@ -87,7 +84,7 @@ const nav = [
 
 <template>
   <header
-    class="fixed inset-x-0 top-0 z-50 transition-all duration-300"
+    class="relative z-50 transition-all duration-300"
     :class="headerClass"
   >
     <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -212,24 +209,17 @@ const nav = [
       <div class="hidden items-center lg:flex">
         <a
           :href="app.login"
-          class="-mr-px flex h-9 items-center rounded-l-full rounded-r-[5px] border px-4 text-sm font-semibold transition-colors"
-          :class="isHome && !scrolled
-            ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
-            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+          class="-mr-px flex h-9 items-center rounded-l-full rounded-r-[5px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
         >Sign in</a>
         <NuxtLink
           to="/order"
-          class="flex h-9 items-center rounded-r-full rounded-l-[5px] px-5 text-sm font-semibold shadow-sm transition-colors"
-          :class="isHome && !scrolled
-            ? 'bg-white text-gc-700 hover:bg-gc-50'
-            : 'bg-gc-600 text-white hover:bg-gc-700'"
+          class="flex h-9 items-center rounded-r-full rounded-l-[5px] bg-gc-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gc-700"
         >Get started</NuxtLink>
       </div>
 
       <!-- Mobile burger -->
       <button
-        class="flex size-9 items-center justify-center rounded-lg transition-colors lg:hidden"
-        :class="isHome && !scrolled ? 'text-white hover:bg-white/10' : 'text-graphite hover:bg-slate-100'"
+        class="flex size-9 items-center justify-center rounded-lg transition-colors lg:hidden text-graphite hover:bg-slate-100"
         :aria-label="mobileOpen ? 'Close menu' : 'Open menu'"
         @click="mobileOpen = !mobileOpen"
       >

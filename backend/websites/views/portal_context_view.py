@@ -117,8 +117,9 @@ class PortalContextView(APIView):
                     ),
                 }
 
-        # Resolve GA4 measurement ID from TenantSEOSettings (Wagtail site setting)
+        # Resolve GA4 + promo bar from TenantSEOSettings (Wagtail site setting)
         ga4_measurement_id = None
+        promo_bar = None
         if website:
             try:
                 from wagtail.models import Site as WagtailSite
@@ -129,6 +130,12 @@ class PortalContextView(APIView):
                 if wagtail_site:
                     seo_settings = TenantSEOSettings.for_site(wagtail_site)
                     ga4_measurement_id = getattr(seo_settings, "google_analytics_id", None) or None
+                    promo_bar = {
+                        "enabled": getattr(seo_settings, "promo_bar_enabled", True),
+                        "code":    getattr(seo_settings, "promo_code", "") or "",
+                        "message": getattr(seo_settings, "promo_message", "") or "",
+                        "suffix":  getattr(seo_settings, "promo_suffix", "") or "",
+                    }
             except Exception:
                 pass
 
@@ -141,5 +148,6 @@ class PortalContextView(APIView):
                 "payment_disclosure": payment_disclosure,
                 "allowed_roles": allowed_roles,
                 "ga4_measurement_id": ga4_measurement_id,
+                "promo_bar": promo_bar,
             }
         )

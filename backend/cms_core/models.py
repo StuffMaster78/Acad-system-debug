@@ -347,6 +347,27 @@ class TenantSEOSettings(BaseSiteSetting):
         help_text="Organization logo for Schema.org",
     )
 
+    # ── Announcement bar ─────────────────────────────────────────────────────
+    promo_bar_enabled = models.BooleanField(
+        default=True,
+        help_text="Show the announcement bar at the top of every page.",
+    )
+    promo_code = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Promo code displayed in the bar (e.g. GRADE15).",
+    )
+    promo_message = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Text shown before the code (e.g. 'First order? Use code').",
+    )
+    promo_suffix = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Text shown after the code (e.g. 'for 15% off · Free plagiarism report').",
+    )
+
     panels = [
         MultiFieldPanel([
             FieldPanel("site_name"),
@@ -363,6 +384,12 @@ class TenantSEOSettings(BaseSiteSetting):
             FieldPanel("schema_org_logo"),
         ], heading="Schema.org"),
         FieldPanel("default_citation_style"),
+        MultiFieldPanel([
+            FieldPanel("promo_bar_enabled"),
+            FieldPanel("promo_code"),
+            FieldPanel("promo_message"),
+            FieldPanel("promo_suffix"),
+        ], heading="Announcement Bar"),
     ]
 
     class Meta:

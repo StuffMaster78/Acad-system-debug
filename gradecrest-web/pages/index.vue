@@ -170,7 +170,7 @@ onMounted(() => {
   <div>
 
     <!-- ── HERO ─────────────────────────────────────────────────────────────── -->
-    <section class="relative min-h-screen overflow-hidden bg-forest-950 pt-16">
+    <section class="relative min-h-screen overflow-hidden bg-forest-950">
 
       <!-- Gold dot grid — unique welcoming pattern -->
       <div class="pointer-events-none absolute inset-0 bg-hero-grid bg-grid-40" />

@@ -496,6 +496,10 @@ class PublicSiteSettingsView(APIView):
             "schema_org_logo_url": image_url(settings.schema_org_logo, "max-512x512"),
             "google_analytics_id": settings.google_analytics_id or "",
             "schema_org_name": settings.schema_org_name or site.site_name or "",
+            "promo_bar_enabled": settings.promo_bar_enabled,
+            "promo_code": settings.promo_code or "",
+            "promo_message": settings.promo_message or "",
+            "promo_suffix": settings.promo_suffix or "",
         })
 
 

@@ -37,8 +37,11 @@ watch(consent.analyticsAllowed, (allowed) => {
 
 <template>
   <div class="flex min-h-screen flex-col bg-white font-sans text-ink antialiased">
-    <AnnouncementBar />
-    <SiteHeader />
+    <!-- Sticky wrapper keeps bar + nav together as one scrolling unit -->
+    <div class="sticky top-0 z-50">
+      <AnnouncementBar />
+      <SiteHeader />
+    </div>
     <main class="flex-1">
       <slot />
     </main>
