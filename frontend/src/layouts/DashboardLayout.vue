@@ -12,6 +12,7 @@ import HeaderContextPill from "@/components/layout/HeaderContextPill.vue";
 import ImpersonationBanner from "@/components/layout/ImpersonationBanner.vue";
 import { groupedNavigationByRole } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth";
+import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 import { useUiStore } from "@/stores/ui";
 import { usePortalContextStore } from "@/stores/portalContext";
 import { useNotificationActions } from "@/composables/useNotificationActions";
@@ -36,7 +37,18 @@ const brandLogo = computed(() => portalCtx.branding?.logo_url || "");
 const { isConnected } = useNotifications();
 useNotificationActions();
 const activity = useActivityStore();
-const navGroups = computed(() => groupedNavigationByRole[props.role]);
+const writerWorkspace = useWriterWorkspaceStore();
+
+const navGroups = computed(() => {
+  const groups = groupedNavigationByRole[props.role];
+  if (props.role !== "writer") return groups;
+  const isVetted = writerWorkspace.profile?.onboarding_status === "completed";
+  if (!isVetted) return groups;
+  return groups.map(group => ({
+    ...group,
+    items: group.items.filter(item => item.to !== "/writer/vetting"),
+  }));
+});
 
 const userMenuOpen = ref(false);
 const userMenuRoot = ref<HTMLElement | null>(null);
