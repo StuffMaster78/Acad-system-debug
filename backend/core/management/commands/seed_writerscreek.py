@@ -202,6 +202,7 @@ class Command(BaseCommand):
         website = self._seed_website()
         self._seed_branding(website)
         self._seed_writer_levels(website)
+        self._seed_writer_level_settings(website)
         self._seed_grammar_quiz(website)
         self._seed_essay_quiz(website)
 
@@ -279,6 +280,90 @@ class Command(BaseCommand):
                 defaults={"display_order": data["display_order"]},
             )
             self._log("WriterLevel", obj.name, created)
+
+    # ── Writer level settings (rate card) ─────────────────────────────────────
+
+    def _seed_writer_level_settings(self, website):
+        from writer_management.models.writer_level import WriterLevel
+        from writer_management.models.writer_level_settings import WriterLevelSettings
+
+        # Base per-page rates match the published homepage tiers.
+        # Use the floor of each range so writers are never paid less
+        # than advertised; bonuses and urgency uplifts take them higher.
+        level_settings = [
+            {
+                "name": "Entry",
+                "earning_mode": "fixed_per_page",
+                "base_pay_per_page": "4.00",
+                "base_pay_per_slide": "3.00",
+                "base_pay_per_chart": "3.00",
+                "urgent_time_threshold_hours": 12,
+                "urgent_order_surcharge": "0.50",
+                "urgent_multiplier": "1.10",
+                "tip_percentage": "100.00",
+                "max_active_orders": 3,
+                "max_manual_takes": 2,
+                "max_pending_assignments": 3,
+            },
+            {
+                "name": "Standard",
+                "earning_mode": "fixed_per_page",
+                "base_pay_per_page": "6.00",
+                "base_pay_per_slide": "4.50",
+                "base_pay_per_chart": "4.50",
+                "urgent_time_threshold_hours": 12,
+                "urgent_order_surcharge": "0.75",
+                "urgent_multiplier": "1.15",
+                "tip_percentage": "100.00",
+                "max_active_orders": 6,
+                "max_manual_takes": 4,
+                "max_pending_assignments": 6,
+            },
+            {
+                "name": "Senior",
+                "earning_mode": "fixed_per_page",
+                "base_pay_per_page": "9.00",
+                "base_pay_per_slide": "7.00",
+                "base_pay_per_chart": "7.00",
+                "urgent_time_threshold_hours": 8,
+                "urgent_order_surcharge": "1.00",
+                "urgent_multiplier": "1.20",
+                "tip_percentage": "100.00",
+                "max_active_orders": 10,
+                "max_manual_takes": 6,
+                "max_pending_assignments": 10,
+            },
+            {
+                "name": "Expert",
+                "earning_mode": "fixed_per_page",
+                "base_pay_per_page": "13.00",
+                "base_pay_per_slide": "10.00",
+                "base_pay_per_chart": "10.00",
+                "urgent_time_threshold_hours": 6,
+                "urgent_order_surcharge": "1.50",
+                "urgent_multiplier": "1.25",
+                "tip_percentage": "100.00",
+                "max_active_orders": 15,
+                "max_manual_takes": 10,
+                "max_pending_assignments": 15,
+            },
+        ]
+
+        for config in level_settings:
+            level_name = config.pop("name")
+            try:
+                level = WriterLevel.objects.get(website=website, name=level_name)
+            except WriterLevel.DoesNotExist:
+                self.stdout.write(self.style.WARNING(
+                    f"  WriterLevel '{level_name}' not found — skipping settings."
+                ))
+                continue
+
+            settings, created = WriterLevelSettings.objects.update_or_create(
+                writer_level=level,
+                defaults=config,
+            )
+            self._log(f"WriterLevelSettings ({level_name})", f"{config['base_pay_per_page']}/page", created)
 
     # ── Grammar quiz ──────────────────────────────────────────────────────────
 

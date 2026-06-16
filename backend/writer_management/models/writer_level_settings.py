@@ -34,6 +34,22 @@ class WriterLevelSettings(models.Model):
     # EARNINGS CONFIGURATION (PRICING LAYER)
     # ---------------------------------------------------
 
+    class EarningMode(models.TextChoices):
+        FIXED_PER_PAGE           = "fixed_per_page",           "Fixed per page"
+        PERCENTAGE_OF_ORDER_COST = "percentage_of_order_cost", "Percentage of order cost"
+        PERCENTAGE_OF_ORDER_TOTAL= "percentage_of_order_total","Percentage of order total"
+
+    earning_mode = models.CharField(
+        max_length=30,
+        choices=EarningMode.choices,
+        default=EarningMode.FIXED_PER_PAGE,
+        help_text=(
+            "How the writer's gross earnings are computed for an order. "
+            "fixed_per_page: base_pay_per_page × pages (recommended). "
+            "percentage modes use the order's cost/total instead."
+        ),
+    )
+
     base_pay_per_page = models.DecimalField(
         max_digits=10,
         decimal_places=2,
