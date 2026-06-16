@@ -37,6 +37,11 @@ TENANTS = [
         "hostname": "researchpapermate.com",
         "slug": "researchpapermate",
     },
+    {
+        "name": "WritersCreek",
+        "hostname": "writerscreek.com",
+        "slug": "writerscreek",
+    },
 ]
 
 
@@ -167,28 +172,27 @@ class Command(BaseCommand):
     def _bridge_website(self, site, hostname):
         """Link Wagtail Site to the existing Website model."""
         try:
-            from websites.models import Website
+            from websites.models.websites import Website
 
-            # Try matching by domain containing the hostname
-            website = Website.objects.filter(
-                domain__icontains=hostname.split(".")[0]
-            ).first()
+            # Prefer exact hostname match (covers https://hostname and bare hostname),
+            # fall back to slug-prefix search.
+            website = (
+                Website.objects.filter(domain__icontains=hostname).first()
+                or Website.objects.filter(domain__icontains=hostname.split(".")[0]).first()
+            )
 
             if website:
-                if hasattr(website, "wagtail_site"):
-                    if website.wagtail_site != site:
-                        website.wagtail_site = site
-                        website.save(update_fields=["wagtail_site"])
-                        self.stdout.write(f" Bridged Website #{website.pk} ↔ Site #{site.pk}")
-                    else:
-                        self.stdout.write(f" Bridge already exists: Website #{website.pk} ↔ Site #{site.pk}")
+                # Release stale bridge from any other Website that currently owns this Site
+                Website.objects.filter(wagtail_site=site).exclude(pk=website.pk).update(
+                    wagtail_site=None
+                )
+
+                if website.wagtail_site_id == site.pk:
+                    self.stdout.write(f" Bridge already exists: Website #{website.pk} ↔ Site #{site.pk}")
                 else:
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f" Website model has no wagtail_site field — "
-                            f"add OneToOneField to websites.Website"
-                        )
-                    )
+                    website.wagtail_site = site
+                    website.save(update_fields=["wagtail_site"])
+                    self.stdout.write(f" Bridged Website #{website.pk} ↔ Site #{site.pk}")
             else:
                 self.stdout.write(
                     self.style.WARNING(f" No Website found matching '{hostname}' — bridge not created")

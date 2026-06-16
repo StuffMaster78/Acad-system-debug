@@ -21,7 +21,7 @@ def _admin_website(request):
     website = _resolve_website(request)
     website_id = request.GET.get("website_id")
     if website_id and getattr(request.user, "role", None) == "superadmin":
-        from websites.models import Website
+        from websites.models.websites import Website
         try:
             return Website.objects.get(pk=website_id)
         except Website.DoesNotExist:

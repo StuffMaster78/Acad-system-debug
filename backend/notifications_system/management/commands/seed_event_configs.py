@@ -190,6 +190,24 @@ EVENT_CONFIG_DEFAULTS = {
         'recipient_roles': ['writer'],
         'priority': NotificationPriority.HIGH,
     },
+
+    # Digest events — email-only, not disableable by user
+    'scheduled.digest_daily': {
+        'supports_in_app': False,
+        'default_in_app_enabled': False,
+        'is_mandatory': False,
+        'user_can_disable': True,
+        'priority': NotificationPriority.LOW,
+        'recipient_roles': ['client', 'writer'],
+    },
+    'scheduled.digest_weekly': {
+        'supports_in_app': False,
+        'default_in_app_enabled': False,
+        'is_mandatory': False,
+        'user_can_disable': True,
+        'priority': NotificationPriority.LOW,
+        'recipient_roles': ['client', 'writer'],
+    },
 }
 
 # Default config applied to all events not in EVENT_CONFIG_DEFAULTS

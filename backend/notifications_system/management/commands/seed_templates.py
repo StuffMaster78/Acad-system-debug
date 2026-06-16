@@ -157,6 +157,17 @@ DEFAULT_TEMPLATES = {
         },
     },
     'order.bid.placed': {
+        NotificationChannel.EMAIL: {
+            'subject': 'New bid on Order #{{order_id}}',
+            'body_html': 'notifications/emails/approval_request.html',
+            'body_text': (
+                '{{writer_name}} placed a bid on order #{{order_id}} '
+                '({{order_topic}}). Log in to review and accept a writer.'
+            ),
+            'available_variables': [
+                'order_id', 'order_topic', 'interest_id', 'writer_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Bid placed on order #{{order_id}}',
             'message': 'Your bid on order #{{order_id}} has been placed.',
@@ -177,6 +188,18 @@ DEFAULT_TEMPLATES = {
         },
     },
     'order.bid.rejected': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your bid on Order #{{order_id}} was not selected',
+            'body_html': 'notifications/emails/order_cancelled.html',
+            'body_text': (
+                'Thank you for bidding on order #{{order_id}} '
+                '({{order_topic}}). Another writer was selected this time. '
+                'Keep bidding — more orders are available.'
+            ),
+            'available_variables': [
+                'order_id', 'order_topic', 'interest_id', 'user_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Bid not selected — Order #{{order_id}}',
             'message': 'Your bid on order #{{order_id}} was not selected.',
@@ -251,6 +274,18 @@ DEFAULT_TEMPLATES = {
         },
     },
     'wallet.debited': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Wallet debit: {{amount}}',
+            'body_html': 'notifications/emails/payment_failed.html',
+            'body_text': (
+                '{{amount}} has been deducted from your wallet. '
+                'Reason: {{reason}}. '
+                'New balance: {{new_balance}}.'
+            ),
+            'available_variables': [
+                'amount', 'reason', 'new_balance', 'user_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Wallet debited',
             'message': '{{amount}} has been deducted from your wallet.',
@@ -470,6 +505,15 @@ DEFAULT_TEMPLATES = {
         },
     },
     'writer.badge_earned': {
+        NotificationChannel.EMAIL: {
+            'subject': 'You earned the {{badge_name}} badge!',
+            'body_html': 'notifications/emails/milestone_achieved.html',
+            'body_text': (
+                'Congratulations! You have earned the {{badge_name}} badge '
+                'on your writer profile.'
+            ),
+            'available_variables': ['badge_name', 'user_name', 'website_name'],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Badge earned',
             'message': 'You have earned the {{badge_name}} badge.',
@@ -712,6 +756,18 @@ DEFAULT_TEMPLATES = {
 
     # Messages
     'message.new': {
+        NotificationChannel.EMAIL: {
+            'subject': 'New message from {{sender_name}}',
+            'body_html': 'notifications/emails/communication_message_created.html',
+            'body_text': (
+                'You have a new message from {{sender_name}}:\n\n'
+                '{{message_preview}}\n\n'
+                'Log in to reply.'
+            ),
+            'available_variables': [
+                'sender_name', 'message_preview', 'user_name', 'cta_url',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'New message from {{sender_name}}',
             'message': '{{message_preview}}',
@@ -1085,6 +1141,18 @@ DEFAULT_TEMPLATES = {
         },
     },
     'wallet.client.debited': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Payment confirmed — Order #{{order_id}}',
+            'body_html': 'notifications/emails/payment_received.html',
+            'body_text': (
+                '{{amount}} has been applied to order #{{order_id}}. '
+                'New wallet balance: {{new_balance}}.'
+            ),
+            'available_variables': [
+                'amount', 'order_id', 'new_balance', 'user_name',
+                'website_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Wallet debited',
             'message': '{{amount}} was deducted from your wallet for order #{{order_id}}.',
@@ -1105,6 +1173,17 @@ DEFAULT_TEMPLATES = {
         },
     },
     'wallet.writer.earning_posted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Earning posted: {{amount}}',
+            'body_html': 'notifications/emails/compensation_paid.html',
+            'body_text': (
+                '{{amount}} {{currency}} has been posted to your writer '
+                'wallet for order #{{order_id}}.'
+            ),
+            'available_variables': [
+                'amount', 'currency', 'wallet_id', 'order_id', 'user_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Earning posted',
             'message': '{{amount}} has been added to your writer wallet.',
@@ -1112,6 +1191,17 @@ DEFAULT_TEMPLATES = {
         },
     },
     'wallet.writer.bonus_posted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Bonus posted to your wallet: {{amount}}',
+            'body_html': 'notifications/emails/milestone_achieved.html',
+            'body_text': (
+                '{{amount}} {{currency}} has been added to your writer '
+                'wallet as a bonus.'
+            ),
+            'available_variables': [
+                'amount', 'currency', 'wallet_id', 'user_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Bonus posted',
             'message': '{{amount}} has been added to your writer wallet as a bonus.',
@@ -1119,6 +1209,17 @@ DEFAULT_TEMPLATES = {
         },
     },
     'wallet.writer.penalty_posted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Penalty applied to your wallet: {{amount}}',
+            'body_html': 'notifications/emails/compensation_fine_applied.html',
+            'body_text': (
+                '{{amount}} {{currency}} has been deducted from your writer '
+                'wallet. Reason: {{reason}}.'
+            ),
+            'available_variables': [
+                'amount', 'currency', 'wallet_id', 'reason', 'user_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Penalty applied',
             'message': '{{amount}} has been deducted from your writer wallet.',
@@ -1128,6 +1229,15 @@ DEFAULT_TEMPLATES = {
 
     # Class management
     'class.submitted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Class order submitted: {{title}}',
+            'body_html': 'notifications/emails/order_submitted.html',
+            'body_text': (
+                'Class order #{{class_order_id}} ({{title}}) has been '
+                'submitted for review.'
+            ),
+            'available_variables': ['class_order_id', 'title', 'user_name'],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Class submitted',
             'message': '{{title}} has been submitted for review.',
@@ -1135,6 +1245,17 @@ DEFAULT_TEMPLATES = {
         },
     },
     'class.writer_compensation_posted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Class compensation posted: {{amount}}',
+            'body_html': 'notifications/emails/compensation_paid.html',
+            'body_text': (
+                '{{amount}} {{currency}} has been posted to your writer '
+                'wallet for class order #{{class_order_id}}.'
+            ),
+            'available_variables': [
+                'class_order_id', 'amount', 'currency', 'user_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Class compensation posted',
             'message': '{{amount}} has been posted to your writer wallet.',
@@ -1142,6 +1263,16 @@ DEFAULT_TEMPLATES = {
         },
     },
     'class.two_factor.required': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Action required: Two-factor code for class #{{class_order_id}}',
+            'body_html': 'notifications/emails/mfa_setup.html',
+            'body_text': (
+                'A two-factor authentication code is required to access '
+                'class order #{{class_order_id}}. '
+                'Log in to provide the code.'
+            ),
+            'available_variables': ['class_order_id', 'user_name'],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Two-factor code needed',
             'message': 'A class access request needs a two-factor code.',
@@ -1149,6 +1280,18 @@ DEFAULT_TEMPLATES = {
         },
     },
     'class.payment.overdue': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Class payment overdue: {{title}}',
+            'body_html': 'notifications/emails/payment_reminder.html',
+            'body_text': (
+                'A payment is overdue for class order #{{class_order_id}} '
+                '({{title}}). Please complete the payment to avoid '
+                'service interruption.'
+            ),
+            'available_variables': [
+                'class_order_id', 'title', 'amount_due', 'user_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'Class payment overdue',
             'message': 'A class payment is overdue for {{title}}.',
@@ -1414,6 +1557,17 @@ DEFAULT_TEMPLATES = {
 
     # Files — additional events
     'file.updated': {
+        NotificationChannel.EMAIL: {
+            'subject': 'File updated on Order #{{order_id}}',
+            'body_html': 'notifications/emails/file_uploaded.html',
+            'body_text': (
+                'A file has been updated on order #{{order_id}}. '
+                'Log in to view the changes.'
+            ),
+            'available_variables': [
+                'order_id', 'attachment_id', 'user_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'File updated on Order #{{order_id}}',
             'message': 'A file was updated on order #{{order_id}}.',
@@ -1421,6 +1575,17 @@ DEFAULT_TEMPLATES = {
         },
     },
     'file.deleted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'File removed from Order #{{order_id}}',
+            'body_html': 'notifications/emails/order_status_update.html',
+            'body_text': (
+                'A file has been removed from order #{{order_id}}. '
+                'Log in to view the current order files.'
+            ),
+            'available_variables': [
+                'order_id', 'attachment_id', 'user_name',
+            ],
+        },
         NotificationChannel.IN_APP: {
             'title': 'File removed from Order #{{order_id}}',
             'message': 'A file was removed from order #{{order_id}}.',
