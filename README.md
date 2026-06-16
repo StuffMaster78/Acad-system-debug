@@ -89,11 +89,19 @@ Wagtail CMS: **http://localhost:8000/cms-admin/**
 
 ## Demo Accounts
 
+These are created by `seed_dev_data`. Use them at `http://localhost:5173/auth/login`.
+
 | Role | Email | Password | Access |
 |------|-------|----------|--------|
-| Superadmin | `admin.demo@example.com` | `AdminDemo123!` | Full platform |
-| Client | `client.demo@example.com` | `ClientDemo123!` | Client portal |
-| Writer | `writer1.demo@example.com` | `WriterDemo123!` | Writer portal |
+| Superadmin | `admin@dev.local` | `admin1234` | Full platform |
+| Admin | `admin@test.local` | `admin1234` | Staff portal (one website) |
+| Editor | `editor@test.local` | `test1234` | QA / editorial |
+| Support | `support@test.local` | `test1234` | Support queue |
+| Writer | `writer1@dev.local` | `writer1234` | Writer portal |
+| Client | `client1@dev.local` | `client1234` | Client portal |
+
+Additional writer accounts: `writer2@dev.local`, `writer3@dev.local` (same password).
+Additional client accounts: `client2@dev.local`, `client3@dev.local` (same password).
 
 > **Express preview** — on the login page click any role button in the "Preview workspace" panel to instantly browse that role's dashboard with mock data. No password required.
 
