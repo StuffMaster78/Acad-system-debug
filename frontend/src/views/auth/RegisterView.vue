@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ArrowRight, Eye, EyeOff, Loader2, Mail } from "@lucide/vue";
+import { ArrowRight, Eye, EyeOff, Loader2, LogIn, Mail, Shield } from "@lucide/vue";
 import { authApi } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth";
 import { usePortalContextStore } from "@/stores/portalContext";
@@ -157,7 +157,32 @@ async function resendCode() {
     <main class="flex flex-1 items-start justify-center px-4 py-12">
       <div class="w-full max-w-md space-y-6">
 
+        <!-- ── WRITER SURFACE: invitation-only gate ──────────────────────── -->
+        <template v-if="isWriterSurface">
+          <div class="text-center space-y-2">
+            <h1 class="text-2xl font-bold text-ink">Access by invitation</h1>
+            <p class="text-sm text-graphite">Writer accounts are created by our team. If you've been invited, check your email for login credentials.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm space-y-4 text-sm text-graphite">
+            <div class="flex items-start gap-3">
+              <Shield class="size-4 shrink-0 mt-0.5 text-slate-400" />
+              <p>Accounts are provisioned by an administrator. Self-registration is not available on this platform.</p>
+            </div>
+            <div class="flex items-start gap-3">
+              <Mail class="size-4 shrink-0 mt-0.5 text-slate-400" />
+              <p>If you were recently invited, you'll have received an email with your credentials. Use those to sign in below.</p>
+            </div>
+          </div>
+          <RouterLink
+            to="/auth/login"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity"
+          >
+            <LogIn class="size-4" /> Sign in to your account
+          </RouterLink>
+        </template>
+
         <!-- ── REGISTRATION FORM ─────────────────────────────────────────── -->
+        <template v-else>
         <template v-if="step === 'form'">
           <div class="text-center">
             <h1 class="text-2xl font-bold text-ink">
@@ -280,7 +305,7 @@ async function resendCode() {
           </p>
         </template>
 
-        <!-- ── EMAIL VERIFICATION ────────────────────────────────────────── -->
+        <!-- ── EMAIL VERIFICATION (non-writer only) ──────────────────────── -->
         <template v-else>
           <div class="text-center">
             <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-berry/10">
@@ -333,6 +358,8 @@ async function resendCode() {
             </p>
           </div>
         </template>
+
+        </template><!-- end v-else (non-writer surface) -->
 
       </div>
     </main>

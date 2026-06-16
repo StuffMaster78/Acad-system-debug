@@ -28,114 +28,134 @@ onMounted(() => {
   <template v-if="portal.surface === 'writer'">
 
     <!-- Hero -->
-    <section class="bg-brand-800 text-white">
-      <div class="mx-auto max-w-3xl px-6 py-20 text-center sm:py-28">
-        <span class="inline-block rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-widest mb-7">
-          Now hiring writers
+    <section class="relative bg-slate-900 text-white overflow-hidden">
+      <div class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:44px_44px]" />
+      <div class="relative mx-auto max-w-4xl px-6 py-24 text-center sm:py-36">
+        <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest mb-8 text-slate-300">
+          <span class="size-1.5 rounded-full bg-emerald-400" />
+          Academic writing platform
         </span>
-        <h1 class="text-4xl font-bold leading-tight sm:text-5xl">
-          Write. Get paid.<br class="hidden sm:block" /> Work on your terms.
+        <h1 class="text-4xl font-extrabold leading-tight tracking-tight sm:text-6xl">
+          Write at the<br class="hidden sm:block" />
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">highest standard.</span>
         </h1>
-        <p class="mt-5 text-base text-brand-200 max-w-lg mx-auto leading-relaxed">
-          Join {{ brand }} and earn competitive rates on academic and professional writing — on a schedule that fits your life.
+        <p class="mt-6 text-base text-slate-400 max-w-xl mx-auto leading-relaxed sm:text-lg">
+          {{ brand }} is a selective academic writing network. Competitive per-page rates, flexible assignments, and reliable bi-weekly payouts — for writers who take their craft seriously.
         </p>
-        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <RouterLink
-            to="/auth/register"
-            class="inline-flex items-center gap-2 rounded-lg bg-white px-7 py-3 text-sm font-semibold text-brand-800 hover:bg-slate-100 transition-colors"
-          >
-            Create your account <ArrowRight class="size-4" />
-          </RouterLink>
+        <div class="mt-10">
           <RouterLink
             to="/auth/login"
-            class="inline-flex items-center gap-2 rounded-lg border border-white/25 px-7 py-3 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+            class="inline-flex items-center gap-2 rounded-lg bg-white px-8 py-3.5 text-sm font-bold text-slate-900 hover:bg-slate-100 transition-colors shadow-sm"
           >
-            <LogIn class="size-4" /> Sign in
+            <LogIn class="size-4" /> Sign in to your workspace
           </RouterLink>
         </div>
-        <p class="mt-5 text-xs text-brand-300">
-          Already applied?
-          <RouterLink to="/apply" class="underline hover:text-white">Check your application</RouterLink>
+        <p class="mt-5 text-xs text-slate-500">
+          Access is by invitation. Contact your administrator if you need an account.
         </p>
       </div>
     </section>
 
     <!-- Stats bar -->
     <section class="border-y border-slate-200 bg-white">
-      <div class="mx-auto max-w-3xl grid grid-cols-2 divide-x divide-slate-200">
-        <div class="px-6 py-5 text-center">
-          <p class="text-xl font-semibold text-ink">48 hours</p>
-          <p class="mt-0.5 text-xs text-graphite">typical pay cycle</p>
+      <div class="mx-auto max-w-4xl grid grid-cols-2 divide-x divide-slate-200 sm:grid-cols-4">
+        <div v-for="stat in [
+          { value: 'Bi-weekly',       label: 'Payout cycle' },
+          { value: '100% remote',     label: 'Work from anywhere' },
+          { value: '4 writer levels', label: 'Advancement path' },
+          { value: 'Academic focus',  label: 'Specialist niche' },
+        ]" :key="stat.label" class="px-6 py-5 text-center">
+          <p class="text-base font-bold text-ink sm:text-lg">{{ stat.value }}</p>
+          <p class="mt-0.5 text-xs text-graphite">{{ stat.label }}</p>
         </div>
-        <div class="px-6 py-5 text-center">
-          <p class="text-xl font-semibold text-ink">100% remote</p>
-          <p class="mt-0.5 text-xs text-graphite">work from anywhere</p>
+      </div>
+    </section>
+
+    <!-- Earnings / rate tiers -->
+    <section class="bg-slate-50 py-16 px-6">
+      <div class="mx-auto max-w-3xl">
+        <div class="text-center mb-10">
+          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Compensation</p>
+          <h2 class="text-2xl font-bold text-ink">Transparent, competitive rates</h2>
+          <p class="mt-2 text-sm text-graphite max-w-md mx-auto">Your per-page rate rises as you advance through writer levels. Quality assignments unlock higher tiers automatically.</p>
         </div>
+        <div class="grid gap-3 sm:grid-cols-4">
+          <div v-for="tier in [
+            { level: 'Entry',    rate: '$4–6',   badge: 'bg-slate-100 text-slate-700' },
+            { level: 'Standard', rate: '$6–9',   badge: 'bg-sky-50 text-sky-700' },
+            { level: 'Senior',   rate: '$9–13',  badge: 'bg-indigo-50 text-indigo-700' },
+            { level: 'Expert',   rate: '$13–18', badge: 'bg-amber-50 text-amber-700' },
+          ]" :key="tier.level" class="rounded-xl border border-slate-200 bg-white p-5 text-center space-y-2">
+            <span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="tier.badge">{{ tier.level }}</span>
+            <p class="text-2xl font-extrabold text-ink">{{ tier.rate }}</p>
+            <p class="text-xs text-graphite">per page</p>
+          </div>
+        </div>
+        <p class="mt-4 text-center text-xs text-slate-400">Base rates. Actual rates vary by order type, deadline, and academic level.</p>
       </div>
     </section>
 
     <!-- Benefits -->
-    <section class="bg-slate-50 py-16 px-6">
+    <section class="bg-white py-16 px-6">
       <div class="mx-auto max-w-4xl">
-        <h2 class="text-xl font-semibold text-ink text-center mb-8">Why writers choose us</h2>
+        <div class="text-center mb-10">
+          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Why writers choose us</p>
+          <h2 class="text-2xl font-bold text-ink">Built for professional writers</h2>
+        </div>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="card in [
-            { icon: DollarSign, title: 'Competitive pay', body: 'Rates scale with your level and performance. Top writers earn well above market rates.' },
-            { icon: Clock,       title: 'Flexible hours',  body: 'Pick jobs that fit your timetable. No minimum hours — work as much or as little as you like.' },
-            { icon: Zap,         title: 'Fast payments',   body: 'Reliable, on-time payouts via your preferred method. Track every cent in your dashboard.' },
-            { icon: BookOpen,    title: 'Wide subjects',   body: 'Nursing, business, law, engineering, literature — write in the subjects you know best.' },
-            { icon: Users,       title: 'Supportive team', body: 'A dedicated team and clear guidelines mean you spend your time writing, not troubleshooting.' },
-            { icon: GraduationCap, title: 'Level up',      body: 'Our level system rewards quality. Better ratings unlock higher-paying jobs automatically.' },
-          ]" :key="card.title"
-            class="rounded-xl border border-slate-200 bg-white p-5 space-y-2.5"
-          >
-            <div class="flex size-8 items-center justify-center rounded-lg bg-slate-100">
+            { icon: DollarSign,    title: 'Rates that reward quality', body: 'Every positive review and on-time delivery moves you closer to the next pay tier.' },
+            { icon: Clock,         title: 'Work on your schedule',     body: 'Pick assignments that fit your timetable. No minimum hours, no fixed shifts.' },
+            { icon: Zap,           title: 'Reliable bi-weekly pay',    body: 'Payouts processed every two weeks, on time. Track your full earnings history in the dashboard.' },
+            { icon: BookOpen,      title: 'Academic specialisation',   body: 'Nursing, law, business, STEM, humanities — write in the fields where your expertise stands out.' },
+            { icon: GraduationCap, title: 'Clear advancement path',    body: 'Four writer levels. Move up based on performance metrics, not time served.' },
+            { icon: Users,         title: 'Dedicated support team',    body: 'A responsive team handles disputes, client clarifications, and platform issues — so you focus on writing.' },
+          ]" :key="card.title" class="flex gap-4 rounded-xl border border-slate-200 bg-slate-50/60 p-5">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 shadow-sm">
               <component :is="card.icon" class="size-4 text-slate-600" />
             </div>
-            <p class="text-sm font-semibold text-ink">{{ card.title }}</p>
-            <p class="text-sm text-graphite leading-relaxed">{{ card.body }}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- How it works -->
-    <section class="bg-white py-16 px-6">
-      <div class="mx-auto max-w-2xl">
-        <h2 class="text-xl font-semibold text-ink text-center mb-10">How it works</h2>
-        <div class="space-y-6">
-          <div v-for="(step, i) in [
-            { title: 'Create your account',     body: 'Register with your email and verify it. Takes under two minutes.' },
-            { title: 'Pass the vetting tests',  body: 'Complete a grammar quiz and a writing sample. Our editors review within 1–3 business days.' },
-            { title: 'Start taking assignments', body: 'Once approved, browse open jobs, claim what fits your schedule, and start earning.' },
-          ]" :key="step.title" class="flex gap-4 items-start">
-            <div class="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-brand-700 text-brand-700 text-xs font-semibold mt-0.5">
-              {{ i + 1 }}
-            </div>
             <div>
-              <p class="text-sm font-semibold text-ink">{{ step.title }}</p>
-              <p class="mt-1 text-sm text-graphite leading-relaxed">{{ step.body }}</p>
+              <p class="text-sm font-semibold text-ink">{{ card.title }}</p>
+              <p class="mt-1 text-xs text-graphite leading-relaxed">{{ card.body }}</p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Final CTA -->
-    <section class="border-t border-slate-200 bg-slate-50 py-12 px-6 text-center">
-      <h2 class="text-xl font-semibold text-ink">Ready to start?</h2>
-      <p class="mt-2 text-sm text-graphite max-w-sm mx-auto">The application takes 5 minutes. Join the {{ brand }} team today.</p>
-      <div class="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
-        <RouterLink
-          to="/auth/register"
-          class="inline-flex items-center gap-2 rounded-lg bg-brand-700 px-7 py-3 text-sm font-semibold text-white hover:bg-brand-800 transition-colors"
-        >
-          Apply now <ArrowRight class="size-4" />
-        </RouterLink>
-        <RouterLink to="/auth/login" class="text-sm text-graphite hover:text-ink transition-colors">
-          Already have an account? Sign in
-        </RouterLink>
+    <!-- How it works (invitation-only framing) -->
+    <section class="bg-slate-50 border-t border-slate-200 py-16 px-6">
+      <div class="mx-auto max-w-2xl">
+        <div class="text-center mb-10">
+          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Getting started</p>
+          <h2 class="text-2xl font-bold text-ink">From invitation to first assignment</h2>
+        </div>
+        <div class="space-y-5">
+          <div v-for="(s, i) in [
+            { title: 'Receive your invitation',    body: 'Our team reaches out directly. You\'ll receive account credentials and onboarding instructions by email.' },
+            { title: 'Complete the vetting tests', body: 'A grammar assessment and a writing sample reviewed by our editorial team. Results within 1–3 business days.' },
+            { title: 'Start claiming assignments', body: 'Once approved, browse the available order pool, claim what fits your expertise, and begin earning.' },
+          ]" :key="s.title" class="flex gap-4 items-start">
+            <div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white text-xs font-bold mt-0.5">{{ i + 1 }}</div>
+            <div class="pt-0.5">
+              <p class="text-sm font-semibold text-ink">{{ s.title }}</p>
+              <p class="mt-1 text-sm text-graphite leading-relaxed">{{ s.body }}</p>
+            </div>
+          </div>
+        </div>
       </div>
+    </section>
+
+    <!-- Bottom CTA -->
+    <section class="bg-slate-900 py-14 px-6 text-center">
+      <h2 class="text-xl font-bold text-white">Already part of the team?</h2>
+      <p class="mt-2 text-sm text-slate-400 max-w-xs mx-auto">Sign in to access your workspace, view open assignments, and track your earnings.</p>
+      <RouterLink
+        to="/auth/login"
+        class="mt-8 inline-flex items-center gap-2 rounded-lg bg-white px-8 py-3.5 text-sm font-bold text-slate-900 hover:bg-slate-100 transition-colors"
+      >
+        <LogIn class="size-4" /> Sign in
+      </RouterLink>
     </section>
 
   </template>
