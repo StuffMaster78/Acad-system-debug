@@ -35,7 +35,7 @@ async function submit() {
   error.value = null
   try {
     const apiBase = String(config.public.apiBase || '').replace(/\/+$/, '')
-    await $fetch(`${apiBase}/api/v1/writers/apply/`, {
+    await $fetch(`${apiBase}/writer-management/applications/submit/`, {
       method: 'POST',
       credentials: 'include',
       body: form,
