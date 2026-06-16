@@ -1,7 +1,9 @@
 <template>
   <div class="flex min-h-screen flex-col">
-    <AnnouncementBar />
-    <SiteHeader />
+    <div class="sticky top-0 z-50">
+      <AnnouncementBar />
+      <SiteHeader />
+    </div>
     <main class="flex-1">
       <slot />
     </main>

@@ -109,8 +109,6 @@ const testimonials = [
 </script>
 
 <template>
-  <AnnouncementBar />
-
   <!-- ─── Hero ─────────────────────────────────────────────────────────────── -->
   <section class="relative overflow-hidden bg-brand-900 py-20 sm:py-28">
     <!-- Grid overlay -->

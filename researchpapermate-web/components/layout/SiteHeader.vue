@@ -54,7 +54,7 @@ const ORDER_SVG: Record<string, string> = {
 </script>
 
 <template>
-  <header class="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur-sm">
+  <header class="relative border-b border-slate-100 bg-white/95 backdrop-blur-sm">
     <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 2xl:max-w-screen-xl 2xl:px-12">
 
       <!-- Logo + rating badge -->

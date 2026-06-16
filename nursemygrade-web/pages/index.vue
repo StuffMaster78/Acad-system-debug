@@ -125,8 +125,6 @@ const nurses = [
 </script>
 
 <template>
-  <AnnouncementBar />
-
   <!-- ─── Hero ─────────────────────────────────────────────────────────────── -->
   <section class="relative overflow-hidden bg-brand-900 py-20 sm:py-28">
     <div class="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,rgba(255,255,255,0.03),rgba(255,255,255,0.03)_1px,transparent_1px,transparent_18px)]" />
