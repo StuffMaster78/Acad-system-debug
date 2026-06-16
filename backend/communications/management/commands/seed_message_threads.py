@@ -13,8 +13,8 @@ import random
 from websites.models.websites import Website
 from orders.models.orders import Order
 from communications.models import CommunicationThread, CommunicationMessage
-from communications.services.thread_service import ThreadService
-from communications.services.messages import MessageService
+from communications.services.thread_service import CommunicationThreadService as ThreadService
+from communications.services.message_service import CommunicationMessageService as MessageService
 
 User = get_user_model()
 
@@ -140,8 +140,8 @@ class Command(BaseCommand):
 
         # Clear existing threads if requested
         if clear_existing:
-            deleted_count = CommunicationThread.objects.filter(thread_type='order').count()
-            CommunicationThread.objects.filter(thread_type='order').delete()
+            deleted_count = CommunicationThread.objects.filter(kind='order').count()
+            CommunicationThread.objects.filter(kind='order').delete()
             self.stdout.write(self.style.SUCCESS(f'Cleared {deleted_count} existing threads.'))
 
         total_threads = 0
@@ -225,7 +225,11 @@ class Command(BaseCommand):
                     continue
 
                 # Check if thread already exists for this order with these exact participants
-                existing_threads = CommunicationThread.objects.filter(order=order)
+                from django.contrib.contenttypes.models import ContentType
+                order_ct = ContentType.objects.get_for_model(order)
+                existing_threads = CommunicationThread.objects.filter(
+                    target_content_type=order_ct, target_object_id=order.pk
+                )
                 thread = None
                 for t in existing_threads:
                     participants = set(t.participants.all())
@@ -237,11 +241,10 @@ class Command(BaseCommand):
                     # Create thread
                     try:
                         thread = ThreadService.create_thread(
-                            order=order,
+                            target=order,
                             created_by=sender,
-                            participants=[sender, recipient],
-                            thread_type="order",
-                            website=website
+                            thread_kind="order",
+                            website=website,
                         )
                         threads_created += 1
                     except Exception as e:
@@ -277,20 +280,8 @@ class Command(BaseCommand):
                         message = MessageService.create_message(
                             thread=thread,
                             sender=msg_sender,
-                            recipient=msg_recipient,
-                            sender_role=msg_sender_role,
-                            message=message_text,
-                            message_type="text"
+                            body=message_text,
                         )
-
-                        # Update sent_at timestamp manually (bypass auto_now_add)
-                        # Use direct database update to set custom timestamp
-                        from django.db import connection
-                        with connection.cursor() as cursor:
-                            cursor.execute(
-                                "UPDATE communications_communicationmessage SET sent_at = %s WHERE id = %s",
-                                [message_time, message.id]
-                            )
 
                         messages_created += 1
                     except Exception as e:

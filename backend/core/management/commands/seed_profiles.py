@@ -82,21 +82,21 @@ class Command(BaseCommand):
         }
 
         created = 0
-        for idx, user in enumerate(writers, start=1):
+        for user in writers:
             meta = writer_meta.get(user.email)
-            pen_name    = meta[0] if meta else f"Writer {idx}"
+            pen_name    = meta[0] if meta else f"Writer {user.pk}"
             level_name  = meta[1].lower() if meta else "intermediate"
             experience  = meta[2] if meta else 3
             bio         = meta[3] if meta else ""
             level       = level_map.get(level_name, default_level)
-            reg_id      = f"WR-{idx:04d}"
+            reg_id      = f"WR-{user.pk:04d}"
 
             # AccountProfile (writer profiles use an account_profile intermediary)
             website = user.website
             ap, ap_created = AccountProfile.objects.get_or_create(
                 user=user,
+                website=website,
                 defaults={
-                    "website": website,
                     "status": "active",
                     "onboarding_status": "completed",
                     "is_primary": True,

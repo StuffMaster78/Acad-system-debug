@@ -28,7 +28,6 @@ from order_configs.models import (
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus, SpacingOptions
 from websites.models.websites import Website
-from order_pricing_core.models import PricingConfiguration, AcademicLevelPricing, WriterLevelOptionConfig
 
 User = get_user_model()
 
@@ -52,8 +51,6 @@ class Command(BaseCommand):
                 username=username,
                 role=role,
                 website=website,
-                detected_country="Unknown",
-                detected_timezone="UTC",
                 **extra_fields,
             )
             user.set_password(password)
@@ -169,66 +166,6 @@ class Command(BaseCommand):
             writer_deadline_percentage=80,
             defaults={}
         )
-
-        # Pricing Configuration
-        pricing_config, _ = PricingConfiguration.objects.get_or_create(
-            website=website,
-            defaults={
-                'base_price_per_page': Decimal('10.00'),
-                'base_price_per_slide': Decimal('5.00'),
-                'technical_multiplier': Decimal('1.5'),
-                'non_technical_order_multiplier': Decimal('1.0'),
-            }
-        )
-
-        # Academic Level Pricing
-        level_multipliers = {
-            'High School': Decimal('0.8'),
-            'College': Decimal('0.9'),
-            'Undergraduate': Decimal('1.0'),
-            'Bachelor\'s': Decimal('1.0'),
-            'Master\'s': Decimal('1.3'),
-            'Graduate': Decimal('1.3'),
-            'PhD': Decimal('1.5'),
-            'Doctorate': Decimal('1.5'),
-        }
-        for level_name, multiplier in level_multipliers.items():
-            level = AcademicLevel.objects.filter(name=level_name, website=website).first()
-            if level:
-                base_slug = level_name.lower().replace(' ', '-').replace('\'', '')
-                # Make slug unique by adding website identifier if needed
-                existing_slug = AcademicLevelPricing.objects.filter(slug=base_slug).exclude(website=website).first()
-                if existing_slug:
-                    unique_slug = f"{base_slug}-{website.slug}"
-                else:
-                    unique_slug = base_slug
-
-                AcademicLevelPricing.objects.get_or_create(
-                    website=website,
-                    academic_level=level,
-                    defaults={
-                        'multiplier': multiplier,
-                        'level_name': level_name,
-                        'slug': unique_slug,
-                    }
-                )
-
-        # Writer Level Options
-        writer_levels = [
-            ('Standard', Decimal('0.00'), 'Standard quality writer'),
-            ('Premium', Decimal('5.00'), 'Premium quality writer'),
-            ('Top 10', Decimal('10.00'), 'Top 10 writers'),
-        ]
-        for name, value, desc in writer_levels:
-            WriterLevelOptionConfig.objects.get_or_create(
-                website=website,
-                name=name,
-                defaults={
-                    'value': value,
-                    'description': desc,
-                    'active': True,
-                }
-            )
 
         self.stdout.write(self.style.SUCCESS(f" Configurations created for {website.name}"))
 
