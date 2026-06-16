@@ -64,8 +64,8 @@ services:
       CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
       COMMUNICATIONS_REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/2
       CHANNEL_REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/3
-      CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:5174,http://localhost:3000"
-      CSRF_TRUSTED_ORIGINS: "http://localhost:8000,http://127.0.0.1:8000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:3000"
+      CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost:3008"
+      CSRF_TRUSTED_ORIGINS: "http://localhost:8000,http://127.0.0.1:8000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:3000,http://localhost:3008"
       USE_S3: "False"
       WAGTAILADMIN_BASE_URL: "http://localhost:8000"
     volumes:
