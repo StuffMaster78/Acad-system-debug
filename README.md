@@ -158,13 +158,23 @@ Router beforeEach      → enforce surface boundaries           │
                           (client domain ≠ staff routes)      │
 ```
 
-Three surfaces run independently:
+Three portal surfaces run independently:
 
 | Domain | Surface | Roles |
 |--------|---------|-------|
-| `yourplatform.com` | `staff` | superadmin, admin, editor, support |
-| `writers.yourplatform.com` | `writer` | writer |
-| `client-brand.com` (any number) | `client` | client |
+| `admin.writerscreek.com` | `staff` | superadmin, admin, editor, support |
+| `app.writerscreek.com` | `writer` | writer |
+| `gradecrest.com` · any other client brand | `client` | client |
+
+Marketing sites (Nuxt SSR, public-facing):
+
+| Domain | Stack | Purpose |
+|--------|-------|---------|
+| `writerscreek.com` | Nuxt 3 (`writerscreek-web`) | Writer recruitment — apply, earnings, how it works. Also the single login URL that routes both writers and staff to their portal. |
+| `gradecrest.com` | Nuxt 3 (`gradecrest-web`) | Client-facing marketing and order entry |
+| `nursemygrade.com` | Nuxt 3 (`nursemygrade-web`) | Nursing-niche client marketing |
+| `essaymaniacs.com` | Nuxt 3 (`essaymaniacs-web`) | General essay niche client marketing |
+| `researchpapermate.com` | Nuxt 3 (`researchpapermate-web`) | Research paper niche client marketing |
 
 ---
 
@@ -331,8 +341,9 @@ The `deploy-production.yml` GitHub Action runs CI then deploys via SSH. The `doc
 | Operations Command Center | ✅ Production-ready |
 | Writer public profiles | ✅ Production-ready |
 | Stripe live keys | ⚙️ Set `STRIPE_SECRET_KEY` etc. in `.env` before go-live |
-| DNS / nginx domain | ⚙️ Replace `YOUR_DOMAIN` in `nginx/nginx.conf` |
-| SSL certificate | ⚙️ Run Certbot after DNS is pointed |
+| DNS / nginx domains | ⚙️ Point A records for all domains to server IP (domains are already in `nginx/nginx.conf`) |
+| SSL certificates | ⚙️ Run Certbot for each domain after DNS is live (see Deployment Guide) |
+| WritersCreek session cookie | ⚙️ Set `SESSION_COOKIE_DOMAIN=.writerscreek.com` in `.env` |
 
 ---
 

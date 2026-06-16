@@ -20,8 +20,7 @@ Internet → nginx (SSL, rate-limit) → Daphne:8000 (HTTP + WebSocket)
 
 - [ ] All tests passing (`pytest` backend, `vue-tsc --noEmit` frontend)
 - [ ] `.env` populated (see below)
-- [ ] `YOUR_DOMAIN` replaced in `nginx/nginx.conf`
-- [ ] DNS A record pointing to server IP
+- [ ] DNS A records for all domains point to the server IP
 - [ ] Stripe live keys set
 - [ ] `DEBUG=False` confirmed
 
@@ -29,11 +28,13 @@ Internet → nginx (SSL, rate-limit) → Daphne:8000 (HTTP + WebSocket)
 
 ## Environment Variables (`.env`)
 
+Copy `backend/env.template` as your starting point. Key values:
+
 ```bash
 # Core
 SECRET_KEY=<long random string>
 DEBUG=False
-ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+ALLOWED_HOSTS=writerscreek.com,www.writerscreek.com,app.writerscreek.com,admin.writerscreek.com,gradecrest.com
 DJANGO_SETTINGS_MODULE=writing_system.settings
 
 # Database
@@ -64,17 +65,30 @@ AWS_S3_REGION_NAME=nyc3
 
 # Email
 SENDGRID_API_KEY=SG....
-DEFAULT_FROM_EMAIL=noreply@yourdomain.com
+DEFAULT_FROM_EMAIL=noreply@writerscreek.com
 
-# Security
-CORS_ALLOWED_ORIGINS=https://yourdomain.com
-CSRF_TRUSTED_ORIGINS=https://yourdomain.com
+# Security — CORS and CSRF must include every origin that POSTs to Django
+CORS_ALLOWED_ORIGINS=https://app.writerscreek.com,https://writerscreek.com,https://admin.writerscreek.com,https://gradecrest.com
+CSRF_TRUSTED_ORIGINS=https://app.writerscreek.com,https://writerscreek.com,https://admin.writerscreek.com,https://gradecrest.com
+
+# Shared session cookie — enables single-login at writerscreek.com/login
+# that routes writers → app.writerscreek.com and staff → admin.writerscreek.com
+SESSION_COOKIE_DOMAIN=.writerscreek.com
+CSRF_COOKIE_DOMAIN=.writerscreek.com
+
 FIELD_ENCRYPTION_KEY=<fernet key>
 TOKEN_ENCRYPTION_KEY=<fernet key>
 
 # Optional
 SENTRY_DSN=https://...@sentry.io/...
-WAGTAILADMIN_BASE_URL=https://yourdomain.com
+WAGTAILADMIN_BASE_URL=https://admin.writerscreek.com
+
+# Nuxt marketing sites
+NUXT_PUBLIC_WC_API_BASE=https://writerscreek.com
+NUXT_PUBLIC_WC_APP_URL=https://app.writerscreek.com
+NUXT_PUBLIC_WC_STAFF_URL=https://admin.writerscreek.com
+NUXT_PUBLIC_API_BASE=https://gradecrest.com
+NUXT_PUBLIC_APP_URL=https://app.gradecrest.com
 ```
 
 ---
@@ -82,31 +96,46 @@ WAGTAILADMIN_BASE_URL=https://yourdomain.com
 ## First Deploy
 
 ```bash
-# 1. Configure nginx domain
-sed -i 's/YOUR_DOMAIN/yourdomain.com/g' nginx/nginx.conf
+# 1. Start stack (HTTP only first — Certbot needs port 80 for ACME challenge)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-# 2. Start stack (HTTP only first, for Certbot ACME challenge)
-docker compose -f docker-compose.prod.yml up -d
-
-# 3. Issue SSL certificate
-docker compose -f docker-compose.prod.yml run --rm certbot certonly \
+# 2. Issue SSL certificates (one command per domain group)
+#    writerscreek.com marketing site + www redirect
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly \
   --webroot -w /var/www/certbot \
-  -d yourdomain.com -d www.yourdomain.com \
-  --email admin@yourdomain.com \
-  --agree-tos --non-interactive
+  -d writerscreek.com -d www.writerscreek.com \
+  --email admin@writerscreek.com --agree-tos --non-interactive
 
-# 4. Restart nginx to pick up the cert
-docker compose -f docker-compose.prod.yml restart nginx
+#    app.writerscreek.com — writer portal
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d app.writerscreek.com \
+  --email admin@writerscreek.com --agree-tos --non-interactive
 
-# 5. Run migrations and seed data
-docker compose -f docker-compose.prod.yml exec web python manage.py migrate
-docker compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
-docker compose -f docker-compose.prod.yml exec web python manage.py seed_dev_data
+#    admin.writerscreek.com — staff portal
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d admin.writerscreek.com \
+  --email admin@writerscreek.com --agree-tos --non-interactive
 
-# 6. Backfill compensation events (if migrating from an older environment)
-docker compose -f docker-compose.prod.yml exec web \
+#    gradecrest.com — client marketing site
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d gradecrest.com -d www.gradecrest.com \
+  --email admin@writerscreek.com --agree-tos --non-interactive
+
+# 3. Restart nginx to pick up all certs
+docker compose -f docker-compose.yml -f docker-compose.prod.yml restart nginx
+
+# 4. Run migrations and seed data
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec web python manage.py migrate
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec web python manage.py seed_dev_data
+
+# 5. Backfill compensation events (if migrating from an older environment)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec web \
   python manage.py backfill_compensation_events --dry-run
-docker compose -f docker-compose.prod.yml exec web \
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec web \
   python manage.py backfill_compensation_events
 ```
 
@@ -172,7 +201,7 @@ docker compose -f docker-compose.prod.yml restart nginx
 
 ## Monitoring
 
-- **Uptime Kuma**: `https://yourdomain.com/status/` — restricted to trusted IPs in nginx config
+- **Uptime Kuma**: `https://admin.writerscreek.com/status/` — restricted to trusted IPs in nginx config
 - **Sentry**: set `SENTRY_DSN` in `.env` for error tracking
 - **Health endpoint**: `GET /health/live/` — returns `{"status": "ok"}` (used by Docker healthcheck)
 

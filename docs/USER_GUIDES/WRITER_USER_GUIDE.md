@@ -31,7 +31,7 @@ This guide covers everything you need to know as a writer on the platform — fr
 
 ## 1. Applying to Join
 
-New writers apply through the public application form at `/apply`.
+New writers apply through the public application form at **writerscreek.com/apply**.
 
 ### What you need
 
@@ -42,7 +42,7 @@ New writers apply through the public application form at `/apply`.
 
 ### Application steps
 
-1. Go to `/apply` on the platform website
+1. Go to **writerscreek.com/apply**
 2. Fill in your personal details (name, email, area of expertise, education level)
 3. Write a personal statement — explain your writing background, subject strengths, and why you want to join
 4. Add your CV link and any portfolio links
@@ -82,9 +82,11 @@ Your results are reviewed alongside your application. You are not shown a score 
 ## 3. Getting Started After Approval
 
 When your application is approved you receive a welcome email with:
-- Your login link
+- Your login link — **writerscreek.com/login**
 - Your temporary password (change it on first login)
 - A link to this guide
+
+Sign in at **writerscreek.com/login**. Enter your email and password — the system detects your role automatically and takes you to your writer dashboard at `app.writerscreek.com`. You do not need to remember a separate portal URL.
 
 ### Onboarding checklist
 

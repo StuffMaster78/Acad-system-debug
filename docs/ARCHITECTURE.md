@@ -72,9 +72,9 @@ Each domain resolves to a surface (client / writer / staff) via middleware befor
 ```mermaid
 flowchart LR
     subgraph Domains
-        D1["essaybrand.com\n(client domain)"]
-        D2["writers.platform.com\n(writer domain)"]
-        D3["staff.platform.com\n(staff domain)"]
+        D1["gradecrest.com\n(client domain)"]
+        D2["app.writerscreek.com\n(writer portal)"]
+        D3["admin.writerscreek.com\n(staff portal)"]
     end
 
     subgraph Middleware["PortalTenantResolverMiddleware"]
@@ -279,6 +279,8 @@ flowchart LR
 
 ## Authentication Flow
 
+### Standard portal login (app.writerscreek.com / admin.writerscreek.com)
+
 ```mermaid
 sequenceDiagram
     participant Browser
@@ -287,13 +289,13 @@ sequenceDiagram
     participant JWT
     participant Session
 
-    Browser->>API: POST /auth/login/ {email, password, portal_code}
+    Browser->>API: POST /auth/login/ {email, password}
     API->>AuthService: authenticate(email, password)
     AuthService->>AuthService: verify MFA if enabled
     AuthService->>Session: create UserSession (device fingerprint, IP)
     AuthService->>JWT: generate access + refresh tokens\n(embed session_id, website_id)
-    JWT-->>API: access_token (15 min), refresh_token (7 days)
-    API-->>Browser: {access_token, refresh_token, user}
+    JWT-->>API: access_token (30 min), refresh_token (7 days)
+    API-->>Browser: {access_token, refresh_token}
 
     Note over Browser,API: Subsequent requests
     Browser->>API: Authorization: Bearer <access_token>
@@ -314,6 +316,41 @@ sequenceDiagram
     Browser->>API: POST /auth/impersonation/end/
     API->>AuthService: revoke token, restore original session
 ```
+
+### Single login URL (writerscreek.com/login → correct portal)
+
+Writers and staff both log in at `writerscreek.com/login`. Role-based routing sends them to the right portal automatically.
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant NuxtLogin as writerscreek.com/login\n(Nuxt marketing site)
+    participant API
+    participant WriterPortal as app.writerscreek.com\n/auth/adopt
+    participant StaffPortal as admin.writerscreek.com\n/auth/adopt
+
+    Browser->>NuxtLogin: Enter email + password
+    NuxtLogin->>API: POST /api/v1/auth/login/
+    API-->>NuxtLogin: {access_token, refresh_token}
+    NuxtLogin->>API: GET /api/v1/users/users/me/ (Bearer)
+    API-->>NuxtLogin: {role: "writer"|"admin"|...}
+
+    alt role = writer
+        NuxtLogin-->>Browser: redirect to app.writerscreek.com/auth/adopt\n#access=TOKEN&refresh=TOKEN
+        Browser->>WriterPortal: hash parsed, tokens stored, hash cleared
+        WriterPortal->>API: GET /me/ to confirm
+        WriterPortal-->>Browser: navigate to /writer/dashboard
+    else role = admin/superadmin/editor/support
+        NuxtLogin-->>Browser: redirect to admin.writerscreek.com/auth/adopt\n#access=TOKEN&refresh=TOKEN
+        Browser->>StaffPortal: hash parsed, tokens stored, hash cleared
+        StaffPortal->>API: GET /me/ to confirm
+        StaffPortal-->>Browser: navigate to /admin/dashboard
+    end
+
+    Note over NuxtLogin,StaffPortal: MFA accounts: shown portal links\nto complete full MFA flow on their portal
+```
+
+Tokens travel in the URL **fragment** (hash) — never transmitted to any server. The adopt page clears the hash immediately via `history.replaceState`. See [single-login-url.md](../docs/single-login-url.md) for full details.
 
 ---
 

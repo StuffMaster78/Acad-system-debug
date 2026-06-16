@@ -9,8 +9,10 @@
 - [API Documentation](./API/API_DOCUMENTATION.md) — API contract and endpoint reference
 - [Developer Guide](./DEVELOPER/DEVELOPER_GUIDE.md) — Backend development notes, conventions, testing
 - [Deployment Guide](./DEPLOYMENT/DEPLOYMENT_GUIDE.md) — Production deployment (Docker, nginx, SSL, Stripe)
+- [Infrastructure Guide](./DEPLOYMENT/INFRASTRUCTURE.md) — DigitalOcean sizing, managed services, cost tiers
 - [Uptime Kuma Setup](./DEPLOYMENT/UPTIME_KUMA_SETUP.md) — Monitoring configuration
 - [Admin Workflows](./ADMIN_WORKFLOWS.md) — Staff operation playbooks
+- [Single Login URL](./single-login-url.md) — How writerscreek.com/login routes writers and staff to their portals
 
 ## User Guides
 

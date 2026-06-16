@@ -207,7 +207,7 @@ Connect after login using the JWT access token:
 
 ```javascript
 const ws = new WebSocket(
-  `wss://api.yourdomain.com/ws/notifications/?token=${accessToken}`
+  `wss://app.writerscreek.com/ws/notifications/?token=${accessToken}`
 );
 
 ws.onmessage = (evt) => {
@@ -808,7 +808,9 @@ Pre-fill the order form with these values on mount.
 
 ## 19. Writer Portal Overview
 
-The writer portal lives at `writers.yourplatform.com` — a single shared domain for all writers across all tenants. Portal context returns `surface: "writer"`.
+The writer portal lives at `app.writerscreek.com` — a single shared domain for all writers across all tenants. Portal context returns `surface: "writer"`.
+
+Writers sign in at **writerscreek.com/login** (the single login entry point) and are automatically routed to `app.writerscreek.com/auth/adopt` via a JWT hash redirect. The `/auth/adopt` route is already implemented in the reference SPA (`AdoptTokenView.vue`).
 
 ### Key writer endpoints
 
@@ -1119,8 +1121,10 @@ VITE_API_PREFIX=/api/v1
 # Backend
 SECRET_KEY=<long random>
 DEBUG=False
-ALLOWED_HOSTS=yourplatform.com,writers.yourplatform.com,essaybrand.com
-CORS_ALLOWED_ORIGINS=https://yourplatform.com,https://writers.yourplatform.com,...
+ALLOWED_HOSTS=writerscreek.com,app.writerscreek.com,admin.writerscreek.com,gradecrest.com
+CORS_ALLOWED_ORIGINS=https://app.writerscreek.com,https://writerscreek.com,https://admin.writerscreek.com,https://gradecrest.com
+SESSION_COOKIE_DOMAIN=.writerscreek.com
+CSRF_COOKIE_DOMAIN=.writerscreek.com
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 SENDGRID_API_KEY=SG....
@@ -1132,8 +1136,9 @@ CHANNEL_REDIS_URL=redis://:password@redis:6379/3   # for WebSocket channel layer
 ## 27. New Client Site Checklist
 
 - [ ] DNS A record → server IP
-- [ ] nginx server_name updated (or new server block added)
+- [ ] nginx server_name added to the appropriate server block in `nginx/nginx.conf`
 - [ ] New domain in `CORS_ALLOWED_ORIGINS` + `CSRF_TRUSTED_ORIGINS`
+- [ ] SSL cert issued: `docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d {domain}`
 - [ ] `Website` record created in admin
 - [ ] `WebsiteBranding` record configured (colors, brand name, payment disclosure)
 - [ ] `PortalDefinition` record created (`code=client_portal`, domain set)

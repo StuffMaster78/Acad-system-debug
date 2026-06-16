@@ -47,7 +47,13 @@ Admin manages a single website (tenant). For cross-website controls see the [Sup
 
 ## 1. Getting Started
 
-Navigate to the staff portal domain and log in with your admin credentials. Admin accounts are scoped to one website — you see data only for the website assigned to your account.
+**Portal URL:** `admin.writerscreek.com`
+
+**Login:** You can sign in from either:
+- **writerscreek.com/login** — the single login entry point. Enter your credentials; the system detects your staff role and routes you to `admin.writerscreek.com` automatically.
+- **admin.writerscreek.com/auth/login** — direct portal login (bookmark this for convenience).
+
+Admin accounts are scoped to one website — you see data only for the website assigned to your account.
 
 ### Navigation structure
 
