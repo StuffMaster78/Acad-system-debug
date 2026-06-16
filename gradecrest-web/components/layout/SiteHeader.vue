@@ -210,13 +210,13 @@ const nav = [
 
       <!-- Desktop CTAs — asymmetric-radius split capsule -->
       <div class="hidden items-center lg:flex">
-        <NuxtLink
-          to="/auth/login"
+        <a
+          :href="app.login"
           class="-mr-px flex h-9 items-center rounded-l-full rounded-r-[5px] border px-4 text-sm font-semibold transition-colors"
           :class="isHome && !scrolled
             ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
             : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
-        >Sign in</NuxtLink>
+        >Sign in</a>
         <NuxtLink
           to="/order"
           class="flex h-9 items-center rounded-r-full rounded-l-[5px] px-5 text-sm font-semibold shadow-sm transition-colors"
@@ -270,7 +270,7 @@ const nav = [
           >{{ item.label }}</NuxtLink>
         </nav>
         <div class="flex flex-col gap-2 border-t border-slate-100 px-4 py-3">
-          <NuxtLink to="/auth/login" class="flex h-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-ink" @click="mobileOpen = false">Sign in</NuxtLink>
+          <a :href="app.login" class="flex h-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-ink" @click="mobileOpen = false">Sign in</a>
           <NuxtLink to="/order" class="flex h-11 items-center justify-center rounded-xl bg-gc-600 text-sm font-semibold text-white" @click="mobileOpen = false">Get started</NuxtLink>
         </div>
       </div>
