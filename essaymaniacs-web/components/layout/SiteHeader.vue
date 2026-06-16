@@ -203,17 +203,21 @@ const ORDER_SVG: Record<string, string> = {
       </nav>
 
       <!-- Desktop right actions -->
-      <div class="hidden items-center gap-3 md:flex">
+      <div class="hidden items-center gap-4 md:flex">
         <div class="flex items-center gap-1.5 text-xs text-slate-500">
           <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-500"></span>
           24/7 support
         </div>
-        <NuxtLink to="/login" class="text-sm font-medium text-slate-600 hover:text-brand-600">
-          Sign in
-        </NuxtLink>
-        <NuxtLink to="/order" class="btn-primary py-2 text-sm">
-          Get started
-        </NuxtLink>
+        <!-- Gradient split capsule -->
+        <div class="inline-flex items-center overflow-hidden rounded-full ring-1 ring-black/[0.06] shadow-sm">
+          <NuxtLink to="/login" class="flex h-9 items-center bg-white px-4 text-sm font-medium text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700">
+            Sign in
+          </NuxtLink>
+          <span class="h-4 w-px flex-shrink-0 bg-slate-200" />
+          <NuxtLink to="/order" class="flex h-9 items-center bg-gradient-to-r from-brand-600 to-violet-600 px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+            Get started
+          </NuxtLink>
+        </div>
       </div>
 
       <!-- Mobile hamburger -->

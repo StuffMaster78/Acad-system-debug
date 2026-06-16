@@ -65,21 +65,22 @@ watch(() => route.path, () => { mobileOpen.value = false })
         </NuxtLink>
       </nav>
 
-      <!-- Desktop CTAs -->
-      <div class="hidden lg:flex items-center gap-2">
+      <!-- Desktop CTAs — asymmetric-radius split capsule (fly.io style) -->
+      <div class="hidden lg:flex items-center">
         <a
           :href="app.login"
-          class="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-          :class="isHome && !scrolled ? 'text-white/80 hover:text-white' : 'text-graphite hover:text-ink'"
-        >
-          Sign in
-        </a>
+          class="-mr-px flex h-9 items-center rounded-l-full rounded-r-[5px] border px-4 text-sm font-semibold transition-colors"
+          :class="isHome && !scrolled
+            ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+        >Sign in</a>
         <a
           :href="app.order"
-          class="rounded-lg bg-gc-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gc-700"
-        >
-          Get started
-        </a>
+          class="flex h-9 items-center rounded-r-full rounded-l-[5px] px-5 text-sm font-semibold shadow-sm transition-colors"
+          :class="isHome && !scrolled
+            ? 'bg-white text-gc-700 hover:bg-gc-50'
+            : 'bg-gc-600 text-white hover:bg-gc-700'"
+        >Get started</a>
       </div>
 
       <!-- Mobile burger -->
