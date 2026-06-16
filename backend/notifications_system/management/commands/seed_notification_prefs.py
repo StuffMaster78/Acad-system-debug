@@ -161,7 +161,7 @@ class Command(BaseCommand):
             config_data['description'] = f"Notifications for {event.label}"
 
             obj, was_created = NotificationEventConfig.objects.get_or_create(
-                event=event,
+                event_key=event.event_key,
                 defaults=config_data,
             )
 

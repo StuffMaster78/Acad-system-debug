@@ -105,6 +105,15 @@ class Website(models.Model):
         help_text="Lifetime of guest magic-link access tokens in hours."
     )
 
+    wagtail_site = models.OneToOneField(
+        'wagtailcore.Site',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='website',
+        help_text="Linked Wagtail Site for CMS content",
+    )
+
     is_deleted = models.BooleanField(
         default=False,
         db_index=True,

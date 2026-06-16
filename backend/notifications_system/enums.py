@@ -219,6 +219,11 @@ class NotificationEvent(TextChoices):
         _("Class Two-Factor Required"),
     )
     CLASS_PAYMENT_OVERDUE = "class.payment.overdue", _("Class Payment Overdue")
+
+    # Scheduled digests — sent by the digest celery beat task
+    SCHEDULED_DIGEST_DAILY = "scheduled.digest_daily", _("Daily Digest")
+    SCHEDULED_DIGEST_WEEKLY = "scheduled.digest_weekly", _("Weekly Digest")
+
 class NotificationChannel(TextChoices):
     """
     Delivery channels.
@@ -310,6 +315,7 @@ def get_event_category(event_key: str) -> str:
         'communications': NotificationCategory.COMMUNICATION_MESSAGE,
         'class': NotificationCategory.CLASS,
         'system': NotificationCategory.SYSTEM,
+        'scheduled': NotificationCategory.SYSTEM,
     }
     prefix = event_key.split('.')[0] if '.' in event_key else ''
     return prefix_map.get(prefix, NotificationCategory.INFO)

@@ -42,11 +42,11 @@ User = get_user_model()
 
 RoleName = Literal["admin", "editor", "writer"]
 
-# Page permission types in Wagtail
-PAGE_PERMISSION_TYPES = {
-    "admin": ["add", "edit", "publish", "bulk_delete", "lock"],
-    "editor": ["add", "edit", "publish"],
-    "writer": ["add", "edit"],
+# Page permission codenames (Wagtail 6+ uses Permission FK, not permission_type)
+PAGE_PERMISSION_CODENAMES = {
+    "admin": ["add_page", "change_page", "publish_page", "bulk_delete_page", "lock_page"],
+    "editor": ["add_page", "change_page", "publish_page"],
+    "writer": ["add_page", "change_page"],
 }
 
 
@@ -107,19 +107,28 @@ class TenantPermissionsService:
         cls, group: Group, root_page: Page, role: RoleName
     ) -> None:
         """Grant page permissions on the tenant's entire subtree."""
-        permission_types = PAGE_PERMISSION_TYPES.get(role, [])
+        codenames = PAGE_PERMISSION_CODENAMES.get(role, [])
 
-        for perm_type in permission_types:
+        for codename in codenames:
+            try:
+                perm = Permission.objects.get(
+                    content_type__app_label="wagtailcore",
+                    codename=codename,
+                )
+            except Permission.DoesNotExist:
+                logger.debug("Page permission %s not found — skipping", codename)
+                continue
+
             _, created = GroupPagePermission.objects.get_or_create(
                 group=group,
                 page=root_page,
-                permission_type=perm_type,
+                permission=perm,
             )
             if created:
                 logger.debug(
                     "Granted %s.%s on page %s",
                     group.name,
-                    perm_type,
+                    codename,
                     root_page.title,
                 )
 

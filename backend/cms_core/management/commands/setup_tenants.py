@@ -32,6 +32,11 @@ TENANTS = [
         "hostname": "essaymaniacs.com",
         "slug": "essaymaniacs",
     },
+    {
+        "name": "ResearchPaperMate",
+        "hostname": "researchpapermate.com",
+        "slug": "researchpapermate",
+    },
 ]
 
 
