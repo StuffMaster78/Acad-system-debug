@@ -20,6 +20,7 @@ useSeoMeta({
 
 const app    = useAppUrl()
 const config = useRuntimeConfig()
+const route  = useRoute()
 
 // ── Pricing config ─────────────────────────────────────────────────────────
 const levels      = ref<PricingLevel[]>(FALLBACK_LEVELS)
@@ -160,7 +161,6 @@ const SERVICE_TO_PAPER: Record<string, string> = {
 watch([orderTypeId, paperCode, levelCode, deadlineHrs, units], scheduleEstimate)
 onMounted(() => {
   // Pre-fill from service page CTA (?service=essay-writing)
-  const route = useRoute()
   const serviceSlug = route.query.service as string | undefined
   if (serviceSlug) {
     const mappedCode = SERVICE_TO_PAPER[serviceSlug]
