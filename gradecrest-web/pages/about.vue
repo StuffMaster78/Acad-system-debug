@@ -32,7 +32,7 @@ const stats = [
 <template>
   <div class="pt-16">
 
-    <section class="bg-navy-900 py-16 relative overflow-hidden">
+    <section class="bg-forest-950 py-16 relative overflow-hidden">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-3xl px-4 sm:px-6 text-center">
         <h1 class="text-4xl font-bold text-white sm:text-5xl">About GradeCrest</h1>

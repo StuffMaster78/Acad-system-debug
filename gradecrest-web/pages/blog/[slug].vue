@@ -230,7 +230,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
     <template v-else>
 
       <!-- Hero -->
-      <section class="bg-navy-900 pb-10 pt-10 relative overflow-hidden print:bg-white print:pb-4">
+      <section class="bg-forest-950 pb-10 pt-10 relative overflow-hidden print:bg-white print:pb-4">
         <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none print:hidden" />
         <div class="relative mx-auto max-w-5xl px-4 sm:px-6">
 
@@ -295,7 +295,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
       </section>
 
       <!-- Featured image -->
-      <div v-if="article.thumbnail?.url" class="bg-navy-900 print:hidden">
+      <div v-if="article.thumbnail?.url" class="bg-forest-950 print:hidden">
         <div class="mx-auto max-w-5xl px-4 sm:px-6">
           <img :src="article.thumbnail.url" :alt="article.title" class="w-full rounded-t-2xl object-cover max-h-96" />
         </div>
@@ -420,7 +420,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
 
               <!-- "What are you waiting for?" end conversion section -->
               <div class="mt-10 rounded-2xl overflow-hidden border border-slate-200 print:hidden">
-                <div class="bg-navy-900 p-7 text-center relative overflow-hidden">
+                <div class="bg-forest-950 p-7 text-center relative overflow-hidden">
                   <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none opacity-50" />
                   <div class="relative">
                     <p class="text-xl font-bold text-white mb-1">What are you waiting for?</p>
@@ -550,7 +550,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
     >
       <button
         v-if="showBackToTop"
-        class="fixed bottom-20 right-5 z-40 flex size-10 items-center justify-center rounded-full bg-navy-900 text-white shadow-lg hover:bg-navy-700 transition-colors lg:bottom-6 print:hidden"
+        class="fixed bottom-20 right-5 z-40 flex size-10 items-center justify-center rounded-full bg-forest-950 text-white shadow-lg hover:bg-forest-800 transition-colors lg:bottom-6 print:hidden"
         @click="scrollToTop"
         aria-label="Back to top"
       >↑</button>

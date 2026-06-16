@@ -35,7 +35,7 @@ const notEligible = [
 <template>
   <div class="pt-16">
 
-    <section class="bg-navy-900 py-14 relative overflow-hidden">
+    <section class="bg-forest-950 py-14 relative overflow-hidden">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-3xl px-4 sm:px-6">
         <p class="text-xs font-semibold uppercase tracking-widest text-gc-400 mb-3">Legal</p>

@@ -143,7 +143,7 @@ function scrollToForm() { formSection.value?.scrollIntoView({ behavior: 'smooth'
   <div class="pt-16">
 
     <!-- Hero -->
-    <section class="bg-navy-900 py-20 relative overflow-hidden">
+    <section class="bg-forest-950 py-20 relative overflow-hidden">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-4xl px-4 sm:px-6 text-center space-y-6">
         <span class="inline-flex items-center gap-1.5 rounded-full bg-gc-500/20 px-3 py-1 text-xs font-semibold text-gc-300 ring-1 ring-gc-500/30">

@@ -631,7 +631,7 @@ useHead({
   <div class="pt-16">
 
     <!-- Hero -->
-    <section class="bg-navy-900 py-16 relative overflow-hidden">
+    <section class="bg-forest-950 py-16 relative overflow-hidden">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="grid lg:grid-cols-2 gap-10 items-center">
@@ -645,7 +645,7 @@ useHead({
               <span class="text-slate-300">{{ svc.title }}</span>
             </nav>
             <h1 class="text-3xl font-bold text-white sm:text-4xl lg:text-5xl">{{ svc.title }}</h1>
-            <p class="text-xl text-gc-300 font-medium">{{ svc.tagline }}</p>
+            <p class="text-xl text-gold-300 font-medium">{{ svc.tagline }}</p>
             <p class="text-slate-300 leading-relaxed max-w-lg">{{ svc.intro }}</p>
             <div class="flex items-center gap-4 text-sm text-slate-400">
               <span class="font-semibold text-white">From ${{ svc.price }}/page</span>
@@ -730,7 +730,7 @@ useHead({
     </section>
 
     <!-- Final CTA -->
-    <section class="bg-navy-900 py-14 text-center relative overflow-hidden">
+    <section class="bg-forest-950 py-14 text-center relative overflow-hidden">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-xl px-4 space-y-5">
         <h2 class="text-2xl font-bold text-white">Ready to get started?</h2>

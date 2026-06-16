@@ -67,7 +67,7 @@ const orderUrl = computed(() => {
     deadline: String(deadlineHrs.value),
     pages:    String(pages.value),
   })
-  return `${app.order}?${p.toString()}`
+  return `/order?${p.toString()}`
 })
 
 function incPages() { if (pages.value < 100) pages.value++ }

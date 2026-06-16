@@ -72,10 +72,10 @@ const guarantees = [
   <div class="pt-16">
 
     <!-- Hero -->
-    <section class="bg-navy-900 py-16 text-center relative overflow-hidden">
+    <section class="bg-forest-950 py-16 text-center relative overflow-hidden">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-3xl px-4 sm:px-6">
-        <p class="text-xs font-semibold uppercase tracking-widest text-gc-400 mb-3">Simple process</p>
+        <p class="text-xs font-semibold uppercase tracking-widest text-gold-400 mb-3">Simple process</p>
         <h1 class="text-4xl font-bold text-white sm:text-5xl">How GradeCrest works</h1>
         <p class="mt-4 text-lg text-slate-300 max-w-xl mx-auto">
           From brief to delivered in four steps. Place your order in under two minutes.

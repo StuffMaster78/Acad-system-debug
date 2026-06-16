@@ -59,10 +59,10 @@ const faqs = [
   <div class="pt-16">
 
     <!-- Hero -->
-    <section class="bg-navy-900 py-16 text-center relative overflow-hidden">
+    <section class="bg-forest-950 py-16 text-center relative overflow-hidden">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-3xl px-4 sm:px-6">
-        <p class="text-xs font-semibold uppercase tracking-widest text-gc-400 mb-3">Transparent pricing</p>
+        <p class="text-xs font-semibold uppercase tracking-widest text-gold-400 mb-3">Transparent pricing</p>
         <h1 class="text-4xl font-bold text-white sm:text-5xl">Simple, honest pricing</h1>
         <p class="mt-4 text-lg text-slate-300 max-w-xl mx-auto">
           From $13/page. What you see is what you pay. No hidden fees, ever.
@@ -168,7 +168,7 @@ const faqs = [
     </section>
 
     <!-- CTA -->
-    <section class="bg-navy-900 py-14 text-center relative overflow-hidden">
+    <section class="bg-forest-950 py-14 text-center relative overflow-hidden">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-xl px-4 space-y-5">
         <h2 class="text-2xl font-bold text-white">Ready to place your order?</h2>

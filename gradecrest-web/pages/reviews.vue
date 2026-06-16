@@ -52,10 +52,10 @@ const reviews = [
   <div class="pt-16">
 
     <!-- Hero -->
-    <section class="bg-navy-900 py-16 text-center relative overflow-hidden">
+    <section class="bg-forest-950 py-16 text-center relative overflow-hidden">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-3xl px-4 sm:px-6">
-        <p class="text-xs font-semibold uppercase tracking-widest text-gc-400 mb-3">Social proof</p>
+        <p class="text-xs font-semibold uppercase tracking-widest text-gold-400 mb-3">Social proof</p>
         <h1 class="text-4xl font-bold text-white sm:text-5xl">Student Reviews</h1>
         <p class="mt-4 text-lg text-slate-300">12,400+ verified reviews across Trustpilot, SiteJabber, and Google.</p>
         <div class="mt-6 flex flex-wrap justify-center gap-6">

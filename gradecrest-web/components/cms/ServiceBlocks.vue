@@ -9,7 +9,7 @@ defineProps<{
 const html = (value: unknown) => String(value ?? '')
 
 const ctaClass = (style?: string) => {
-  if (style === 'secondary') return 'bg-navy-900 text-white hover:bg-navy-800'
+  if (style === 'secondary') return 'bg-forest-950 text-white hover:bg-forest-900'
   if (style === 'outline') return 'border border-slate-300 bg-white text-ink hover:border-gc-300 hover:text-gc-700'
   return 'bg-gc-600 text-white hover:bg-gc-700'
 }
@@ -88,7 +88,7 @@ const ctaClass = (style?: string) => {
             </div>
           </div>
 
-          <div v-else-if="block.type === 'stats_highlight'" class="rounded-2xl bg-navy-900 p-6 text-white">
+          <div v-else-if="block.type === 'stats_highlight'" class="rounded-2xl bg-forest-950 p-6 text-white">
             <div class="grid gap-4 sm:grid-cols-3">
               <div v-for="stat in (block.value as any).stats || []" :key="stat.label">
                 <p class="text-3xl font-extrabold">{{ stat.value }}</p>
