@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SiteHeader from '~/components/layout/SiteHeader.vue'
 import SiteFooter from '~/components/layout/SiteFooter.vue'
+import AnnouncementBar from '~/components/marketing/AnnouncementBar.vue'
 import CookieConsentBanner from '~/components/privacy/CookieConsentBanner.vue'
 import ExitIntentPopup from '~/components/marketing/ExitIntentPopup.vue'
 
@@ -36,6 +37,7 @@ watch(consent.analyticsAllowed, (allowed) => {
 
 <template>
   <div class="flex min-h-screen flex-col bg-white font-sans text-ink antialiased">
+    <AnnouncementBar />
     <SiteHeader />
     <main class="flex-1">
       <slot />
