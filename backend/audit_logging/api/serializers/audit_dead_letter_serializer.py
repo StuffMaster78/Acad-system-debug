@@ -16,7 +16,7 @@ class AuditDeadLetterSerializer(serializers.ModelSerializer):
             "retry_count",
             "max_retries",
             "is_resolved",
-            "created_at",
+            "failed_at",
         )
 
         read_only_fields = fields
