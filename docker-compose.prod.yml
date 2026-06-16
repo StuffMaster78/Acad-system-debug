@@ -284,8 +284,89 @@ services:
       dockerfile: Dockerfile
     environment:
       NODE_ENV: production
-      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-https://gradecrest.com}
-      NUXT_PUBLIC_APP_URL: ${NUXT_PUBLIC_APP_URL}
+      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_GC_API_BASE:-https://gradecrest.com}
+      NUXT_PUBLIC_APP_URL: ${NUXT_PUBLIC_GC_APP_URL:-https://app.gradecrest.com}
+      NUXT_API_BASE_INTERNAL: "http://web:8000"
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── NurseMyGrade marketing site (Nuxt SSR) ─────────────────────────────────
+  nursemygrade-web:
+    env_file: !reset []
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+      - internal
+    build:
+      context: ./nursemygrade-web
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_NMG_API_BASE:-https://nursemygrade.com}
+      NUXT_PUBLIC_APP_URL: ${NUXT_PUBLIC_NMG_APP_URL:-https://app.nursemygrade.com}
+      NUXT_API_BASE_INTERNAL: "http://web:8000"
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── EssayManiacs marketing site (Nuxt SSR) ─────────────────────────────────
+  essaymaniacs-web:
+    env_file: !reset []
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+      - internal
+    build:
+      context: ./essaymaniacs-web
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_EM_API_BASE:-https://essaymaniacs.com}
+      NUXT_PUBLIC_APP_URL: ${NUXT_PUBLIC_EM_APP_URL:-https://app.essaymaniacs.com}
+      NUXT_API_BASE_INTERNAL: "http://web:8000"
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── ResearchPaperMate marketing site (Nuxt SSR) ────────────────────────────
+  researchpapermate-web:
+    env_file: !reset []
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+      - internal
+    build:
+      context: ./researchpapermate-web
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_RPM_API_BASE:-https://researchpapermate.com}
+      NUXT_PUBLIC_APP_URL: ${NUXT_PUBLIC_RPM_APP_URL:-https://app.researchpapermate.com}
       NUXT_API_BASE_INTERNAL: "http://web:8000"
     depends_on:
       web:

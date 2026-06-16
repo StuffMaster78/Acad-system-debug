@@ -118,10 +118,28 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot
   -d admin.writerscreek.com \
   --email admin@writerscreek.com --agree-tos --non-interactive
 
-#    gradecrest.com — client marketing site
+#    gradecrest.com — GradeCrest client marketing site
 docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly \
   --webroot -w /var/www/certbot \
   -d gradecrest.com -d www.gradecrest.com \
+  --email admin@writerscreek.com --agree-tos --non-interactive
+
+#    nursemygrade.com — NurseMyGrade client marketing site
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d nursemygrade.com -d www.nursemygrade.com \
+  --email admin@writerscreek.com --agree-tos --non-interactive
+
+#    essaymaniacs.com — EssayManiacs client marketing site
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d essaymaniacs.com -d www.essaymaniacs.com \
+  --email admin@writerscreek.com --agree-tos --non-interactive
+
+#    researchpapermate.com — ResearchPaperMate client marketing site
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d researchpapermate.com -d www.researchpapermate.com \
   --email admin@writerscreek.com --agree-tos --non-interactive
 
 # 3. Restart nginx to pick up all certs
