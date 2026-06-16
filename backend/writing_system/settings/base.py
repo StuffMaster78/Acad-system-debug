@@ -832,6 +832,10 @@ SECURE_SSL_REDIRECT = False
 SECURE_PROXY_SSL_HEADER = None
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
+# None in dev — set to ".writerscreek.com" in production so a single login
+# at writerscreek.com propagates the session to app.* and admin.* subdomains.
+SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", None) or None
+CSRF_COOKIE_DOMAIN    = env("CSRF_COOKIE_DOMAIN",    None) or None
 SECURE_HSTS_SECONDS = 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False

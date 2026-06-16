@@ -258,6 +258,7 @@ services:
       NODE_ENV: production
       NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_WC_API_BASE:-https://writerscreek.com}
       NUXT_PUBLIC_APP_URL: ${NUXT_PUBLIC_WC_APP_URL:-https://app.writerscreek.com}
+      NUXT_PUBLIC_STAFF_URL: ${NUXT_PUBLIC_WC_STAFF_URL:-https://admin.writerscreek.com}
       NUXT_API_BASE_INTERNAL: "http://web:8000"
     depends_on:
       web:

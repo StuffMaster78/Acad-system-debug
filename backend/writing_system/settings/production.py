@@ -77,6 +77,12 @@ CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "")
 CORS_ALLOW_ALL_ORIGINS = False
 
+# Shared session/CSRF cookie across all *.writerscreek.com subdomains.
+# This lets a login at writerscreek.com (marketing) carry the session into
+# app.writerscreek.com (writer portal) and admin.writerscreek.com (staff).
+SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", ".writerscreek.com")
+CSRF_COOKIE_DOMAIN    = env("CSRF_COOKIE_DOMAIN",    ".writerscreek.com")
+
 SENDGRID_API_KEY = env("SENDGRID_API_KEY", "")
 if module_available("anymail") and SENDGRID_API_KEY: # noqa: F405
     EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"

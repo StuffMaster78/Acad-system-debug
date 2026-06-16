@@ -51,7 +51,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: '',
-      appUrl: '',
+      appUrl: '',        // writer portal  — https://app.writerscreek.com
+      staffUrl: '',      // staff portal   — https://admin.writerscreek.com
       siteUrl: 'https://writerscreek.com',
     },
   },
