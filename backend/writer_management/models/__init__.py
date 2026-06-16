@@ -205,3 +205,4 @@ __all__ = [
     "WriterApplication",
 ]
 from writer_management.models.badges import Badge, WriterBadge  # noqa: F401
+from writer_management.models.old_models.requests import WriterOrderRequest, WriterOrderTake  # noqa: F401 — compat re-export

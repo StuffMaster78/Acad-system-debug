@@ -10,11 +10,8 @@ Tests cover:
 - Service recovery
 """
 import pytest
-from unittest.mock import patch, MagicMock, side_effect
-from django.core.exceptions import OperationalError
-from django.db import transaction
-
-from django.core.exceptions import OperationalError
+from unittest.mock import patch, MagicMock
+from django.db import OperationalError, transaction
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus
 from orders.services.status_transition_service import StatusTransitionService

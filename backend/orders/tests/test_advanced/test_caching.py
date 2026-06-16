@@ -13,7 +13,7 @@ import time
 from unittest.mock import patch
 from django.core.cache import cache
 from django.conf import settings
-from django.core.exceptions import OperationalError
+from django.db import OperationalError
 
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus

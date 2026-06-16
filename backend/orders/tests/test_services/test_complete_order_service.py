@@ -11,7 +11,7 @@ Tests cover:
 """
 import pytest
 from unittest.mock import patch, MagicMock
-from django.core.exceptions import PermissionError
+# PermissionError is a Python builtin — no import needed
 
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus

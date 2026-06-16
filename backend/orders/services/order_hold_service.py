@@ -371,3 +371,5 @@ class OrderHoldService:
             actor=actor,
             metadata=metadata,
         )
+# Compat alias
+HoldOrderService = OrderHoldService

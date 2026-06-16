@@ -26,6 +26,27 @@ from order_pricing_core.models.service_catalog import ServiceCatalogItem
 from .composite_quotes import CompositePricingQuote
 from .composite_quotes import CompositePricingQuoteItem
 from .calculator_session import PricingCalculatorSession
+
+# Compat stubs — these models were in the old monolithic models.py which is
+# now shadowed by this package. They have no DB tables (never migrated).
+class _LegacyStub:
+    """No-op stub for unmigrated legacy models."""
+    objects = type("Manager", (), {"filter": lambda *a, **k: [], "get": lambda *a, **k: None, "create": lambda *a, **k: None})()
+
+class PricingConfiguration(_LegacyStub):
+    pass
+
+class AcademicLevelPricing(_LegacyStub):
+    pass
+
+class WriterLevelOptionConfig(_LegacyStub):
+    pass
+
+class AdditionalService(_LegacyStub):
+    pass
+
+class PreferredWriterConfig(_LegacyStub):
+    pass
 __all__ = [
     "AcademicLevelRate",
     "AnalysisLevelRate",

@@ -12,6 +12,12 @@ from orders.models.orders.order_reassignment_request import (
 )
 from .order_flag import OrderFlag
 from .order_item import OrderItem
+from orders.models.legacy_models.logs import OrderTransitionLog
+from orders.models.legacy_models.cancellation_request import CancellationRequest
+from orders.models.legacy_models.writer_acceptance import WriterAssignmentAcceptance
+from orders.models.legacy_models.logs import WriterReassignmentLog
+from orders.order_enums import OrderStatus  # re-export for legacy import sites
+
 __all__ = [
     "Order",
     "OrderAssignment",
@@ -23,4 +29,9 @@ __all__ = [
     "OrderReassignmentRequest",
     "OrderFlag",
     "OrderItem",
+    "OrderTransitionLog",
+    "CancellationRequest",
+    "WriterAssignmentAcceptance",
+    "WriterReassignmentLog",
+    "OrderStatus",
 ]

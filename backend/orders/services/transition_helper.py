@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from orders.services.status_transition_service import StatusTransitionService
 from orders.services.status_transition_service import VALID_TRANSITIONS
+from orders.exceptions import InvalidTransitionError, AlreadyInTargetStatusError  # noqa: F401 — compat re-export
 
 
 class OrderTransitionHelper:

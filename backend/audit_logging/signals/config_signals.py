@@ -50,12 +50,15 @@ def audit_portal_definition_changes(sender, instance, created, **kwargs):
         return
     from audit_logging.factories.audit_event_factory import AuditEventFactory
     from websites.models.websites import Website
+    from django.db import transaction as _txn
+    sid = _txn.savepoint()
     try:
         website = Website.objects.filter(is_active=True, is_deleted=False).first()
         if website is None:
             log.warning(
                 "audit_portal_definition_changes skipped: no active website context"
             )
+            _txn.savepoint_commit(sid)
             return
         AuditEventFactory.create(
             action="config.portal_definition_changed",
@@ -74,7 +77,9 @@ def audit_portal_definition_changes(sender, instance, created, **kwargs):
             sensitivity_level="portal_config",
             service_name="config",
         )
+        _txn.savepoint_commit(sid)
     except Exception:
+        _txn.savepoint_rollback(sid)
         log.exception("audit_portal_definition_changes failed")
 
 

@@ -1,7 +1,6 @@
 from typing import Any
 
-from authentication.models.emails_log import EmailNotificationLog
-from authentication.models.security_alert_log import SecurityAlertLog
+from authentication.models.security_events import SecurityEvent as SecurityAlertLog
 from authentication.services.security_alert_service import (
     SecurityAlertService,
 )
@@ -49,12 +48,24 @@ class DeviceSecurityAlertService:
         Returns:
             Created SecurityAlertLog instance.
         """
-        return SecurityAlertLog.objects.create(
+        from authentication.models.security_events import SecurityEvent
+        severity_label = (
+            SecurityEvent.Severity.CRITICAL if severity >= 0.8
+            else SecurityEvent.Severity.HIGH if severity >= 0.6
+            else SecurityEvent.Severity.MEDIUM if severity >= 0.4
+            else SecurityEvent.Severity.LOW
+        )
+        return SecurityEvent.objects.create(
             user=user,
             website=website,
-            fingerprint=fingerprint,
-            reasons="\n".join(reasons),
-            severity=severity,
+            event_type=SecurityEvent.EventType.SUSPICIOUS_ACTIVITY,
+            severity=severity_label,
+            is_suspicious=True,
+            metadata={
+                "fingerprint_id": getattr(fingerprint, "pk", None),
+                "reasons": reasons,
+                "score": severity,
+            },
         )
 
     @staticmethod
@@ -84,12 +95,6 @@ class DeviceSecurityAlertService:
                 "severity": severity,
             },
             channels = ["email", "in_app"],
-        )
-
-        EmailNotificationLog.objects.create(
-            user=user,
-            event="suspicious_login",
-            recipient_email=user.email,
         )
 
     @staticmethod

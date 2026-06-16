@@ -759,3 +759,6 @@ class TypeOfWorkTemplate(models.Model):
         verbose_name = "Type of Work Template"
         verbose_name_plural = "Type of Work Templates"
         unique_together = ('name', 'category')
+
+# Compat alias — tests import OrderConfig which was never a model; use EditingRequirementConfig
+OrderConfig = EditingRequirementConfig

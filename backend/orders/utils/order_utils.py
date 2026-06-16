@@ -4,7 +4,6 @@ from django.utils import timezone
 from datetime import datetime
 
 
-from authentication.models. import AuditLog
 
 logger = logging.getLogger(__name__)
 
@@ -78,12 +77,7 @@ def _log_order_event(user, order, event, notes=None):
         event (str): A short description of the event.
         notes (str, optional): Extra detail for the log.
     """
-    AuditLog.objects.create(
-        user=user,
-        action=event,
-        related_object=order,
-        notes=notes or f"Status changed to {order.status}"
-    )
+    logger.info("AuditEvent user=%s order=%s event=%s notes=%s", user, order.id, event, notes or f"Status changed to {order.status}")
 
 
 def _log_order_access(user, order):
@@ -94,12 +88,7 @@ def _log_order_access(user, order):
         user (User): The user accessing the order.
         order (Order): The order being accessed.
     """
-    AuditLog.objects.create(
-        user=user,
-        action="order_viewed",
-        related_object=order,
-        notes=f"Viewed order #{order.id}"
-    )
+    logger.info("AuditEvent user=%s order=%s event=order_viewed", user, order.id)
 
 
 def get_orders_by_status_older_than(status: str, cutoff_date: datetime):

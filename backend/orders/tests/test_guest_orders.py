@@ -7,7 +7,8 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework.test import APIClient
 from rest_framework import status
-from websites.models.websites import Website, GuestAccessToken
+from websites.models.websites import Website
+from websites.models.website_settings import GuestAccessToken
 from client_management.models import ClientProfile
 from orders.models.orders import Order
 

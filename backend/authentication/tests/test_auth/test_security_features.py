@@ -17,7 +17,7 @@ from datetime import timedelta
 
 from authentication.models.failed_login_attempts import FailedLoginAttempt
 from authentication.models.account_lockout import AccountLockout
-from authentication.models.blocked_ips import BlockedIP
+from authentication.models.blocked_ip import BlockedIP
 from authentication.models.login_session import LoginSession
 from authentication.services.smart_lockout_service import SmartLockoutService
 from authentication.services.failed_login_attempts import FailedLoginService
