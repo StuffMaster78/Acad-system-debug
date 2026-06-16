@@ -200,6 +200,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING("\n=== seed_writerscreek ===\n"))
 
         website = self._seed_website()
+        self._seed_branding(website)
         self._seed_writer_levels(website)
         self._seed_grammar_quiz(website)
         self._seed_essay_quiz(website)
@@ -231,6 +232,30 @@ class Command(BaseCommand):
         )
         self._log("Website", website.name, created)
         return website
+
+    # ── Branding ──────────────────────────────────────────────────────────────
+
+    def _seed_branding(self, website):
+        from websites.models.website_branding import WebsiteBranding
+
+        branding, created = WebsiteBranding.objects.update_or_create(
+            website=website,
+            defaults={
+                "brand_name": "Writers Creek",
+                "tagline": "A selective academic writing network.",
+                "homepage_headline": "Write at the highest standard.",
+                "homepage_subheadline": (
+                    "Competitive per-page rates, flexible assignments, and reliable "
+                    "bi-weekly payouts — for writers who take their craft seriously."
+                ),
+                "primary_color": "#0f172a",   # slate-900
+                "secondary_color": "#1e293b", # slate-800
+                "accent_color": "#38bdf8",    # sky-400
+                "is_public": False,
+            },
+        )
+        self._log("WebsiteBranding", branding.brand_name, created)
+        return branding
 
     # ── Writer levels ─────────────────────────────────────────────────────────
 
