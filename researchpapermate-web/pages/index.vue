@@ -102,206 +102,254 @@ const subjects = [
   'Law', 'Finance', 'Sociology', 'Literature', 'Statistics', 'Engineering',
   'Public Health', 'Marketing', 'Economics', 'Philosophy', 'Education', 'Politics',
 ]
+
+const researchers = [
+  {
+    initials: 'AW', name: 'Dr. A. Williams', degree: 'PhD · Research Methodology',
+    specialty: 'Systematic Reviews · SPSS · Mixed Methods',
+    papers: 1840, rating: 4.97,
+    quote: 'I have 3 peer-reviewed publications in qualitative research design.',
+  },
+  {
+    initials: 'MT', name: 'Prof. M. Tanaka', degree: 'PhD · Finance & Econometrics',
+    specialty: 'Regression Analysis · Financial Modelling · EViews',
+    papers: 2310, rating: 5.0,
+    quote: 'Former investment analyst, now full-time researcher. I speak the language of your marker.',
+  },
+  {
+    initials: 'SR', name: 'Dr. S. Rashid', degree: "PhD · Biomedical Sciences",
+    specialty: 'Literature Reviews · Lab Reports · Clinical Trials',
+    papers: 1120, rating: 4.98,
+    quote: 'Published in Nature Reviews. I read primary sources, not Wikipedia.',
+  },
+]
+
+const methodology = [
+  { step: '01', title: 'Source verification',  desc: 'We use only peer-reviewed journals, institutional databases, and primary sources — no tertiary sites.' },
+  { step: '02', title: 'Methodology match',    desc: 'Qualitative, quantitative, or mixed methods — chosen to match your brief, not default to the easiest.' },
+  { step: '03', title: 'Argument structure',   desc: 'Every paper is structured around a clear thesis with evidence-led progression your marker can follow.' },
+  { step: '04', title: 'Citation accuracy',    desc: 'APA 7, Harvard, MLA, Chicago, Vancouver — formatted to the standard, not approximated.' },
+]
 </script>
 
 <template>
-  <!-- ─── Hero ─────────────────────────────────────────────────────────── -->
-  <section class="relative overflow-hidden bg-brand-900 py-20 sm:py-28">
-    <!-- Subtle grid overlay -->
-    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
-    <!-- Warm ambient glow -->
-    <div class="pointer-events-none absolute -top-40 right-0 h-[500px] w-[500px] rounded-full bg-brand-600 opacity-20 blur-[100px]" />
-    <div class="pointer-events-none absolute bottom-0 -left-20 h-64 w-64 rounded-full bg-blue-500 opacity-10 blur-3xl" />
+  <!-- ─── Hero — LIGHT, scholarly, academic ────────────────────────────── -->
+  <section class="relative overflow-hidden bg-white">
+    <!-- Faint diagonal lines — academic/grid texture -->
+    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(37,99,200,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(37,99,200,0.04)_1px,transparent_1px)] bg-[size:48px_48px]" />
+    <!-- Top left academic blue wash -->
+    <div class="pointer-events-none absolute -top-32 -left-20 h-[500px] w-[500px] rounded-full bg-brand-100 opacity-60 blur-[80px]" />
 
-    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="grid items-center gap-14 lg:grid-cols-2">
+    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-20 sm:pt-20 sm:pb-28">
+      <div class="grid items-start gap-14 lg:grid-cols-2">
 
-        <!-- Left: positioning + CTAs -->
-        <div class="max-w-xl">
-          <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-brand-200 backdrop-blur-sm">
-            <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
-            <span>47 researchers available right now</span>
+        <!-- Left: scholarly positioning -->
+        <div class="pt-4">
+          <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand-700">
+            <span class="h-1.5 w-1.5 rounded-full bg-brand-500" />
+            PhD &amp; Master's verified researchers only
           </div>
 
-          <h1 class="font-serif text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-[3.25rem]">
-            Research papers written by<br class="hidden sm:block" />
-            <span class="relative">
-              <span class="relative z-10 text-brand-300">actual researchers.</span>
-            </span>
+          <h1 class="text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-[3.2rem]">
+            Research papers<br />
+            that stand up to<br />
+            <span class="text-brand-600">scrutiny.</span>
           </h1>
 
-          <p class="mt-6 text-lg leading-relaxed text-brand-200">
-            Not AI. Not a bot. A verified PhD or Master's specialist who has read the literature, understands your subject, and knows what your marker expects.
+          <p class="mt-6 text-lg leading-relaxed text-slate-600 max-w-lg">
+            Every paper is written by a verified researcher with a postgraduate degree in your discipline — someone who has read the primary sources, not summarised Wikipedia.
           </p>
 
-          <div class="mt-3 flex items-center gap-3 text-sm text-brand-300">
-            <span class="flex items-center gap-1.5"><span class="text-amber-400">✦</span> From $15/page</span>
-            <span class="text-brand-600">·</span>
-            <span class="flex items-center gap-1.5"><span class="text-amber-400">✦</span> Grade or money back</span>
-            <span class="text-brand-600">·</span>
-            <span class="flex items-center gap-1.5"><span class="text-amber-400">✦</span> Zero AI</span>
+          <!-- Credential stats row -->
+          <div class="mt-7 grid grid-cols-3 gap-4">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+              <p class="text-xl font-extrabold text-brand-700 tabular-nums">73%</p>
+              <p class="mt-0.5 text-xs text-slate-500">PhD holders</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+              <p class="text-xl font-extrabold text-brand-700 tabular-nums">200+</p>
+              <p class="mt-0.5 text-xs text-slate-500">Researchers</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+              <p class="text-xl font-extrabold text-brand-700 tabular-nums">4.8★</p>
+              <p class="mt-0.5 text-xs text-slate-500">8,200+ reviews</p>
+            </div>
           </div>
 
           <div class="mt-8 flex flex-wrap gap-3">
-            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
-              Start my order
-              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+            <a :href="app.order"
+              class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-7 py-3.5 text-sm font-bold text-white shadow-md hover:bg-brand-800 transition-colors">
+              Start my paper
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </a>
-            <a href="/pricing" class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10">
-              See pricing
+            <a href="/pricing"
+              class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+              View pricing
             </a>
           </div>
 
-          <div class="mt-8 pt-6 border-t border-white/10">
-            <TrustBadges />
+          <div class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-500">
+            <span class="flex items-center gap-1.5">✓ Grade or money back</span>
+            <span class="flex items-center gap-1.5">✓ Zero AI content</span>
+            <span class="flex items-center gap-1.5">✓ Free plagiarism report</span>
           </div>
         </div>
 
-        <!-- Right: order form -->
-        <div>
-          <MultiStepOrderForm />
+        <!-- Right: researcher profile cards -->
+        <div class="space-y-3 lg:pt-4">
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Some of our researchers</p>
+          <div
+            v-for="r in researchers" :key="r.name"
+            class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-brand-300 hover:shadow-md transition-all"
+          >
+            <div class="flex items-start gap-4">
+              <!-- Credential avatar -->
+              <div class="relative shrink-0">
+                <div class="flex size-12 items-center justify-center rounded-xl bg-brand-700 text-sm font-bold text-white">
+                  {{ r.initials }}
+                </div>
+                <div class="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-amber-400 text-[9px] font-extrabold text-white shadow">
+                  PhD
+                </div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-sm font-bold text-slate-900">{{ r.name }}</p>
+                  <div class="flex items-center gap-1 text-xs">
+                    <span class="text-amber-400">★</span>
+                    <span class="font-semibold text-slate-700">{{ r.rating }}</span>
+                    <span class="text-slate-400">· {{ r.papers.toLocaleString() }} papers</span>
+                  </div>
+                </div>
+                <p class="text-xs text-brand-600 font-medium mt-0.5">{{ r.degree }}</p>
+                <p class="text-xs text-slate-500 mt-1">{{ r.specialty }}</p>
+                <p class="mt-2 text-xs italic text-slate-500 leading-relaxed border-l-2 border-brand-200 pl-2.5">
+                  "{{ r.quote }}"
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <a href="/writers" class="block text-center text-xs font-semibold text-brand-600 hover:text-brand-800 transition-colors pt-1">
+            View all 200+ researchers →
+          </a>
         </div>
 
       </div>
     </div>
   </section>
 
-  <!-- ─── Stats bar ─────────────────────────────────────────────────────── -->
-  <section class="border-y border-slate-100 bg-white">
+  <!-- ─── Credential bar ──────────────────────────────────────────────── -->
+  <section class="border-y border-slate-100 bg-slate-50">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="grid grid-cols-2 divide-x divide-y divide-slate-100 md:grid-cols-4 md:divide-y-0">
-        <div v-for="stat in stats" :key="stat.label" class="flex flex-col items-center py-8 px-6 text-center">
-          <span class="text-3xl font-extrabold tabular-nums text-brand-700">{{ stat.value }}</span>
-          <span class="mt-1 text-sm font-semibold text-slate-800">{{ stat.label }}</span>
+        <div v-for="stat in stats" :key="stat.label" class="flex flex-col items-center py-7 px-6 text-center">
+          <span class="text-2xl font-extrabold tabular-nums text-brand-700">{{ stat.value }}</span>
+          <span class="mt-0.5 text-sm font-semibold text-slate-800">{{ stat.label }}</span>
           <span class="mt-0.5 text-xs text-slate-400">{{ stat.note }}</span>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── The Difference ───────────────────────────────────────────────── -->
-  <section class="bg-slate-50 py-20">
+  <!-- ─── Research methodology ─────────────────────────────────────────── -->
+  <section class="bg-white py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="mb-14 text-center">
-        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Why students choose us</p>
-        <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl">The research paper service that's actually different.</h2>
-      </div>
-
-      <div class="grid gap-8 md:grid-cols-3">
-        <div
-          v-for="d in differences"
-          :key="d.headline"
-          class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-shadow hover:shadow-md"
-        >
-          <div class="mb-5 text-4xl">{{ d.emoji }}</div>
-          <h3 class="text-lg font-bold leading-snug text-slate-900">{{ d.headline }}</h3>
-          <p class="mt-3 text-sm leading-relaxed text-slate-500">{{ d.body }}</p>
-          <div class="pointer-events-none absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-brand-50 transition-transform group-hover:scale-150" />
+      <div class="grid lg:grid-cols-2 gap-14 items-center">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-widest text-brand-600 mb-3">Our research standard</p>
+          <h2 class="text-3xl font-extrabold text-slate-900 sm:text-4xl leading-tight">
+            Papers that hold up<br />when your marker reads them closely.
+          </h2>
+          <p class="mt-4 text-slate-500 leading-relaxed">
+            We don't just write. We research — properly. Every paper follows an academic methodology your supervisor would recognise.
+          </p>
+          <a :href="app.order" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-700 px-6 py-3 text-sm font-bold text-white hover:bg-brand-800 transition-colors">
+            Start a research paper
+          </a>
+        </div>
+        <div class="space-y-4">
+          <div
+            v-for="m in methodology" :key="m.step"
+            class="flex gap-4 rounded-xl border border-slate-200 bg-slate-50 p-5 hover:border-brand-200 transition-colors"
+          >
+            <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-xs font-extrabold text-white">
+              {{ m.step }}
+            </div>
+            <div>
+              <p class="text-sm font-bold text-slate-900">{{ m.title }}</p>
+              <p class="mt-1 text-sm text-slate-500 leading-relaxed">{{ m.desc }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── Writer showcase ───────────────────────────────────────────────── -->
-  <WriterShowcase />
-
   <!-- ─── Services ─────────────────────────────────────────────────────── -->
-  <section class="bg-white py-20">
+  <section class="bg-slate-50 py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="mb-12 flex items-end justify-between">
+      <div class="mb-10 flex items-end justify-between">
         <div>
           <p class="mb-2 text-xs font-bold uppercase tracking-widest text-brand-600">100+ subjects covered</p>
           <h2 class="text-3xl font-bold text-slate-900">Every paper type. Every subject.</h2>
         </div>
         <a href="/services" class="hidden text-sm font-semibold text-brand-600 hover:underline sm:block">All services →</a>
       </div>
-
-      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <a
-          v-for="svc in services"
-          :key="svc.title"
-          :href="svc.href"
+          v-for="svc in services" :key="svc.title" :href="svc.href"
           class="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
         >
-          <div v-if="svc.badge" class="absolute right-4 top-4 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
-            {{ svc.badge }}
-          </div>
-          <h3 class="text-base font-bold text-slate-900 transition-colors group-hover:text-brand-700">{{ svc.title }}</h3>
+          <div v-if="svc.badge" class="absolute right-4 top-4 rounded-full bg-brand-100 px-2.5 py-0.5 text-[11px] font-bold text-brand-700">{{ svc.badge }}</div>
+          <h3 class="text-sm font-bold text-slate-900 group-hover:text-brand-700 transition-colors">{{ svc.title }}</h3>
           <p class="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{{ svc.desc }}</p>
-          <span class="mt-4 text-xs font-semibold text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">Learn more →</span>
+          <span class="mt-4 text-xs font-semibold text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity">Learn more →</span>
         </a>
       </div>
-
-      <div class="mt-10 flex flex-wrap gap-2">
-        <span v-for="sub in subjects" :key="sub" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700">{{ sub }}</span>
-        <span class="rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs text-slate-400">+80 more subjects</span>
-      </div>
-      <div class="mt-8 text-center sm:hidden">
-        <a href="/services" class="text-sm font-semibold text-brand-600 hover:underline">View all services →</a>
+      <div class="mt-8 flex flex-wrap gap-2">
+        <span v-for="sub in subjects" :key="sub" class="rounded-full bg-white border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-200 transition-colors">{{ sub }}</span>
+        <span class="rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs text-slate-400">+80 more</span>
       </div>
     </div>
   </section>
 
   <!-- ─── How it works ──────────────────────────────────────────────────── -->
-  <section class="bg-brand-50 py-20">
+  <section class="bg-white py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="mb-14 text-center">
+      <div class="mb-12 text-center">
         <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Simple process</p>
-        <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl">From brief to finished paper in four steps.</h2>
+        <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl">Brief in. Paper out. In four steps.</h2>
       </div>
-
-      <!-- Desktop: horizontal timeline -->
-      <div class="hidden md:block">
-        <div class="relative grid grid-cols-4 gap-0">
-          <!-- Connecting line -->
-          <div class="absolute top-7 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-brand-300 via-brand-500 to-brand-300" />
-
-          <div v-for="step in steps" :key="step.n" class="flex flex-col items-center px-4 text-center">
-            <div class="relative z-10 mb-6 flex size-14 items-center justify-center rounded-full border-4 border-brand-100 bg-white shadow-md">
-              <span class="text-lg font-extrabold text-brand-700">{{ step.n }}</span>
-            </div>
-            <h3 class="text-sm font-bold text-slate-900">{{ step.title }}</h3>
-            <p class="mt-2 text-xs leading-relaxed text-slate-500">{{ step.desc }}</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mobile: vertical -->
-      <div class="space-y-8 md:hidden">
-        <div v-for="step in steps" :key="step.n" class="flex gap-5">
-          <div class="flex size-12 shrink-0 items-center justify-center rounded-full border-2 border-brand-200 bg-white text-sm font-extrabold text-brand-700 shadow-sm">
+      <div class="relative grid gap-0 md:grid-cols-4">
+        <div class="hidden md:block absolute top-5 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-brand-200 via-brand-500 to-brand-200" />
+        <div v-for="step in steps" :key="step.n" class="flex flex-col items-center px-4 text-center mb-8 md:mb-0">
+          <div class="relative z-10 mb-5 flex size-10 items-center justify-center rounded-full border-2 border-brand-200 bg-white text-sm font-extrabold text-brand-700 shadow-sm">
             {{ step.n }}
           </div>
-          <div class="pt-1.5">
-            <h3 class="text-sm font-bold text-slate-900">{{ step.title }}</h3>
-            <p class="mt-1 text-sm leading-relaxed text-slate-500">{{ step.desc }}</p>
-          </div>
+          <h3 class="text-sm font-bold text-slate-900">{{ step.title }}</h3>
+          <p class="mt-2 text-xs leading-relaxed text-slate-500">{{ step.desc }}</p>
         </div>
       </div>
-
-      <div class="mt-12 text-center">
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-8 py-3.5 text-sm font-bold text-white shadow transition-colors hover:bg-brand-800">
-          Start my order now
+      <div class="mt-10 text-center">
+        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-7 py-3.5 text-sm font-bold text-white hover:bg-brand-800 transition-colors">
+          Place my order
         </a>
       </div>
     </div>
   </section>
 
-  <!-- ─── Guarantees ────────────────────────────────────────────────────── -->
+  <!-- ─── Guarantees — light treatment ──────────────────────────────────── -->
   <section class="bg-brand-900 py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="mb-12 text-center">
         <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-300">Our promise</p>
-        <h2 class="text-3xl font-bold text-white sm:text-4xl">We put our name behind every order.</h2>
-        <p class="mt-3 text-brand-300">Not small print. Actual guarantees that mean something.</p>
+        <h2 class="text-3xl font-bold text-white sm:text-4xl">We stand behind every paper.</h2>
+        <p class="mt-3 text-brand-300">Not small print. Actual commitments.</p>
       </div>
-
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div
-          v-for="g in guarantees"
-          :key="g.title"
-          class="group flex gap-4 rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition-colors hover:bg-white/10"
-        >
+        <div v-for="g in guarantees" :key="g.title"
+          class="flex gap-4 rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 hover:bg-white/10 transition-colors">
           <div class="text-2xl">{{ g.emoji }}</div>
           <div>
             <h3 class="font-semibold text-white">{{ g.title }}</h3>
@@ -312,35 +360,25 @@ const subjects = [
     </div>
   </section>
 
-  <!-- ─── Grade-result testimonials ────────────────────────────────────── -->
-  <section class="bg-white py-20">
+  <!-- ─── Testimonials with university names ────────────────────────────── -->
+  <section class="bg-slate-50 py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="mb-12 text-center">
-        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Real results</p>
-        <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl">Students. Papers. Grades.</h2>
+        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Student outcomes</p>
+        <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl">Real students. Real universities. Real grades.</h2>
       </div>
-
       <div class="grid gap-6 md:grid-cols-3">
-        <div
-          v-for="t in testimonials"
-          :key="t.name"
-          class="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-7"
-        >
-          <!-- Grade badge -->
-          <div class="absolute right-6 top-6 flex size-14 items-center justify-center rounded-full border-2 border-amber-400 bg-amber-50 text-2xl font-extrabold text-amber-700 shadow-sm">
+        <div v-for="t in testimonials" :key="t.name"
+          class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+          <div class="absolute right-6 top-6 flex size-14 items-center justify-center rounded-full border-2 border-brand-200 bg-brand-50 text-2xl font-extrabold text-brand-700">
             {{ t.grade }}
           </div>
-
-          <p class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-brand-600">{{ t.subject }}</p>
-          <blockquote class="mt-3 text-sm leading-relaxed text-slate-700 italic pr-16">
-            "{{ t.quote }}"
-          </blockquote>
-          <div class="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4">
-            <div class="flex size-8 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
-              {{ t.name.charAt(0) }}
-            </div>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-brand-600">{{ t.subject }}</p>
+          <blockquote class="mt-3 pr-16 text-sm italic leading-relaxed text-slate-700">"{{ t.quote }}"</blockquote>
+          <div class="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
+            <div class="flex size-8 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">{{ t.name.charAt(0) }}</div>
             <div>
-              <p class="text-xs font-semibold text-slate-800">{{ t.name }}</p>
+              <p class="text-xs font-bold text-slate-800">{{ t.name }}</p>
               <p class="text-xs text-slate-400">{{ t.university }}</p>
             </div>
           </div>
@@ -352,37 +390,30 @@ const subjects = [
   <!-- ─── FAQ ───────────────────────────────────────────────────────────── -->
   <HomeFaq />
 
-  <!-- ─── Final CTA ─────────────────────────────────────────────────────── -->
-  <section class="relative overflow-hidden bg-gradient-to-br from-brand-800 to-brand-900 py-20">
-    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-    <div class="relative z-10 mx-auto max-w-3xl px-4 text-center sm:px-6">
-      <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">Writers available now</p>
+  <!-- ─── Final CTA — blue on white ─────────────────────────────────────── -->
+  <section class="bg-brand-700 py-20">
+    <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">
+      <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-200">Researchers available now</p>
       <h2 class="text-3xl font-bold text-white sm:text-4xl">
-        Your deadline isn't getting any further away.
+        Your research paper deserves a real researcher.
       </h2>
       <p class="mt-5 text-lg leading-relaxed text-brand-200">
-        Tell us your requirements. We'll match you with the right researcher in minutes.
+        Tell us your subject and deadline. We'll match you with a PhD-verified specialist in minutes.
       </p>
-
       <div class="mt-10 flex flex-wrap justify-center gap-4">
-        <a
-          :href="app.order"
-          class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50"
-        >
+        <a :href="app.order"
+          class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-sm font-bold text-brand-700 shadow-lg hover:bg-brand-50 transition-colors">
           Place my order — from $15/page
-          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
         </a>
-        <a
-          href="/contact"
-          class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10"
-        >
+        <a href="/contact"
+          class="inline-flex items-center rounded-xl border border-white/30 bg-white/10 px-8 py-4 text-sm font-semibold text-white hover:bg-white/20 transition-colors">
           Talk to us first
         </a>
       </div>
-
-      <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-brand-300">
+      <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-brand-200">
         <span>✓ No payment until you approve</span>
-        <span>✓ Free revisions included</span>
+        <span>✓ Free revisions</span>
         <span>✓ Grade or full refund</span>
         <span>✓ 24/7 support</span>
       </div>

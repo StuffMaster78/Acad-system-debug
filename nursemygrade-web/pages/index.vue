@@ -101,60 +101,134 @@ const testimonials = [
     quote: "I was stuck on my PICOT question for three weeks. They turned it into a full literature review framework in 48 hours. Genuine DNP-level thinking.",
   },
 ]
+
+const nurses = [
+  {
+    initials: 'KO', name: 'Dr. K. Osei', credential: 'DNP, APRN · Family NP',
+    specialty: 'SOAP Notes · Capstone Projects · PICOT',
+    notes: 1240, rating: 4.98,
+    soapLine: 'A: Ineffective tissue perfusion r/t altered cardiac output AEB BP 158/94, bilateral ankle oedema — ADPIE documented.',
+  },
+  {
+    initials: 'AW', name: 'Amara W.', credential: 'MSN, RN · Critical Care',
+    specialty: 'Care Plans · Nursing Essays · EBP',
+    notes: 870, rating: 5.0,
+    soapLine: 'P: Lisinopril 10mg PO daily · Monitor BP q4h · Na⁺ restriction < 2g/day · Educate re: fluid retention signs.',
+  },
+  {
+    initials: 'JM', name: 'Janet M.', credential: 'BSN, RN · Pediatric Nursing',
+    specialty: 'Nursing Essays · Concept Maps · Reflections',
+    notes: 560, rating: 4.96,
+    soapLine: 'S: Patient c/o chest tightness onset yesterday evening, mild dyspnoea on exertion, denies fever or productive cough.',
+  },
+]
 </script>
 
 <template>
   <AnnouncementBar />
 
-  <!-- ─── Hero ─────────────────────────────────────────────────────────────── -->
-  <section class="relative overflow-hidden bg-brand-900 py-20 sm:py-28">
-    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
-    <div class="pointer-events-none absolute -top-32 right-0 h-[500px] w-[500px] rounded-full bg-brand-600 opacity-15 blur-[130px]" />
-    <div class="pointer-events-none absolute bottom-0 -left-20 h-64 w-64 rounded-full bg-teal-400 opacity-10 blur-3xl" />
+  <!-- ─── Hero — LIGHT, clinical, credential-led ──────────────────────────── -->
+  <section class="relative overflow-hidden bg-white">
+    <!-- Subtle clinical grid texture -->
+    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(20,184,166,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(20,184,166,0.04)_1px,transparent_1px)] bg-[size:48px_48px]" />
+    <!-- Top-right teal wash -->
+    <div class="pointer-events-none absolute -top-32 -right-20 h-[500px] w-[500px] rounded-full bg-brand-100 opacity-50 blur-[80px]" />
 
-    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="grid items-center gap-12 lg:grid-cols-2">
+    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-20 sm:pt-20 sm:pb-28">
+      <div class="grid items-start gap-14 lg:grid-cols-2">
 
-        <div class="max-w-xl">
-          <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-brand-200 backdrop-blur-sm">
+        <!-- Left: clinical positioning -->
+        <div class="pt-4">
+          <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand-700">
             <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
-            <span>38 nursing writers online now · from <strong class="text-white">$24/page</strong></span>
+            38 nursing writers online now
           </div>
 
-          <h1 class="text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-[3.25rem]">
-            Nursing papers written<br class="hidden sm:block" />
-            <span class="text-brand-300">by real nurses.</span>
+          <h1 class="text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-[3.2rem]">
+            Nursing papers<br />
+            written by nurses<br />
+            <span class="text-brand-600">who practice.</span>
           </h1>
 
-          <p class="mt-6 text-lg leading-relaxed text-brand-200">
-            Care plans, SOAP notes, PICOT papers, capstone projects, nursing essays — written by BSN, MSN, and DNP specialists who know the clinical context. Not generic writers. Real nurses.
+          <p class="mt-6 text-lg leading-relaxed text-slate-600 max-w-lg">
+            Care plans, SOAP notes, PICOT papers and capstone projects — written by BSN, MSN and DNP specialists who know the clinical context, the NANDA diagnoses, and what your faculty expects.
           </p>
 
-          <div class="mt-4 flex flex-wrap gap-3 text-sm text-brand-300">
-            <span class="flex items-center gap-1.5"><span class="text-brand-400">🩺</span> NANDA/ADPIE accurate</span>
-            <span class="text-brand-700">·</span>
-            <span>✦ From $24/page</span>
-            <span class="text-brand-700">·</span>
-            <span>✦ Grade or money back</span>
+          <!-- Credential stats row -->
+          <div class="mt-7 grid grid-cols-3 gap-4">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+              <p class="text-xl font-extrabold text-brand-700 tabular-nums">500+</p>
+              <p class="mt-0.5 text-xs text-slate-500">BSN/MSN/DNP</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+              <p class="text-xl font-extrabold text-brand-700 tabular-nums">4.98★</p>
+              <p class="mt-0.5 text-xs text-slate-500">9,800+ reviews</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+              <p class="text-xl font-extrabold text-brand-700 tabular-nums">3 hrs</p>
+              <p class="mt-0.5 text-xs text-slate-500">Fastest delivery</p>
+            </div>
           </div>
 
-          <div class="mt-7 flex flex-wrap gap-3">
-            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a :href="app.order"
+              class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-7 py-3.5 text-sm font-bold text-white shadow-md hover:bg-brand-800 transition-colors">
               Place my order
-              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </a>
-            <a href="/pricing" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10">
+            <a href="/pricing"
+              class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
               See pricing
             </a>
           </div>
 
-          <div class="mt-7 border-t border-white/10 pt-5">
-            <TrustBadges />
+          <div class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-500">
+            <span class="flex items-center gap-1.5">✓ NANDA/ADPIE accurate</span>
+            <span class="flex items-center gap-1.5">✓ Grade or money back</span>
+            <span class="flex items-center gap-1.5">✓ Free Turnitin report</span>
           </div>
         </div>
 
-        <div>
-          <MultiStepOrderForm />
+        <!-- Right: nurse credential cards with SOAP snippets -->
+        <div class="space-y-3 lg:pt-4">
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Some of our nursing writers</p>
+          <div
+            v-for="n in nurses" :key="n.name"
+            class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-brand-300 hover:shadow-md transition-all"
+          >
+            <div class="flex items-start gap-4">
+              <!-- Credential avatar -->
+              <div class="relative shrink-0">
+                <div class="flex size-12 items-center justify-center rounded-xl bg-brand-700 text-sm font-bold text-white">
+                  {{ n.initials }}
+                </div>
+                <div class="absolute -bottom-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-teal-500 px-1 text-[8px] font-extrabold leading-none text-white shadow">
+                  RN
+                </div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-sm font-bold text-slate-900">{{ n.name }}</p>
+                  <div class="flex items-center gap-1 text-xs">
+                    <span class="text-amber-400">★</span>
+                    <span class="font-semibold text-slate-700">{{ n.rating }}</span>
+                    <span class="text-slate-400">· {{ n.notes.toLocaleString() }} notes</span>
+                  </div>
+                </div>
+                <p class="text-xs text-brand-600 font-medium mt-0.5">{{ n.credential }}</p>
+                <p class="text-xs text-slate-500 mt-1">{{ n.specialty }}</p>
+                <!-- SOAP note snippet -->
+                <div class="mt-2.5 rounded-lg border border-brand-100 bg-brand-50 px-3 py-2">
+                  <p class="mb-1 text-[10px] font-bold uppercase tracking-wider text-brand-600">SOAP excerpt</p>
+                  <p class="font-mono text-xs leading-relaxed text-slate-600">{{ n.soapLine }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <a href="/writers" class="block text-center text-xs font-semibold text-brand-600 hover:text-brand-800 transition-colors pt-1">
+            View all 500+ nursing writers →
+          </a>
         </div>
 
       </div>
