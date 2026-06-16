@@ -67,20 +67,20 @@ watch(() => route.path, () => { mobileOpen.value = false })
 
       <!-- Desktop CTAs — asymmetric-radius split capsule (fly.io style) -->
       <div class="hidden lg:flex items-center">
-        <a
-          :href="app.login"
+        <NuxtLink
+          to="/auth/login"
           class="-mr-px flex h-9 items-center rounded-l-full rounded-r-[5px] border px-4 text-sm font-semibold transition-colors"
           :class="isHome && !scrolled
             ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
             : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
-        >Sign in</a>
-        <a
-          :href="app.order"
+        >Sign in</NuxtLink>
+        <NuxtLink
+          to="/order"
           class="flex h-9 items-center rounded-r-full rounded-l-[5px] px-5 text-sm font-semibold shadow-sm transition-colors"
           :class="isHome && !scrolled
             ? 'bg-white text-gc-700 hover:bg-gc-50'
             : 'bg-gc-600 text-white hover:bg-gc-700'"
-        >Get started</a>
+        >Get started</NuxtLink>
       </div>
 
       <!-- Mobile burger -->
@@ -115,8 +115,8 @@ watch(() => route.path, () => { mobileOpen.value = false })
           </NuxtLink>
         </nav>
         <div class="flex flex-col gap-2 border-t border-slate-100 px-4 py-3">
-          <a :href="app.login" class="flex h-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-ink">Sign in</a>
-          <a :href="app.order" class="flex h-11 items-center justify-center rounded-xl bg-gc-600 text-sm font-semibold text-white">Get started</a>
+          <NuxtLink to="/auth/login" class="flex h-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-ink">Sign in</NuxtLink>
+          <NuxtLink to="/order" class="flex h-11 items-center justify-center rounded-xl bg-gc-600 text-sm font-semibold text-white">Get started</NuxtLink>
         </div>
       </div>
     </Transition>

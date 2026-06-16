@@ -177,7 +177,7 @@ const methodology = [
           </div>
 
           <div class="mt-8 flex flex-wrap gap-3">
-            <a :href="app.order"
+            <a href="/order"
               class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-7 py-3.5 text-sm font-bold text-white shadow-md hover:bg-brand-800 transition-colors">
               Start my paper
               <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
@@ -264,7 +264,7 @@ const methodology = [
           <p class="mt-4 text-slate-500 leading-relaxed">
             We don't just write. We research — properly. Every paper follows an academic methodology your supervisor would recognise.
           </p>
-          <a :href="app.order" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-700 px-6 py-3 text-sm font-bold text-white hover:bg-brand-800 transition-colors">
+          <a href="/order" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-700 px-6 py-3 text-sm font-bold text-white hover:bg-brand-800 transition-colors">
             Start a research paper
           </a>
         </div>
@@ -332,7 +332,7 @@ const methodology = [
         </div>
       </div>
       <div class="mt-10 text-center">
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-7 py-3.5 text-sm font-bold text-white hover:bg-brand-800 transition-colors">
+        <a href="/order" class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-7 py-3.5 text-sm font-bold text-white hover:bg-brand-800 transition-colors">
           Place my order
         </a>
       </div>
@@ -401,7 +401,7 @@ const methodology = [
         Tell us your subject and deadline. We'll match you with a PhD-verified specialist in minutes.
       </p>
       <div class="mt-10 flex flex-wrap justify-center gap-4">
-        <a :href="app.order"
+        <a href="/order"
           class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-sm font-bold text-brand-700 shadow-lg hover:bg-brand-50 transition-colors">
           Place my order — from $15/page
           <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>

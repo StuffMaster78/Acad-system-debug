@@ -161,7 +161,7 @@ const nurses = [
           </div>
 
           <div class="mt-7 flex flex-wrap gap-3">
-            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+            <a href="/order" class="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
               Place my order
               <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
             </a>
@@ -318,7 +318,7 @@ const nurses = [
         </div>
       </div>
       <div class="mt-12 text-center">
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-8 py-3.5 text-sm font-bold text-white shadow transition-colors hover:bg-brand-800">
+        <a href="/order" class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-8 py-3.5 text-sm font-bold text-white shadow transition-colors hover:bg-brand-800">
           Start my order now
         </a>
       </div>
@@ -378,7 +378,7 @@ const nurses = [
       <h2 class="text-3xl font-bold text-white sm:text-4xl">Your next assignment deserves a nurse who's been there.</h2>
       <p class="mt-5 text-lg text-brand-200">Submit your brief. We'll match you with the right clinical specialist in minutes.</p>
       <div class="mt-10 flex flex-wrap justify-center gap-4">
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+        <a href="/order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
           Place my order — from $24/page
           <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
         </a>

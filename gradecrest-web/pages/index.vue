@@ -221,7 +221,7 @@ onMounted(() => {
             </div>
 
             <div class="flex flex-wrap gap-3">
-              <a :href="app.order"
+              <a href="/order"
                 class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-4 text-base font-bold text-white shadow-lg transition-colors hover:bg-gc-700">
                 Place your order <ArrowRight class="size-5" />
               </a>
@@ -276,7 +276,7 @@ onMounted(() => {
               </div>
             </div>
 
-            <a :href="app.order" class="block pt-1 text-center text-xs font-semibold text-gold-400 transition-colors hover:text-gold-300">
+            <a href="/order" class="block pt-1 text-center text-xs font-semibold text-gold-400 transition-colors hover:text-gold-300">
               Get matched with your writer →
             </a>
           </div>
@@ -350,7 +350,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="mt-10 text-center">
-          <a :href="app.order"
+          <a href="/order"
             class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
             Start your order <ArrowRight class="size-4" />
           </a>
@@ -652,7 +652,7 @@ onMounted(() => {
           Join 20,000+ students who trust GradeCrest. Place your order in under 2 minutes.
         </p>
         <div class="flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a :href="app.order"
+          <a href="/order"
             class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-10 py-4 text-base font-bold text-white shadow-lg transition-colors hover:bg-gc-700">
             Place your order <ArrowRight class="size-5" />
           </a>
@@ -667,7 +667,7 @@ onMounted(() => {
 
     <!-- Mobile sticky CTA -->
     <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white px-4 py-3 shadow-lift lg:hidden">
-      <a :href="app.order"
+      <a href="/order"
         class="flex h-12 w-full items-center justify-center rounded-xl bg-gc-600 text-sm font-bold text-white">
         Place your order
       </a>
