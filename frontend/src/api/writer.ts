@@ -88,6 +88,15 @@ export const writerApi = {
       apiPath("/writer-compensation/writer/compensation/cycle-change/"),
       { requested_cycle: requestedCycle, reason },
     ),
+  pendingCycleChange: () =>
+    api.get<{ id: number; requested_cycle: string; status: string; reason: string; created_at: string }>(
+      apiPath("/writer-compensation/writer/compensation/cycle-change/"),
+    ),
+  bonuses: (params?: { limit?: number }) =>
+    api.get<WriterEvent[]>(
+      apiPath("/writer-compensation/writer/compensation/bonuses/"),
+      { params },
+    ),
   advances: () =>
     api.get<AdvanceRecord[]>(apiPath("/writer-compensation/advances/")),
   requestAdvance: (amount: string, reason: string) =>

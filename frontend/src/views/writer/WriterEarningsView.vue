@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import {
   AlertTriangle,
   Banknote,
@@ -11,9 +11,12 @@ import {
   Loader2,
   RefreshCw,
   Send,
+  Star,
+  TrendingDown,
   TrendingUp,
 } from "@lucide/vue";
 import { writerApi, type AdvanceRecord } from "@/api/writer";
+import type { WriterEvent } from "@/types/writer";
 import { finesApi, type FineRecord } from "@/api/fines";
 import { tipsApi, type TipRecord } from "@/api/tips";
 import MetricTile from "@/components/ui/MetricTile.vue";
@@ -22,6 +25,65 @@ import StatusPill from "@/components/ui/StatusPill.vue";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 
 const workspace = useWriterWorkspaceStore();
+
+// — Event display helpers ————————————————————————————————
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  ORDER_COMPLETION:    "Order completion",
+  REVISION_COMPLETION: "Revision completion",
+  BONUS:               "Bonus",
+  MILESTONE_BONUS:     "Milestone bonus",
+  PERFORMANCE_BONUS:   "Performance bonus",
+  RETENTION_BONUS:     "Retention bonus",
+  TIP:                 "Client tip",
+  FINE:                "Fine",
+  REVERSAL:            "Reversal",
+  ADVANCE:             "Advance",
+  ADVANCE_RECOVERY:    "Advance recovery",
+  ADJUSTMENT:          "Manual adjustment",
+  DEDUCTION:           "Deduction",
+};
+
+function eventLabel(e: WriterEvent): string {
+  return e.source_label ?? (e.event_type ? (EVENT_TYPE_LABELS[e.event_type] ?? e.event_type.replace(/_/g, " ")) : "Compensation event");
+}
+
+type EventFilter = "all" | "earnings" | "deductions";
+const eventFilter = ref<EventFilter>("all");
+
+const filteredEvents = computed(() => {
+  if (eventFilter.value === "earnings")   return workspace.events.filter(e => e.is_positive !== false);
+  if (eventFilter.value === "deductions") return workspace.events.filter(e => e.is_positive === false);
+  return workspace.events;
+});
+
+// — Bonuses ——————————————————————————————————————————————
+const bonuses = ref<WriterEvent[]>([]);
+const bonusesLoading = ref(false);
+
+async function fetchBonuses() {
+  bonusesLoading.value = true;
+  try {
+    const { data } = await writerApi.bonuses({ limit: 10 });
+    bonuses.value = Array.isArray(data) ? data : [];
+  } catch {
+    // non-critical
+  } finally {
+    bonusesLoading.value = false;
+  }
+}
+
+// — Pending cycle change request ————————————————————————
+interface PendingCycleChange { id: number; requested_cycle: string; status: string; reason: string; created_at: string }
+const pendingCycleChange = ref<PendingCycleChange | null>(null);
+
+async function fetchPendingCycleChange() {
+  try {
+    const { data } = await writerApi.pendingCycleChange();
+    pendingCycleChange.value = data;
+  } catch {
+    pendingCycleChange.value = null; // 404 = no pending request
+  }
+}
 
 // — Payout cycle ————————————————————————————————————————
 interface PayoutHistoryRecord {
@@ -309,6 +371,8 @@ onMounted(async () => {
     fetchPayoutHistory(),
     fetchPreference(),
     fetchAdvances(),
+    fetchBonuses(),
+    fetchPendingCycleChange(),
   ]);
 });
 </script>
@@ -384,15 +448,23 @@ onMounted(async () => {
             <TrendingUp class="h-5 w-5 text-signal" />
             <h2 class="text-base font-semibold text-ink">Compensation events</h2>
           </div>
+          <!-- Filter tabs -->
+          <div class="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold">
+            <button
+              v-for="tab in ([{ id: 'all', label: 'All' }, { id: 'earnings', label: 'Earnings' }, { id: 'deductions', label: 'Deductions' }] as const)"
+              :key="tab.id"
+              type="button"
+              class="rounded-md px-2.5 py-1 transition-colors"
+              :class="eventFilter === tab.id ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+              @click="eventFilter = tab.id"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
         </div>
 
         <div v-if="workspace.isLoading" class="space-y-px">
-          <div
-            v-for="n in 5"
-            :key="n"
-            class="animate-pulse px-5 py-4"
-            aria-hidden="true"
-          >
+          <div v-for="n in 5" :key="n" class="animate-pulse px-5 py-4" aria-hidden="true">
             <div class="flex items-center justify-between gap-4">
               <div class="flex-1 space-y-2">
                 <div class="h-3.5 w-1/2 rounded bg-slate-200" />
@@ -403,27 +475,43 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div v-else-if="!workspace.events.length" class="px-5 py-12 text-center">
+        <div v-else-if="!filteredEvents.length" class="px-5 py-12 text-center">
           <Banknote class="mx-auto h-8 w-8 text-slate-300" />
-          <p class="mt-3 text-sm font-medium text-ink">No earnings events yet</p>
-          <p class="mt-1 text-sm text-graphite">Events appear here as orders are completed and compensation is recorded.</p>
+          <p class="mt-3 text-sm font-medium text-ink">No events</p>
+          <p class="mt-1 text-sm text-graphite">
+            {{ eventFilter === 'all' ? 'Events appear here as orders are completed and compensation is recorded.' : `No ${eventFilter} events in the current page.` }}
+          </p>
         </div>
 
         <div v-else class="divide-y divide-slate-100">
           <div
-            v-for="event in workspace.events"
+            v-for="event in filteredEvents"
             :key="String(event.id ?? event.created_at)"
             class="flex items-center gap-4 px-5 py-4"
           >
+            <!-- Signed indicator -->
+            <div
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              :class="event.is_positive === false ? 'bg-rose-50' : 'bg-emerald-50'"
+            >
+              <TrendingDown v-if="event.is_positive === false" class="h-4 w-4 text-rose-500" />
+              <TrendingUp v-else class="h-4 w-4 text-emerald-500" />
+            </div>
+
             <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium text-ink">
-                {{ event.description ?? event.event_type ?? "Compensation event" }}
+              <p class="truncate text-sm font-medium text-ink">{{ eventLabel(event) }}</p>
+              <p class="mt-0.5 text-xs text-graphite">
+                {{ formatDate(event.created_at) }}
+                <span v-if="event.window_label" class="ml-1.5 text-slate-300">·</span>
+                <span v-if="event.window_label" class="ml-1.5">{{ event.window_label }}</span>
               </p>
-              <p class="mt-0.5 text-xs text-graphite">{{ formatDate(event.created_at) }}</p>
             </div>
             <StatusPill :label="event.status ?? 'recorded'" tone="neutral" />
-            <p class="shrink-0 text-sm font-semibold text-ink">
-              {{ money(event.net_amount ?? event.amount) }}
+            <p
+              class="shrink-0 text-sm font-semibold tabular-nums"
+              :class="event.is_positive === false ? 'text-rose-600' : 'text-emerald-700'"
+            >
+              {{ event.is_positive === false ? '−' : '+' }}{{ money(event.amount) }}
             </p>
           </div>
         </div>
@@ -543,6 +631,14 @@ onMounted(async () => {
               </span>
               <span v-if="preference?.locked" class="text-xs text-graphite">(locked)</span>
             </div>
+            <!-- Pending cycle change request -->
+            <div v-if="pendingCycleChange" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
+              <p class="font-semibold text-amber-900">Change request pending</p>
+              <p class="mt-0.5 text-amber-800">
+                Requested: <strong>{{ cycleLabel(pendingCycleChange.requested_cycle) }}</strong>
+                · Submitted {{ formatDate(pendingCycleChange.created_at) }}
+              </p>
+            </div>
             <p v-if="cycleSuccess" class="text-xs font-semibold text-signal">{{ cycleSuccess }}</p>
 
             <!-- Cycle change form -->
@@ -612,6 +708,9 @@ onMounted(async () => {
                 <div class="min-w-0 flex-1">
                   <p class="text-xs font-semibold text-ink">{{ money(payout.total_amount) }}</p>
                   <p class="mt-0.5 truncate text-xs text-graphite">{{ payout.window_label }}</p>
+                  <p v-if="payout.paid_at" class="mt-0.5 text-xs text-graphite">
+                    Paid {{ formatDate(payout.paid_at) }}
+                  </p>
                 </div>
                 <StatusPill :label="payout.status" :tone="payoutStatusTone(payout.status)" />
               </div>
@@ -708,6 +807,36 @@ onMounted(async () => {
               </div>
               <p v-if="adv.admin_notes" class="mt-1.5 rounded-md bg-slate-50 px-3 py-2 text-xs text-graphite">
                 {{ adv.admin_notes }}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bonus history -->
+        <section class="rounded-lg border border-slate-200 bg-white">
+          <div class="flex items-center gap-2 border-b border-slate-200 px-5 py-4">
+            <Star class="h-5 w-5 text-amber-500" />
+            <h2 class="text-base font-semibold text-ink">Bonuses</h2>
+          </div>
+          <div v-if="bonusesLoading" class="px-5 py-6 text-center">
+            <Loader2 class="mx-auto h-5 w-5 animate-spin text-slate-400" />
+          </div>
+          <div v-else-if="!bonuses.length" class="px-5 py-8 text-center">
+            <Star class="mx-auto h-7 w-7 text-slate-300" />
+            <p class="mt-3 text-sm text-graphite">No bonuses recorded yet.</p>
+          </div>
+          <div v-else class="divide-y divide-slate-100">
+            <div
+              v-for="bonus in bonuses"
+              :key="String(bonus.id ?? bonus.created_at)"
+              class="flex items-center gap-3 px-5 py-3"
+            >
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-ink">{{ eventLabel(bonus) }}</p>
+                <p class="mt-0.5 text-xs text-graphite">{{ formatDate(bonus.created_at) }}</p>
+              </div>
+              <p class="shrink-0 text-sm font-semibold text-emerald-700 tabular-nums">
+                +{{ money(bonus.amount) }}
               </p>
             </div>
           </div>
