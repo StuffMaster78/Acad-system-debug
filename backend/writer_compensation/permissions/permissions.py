@@ -18,14 +18,15 @@ class IsWriter(BasePermission):
     """
     Authenticated writer — read own data only.
     Views must additionally filter by request.user.writer_profile.
+    Uses get_writer_profile() because WriterProfile links through
+    AccountProfile, not directly to User.
     """
 
     def has_permission(self, request, view) -> bool: #type: ignore
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and hasattr(request.user, "writer_profile")
-        )
+        if not (request.user and request.user.is_authenticated):
+            return False
+        from writer_management.utils import get_writer_profile
+        return get_writer_profile(request.user) is not None
 
 
 class IsSupport(BasePermission):

@@ -36,7 +36,8 @@ class IsWriterOrAdminOrSuperAdmin(BasePermission):
             if request.user.role in ['admin', 'superadmin']:
                 return True
             if request.user.role == 'writer':
-                return obj.writer == request.user.writer_profile # Ensure writer can only access their own data
+                from writer_management.utils import get_writer_profile
+                return obj.writer == get_writer_profile(request.user)
         return False
 
 

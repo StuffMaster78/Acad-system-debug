@@ -30,10 +30,8 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         """Get the writer profile for the current user."""
         if request.user.role != 'writer':
             return None
-        try:
-            return request.user.writer_profile
-        except WriterProfile.DoesNotExist:
-            return None
+        from writer_management.utils import get_writer_profile
+        return get_writer_profile(request.user)
 
     def _is_within_days(self, date_string, days):
         """Helper to check if a date string is within N days."""

@@ -25,7 +25,6 @@ class FineViewSet(viewsets.ModelViewSet):
     """
     queryset = Fine.objects.select_related(
         'order',
-        'order__assigned_writer',
         'issued_by',
         'waived_by',
         'appeal',
@@ -38,11 +37,19 @@ class FineViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if user.role in ['admin', 'superadmin', 'support']:
-            # Admins see all fines
             return self.queryset.all()
         elif user.role == 'writer':
-            # Writers see only their own fines
-            return self.queryset.filter(order__assigned_writer=user)
+            # Order.assigned_writer is a @property, not a DB field.
+            # Query through OrderAssignment (writer → WriterProfile).
+            from writer_management.utils import get_writer_profile
+            from orders.models import OrderAssignment
+            writer_profile = get_writer_profile(user)
+            if writer_profile is None:
+                return self.queryset.none()
+            order_ids = OrderAssignment.objects.filter(
+                writer=writer_profile
+            ).values_list('order_id', flat=True)
+            return self.queryset.filter(order_id__in=order_ids)
         else:
             return self.queryset.none()
 

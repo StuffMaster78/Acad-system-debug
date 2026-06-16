@@ -415,7 +415,8 @@ from writer_compensation.services.cycle_change_service import PaymentCycleChange
 
 
 def _get_writer_profile(request):
-    return request.user.writer_profile
+    from writer_management.utils import get_writer_profile
+    return get_writer_profile(request.user)
 
 
 class WriterCurrentWindowView(APIView):
