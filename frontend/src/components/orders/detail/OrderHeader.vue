@@ -183,6 +183,18 @@
       <RotateCcw class="h-4 w-4 shrink-0 text-saffron" />
       <p class="text-sm text-amber-900">Revision requested — review the Revisions tab and re-submit your work.</p>
     </div>
+
+    <!-- 10. Pending writer acceptance (writer) -->
+    <div
+      v-if="role === 'writer' && order?.status === 'pending_writer_acceptance'"
+      class="flex items-start gap-3 rounded-lg border-2 border-signal bg-signal/5 px-4 py-3"
+    >
+      <ClipboardCheck class="mt-0.5 h-5 w-5 shrink-0 text-signal" />
+      <div>
+        <p class="text-sm font-semibold text-signal">You have a new direct assignment</p>
+        <p class="mt-0.5 text-xs text-graphite">This order was assigned to you directly. Review the details below and accept or decline.</p>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -190,7 +202,7 @@
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import {
-  Archive, ArrowLeft, CheckCircle2, Clock, CreditCard,
+  Archive, ArrowLeft, CheckCircle2, ClipboardCheck, Clock, CreditCard,
   Loader2, PauseCircle, RotateCcw, ShieldAlert, ThumbsUp, XCircle, Zap,
 } from "@lucide/vue";
 import { useWebsitesStore } from "@/stores/websites";

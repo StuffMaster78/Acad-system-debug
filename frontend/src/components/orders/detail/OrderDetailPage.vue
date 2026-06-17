@@ -24,6 +24,16 @@
       <!-- Summary cards -->
       <OrderSummaryCards :order="order" :lifecycle="lifecycle" :role="role" />
 
+      <!-- Writer actions bar — acceptance gate + dispute for writers -->
+      <WriterActionsBar
+        v-if="role === 'writer'"
+        :order-id="orderId"
+        :order="order"
+        :lifecycle="lifecycle"
+        @refresh="orders.fetchOrder(orderId)"
+        @go-to-files="activeTab = 'files'"
+      />
+
       <!-- Staff actions panel — visible to all staff roles -->
       <OrderActionsPanel
         v-if="isStaff"
@@ -135,6 +145,7 @@ import OrderFilesTab from "./tabs/OrderFilesTab.vue";
 import OrderMessagesTab from "./tabs/OrderMessagesTab.vue";
 import OrderPaymentsTab from "./tabs/OrderPaymentsTab.vue";
 import OrderStaffingTab from "./tabs/OrderStaffingTab.vue";
+import WriterActionsBar from "./WriterActionsBar.vue";
 import OrderRevisionsTab from "./tabs/OrderRevisionsTab.vue";
 import OrderAdjustmentsTab from "./tabs/OrderAdjustmentsTab.vue";
 import OrderQualityTab from "./tabs/OrderQualityTab.vue";

@@ -116,4 +116,19 @@ export const writerApi = {
       ordersApiPath(`/staffing/interests/${interestId}/withdraw/`),
       {},
     ),
+  // Direct-assignment acceptance gate
+  getAssignmentGate: (orderId: number | string) =>
+    api.get<{ gate_id: number; order_id: number; status: string; assigned_at: string; assigned_by_id: number | null }>(
+      ordersApiPath(`/orders/${orderId}/assignment/`),
+    ),
+  acceptAssignment: (orderId: number | string, reason = "") =>
+    api.post<{ message: string; order_id: number }>(
+      ordersApiPath(`/orders/${orderId}/assignment/accept/`),
+      { reason },
+    ),
+  rejectAssignment: (orderId: number | string, reason: string) =>
+    api.post<{ message: string; order_id: number }>(
+      ordersApiPath(`/orders/${orderId}/assignment/reject/`),
+      { reason },
+    ),
 };
