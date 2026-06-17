@@ -268,6 +268,37 @@
           <UserRoundCog class="h-3.5 w-3.5" /> Reassign writer
         </button>
 
+        <!-- ── Admin/superadmin staffing controls ────────────────────── -->
+        <!-- route_to_staffing -->
+        <ActionButton
+          v-if="isAdminRole && has('route_to_staffing')"
+          label="Route to staffing"
+          variant="neutral"
+          :loading="busy === 'route_to_staffing'"
+          :pending="pendingConfirm === 'route_to_staffing'"
+          @click="setPending('route_to_staffing')"
+          @confirm="exec('route_to_staffing')"
+          @cancel="pendingConfirm = null"
+        />
+
+        <!-- assign_writer -->
+        <button
+          v-if="isAdminRole && has('assign_writer')"
+          class="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-violet-300 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800 hover:bg-violet-100"
+          @click="openForm('assign_writer')"
+        >
+          <UserRoundCog class="h-3.5 w-3.5" /> Assign writer
+        </button>
+
+        <!-- release_to_pool -->
+        <button
+          v-if="isAdminRole && has('release_to_pool')"
+          class="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          @click="openForm('release_to_pool')"
+        >
+          <Users class="h-3.5 w-3.5" /> Release to pool
+        </button>
+
         <!-- manual_mark_paid -->
         <button
           v-if="has('manual_mark_paid')"
@@ -330,6 +361,74 @@
               placeholder="Why is the writer being reassigned?" />
             <p class="text-xs text-slate-500">The current writer will be released and the order returned to the pool for reassignment.</p>
             <FormActions label="Request reassignment" :loading="busy === 'reassign'" :disabled="!formInput.trim()" @submit="exec('reassign')" @cancel="closeForm" />
+          </template>
+
+          <!-- assign_writer form -->
+          <template v-if="activeForm === 'assign_writer'">
+            <p class="text-xs font-semibold text-ink">Assign a writer directly</p>
+
+            <!-- Selected writer chip -->
+            <div v-if="selectedWriter" class="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2">
+              <UserRoundCog class="h-3.5 w-3.5 shrink-0 text-emerald-700" />
+              <span class="text-xs font-semibold text-emerald-900">
+                {{ selectedWriter.pen_name || selectedWriter.full_name }}
+                <span class="font-mono font-normal ml-1 text-emerald-700">#{{ selectedWriter.registration_id }}</span>
+              </span>
+              <button class="ml-auto text-emerald-600 hover:text-emerald-900" @click="selectedWriter = null">
+                <XCircle class="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <!-- Writer search input -->
+            <div v-else class="relative">
+              <input
+                v-model="writerQuery"
+                class="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                placeholder="Search by registration ID or name…"
+                @input="onWriterInput"
+              />
+              <div v-if="writerSearchLoading" class="absolute right-3 top-2.5 text-xs text-graphite">…</div>
+              <ul
+                v-if="showWriterDropdown"
+                class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
+              >
+                <li
+                  v-for="w in writerResults"
+                  :key="w.id"
+                  class="flex cursor-pointer items-center justify-between px-3 py-2 text-sm hover:bg-slate-50"
+                  @click="selectWriter(w)"
+                >
+                  <span class="font-medium text-ink">{{ w.pen_name || w.full_name }}</span>
+                  <span class="ml-2 shrink-0 font-mono text-xs text-graphite">#{{ w.registration_id }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <label class="block">
+              <span class="text-xs font-medium text-graphite">Assignment note <span class="text-graphite/60">(optional)</span></span>
+              <input
+                v-model.trim="formInput"
+                class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                placeholder="Reason for direct assignment…"
+              />
+            </label>
+            <FormActions
+              label="Assign writer"
+              :loading="busy === 'assign_writer'"
+              :disabled="!selectedWriter"
+              @submit="exec('assign_writer')"
+              @cancel="closeForm"
+            />
+          </template>
+
+          <!-- release_to_pool form -->
+          <template v-if="activeForm === 'release_to_pool'">
+            <p class="text-xs font-semibold text-ink">Release to writer pool</p>
+            <textarea v-model="formInput" rows="2"
+              class="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm resize-none"
+              placeholder="Reason for releasing to pool (optional)…" />
+            <p class="text-xs text-slate-500">The order will be visible to all eligible writers in the marketplace.</p>
+            <FormActions label="Release to pool" :loading="busy === 'release_to_pool'" :disabled="false" @submit="exec('release_to_pool')" @cancel="closeForm" />
           </template>
 
           <!-- manual payment verification form -->
@@ -459,7 +558,7 @@
 import { computed, defineComponent, h, onMounted, ref } from "vue";
 import {
   AlertCircle, AlertTriangle, Archive, BookOpen, CheckCircle2, ChevronRight, CircleDollarSign,
-  Clock, Lock, PauseCircle, PlayCircle, RotateCcw, UserRoundCog, XCircle, Zap,
+  Clock, Lock, PauseCircle, PlayCircle, RotateCcw, Send, UserRoundCog, Users, XCircle, Zap,
 } from "@lucide/vue";
 import type { OrderSummary, OrderLifecycle } from "@/types/orders";
 import type { UserRole } from "@/types/roles";
@@ -467,6 +566,7 @@ import type { CancellationRequest } from "@/types/cancellation";
 import { ordersApi } from "@/api/orders";
 import { orderOpsApi } from "@/api/orderOps";
 import { cancellationRequestsApi } from "@/api/cancellationRequests";
+import { adminWritersApi, type AdminWriterSummary } from "@/api/adminWriters";
 
 const props = defineProps<{
   orderId: string;
@@ -491,7 +591,44 @@ const feedback = ref<{ ok: boolean; msg: string } | null>(null);
 const showBlocked = ref(false);
 const showGuide = ref(false);
 
+// ── writer search (assign_writer form) ────────────────────────────────────
+const writerQuery = ref("");
+const writerResults = ref<AdminWriterSummary[]>([]);
+const writerSearchLoading = ref(false);
+const showWriterDropdown = ref(false);
+const selectedWriter = ref<AdminWriterSummary | null>(null);
+let _writerTimer: ReturnType<typeof setTimeout> | undefined;
+
+function onWriterInput() {
+  showWriterDropdown.value = false;
+  clearTimeout(_writerTimer);
+  const q = writerQuery.value.trim();
+  if (!q) { writerResults.value = []; return; }
+  _writerTimer = setTimeout(async () => {
+    writerSearchLoading.value = true;
+    try {
+      const { data } = await adminWritersApi.list({ search: q, page_size: 8 });
+      writerResults.value = Array.isArray(data)
+        ? data
+        : ((data as { results?: AdminWriterSummary[] }).results ?? []);
+      showWriterDropdown.value = writerResults.value.length > 0;
+    } catch {
+      writerResults.value = [];
+    } finally {
+      writerSearchLoading.value = false;
+    }
+  }, 300);
+}
+
+function selectWriter(w: AdminWriterSummary) {
+  selectedWriter.value = w;
+  writerQuery.value = "";
+  writerResults.value = [];
+  showWriterDropdown.value = false;
+}
+
 // ── computed ───────────────────────────────────────────────────────────────
+const isAdminRole = computed(() => props.role === "admin" || props.role === "superadmin");
 const availableActions = computed(() => props.lifecycle?.available_actions ?? []);
 const blockedEntries = computed(() => Object.entries(props.lifecycle?.blocked_actions ?? []));
 
@@ -575,6 +712,10 @@ function closeForm() {
   paymentAmount.value = "";
   paymentReference.value = "";
   paymentMethod.value = "";
+  selectedWriter.value = null;
+  writerQuery.value = "";
+  writerResults.value = [];
+  showWriterDropdown.value = false;
 }
 
 function ok(msg: string) {
@@ -585,6 +726,10 @@ function ok(msg: string) {
   paymentAmount.value = "";
   paymentReference.value = "";
   paymentMethod.value = "";
+  selectedWriter.value = null;
+  writerQuery.value = "";
+  writerResults.value = [];
+  showWriterDropdown.value = false;
   emit("refresh");
 }
 
@@ -659,6 +804,21 @@ async function exec(action: string) {
       case "reassign":
         await ordersApi.reassignmentRequest(props.orderId, formInput.value);
         ok("Reassignment request submitted. Review in Staffing tab.");
+        break;
+      case "route_to_staffing":
+        await orderOpsApi.routeToStaffing(Number(props.orderId));
+        ok("Order routed to staffing queue.");
+        break;
+      case "assign_writer": {
+        if (!selectedWriter.value) { fail("No writer selected."); break; }
+        const w = selectedWriter.value;
+        await orderOpsApi.assignDirect(Number(props.orderId), w.id, formInput.value.trim());
+        ok(`Writer #${w.registration_id} assigned successfully.`);
+        break;
+      }
+      case "release_to_pool":
+        await orderOpsApi.releaseToPool(Number(props.orderId), formInput.value.trim());
+        ok("Order released to writer pool.");
         break;
       case "manual_mark_paid":
         await orderOpsApi.manualVerifyPayment(Number(props.orderId), {

@@ -258,9 +258,13 @@ const visibleDeadline = computed(() =>
   props.role === "writer" ? props.order?.writer_deadline : props.order?.client_deadline,
 );
 
-const clientDisplay = computed(() =>
-  props.order ? maskedClient(props.order) : "—"
-);
+const isAdminRole = computed(() => props.role === "admin" || props.role === "superadmin");
+
+const clientDisplay = computed(() => {
+  if (!props.order) return "—";
+  if (isAdminRole.value && props.order.client_email) return props.order.client_email;
+  return maskedClient(props.order);
+});
 const writerDisplay = computed(() =>
   maskedWriter(props.lifecycle?.current_writer_id)
 );
