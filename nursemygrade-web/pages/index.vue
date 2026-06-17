@@ -1,5 +1,11 @@
 <script setup lang="ts">
+import { STATIC_SUBJECTS } from '~/composables/useOrderForm'
+
 const app = useAppUrl()
+
+const SCROLL_SUBJECTS = STATIC_SUBJECTS.filter(s => s.category !== 'Other')
+const row1 = SCROLL_SUBJECTS.slice(0, Math.ceil(SCROLL_SUBJECTS.length / 2))
+const row2 = SCROLL_SUBJECTS.slice(Math.ceil(SCROLL_SUBJECTS.length / 2))
 
 useSeoMeta({
   title: 'Nursing Paper Writing Service — BSN, MSN & DNP Writers | NurseMyGrade',
@@ -219,6 +225,11 @@ const nurses = [
     </div>
   </section>
 
+  <!-- ─── Quick order bar ─────────────────────────────────────────────────── -->
+  <ClientOnly>
+    <QuickOrderBar />
+  </ClientOnly>
+
   <!-- ─── Stats ─────────────────────────────────────────────────────────────── -->
   <section class="border-y border-slate-100 bg-white">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -229,6 +240,53 @@ const nurses = [
           <span class="mt-0.5 text-xs text-slate-400">{{ stat.note }}</span>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ─── Subjects scroll strip ───────────────────────────────────────────── -->
+  <section class="overflow-hidden border-t border-brand-800 bg-brand-900 py-10">
+    <div class="mb-6 flex items-center justify-center gap-4 px-4">
+      <div class="h-px max-w-[60px] flex-1 bg-brand-700" />
+      <p class="text-center text-[11px] font-bold uppercase tracking-widest text-brand-400">
+        {{ SCROLL_SUBJECTS.length }}+ nursing subjects · one expert service
+      </p>
+      <div class="h-px max-w-[60px] flex-1 bg-brand-700" />
+    </div>
+
+    <!-- Row 1 — scrolls left -->
+    <div class="relative flex overflow-hidden mb-3">
+      <div class="flex shrink-0 gap-3 whitespace-nowrap animate-scroll pr-3">
+        <a
+          v-for="(subj, i) in [...row1, ...row1]"
+          :key="`r1-${i}-${subj.id}`"
+          :href="`/order?type=writing&subject=${encodeURIComponent(subj.label)}`"
+          class="inline-flex items-center gap-1.5 rounded-full border border-brand-700 bg-brand-800/60 px-4 py-2 text-sm font-medium text-brand-200 backdrop-blur-sm transition-all hover:border-teal-400 hover:bg-teal-400/10 hover:text-teal-200"
+        >
+          <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-teal-400/70" />
+          {{ subj.label }}
+        </a>
+      </div>
+    </div>
+
+    <!-- Row 2 — scrolls right -->
+    <div class="relative flex overflow-hidden">
+      <div class="flex shrink-0 gap-3 whitespace-nowrap animate-scroll-reverse pr-3">
+        <a
+          v-for="(subj, i) in [...row2, ...row2]"
+          :key="`r2-${i}-${subj.id}`"
+          :href="`/order?type=writing&subject=${encodeURIComponent(subj.label)}`"
+          class="inline-flex items-center gap-1.5 rounded-full border border-brand-700 bg-brand-800/60 px-4 py-2 text-sm font-medium text-brand-200 backdrop-blur-sm transition-all hover:border-amber-400 hover:bg-amber-400/10 hover:text-amber-200"
+        >
+          <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400/70" />
+          {{ subj.label }}
+        </a>
+      </div>
+    </div>
+
+    <div class="mt-6 text-center">
+      <NuxtLink to="/services" class="text-sm font-semibold text-brand-300 transition-colors hover:text-teal-300">
+        Browse all nursing services →
+      </NuxtLink>
     </div>
   </section>
 
@@ -393,3 +451,18 @@ const nurses = [
     </div>
   </section>
 </template>
+
+<style scoped>
+@keyframes scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes scroll-reverse {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+.animate-scroll         { animation: scroll         35s linear infinite; }
+.animate-scroll-reverse { animation: scroll-reverse 35s linear infinite; }
+.animate-scroll:hover,
+.animate-scroll-reverse:hover { animation-play-state: paused; }
+</style>

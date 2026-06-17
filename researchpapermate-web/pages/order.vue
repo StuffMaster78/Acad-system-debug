@@ -35,13 +35,55 @@ const showDiscount  = ref(false)
 const subjectSearch = ref('')
 
 onMounted(async () => {
-  // Fetch live config from backend; composable will react when cfg updates
   cfg.value = await fetchPricingConfig()
+  const q = route.query
 
-  const qtype = route.query.type as string
+  // Service type → skip step 0, advance to details form
+  const qtype = String(q.type ?? '')
   if (qtype) {
     const found = ORDER_TYPES.find(t => t.id === qtype)
-    if (found && !found.external) { form.orderType = found; step.value = 1 }
+    if (found && !found.external) {
+      form.orderType = found
+      if (found.presetWorkType) {
+        const wt = workTypes.value.find(w => w.id === found.presetWorkType || w.label.toLowerCase().startsWith(found.presetWorkType!.toLowerCase()))
+        if (wt) { form.workType = wt; form.workTypePreset = true }
+      }
+      step.value = 1
+    }
+  }
+
+  // Academic level
+  if (q.level) {
+    const lvl = levels.value.find(l => l.id === String(q.level))
+    if (lvl) form.level = lvl
+  }
+  // Deadline (by hours)
+  if (q.deadline) {
+    const dl = deadlines.value.find(d => d.hours === Number(q.deadline))
+    if (dl) form.deadline = dl
+  }
+  // Pages
+  if (q.pages) {
+    const pg = Number(q.pages)
+    if (pg >= 1 && pg <= 100) form.pages = pg
+  }
+  // Paper type
+  if (q.paper) {
+    const pt = paperTypes.value.find(p => p.id === String(q.paper))
+    if (pt) form.paperType = pt
+  }
+  // Subject (by label — what the calculator sends)
+  if (q.subject) {
+    const subj = subjects.value.find(s => s.label === String(q.subject))
+    if (subj) form.subject = subj
+  }
+  // Spacing
+  if (q.spacing === 'single') form.spacing = 'single'
+  // Add-ons (comma-separated codes → numeric IDs)
+  if (q.addons) {
+    const codes = String(q.addons).split(',').filter(Boolean)
+    const ids = addons.value.filter(a => codes.includes(a.addon_code)).map(a => a.id)
+    if (ids.length) form.selectedAddonIds.push(...ids)
   }
 })
 

@@ -255,14 +255,11 @@ useHead({
 
         <!-- Right: sticky sidebar -->
         <div class="lg:sticky lg:top-24 lg:self-start space-y-5">
-          <!-- Quick quote calculator -->
-          <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-            <p class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Get an instant quote</p>
-            <ClientOnly>
-              <SidebarCalculator />
-              <template #fallback><div class="h-48 animate-pulse rounded-xl bg-slate-100" /></template>
-            </ClientOnly>
-          </div>
+          <!-- Compact price calculator -->
+          <ClientOnly>
+            <MultiStepOrderForm />
+            <template #fallback><div class="h-96 animate-pulse rounded-2xl bg-slate-100" /></template>
+          </ClientOnly>
           <!-- Nursing writer badge -->
           <div class="rounded-2xl bg-brand-900 p-5 text-white text-center">
             <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">

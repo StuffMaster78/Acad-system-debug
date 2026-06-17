@@ -36,10 +36,46 @@ const subjectSearch = ref('')
 
 onMounted(async () => {
   cfg.value = await fetchPricingConfig()
-  const qtype = route.query.type as string
+  const q = route.query
+
+  const qtype = String(q.type ?? '')
   if (qtype) {
     const found = ORDER_TYPES.find(t => t.id === qtype)
-    if (found && !found.external) { form.orderType = found; step.value = 1 }
+    if (found && !found.external) {
+      form.orderType = found
+      if (found.presetWorkType) {
+        const wt = workTypes.value.find(w => w.id === found.presetWorkType || w.label.toLowerCase().startsWith(found.presetWorkType!.toLowerCase()))
+        if (wt) { form.workType = wt; form.workTypePreset = true }
+      }
+      step.value = 1
+    }
+  }
+
+  if (q.level) {
+    const lvl = levels.value.find(l => l.id === String(q.level))
+    if (lvl) form.level = lvl
+  }
+  if (q.deadline) {
+    const dl = deadlines.value.find(d => d.hours === Number(q.deadline))
+    if (dl) form.deadline = dl
+  }
+  if (q.pages) {
+    const pg = Number(q.pages)
+    if (pg >= 1 && pg <= 100) form.pages = pg
+  }
+  if (q.paper) {
+    const pt = paperTypes.value.find(p => p.id === String(q.paper))
+    if (pt) form.paperType = pt
+  }
+  if (q.subject) {
+    const subj = subjects.value.find(s => s.label === String(q.subject))
+    if (subj) form.subject = subj
+  }
+  if (q.spacing === 'single') form.spacing = 'single'
+  if (q.addons) {
+    const codes = String(q.addons).split(',').filter(Boolean)
+    const ids = addons.value.filter(a => codes.includes(a.addon_code)).map(a => a.id)
+    if (ids.length) form.selectedAddonIds.push(...ids)
   }
 })
 
