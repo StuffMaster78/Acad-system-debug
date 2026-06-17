@@ -14,7 +14,13 @@
             : 'text-graphite hover:text-ink',
       ]"
     >
-      {{ TAB_LABELS[tab] }}
+      <span class="relative">
+        {{ TAB_LABELS[tab] }}
+        <span
+          v-if="hasDot(tab)"
+          class="absolute -right-2 -top-0.5 h-1.5 w-1.5 rounded-full bg-saffron"
+        />
+      </span>
     </button>
   </div>
 </template>
@@ -22,7 +28,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { UserRole } from "@/types/roles";
-import type { OrderSummary } from "@/types/orders";
+import type { OrderLifecycle, OrderSummary } from "@/types/orders";
 import { ROLE_TABS, TAB_LABELS } from "./types";
 
 /** Tabs that remain usable even on terminal-state orders. */
@@ -32,6 +38,7 @@ const props = defineProps<{
   role: UserRole;
   modelValue: string;
   order?: OrderSummary | null;
+  lifecycle?: OrderLifecycle | null;
 }>();
 
 const emit = defineEmits<{ (e: "update:modelValue", tab: string): void }>();
@@ -45,5 +52,17 @@ const isTerminal = computed(() =>
 function isTabDimmed(tab: string): boolean {
   if (!isTerminal.value) return false;
   return !TERMINAL_TABS.has(tab);
+}
+
+const ADJUSTMENT_PENDING = new Set([
+  "pending_client_response",
+  "client_countered",
+  "funding_pending",
+]);
+
+function hasDot(tab: string): boolean {
+  if (tab !== "adjustments") return false;
+  const s = props.lifecycle?.latest_adjustment_status;
+  return !!s && ADJUSTMENT_PENDING.has(s);
 }
 </script>

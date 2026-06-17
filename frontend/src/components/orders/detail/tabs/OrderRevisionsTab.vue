@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { CheckCircle, RotateCcw, ShieldAlert, XCircle } from "@lucide/vue";
+import { ArrowRight, CheckCircle, RotateCcw, ShieldAlert, XCircle } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderLifecycle, RevisionRequest, RevisionRouteResponse } from "@/types/orders";
 import { ordersApi } from "@/api/orders";
@@ -11,6 +11,8 @@ const props = defineProps<{
   lifecycle: OrderLifecycle | null;
   role: UserRole;
 }>();
+
+const emit = defineEmits<{ "go-to-adjustments": [] }>();
 
 const orders = useOrderStore();
 const revisions = ref<RevisionRequest[]>([]);
@@ -109,10 +111,16 @@ onMounted(loadRevisions);
       class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm"
     >
       <ShieldAlert class="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-      <div>
-        <p class="font-semibold text-amber-900">Revision routed to paid adjustment</p>
+      <div class="flex-1">
+        <p class="font-semibold text-amber-900">Revision routed to paid scope change</p>
         <p class="mt-0.5 text-amber-800">{{ routingResult.message }}</p>
       </div>
+      <button
+        class="focus-ring shrink-0 inline-flex items-center gap-1 rounded-md border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+        @click="emit('go-to-adjustments')"
+      >
+        View request <ArrowRight class="h-3 w-3" />
+      </button>
     </div>
 
     <!-- Revision history -->

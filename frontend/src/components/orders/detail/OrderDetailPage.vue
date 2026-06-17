@@ -35,7 +35,7 @@
       />
 
       <!-- Tab navigation -->
-      <OrderTabs :role="role" :order="order" v-model="activeTab" />
+      <OrderTabs :role="role" :order="order" :lifecycle="lifecycle" v-model="activeTab" />
 
       <!-- Tab content -->
       <div class="min-h-64">
@@ -78,6 +78,16 @@
           :order-id="orderId"
           :lifecycle="lifecycle"
           :role="role"
+          @go-to-adjustments="activeTab = 'adjustments'"
+        />
+        <OrderAdjustmentsTab
+          v-else-if="activeTab === 'adjustments'"
+          :order-id="orderId"
+          :order="order"
+          :lifecycle="lifecycle"
+          :role="role"
+          @go-to-payments="activeTab = 'payments'"
+          @go-to-timeline="activeTab = 'timeline'"
         />
         <OrderQualityTab
           v-else-if="activeTab === 'quality'"
@@ -126,6 +136,7 @@ import OrderMessagesTab from "./tabs/OrderMessagesTab.vue";
 import OrderPaymentsTab from "./tabs/OrderPaymentsTab.vue";
 import OrderStaffingTab from "./tabs/OrderStaffingTab.vue";
 import OrderRevisionsTab from "./tabs/OrderRevisionsTab.vue";
+import OrderAdjustmentsTab from "./tabs/OrderAdjustmentsTab.vue";
 import OrderQualityTab from "./tabs/OrderQualityTab.vue";
 import OrderTimelineTab from "./tabs/OrderTimelineTab.vue";
 import OrderAuditTab from "./tabs/OrderAuditTab.vue";

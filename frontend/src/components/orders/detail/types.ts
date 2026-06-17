@@ -13,12 +13,12 @@ export const ORDER_DETAIL_KEY: InjectionKey<OrderDetailContext> = Symbol("order-
 
 // Which tabs each role may access
 export const ROLE_TABS: Record<UserRole, string[]> = {
-  client: ["details", "files", "messages", "payments", "revisions", "timeline"],
-  writer: ["details", "files", "messages", "revisions", "timeline"],
-  support: ["details", "files", "messages", "payments", "revisions", "timeline"],
+  client: ["details", "files", "messages", "payments", "revisions", "adjustments", "timeline"],
+  writer: ["details", "files", "messages", "revisions", "adjustments", "timeline"],
+  support: ["details", "files", "messages", "payments", "revisions", "adjustments", "timeline"],
   editor: ["details", "files", "messages", "quality", "timeline"],
-  admin: ["details", "files", "messages", "payments", "staffing", "revisions", "quality", "timeline", "audit"],
-  superadmin: ["details", "files", "messages", "payments", "staffing", "revisions", "quality", "timeline", "audit"],
+  admin: ["details", "files", "messages", "payments", "staffing", "revisions", "adjustments", "quality", "timeline", "audit"],
+  superadmin: ["details", "files", "messages", "payments", "staffing", "revisions", "adjustments", "quality", "timeline", "audit"],
 };
 
 export const TAB_LABELS: Record<string, string> = {
@@ -28,6 +28,7 @@ export const TAB_LABELS: Record<string, string> = {
   payments: "Payments",
   staffing: "Staffing",
   revisions: "Revisions",
+  adjustments: "Scope Changes",
   quality: "Quality",
   timeline: "Timeline",
   audit: "Audit",
