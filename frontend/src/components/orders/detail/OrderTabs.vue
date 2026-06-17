@@ -31,8 +31,17 @@ import type { UserRole } from "@/types/roles";
 import type { OrderLifecycle, OrderSummary } from "@/types/orders";
 import { ROLE_TABS, TAB_LABELS } from "./types";
 
-/** Tabs that remain usable even on terminal-state orders. */
+/** Tabs that remain usable even on hard-terminal orders (cancelled/archived). */
 const TERMINAL_TABS = new Set(["details", "timeline", "audit", "payments"]);
+
+/**
+ * Action tabs that are dimmed while a cancellation is under staff review.
+ * View-only tabs (details, files, messages, payments, timeline) stay open
+ * so the client can still see what they're cancelling.
+ * pending_writer_acceptance is intentionally not restricted — the writer
+ * needs all tabs to review the order before accepting.
+ */
+const CANCELLATION_REVIEW_DIMMED = new Set(["revisions", "adjustments", "staffing", "quality"]);
 
 const props = defineProps<{
   role: UserRole;
@@ -49,9 +58,14 @@ const isTerminal = computed(() =>
   ["cancelled", "refunded", "archived"].includes(props.order?.status ?? "")
 );
 
+const isPendingCancellation = computed(() =>
+  props.order?.status === "pending_cancellation"
+);
+
 function isTabDimmed(tab: string): boolean {
-  if (!isTerminal.value) return false;
-  return !TERMINAL_TABS.has(tab);
+  if (isTerminal.value) return !TERMINAL_TABS.has(tab);
+  if (isPendingCancellation.value) return CANCELLATION_REVIEW_DIMMED.has(tab);
+  return false;
 }
 
 const ADJUSTMENT_PENDING = new Set([
