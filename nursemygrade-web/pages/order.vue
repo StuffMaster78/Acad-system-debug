@@ -63,10 +63,6 @@ const steps = computed(() => [
   { n: 3, label: 'Account' },
 ])
 
-const PAPER_ICONS: Record<string, any> = {
-  ClipboardList, Stethoscope, PenLine, Microscope, GraduationCap,
-  Search, Network, Briefcase, BookOpen, MessageSquare, FileText,
-}
 
 function selectType(ot: typeof ORDER_TYPES[0]) {
   if (ot.external) { router.push(ot.external); return }
@@ -272,16 +268,13 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             <template v-if="form.orderType.baseType === 'paper'">
               <div>
                 <label class="form-label">Nursing paper type</label>
-                <div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  <button v-for="pt in paperTypes" :key="pt.id" type="button"
-                    class="flex flex-col items-center gap-2 rounded-xl border p-3 text-center text-xs font-medium transition-all hover:-translate-y-0.5"
-                    :class="form.paperType.id === pt.id ? 'border-brand-600 bg-brand-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50'"
-                    @click="form.paperType = pt"
-                  >
-                    <component :is="PAPER_ICONS[pt.icon]" class="h-5 w-5" />
-                    {{ pt.label }}
-                  </button>
-                </div>
+                <select
+                  class="form-input mt-2"
+                  :value="form.paperType.id"
+                  @change="form.paperType = paperTypes.find(p => p.id === ($event.target as HTMLSelectElement).value) ?? paperTypes[0]"
+                >
+                  <option v-for="pt in paperTypes" :key="pt.id" :value="pt.id">{{ pt.label }}</option>
+                </select>
               </div>
 
               <div>
@@ -322,7 +315,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
               <div>
                 <label class="form-label">Nursing subject / speciality</label>
                 <div class="relative mt-2">
-                  <input v-model="subjectSearch" type="text" class="form-input pl-9" placeholder="Search a nursing subject…" />
+                  <input v-model="subjectSearch" type="text" class="form-input" style="padding-left:2.25rem" placeholder="Search a nursing subject…" />
                   <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
                 <div class="mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white">

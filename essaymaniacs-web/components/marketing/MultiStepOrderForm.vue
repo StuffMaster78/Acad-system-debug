@@ -295,6 +295,32 @@ const orderUrl = computed(() => {
         </div>
       </div>
 
+      <!-- Free inclusions — writing only -->
+      <Transition name="slide">
+        <div v-if="serviceType === 'writing'" class="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3">
+          <div class="mb-2.5 flex items-center gap-2">
+            <svg class="h-5 w-5 shrink-0 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <line x1="10" y1="9" x2="8" y2="9"/>
+            </svg>
+            <p class="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Free with every writing order</p>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
+            <p
+              v-for="item in ['Cover page', 'Title page', 'Reference list', 'Appendix', 'Citation formatting', 'Plagiarism-free report']"
+              :key="item"
+              class="flex items-center gap-1.5 text-[11px] font-medium text-emerald-800"
+            >
+              <svg class="h-3 w-3 shrink-0 text-emerald-500" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2 6 5 9 10 3"/></svg>
+              {{ item }}
+            </p>
+          </div>
+        </div>
+      </Transition>
+
       <!-- Price + CTA -->
       <div class="rounded-xl bg-brand-50 px-4 py-3.5">
         <div class="mb-3 flex items-end justify-between">
@@ -340,4 +366,6 @@ const orderUrl = computed(() => {
 .sel {
   @apply h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100;
 }
+.slide-enter-active, .slide-leave-active { transition: all 0.2s ease; }
+.slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>
