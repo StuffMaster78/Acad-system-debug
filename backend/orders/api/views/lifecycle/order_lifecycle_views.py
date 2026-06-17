@@ -54,7 +54,7 @@ class OrderLifecycleView(GenericAPIView):
             order=order,
             for_writer=for_writer,
         )
-        payload = asdict(snapshot) if is_dataclass(snapshot) else snapshot
+        payload = asdict(snapshot) if is_dataclass(snapshot) else vars(snapshot).copy()
         payload["available_actions"] = OrderAvailableActionsService.build_actions(
             order=order,
             user=request.user,

@@ -13,6 +13,10 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from orders.api.views.lifecycle.order_lifecycle_views import (
     OrderLifecycleView,
 )
+from orders.services.order_available_actions_service import (
+    OrderAvailableActionsService,
+)
+from orders.services.order_lifecycle_read_service import OrderLifecycleSnapshot
 
 
 @dataclass
@@ -24,6 +28,7 @@ class FakeUser:
     pk: int
     website: Any
     is_staff: bool = False
+    role: str = "client"
 
     @property
     def id(self) -> int:
@@ -56,6 +61,7 @@ class LifecycleAPITests(SimpleTestCase):
             pk=20,
             website=self.website,
             is_staff=False,
+            role="writer",
         )
         self.staff_user = FakeUser(
             pk=30,
@@ -73,31 +79,29 @@ class LifecycleAPITests(SimpleTestCase):
             },
         )()
 
-        self.snapshot = type(
-            "SnapshotStub",
-            (),
-            {
-                "order_id": 100,
-                "order_status": "in_progress",
-                "website_id": 1,
-                "client_id": 10,
-                "current_assignment_id": 200,
-                "current_writer_id": 20,
-                "has_current_assignment": True,
-                "active_hold_id": None,
-                "has_active_hold": False,
-                "pending_reassignment_request_id": None,
-                "has_pending_reassignment_request": False,
-                "active_dispute_id": None,
-                "has_active_dispute": False,
-                "latest_adjustment_request_id": 300,
-                "latest_adjustment_status": "funding_pending",
-                "latest_revision_request_id": None,
-                "latest_revision_status": None,
-                "is_revision_window_open": False,
-                "revision_window_days": 14,
-            },
-        )()
+        self.snapshot = OrderLifecycleSnapshot(
+            order_id=100,
+            order_status="in_progress",
+            website_id=1,
+            client_id=10,
+            current_assignment_id=200,
+            current_writer_id=20,
+            current_writer_registration_id="WR-0020",
+            has_current_assignment=True,
+            active_hold_id=None,
+            has_active_hold=False,
+            pending_reassignment_request_id=None,
+            has_pending_reassignment_request=False,
+            active_dispute_id=None,
+            has_active_dispute=False,
+            latest_adjustment_request_id=300,
+            latest_adjustment_status="funding_pending",
+            latest_revision_request_id=None,
+            latest_revision_status=None,
+            is_revision_window_open=False,
+            revision_window_days=14,
+            pending_preferred_invitation_interest_id=None,
+        )
 
     def _authenticated_get(
         self,
@@ -114,6 +118,8 @@ class LifecycleAPITests(SimpleTestCase):
         assert response.data is not None
         return cast(dict[str, Any], response.data)
 
+    @patch.object(OrderAvailableActionsService, "build_blocked_reasons", return_value={})
+    @patch.object(OrderAvailableActionsService, "build_actions", return_value=["submit_for_qa"])
     @patch(
         "orders.api.views.lifecycle.order_lifecycle_views."
         "OrderLifecycleReadService.build_snapshot"
@@ -123,6 +129,8 @@ class LifecycleAPITests(SimpleTestCase):
         self,
         mock_get_order: Any,
         mock_build_snapshot: Any,
+        _mock_actions: Any,
+        _mock_blocked: Any,
     ) -> None:
         mock_get_order.return_value = self.order
         mock_build_snapshot.return_value = self.snapshot
@@ -150,8 +158,10 @@ class LifecycleAPITests(SimpleTestCase):
         self.assertEqual(data["latest_adjustment_status"], "funding_pending")
         self.assertFalse(data["is_revision_window_open"])
 
-        mock_build_snapshot.assert_called_once_with(order=self.order)
+        mock_build_snapshot.assert_called_once_with(order=self.order, for_writer=None)
 
+    @patch.object(OrderAvailableActionsService, "build_blocked_reasons", return_value={})
+    @patch.object(OrderAvailableActionsService, "build_actions", return_value=[])
     @patch(
         "orders.api.views.lifecycle.order_lifecycle_views."
         "OrderLifecycleReadService.build_snapshot"
@@ -161,6 +171,8 @@ class LifecycleAPITests(SimpleTestCase):
         self,
         mock_get_order: Any,
         mock_build_snapshot: Any,
+        _mock_actions: Any,
+        _mock_blocked: Any,
     ) -> None:
         mock_get_order.return_value = self.order
         mock_build_snapshot.return_value = self.snapshot
@@ -184,6 +196,8 @@ class LifecycleAPITests(SimpleTestCase):
         self.assertEqual(data["client_id"], 10)
         self.assertTrue(data["has_current_assignment"])
 
+    @patch.object(OrderAvailableActionsService, "build_blocked_reasons", return_value={})
+    @patch.object(OrderAvailableActionsService, "build_actions", return_value=["submit_for_qa"])
     @patch(
         "orders.api.views.lifecycle.order_lifecycle_views."
         "OrderLifecycleReadService.build_snapshot"
@@ -193,6 +207,8 @@ class LifecycleAPITests(SimpleTestCase):
         self,
         mock_get_order: Any,
         mock_build_snapshot: Any,
+        _mock_actions: Any,
+        _mock_blocked: Any,
     ) -> None:
         mock_get_order.return_value = self.order
         mock_build_snapshot.return_value = self.snapshot
@@ -214,6 +230,9 @@ class LifecycleAPITests(SimpleTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(data["current_writer_id"], 20)
+        mock_build_snapshot.assert_called_once_with(
+            order=self.order, for_writer=self.writer_user
+        )
 
     @patch.object(OrderLifecycleView, "_get_order_for_tenant")
     def test_lifecycle_view_denies_when_permissions_fail(
@@ -236,6 +255,8 @@ class LifecycleAPITests(SimpleTestCase):
             with self.assertRaises(PermissionError):
                 view(request, order_id=100)
 
+    @patch.object(OrderAvailableActionsService, "build_blocked_reasons", return_value={})
+    @patch.object(OrderAvailableActionsService, "build_actions", return_value=[])
     @patch(
         "orders.api.views.lifecycle.order_lifecycle_views."
         "OrderLifecycleReadService.build_snapshot"
@@ -245,32 +266,32 @@ class LifecycleAPITests(SimpleTestCase):
         self,
         mock_get_order: Any,
         mock_build_snapshot: Any,
+        _mock_actions: Any,
+        _mock_blocked: Any,
     ) -> None:
-        empty_snapshot = type(
-            "EmptySnapshotStub",
-            (),
-            {
-                "order_id": 100,
-                "order_status": "completed",
-                "website_id": 1,
-                "client_id": 10,
-                "current_assignment_id": None,
-                "current_writer_id": None,
-                "has_current_assignment": False,
-                "active_hold_id": None,
-                "has_active_hold": False,
-                "pending_reassignment_request_id": None,
-                "has_pending_reassignment_request": False,
-                "active_dispute_id": None,
-                "has_active_dispute": False,
-                "latest_adjustment_request_id": None,
-                "latest_adjustment_status": None,
-                "latest_revision_request_id": None,
-                "latest_revision_status": None,
-                "is_revision_window_open": True,
-                "revision_window_days": 14,
-            },
-        )()
+        empty_snapshot = OrderLifecycleSnapshot(
+            order_id=100,
+            order_status="completed",
+            website_id=1,
+            client_id=10,
+            current_assignment_id=None,
+            current_writer_id=None,
+            current_writer_registration_id=None,
+            has_current_assignment=False,
+            active_hold_id=None,
+            has_active_hold=False,
+            pending_reassignment_request_id=None,
+            has_pending_reassignment_request=False,
+            active_dispute_id=None,
+            has_active_dispute=False,
+            latest_adjustment_request_id=None,
+            latest_adjustment_status=None,
+            latest_revision_request_id=None,
+            latest_revision_status=None,
+            is_revision_window_open=True,
+            revision_window_days=14,
+            pending_preferred_invitation_interest_id=None,
+        )
 
         mock_get_order.return_value = self.order
         mock_build_snapshot.return_value = empty_snapshot
