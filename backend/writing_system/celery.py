@@ -147,13 +147,21 @@ app.conf.beat_schedule = { # type: ignore[attr-defined]
         "task": "writer_management.tasks.performance.generate_weekly_performance_snapshots",
         "schedule": crontab(hour=3, minute=0, day_of_week="sunday"),
     },
+    # Aggregate writer performance snapshots before level evaluation.
+    # Runs Sunday 23:00 so snapshots are ready for Monday level checks.
+    "run_weekly_aggregation": {
+        "task": "writer_management.tasks.performance_tasks.run_weekly_aggregation",
+        "schedule": crontab(hour=23, minute=0, day_of_week="sunday"),
+    },
     "run_auto_badge_awards": {
         "task": "writer_management.tasks.badges.run_auto_badge_awards",
         "schedule": crontab(0, 7, day_of_week="monday"),
     },
-    "update_writer_levels": {
-        "task": "writer_management.tasks.leveling.update_writer_levels",
-        "schedule": crontab(hour=0, minute=0, day_of_week="monday"),
+    # Evaluate all writers for promotion/demotion after Sunday aggregation.
+    # Was pointing to the non-existent leveling.update_writer_levels module.
+    "run_level_progression": {
+        "task": "writer_management.tasks.performance_tasks.run_level_progression",
+        "schedule": crontab(hour=4, minute=0, day_of_week="monday"),
     },
     "update_composite_scores": {
         "task": "writer_management.tasks.scoring.update_composite_scores",
