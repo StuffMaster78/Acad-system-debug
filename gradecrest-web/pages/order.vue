@@ -26,15 +26,83 @@ const route  = useRoute()
 const levels      = ref<PricingLevel[]>(FALLBACK_LEVELS)
 const deadlines   = ref<PricingDeadline[]>(FALLBACK_DEADLINES)
 const paperTypes  = ref<PricingPaperType[]>(FALLBACK_PAPER_TYPES)
+const spacingMultipliers = ref({ double: 1, single: 2 })
+const cfgSubjects        = ref<{ name: string; category: string }[]>([])
+const cfgWorkTypes       = ref<{ name: string; description?: string }[]>([])
+const cfgFormattingStyles = ref<{ name: string }[]>([])
+const cfgEnglishTypes    = ref<{ name: string; code: string }[]>([])
+const gcAddons           = ref<{ id: number; addon_code: string; name: string; description: string; flat_amount: string }[]>([])
+const selectedAddonIds   = ref<number[]>((savedDraft?.selectedAddonIds as number[]) ?? [])
+const gcAddonTotal       = computed(() =>
+  gcAddons.value
+    .filter(a => selectedAddonIds.value.includes(a.id))
+    .reduce((sum, a) => sum + Number(a.flat_amount), 0)
+)
+
+const STATIC_SUBJECTS = [
+  { id: 'business',    label: 'Business',         category: 'Business & Economics' },
+  { id: 'psychology',  label: 'Psychology',        category: 'Health Sciences' },
+  { id: 'nursing',     label: 'Nursing',           category: 'Nursing & Healthcare' },
+  { id: 'history',     label: 'History',           category: 'Humanities & Arts' },
+  { id: 'law',         label: 'Law',               category: 'Law & Legal Studies' },
+  { id: 'engineering', label: 'Engineering',       category: 'Engineering' },
+  { id: 'cs',          label: 'Computer Science',  category: 'Computing & Technology' },
+  { id: 'mathematics', label: 'Mathematics',       category: 'Mathematics & Statistics' },
+  { id: 'other',       label: 'Other',             category: 'General' },
+]
+const STATIC_FORMATTING = [
+  { id: 'apa7',      label: 'APA 7th Edition' },
+  { id: 'mla9',      label: 'MLA 9th Edition' },
+  { id: 'chicago17', label: 'Chicago 17th Edition' },
+  { id: 'harvard',   label: 'Harvard' },
+  { id: 'none',      label: 'Not required' },
+]
+const STATIC_WORK_TYPES = [
+  { id: 'writing',      label: 'Writing' },
+  { id: 'editing',      label: 'Editing' },
+  { id: 'rewriting',    label: 'Rewriting' },
+  { id: 'proofreading', label: 'Proofreading' },
+]
+
+const subjects = computed(() =>
+  cfgSubjects.value.length
+    ? cfgSubjects.value.map(s => ({ id: s.name, label: s.name, category: s.category }))
+    : STATIC_SUBJECTS
+)
+const formattingStyles = computed(() =>
+  cfgFormattingStyles.value.length
+    ? cfgFormattingStyles.value.map(f => ({ id: f.name, label: f.name }))
+    : STATIC_FORMATTING
+)
+const workTypes = computed(() =>
+  cfgWorkTypes.value.length
+    ? cfgWorkTypes.value.map(w => ({ id: w.name, label: w.name }))
+    : STATIC_WORK_TYPES
+)
+
+const GC_DRAFT_KEY = 'gc_order_draft'
+const savedDraft = import.meta.client
+  ? (() => { try { return JSON.parse(localStorage.getItem(GC_DRAFT_KEY) ?? 'null') } catch { return null } })()
+  : null
 
 onMounted(async () => {
-  const cfg      = await fetchPricingConfig()
-  levels.value   = cfg.academic_levels
-  deadlines.value = cfg.deadlines
+  const cfg        = await fetchPricingConfig()
+  levels.value     = cfg.academic_levels
+  deadlines.value  = cfg.deadlines
   paperTypes.value = cfg.paper_types
-  levelCode.value    = cfg.academic_levels[1]?.code ?? cfg.academic_levels[0]?.code ?? 'undergrad'
-  deadlineHrs.value  = cfg.deadlines[0]?.max_hours ?? 336
-  paperCode.value    = cfg.paper_types[0]?.code ?? 'essay'
+  spacingMultipliers.value   = cfg.spacing_multipliers
+  cfgSubjects.value          = cfg.subjects
+  cfgWorkTypes.value         = cfg.work_types
+  cfgFormattingStyles.value  = cfg.formatting_styles
+  cfgEnglishTypes.value      = cfg.english_types
+  gcAddons.value             = cfg.addons as typeof gcAddons.value
+
+  // Restore from draft first, then apply config defaults for IDs not in draft
+  if (!savedDraft) {
+    levelCode.value   = cfg.academic_levels[1]?.code ?? cfg.academic_levels[0]?.code ?? 'undergrad'
+    deadlineHrs.value = cfg.deadlines[0]?.max_hours ?? 336
+    paperCode.value   = cfg.paper_types[0]?.code ?? 'essay'
+  }
 })
 
 // ── Order types ────────────────────────────────────────────────────────────
@@ -64,16 +132,29 @@ const DIAGRAM_TYPES = [
 ]
 
 // ── Form state ─────────────────────────────────────────────────────────────
-const step         = ref(0)
-const orderTypeId  = ref('paper')
-const paperCode    = ref(FALLBACK_PAPER_TYPES[0]?.code ?? 'essay')
-const levelCode    = ref(FALLBACK_LEVELS[1]?.code ?? 'undergrad')
-const deadlineHrs  = ref(FALLBACK_DEADLINES[0]?.max_hours ?? 336)
-const units        = ref(1)          // pages or slides or designs
-const designTypeId = ref(DESIGN_TYPES[0].id)
-const diagramTypeId = ref(DIAGRAM_TYPES[0].id)
-const topic        = ref('')
-const instructions = ref('')
+const step          = ref(0)
+const orderTypeId   = ref(savedDraft?.orderTypeId  ?? 'paper')
+const paperCode     = ref(savedDraft?.paperCode    ?? FALLBACK_PAPER_TYPES[0]?.code ?? 'essay')
+const levelCode     = ref(savedDraft?.levelCode    ?? FALLBACK_LEVELS[1]?.code ?? 'undergrad')
+const deadlineHrs   = ref(savedDraft?.deadlineHrs  ?? FALLBACK_DEADLINES[0]?.max_hours ?? 336)
+const units         = ref(savedDraft?.units        ?? 1)
+const spacing       = ref<'double' | 'single'>(savedDraft?.spacing ?? 'double')
+const designTypeId  = ref(savedDraft?.designTypeId ?? DESIGN_TYPES[0].id)
+const diagramTypeId = ref(savedDraft?.diagramTypeId ?? DIAGRAM_TYPES[0].id)
+const subjectId     = ref(savedDraft?.subjectId    ?? '')
+const formatStyleId = ref(savedDraft?.formatStyleId ?? 'apa7')
+const workTypeId    = ref(savedDraft?.workTypeId   ?? 'writing')
+const topic         = ref(savedDraft?.topic        ?? '')
+const instructions  = ref(savedDraft?.instructions ?? '')
+
+// Draft persistence
+if (import.meta.client) {
+  watch(
+    () => ({ orderTypeId: orderTypeId.value, paperCode: paperCode.value, levelCode: levelCode.value, deadlineHrs: deadlineHrs.value, units: units.value, spacing: spacing.value, designTypeId: designTypeId.value, diagramTypeId: diagramTypeId.value, subjectId: subjectId.value, formatStyleId: formatStyleId.value, workTypeId: workTypeId.value, topic: topic.value, instructions: instructions.value, selectedAddonIds: selectedAddonIds.value }),
+    (draft) => { try { localStorage.setItem(GC_DRAFT_KEY, JSON.stringify(draft)) } catch {} },
+    { deep: true }
+  )
+}
 
 const orderType    = computed(() => ORDER_TYPES.find(t => t.id === orderTypeId.value) ?? ORDER_TYPES[0])
 const selectedLevel    = computed(() => levels.value.find(l => l.code === levelCode.value) ?? levels.value[0])
@@ -83,7 +164,8 @@ const unitLabel    = computed(() => {
   if (orderTypeId.value === 'diagram') return 'diagrams'
   return 'pages'
 })
-const wordCount = computed(() => unitLabel.value === 'pages' ? units.value * 275 : null)
+const spacingMult = computed(() => spacing.value === 'single' ? spacingMultipliers.value.single : spacingMultipliers.value.double)
+const wordCount = computed(() => unitLabel.value === 'pages' ? units.value * (spacing.value === 'double' ? 275 : 550) : null)
 
 // ── Live price ─────────────────────────────────────────────────────────────
 type EstimateResp = { total?: string | number | null; estimated_min_price?: string | number | null }
@@ -99,7 +181,7 @@ const localPrice = computed(() => {
   }
   const base = selectedLevel.value?.price_per_page ?? 15
   const mult = selectedDeadline.value?.multiplier ?? 1
-  return Math.ceil(base * mult * units.value * 100) / 100
+  return Math.ceil(base * mult * spacingMult.value * units.value * 100) / 100
 })
 
 const livePrice = computed(() => {
@@ -107,7 +189,7 @@ const livePrice = computed(() => {
   return Number.isFinite(n) && n > 0 ? n : null
 })
 
-const displayPrice = computed(() => livePrice.value ?? localPrice.value)
+const displayPrice = computed(() => (livePrice.value ?? localPrice.value) + gcAddonTotal.value)
 const perUnit      = computed(() => units.value > 0 ? displayPrice.value / units.value : 0)
 
 async function refreshEstimate() {
@@ -123,7 +205,7 @@ async function refreshEstimate() {
         academic_level_code: levelCode.value,
         pages:               units.value,
         deadline_hours:      deadlineHrs.value,
-        spacing:             'double',
+        spacing:             spacing.value,
       },
       credentials: 'include',
     })
@@ -158,7 +240,7 @@ const SERVICE_TO_PAPER: Record<string, string> = {
   'editing-proofreading': 'essay',
 }
 
-watch([orderTypeId, paperCode, levelCode, deadlineHrs, units], scheduleEstimate)
+watch([orderTypeId, paperCode, levelCode, deadlineHrs, units, spacing], scheduleEstimate)
 onMounted(() => {
   // Pre-fill from service page CTA (?service=essay-writing)
   const serviceSlug = route.query.service as string | undefined
@@ -382,6 +464,24 @@ const colors = computed(() => colorMap[orderType.value.color] ?? colorMap.brand)
                 <button class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-30" :disabled="units >= 200" @click="units++">+</button>
               </div>
             </div>
+
+            <!-- Spacing (paper only) -->
+            <div v-if="orderTypeId === 'paper'">
+              <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Spacing</p>
+              <div class="flex gap-2">
+                <button
+                  v-for="sp in [{ id: 'double', label: 'Double spaced', sub: '275 words/page' }, { id: 'single', label: 'Single spaced', sub: '550 words/page' }]"
+                  :key="sp.id"
+                  type="button"
+                  class="flex-1 rounded-xl border px-3 py-2.5 text-left text-xs transition-all"
+                  :class="spacing === sp.id ? 'border-brand-500 bg-brand-50 text-brand-800 font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'"
+                  @click="spacing = sp.id as any"
+                >
+                  <span class="block font-medium">{{ sp.label }}</span>
+                  <span class="block text-[11px] opacity-70">{{ sp.sub }}</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Sticky price card -->
@@ -461,6 +561,34 @@ const colors = computed(() => colorMap[orderType.value.color] ?? colorMap.brand)
 
           <div class="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-xs text-brand-700">
             <strong>Tip:</strong> The more detail you add here, the better your writer match. You can still add files, rubrics, and feedback after placing the order.
+          </div>
+
+          <!-- Additional services (upsells) -->
+        </div>
+        <div v-if="gcAddons.length" class="mt-5 rounded-2xl border border-gc-200/60 bg-gc-50 p-5">
+          <h3 class="mb-1 text-sm font-bold text-slate-900">Additional services</h3>
+          <p class="mb-4 text-xs text-slate-500">Optional add-ons — select any that apply.</p>
+          <div class="space-y-3">
+            <label
+              v-for="addon in gcAddons"
+              :key="addon.id"
+              class="flex cursor-pointer items-start gap-3 rounded-xl border bg-white p-3 transition-colors"
+              :class="selectedAddonIds.includes(addon.id) ? 'border-gc-500 bg-gc-50' : 'border-slate-200 hover:border-slate-300'"
+            >
+              <input
+                type="checkbox"
+                class="mt-0.5 h-4 w-4 rounded border-slate-300 text-gc-600"
+                :checked="selectedAddonIds.includes(addon.id)"
+                @change="selectedAddonIds.includes(addon.id)
+                  ? selectedAddonIds.splice(selectedAddonIds.indexOf(addon.id), 1)
+                  : selectedAddonIds.push(addon.id)"
+              />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-slate-900">{{ addon.name }}</p>
+                <p v-if="addon.description" class="mt-0.5 text-xs text-slate-500">{{ addon.description }}</p>
+              </div>
+              <span class="shrink-0 text-sm font-semibold text-gc-700">+${{ addon.flat_amount }}</span>
+            </label>
           </div>
         </div>
 

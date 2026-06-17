@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { fetchPricingConfig, FALLBACK_LEVELS, FALLBACK_DEADLINES } from '~/composables/usePricingConfig'
+
 const app = useAppUrl()
 
 useSeoMeta({
@@ -7,24 +9,53 @@ useSeoMeta({
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/pricing' }] })
 
-const levels = [
-  { label: 'High School',         from: 15, note: 'Grades 9–12',          color: 'bg-parchment-100 border-parchment-300' },
-  { label: 'Undergraduate 1–2',   from: 18, note: 'Freshman & Sophomore', color: 'bg-parchment-200 border-parchment-400' },
-  { label: 'Undergraduate 3–4',   from: 22, note: 'Junior & Senior',      color: 'bg-amber-50 border-amber-200' },
-  { label: "Master's",            from: 28, note: 'Graduate level',       color: 'bg-amber-100 border-amber-300' },
-  { label: 'PhD / Doctoral',      from: 36, note: 'Dissertation-level',   color: 'bg-claret-100 border-claret-300' },
+// Load levels + deadlines from backend — lazy (client-side) to avoid SSR payload issues
+const { data: pricingCfg } = useLazyAsyncData('pricing-page-config', fetchPricingConfig)
+
+const LEVEL_COLORS = [
+  'bg-parchment-100 border-parchment-300',
+  'bg-parchment-200 border-parchment-400',
+  'bg-amber-50 border-amber-200',
+  'bg-amber-100 border-amber-300',
+  'bg-claret-100 border-claret-300',
 ]
 
-const deadlines = [
-  { label: '14 days',   hours: 336, surcharge: 0,    badge: 'Best price', badgeColor: 'bg-green-100 text-green-700' },
-  { label: '10 days',   hours: 240, surcharge: 5,    badge: null, badgeColor: '' },
-  { label: '7 days',    hours: 168, surcharge: 10,   badge: null, badgeColor: '' },
-  { label: '5 days',    hours: 120, surcharge: 15,   badge: null, badgeColor: '' },
-  { label: '3 days',    hours: 72,  surcharge: 20,   badge: null, badgeColor: '' },
-  { label: '24 hours',  hours: 24,  surcharge: 35,   badge: 'Rush', badgeColor: 'bg-amber-100 text-amber-700' },
-  { label: '12 hours',  hours: 12,  surcharge: 50,   badge: 'Urgent', badgeColor: 'bg-orange-100 text-orange-700' },
-  { label: '6 hours',   hours: 6,   surcharge: 65,   badge: 'Emergency', badgeColor: 'bg-red-100 text-red-700' },
-]
+const levels = computed(() => {
+  const src = pricingCfg.value?.academic_levels?.length
+    ? pricingCfg.value.academic_levels
+    : FALLBACK_LEVELS
+  return src.map((l, i) => ({
+    label: l.label,
+    from:  l.price_per_page ?? 0,
+    note:  '',
+    color: LEVEL_COLORS[i] ?? LEVEL_COLORS[LEVEL_COLORS.length - 1],
+  }))
+})
+
+const BADGE_MAP: Record<number, { badge: string; color: string }> = {
+  0:   { badge: 'Best price', color: 'bg-green-100 text-green-700' },
+  35:  { badge: 'Rush',       color: 'bg-amber-100 text-amber-700' },
+  50:  { badge: 'Urgent',     color: 'bg-orange-100 text-orange-700' },
+  65:  { badge: 'Emergency',  color: 'bg-red-100 text-red-700' },
+  80:  { badge: 'Emergency',  color: 'bg-red-100 text-red-700' },
+}
+
+const deadlines = computed(() => {
+  const src = pricingCfg.value?.deadlines?.length
+    ? pricingCfg.value.deadlines
+    : FALLBACK_DEADLINES
+  return src.map(d => {
+    const pct = Math.round((d.multiplier - 1) * 100)
+    const meta = BADGE_MAP[pct] ?? { badge: null, color: '' }
+    return {
+      label: d.label,
+      hours: d.max_hours,
+      surcharge: pct,
+      badge: meta.badge,
+      badgeColor: meta.color,
+    }
+  })
+})
 
 const writerTiers = [
   {

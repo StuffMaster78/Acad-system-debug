@@ -27,7 +27,7 @@ importers:
         specifier: 3.16.2
         version: 3.16.2(@parcel/watcher@2.5.6)(cac@6.7.14)(db0@0.3.4)(ioredis@5.11.1)(magicast@0.5.3)(rollup@4.61.1)(terser@5.48.0)(typescript@5.9.3)(vite@6.4.3(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))(yaml@2.9.0)
       pinia:
-        specifier: ^2.3.0
+        specifier: ^2.3.1
         version: 2.3.1(typescript@5.9.3)(vue@3.5.35(typescript@5.9.3))
     devDependencies:
       typescript:

@@ -10,29 +10,35 @@ import {
 } from '@lucide/vue'
 
 import {
-  ORDER_TYPES, PAPER_TYPES, ACADEMIC_LEVELS, DEADLINES, SUBJECTS,
-  FORMATTING_STYLES, WORK_TYPES, ENGLISH_TYPES, WRITER_TIERS,
-  DESIGN_TYPES, DIAGRAM_TYPES, DIAGRAM_SOFTWARE,
+  ORDER_TYPES, WRITER_TIERS, DESIGN_TYPES, DIAGRAM_TYPES, DIAGRAM_SOFTWARE,
 } from '~/composables/useOrderForm'
+import type { PublicPricingConfig } from '~/composables/usePricingConfig'
+import { fetchPricingConfig } from '~/composables/usePricingConfig'
+
+const cfg = ref<PublicPricingConfig | null>(null)
 
 const {
   form, totalPrice, pricePerUnit, unitLabel, unitCount,
   wordCount, deadlineDate, step1Valid, step2Valid, step3Valid, savePendingOrder,
-} = useOrderForm()
+  levels, paperTypes, deadlines, subjects, workTypes, formattingStyles, englishTypes, addons,
+  isPricing, addonTotal,
+} = useOrderForm(cfg)
 
 const auth        = useRpmAuthStore()
 const router      = useRouter()
 const route       = useRoute()
 
-const step          = ref(0)   // 0 = type selection, 1-3 = form steps
+const step          = ref(0)
 const submitting    = ref(false)
 const submitted     = ref(false)
 const serverError   = ref<string | null>(null)
 const showDiscount  = ref(false)
 const subjectSearch = ref('')
 
-// Pre-select type from query param
-onMounted(() => {
+onMounted(async () => {
+  // Fetch live config from backend; composable will react when cfg updates
+  cfg.value = await fetchPricingConfig()
+
   const qtype = route.query.type as string
   if (qtype) {
     const found = ORDER_TYPES.find(t => t.id === qtype)
@@ -42,8 +48,8 @@ onMounted(() => {
 
 const subjectGroups = computed(() => {
   const q = subjectSearch.value.toLowerCase()
-  const filtered = SUBJECTS.filter(s => !q || s.label.toLowerCase().includes(q) || s.category.toLowerCase().includes(q))
-  const groups: Record<string, typeof SUBJECTS> = {}
+  const filtered = subjects.value.filter(s => !q || s.label.toLowerCase().includes(q) || s.category.toLowerCase().includes(q))
+  const groups: Record<string, typeof filtered> = {}
   for (const s of filtered) { if (!groups[s.category]) groups[s.category] = []; groups[s.category].push(s) }
   return groups
 })
@@ -232,7 +238,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               <div>
                 <label class="form-label">Paper type</label>
                 <div class="mt-2 grid grid-cols-3 gap-2">
-                  <button v-for="pt in PAPER_TYPES" :key="pt.id" type="button"
+                  <button v-for="pt in paperTypes" :key="pt.id" type="button"
                     class="flex flex-col items-center gap-2 rounded-xl border p-3 text-center text-xs font-medium transition-all hover:-translate-y-0.5"
                     :class="form.paperType.id === pt.id ? 'border-amber-600 bg-amber-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-400 hover:bg-parchment-100'"
                     @click="form.paperType = pt"
@@ -247,7 +253,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               <div>
                 <label class="form-label">Academic level</label>
                 <div class="mt-2 flex flex-wrap gap-2">
-                  <button v-for="l in ACADEMIC_LEVELS" :key="l.id" type="button"
+                  <button v-for="l in levels" :key="l.id" type="button"
                     class="rounded-lg border px-3 py-2 text-sm transition-all"
                     :class="form.level.id === l.id ? 'border-amber-600 bg-amber-600 text-white font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-claret-300'"
                     @click="form.level = l"
@@ -477,7 +483,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
             <div>
               <label class="form-label">Deadline</label>
               <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                <button v-for="d in DEADLINES" :key="d.id" type="button"
+                <button v-for="d in deadlines" :key="d.id" type="button"
                   class="relative rounded-xl border px-2 py-2.5 text-center transition-all hover:-translate-y-0.5"
                   :class="form.deadline.id === d.id ? 'border-amber-600 bg-amber-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-claret-300'"
                   @click="form.deadline = d"
@@ -537,7 +543,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               <div>
                 <label class="form-label">Type of work</label>
                 <div class="mt-2 grid grid-cols-2 gap-2">
-                  <button v-for="wt in WORK_TYPES" :key="wt.id" type="button"
+                  <button v-for="wt in workTypes" :key="wt.id" type="button"
                     class="rounded-xl border px-3 py-2.5 text-left transition-colors"
                     :class="form.workType.id === wt.id ? 'border-amber-600 bg-amber-600 text-white' : 'border-slate-200 bg-white hover:border-claret-300'"
                     @click="form.workType = wt"
@@ -550,11 +556,11 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               <div>
                 <label class="form-label">Citation style</label>
                 <select v-model="form.formatStyle" class="form-input mt-2">
-                  <option v-for="f in FORMATTING_STYLES" :key="f.id" :value="f">{{ f.label }}</option>
+                  <option v-for="f in formattingStyles" :key="f.id" :value="f">{{ f.label }}</option>
                 </select>
                 <label class="form-label mt-4">English variant</label>
                 <div class="mt-2 flex gap-2">
-                  <button v-for="et in ENGLISH_TYPES" :key="et.id" type="button"
+                  <button v-for="et in englishTypes" :key="et.id" type="button"
                     class="flex-1 rounded-lg border py-2 text-xs font-medium transition-colors"
                     :class="form.englishType.id === et.id ? 'border-amber-600 bg-amber-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-claret-300'"
                     @click="form.englishType = et"
@@ -583,6 +589,37 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               </div>
             </div>
 
+            <!-- Additional services (upsells from backend) -->
+            <div v-if="addons.length" class="rounded-xl border border-parchment-300 bg-parchment-50 p-5">
+              <h2 class="mb-1 text-sm font-semibold text-slate-900">Additional services</h2>
+              <p class="mb-4 text-xs text-slate-500">Optional add-ons included in your order total.</p>
+              <div class="space-y-3">
+                <label
+                  v-for="addon in addons"
+                  :key="addon.id"
+                  class="flex cursor-pointer items-start gap-3 rounded-lg border bg-white p-3 transition-colors"
+                  :class="form.selectedAddonIds.includes(addon.id) ? 'border-amber-400 bg-amber-50' : 'border-slate-200 hover:border-slate-300'"
+                >
+                  <input
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-slate-300 text-amber-600"
+                    :checked="form.selectedAddonIds.includes(addon.id)"
+                    @change="form.selectedAddonIds.includes(addon.id)
+                      ? form.selectedAddonIds.splice(form.selectedAddonIds.indexOf(addon.id), 1)
+                      : form.selectedAddonIds.push(addon.id)"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-slate-900">{{ addon.name }}</p>
+                    <p v-if="addon.description" class="mt-0.5 text-xs text-slate-500">{{ addon.description }}</p>
+                  </div>
+                  <span class="shrink-0 text-sm font-semibold text-amber-700">+${{ addon.flat_amount }}</span>
+                </label>
+              </div>
+              <p v-if="addonTotal > 0" class="mt-3 text-right text-xs font-semibold text-amber-700">
+                Add-ons: +${{ addonTotal }}
+              </p>
+            </div>
+
             <div class="flex justify-between pt-2">
               <button type="button" class="btn-outline flex items-center gap-2 px-6 py-2.5" @click="goBack"><ArrowLeft class="h-4 w-4" /> Back</button>
               <button type="button" class="btn-primary flex items-center gap-2 px-8 py-3 disabled:opacity-50" :disabled="!step2Valid" @click="goNext">
@@ -606,7 +643,10 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               </div>
               <div class="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
                 <span class="font-semibold text-slate-700">Estimated total</span>
-                <span class="text-xl font-bold text-claret-700">${{ totalPrice }}</span>
+                <span class="flex items-center gap-1.5">
+                  <Loader2 v-if="isPricing" class="h-3.5 w-3.5 animate-spin text-amber-500" />
+                  <span class="text-xl font-bold text-claret-700">${{ totalPrice }}</span>
+                </span>
               </div>
             </div>
 
@@ -654,7 +694,10 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 <div class="flex justify-between"><dt class="text-slate-500">Per {{ unitLabel === 'slides' ? 'slide' : unitLabel.replace('s','') }}</dt><dd class="font-medium text-slate-700">${{ pricePerUnit }}</dd></div>
               </dl>
               <div class="mt-4 rounded-xl bg-brand-50 px-4 py-3">
-                <p class="text-xs font-medium text-amber-700">Estimated total</p>
+                <div class="flex items-center justify-between">
+                  <p class="text-xs font-medium text-amber-700">Estimated total</p>
+                  <span v-if="isPricing" class="text-xs text-amber-600 flex items-center gap-1"><Loader2 class="h-3 w-3 animate-spin" /> Live…</span>
+                </div>
                 <p class="text-3xl font-bold text-claret-700">${{ totalPrice }}</p>
               </div>
               <p class="mt-2 text-center text-xs text-slate-400">Delivery by {{ deadlineDate }}</p>

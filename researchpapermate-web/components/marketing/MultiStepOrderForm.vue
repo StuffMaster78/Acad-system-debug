@@ -19,6 +19,7 @@ import {
   type PricingDeadline,
   type PricingPaperType,
 } from '~/composables/usePricingConfig'
+import { Loader2 } from '@lucide/vue'
 
 type EstimateResponse = {
   total?: string | number | null
@@ -42,6 +43,7 @@ const paperCode    = ref(paperTypes.value[0]?.code ?? 'essay')
 const levelCode    = ref(levels.value[1]?.code ?? levels.value[0]?.code ?? 'undergrad')
 const deadlineHrs  = ref(deadlines.value[0]?.max_hours ?? 336)
 const pages        = ref(1)
+const spacing      = ref<'double' | 'single'>('double')
 const topic        = ref('')
 const instructions = ref('')
 
@@ -54,10 +56,16 @@ let   priceTimer: ReturnType<typeof setTimeout> | null = null
 const selectedLevel    = computed(() => levels.value.find(l => l.code === levelCode.value) ?? levels.value[0])
 const selectedDeadline = computed(() => deadlines.value.find(d => d.max_hours === deadlineHrs.value) ?? deadlines.value[0])
 
+const spacingMult = computed(() =>
+  spacing.value === 'single'
+    ? (pricingConfig.value?.spacing_multipliers?.single ?? 2)
+    : (pricingConfig.value?.spacing_multipliers?.double ?? 1)
+)
+
 const localPrice = computed(() => {
   const base = selectedLevel.value?.price_per_page ?? 15
   const mult = selectedDeadline.value?.multiplier ?? 1
-  return Math.ceil(base * mult * pages.value * 100) / 100
+  return Math.ceil(base * mult * spacingMult.value * pages.value * 100) / 100
 })
 
 const livePrice = computed(() => {
@@ -94,7 +102,7 @@ async function refreshEstimate() {
           academic_level_code: levelCode.value,
           pages:               pages.value,
           deadline_hours:      deadlineHrs.value,
-          spacing:             'double',
+          spacing:             spacing.value,
         },
         credentials: 'include',
       },
@@ -114,7 +122,7 @@ function scheduleEstimate() {
 }
 
 onMounted(() => { void refreshEstimate() })
-watch([paperCode, levelCode, deadlineHrs, pages], scheduleEstimate)
+watch([paperCode, levelCode, deadlineHrs, pages, spacing], scheduleEstimate)
 
 // ── Order URL (final step) ─────────────────────────────────────────────────
 const orderUrl = computed(() => {
@@ -163,6 +171,7 @@ function back() {
     <!-- ── Step 1: Configure ─────────────────────────────────────────────── -->
     <div v-if="step === 1" class="p-6 space-y-5">
 
+      <!-- Paper type -->
       <div>
         <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Paper type</p>
         <div class="flex flex-wrap gap-2">
@@ -176,64 +185,87 @@ function back() {
         </div>
       </div>
 
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <!-- Academic level + Deadline (2-col, top-aligned) -->
+      <div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
         <div>
           <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Academic level</p>
           <div class="space-y-1.5">
             <button
               v-for="lvl in levels" :key="lvl.code"
               type="button"
-              class="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors text-left"
+              class="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition-colors"
               :class="levelCode === lvl.code ? 'border-amber-600 bg-parchment-100 font-semibold text-claret-700' : 'border-slate-200 text-slate-600 hover:border-claret-300'"
               @click="levelCode = lvl.code"
             >
               <span>{{ lvl.label }}</span>
-              <span v-if="lvl.price_per_page" class="text-xs text-slate-400">from ${{ lvl.price_per_page }}/pg</span>
+              <span v-if="lvl.price_per_page" class="shrink-0 text-xs text-slate-400">from ${{ lvl.price_per_page }}/pg</span>
             </button>
           </div>
         </div>
 
         <div>
           <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Deadline</p>
-          <div class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+          <div class="space-y-1.5">
             <button
               v-for="dl in deadlines" :key="dl.max_hours"
               type="button"
-              class="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors text-left"
+              class="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition-colors"
               :class="deadlineHrs === dl.max_hours ? 'border-amber-600 bg-parchment-100 font-semibold text-claret-700' : 'border-slate-200 text-slate-600 hover:border-claret-300'"
               @click="deadlineHrs = dl.max_hours"
             >
               <span>{{ dl.label }}</span>
-              <span v-if="dl.multiplier > 1" class="text-xs text-slate-400">+{{ Math.round((dl.multiplier - 1) * 100) }}%</span>
+              <span class="shrink-0 text-xs" :class="dl.multiplier > 1 ? 'text-amber-600 font-semibold' : 'text-green-600 font-semibold'">
+                {{ dl.multiplier === 1 ? 'Best price' : `+${Math.round((dl.multiplier - 1) * 100)}%` }}
+              </span>
             </button>
           </div>
         </div>
       </div>
 
-      <div>
-        <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-          Pages
-          <span class="ml-1 font-normal normal-case text-slate-400">({{ words }} words, double-spaced)</span>
-        </p>
-        <div class="flex items-center gap-4">
-          <button type="button" class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-amber-500 hover:text-amber-700 disabled:opacity-30" :disabled="pages <= 1" @click="pages--">−</button>
-          <span class="w-10 text-center text-xl font-bold tabular-nums text-slate-900">{{ pages }}</span>
-          <button type="button" class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-amber-500 hover:text-amber-700 disabled:opacity-30" :disabled="pages >= 100" @click="pages++">+</button>
+      <!-- Pages + spacing in one row -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Pages</p>
+          <div class="flex items-center gap-4">
+            <button type="button" class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-amber-500 hover:text-amber-700 disabled:opacity-30" :disabled="pages <= 1" @click="pages--">−</button>
+            <div class="text-center">
+              <span class="block text-xl font-bold tabular-nums text-slate-900">{{ pages }}</span>
+              <span class="block text-xs text-slate-400">{{ words.toLocaleString() }} words</span>
+            </div>
+            <button type="button" class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-amber-500 hover:text-amber-700 disabled:opacity-30" :disabled="pages >= 100" @click="pages++">+</button>
+          </div>
+        </div>
+
+        <div>
+          <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Spacing</p>
+          <div class="flex gap-2">
+            <button
+              v-for="sp in [{ id: 'double', label: 'Double', sub: '275 w/pg' }, { id: 'single', label: 'Single', sub: '550 w/pg' }]"
+              :key="sp.id"
+              type="button"
+              class="flex-1 rounded-lg border px-3 py-2 text-left text-xs transition-all"
+              :class="spacing === sp.id ? 'border-amber-600 bg-parchment-100 font-semibold text-claret-700' : 'border-slate-200 text-slate-600 hover:border-claret-300'"
+              @click="spacing = sp.id as any"
+            >
+              <span class="block font-medium">{{ sp.label }}</span>
+              <span class="block text-[11px] opacity-60">{{ sp.sub }}</span>
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Running price footer -->
       <div class="flex items-center justify-between rounded-xl bg-parchment-100 px-5 py-3">
         <div>
-          <p class="text-xs text-amber-700">{{ hasLivePrice ? 'Live price' : 'Estimated price' }}</p>
-          <p class="text-2xl font-extrabold tabular-nums text-claret-700">
-            ${{ displayPrice.toFixed(2) }}
-            <span v-if="isPricing" class="ml-1 animate-pulse text-xs font-normal text-amber-500">…</span>
+          <p class="flex items-center gap-1.5 text-xs text-amber-700">
+            {{ hasLivePrice ? 'Live price' : 'Estimated price' }}
+            <Loader2 v-if="isPricing" class="size-3 animate-spin" />
           </p>
+          <p class="text-2xl font-extrabold tabular-nums text-claret-700">${{ displayPrice.toFixed(2) }}</p>
         </div>
         <button
           class="rounded-xl px-5 py-2.5 text-sm font-bold transition-colors"
-          :class="step1Valid ? 'bg-amber-600 text-white hover:bg-amber-600' : 'cursor-not-allowed bg-slate-200 text-slate-400'"
+          :class="step1Valid ? 'bg-amber-600 text-white hover:bg-amber-500' : 'cursor-not-allowed bg-slate-200 text-slate-400'"
           :disabled="!step1Valid"
           type="button"
           @click="next"
