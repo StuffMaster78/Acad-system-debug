@@ -98,12 +98,8 @@ class CancellationRequest(models.Model):
 
     class Meta:
         ordering = ['-requested_at']
-        indexes = [
-            models.Index(fields=['order', 'status']),
-            models.Index(fields=['requested_by', 'status']),
-            models.Index(fields=['status', 'requested_at']),
-        ]
         verbose_name = "Cancellation Request"
+        managed = False
         verbose_name_plural = "Cancellation Requests"
 
     def __str__(self):

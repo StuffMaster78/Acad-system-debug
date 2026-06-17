@@ -55,6 +55,7 @@ class OrderTransitionLog(models.Model):
 
     class Meta:
         ordering = ['-timestamp']
+        managed = False
 
 class WriterReassignmentLog(models.Model):
     """
@@ -99,6 +100,7 @@ class WriterReassignmentLog(models.Model):
         verbose_name = "Writer Reassignment Log"
         verbose_name_plural = "Writer Reassignment Logs"
         ordering = ["-created_at"]
+        managed = False
 
     def __str__(self):
         return f"Order #{self.order.id} reassigned to {self.new_writer}"

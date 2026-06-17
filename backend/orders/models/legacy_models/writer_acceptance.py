@@ -98,11 +98,7 @@ class WriterAssignmentAcceptance(models.Model):
         verbose_name = "Writer Assignment Acceptance"
         verbose_name_plural = "Writer Assignment Acceptances"
         ordering = ['-assigned_at']
-        indexes = [
-            models.Index(fields=['writer', 'status']),
-            models.Index(fields=['order', 'status']),
-            models.Index(fields=['status', 'assigned_at']),
-        ]
+        managed = False
 
     def __str__(self):
         return f"Assignment #{self.id} - Order #{self.order.id} - {self.get_status_display()}"
