@@ -43,6 +43,7 @@ from writer_management.api.views.performance_views import (
     WriterMetricsListView,
     MyWriterPerformanceView,
 )
+from writer_management.api.views.level_progress_view import WriterLevelProgressView
 from writer_management.api.views.reward_views import WriterRewardListView
 from writer_management.api.views.note_views import (
     WriterNoteListView,
@@ -87,6 +88,7 @@ urlpatterns = [
     # My profile (writer)
     path("me/profile/", MyWriterProfileView.as_view(), name="my-profile"),
     path("me/performance/", MyWriterPerformanceView.as_view(), name="my-performance"),
+    path("me/level/", WriterLevelProgressView.as_view(), name="my-level"),
 
     # Availability (writer)
     path("me/availability/", MyAvailabilityView.as_view(), name="my-availability"),

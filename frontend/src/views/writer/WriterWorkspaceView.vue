@@ -17,6 +17,7 @@ import {
 } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import WriterOnboardingGate from "@/components/writer/WriterOnboardingGate.vue";
+import WriterLevelCard from "@/components/writer/WriterLevelCard.vue";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 import { writerApi } from "@/api/writer";
 import type { OrderSummary } from "@/types/orders";
@@ -421,6 +422,9 @@ onMounted(async () => {
           </div>
           <ChevronRight class="h-4 w-4 text-graphite" />
         </RouterLink>
+
+        <!-- Level progress card -->
+        <WriterLevelCard />
       </div>
     </section>
 

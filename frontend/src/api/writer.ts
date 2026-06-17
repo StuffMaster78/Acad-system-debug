@@ -13,6 +13,40 @@ import type { OrderSummary } from "@/types/orders";
 
 type ListResponse<T> = T[] | { count: number; next: string | null; previous: string | null; results: T[] };
 
+export interface WriterLevelInfo {
+  id: number;
+  name: string;
+  description: string;
+  display_order: number;
+}
+
+export interface WriterLevelCriteria {
+  min_orders_completed: number;
+  min_completion_rate: string;
+  min_composite_score: string;
+  max_revision_rate: string | null;
+  max_lateness_rate: string | null;
+}
+
+export interface WriterLevelPerformance {
+  completed_orders: number;
+  average_rating: string | null;
+  completion_rate: string | null;
+  on_time_rate: string | null;
+  revision_rate: string | null;
+}
+
+export interface WriterNextLevel extends WriterLevelInfo {
+  criteria: WriterLevelCriteria;
+}
+
+export interface WriterLevelProgress {
+  current: WriterLevelInfo | null;
+  criteria: WriterLevelCriteria;
+  performance: WriterLevelPerformance;
+  next: WriterNextLevel | null;
+}
+
 export interface AdvanceRecord {
   id: number;
   status: string;
@@ -116,6 +150,9 @@ export const writerApi = {
       ordersApiPath(`/staffing/interests/${interestId}/withdraw/`),
       {},
     ),
+  myLevel: () =>
+    api.get<WriterLevelProgress>(apiPath("/writer-management/me/level/")),
+
   // Preferred-writer invitation responses
   acceptPreferredInvitation: (interestId: number | string) =>
     api.post<{ message: string; assignment_id: number; order_id: number }>(
