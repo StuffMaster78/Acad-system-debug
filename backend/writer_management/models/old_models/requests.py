@@ -111,6 +111,7 @@ class WriterOrderRequest(models.Model):
             models.Index(fields=['order', 'approved']),
             models.Index(fields=['approved', 'requested_at']),
         ]
+        managed = False
 
 class WriterOrderTake(models.Model):
     """
@@ -180,6 +181,7 @@ class WriterOrderTake(models.Model):
             models.Index(fields=['website', 'order']),
             models.Index(fields=['order', 'taken_at']),
         ]
+        managed = False
 
 
 class WriterOrderRequestReview(models.Model):
@@ -210,6 +212,7 @@ class WriterOrderRequestReview(models.Model):
         verbose_name = "Writer Order Request Review"
         verbose_name_plural = "Writer Order Request Reviews"
         ordering = ['-review_date']
+        managed = False
 
 class WriterOrderTakeReview(models.Model):
     """
@@ -239,6 +242,7 @@ class WriterOrderTakeReview(models.Model):
         verbose_name = "Writer Order Take Review"
         verbose_name_plural = "Writer Order Take Reviews"
         ordering = ['-review_date']
+        managed = False
 
 
 class WriterOrderRequestAdminReview(models.Model):
@@ -269,6 +273,7 @@ class WriterOrderRequestAdminReview(models.Model):
         verbose_name = "Writer Order Request Admin Review"
         verbose_name_plural = "Writer Order Request Admin Reviews"
         ordering = ['-review_date']
+        managed = False
 
 
 
@@ -326,6 +331,7 @@ class WriterDeadlineExtensionRequest(models.Model):
             models.Index(fields=['website', 'approved']),
             models.Index(fields=['approved', 'requested_at']),
         ]
+        managed = False
 
 class WriterOrderHoldRequest(models.Model):
     """
@@ -376,6 +382,7 @@ class WriterOrderHoldRequest(models.Model):
             models.Index(fields=['website', 'approved']),
             models.Index(fields=['approved', 'requested_at']),
         ]
+        managed = False
 
 class WriterReassignmentRequest(models.Model):
     """
@@ -419,6 +426,8 @@ class WriterReassignmentRequest(models.Model):
                 pass
         super().save(*args, **kwargs)
 
+    class Meta:
+        managed = False
 
 
 class WriterOrderReopenRequest(models.Model):
@@ -467,6 +476,7 @@ class WriterOrderReopenRequest(models.Model):
             models.Index(fields=['website', 'approved']),
             models.Index(fields=['approved', 'requested_at']),
         ]
+        managed = False
 
 class WriterDemotionRequest(models.Model):
     """
@@ -497,6 +507,9 @@ class WriterDemotionRequest(models.Model):
 
     def __str__(self):
         return f"Demotion Request: {self.writer.user.username} (Approved: {self.approved})"
+
+    class Meta:
+        managed = False
 
 
 class WriterEarningsReviewRequest(models.Model):
@@ -535,3 +548,4 @@ class WriterEarningsReviewRequest(models.Model):
             models.Index(fields=['website', 'approved']),
             models.Index(fields=['approved', 'requested_at']),
         ]
+        managed = False
