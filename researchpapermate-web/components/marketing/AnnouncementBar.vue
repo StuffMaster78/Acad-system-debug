@@ -21,13 +21,13 @@ function dismiss() {
 <template>
   <div
     v-if="enabled && !dismissed"
-    class="relative bg-brand-900 px-10 py-2.5 text-center text-sm"
+    class="relative bg-claret-950 px-10 py-2.5 text-center text-sm"
   >
-    <div class="pointer-events-none absolute inset-y-0 left-0 w-1 bg-brand-400" />
+    <div class="pointer-events-none absolute inset-y-0 left-0 w-1 bg-amber-500" />
 
-    <span class="font-semibold text-brand-300">{{ message }}</span>
+    <span class="font-semibold text-amber-400">{{ message }}</span>
     <span class="text-white/70"> Use code </span>
-    <code class="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs font-bold text-brand-200 ring-1 ring-white/20">{{ code }}</code>
+    <code class="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs font-bold text-amber-300 ring-1 ring-white/20">{{ code }}</code>
     <span class="text-white/70"> {{ suffix }}</span>
 
     <button

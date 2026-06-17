@@ -65,26 +65,26 @@ const social = computed(() => portal.socialLinks)
 </script>
 
 <template>
-  <footer class="border-t border-slate-800 bg-slate-900 text-slate-400">
+  <footer class="border-t border-claret-900 bg-claret-950 text-claret-400">
 
     <!-- Trust strip -->
-    <div class="border-b border-slate-800">
+    <div class="border-b border-claret-900">
       <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-6 px-4 py-5 sm:px-6 lg:px-8">
         <div class="flex items-center gap-2">
           <div class="flex gap-0.5">
-            <svg v-for="i in 5" :key="i" class="h-4 w-4 text-[#00b67a]" fill="currentColor" viewBox="0 0 20 20">
+            <svg v-for="i in 5" :key="i" class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
             </svg>
           </div>
           <span class="text-sm font-semibold text-white">4.8/5</span>
-          <span class="text-sm text-slate-500">on Trustpilot</span>
+          <span class="text-sm text-claret-500">on Trustpilot</span>
         </div>
-        <span class="hidden text-slate-700 sm:block">·</span>
-        <span class="text-sm"><strong class="text-white">14,700+</strong> papers delivered</span>
-        <span class="hidden text-slate-700 sm:block">·</span>
-        <span class="text-sm">Grade or money back</span>
-        <span class="hidden text-slate-700 sm:block">·</span>
-        <span class="text-sm">PhD &amp; Master's researchers · zero AI</span>
+        <span class="hidden text-claret-800 sm:block">·</span>
+        <span class="text-sm text-claret-300"><strong class="text-white">14,700+</strong> papers delivered</span>
+        <span class="hidden text-claret-800 sm:block">·</span>
+        <span class="text-sm text-claret-300">Grade or money back</span>
+        <span class="hidden text-claret-800 sm:block">·</span>
+        <span class="text-sm text-claret-300">PhD &amp; Master's researchers · zero AI</span>
       </div>
     </div>
 
@@ -95,62 +95,57 @@ const social = computed(() => portal.socialLinks)
 
         <!-- Brand -->
         <div class="space-y-4">
-          <span class="flex items-center gap-2">
-            <svg width="28" height="28" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="rpm-foot" x1="3" y1="1" x2="27" y2="29" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#93b8ff"/><stop offset="100%" stop-color="#2563c8"/>
-                </linearGradient>
-              </defs>
-              <path d="M5 2h13l7 7v19a2 2 0 01-2 2H5a2 2 0 01-2-2V4a2 2 0 012-2z" fill="url(#rpm-foot)"/>
-              <path d="M18 2v5a2 2 0 002 2h5" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.4"/>
-              <rect x="7" y="13" width="9"  height="1.8" rx="0.9" fill="white" fill-opacity="0.85"/>
-              <rect x="7" y="17" width="12" height="1.8" rx="0.9" fill="white" fill-opacity="0.6"/>
-              <rect x="7" y="21" width="7"  height="1.8" rx="0.9" fill="white" fill-opacity="0.6"/>
+          <span class="flex items-center gap-2.5">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 2h13l7 7v17a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z" fill="#7B2241"/>
+              <path d="M17 2v5a2 2 0 002 2h5" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.3"/>
+              <rect x="6" y="12" width="8"  height="1.5" rx="0.75" fill="white" fill-opacity="0.9"/>
+              <rect x="6" y="16" width="12" height="1.5" rx="0.75" fill="white" fill-opacity="0.6"/>
+              <rect x="6" y="20" width="6"  height="1.5" rx="0.75" fill="#C8792A"/>
             </svg>
-            <span class="text-base font-bold leading-none tracking-tight">
-              <span class="text-white">Research</span><span class="text-brand-300">Paper</span><span class="text-white">Mate</span>
+            <span class="text-base font-bold leading-none tracking-tight text-white">
+              Research<span class="text-amber-400">Paper</span>Mate
             </span>
           </span>
-          <p class="text-xs leading-relaxed text-slate-500">{{ portal.tagline || 'Research papers by verified PhD and Master\'s specialists. Not AI. Real researchers.' }}</p>
+          <p class="text-xs leading-relaxed text-claret-500">{{ portal.tagline || 'Research papers by verified PhD and Master\'s specialists. Not AI. Real researchers.' }}</p>
           <div v-if="social.length" class="flex flex-wrap gap-1.5">
             <a v-for="s in social" :key="s.name" :href="s.href" :aria-label="s.name" target="_blank" rel="noreferrer"
-              class="flex h-7 w-7 items-center justify-center rounded-md bg-slate-800 text-slate-400 transition-colors hover:bg-brand-700 hover:text-white">
+              class="flex h-7 w-7 items-center justify-center rounded-md bg-claret-900 text-claret-400 transition-colors hover:bg-amber-700 hover:text-white">
               <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><g v-html="SOCIAL_ICONS[s.icon] ?? ''" /></svg>
             </a>
           </div>
-          <NuxtLink href="/order" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800">
+          <NuxtLink href="/order" class="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-500">
             Start a paper →
           </NuxtLink>
         </div>
 
         <!-- Research & Writing -->
         <div>
-          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-brand-300">Research & Writing</p>
+          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-amber-700">Research & Writing</p>
           <ul class="space-y-2">
             <li v-for="s in servicesA" :key="s.href">
-              <NuxtLink :href="s.href" class="text-sm transition-colors hover:text-white">{{ s.label }}</NuxtLink>
+              <NuxtLink :href="s.href" class="text-sm text-claret-400 transition-colors hover:text-white">{{ s.label }}</NuxtLink>
             </li>
           </ul>
         </div>
 
         <!-- Advanced & Specialist -->
         <div>
-          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-brand-300">Advanced & Specialist</p>
+          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-amber-700">Advanced & Specialist</p>
           <ul class="space-y-2">
             <li v-for="s in servicesB" :key="s.href">
-              <NuxtLink :href="s.href" class="text-sm transition-colors hover:text-white">{{ s.label }}</NuxtLink>
+              <NuxtLink :href="s.href" class="text-sm text-claret-400 transition-colors hover:text-white">{{ s.label }}</NuxtLink>
             </li>
           </ul>
-          <NuxtLink href="/services" class="mt-3 block text-xs font-semibold text-brand-400 transition-colors hover:text-brand-300">All services →</NuxtLink>
+          <NuxtLink href="/services" class="mt-3 block text-xs font-semibold text-amber-600 transition-colors hover:text-amber-400">All services →</NuxtLink>
         </div>
 
         <!-- Company -->
         <div>
-          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-brand-300">Company</p>
+          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-amber-700">Company</p>
           <ul class="space-y-2">
             <li v-for="s in company" :key="s.href">
-              <NuxtLink :href="s.href" class="text-sm transition-colors hover:text-white">{{ s.label }}</NuxtLink>
+              <NuxtLink :href="s.href" class="text-sm text-claret-400 transition-colors hover:text-white">{{ s.label }}</NuxtLink>
             </li>
           </ul>
         </div>
@@ -158,37 +153,37 @@ const social = computed(() => portal.socialLinks)
       </div>
 
       <!-- ── Row 2: Account · Legal · Guarantees ─────────────────────────── -->
-      <div class="grid gap-8 border-t border-slate-800 py-10 sm:grid-cols-3">
+      <div class="grid gap-8 border-t border-claret-900 py-10 sm:grid-cols-3">
 
         <div>
-          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-brand-300">Account</p>
+          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-amber-700">Account</p>
           <ul class="space-y-2">
-            <li><NuxtLink href="/login"    class="text-sm transition-colors hover:text-white">Sign in</NuxtLink></li>
-            <li><NuxtLink href="/register" class="text-sm transition-colors hover:text-white">Create account</NuxtLink></li>
-            <li><NuxtLink href="/order"    class="text-sm transition-colors hover:text-white">Start a paper</NuxtLink></li>
+            <li><NuxtLink href="/login"    class="text-sm text-claret-400 transition-colors hover:text-white">Sign in</NuxtLink></li>
+            <li><NuxtLink href="/register" class="text-sm text-claret-400 transition-colors hover:text-white">Create account</NuxtLink></li>
+            <li><NuxtLink href="/order"    class="text-sm text-claret-400 transition-colors hover:text-white">Start a paper</NuxtLink></li>
           </ul>
         </div>
 
         <div>
-          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-brand-300">Legal</p>
+          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-amber-700">Legal</p>
           <ul class="space-y-2">
             <li v-for="s in legal" :key="s.href">
-              <NuxtLink :href="s.href" class="text-sm transition-colors hover:text-white">{{ s.label }}</NuxtLink>
+              <NuxtLink :href="s.href" class="text-sm text-claret-400 transition-colors hover:text-white">{{ s.label }}</NuxtLink>
             </li>
           </ul>
         </div>
 
         <div>
-          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-brand-300">Our Standard</p>
-          <ul class="space-y-1.5 text-sm">
+          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-amber-700">Our Standard</p>
+          <ul class="space-y-1.5 text-sm text-claret-300">
             <li class="flex items-center gap-2"><span class="text-amber-400">★</span> Grade or money back</li>
-            <li class="flex items-center gap-2"><span class="text-brand-400">✓</span> PhD & Master's writers only</li>
-            <li class="flex items-center gap-2"><span class="text-brand-400">✓</span> Zero AI content</li>
-            <li class="flex items-center gap-2"><span class="text-brand-400">✓</span> Free plagiarism report</li>
+            <li class="flex items-center gap-2"><span class="text-amber-600">✓</span> PhD & Master's writers only</li>
+            <li class="flex items-center gap-2"><span class="text-amber-600">✓</span> Zero AI content</li>
+            <li class="flex items-center gap-2"><span class="text-amber-600">✓</span> Free plagiarism report</li>
           </ul>
           <div class="mt-5 flex flex-wrap gap-2">
             <span v-for="pm in ['Visa', 'MC', 'AmEx', 'PayPal']" :key="pm"
-              class="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-500">{{ pm }}</span>
+              class="rounded border border-claret-800 bg-claret-900 px-2 py-0.5 text-xs font-medium text-claret-500">{{ pm }}</span>
           </div>
         </div>
 
@@ -197,10 +192,10 @@ const social = computed(() => portal.socialLinks)
     </div>
 
     <!-- Bottom bar -->
-    <div class="border-t border-slate-800">
+    <div class="border-t border-claret-900">
       <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
-        <p class="text-xs text-slate-600">&copy; {{ year }} {{ portal.brandName }}. All rights reserved.</p>
-        <p class="max-w-xl text-center text-xs leading-relaxed text-slate-700">{{ portal.disclosure?.text }}</p>
+        <p class="text-xs text-claret-700">&copy; {{ year }} {{ portal.brandName }}. All rights reserved.</p>
+        <p class="max-w-xl text-center text-xs leading-relaxed text-claret-700">{{ portal.disclosure?.text }}</p>
       </div>
     </div>
 

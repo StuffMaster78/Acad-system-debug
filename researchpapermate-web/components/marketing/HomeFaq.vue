@@ -34,7 +34,7 @@ function toggle(i: number) {
 </script>
 
 <template>
-  <section class="bg-slate-50">
+  <section class="bg-parchment-100 border-y border-parchment-300">
     <div class="section">
       <div class="text-center">
         <h2 class="section-heading">Frequently asked questions</h2>
@@ -68,7 +68,7 @@ function toggle(i: number) {
 
       <p class="mt-8 text-center text-sm text-slate-500">
         Still have questions?
-        <NuxtLink href="/contact" class="font-medium text-brand-600 hover:underline">Talk to our team →</NuxtLink>
+        <NuxtLink href="/contact" class="font-medium text-amber-700 hover:underline">Talk to our team →</NuxtLink>
       </p>
     </div>
   </section>
