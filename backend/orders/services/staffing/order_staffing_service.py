@@ -351,14 +351,17 @@ class OrderStaffingService:
             order=locked_order,
             superseded_status=ORDER_INTEREST_STATUS_SUPERSEDED,
         )
-        cls._mark_order_in_progress(
+
+        # Hold order in pending_writer_acceptance — writer must consent before
+        # the order moves to in_progress.
+        from orders.services.order_assignment_acceptance_service import (
+            OrderAssignmentAcceptanceService,
+        )
+        OrderAssignmentAcceptanceService.create_acceptance_gate(
             order=locked_order,
-            actor=assigned_by,
-            metadata={
-                "assignment_id": assignment.pk,
-                "writer_id": getattr(writer, "pk", None),
-                "source": ORDER_ASSIGNMENT_SOURCE_STAFF_ASSIGNMENT,
-            },
+            writer=writer,
+            assigned_by=assigned_by,
+            assignment=assignment,
         )
         return assignment
 

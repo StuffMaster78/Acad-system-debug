@@ -405,7 +405,9 @@ class OrderStaffingServiceTests(SimpleTestCase):
         )
         mock_mark_order_in_progress.assert_called_once()
 
-    @patch.object(OrderStaffingService, "_mark_order_in_progress")
+    @patch(
+        "orders.services.order_assignment_acceptance_service.OrderAssignmentAcceptanceService.create_acceptance_gate"
+    )
     @patch.object(OrderStaffingService, "_close_other_open_interests")
     @patch.object(OrderStaffingService, "_create_assignment")
     @patch.object(OrderStaffingService, "_validate_writer_website")
@@ -420,7 +422,7 @@ class OrderStaffingServiceTests(SimpleTestCase):
         mock_validate_writer_website: Any,
         mock_create_assignment: Any,
         mock_close_other_open_interests: Any,
-        mock_mark_order_in_progress: Any,
+        mock_create_acceptance_gate: Any,
     ) -> None:
         order = self._make_order()
         assignment = self._make_assignment(writer=self.writer)
@@ -443,7 +445,12 @@ class OrderStaffingServiceTests(SimpleTestCase):
             source_interest=None,
         )
         mock_close_other_open_interests.assert_called_once_with(order=order)
-        mock_mark_order_in_progress.assert_called_once()
+        mock_create_acceptance_gate.assert_called_once_with(
+            order=order,
+            writer=self.writer,
+            assigned_by=self.staff_user,
+            assignment=assignment,
+        )
 
     @patch.object(
         OrderStaffingService,

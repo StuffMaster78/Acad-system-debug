@@ -231,6 +231,55 @@ class DisputeOrchestrationService:
         return locked_dispute
 
     @classmethod
+    @transaction.atomic
+    def submit_writer_response(
+        cls,
+        *,
+        dispute: OrderDispute,
+        writer: Any,
+        response_text: str,
+    ):
+        """
+        Record a writer's formal response to an open dispute.
+
+        A dispute may only have one writer response. The writer must be
+        the assigned writer on the order at the time the dispute was
+        raised.
+        """
+        from orders.models.disputes.order_dispute_writer_response import (
+            OrderDisputeWriterResponse,
+        )
+
+        locked_dispute = cls._lock_dispute(dispute)
+
+        if locked_dispute.status not in {"open", "in_review", "escalated"}:
+            raise ValidationError(
+                "Writer responses can only be submitted while the dispute is open."
+            )
+
+        if OrderDisputeWriterResponse.objects.filter(
+            dispute=locked_dispute
+        ).exists():
+            raise ValidationError(
+                "A writer response has already been submitted for this dispute."
+            )
+
+        response = OrderDisputeWriterResponse.objects.create(
+            website=locked_dispute.website,
+            dispute=locked_dispute,
+            writer=writer,
+            response_text=response_text,
+        )
+
+        cls._create_dispute_event(
+            dispute=locked_dispute,
+            event_type="writer_response_submitted",
+            actor=writer,
+            metadata={"response_id": response.pk},
+        )
+        return response
+
+    @classmethod
     def _ensure_order_can_be_disputed(cls, order: Order) -> None:
         """
         Ensure an order is in a state eligible for dispute opening.

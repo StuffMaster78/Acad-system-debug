@@ -11,6 +11,9 @@ from orders.models.disputes.order_dispute_resolution import (
     OrderDisputeResolution,
     OrderDisputeResolutionOutcome,
 )
+from orders.models.disputes.order_dispute_writer_response import (
+    OrderDisputeWriterResponse,
+)
 
 __all__ = [
     "OrderDispute",
@@ -20,4 +23,5 @@ __all__ = [
     "OrderDisputeEventType",
     "OrderDisputeResolution",
     "OrderDisputeResolutionOutcome",
+    "OrderDisputeWriterResponse",
 ]

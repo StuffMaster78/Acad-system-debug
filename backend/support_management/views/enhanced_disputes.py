@@ -7,7 +7,11 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 
-from support_management.models.enhanced_disputes import OrderDispute, DisputeMessage
+from support_management.models.enhanced_disputes import (
+    DisputeMessage,
+    DisputeWriterResponse,
+    OrderDispute,
+)
 from support_management.serializers.enhanced_disputes import (
     OrderDisputeSerializer, OrderDisputeCreateSerializer, OrderDisputeUpdateSerializer,
     OrderDisputeEscalateSerializer, OrderDisputeResolveSerializer,
@@ -123,6 +127,55 @@ class OrderDisputeViewSet(viewsets.ModelViewSet):
         return Response(
             OrderDisputeSerializer(dispute).data,
             status=status.HTTP_200_OK
+        )
+
+    @action(detail=True, methods=['post'], url_path='writer-response')
+    def writer_response(self, request, pk=None):
+        """
+        Writer submits a formal response to a dispute.
+        One response per dispute — updates are not allowed.
+        """
+        dispute = self.get_object()
+
+        if request.user.role != 'writer':
+            return Response(
+                {'error': 'Only writers can submit a dispute response.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if dispute.status not in ('open', 'under_review', 'escalated'):
+            return Response(
+                {'error': 'Responses can only be submitted while the dispute is open.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if DisputeWriterResponse.objects.filter(dispute=dispute).exists():
+            return Response(
+                {'error': 'A response has already been submitted for this dispute.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        response_text = request.data.get('response_text', '').strip()
+        if not response_text:
+            return Response(
+                {'error': 'response_text is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        writer_response = DisputeWriterResponse.objects.create(
+            dispute=dispute,
+            writer=request.user,
+            response_text=response_text,
+        )
+
+        return Response(
+            {
+                'id': writer_response.pk,
+                'dispute_id': dispute.pk,
+                'response_text': writer_response.response_text,
+                'submitted_at': writer_response.submitted_at,
+            },
+            status=status.HTTP_201_CREATED,
         )
 
     @action(detail=True, methods=['post'])

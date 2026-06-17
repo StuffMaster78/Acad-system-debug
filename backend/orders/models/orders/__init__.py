@@ -17,10 +17,13 @@ from orders.order_enums import OrderStatus  # re-export for legacy import sites
 from orders.models.legacy_models.logs import OrderTransitionLog, WriterReassignmentLog
 from orders.models.legacy_models.cancellation_request import CancellationRequest
 from orders.models.legacy_models.writer_acceptance import WriterAssignmentAcceptance
+from orders.models.orders.order_direct_assignment import OrderDirectAssignment
+from orders.models.orders.order_cancellation_request import OrderCancellationRequest
 
 __all__ = [
     "Order",
     "OrderAssignment",
+    "OrderDirectAssignment",
     "OrderHold",
     "OrderInterest",
     "OrderPricingSnapshot",
@@ -34,4 +37,5 @@ __all__ = [
     "WriterReassignmentLog",
     "CancellationRequest",
     "WriterAssignmentAcceptance",
+    "OrderCancellationRequest",
 ]

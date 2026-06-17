@@ -164,6 +164,35 @@ class OrderDispute(models.Model):
         self.save(update_fields=['status', 'updated_at'])
 
 
+class DisputeWriterResponse(models.Model):
+    """
+    Writer's formal response to a dispute raised against their order.
+
+    One per dispute — distinct from the back-and-forth DisputeMessage thread.
+    """
+
+    dispute = models.OneToOneField(
+        OrderDispute,
+        on_delete=models.CASCADE,
+        related_name="writer_response",
+    )
+    writer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="dispute_formal_responses",
+        limit_choices_to={"role": "writer"},
+    )
+    response_text = models.TextField()
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Dispute Writer Response"
+        verbose_name_plural = "Dispute Writer Responses"
+
+    def __str__(self) -> str:
+        return f"WriterResponse dispute={self.dispute_id} writer={self.writer_id}"
+
+
 class DisputeMessage(models.Model):
     """
     Messages within a dispute thread.

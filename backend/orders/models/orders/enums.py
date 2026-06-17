@@ -31,6 +31,14 @@ class OrderStatus(models.TextChoices):
     REFUNDED = "refunded", "Refunded"
     ARCHIVED = "archived", "Archived"
     REVISION_REQUESTED = "revision_requested", "Revision Requested"
+    PENDING_WRITER_ACCEPTANCE = (
+        "pending_writer_acceptance",
+        "Pending Writer Acceptance",
+    )
+    PENDING_CANCELLATION = (
+        "pending_cancellation",
+        "Pending Cancellation",
+    )
 
 
 class OrderVisibilityMode(models.TextChoices):
@@ -205,6 +213,22 @@ class OrderTimelineEventType(models.TextChoices):
 
     ADJUSTMENT_CREATED = "adjustment_created", "Adjustment Created"
     ADJUSTMENT_FUNDED = "adjustment_funded", "Adjustment Funded"
+
+    ASSIGNMENT_ACCEPTED = "assignment_accepted", "Assignment Accepted"
+    ASSIGNMENT_REJECTED = "assignment_rejected", "Assignment Rejected"
+
+    CANCELLATION_REQUESTED = (
+        "cancellation_requested",
+        "Cancellation Requested",
+    )
+    CANCELLATION_APPROVED = (
+        "cancellation_approved",
+        "Cancellation Approved",
+    )
+    CANCELLATION_REJECTED = (
+        "cancellation_rejected",
+        "Cancellation Rejected",
+    )
 
 
 class OrderRevisionStatus(models.TextChoices):

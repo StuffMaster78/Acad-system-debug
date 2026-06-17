@@ -509,14 +509,17 @@ class OrderStaffingService:
         )
 
         cls._close_other_open_interests(order=locked_order)
-        cls._mark_order_in_progress(
+
+        # Hold in pending_writer_acceptance — writer must consent before
+        # the order moves to in_progress.
+        from orders.services.order_assignment_acceptance_service import (
+            OrderAssignmentAcceptanceService,
+        )
+        OrderAssignmentAcceptanceService.create_acceptance_gate(
             order=locked_order,
-            actor=assigned_by,
-            metadata={
-                "assignment_id": assignment.pk,
-                "writer_id": getattr(writer, "pk", None),
-                "source": ORDER_ASSIGNMENT_SOURCE_STAFF_ASSIGNMENT,
-            },
+            writer=writer,
+            assigned_by=assigned_by,
+            assignment=assignment,
         )
         cls._notify_assigned(
             order=locked_order,
