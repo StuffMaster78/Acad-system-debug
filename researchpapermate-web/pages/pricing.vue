@@ -8,11 +8,11 @@ useSeoMeta({
 useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/pricing' }] })
 
 const levels = [
-  { label: 'High School',         from: 15, note: 'Grades 9–12',          color: 'bg-slate-50 border-slate-200' },
-  { label: 'Undergraduate 1–2',   from: 18, note: 'Freshman & Sophomore', color: 'bg-brand-50 border-brand-100' },
-  { label: 'Undergraduate 3–4',   from: 22, note: 'Junior & Senior',      color: 'bg-brand-50 border-brand-200' },
-  { label: "Master's",            from: 28, note: 'Graduate level',       color: 'bg-brand-50 border-brand-300' },
-  { label: 'PhD / Doctoral',      from: 36, note: 'Dissertation-level',   color: 'bg-brand-100 border-brand-400' },
+  { label: 'High School',         from: 15, note: 'Grades 9–12',          color: 'bg-parchment-100 border-parchment-300' },
+  { label: 'Undergraduate 1–2',   from: 18, note: 'Freshman & Sophomore', color: 'bg-parchment-200 border-parchment-400' },
+  { label: 'Undergraduate 3–4',   from: 22, note: 'Junior & Senior',      color: 'bg-amber-50 border-amber-200' },
+  { label: "Master's",            from: 28, note: 'Graduate level',       color: 'bg-amber-100 border-amber-300' },
+  { label: 'PhD / Doctoral',      from: 36, note: 'Dissertation-level',   color: 'bg-claret-100 border-claret-300' },
 ]
 
 const deadlines = [

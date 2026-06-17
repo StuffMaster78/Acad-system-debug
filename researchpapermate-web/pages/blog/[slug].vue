@@ -97,7 +97,7 @@ const inlineCta = `
         <span>✓ Grade or money back</span>
       </div>
     </div>
-    <a href="/order" class="mt-1 shrink-0 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-700 whitespace-nowrap">
+    <a href="/order" class="mt-1 shrink-0 inline-flex items-center gap-2 rounded-lg bg-claret-900 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-claret-800 whitespace-nowrap">
       Place my order
       <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
     </a>
@@ -128,7 +128,7 @@ const authorInitials = computed(() => {
 })
 
 const ROLE_BADGE: Record<string, string> = {
-  'Senior Writer':         'bg-brand-100 text-brand-700',
+  'Senior Writer':         'bg-parchment-100 text-claret-700',
   'Subject Matter Expert': 'bg-amber-100 text-amber-700',
   'Writer':                'bg-slate-100 text-slate-600',
   'Editor':                'bg-violet-100 text-violet-700',
@@ -268,14 +268,14 @@ useHead({
           <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
           <NuxtLink href="/blog" class="text-slate-400 transition-colors hover:text-brand-600">Blog</NuxtLink>
           <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-          <span class="rounded-full bg-brand-50 px-2.5 py-0.5 font-semibold text-brand-700">{{ postCategory }}</span>
+          <span class="rounded-full bg-brand-50 px-2.5 py-0.5 font-semibold text-claret-700">{{ postCategory }}</span>
           <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
           <span class="max-w-[200px] truncate text-slate-500">{{ postTitle }}</span>
         </nav>
 
         <!-- Meta bar -->
         <div class="mb-4 flex flex-wrap items-center gap-3">
-          <span class="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">{{ postCategory }}</span>
+          <span class="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-claret-700">{{ postCategory }}</span>
           <span class="text-xs text-slate-400">{{ cmsArticle ? `${cmsArticle.reading_time_minutes || 1} min read` : staticPost?.readTime }}</span>
           <time class="text-xs text-slate-400">{{ fmtDate(postDate) }}</time>
           <ClientOnly>
@@ -294,13 +294,13 @@ useHead({
 
         <!-- Author byline + bookmark -->
         <div v-if="cmsArticle?.author_name || staticPost?.author" class="mt-6 flex items-center gap-3 border-t border-slate-100 pt-5">
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">{{ authorInitials }}</div>
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-parchment-100 text-sm font-bold text-claret-700">{{ authorInitials }}</div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-slate-900">{{ cmsArticle?.author_name || staticPost?.author?.name }}</p>
             <p class="text-xs text-slate-500">{{ cmsArticle?.author_credentials || staticPost?.author?.credentials }}</p>
           </div>
           <ClientOnly>
-            <button v-if="ready && pageId" class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors" :class="bookmarked ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-500 hover:border-brand-200 hover:text-brand-700'" @click="toggleBookmark">
+            <button v-if="ready && pageId" class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors" :class="bookmarked ? 'border-brand-200 bg-brand-50 text-claret-700' : 'border-slate-200 bg-white text-slate-500 hover:border-brand-200 hover:text-claret-700'" @click="toggleBookmark">
               <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" :d="'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z'" :fill="bookmarked ? 'currentColor' : 'none'"/></svg>
               {{ bookmarked ? 'Saved' : 'Save' }}
             </button>
@@ -375,10 +375,10 @@ useHead({
           <div v-if="ready && pageId" class="mt-10 rounded-2xl border border-slate-100 bg-slate-50 px-6 py-5">
             <p class="mb-4 text-center text-sm font-semibold text-slate-700">Was this article helpful?</p>
             <div class="flex justify-center gap-3">
-              <button v-for="r in reactions" :key="r.type" class="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all" :class="myReact === r.type ? 'border-brand-300 bg-brand-50 text-brand-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700'" @click="react(r.type)">
+              <button v-for="r in reactions" :key="r.type" class="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all" :class="myReact === r.type ? 'border-brand-300 bg-brand-50 text-claret-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-claret-700'" @click="react(r.type)">
                 <span class="text-base leading-none">{{ r.emoji }}</span>
                 <span>{{ r.label }}</span>
-                <span v-if="reactionCount(r.type) > 0" class="rounded-full px-1.5 py-0.5 text-[11px] font-bold" :class="myReact === r.type ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'">{{ fmtCount(reactionCount(r.type)) }}</span>
+                <span v-if="reactionCount(r.type) > 0" class="rounded-full px-1.5 py-0.5 text-[11px] font-bold" :class="myReact === r.type ? 'bg-parchment-100 text-claret-700' : 'bg-slate-100 text-slate-500'">{{ fmtCount(reactionCount(r.type)) }}</span>
               </button>
             </div>
             <p class="mt-3 text-center text-xs text-slate-400">{{ stats ? fmtCount(stats.views) + ' students have read this article' : '' }}</p>
@@ -391,7 +391,7 @@ useHead({
         </div>
 
         <!-- End-of-article CTA -->
-        <div class="mt-10 rounded-2xl bg-brand-900 p-8">
+        <div class="mt-10 rounded-2xl bg-claret-950 p-8">
           <div class="sm:flex sm:items-center sm:justify-between sm:gap-8">
             <div>
               <p class="mb-1 text-xs font-bold uppercase tracking-widest text-brand-400">Expert writers across 100+ subjects</p>
@@ -399,14 +399,14 @@ useHead({
               <p class="mt-2 leading-relaxed text-brand-200">
                 A subject-specialist writer can handle your paper from scratch — properly cited, plagiarism-free, from $15/page.
               </p>
-              <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-brand-300">
+              <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-amber-400">
                 <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Grade or money back</li>
                 <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Zero AI — human-written</li>
                 <li class="flex items-center gap-1"><span class="text-green-400">✓</span> As fast as 2 hours</li>
                 <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Free Turnitin report</li>
               </ul>
             </div>
-            <NuxtLink to="/order" class="mt-6 block shrink-0 rounded-xl bg-white px-8 py-3 text-center text-sm font-bold text-brand-700 transition-colors hover:bg-brand-50 sm:mt-0">
+            <NuxtLink to="/order" class="mt-6 block shrink-0 rounded-xl bg-white px-8 py-3 text-center text-sm font-bold text-claret-700 transition-colors hover:bg-brand-50 sm:mt-0">
               Place my order →
             </NuxtLink>
           </div>
@@ -415,7 +415,7 @@ useHead({
         <!-- Author card -->
         <div v-if="cmsArticle?.author_name || staticPost?.author" class="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-white">
           <div class="flex items-start gap-5 border-b border-slate-100 bg-slate-50 px-6 py-6">
-            <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-2xl font-bold text-brand-700 ring-2 ring-white shadow-sm">{{ authorInitials }}</div>
+            <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-parchment-100 text-2xl font-bold text-claret-700 ring-2 ring-white shadow-sm">{{ authorInitials }}</div>
             <div class="min-w-0">
               <p class="text-lg font-bold text-slate-900">{{ cmsArticle?.author_name || staticPost?.author?.name }}</p>
               <p class="mt-0.5 text-sm font-medium text-slate-500">{{ cmsArticle?.author_credentials || staticPost?.author?.credentials }}</p>
@@ -425,8 +425,8 @@ useHead({
             <p class="text-sm leading-7 text-slate-600">{{ cmsArticle?.author_bio || staticPost?.author?.bio }}</p>
             <template v-if="staticPost?.author">
               <div class="mt-4 flex flex-wrap gap-2">
-                <a v-if="staticPost.author.linkedin" :href="staticPost.author.linkedin" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700">LinkedIn</a>
-                <a v-if="staticPost.author.twitter" :href="`https://twitter.com/${staticPost.author.twitter}`" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700">@{{ staticPost.author.twitter }}</a>
+                <a v-if="staticPost.author.linkedin" :href="staticPost.author.linkedin" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-claret-700">LinkedIn</a>
+                <a v-if="staticPost.author.twitter" :href="`https://twitter.com/${staticPost.author.twitter}`" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-claret-700">@{{ staticPost.author.twitter }}</a>
               </div>
             </template>
           </div>
@@ -435,15 +435,15 @@ useHead({
             <ul class="space-y-3">
               <li v-for="p in byAuthor" :key="p.slug">
                 <NuxtLink :href="`/blog/${p.slug}`" class="group flex items-start gap-3">
-                  <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-300 group-hover:bg-brand-600 transition-colors" />
+                  <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-300 group-hover:bg-amber-600 transition-colors" />
                   <div class="min-w-0">
-                    <p class="text-sm font-medium leading-snug text-slate-800 group-hover:text-brand-700 transition-colors line-clamp-2">{{ p.title }}</p>
+                    <p class="text-sm font-medium leading-snug text-slate-800 group-hover:text-claret-700 transition-colors line-clamp-2">{{ p.title }}</p>
                     <p class="mt-0.5 text-xs text-slate-400">{{ p.category }} · {{ p.readTime }}</p>
                   </div>
                 </NuxtLink>
               </li>
             </ul>
-            <NuxtLink :href="`/authors/${staticPost?.author?.slug}`" class="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">
+            <NuxtLink :href="`/authors/${staticPost?.author?.slug}`" class="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-claret-700 hover:underline">
               All articles by {{ staticPost?.author?.name.split(' ').slice(0, 2).join(' ') }} →
             </NuxtLink>
           </div>
@@ -464,10 +464,10 @@ useHead({
                 class="card group flex flex-col transition-shadow hover:border-brand-200 hover:shadow-md"
               >
                 <div class="mb-2 flex items-center gap-2">
-                  <span class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">{{ r.category_name }}</span>
+                  <span class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-claret-700">{{ r.category_name }}</span>
                   <span class="text-xs text-slate-400">{{ r.reading_time_minutes }} min</span>
                 </div>
-                <h3 class="flex-1 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-brand-700 line-clamp-2">{{ r.title }}</h3>
+                <h3 class="flex-1 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-claret-700 line-clamp-2">{{ r.title }}</h3>
                 <span class="mt-4 text-xs font-semibold text-brand-600 group-hover:underline">Read →</span>
               </NuxtLink>
             </template>
@@ -478,10 +478,10 @@ useHead({
                 class="card group flex flex-col transition-shadow hover:border-brand-200 hover:shadow-md"
               >
                 <div class="mb-2 flex items-center gap-2">
-                  <span class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">{{ r.category }}</span>
+                  <span class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-claret-700">{{ r.category }}</span>
                   <span class="text-xs text-slate-400">{{ r.readTime }}</span>
                 </div>
-                <h3 class="flex-1 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-brand-700">{{ r.title }}</h3>
+                <h3 class="flex-1 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-claret-700">{{ r.title }}</h3>
                 <p class="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">{{ r.excerpt }}</p>
                 <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
                   <time class="text-xs text-slate-400">{{ new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</time>

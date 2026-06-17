@@ -13,7 +13,7 @@ if (!author) {
 }
 
 const ROLE_BADGE: Record<string, string> = {
-  'Senior Writer':         'bg-brand-100 text-brand-700',
+  'Senior Writer':         'bg-parchment-200 text-claret-800',
   'Subject Matter Expert': 'bg-amber-100 text-amber-700',
   'Writer':                'bg-slate-100 text-slate-600',
   'Editor':                'bg-violet-100 text-violet-700',
@@ -62,7 +62,7 @@ useHead({
         <div class="flex flex-col gap-8 sm:flex-row sm:items-start">
           <!-- Avatar -->
           <div class="relative shrink-0 self-start">
-            <div class="flex h-28 w-28 items-center justify-center rounded-2xl bg-brand-100 text-4xl font-bold text-brand-700 ring-2 ring-white shadow-sm">
+            <div class="flex h-28 w-28 items-center justify-center rounded-2xl bg-parchment-200 text-4xl font-bold text-claret-800 ring-2 ring-white shadow-sm">
               {{ initials }}
             </div>
             <!-- Verified dot -->
@@ -149,15 +149,15 @@ useHead({
           v-for="post in posts"
           :key="post.slug"
           :href="`/blog/${post.slug}`"
-          class="group flex gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-brand-200 hover:shadow-sm"
+          class="group flex gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-parchment-300 hover:shadow-sm"
         >
           <!-- Category dot + info -->
           <div class="flex min-w-0 flex-1 flex-col justify-between gap-1">
             <div>
-              <span class="mb-1.5 inline-flex rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700">
+              <span class="mb-1.5 inline-flex rounded-full bg-parchment-100 px-2.5 py-0.5 text-xs font-semibold text-claret-800">
                 {{ post.category }}
               </span>
-              <p class="font-semibold leading-snug text-slate-900 transition-colors group-hover:text-brand-700 line-clamp-2">
+              <p class="font-semibold leading-snug text-slate-900 transition-colors group-hover:text-claret-800 line-clamp-2">
                 {{ post.title }}
               </p>
               <p class="mt-1 text-sm leading-5 text-slate-500 line-clamp-2">{{ post.excerpt }}</p>
@@ -168,7 +168,7 @@ useHead({
               <span>{{ post.readTime }}</span>
             </div>
           </div>
-          <span class="mt-1 shrink-0 text-xs font-semibold text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">
+          <span class="mt-1 shrink-0 text-xs font-semibold text-amber-700 opacity-0 transition-opacity group-hover:opacity-100">
             Read →
           </span>
         </NuxtLink>

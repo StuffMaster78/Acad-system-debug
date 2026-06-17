@@ -102,15 +102,15 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
         We've sent a confirmation link to <strong>{{ form.email }}</strong>.
         Your order details are saved and ready to confirm after login.
       </p>
-      <div class="mt-8 rounded-2xl border border-brand-100 bg-brand-50 p-6 text-left">
-        <h2 class="mb-4 font-semibold text-brand-800">Your order summary</h2>
+      <div class="mt-8 rounded-2xl border border-parchment-300 bg-parchment-100 p-6 text-left">
+        <h2 class="mb-4 font-semibold text-claret-900">Your order summary</h2>
         <dl class="space-y-2 text-sm">
           <div class="flex justify-between"><dt class="text-slate-500">Order type</dt><dd class="font-medium">{{ form.orderType.label }}</dd></div>
           <div class="flex justify-between"><dt class="text-slate-500">Deadline</dt><dd class="font-medium">{{ form.deadline.label }} — {{ deadlineDate }}</dd></div>
           <div class="flex justify-between"><dt class="text-slate-500">{{ unitLabel }}</dt><dd class="font-medium">{{ unitCount }}</dd></div>
-          <div class="flex justify-between border-t border-brand-200 pt-2">
-            <dt class="font-semibold text-brand-800">Estimated total</dt>
-            <dd class="text-lg font-bold text-brand-700">${{ totalPrice }}</dd>
+          <div class="flex justify-between border-t border-parchment-300 pt-2">
+            <dt class="font-semibold text-claret-900">Estimated total</dt>
+            <dd class="text-lg font-bold text-claret-700">${{ totalPrice }}</dd>
           </div>
         </dl>
       </div>
@@ -126,7 +126,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <!-- Back to type selection -->
-            <button type="button" class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-brand-600 transition-colors" @click="goBack">
+            <button type="button" class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-amber-700 transition-colors" @click="goBack">
               <ArrowLeft class="h-4 w-4" />
               <span class="hidden sm:inline">{{ step === 1 ? 'Order types' : 'Back' }}</span>
             </button>
@@ -139,7 +139,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               <template v-for="(s, i) in steps" :key="s.n">
                 <div class="flex items-center gap-1.5">
                   <div class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors"
-                    :class="step === s.n ? 'bg-brand-700 text-white' : step > s.n ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-400'">
+                    :class="step === s.n ? 'bg-amber-600 text-white' : step > s.n ? 'bg-parchment-100 text-claret-700' : 'bg-slate-100 text-slate-400'">
                     <Check v-if="step > s.n" class="h-3 w-3" />
                     <span v-else>{{ s.n }}</span>
                   </div>
@@ -150,8 +150,8 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
             </div>
           </div>
           <!-- Mobile price pill -->
-          <div class="flex items-center gap-1.5 rounded-full bg-brand-700 px-3 py-1.5 sm:hidden">
-            <span class="text-xs text-brand-200">Est.</span>
+          <div class="flex items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 sm:hidden">
+            <span class="text-xs text-amber-200">Est.</span>
             <span class="text-sm font-bold text-white">${{ totalPrice }}</span>
           </div>
         </div>
@@ -173,7 +173,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
             :key="ot.id"
             type="button"
             class="group relative rounded-2xl border-2 bg-white p-6 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
-            :class="ot.external ? 'border-dashed border-slate-200 hover:border-slate-300' : 'border-slate-200 hover:border-brand-300'"
+            :class="ot.external ? 'border-dashed border-slate-200 hover:border-slate-300' : 'border-slate-200 hover:border-claret-300'"
             @click="selectType(ot)"
           >
             <!-- Icon circle -->
@@ -189,7 +189,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
             <div class="flex items-start justify-between gap-2">
               <h2 class="font-semibold text-slate-900">{{ ot.label }}</h2>
               <span v-if="ot.external" class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">Get quote</span>
-              <span v-else class="shrink-0 text-xs font-medium text-brand-600">from ${{ ot.priceFrom }}/unit</span>
+              <span v-else class="shrink-0 text-xs font-medium text-amber-700">from ${{ ot.priceFrom }}/unit</span>
             </div>
 
             <p class="mt-1.5 text-sm text-slate-500 leading-relaxed">{{ ot.desc }}</p>
@@ -198,7 +198,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               e.g. {{ ot.examples }}
             </p>
 
-            <div class="mt-4 flex items-center gap-1 text-xs font-semibold text-brand-600 transition-colors group-hover:gap-2">
+            <div class="mt-4 flex items-center gap-1 text-xs font-semibold text-amber-700 transition-colors group-hover:gap-2">
               {{ ot.external ? 'Request a quote' : 'Start order' }}
               <ChevronRight class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </div>
@@ -234,7 +234,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 <div class="mt-2 grid grid-cols-3 gap-2">
                   <button v-for="pt in PAPER_TYPES" :key="pt.id" type="button"
                     class="flex flex-col items-center gap-2 rounded-xl border p-3 text-center text-xs font-medium transition-all hover:-translate-y-0.5"
-                    :class="form.paperType.id === pt.id ? 'border-brand-600 bg-brand-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50'"
+                    :class="form.paperType.id === pt.id ? 'border-amber-600 bg-amber-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-400 hover:bg-parchment-100'"
                     @click="form.paperType = pt"
                   >
                     <component :is="PAPER_ICONS[pt.icon]" class="h-5 w-5" />
@@ -249,7 +249,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 <div class="mt-2 flex flex-wrap gap-2">
                   <button v-for="l in ACADEMIC_LEVELS" :key="l.id" type="button"
                     class="rounded-lg border px-3 py-2 text-sm transition-all"
-                    :class="form.level.id === l.id ? 'border-brand-600 bg-brand-600 text-white font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'"
+                    :class="form.level.id === l.id ? 'border-amber-600 bg-amber-600 text-white font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-claret-300'"
                     @click="form.level = l"
                   >{{ l.label }}</button>
                 </div>
@@ -277,7 +277,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                     <button v-for="sp in [{ id: 'double', label: 'Double' }, { id: 'single', label: 'Single' }]" :key="sp.id"
                       type="button"
                       class="flex-1 rounded-lg border py-2 text-sm font-medium transition-colors"
-                      :class="form.spacing === sp.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'"
+                      :class="form.spacing === sp.id ? 'border-amber-600 bg-amber-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-claret-300'"
                       @click="form.spacing = sp.id as any"
                     >{{ sp.label }}</button>
                   </div>
@@ -295,12 +295,12 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                   <template v-for="(subjects, category) in subjectGroups" :key="category">
                     <p class="sticky top-0 border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">{{ category }}</p>
                     <button v-for="s in subjects" :key="s.id" type="button"
-                      class="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-brand-50"
-                      :class="form.subject.id === s.id ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'"
+                      class="flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-parchment-100"
+                      :class="form.subject.id === s.id ? 'bg-parchment-100 font-semibold text-claret-700' : 'text-slate-700'"
                       @click="form.subject = s; subjectSearch = ''"
                     >
                       {{ s.label }}
-                      <Check v-if="form.subject.id === s.id" class="h-4 w-4 text-brand-600" />
+                      <Check v-if="form.subject.id === s.id" class="h-4 w-4 text-amber-700" />
                     </button>
                   </template>
                 </div>
@@ -479,12 +479,12 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
                 <button v-for="d in DEADLINES" :key="d.id" type="button"
                   class="relative rounded-xl border px-2 py-2.5 text-center transition-all hover:-translate-y-0.5"
-                  :class="form.deadline.id === d.id ? 'border-brand-600 bg-brand-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-brand-300'"
+                  :class="form.deadline.id === d.id ? 'border-amber-600 bg-amber-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-claret-300'"
                   @click="form.deadline = d"
                 >
                   <span v-if="d.badge" class="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-bold text-white">{{ d.badge }}</span>
                   <p class="text-sm font-semibold">{{ d.label }}</p>
-                  <p class="text-xs" :class="form.deadline.id === d.id ? 'text-brand-200' : 'text-slate-400'">{{ d.sublabel }}</p>
+                  <p class="text-xs" :class="form.deadline.id === d.id ? 'text-amber-200' : 'text-slate-400'">{{ d.sublabel }}</p>
                 </button>
               </div>
               <p class="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
@@ -498,12 +498,12 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               <div class="mt-2 grid grid-cols-3 gap-3">
                 <button v-for="tier in WRITER_TIERS" :key="tier.id" type="button"
                   class="rounded-xl border p-3 text-left transition-all"
-                  :class="form.writerTier.id === tier.id ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-slate-200 bg-white hover:border-brand-200'"
+                  :class="form.writerTier.id === tier.id ? 'border-amber-600 bg-parchment-100 ring-1 ring-amber-600' : 'border-slate-200 bg-white hover:border-amber-400'"
                   @click="form.writerTier = tier"
                 >
                   <p class="text-sm font-semibold text-slate-900">{{ tier.label }}</p>
                   <p class="mt-0.5 text-xs text-slate-500">{{ tier.desc }}</p>
-                  <p class="mt-1 text-xs font-medium text-brand-600">{{ tier.surcharge === 0 ? 'Base price' : `+${(tier.surcharge * 100).toFixed(0)}%` }}</p>
+                  <p class="mt-1 text-xs font-medium text-amber-700">{{ tier.surcharge === 0 ? 'Base price' : `+${(tier.surcharge * 100).toFixed(0)}%` }}</p>
                 </button>
               </div>
             </div>
@@ -539,11 +539,11 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 <div class="mt-2 grid grid-cols-2 gap-2">
                   <button v-for="wt in WORK_TYPES" :key="wt.id" type="button"
                     class="rounded-xl border px-3 py-2.5 text-left transition-colors"
-                    :class="form.workType.id === wt.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white hover:border-brand-300'"
+                    :class="form.workType.id === wt.id ? 'border-amber-600 bg-amber-600 text-white' : 'border-slate-200 bg-white hover:border-claret-300'"
                     @click="form.workType = wt"
                   >
                     <p class="text-sm font-semibold">{{ wt.label }}</p>
-                    <p class="text-xs" :class="form.workType.id === wt.id ? 'text-brand-200' : 'text-slate-400'">{{ wt.desc }}</p>
+                    <p class="text-xs" :class="form.workType.id === wt.id ? 'text-amber-200' : 'text-slate-400'">{{ wt.desc }}</p>
                   </button>
                 </div>
               </div>
@@ -556,7 +556,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 <div class="mt-2 flex gap-2">
                   <button v-for="et in ENGLISH_TYPES" :key="et.id" type="button"
                     class="flex-1 rounded-lg border py-2 text-xs font-medium transition-colors"
-                    :class="form.englishType.id === et.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'"
+                    :class="form.englishType.id === et.id ? 'border-amber-600 bg-amber-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-claret-300'"
                     @click="form.englishType = et"
                   >{{ et.label }}</button>
                 </div>
@@ -573,7 +573,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
             </div>
 
             <div>
-              <button type="button" class="flex items-center gap-1.5 text-sm text-brand-600 hover:underline" @click="showDiscount = !showDiscount">
+              <button type="button" class="flex items-center gap-1.5 text-sm text-amber-700 hover:underline" @click="showDiscount = !showDiscount">
                 <ChevronDown class="h-4 w-4 transition-transform" :class="showDiscount ? 'rotate-180' : ''" />
                 {{ showDiscount ? 'Hide' : 'Have a discount code?' }}
               </button>
@@ -606,7 +606,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
               </div>
               <div class="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
                 <span class="font-semibold text-slate-700">Estimated total</span>
-                <span class="text-xl font-bold text-brand-700">${{ totalPrice }}</span>
+                <span class="text-xl font-bold text-claret-700">${{ totalPrice }}</span>
               </div>
             </div>
 
@@ -622,9 +622,9 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 <div><label class="form-label" for="pw">Password</label><input id="pw" v-model="form.password" type="password" class="form-input mt-1" placeholder="At least 8 characters" minlength="8" autocomplete="new-password" /></div>
                 <div v-if="serverError" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ serverError }}</div>
                 <label class="flex cursor-pointer items-start gap-3">
-                  <input v-model="form.agreeToTerms" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600" />
+                  <input v-model="form.agreeToTerms" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-amber-700" />
                   <span class="text-xs text-slate-500 leading-relaxed">
-                    I agree to the <NuxtLink to="/terms" target="_blank" class="text-brand-600 underline">Terms</NuxtLink> and <NuxtLink to="/privacy" target="_blank" class="text-brand-600 underline">Privacy Policy</NuxtLink>. I understand this is a model paper service for reference use.
+                    I agree to the <NuxtLink to="/terms" target="_blank" class="text-amber-700 underline">Terms</NuxtLink> and <NuxtLink to="/privacy" target="_blank" class="text-amber-700 underline">Privacy Policy</NuxtLink>. I understand this is a model paper service for reference use.
                   </span>
                 </label>
               </div>
@@ -637,7 +637,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 {{ submitting ? 'Creating account…' : 'Place order & create account' }}
               </button>
             </div>
-            <p class="text-center text-sm text-slate-400">Already have an account? <NuxtLink to="/login" class="font-medium text-brand-600 hover:underline">Sign in</NuxtLink></p>
+            <p class="text-center text-sm text-slate-400">Already have an account? <NuxtLink to="/login" class="font-medium text-amber-700 hover:underline">Sign in</NuxtLink></p>
           </div>
         </div>
 
@@ -645,7 +645,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
         <div class="hidden lg:block">
           <div class="sticky top-28 space-y-4">
             <!-- Live price -->
-            <div class="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
+            <div class="rounded-2xl border border-parchment-300 bg-white p-5 shadow-sm">
               <h3 class="mb-4 font-serif text-base font-bold text-slate-900">Price estimate</h3>
               <dl class="space-y-2 text-sm">
                 <div class="flex justify-between"><dt class="text-slate-500">Type</dt><dd class="font-medium text-slate-700">{{ form.orderType.label }}</dd></div>
@@ -654,8 +654,8 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 <div class="flex justify-between"><dt class="text-slate-500">Per {{ unitLabel === 'slides' ? 'slide' : unitLabel.replace('s','') }}</dt><dd class="font-medium text-slate-700">${{ pricePerUnit }}</dd></div>
               </dl>
               <div class="mt-4 rounded-xl bg-brand-50 px-4 py-3">
-                <p class="text-xs font-medium text-brand-600">Estimated total</p>
-                <p class="text-3xl font-bold text-brand-700">${{ totalPrice }}</p>
+                <p class="text-xs font-medium text-amber-700">Estimated total</p>
+                <p class="text-3xl font-bold text-claret-700">${{ totalPrice }}</p>
               </div>
               <p class="mt-2 text-center text-xs text-slate-400">Delivery by {{ deadlineDate }}</p>
             </div>
@@ -668,7 +668,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 <li class="flex items-center gap-2.5 text-slate-600"><ShieldCheck class="h-4 w-4 shrink-0 text-green-500" /> Free plagiarism report</li>
                 <li class="flex items-center gap-2.5 text-slate-600"><RefreshCw class="h-4 w-4 shrink-0 text-purple-500" /> Unlimited revisions</li>
                 <li class="flex items-center gap-2.5 text-slate-600"><Lock class="h-4 w-4 shrink-0 text-slate-400" /> Secure payment & escrow</li>
-                <li class="flex items-center gap-2.5 text-slate-600"><MessageSquare class="h-4 w-4 shrink-0 text-brand-500" /> Direct writer messaging</li>
+                <li class="flex items-center gap-2.5 text-slate-600"><MessageSquare class="h-4 w-4 shrink-0 text-claret-600" /> Direct writer messaging</li>
               </ul>
             </div>
           </div>
@@ -681,6 +681,6 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
 
 <style scoped>
 .form-label  { @apply block text-sm font-semibold text-slate-700; }
-.form-input  { @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200; }
+.form-input  { @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:border-claret-500 focus:outline-none focus:ring-2 focus:ring-claret-100; }
 .stepper-btn { @apply flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors disabled:opacity-30; }
 </style>

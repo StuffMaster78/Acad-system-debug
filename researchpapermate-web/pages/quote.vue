@@ -111,7 +111,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/quote'
   </div>
 
   <!-- Form -->
-  <div v-else class="min-h-[calc(100vh-4rem)] bg-slate-50">
+  <div v-else class="min-h-[calc(100vh-4rem)] bg-parchment-100">
 
     <!-- Header -->
     <div class="bg-gradient-to-br from-rose-900 to-rose-700 py-12 text-center">

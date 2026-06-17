@@ -40,7 +40,7 @@ const channels = [
     title: 'WhatsApp',
     desc: 'Message us on WhatsApp for urgent orders or quick questions. Typical reply: under 5 minutes.',
     badge: 'Recommended',
-    badgeColor: 'bg-brand-100 text-brand-700',
+    badgeColor: 'bg-amber-50 text-claret-700',
     link: 'https://wa.me/1234567890',
   },
   {
@@ -65,12 +65,12 @@ const faqs = [
   <div>
 
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-brand-900 py-20 text-center">
+    <section class="relative overflow-hidden bg-claret-950 py-20 text-center">
       <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
       <div class="relative mx-auto max-w-2xl px-4 sm:px-6">
-        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">We're here</p>
+        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-amber-400">We're here</p>
         <h1 class="text-4xl font-bold text-white sm:text-5xl">Get in touch</h1>
-        <p class="mt-4 text-lg text-brand-200">Real people, real responses. No chatbots, no scripted replies — just direct, knowledgeable support.</p>
+        <p class="mt-4 text-lg text-claret-200">Real people, real responses. No chatbots, no scripted replies — just direct, knowledgeable support.</p>
       </div>
     </section>
 
@@ -102,7 +102,7 @@ const faqs = [
             <div>
               <h2 class="mb-4 text-xl font-bold text-slate-900">Common questions</h2>
               <div class="space-y-3">
-                <details v-for="faq in faqs" :key="faq.q" class="group rounded-xl border border-slate-200 bg-slate-50">
+                <details v-for="faq in faqs" :key="faq.q" class="group rounded-xl border border-slate-200 bg-parchment-100">
                   <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3.5 text-sm font-semibold text-slate-800">
                     {{ faq.q }}
                     <span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm transition-transform group-open:rotate-45">+</span>
@@ -120,29 +120,29 @@ const faqs = [
               <div class="text-4xl">✓</div>
               <p class="font-bold text-green-800">Message received!</p>
               <p class="text-sm text-green-700">We'll reply to {{ form.email }} within the hour.</p>
-              <a :href="app.dashboard" class="mt-2 inline-block text-sm font-semibold text-brand-600 hover:underline">Go to your dashboard →</a>
+              <a :href="app.dashboard" class="mt-2 inline-block text-sm font-semibold text-amber-700 hover:underline">Go to your dashboard →</a>
             </div>
             <form v-else class="space-y-4" @submit.prevent="submit">
               <div class="grid sm:grid-cols-2 gap-4">
                 <label class="block space-y-1.5">
                   <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Your name</span>
-                  <input v-model="form.name" required type="text" placeholder="Jane Smith" class="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                  <input v-model="form.name" required type="text" placeholder="Jane Smith" class="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm focus:border-claret-400 focus:outline-none focus:ring-2 focus:ring-claret-100" />
                 </label>
                 <label class="block space-y-1.5">
                   <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Email</span>
-                  <input v-model="form.email" required type="email" placeholder="jane@university.edu" class="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                  <input v-model="form.email" required type="email" placeholder="jane@university.edu" class="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm focus:border-claret-400 focus:outline-none focus:ring-2 focus:ring-claret-100" />
                 </label>
               </div>
               <label class="block space-y-1.5">
                 <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Subject</span>
-                <input v-model="form.subject" type="text" placeholder="e.g. Question about my order" class="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input v-model="form.subject" type="text" placeholder="e.g. Question about my order" class="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm focus:border-claret-400 focus:outline-none focus:ring-2 focus:ring-claret-100" />
               </label>
               <label class="block space-y-1.5">
                 <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Message</span>
-                <textarea v-model="form.message" required rows="5" placeholder="Tell us how we can help…" class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 resize-none" />
+                <textarea v-model="form.message" required rows="5" placeholder="Tell us how we can help…" class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-claret-400 focus:outline-none focus:ring-2 focus:ring-claret-100 resize-none" />
               </label>
               <p v-if="err" class="text-xs text-red-500">{{ err }}</p>
-              <button type="submit" :disabled="busy" class="h-12 w-full rounded-xl bg-brand-700 text-sm font-bold text-white shadow transition-colors hover:bg-brand-800 disabled:opacity-50">
+              <button type="submit" :disabled="busy" class="h-12 w-full rounded-xl bg-claret-900 text-sm font-bold text-white shadow transition-colors hover:bg-claret-900 disabled:opacity-50">
                 {{ busy ? 'Sending…' : 'Send message' }}
               </button>
               <p class="text-center text-xs text-slate-400">Typical reply time: under 1 hour · Mon–Sun 08:00–23:00</p>

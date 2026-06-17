@@ -81,7 +81,7 @@ const CALLOUT_STYLES: Record<string, string> = {
       <template v-else-if="block.type === 'paragraph'">
         <div
           class="prose prose-slate prose-lg max-w-none
-                 prose-headings:font-serif prose-a:text-brand-600 prose-a:no-underline
+                 prose-headings:font-serif prose-a:text-amber-700 prose-a:no-underline
                  hover:prose-a:underline prose-strong:text-slate-900"
           v-html="block.value as ParagraphVal"
         />
@@ -101,14 +101,14 @@ const CALLOUT_STYLES: Record<string, string> = {
 
       <!-- checklist -->
       <template v-else-if="block.type === 'checklist'">
-        <div class="rounded-2xl border border-brand-100 bg-brand-50/50 p-6">
+        <div class="rounded-2xl border border-claret-200 bg-claret-900/50 p-6">
           <h3 v-if="(block.value as ChecklistVal).title" class="mb-4 font-serif text-xl font-bold text-slate-900">
             {{ (block.value as ChecklistVal).title }}
           </h3>
           <ul class="space-y-3">
             <li v-for="item in (block.value as ChecklistVal).items" :key="item.text"
               class="flex items-start gap-3">
-              <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+              <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
               <span class="text-slate-700 leading-relaxed">{{ item.text }}</span>
             </li>
           </ul>
@@ -117,7 +117,7 @@ const CALLOUT_STYLES: Record<string, string> = {
 
       <!-- quote -->
       <template v-else-if="block.type === 'quote'">
-        <blockquote class="border-l-4 border-brand-300 pl-6 py-1">
+        <blockquote class="border-l-4 border-claret-200 pl-6 py-1">
           <p class="text-lg italic text-slate-700 leading-relaxed">
             "{{ (block.value as QuoteVal).quote }}"
           </p>
@@ -159,8 +159,8 @@ const CALLOUT_STYLES: Record<string, string> = {
       <template v-else-if="block.type === 'stats_highlight'">
         <div class="grid gap-4" :class="`sm:grid-cols-${Math.min((block.value as StatsVal).stats.length, 4)}`">
           <div v-for="stat in (block.value as StatsVal).stats" :key="stat.label"
-            class="rounded-2xl border border-brand-100 bg-brand-50 p-5 text-center">
-            <div class="text-3xl font-bold text-brand-700">{{ stat.value }}</div>
+            class="rounded-2xl border border-claret-200 bg-claret-900 p-5 text-center">
+            <div class="text-3xl font-bold text-amber-700">{{ stat.value }}</div>
             <div class="mt-1 font-semibold text-slate-700">{{ stat.label }}</div>
             <div v-if="stat.description" class="mt-1 text-xs text-slate-500">{{ stat.description }}</div>
           </div>
@@ -176,8 +176,8 @@ const CALLOUT_STYLES: Record<string, string> = {
           <div class="grid gap-5" :class="(block.value as FeatureVal).columns >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'">
             <div v-for="feat in (block.value as FeatureVal).features" :key="feat.title"
               class="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
-              <div v-if="feat.icon" class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
-                <Icon :name="feat.icon" class="h-5 w-5 text-brand-600" />
+              <div v-if="feat.icon" class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-claret-900">
+                <Icon :name="feat.icon" class="h-5 w-5 text-amber-700" />
               </div>
               <h4 class="font-semibold text-slate-900">{{ feat.title }}</h4>
               <p class="mt-1.5 text-sm text-slate-500 leading-relaxed">{{ feat.description }}</p>
@@ -195,7 +195,7 @@ const CALLOUT_STYLES: Record<string, string> = {
           <ol class="space-y-5">
             <li v-for="(step, i) in (block.value as StepsVal).steps" :key="step.title"
               class="flex gap-4">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-700 text-sm font-bold text-white">
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-claret-900 text-sm font-bold text-white">
                 {{ i + 1 }}
               </div>
               <div>
@@ -209,13 +209,13 @@ const CALLOUT_STYLES: Record<string, string> = {
 
       <!-- cta -->
       <template v-else-if="block.type === 'cta'">
-        <div class="rounded-2xl bg-brand-900 px-8 py-8 text-center">
+        <div class="rounded-2xl bg-claret-900 px-8 py-8 text-center">
           <h3 class="font-serif text-2xl font-bold text-white">{{ (block.value as CtaVal).heading }}</h3>
-          <p v-if="(block.value as CtaVal).subheading" class="mt-3 text-brand-200">
+          <p v-if="(block.value as CtaVal).subheading" class="mt-3 text-amber-700">
             {{ (block.value as CtaVal).subheading }}
           </p>
           <a :href="(block.value as CtaVal).button_url"
-            class="mt-5 inline-block rounded-xl bg-white px-8 py-3 font-bold text-brand-700 hover:bg-brand-50 transition-colors">
+            class="mt-5 inline-block rounded-xl bg-white px-8 py-3 font-bold text-amber-700 hover:bg-claret-900 transition-colors">
             {{ (block.value as CtaVal).button_text }}
           </a>
         </div>
@@ -239,13 +239,13 @@ const CALLOUT_STYLES: Record<string, string> = {
             <div v-for="(entry, i) in (block.value as TimelineVal).entries" :key="entry.date"
               class="flex gap-5 pb-6 last:pb-0">
               <div class="flex flex-col items-center">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white">
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-claret-900 text-xs font-bold text-white">
                   {{ i + 1 }}
                 </div>
-                <div v-if="i < (block.value as TimelineVal).entries.length - 1" class="mt-1 h-full w-0.5 bg-brand-100" />
+                <div v-if="i < (block.value as TimelineVal).entries.length - 1" class="mt-1 h-full w-0.5 bg-claret-900" />
               </div>
               <div class="pt-0.5 pb-2">
-                <p class="text-sm font-bold text-brand-600">{{ entry.date }}</p>
+                <p class="text-sm font-bold text-amber-700">{{ entry.date }}</p>
                 <h4 class="font-semibold text-slate-900">{{ entry.title }}</h4>
                 <p v-if="entry.description" class="mt-1 text-sm text-slate-500">{{ entry.description }}</p>
               </div>
@@ -261,7 +261,7 @@ const CALLOUT_STYLES: Record<string, string> = {
             <h4 class="font-semibold text-slate-900">{{ (block.value as SampleVal).title }}</h4>
             <div class="flex gap-2">
               <span v-if="(block.value as SampleVal).paper_type"
-                class="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
+                class="rounded-full bg-claret-900 px-2.5 py-0.5 text-xs font-medium text-amber-700">
                 {{ (block.value as SampleVal).paper_type }}
               </span>
               <span v-if="(block.value as SampleVal).academic_level"

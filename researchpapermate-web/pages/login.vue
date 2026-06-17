@@ -43,14 +43,14 @@ useSeoMeta({ title: 'Sign in | ResearchPaperMate', robots: 'noindex' })
 </script>
 
 <template>
-  <div class="grid min-h-[calc(100vh-4rem)] place-items-center bg-slate-50 px-4 py-10">
+  <div class="grid min-h-[calc(100vh-4rem)] place-items-center bg-parchment-100 px-4 py-10">
     <section class="w-full max-w-md">
       <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/60">
 
         <!-- RPM wordmark logo -->
         <div class="mb-7">
           <NuxtLink to="/" class="mb-5 flex items-center gap-2.5">
-            <span class="font-serif text-xl font-bold text-brand-700">ResearchPaperMate</span>
+            <span class="font-serif text-xl font-bold text-claret-800 font-bold">ResearchPaperMate</span>
           </NuxtLink>
 
           <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Welcome back</h1>
@@ -60,7 +60,7 @@ useSeoMeta({ title: 'Sign in | ResearchPaperMate', robots: 'noindex' })
         </div>
 
         <!-- Tab switcher -->
-        <div class="mb-6 flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+        <div class="mb-6 flex gap-1 rounded-xl border border-slate-200 bg-parchment-100 p-1">
           <button
             class="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
             :class="tab === 'password' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
@@ -79,17 +79,17 @@ useSeoMeta({ title: 'Sign in | ResearchPaperMate', robots: 'noindex' })
         <form v-if="tab === 'password'" class="space-y-4" @submit.prevent="submit">
           <div>
             <label class="mb-1.5 block text-sm font-medium text-slate-700" for="email">Email</label>
-            <input id="email" v-model="form.email" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200" autocomplete="email" type="email" placeholder="you@example.com" required/>
+            <input id="email" v-model="form.email" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-claret-500 focus:outline-none focus:ring-2 focus:ring-claret-200" autocomplete="email" type="email" placeholder="you@example.com" required/>
           </div>
           <div>
             <div class="mb-1.5 flex items-center justify-between">
               <label class="text-sm font-medium text-slate-700" for="password">Password</label>
-              <a :href="`${app.dashboard}/auth/reset-password`" class="text-xs font-medium text-brand-600 hover:underline">Forgot password?</a>
+              <a :href="`${app.dashboard}/auth/reset-password`" class="text-xs font-medium text-amber-700 hover:underline">Forgot password?</a>
             </div>
-            <input id="password" v-model="form.password" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200" autocomplete="current-password" type="password" placeholder="••••••••" required/>
+            <input id="password" v-model="form.password" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-claret-500 focus:outline-none focus:ring-2 focus:ring-claret-200" autocomplete="current-password" type="password" placeholder="••••••••" required/>
           </div>
           <div v-if="auth.error" class="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800" role="alert">{{ auth.error }}</div>
-          <button class="relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canSubmit" type="submit">
+          <button class="relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-claret-900 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-claret-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canSubmit" type="submit">
             <svg v-if="auth.loading" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
@@ -104,10 +104,10 @@ useSeoMeta({ title: 'Sign in | ResearchPaperMate', robots: 'noindex' })
             <p class="text-sm text-slate-500">Enter your email and we'll send a one-click sign-in link. No password needed. Links expire in 15 minutes.</p>
             <div>
               <label class="mb-1.5 block text-sm font-medium text-slate-700" for="magic-email">Email</label>
-              <input id="magic-email" v-model="magicEmail" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200" autocomplete="email" type="email" placeholder="you@example.com" @keydown.enter.prevent="canSendMagic && sendMagicLink()"/>
+              <input id="magic-email" v-model="magicEmail" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-claret-500 focus:outline-none focus:ring-2 focus:ring-claret-200" autocomplete="email" type="email" placeholder="you@example.com" @keydown.enter.prevent="canSendMagic && sendMagicLink()"/>
             </div>
             <div v-if="magicError" class="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800" role="alert">{{ magicError }}</div>
-            <button class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canSendMagic" type="button" @click="sendMagicLink">
+            <button class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-claret-900 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-claret-800 disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canSendMagic" type="button" @click="sendMagicLink">
               <svg v-if="magicState === 'sending'" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
@@ -142,7 +142,7 @@ useSeoMeta({ title: 'Sign in | ResearchPaperMate', robots: 'noindex' })
 
       <p class="mt-4 text-center text-sm text-slate-500">
         New to ResearchPaperMate?
-        <NuxtLink to="/register" class="ml-1 font-semibold text-brand-600 hover:underline">Create a free account</NuxtLink>
+        <NuxtLink to="/register" class="ml-1 font-semibold text-amber-700 hover:underline">Create a free account</NuxtLink>
       </p>
     </section>
   </div>

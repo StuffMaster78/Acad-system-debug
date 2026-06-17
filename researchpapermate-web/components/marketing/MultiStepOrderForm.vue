@@ -150,11 +150,11 @@ function back() {
         v-for="(label, i) in ['Configure', 'Your brief', 'Review & order']"
         :key="i"
         class="flex flex-1 items-center justify-center gap-1.5 py-3 text-xs font-semibold transition-colors"
-        :class="step === i + 1 ? 'text-brand-700 border-b-2 border-brand-600 bg-white' : step > i + 1 ? 'text-brand-500' : 'text-slate-400'"
+        :class="step === i + 1 ? 'text-claret-700 border-b-2 border-amber-600 bg-white' : step > i + 1 ? 'text-amber-600' : 'text-slate-400'"
       >
         <span
           class="flex size-5 items-center justify-center rounded-full text-[10px] font-bold"
-          :class="step > i + 1 ? 'bg-brand-600 text-white' : step === i + 1 ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'"
+          :class="step > i + 1 ? 'bg-amber-600 text-white' : step === i + 1 ? 'bg-amber-600 text-white' : 'bg-slate-200 text-slate-500'"
         >{{ step > i + 1 ? '✓' : i + 1 }}</span>
         <span class="hidden sm:inline">{{ label }}</span>
       </div>
@@ -170,7 +170,7 @@ function back() {
             v-for="pt in paperTypes" :key="pt.code"
             type="button"
             class="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors"
-            :class="paperCode === pt.code ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-700'"
+            :class="paperCode === pt.code ? 'border-amber-600 bg-amber-600 text-white' : 'border-slate-200 text-slate-600 hover:border-claret-300 hover:text-claret-700'"
             @click="paperCode = pt.code"
           >{{ pt.label }}</button>
         </div>
@@ -184,7 +184,7 @@ function back() {
               v-for="lvl in levels" :key="lvl.code"
               type="button"
               class="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors text-left"
-              :class="levelCode === lvl.code ? 'border-brand-600 bg-brand-50 font-semibold text-brand-700' : 'border-slate-200 text-slate-600 hover:border-brand-300'"
+              :class="levelCode === lvl.code ? 'border-amber-600 bg-parchment-100 font-semibold text-claret-700' : 'border-slate-200 text-slate-600 hover:border-claret-300'"
               @click="levelCode = lvl.code"
             >
               <span>{{ lvl.label }}</span>
@@ -200,7 +200,7 @@ function back() {
               v-for="dl in deadlines" :key="dl.max_hours"
               type="button"
               class="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors text-left"
-              :class="deadlineHrs === dl.max_hours ? 'border-brand-600 bg-brand-50 font-semibold text-brand-700' : 'border-slate-200 text-slate-600 hover:border-brand-300'"
+              :class="deadlineHrs === dl.max_hours ? 'border-amber-600 bg-parchment-100 font-semibold text-claret-700' : 'border-slate-200 text-slate-600 hover:border-claret-300'"
               @click="deadlineHrs = dl.max_hours"
             >
               <span>{{ dl.label }}</span>
@@ -216,24 +216,24 @@ function back() {
           <span class="ml-1 font-normal normal-case text-slate-400">({{ words }} words, double-spaced)</span>
         </p>
         <div class="flex items-center gap-4">
-          <button type="button" class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-30" :disabled="pages <= 1" @click="pages--">−</button>
+          <button type="button" class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-amber-500 hover:text-amber-700 disabled:opacity-30" :disabled="pages <= 1" @click="pages--">−</button>
           <span class="w-10 text-center text-xl font-bold tabular-nums text-slate-900">{{ pages }}</span>
-          <button type="button" class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-30" :disabled="pages >= 100" @click="pages++">+</button>
+          <button type="button" class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-amber-500 hover:text-amber-700 disabled:opacity-30" :disabled="pages >= 100" @click="pages++">+</button>
         </div>
       </div>
 
       <!-- Running price footer -->
-      <div class="flex items-center justify-between rounded-xl bg-brand-50 px-5 py-3">
+      <div class="flex items-center justify-between rounded-xl bg-parchment-100 px-5 py-3">
         <div>
-          <p class="text-xs text-brand-600">{{ hasLivePrice ? 'Live price' : 'Estimated price' }}</p>
-          <p class="text-2xl font-extrabold tabular-nums text-brand-700">
+          <p class="text-xs text-amber-700">{{ hasLivePrice ? 'Live price' : 'Estimated price' }}</p>
+          <p class="text-2xl font-extrabold tabular-nums text-claret-700">
             ${{ displayPrice.toFixed(2) }}
-            <span v-if="isPricing" class="ml-1 animate-pulse text-xs font-normal text-brand-400">…</span>
+            <span v-if="isPricing" class="ml-1 animate-pulse text-xs font-normal text-amber-500">…</span>
           </p>
         </div>
         <button
           class="rounded-xl px-5 py-2.5 text-sm font-bold transition-colors"
-          :class="step1Valid ? 'bg-brand-600 text-white hover:bg-brand-700' : 'cursor-not-allowed bg-slate-200 text-slate-400'"
+          :class="step1Valid ? 'bg-amber-600 text-white hover:bg-amber-600' : 'cursor-not-allowed bg-slate-200 text-slate-400'"
           :disabled="!step1Valid"
           type="button"
           @click="next"
@@ -247,14 +247,14 @@ function back() {
     <div v-else-if="step === 2" class="p-6 space-y-5">
       <div>
         <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">
-          Paper title / topic <span class="text-brand-600">*</span>
+          Paper title / topic <span class="text-amber-700">*</span>
         </label>
         <input
           v-model="topic"
           type="text"
           placeholder="e.g. The impact of social media on adolescent mental health"
           maxlength="200"
-          class="h-10 w-full rounded-xl border border-slate-200 px-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          class="h-10 w-full rounded-xl border border-slate-200 px-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-claret-400 focus:outline-none focus:ring-2 focus:ring-claret-100"
         />
         <p v-if="topic.trim().length > 0 && topic.trim().length < 3" class="mt-1 text-xs text-red-500">Please add a bit more detail.</p>
       </div>
@@ -268,7 +268,7 @@ function back() {
           v-model="instructions"
           rows="4"
           placeholder="Specific requirements, formatting style, sources to include, grading rubric details…"
-          class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 resize-none"
+          class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-claret-400 focus:outline-none focus:ring-2 focus:ring-claret-100 resize-none"
         />
       </div>
 
@@ -277,7 +277,7 @@ function back() {
         <button
           type="button"
           class="flex-1 rounded-xl py-2.5 text-sm font-bold transition-colors"
-          :class="step2Valid ? 'bg-brand-600 text-white hover:bg-brand-700' : 'cursor-not-allowed bg-slate-200 text-slate-400'"
+          :class="step2Valid ? 'bg-amber-600 text-white hover:bg-amber-600' : 'cursor-not-allowed bg-slate-200 text-slate-400'"
           :disabled="!step2Valid"
           @click="next"
         >Review order →</button>
@@ -311,13 +311,13 @@ function back() {
         </div>
       </dl>
 
-      <div class="flex items-center justify-between rounded-xl bg-brand-50 px-5 py-3">
+      <div class="flex items-center justify-between rounded-xl bg-parchment-100 px-5 py-3">
         <div>
-          <p class="text-xs text-brand-600">{{ hasLivePrice ? 'Live price' : 'Estimated price' }}</p>
-          <p class="text-3xl font-extrabold tabular-nums text-brand-700">${{ displayPrice.toFixed(2) }}</p>
-          <p class="text-xs text-brand-500">${{ perPage.toFixed(2) }}/page</p>
+          <p class="text-xs text-amber-700">{{ hasLivePrice ? 'Live price' : 'Estimated price' }}</p>
+          <p class="text-3xl font-extrabold tabular-nums text-claret-700">${{ displayPrice.toFixed(2) }}</p>
+          <p class="text-xs text-amber-600">${{ perPage.toFixed(2) }}/page</p>
         </div>
-        <div class="text-right text-xs text-brand-600 space-y-0.5">
+        <div class="text-right text-xs text-amber-700 space-y-0.5">
           <p>✓ Price locked at checkout</p>
           <p>✓ Free revisions</p>
         </div>
@@ -327,7 +327,7 @@ function back() {
         <button type="button" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors" @click="back">← Edit</button>
         <a
           :href="orderUrl"
-          class="flex flex-1 h-12 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700"
+          class="flex flex-1 h-12 items-center justify-center rounded-xl bg-amber-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-600"
         >
           Place my order →
         </a>

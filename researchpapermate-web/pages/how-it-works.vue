@@ -10,123 +10,101 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/how-it
 const steps = [
   {
     n: '01',
-    emoji: '📋',
     title: 'Fill in your brief',
     sub: 'Takes 2 minutes',
-    desc: 'Tell us your assignment type, academic level, deadline, word count, and any rubric or reading list. The more you share upfront, the better your match.',
+    desc: 'Tell us your assignment type, academic level, deadline, word count, and any rubric or reading list. The more detail you provide upfront, the better the match.',
     bullets: [
-      'Paper type — essay, research paper, dissertation, case study, lab report…',
+      'Paper type — essay, research paper, dissertation, case study, lab report',
       'Academic level — high school through PhD',
       'Deadline — as fast as 3 hours or up to 14 days',
-      'Citation style — APA, MLA, Harvard, Chicago, Vancouver…',
+      'Citation style — APA, MLA, Harvard, Chicago, Vancouver',
       'Attach rubrics, reading lists, or grading criteria',
     ],
-    color: 'border-brand-200 bg-brand-50',
-    numColor: 'bg-brand-700 text-white',
   },
   {
     n: '02',
-    emoji: '🔒',
-    title: 'Pay — your money is held safely',
-    sub: 'Your payment is in escrow',
-    desc: 'Pay via card or PayPal. Your payment is held in escrow by our billing partner — it is only released to your writer after you have approved the completed work.',
+    title: 'Pay into secure escrow',
+    sub: 'Your payment is protected',
+    desc: 'Pay via card or PayPal. Your money is held in escrow — it is only released to your writer after you have approved the completed paper. You pay nothing if we cannot fulfil your order.',
     bullets: [
       'Visa, Mastercard, PayPal accepted',
       'Payment held in escrow until you approve',
       '256-bit SSL encryption on all transactions',
-      'No charge if we cannot fulfil your order',
+      'Full refund if we cannot find a matching writer',
     ],
-    color: 'border-green-200 bg-green-50',
-    numColor: 'bg-green-700 text-white',
   },
   {
     n: '03',
-    emoji: '💬',
-    title: 'Your writer gets matched and starts',
-    sub: 'Direct communication included',
-    desc: 'We match your order to a verified specialist whose degree and subject background align with your requirements. Message them directly, share files, and track progress.',
+    title: 'Your expert gets to work',
+    sub: 'Direct communication throughout',
+    desc: 'We match your order with a verified specialist whose degree and subject background align with your requirements. Message them directly, share files, track progress — no support tickets.',
     bullets: [
       'Matched by subject area, not just academic level',
-      "Master's writers for undergraduate work",
-      'PhD writers for dissertations and doctoral papers',
-      'Direct messaging — no support ticket middlemen',
-      'Writer can flag questions and share drafts proactively',
+      "Master's writers for undergraduate assignments",
+      'PhD writers for dissertations and doctoral work',
+      'Direct messaging — no third-party intermediaries',
+      'Writer can share drafts and flag questions proactively',
     ],
-    color: 'border-amber-200 bg-amber-50',
-    numColor: 'bg-amber-600 text-white',
   },
   {
     n: '04',
-    emoji: '⬇️',
-    title: 'Download, review, and request revisions',
-    sub: 'Free revisions included',
-    desc: 'Your writer uploads the completed paper. Download in Word or PDF. Your plagiarism report is included free. Request as many revisions as you need within the revision window.',
+    title: 'Review, revise, download',
+    sub: 'Unlimited free revisions included',
+    desc: 'Download your completed paper in Word or PDF. Your plagiarism report is included free. Request as many revisions as you need within the revision window. Grade guarantee applies from day one.',
     bullets: [
       'Download via your dashboard (Word, PDF)',
       'Free Turnitin plagiarism report included',
-      'Free AI-detection certificate available on request',
-      'Unlimited free revisions within revision window',
-      'Grade guarantee — rewrite or full refund if grade target missed',
+      'Free AI-detection certificate on request',
+      'Unlimited free revisions within the revision window',
+      'Grade guarantee — rewrite or full refund if target missed',
     ],
-    color: 'border-purple-200 bg-purple-50',
-    numColor: 'bg-purple-700 text-white',
   },
 ]
 
 const guarantees = [
-  { emoji: '💰', title: 'Escrow payment protection', desc: 'Your money only moves to the writer when you approve the work.' },
-  { emoji: '🎓', title: 'Grade or money back', desc: "State your grade target. If we miss it, we rewrite or refund." },
-  { emoji: '🤖', title: 'Zero AI content', desc: 'Every paper is human-written. Free AI-detection report on request.' },
-  { emoji: '🔁', title: 'Unlimited free revisions', desc: 'Within the revision window, revisions are always free.' },
+  { icon: '💰', title: 'Escrow protection', desc: 'Your money only moves to your writer when you approve the work.' },
+  { icon: '🎓', title: 'Grade guarantee', desc: "Miss your grade target? We rewrite free or refund completely." },
+  { icon: '🤖', title: 'Zero AI', desc: 'Every paper is human-written. AI-detection report available free.' },
+  { icon: '🔁', title: 'Free revisions', desc: 'Unlimited revisions within the revision window — always free.' },
 ]
 </script>
 
 <template>
   <div>
 
-    <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-claret-950 py-20 text-center">
-      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      <div class="relative mx-auto max-w-2xl px-4 sm:px-6">
-        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-claret-300">The process</p>
-        <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">
-          From brief to finished paper<br class="hidden sm:block" /> in four steps.
-        </h1>
-        <p class="mx-auto mt-5 max-w-xl text-lg text-claret-200">
-          No account needed to get a quote. No payment until you're matched with a writer. Revisions included throughout.
-        </p>
-        <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-claret-300">
-          <span>✓ Minimum 3-hour turnaround</span>
-          <span>✓ Grade or money back</span>
-          <span>✓ Direct writer access</span>
-        </div>
+    <!-- ── Page masthead — slim, typographic ─────────────────────────────── -->
+    <section class="bg-claret-950 pt-16 pb-0">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <p class="text-[11px] font-bold uppercase tracking-widest text-amber-500">The process</p>
+        <h1 class="mt-3 font-serif text-5xl text-white sm:text-6xl">How it works.</h1>
+        <p class="mt-4 max-w-xl text-lg text-claret-200">From brief to finished paper. Four steps, clear as a research methodology.</p>
+        <!-- Amber rule divider -->
+        <div class="mt-10 h-px w-full bg-gradient-to-r from-amber-500 via-amber-400/40 to-transparent"/>
       </div>
     </section>
 
-    <!-- ── Steps ─────────────────────────────────────────────────────────── -->
-    <section class="bg-white py-20">
-      <div class="mx-auto max-w-4xl space-y-6 px-4 sm:px-6 lg:px-8">
-        <div
-          v-for="step in steps"
-          :key="step.n"
-          class="overflow-hidden rounded-2xl border"
-          :class="step.color"
-        >
-          <div class="flex items-start gap-6 p-8">
-            <!-- Step number -->
-            <div class="flex size-14 shrink-0 items-center justify-center rounded-2xl text-xl font-extrabold shadow-sm" :class="step.numColor">
-              {{ step.n }}
+    <!-- ── Steps — continuous timeline, left-anchored ─────────────────────── -->
+    <section class="bg-parchment-100 py-0">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div class="relative">
+          <!-- Vertical timeline thread -->
+          <div class="absolute left-[31px] top-0 bottom-0 w-px bg-amber-200 sm:left-[39px]"/>
+
+          <div v-for="(step, i) in steps" :key="step.n" class="relative grid gap-8 py-14 sm:grid-cols-[80px_1fr] border-b border-parchment-300 last:border-0">
+            <!-- Step number bubble -->
+            <div class="relative z-10 flex size-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-claret-900 text-center shadow-lg">
+              <span class="text-[10px] font-bold uppercase tracking-widest text-amber-400">Step</span>
+              <span class="text-xl font-extrabold leading-none text-white">{{ step.n }}</span>
             </div>
+
             <!-- Content -->
-            <div class="flex-1">
-              <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ step.sub }}</p>
-              <h2 class="mt-1 text-xl font-bold text-slate-900">
-                {{ step.emoji }} {{ step.title }}
-              </h2>
-              <p class="mt-3 leading-relaxed text-slate-600">{{ step.desc }}</p>
+            <div class="pt-2">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-amber-700">{{ step.sub }}</p>
+              <h2 class="mt-1.5 font-serif text-3xl text-ink-DEFAULT">{{ step.title }}</h2>
+              <p class="mt-4 max-w-xl leading-relaxed text-ink-secondary">{{ step.desc }}</p>
               <ul class="mt-5 grid gap-2 sm:grid-cols-2">
-                <li v-for="b in step.bullets" :key="b" class="flex items-start gap-2 text-sm text-slate-600">
-                  <span class="mt-0.5 font-bold text-slate-400">—</span>
+                <li v-for="b in step.bullets" :key="b" class="flex items-start gap-2 text-sm text-ink-secondary">
+                  <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"/>
                   {{ b }}
                 </li>
               </ul>
@@ -136,29 +114,37 @@ const guarantees = [
       </div>
     </section>
 
-    <!-- ── Guarantees ─────────────────────────────────────────────────────── -->
-    <section class="bg-parchment-100 py-16">
+    <!-- ── Guarantees — white with amber accents ──────────────────────────── -->
+    <section class="bg-white py-16 border-y border-parchment-300">
       <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <p class="mb-8 text-center text-xs font-bold uppercase tracking-widest text-amber-700">What's always included</p>
+        <p class="mb-8 text-center text-[11px] font-bold uppercase tracking-widest text-amber-700">What's always included</p>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div v-for="g in guarantees" :key="g.title" class="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-            <div class="mb-3 text-3xl">{{ g.emoji }}</div>
-            <h3 class="font-bold text-slate-900">{{ g.title }}</h3>
-            <p class="mt-2 text-xs leading-relaxed text-slate-500">{{ g.desc }}</p>
+          <div v-for="g in guarantees" :key="g.title" class="rounded-2xl border border-parchment-300 bg-parchment-50 p-6 text-center">
+            <div class="mb-3 text-3xl">{{ g.icon }}</div>
+            <h3 class="font-bold text-ink-DEFAULT">{{ g.title }}</h3>
+            <p class="mt-2 text-xs leading-relaxed text-ink-secondary">{{ g.desc }}</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ── CTA ────────────────────────────────────────────────────────────── -->
-    <section class="bg-claret-950 py-20 text-center">
-      <div class="mx-auto max-w-xl px-4">
-        <h2 class="font-serif text-3xl font-bold text-white">Ready to get started?</h2>
-        <p class="mt-4 text-claret-200">Takes 2 minutes to fill in your brief. Free quote before you pay anything.</p>
-        <a :href="app.order" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-claret-900 shadow-lg transition-colors hover:bg-parchment-100">
-          Start my order — from $15/page
-        </a>
-        <p class="mt-4 text-xs text-claret-300">No payment until you approve · Free revisions · Grade or money back</p>
+    <!-- ── CTA — split layout ─────────────────────────────────────────────── -->
+    <section class="bg-claret-900">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div class="grid items-center gap-8 py-16 lg:grid-cols-2">
+          <div>
+            <h2 class="font-serif text-4xl text-white">Ready to get started?</h2>
+            <p class="mt-4 text-claret-200">Takes 2 minutes to fill in your brief. Free quote before you pay anything. No account required.</p>
+          </div>
+          <div class="flex flex-col gap-3 sm:flex-row lg:justify-end">
+            <a :href="app.order" class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-7 py-3.5 text-sm font-bold text-white shadow transition-colors hover:bg-amber-500">
+              Start my order — from $15/page
+            </a>
+            <a href="/pricing" class="inline-flex items-center justify-center rounded-xl border border-claret-700 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:border-claret-500 hover:bg-claret-800">
+              See pricing →
+            </a>
+          </div>
+        </div>
       </div>
     </section>
 

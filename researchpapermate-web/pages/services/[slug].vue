@@ -158,7 +158,7 @@ useHead({
               </div>
               <p class="text-sm text-slate-700">{{ item }}</p>
             </div>
-            <div class="mt-4 rounded-2xl bg-slate-900 p-5 text-white">
+            <div class="mt-4 rounded-2xl bg-claret-900 p-5 text-white">
               <p class="font-semibold">Everything is included — no hidden extras</p>
               <p class="mt-1 text-sm text-slate-300">Plagiarism report, title page, reference list, and revisions are all free.</p>
             </div>

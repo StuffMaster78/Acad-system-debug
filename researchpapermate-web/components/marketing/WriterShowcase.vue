@@ -119,7 +119,7 @@ function stars(rating: number) {
             <span
               v-for="tag in w.tags"
               :key="tag"
-              class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700"
+              class="rounded-full bg-parchment-100 px-2.5 py-1 text-xs font-medium text-claret-700"
             >
               {{ tag }}
             </span>
@@ -128,7 +128,7 @@ function stars(rating: number) {
           <div class="mt-4 border-t border-slate-100 pt-4">
             <NuxtLink
               to="/order"
-              class="block w-full rounded-lg border border-brand-200 py-2 text-center text-sm font-medium text-brand-700 transition-colors hover:border-brand-600 hover:bg-brand-600 hover:text-white"
+              class="block w-full rounded-lg border border-parchment-300 py-2 text-center text-sm font-medium text-claret-700 transition-colors hover:border-amber-600 hover:bg-amber-600 hover:text-white"
             >
               Order with this expert
             </NuxtLink>

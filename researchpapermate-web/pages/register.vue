@@ -24,7 +24,7 @@ useSeoMeta({ title: 'Create an account | ResearchPaperMate', robots: 'noindex' }
 </script>
 
 <template>
-  <div class="grid min-h-[calc(100vh-4rem)] place-items-center bg-slate-50 px-4 py-10">
+  <div class="grid min-h-[calc(100vh-4rem)] place-items-center bg-parchment-100 px-4 py-10">
     <section class="w-full max-w-4xl">
 
       <!-- Post-registration confirmation -->
@@ -53,7 +53,7 @@ useSeoMeta({ title: 'Create an account | ResearchPaperMate', robots: 'noindex' }
           <div class="bg-white p-8">
             <!-- RPM logo -->
             <NuxtLink to="/" class="mb-6 flex items-center gap-2.5">
-              <span class="font-serif text-xl font-bold text-brand-700">ResearchPaperMate</span>
+              <span class="font-serif text-xl font-bold text-claret-800 font-bold">ResearchPaperMate</span>
             </NuxtLink>
 
             <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Create your account</h1>
@@ -63,23 +63,23 @@ useSeoMeta({ title: 'Create an account | ResearchPaperMate', robots: 'noindex' }
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="mb-1.5 block text-sm font-medium text-slate-700" for="first-name">First name</label>
-                  <input id="first-name" v-model="form.first_name" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200" autocomplete="given-name" type="text" placeholder="Jane" required/>
+                  <input id="first-name" v-model="form.first_name" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-claret-500 focus:outline-none focus:ring-2 focus:ring-claret-200" autocomplete="given-name" type="text" placeholder="Jane" required/>
                 </div>
                 <div>
                   <label class="mb-1.5 block text-sm font-medium text-slate-700" for="last-name">Last name</label>
-                  <input id="last-name" v-model="form.last_name" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200" autocomplete="family-name" type="text" placeholder="Smith"/>
+                  <input id="last-name" v-model="form.last_name" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-claret-500 focus:outline-none focus:ring-2 focus:ring-claret-200" autocomplete="family-name" type="text" placeholder="Smith"/>
                 </div>
               </div>
               <div>
                 <label class="mb-1.5 block text-sm font-medium text-slate-700" for="reg-email">Email</label>
-                <input id="reg-email" v-model="form.email" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200" autocomplete="email" type="email" placeholder="you@example.com" required/>
+                <input id="reg-email" v-model="form.email" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-claret-500 focus:outline-none focus:ring-2 focus:ring-claret-200" autocomplete="email" type="email" placeholder="you@example.com" required/>
               </div>
               <div>
                 <label class="mb-1.5 block text-sm font-medium text-slate-700" for="reg-password">Password</label>
-                <input id="reg-password" v-model="form.password" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200" autocomplete="new-password" type="password" placeholder="At least 8 characters" required minlength="8"/>
+                <input id="reg-password" v-model="form.password" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300 focus:border-claret-500 focus:outline-none focus:ring-2 focus:ring-claret-200" autocomplete="new-password" type="password" placeholder="At least 8 characters" required minlength="8"/>
               </div>
               <div v-if="auth.error" class="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800" role="alert">{{ auth.error }}</div>
-              <button class="relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canSubmit" type="submit">
+              <button class="relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-claret-900 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-claret-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canSubmit" type="submit">
                 <svg v-if="auth.loading" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
@@ -95,48 +95,48 @@ useSeoMeta({ title: 'Create an account | ResearchPaperMate', robots: 'noindex' }
 
             <p class="mt-5 text-center text-sm text-slate-500">
               Already have an account?
-              <NuxtLink to="/login" class="ml-1 font-semibold text-brand-600 hover:underline">Sign in</NuxtLink>
+              <NuxtLink to="/login" class="ml-1 font-semibold text-amber-700 hover:underline">Sign in</NuxtLink>
             </p>
           </div>
 
           <!-- Right: trust panel -->
-          <div class="hidden bg-gradient-to-br from-brand-800 to-brand-900 p-8 text-white lg:flex lg:flex-col lg:justify-between">
+          <div class="hidden bg-gradient-to-br from-claret-900 to-claret-950 p-8 text-white lg:flex lg:flex-col lg:justify-between">
             <div>
-              <p class="mb-6 text-xs font-semibold uppercase tracking-widest text-brand-300">Why students choose us</p>
+              <p class="mb-6 text-xs font-semibold uppercase tracking-widest text-claret-300">Why students choose us</p>
               <ul class="space-y-5">
                 <li class="flex items-start gap-3">
-                  <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold">✓</span>
+                  <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold">✓</span>
                   <div>
                     <p class="font-semibold text-white">Expert writers — 100+ subjects</p>
-                    <p class="mt-0.5 text-xs leading-relaxed text-brand-300">Master's-level and PhD writers matched to your exact subject area.</p>
+                    <p class="mt-0.5 text-xs leading-relaxed text-claret-300">Master's-level and PhD writers matched to your exact subject area.</p>
                   </div>
                 </li>
                 <li class="flex items-start gap-3">
-                  <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold">✓</span>
+                  <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold">✓</span>
                   <div>
                     <p class="font-semibold text-white">Grade or money back</p>
-                    <p class="mt-0.5 text-xs leading-relaxed text-brand-300">If the work doesn't meet your requirements, we rewrite it free or refund you.</p>
+                    <p class="mt-0.5 text-xs leading-relaxed text-claret-300">If the work doesn't meet your requirements, we rewrite it free or refund you.</p>
                   </div>
                 </li>
                 <li class="flex items-start gap-3">
-                  <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold">✓</span>
+                  <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold">✓</span>
                   <div>
                     <p class="font-semibold text-white">Zero AI — plagiarism-free</p>
-                    <p class="mt-0.5 text-xs leading-relaxed text-brand-300">Every paper written by a human expert. Free Turnitin report included.</p>
+                    <p class="mt-0.5 text-xs leading-relaxed text-claret-300">Every paper written by a human expert. Free Turnitin report included.</p>
                   </div>
                 </li>
                 <li class="flex items-start gap-3">
-                  <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold">✓</span>
+                  <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold">✓</span>
                   <div>
                     <p class="font-semibold text-white">As fast as 2 hours</p>
-                    <p class="mt-0.5 text-xs leading-relaxed text-brand-300">Urgent deadline? Most papers up to 4 pages delivered in 2 hours.</p>
+                    <p class="mt-0.5 text-xs leading-relaxed text-claret-300">Urgent deadline? Most papers up to 4 pages delivered in 2 hours.</p>
                   </div>
                 </li>
                 <li class="flex items-start gap-3">
-                  <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold">✓</span>
+                  <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold">✓</span>
                   <div>
                     <p class="font-semibold text-white">Direct writer messaging</p>
-                    <p class="mt-0.5 text-xs leading-relaxed text-brand-300">Communicate with your writer throughout — no support ticket middlemen.</p>
+                    <p class="mt-0.5 text-xs leading-relaxed text-claret-300">Communicate with your writer throughout — no support ticket middlemen.</p>
                   </div>
                 </li>
               </ul>
@@ -148,7 +148,7 @@ useSeoMeta({ title: 'Create an account | ResearchPaperMate', robots: 'noindex' }
                 </svg>
                 <span class="ml-1 text-sm font-bold text-white">4.8 / 5</span>
               </div>
-              <p class="mt-1 text-xs text-brand-300">From 14,700+ papers delivered</p>
+              <p class="mt-1 text-xs text-claret-300">From 14,700+ papers delivered</p>
             </div>
           </div>
 

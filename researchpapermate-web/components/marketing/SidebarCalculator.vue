@@ -38,7 +38,7 @@ const orderUrl = computed(() => {
 </script>
 
 <template>
-  <div class="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
+  <div class="rounded-2xl border border-parchment-300 bg-white p-5 shadow-sm">
     <h3 class="mb-4 font-serif text-base font-bold text-slate-900">Get an instant quote</h3>
 
     <div class="space-y-3">
@@ -48,7 +48,7 @@ const orderUrl = computed(() => {
           Academic level
         </label>
         <select
-          class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-claret-500 focus:outline-none focus:ring-1 focus:ring-claret-200"
           :value="selectedLevel.code"
           @change="selectedLevel = levels.find(l => l.code === ($event.target as HTMLSelectElement).value) ?? levels[0]"
         >
@@ -64,7 +64,7 @@ const orderUrl = computed(() => {
           Deadline
         </label>
         <select
-          class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-claret-500 focus:outline-none focus:ring-1 focus:ring-claret-200"
           :value="selectedDeadline.max_hours"
           @change="selectedDeadline = deadlines.find(d => d.max_hours === Number(($event.target as HTMLSelectElement).value)) ?? deadlines[0]"
         >
@@ -79,13 +79,13 @@ const orderUrl = computed(() => {
         </label>
         <div class="flex items-center gap-3">
           <button
-            class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-30"
+            class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-amber-500 hover:text-amber-700 disabled:opacity-30"
             :disabled="pages <= 1"
             @click="pages = Math.max(1, pages - 1)"
           >−</button>
           <span class="w-6 text-center font-bold text-slate-900">{{ pages }}</span>
           <button
-            class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600"
+            class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-amber-500 hover:text-amber-700"
             @click="pages++"
           >+</button>
         </div>
@@ -93,10 +93,10 @@ const orderUrl = computed(() => {
     </div>
 
     <!-- Result -->
-    <div class="mt-4 flex items-center justify-between rounded-xl bg-brand-50 px-4 py-3">
+    <div class="mt-4 flex items-center justify-between rounded-xl bg-parchment-100 px-4 py-3">
       <div>
-        <p class="text-xs font-medium text-brand-600">Estimated total</p>
-        <p class="text-2xl font-bold text-brand-700">${{ total }}</p>
+        <p class="text-xs font-medium text-amber-700">Estimated total</p>
+        <p class="text-2xl font-bold text-claret-700">${{ total }}</p>
       </div>
       <a :href="orderUrl" class="btn-primary px-4 py-2 text-sm">Order now</a>
     </div>

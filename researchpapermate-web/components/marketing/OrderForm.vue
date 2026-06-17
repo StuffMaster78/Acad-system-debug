@@ -103,8 +103,8 @@ watch([paperCode, levelCode, deadlineHrs, pages], scheduleEstimate)
   <div class="rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden">
 
     <!-- Header -->
-    <div class="bg-brand-700 px-6 py-4">
-      <p class="text-xs font-bold uppercase tracking-widest text-brand-200">Instant order form</p>
+    <div class="bg-amber-600 px-6 py-4">
+      <p class="text-xs font-bold uppercase tracking-widest text-claret-200">Instant order form</p>
       <p class="mt-0.5 text-sm text-white/80">Configure your order and see the price before paying anything</p>
     </div>
 
@@ -120,8 +120,8 @@ watch([paperCode, levelCode, deadlineHrs, pages], scheduleEstimate)
             type="button"
             class="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors"
             :class="paperCode === pt.code
-              ? 'border-brand-600 bg-brand-600 text-white'
-              : 'border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-700'"
+              ? 'border-amber-600 bg-amber-600 text-white'
+              : 'border-slate-200 text-slate-600 hover:border-claret-300 hover:text-claret-700'"
             @click="paperCode = pt.code"
           >
             {{ pt.label }}
@@ -140,8 +140,8 @@ watch([paperCode, levelCode, deadlineHrs, pages], scheduleEstimate)
               type="button"
               class="flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors text-left"
               :class="levelCode === lvl.code
-                ? 'border-brand-600 bg-brand-50 text-brand-700 font-semibold'
-                : 'border-slate-200 text-slate-600 hover:border-brand-300'"
+                ? 'border-amber-600 bg-parchment-100 text-claret-700 font-semibold'
+                : 'border-slate-200 text-slate-600 hover:border-claret-300'"
               @click="levelCode = lvl.code"
             >
               <span>{{ lvl.label }}</span>
@@ -159,8 +159,8 @@ watch([paperCode, levelCode, deadlineHrs, pages], scheduleEstimate)
               type="button"
               class="flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors text-left"
               :class="deadlineHrs === dl.max_hours
-                ? 'border-brand-600 bg-brand-50 text-brand-700 font-semibold'
-                : 'border-slate-200 text-slate-600 hover:border-brand-300'"
+                ? 'border-amber-600 bg-parchment-100 text-claret-700 font-semibold'
+                : 'border-slate-200 text-slate-600 hover:border-claret-300'"
               @click="deadlineHrs = dl.max_hours"
             >
               <span>{{ dl.label }}</span>
@@ -179,14 +179,14 @@ watch([paperCode, levelCode, deadlineHrs, pages], scheduleEstimate)
         <div class="flex items-center gap-4">
           <button
             type="button"
-            class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-30"
+            class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-amber-500 hover:text-amber-700 disabled:opacity-30"
             :disabled="pages <= 1"
             @click="pages = Math.max(1, pages - 1)"
           >−</button>
           <span class="w-10 text-center text-xl font-bold text-slate-900 tabular-nums">{{ pages }}</span>
           <button
             type="button"
-            class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-30"
+            class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-amber-500 hover:text-amber-700 disabled:opacity-30"
             :disabled="pages >= 100"
             @click="pages = Math.min(100, pages + 1)"
           >+</button>
@@ -204,7 +204,7 @@ watch([paperCode, levelCode, deadlineHrs, pages], scheduleEstimate)
           type="text"
           placeholder="e.g. The impact of social media on mental health in teenagers"
           maxlength="200"
-          class="h-10 w-full rounded-xl border border-slate-200 px-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+          class="h-10 w-full rounded-xl border border-slate-200 px-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-claret-400 focus:outline-none focus:ring-2 focus:ring-claret-100"
         />
       </div>
     </div>
@@ -215,7 +215,7 @@ watch([paperCode, levelCode, deadlineHrs, pages], scheduleEstimate)
         <div>
           <p class="text-xs text-slate-400">{{ pricingLabel }}</p>
           <div class="flex items-baseline gap-2">
-            <p class="text-4xl font-extrabold tabular-nums text-brand-700">
+            <p class="text-4xl font-extrabold tabular-nums text-claret-700">
               ${{ displayPrice.toFixed(2) }}
             </p>
             <span v-if="isPricing" class="text-xs text-slate-400 animate-pulse">Updating…</span>
@@ -231,7 +231,7 @@ watch([paperCode, levelCode, deadlineHrs, pages], scheduleEstimate)
 
       <a
         :href="orderUrl"
-        class="flex h-12 w-full items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700"
+        class="flex h-12 w-full items-center justify-center rounded-xl bg-amber-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-600"
       >
         Start my order →
       </a>

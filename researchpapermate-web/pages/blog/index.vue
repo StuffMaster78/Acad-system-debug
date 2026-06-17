@@ -114,7 +114,7 @@ function formatDate(iso: string) {
 }
 
 const CAT_COLOR: Record<string, string> = {
-  'Research Papers':    'bg-brand-50  text-brand-700',
+  'Research Papers':    'bg-brand-50  text-claret-700',
   'Citations & Style':  'bg-blue-50   text-blue-700',
   'Literature Reviews': 'bg-indigo-50 text-indigo-700',
   'Dissertations':      'bg-slate-100 text-slate-700',
@@ -128,10 +128,10 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
   <div>
 
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-brand-900 py-16 text-center">
+    <section class="relative overflow-hidden bg-claret-950 py-16 text-center">
       <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
       <div class="relative mx-auto max-w-2xl px-4 sm:px-6">
-        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-300">Resources</p>
+        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-amber-400">Resources</p>
         <h1 class="text-4xl font-bold text-white sm:text-5xl">Research Paper Blog</h1>
         <p class="mt-4 text-lg text-brand-200">APA, MLA, citations, literature reviews, and research methodology — from Master's and PhD writers.</p>
       </div>
@@ -158,7 +158,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
             <button
               v-for="cat in categories" :key="cat"
               class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
-              :class="activeCategory === cat ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
+              :class="activeCategory === cat ? 'border-brand-600 bg-amber-600 text-white' : 'border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
               @click="setCategory(cat)"
             >{{ cat }}</button>
           </div>
@@ -166,7 +166,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
           <!-- Empty -->
           <div v-if="!filtered.length" class="space-y-4 py-20 text-center">
             <p class="text-sm text-slate-500">No articles yet — check back soon.</p>
-            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-bold text-white hover:bg-brand-700 transition-colors">
+            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-3 text-sm font-bold text-white hover:bg-amber-600 transition-colors">
               Place an order <ArrowRight class="h-4 w-4" />
             </a>
           </div>
@@ -189,7 +189,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
                   <span v-if="featured.category" class="rounded-full px-2.5 py-0.5 font-semibold" :class="catColor(featured.category)">{{ featured.category }}</span>
                   <span class="flex items-center gap-1"><Clock class="h-3 w-3" />{{ featured.readingTime }} min read</span>
                 </div>
-                <h2 class="text-xl font-bold leading-snug text-slate-900 transition-colors group-hover:text-brand-700">{{ featured.title }}</h2>
+                <h2 class="text-xl font-bold leading-snug text-slate-900 transition-colors group-hover:text-claret-700">{{ featured.title }}</h2>
                 <p v-if="featured.excerpt" class="line-clamp-3 text-sm leading-relaxed text-slate-500">{{ featured.excerpt }}</p>
                 <div class="flex items-center gap-4 pt-1">
                   <span class="flex items-center gap-1 text-xs text-slate-400"><Calendar class="h-3 w-3" />{{ formatDate(featured.publishedAt) }}</span>
@@ -217,7 +217,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
                     <span v-if="post.category" class="rounded-full px-2.5 py-0.5 font-semibold" :class="catColor(post.category)">{{ post.category }}</span>
                     <span v-if="post.readingTime" class="flex items-center gap-1"><Clock class="h-3 w-3" />{{ post.readingTime }} min</span>
                   </div>
-                  <h2 class="line-clamp-2 flex-1 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-brand-700">{{ post.title }}</h2>
+                  <h2 class="line-clamp-2 flex-1 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-claret-700">{{ post.title }}</h2>
                   <p v-if="post.excerpt" class="line-clamp-2 text-xs leading-relaxed text-slate-500">{{ post.excerpt }}</p>
                   <div class="flex items-center justify-between border-t border-slate-100 pt-1.5">
                     <span class="flex items-center gap-1 text-xs text-slate-400"><Calendar class="h-3 w-3" />{{ formatDate(post.publishedAt) }}</span>
@@ -233,7 +233,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
               <button
                 v-for="p in totalPages" :key="p"
                 class="flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition-colors"
-                :class="p === activePage ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
+                :class="p === activePage ? 'border-brand-600 bg-amber-600 text-white' : 'border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
                 @click="goPage(p)"
               >{{ p }}</button>
               <button :disabled="activePage === totalPages" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40 transition-colors" @click="goPage(activePage + 1)">→</button>
@@ -249,7 +249,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
       <div class="mx-auto max-w-xl space-y-4 px-4">
         <h2 class="text-xl font-bold text-slate-900">Need your research paper written?</h2>
         <p class="text-sm text-slate-500">Master's and PhD writers, 100+ subjects. Properly cited, from $15/page.</p>
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-8 py-3.5 text-sm font-bold text-white transition-colors hover:bg-brand-700">
+        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-8 py-3.5 text-sm font-bold text-white transition-colors hover:bg-amber-600">
           Place my order <ArrowRight class="h-4 w-4" />
         </a>
       </div>

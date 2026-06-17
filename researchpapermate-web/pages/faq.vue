@@ -88,14 +88,14 @@ const sections = [
   <div>
 
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-brand-900 py-20 text-center">
+    <section class="relative overflow-hidden bg-claret-950 py-20 text-center">
       <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
       <div class="relative mx-auto max-w-2xl px-4 sm:px-6">
-        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">Everything answered</p>
-        <h1 class="text-4xl font-bold text-white sm:text-5xl">Frequently asked questions</h1>
-        <p class="mt-4 text-lg text-brand-200">
+        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-amber-400">Everything answered</p>
+        <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">Frequently asked questions</h1>
+        <p class="mt-4 text-lg text-claret-200">
           Can't find what you need?
-          <NuxtLink to="/contact" class="font-semibold text-brand-300 underline hover:text-white">Message us</NuxtLink>
+          <NuxtLink to="/contact" class="font-semibold text-amber-400 underline hover:text-white">Message us</NuxtLink>
           — we reply within 1 hour.
         </p>
       </div>
@@ -125,13 +125,13 @@ const sections = [
     </section>
 
     <!-- ── CTA ────────────────────────────────────────────────────────────── -->
-    <section class="bg-slate-50 py-16 text-center">
+    <section class="bg-parchment-100 py-16 text-center">
       <div class="mx-auto max-w-xl px-4">
         <h2 class="text-2xl font-bold text-slate-900">Still have a question?</h2>
         <p class="mt-2 text-slate-500">Our support team responds within 1 hour, 7 days a week.</p>
         <div class="mt-8 flex flex-wrap justify-center gap-4">
-          <NuxtLink to="/contact" class="inline-flex items-center rounded-xl bg-brand-700 px-7 py-3 text-sm font-bold text-white shadow transition-colors hover:bg-brand-800">Contact support</NuxtLink>
-          <a :href="app.order" class="inline-flex items-center rounded-xl border border-brand-200 px-7 py-3 text-sm font-semibold text-brand-600 transition-colors hover:bg-brand-50">Place an order</a>
+          <NuxtLink to="/contact" class="inline-flex items-center rounded-xl bg-amber-600 px-7 py-3 text-sm font-bold text-white shadow transition-colors hover:bg-amber-700">Contact support</NuxtLink>
+          <a :href="app.order" class="inline-flex items-center rounded-xl border border-claret-200 px-7 py-3 text-sm font-semibold text-amber-700 transition-colors hover:bg-parchment-100">Place an order</a>
         </div>
       </div>
     </section>

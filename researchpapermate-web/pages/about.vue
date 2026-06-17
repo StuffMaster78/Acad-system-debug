@@ -103,7 +103,7 @@ const milestones = [
             </p>
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
-            <div v-for="v in values" :key="v.title" class="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <div v-for="v in values" :key="v.title" class="rounded-2xl border border-slate-200 bg-parchment-100 p-6">
               <div class="mb-3 text-3xl">{{ v.emoji }}</div>
               <h3 class="font-bold text-slate-900">{{ v.title }}</h3>
               <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ v.desc }}</p>
@@ -114,7 +114,7 @@ const milestones = [
     </section>
 
     <!-- ── Writer vetting ─────────────────────────────────────────────────── -->
-    <section class="bg-slate-50 py-20">
+    <section class="bg-parchment-100 py-20">
       <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div class="grid items-center gap-16 lg:grid-cols-2">
           <div>
@@ -172,7 +172,7 @@ const milestones = [
           Tell us your subject, level, and deadline. We'll match you with the right specialist within minutes.
         </p>
         <div class="mt-8 flex flex-wrap justify-center gap-4">
-          <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-claret-700 shadow-lg transition-colors hover:bg-brand-50">
+          <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-claret-700 shadow-lg transition-colors hover:bg-parchment-100">
             Start my order — from $15/page
           </a>
           <a href="/how-it-works" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">

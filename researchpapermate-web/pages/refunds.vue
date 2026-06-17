@@ -11,14 +11,14 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/refund
         <h1 class="mt-4 font-serif text-3xl font-bold text-slate-900 sm:text-4xl">Refund Policy</h1>
         <p class="mt-2 text-sm text-slate-400">Last updated: June 2025</p>
         <div class="mt-5 flex flex-wrap gap-3">
-          <span class="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700"><span class="text-brand-500">✓</span> Grade or money back</span>
+          <span class="inline-flex items-center gap-1.5 rounded-full border border-parchment-300 bg-parchment-100 px-3 py-1 text-xs font-semibold text-claret-800"><span class="text-amber-600">✓</span> Grade or money back</span>
           <span class="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700"><span class="text-green-500">✓</span> Unlimited free revisions</span>
           <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"><span class="text-amber-500">✓</span> On-time delivery guarantee</span>
         </div>
       </div>
     </div>
     <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-      <div class="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-bold prose-h2:mt-10 prose-h2:text-xl prose-h2:text-slate-900 prose-h3:text-base prose-h3:text-slate-800 prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900">
+      <div class="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-bold prose-h2:mt-10 prose-h2:text-xl prose-h2:text-slate-900 prose-h3:text-base prose-h3:text-slate-800 prose-a:text-amber-700 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900">
         <h2>1. Grade or money-back guarantee</h2>
         <p>If you receive a grade lower than specified in your order brief, and the shortfall is attributable to our work, contact us within <strong>14 days</strong> of receiving your graded work. Email <a href="mailto:support@researchpapermate.com">support@researchpapermate.com</a> with your order number, grade received, and any instructor feedback. We will either <strong>rewrite the relevant sections free of charge</strong> or issue a <strong>partial or full refund</strong>.</p>
         <h2>2. Free revision policy</h2>

@@ -16,7 +16,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/terms'
       </div>
     </div>
     <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-      <div class="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-bold prose-h2:mt-10 prose-h2:text-xl prose-h2:text-slate-900 prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900">
+      <div class="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-bold prose-h2:mt-10 prose-h2:text-xl prose-h2:text-slate-900 prose-a:text-amber-700 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900">
         <h2>1. About ResearchPaperMate</h2>
         <p>ResearchPaperMate is an academic assistance platform connecting students with qualified, credentialed academic writers across 100+ subjects. We provide custom research papers, essays, dissertations, and other coursework as <strong>model and reference materials</strong> to support study and learning.</p>
         <h2>2. Model paper disclaimer</h2>

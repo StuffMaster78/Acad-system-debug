@@ -66,7 +66,7 @@ const filtered = computed(() => {
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
     <section class="relative overflow-hidden bg-claret-950 py-20">
       <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      <div class="pointer-events-none absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-600 opacity-20 blur-[120px]" />
+      <div class="pointer-events-none absolute right-0 top-0 h-96 w-96 rounded-full bg-claret-500 opacity-20 blur-[120px]" />
 
       <div class="relative mx-auto max-w-5xl px-4 sm:px-6">
         <div class="grid items-center gap-12 lg:grid-cols-2">
@@ -141,7 +141,7 @@ const filtered = computed(() => {
             class="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-amber-200 hover:shadow-md"
           >
             <div class="flex items-start justify-between gap-3">
-              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-sm font-extrabold text-white">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-claret-900 text-sm font-extrabold text-white">
                 {{ w.initials }}
               </div>
               <span

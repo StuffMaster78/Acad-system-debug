@@ -25,7 +25,7 @@ function fmtDate(v?: string) {
     <!-- Header -->
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-6 py-4">
       <div class="flex items-center gap-2.5">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-claret-900">
           <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         </div>
         <p class="font-semibold text-slate-900">How this article was written</p>
@@ -47,7 +47,7 @@ function fmtDate(v?: string) {
           <div v-if="i < steps.length - 1" class="absolute bottom-0 left-[15px] top-8 w-px bg-slate-200" />
 
           <!-- Icon circle -->
-          <div class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-brand-600 bg-brand-600">
+          <div class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-claret-200 bg-claret-900">
             <Icon :name="step.icon" class="h-3.5 w-3.5 text-white" />
           </div>
 
@@ -57,13 +57,13 @@ function fmtDate(v?: string) {
             <p class="mt-0.5 text-sm leading-5 text-slate-500">{{ step.description }}</p>
 
             <!-- Dynamic details -->
-            <p v-if="i === 2 && reviewerName" class="mt-1 text-xs font-medium text-brand-700">
+            <p v-if="i === 2 && reviewerName" class="mt-1 text-xs font-medium text-amber-700">
               Reviewed by {{ reviewerName }}{{ reviewerCredentials ? ` · ${reviewerCredentials}` : '' }}
             </p>
-            <p v-if="i === 3 && publishedAt" class="mt-1 text-xs font-medium text-brand-700">
+            <p v-if="i === 3 && publishedAt" class="mt-1 text-xs font-medium text-amber-700">
               First published {{ fmtDate(publishedAt) }}
             </p>
-            <p v-if="i === 4 && updatedAt" class="mt-1 text-xs font-medium text-brand-700">
+            <p v-if="i === 4 && updatedAt" class="mt-1 text-xs font-medium text-amber-700">
               Last updated {{ fmtDate(updatedAt) }}
             </p>
           </div>

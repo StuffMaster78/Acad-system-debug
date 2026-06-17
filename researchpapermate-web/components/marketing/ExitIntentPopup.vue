@@ -67,13 +67,13 @@ function isExternal(url?: string) {
               <a
                 v-if="isExternal(cfg.primary_cta_url)"
                 :href="cfg.primary_cta_url"
-                class="inline-flex items-center justify-center rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700"
+                class="inline-flex items-center justify-center rounded-xl bg-amber-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-600"
                 @click="popup.dismiss()"
               >{{ cfg.primary_cta_label || 'Get started' }}</a>
               <NuxtLink
                 v-else
                 :to="cfg.primary_cta_url || '/order'"
-                class="inline-flex items-center justify-center rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700"
+                class="inline-flex items-center justify-center rounded-xl bg-amber-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-600"
                 @click="popup.dismiss()"
               >{{ cfg.primary_cta_label || 'Get started' }}</NuxtLink>
 
