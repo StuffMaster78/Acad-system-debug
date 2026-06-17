@@ -10,11 +10,14 @@ from rest_framework.response import Response
 
 from orders.api.permissions.adjustment_permissions import (
     CanAcceptAdjustment,
+    CanActOnOwnAdjustment,
     CanCancelAdjustment,
     CanCounterAdjustment,
     CanCreateAdjustment,
     CanDeclineAdjustment,
     CanOverrideAdjustment,
+    CanStaffResolveAdjustment,
+    CanWriterEscalateAdjustment,
 )
 from orders.api.serializers.adjustments.adjustment_accept_serializer import (
     AdjustmentAcceptSerializer,
@@ -424,4 +427,145 @@ class AdjustmentStaffOverrideView(GenericAPIView):
             ),
             pk=adjustment_id,
             website=user.website,
+        )
+
+class ClientAcceptScopeRequestView(GenericAPIView):
+    """
+    Client accepts the original scope increment without countering.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, CanActOnOwnAdjustment]
+
+    def post(
+        self,
+        request: Request,
+        adjustment_id: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Response:
+        adjustment_request = get_object_or_404(
+            OrderAdjustmentRequest.objects.select_related("website", "order"),
+            pk=adjustment_id,
+            website=cast(Any, request.user).website,
+        )
+        self.check_object_permissions(request, adjustment_request)
+
+        from django.core.exceptions import ValidationError
+
+        try:
+            updated = AdjustmentNegotiationService.client_accept_scope_request(
+                adjustment_request=adjustment_request,
+                accepted_by=request.user,
+            )
+        except ValidationError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                "message": "Scope request accepted.",
+                "adjustment_request_id": updated.pk,
+                "status": updated.status,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class WriterEscalateAdjustmentView(GenericAPIView):
+    """
+    Writer escalates after a funded counter they find unacceptable.
+    Triggers a reassignment request on the order.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, CanWriterEscalateAdjustment]
+
+    def post(
+        self,
+        request: Request,
+        adjustment_id: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Response:
+        adjustment_request = get_object_or_404(
+            OrderAdjustmentRequest.objects.select_related("website", "order"),
+            pk=adjustment_id,
+            website=cast(Any, request.user).website,
+        )
+        self.check_object_permissions(request, adjustment_request)
+
+        reason = request.data.get("reason", "").strip()
+        if not reason:
+            return Response(
+                {"detail": "reason is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from django.core.exceptions import ValidationError
+
+        try:
+            result = AdjustmentNegotiationService.writer_escalate_after_funded_counter(
+                adjustment_request=adjustment_request,
+                writer=request.user,
+                reason=reason,
+            )
+        except ValidationError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                "message": "Escalation submitted. A reassignment request has been created.",
+                "adjustment_request_id": adjustment_request.pk,
+                "reassignment_request_id": getattr(result, "pk", None),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class StaffResolveAdjustmentEscalationView(GenericAPIView):
+    """
+    Staff resolves a post-counter escalation on an adjustment request.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, CanStaffResolveAdjustment]
+
+    def post(
+        self,
+        request: Request,
+        adjustment_id: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Response:
+        adjustment_request = get_object_or_404(
+            OrderAdjustmentRequest.objects.select_related("website", "order"),
+            pk=adjustment_id,
+            website=cast(Any, request.user).website,
+        )
+        self.check_object_permissions(request, adjustment_request)
+
+        resolution = request.data.get("resolution", "").strip()
+        note = request.data.get("note", "")
+        if not resolution:
+            return Response(
+                {"detail": "resolution is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from django.core.exceptions import ValidationError
+
+        try:
+            updated = AdjustmentNegotiationService.staff_resolve_post_counter_escalation(
+                adjustment_request=adjustment_request,
+                resolution=resolution,
+                note=note,
+                resolved_by=request.user,
+            )
+        except ValidationError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                "message": "Escalation resolved.",
+                "adjustment_request_id": updated.pk,
+                "status": updated.status,
+            },
+            status=status.HTTP_200_OK,
         )

@@ -116,11 +116,11 @@ class AdjustmentScopeApplicationService:
             adjustment_request.countered_quantity
             or adjustment_request.requested_quantity
         )
-        quantity_delta = final_quantity - adjustment_request.requested_quantity
+        quantity_delta = final_quantity - adjustment_request.current_quantity
 
         if quantity_delta <= 0:
             raise ValidationError(
-                "Countered quantity must be greater than requested quantity for scope increments."
+                "Final quantity must be greater than current quantity for scope increments."
             )
         applied_amount = cls._final_amount(adjustment_request)
         writer_amount = cls._final_writer_amount(adjustment_request)
@@ -227,7 +227,7 @@ class AdjustmentScopeApplicationService:
             service_family=getattr(order, "service_family", ""),
             service_code=getattr(order, "service_code", ""),
             item_kind=ORDER_ITEM_KIND_EXTRA_SERVICE,
-            topic=f"Extra service accepted via client counter: {adjustment_request.extra_service_description}",
+            topic=f"Extra service accepted via client counter: {adjustment_request.title}",
             quantity=adjustment_request.countered_quantity or 1,
             subtotal=adjustment_request.counter_total_amount,
             discount_amount=Decimal("0.00"),
@@ -236,7 +236,7 @@ class AdjustmentScopeApplicationService:
                 "adjustment_request_id": adjustment_request.pk,
                 "source": "client_counter_funded",
                 "extra_service_code": adjustment_request.extra_service_code,
-                "extra_service_description": adjustment_request.extra_service_description,
+                "extra_service_description": adjustment_request.title,
             },
             sort_order=999,
         )
@@ -382,7 +382,7 @@ class AdjustmentScopeApplicationService:
         """
         if adjustment_request.countered_quantity:
             return Decimal(str(adjustment_request.counter_total_amount))
-        return Decimal(str(adjustment_request.requested_total_amount))
+        return Decimal(str(adjustment_request.request_total_amount))
 
 
     @staticmethod
@@ -395,7 +395,7 @@ class AdjustmentScopeApplicationService:
                 str(adjustment_request.counter_writer_compensation_amount)
             )
         return Decimal(
-            str(adjustment_request.requested_writer_compensation_amount)
+            str(adjustment_request.request_writer_compensation_amount)
         )
 
 
@@ -406,7 +406,7 @@ class AdjustmentScopeApplicationService:
         """
         if adjustment_request.countered_quantity:
             return adjustment_request.counter_pricing_payload or {}
-        return adjustment_request.requested_pricing_payload or {}
+        return adjustment_request.request_pricing_payload or {}
 
     @staticmethod
     def _final_pricing_snapshot(adjustment_request) -> Optional[OrderPricingSnapshot]:
@@ -415,7 +415,7 @@ class AdjustmentScopeApplicationService:
         """
         if adjustment_request.countered_quantity:
             return adjustment_request.counter_pricing_snapshot
-        return adjustment_request.requested_pricing_snapshot
+        return adjustment_request.source_pricing_snapshot
 
 
     @staticmethod

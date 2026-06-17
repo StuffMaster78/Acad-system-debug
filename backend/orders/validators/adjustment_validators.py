@@ -78,9 +78,9 @@ class AdjustmentValidator:
                 "Requested quantity cannot be negative."
             )
 
-        if countered_quantity > current_quantity:
+        if countered_quantity <= current_quantity:
             raise ValidationError(
-                "Countered quantity cannot exceed current quantity."
+                "Countered quantity must be greater than current quantity."
             )
 
         if countered_quantity > requested_quantity:
