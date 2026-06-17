@@ -31,6 +31,61 @@ def _require_client(user):
     return getattr(user, "role", "") == "client"
 
 
+def _sync_writer_reputation(*, writer, website) -> None:
+    """
+    Recompute and persist a writer's reputation snapshot from approved OrderReviews.
+
+    Called synchronously after a review is created so the snapshot is never stale.
+    Errors are swallowed so a reputation hiccup never breaks review submission.
+    """
+    import logging
+    try:
+        from decimal import Decimal, ROUND_HALF_UP
+
+        from reviews_system.models.order_review import OrderReview
+        from reputation_system.models.writer_reputation_snapshot import (
+            WriterReputationSnapshot,
+        )
+        from writer_management.models.writer_profile import WriterProfile
+
+        # Resolve the writer's stable UUID identity from their WriterProfile.
+        try:
+            profile = WriterProfile.objects.get(user=writer)
+            writer_uuid = profile.public_uuid
+        except WriterProfile.DoesNotExist:
+            return
+
+        agg = (
+            OrderReview.objects
+            .filter(writer=writer, is_approved=True)
+            .aggregate(avg=Avg("rating"), count=Count("id"))
+        )
+        avg_rating = agg["avg"]
+        review_count = agg["count"] or 0
+
+        if avg_rating is None:
+            return
+
+        avg_decimal = Decimal(str(avg_rating)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+
+        WriterReputationSnapshot.objects.update_or_create(
+            writer_id=str(writer_uuid),
+            defaults={
+                "website": website,
+                "rating": avg_decimal,
+                "review_count": review_count,
+            },
+        )
+    except Exception:
+        logging.getLogger(__name__).warning(
+            "Failed to sync writer reputation for writer_id=%s",
+            getattr(writer, "pk", None),
+            exc_info=True,
+        )
+
+
 # ── Order review (submit + fetch) ─────────────────────────────────────────────
 
 class OrderReviewView(APIView):
@@ -113,7 +168,12 @@ class OrderReviewView(APIView):
             rating=rating,
             comment=comment,
             submitted_at=timezone.now(),
+            is_approved=True,
         )
+
+        # Sync the writer's reputation snapshot so the rating is reflected immediately.
+        if writer is not None:
+            _sync_writer_reputation(writer=writer, website=order.website)
 
         return Response(
             OrderReviewSerializer(review).data,

@@ -537,9 +537,12 @@ function actionLabel(key: string): string {
 function humanStatus(s: string): string {
   const map: Record<string, string> = {
     created: "Created", unpaid: "Unpaid", pending_payment: "Payment processing",
-    paid: "Paid", ready_for_staffing: "Ready for staffing", in_progress: "In progress",
+    paid: "Paid", ready_for_staffing: "Ready for staffing",
+    pending_writer_acceptance: "Pending writer acceptance",
+    in_progress: "In progress",
     on_hold: "On hold", qa_review: "QA review", under_editing: "Under editing",
     submitted: "Submitted", completed: "Completed", revision_requested: "Revision",
+    pending_cancellation: "Cancellation review",
     disputed: "Disputed", cancelled: "Cancelled", refunded: "Refunded", archived: "Archived",
   };
   return map[s] ?? s;
@@ -552,6 +555,7 @@ function statusClass(s: string): string {
     pending_payment: "bg-amber-100 text-amber-700",
     paid: "bg-sky-100 text-sky-700",
     ready_for_staffing: "bg-indigo-100 text-indigo-700",
+    pending_writer_acceptance: "bg-indigo-100 text-indigo-700",
     in_progress: "bg-blue-100 text-blue-700",
     on_hold: "bg-amber-100 text-amber-700",
     qa_review: "bg-violet-100 text-violet-700",
@@ -559,6 +563,7 @@ function statusClass(s: string): string {
     submitted: "bg-teal-100 text-teal-700",
     completed: "bg-emerald-100 text-emerald-700",
     revision_requested: "bg-orange-100 text-orange-700",
+    pending_cancellation: "bg-amber-100 text-amber-700",
     disputed: "bg-rose-100 text-rose-700",
     cancelled: "bg-slate-100 text-slate-500",
     refunded: "bg-emerald-100 text-emerald-600",
