@@ -117,6 +117,14 @@
         />
       </div>
 
+      <!-- Cancellation request panel for clients -->
+      <ClientCancelRequestPanel
+        v-if="role === 'client'"
+        :order-id="orderId"
+        :order="order"
+        :lifecycle="lifecycle"
+      />
+
       <!-- Review prompt for clients on completed orders -->
       <OrderReviewPrompt
         v-if="role === 'client' && order && ['completed', 'approved'].includes(order.status)"
@@ -146,6 +154,7 @@ import OrderMessagesTab from "./tabs/OrderMessagesTab.vue";
 import OrderPaymentsTab from "./tabs/OrderPaymentsTab.vue";
 import OrderStaffingTab from "./tabs/OrderStaffingTab.vue";
 import WriterActionsBar from "./WriterActionsBar.vue";
+import ClientCancelRequestPanel from "./ClientCancelRequestPanel.vue";
 import OrderRevisionsTab from "./tabs/OrderRevisionsTab.vue";
 import OrderAdjustmentsTab from "./tabs/OrderAdjustmentsTab.vue";
 import OrderQualityTab from "./tabs/OrderQualityTab.vue";

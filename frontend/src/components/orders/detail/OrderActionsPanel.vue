@@ -34,8 +34,123 @@
     <!-- Primary actions -->
     <div class="px-5 py-4 space-y-3">
 
+      <!-- ── Cancellation request review ─────────────────────────────────── -->
+      <div v-if="isPendingCancellation" class="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
+        <div class="flex items-center gap-2">
+          <Clock class="h-4 w-4 text-amber-600" />
+          <span class="text-sm font-semibold text-amber-900">Client cancellation request pending</span>
+        </div>
+
+        <template v-if="cancelRequest">
+          <!-- Reason -->
+          <p class="text-sm text-amber-800"><span class="font-medium">Reason:</span> {{ cancelRequest.reason }}</p>
+
+          <!-- Forfeiture breakdown -->
+          <div class="grid grid-cols-3 gap-2 text-xs">
+            <div class="rounded bg-white/60 p-2">
+              <p class="font-medium text-amber-700">Forfeiture</p>
+              <p class="mt-0.5 font-bold text-ink">{{ cancelRequest.forfeiture_pct }}%</p>
+            </div>
+            <div class="rounded bg-white/60 p-2">
+              <p class="font-medium text-amber-700">Amount kept</p>
+              <p class="mt-0.5 font-bold text-ink">{{ fmtMoney(cancelRequest.forfeiture_amount) }}</p>
+            </div>
+            <div class="rounded bg-white/60 p-2">
+              <p class="font-medium text-amber-700">Refund</p>
+              <p class="mt-0.5 font-bold text-emerald-700">{{ fmtMoney(cancelRequest.refund_amount) }}</p>
+            </div>
+          </div>
+        </template>
+        <p v-else class="text-sm text-amber-700">Loading request details…</p>
+
+        <!-- Approve / Reject toggle buttons -->
+        <div class="flex flex-wrap gap-2">
+          <button
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-berry px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+            @click="showCancelApproveForm = !showCancelApproveForm; showCancelRejectForm = false"
+          >
+            <XCircle class="h-3.5 w-3.5" /> Approve cancellation
+          </button>
+          <button
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            @click="showCancelRejectForm = !showCancelRejectForm; showCancelApproveForm = false"
+          >
+            Reject request
+          </button>
+        </div>
+
+        <!-- Approve inline form -->
+        <Transition name="slide-down">
+          <div v-if="showCancelApproveForm" class="rounded-md border border-rose-200 bg-white p-3 space-y-3">
+            <p class="text-xs font-semibold text-ink">Confirm cancellation</p>
+
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block">
+                <span class="text-xs font-medium text-graphite">Refund destination</span>
+                <select v-model="cancelRefundDest" class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs">
+                  <option value="wallet">Wallet credit</option>
+                  <option value="external_gateway">Card / external gateway</option>
+                </select>
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-graphite">Override forfeiture % <span class="font-normal text-graphite/60">(leave blank to keep auto)</span></span>
+                <input
+                  v-model.trim="cancelForfeitureOverride"
+                  type="number"
+                  min="0"
+                  max="80"
+                  step="1"
+                  class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs"
+                  placeholder="0–80"
+                />
+              </label>
+            </div>
+
+            <label class="block">
+              <span class="text-xs font-medium text-graphite">Staff notes <span class="font-normal text-graphite/60">(optional)</span></span>
+              <textarea
+                v-model="formInput"
+                rows="2"
+                class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs resize-none"
+                placeholder="Reason for this decision…"
+              />
+            </label>
+
+            <FormActions
+              label="Confirm & cancel order"
+              variant="danger"
+              :loading="busy === 'approve_cancel_request'"
+              :disabled="false"
+              @submit="exec('approve_cancel_request')"
+              @cancel="showCancelApproveForm = false; formInput = ''"
+            />
+          </div>
+        </Transition>
+
+        <!-- Reject inline form -->
+        <Transition name="slide-down">
+          <div v-if="showCancelRejectForm" class="rounded-md border border-slate-200 bg-white p-3 space-y-3">
+            <p class="text-xs font-semibold text-ink">Reject this cancellation request</p>
+            <p class="text-xs text-graphite">The order will revert to its previous status and the client will be notified.</p>
+            <textarea
+              v-model.trim="cancelRejectNotes"
+              rows="2"
+              class="focus-ring w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs resize-none"
+              placeholder="Explain to the client why the request was declined…"
+            />
+            <FormActions
+              label="Reject request"
+              :loading="busy === 'reject_cancel_request'"
+              :disabled="!cancelRejectNotes.trim()"
+              @submit="exec('reject_cancel_request')"
+              @cancel="showCancelRejectForm = false; cancelRejectNotes = ''"
+            />
+          </div>
+        </Transition>
+      </div>
+
       <!-- No actions available message -->
-      <p v-if="!availableActions.length && !canHold && !canReleaseHold && !canReassign"
+      <p v-if="!isPendingCancellation && !availableActions.length && !canHold && !canReleaseHold && !canReassign"
         class="text-sm text-graphite py-2">
         No actions available in the current state.
       </p>
@@ -341,15 +456,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, ref } from "vue";
+import { computed, defineComponent, h, onMounted, ref } from "vue";
 import {
   AlertCircle, AlertTriangle, Archive, BookOpen, CheckCircle2, ChevronRight, CircleDollarSign,
-  Lock, PauseCircle, PlayCircle, RotateCcw, UserRoundCog, XCircle, Zap,
+  Clock, Lock, PauseCircle, PlayCircle, RotateCcw, UserRoundCog, XCircle, Zap,
 } from "@lucide/vue";
 import type { OrderSummary, OrderLifecycle } from "@/types/orders";
 import type { UserRole } from "@/types/roles";
+import type { CancellationRequest } from "@/types/cancellation";
 import { ordersApi } from "@/api/orders";
 import { orderOpsApi } from "@/api/orderOps";
+import { cancellationRequestsApi } from "@/api/cancellationRequests";
 
 const props = defineProps<{
   orderId: string;
@@ -404,6 +521,33 @@ const canSubmitManualPayment = computed(() =>
   paymentReference.value.trim().length > 0 &&
   formInput.value.trim().length > 0
 );
+
+// ── Cancellation request review ────────────────────────────────────────────
+const isPendingCancellation = computed(() => props.order.status === "pending_cancellation");
+const cancelRequest = ref<CancellationRequest | null>(null);
+const cancelRefundDest = ref<"wallet" | "external_gateway">("wallet");
+const cancelForfeitureOverride = ref("");
+const cancelRejectNotes = ref("");
+const showCancelApproveForm = ref(false);
+const showCancelRejectForm = ref(false);
+
+async function loadCancelRequest() {
+  if (!isPendingCancellation.value) return;
+  try {
+    const { data } = await cancellationRequestsApi.getCurrent(props.orderId);
+    cancelRequest.value = data;
+  } catch {
+    cancelRequest.value = null;
+  }
+}
+
+function fmtMoney(val: string | null | undefined): string {
+  if (!val) return "—";
+  const n = Number(val);
+  return isNaN(n) ? (val ?? "—") : `$${n.toFixed(2)}`;
+}
+
+onMounted(loadCancelRequest);
 
 // ── helpers ────────────────────────────────────────────────────────────────
 function has(action: string): boolean {
@@ -488,6 +632,26 @@ async function exec(action: string) {
         await ordersApi.cancel(props.orderId, { reason: formInput.value, refund_destination: "wallet" });
         ok("Order cancelled.");
         break;
+      case "approve_cancel_request": {
+        if (!cancelRequest.value) break;
+        await cancellationRequestsApi.approve(props.orderId, cancelRequest.value.id, {
+          refund_destination: cancelRefundDest.value,
+          forfeiture_pct_override: cancelForfeitureOverride.value.trim() || null,
+          notes: formInput.value.trim(),
+        });
+        cancelRequest.value = null;
+        showCancelApproveForm.value = false;
+        ok("Cancellation approved. Order cancelled and refund queued.");
+        break;
+      }
+      case "reject_cancel_request": {
+        if (!cancelRequest.value) break;
+        await cancellationRequestsApi.reject(props.orderId, cancelRequest.value.id, cancelRejectNotes.value.trim());
+        cancelRequest.value = null;
+        showCancelRejectForm.value = false;
+        ok("Cancellation request rejected. Order status reverted.");
+        break;
+      }
       case "archive_order":
         await ordersApi.archive(props.orderId, {});
         ok("Order archived.");
