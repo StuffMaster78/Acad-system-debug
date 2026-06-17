@@ -7,6 +7,7 @@ import {
   ChevronUp,
   ClipboardCheck,
   Files,
+  Star,
   ShieldAlert,
   XCircle,
 } from "@lucide/vue";
@@ -43,6 +44,11 @@ const isPendingAcceptance = computed(() =>
   status.value === "pending_writer_acceptance",
 );
 
+const isPreferredInvitation = computed(() =>
+  props.order?.preferred_writer_status === "invited" &&
+  !!props.lifecycle?.pending_preferred_invitation_interest_id,
+);
+
 const isActiveWork = computed(() =>
   ["in_progress", "revision_requested"].includes(status.value),
 );
@@ -54,6 +60,44 @@ const compensation = computed(() => {
   const n = Number(v);
   return isNaN(n) ? String(v) : `$${n.toFixed(2)}`;
 });
+
+// ─── Preferred writer invitation ─────────────────────────────────────────────
+
+const showInvitationDecline = ref(false);
+const inviteDeclineReason = ref("");
+
+async function acceptInvitation() {
+  const interestId = props.lifecycle?.pending_preferred_invitation_interest_id;
+  if (!interestId) return;
+  busy.value = "invite_accept";
+  feedback.value = null;
+  try {
+    await writerApi.acceptPreferredInvitation(interestId);
+    ui.toast("Invitation accepted — the order is now assigned to you.", "success");
+    emit("refresh");
+  } catch (e: unknown) {
+    const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    ui.toast(detail ?? "Could not accept invitation.", "error");
+  } finally {
+    busy.value = null;
+  }
+}
+
+async function declineInvitation() {
+  const interestId = props.lifecycle?.pending_preferred_invitation_interest_id;
+  if (!interestId) return;
+  busy.value = "invite_decline";
+  try {
+    await writerApi.declinePreferredInvitation(interestId);
+    ui.toast("Invitation declined. The order will be opened to the writer pool.", "success");
+    emit("refresh");
+  } catch (e: unknown) {
+    const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    ui.toast(detail ?? "Could not decline invitation.", "error");
+  } finally {
+    busy.value = null;
+  }
+}
 
 // ─── Assignment acceptance ────────────────────────────────────────────────────
 
@@ -119,7 +163,87 @@ async function openDispute() {
 
 <template>
   <!-- Nothing to show for this writer in this state -->
-  <template v-if="!isPendingAcceptance && !isActiveWork" />
+  <template v-if="!isPendingAcceptance && !isPreferredInvitation && !isActiveWork" />
+
+  <!-- ── Preferred writer invitation ───────────────────────────────────── -->
+  <div
+    v-else-if="isPreferredInvitation"
+    class="overflow-hidden rounded-xl border-2 border-amber-400 bg-white shadow-sm"
+  >
+    <div class="bg-amber-400 px-5 py-3 flex items-center gap-2">
+      <Star class="h-4 w-4 text-white fill-white" />
+      <span class="text-sm font-semibold text-white">Preferred writer invitation</span>
+    </div>
+
+    <div class="px-5 py-4 space-y-4">
+      <p class="text-sm text-graphite">
+        A returning client has requested you specifically for this order.
+        Accept to take it directly — no bidding required.
+      </p>
+
+      <!-- Quick stats -->
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div v-if="writerDeadline" class="rounded-md bg-slate-50 px-3 py-2.5">
+          <p class="text-xs font-medium text-graphite">Deadline</p>
+          <p class="mt-0.5 text-sm font-semibold text-ink">{{ deadlineCountdown(writerDeadline) }}</p>
+        </div>
+        <div v-if="compensation" class="rounded-md bg-slate-50 px-3 py-2.5">
+          <p class="text-xs font-medium text-graphite">Compensation</p>
+          <p class="mt-0.5 text-sm font-semibold text-ink">{{ compensation }}</p>
+        </div>
+        <div v-if="order?.base_quantity" class="rounded-md bg-slate-50 px-3 py-2.5">
+          <p class="text-xs font-medium text-graphite">Scope</p>
+          <p class="mt-0.5 text-sm font-semibold text-ink">{{ order.base_quantity }} {{ order.unit_type ?? "pages" }}</p>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex flex-wrap gap-3">
+        <button
+          class="focus-ring inline-flex h-10 items-center gap-2 rounded-md bg-signal px-5 text-sm font-semibold text-white disabled:opacity-60"
+          :disabled="busy !== null"
+          @click="acceptInvitation"
+        >
+          <CheckCircle2 class="h-4 w-4" />
+          {{ busy === "invite_accept" ? "Accepting…" : "Accept invitation" }}
+        </button>
+        <button
+          class="focus-ring inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 px-4 text-sm font-medium text-graphite hover:border-rose-200 hover:bg-rose-50 hover:text-berry disabled:opacity-60"
+          :disabled="busy !== null"
+          @click="showInvitationDecline = !showInvitationDecline"
+        >
+          <XCircle class="h-4 w-4" />
+          Decline
+          <component :is="showInvitationDecline ? ChevronUp : ChevronDown" class="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <!-- Decline confirmation -->
+      <Transition name="slide-down">
+        <div v-if="showInvitationDecline" class="rounded-md border border-rose-200 bg-rose-50 p-3 space-y-2">
+          <p class="text-xs text-rose-800">
+            Declining will open this order to all available writers in the pool.
+            The client will be notified.
+          </p>
+          <div class="flex gap-2">
+            <button
+              class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-berry px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              :disabled="busy !== null"
+              @click="declineInvitation"
+            >
+              {{ busy === "invite_decline" ? "Declining…" : "Confirm decline" }}
+            </button>
+            <button
+              class="focus-ring inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-1.5 text-xs font-medium text-graphite hover:bg-slate-50"
+              @click="showInvitationDecline = false"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </div>
+  </div>
 
   <!-- ── Assignment acceptance gate ─────────────────────────────────── -->
   <div

@@ -56,6 +56,7 @@ function previewLifecycle(id: number | string): OrderLifecycle {
     latest_revision_status: null,
     is_revision_window_open: false,
     revision_window_days: 7,
+    pending_preferred_invitation_interest_id: null,
     available_actions: ["submit_for_qa", "raise_dispute", "cancel_order"],
   };
 }

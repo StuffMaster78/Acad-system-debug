@@ -72,7 +72,8 @@ class OrderListSerializer(serializers.ModelSerializer):
             'formatting_style', 'formatting_style_name', 'type_of_work', 'type_of_work_name',
             'english_type', 'english_type_name', 'client_deadline', 'writer_deadline',
             'client', 'client_username', 'writer_username',
-            'preferred_writer', 'total_price', 'writer_compensation', 'subject', 'subject_name', 'status', 'payment_status', 'flags', 'created_at', 'updated_at',
+            'preferred_writer', 'preferred_writer_status',
+            'total_price', 'writer_compensation', 'subject', 'subject_name', 'status', 'payment_status', 'flags', 'created_at', 'updated_at',
             'is_follow_up', 'is_urgent', 'website',
             'service_family', 'service_code', 'is_composite',
         ]

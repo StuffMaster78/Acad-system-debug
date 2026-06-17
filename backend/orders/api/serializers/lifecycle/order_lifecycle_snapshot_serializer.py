@@ -40,6 +40,10 @@ class OrderLifecycleSnapshotSerializer(serializers.Serializer):
     latest_revision_status = serializers.CharField(allow_null=True)
 
     is_revision_window_open = serializers.BooleanField()
+
+    pending_preferred_invitation_interest_id = serializers.IntegerField(
+        allow_null=True
+    )
     revision_window_days = serializers.IntegerField()
     available_actions = serializers.ListField(
         child=serializers.CharField(),

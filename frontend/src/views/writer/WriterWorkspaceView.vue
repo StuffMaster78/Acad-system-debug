@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, shallowRef } from "vue";
 import { RouterLink } from "vue-router";
 import {
   Banknote,
@@ -12,11 +12,14 @@ import {
   PauseCircle,
   RefreshCw,
   Search,
+  Star,
   X,
 } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import WriterOnboardingGate from "@/components/writer/WriterOnboardingGate.vue";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
+import { writerApi } from "@/api/writer";
+import type { OrderSummary } from "@/types/orders";
 
 const workspace = useWriterWorkspaceStore();
 
@@ -33,6 +36,26 @@ const activeAssignments = computed(() =>
 
 const activeWindow = computed(() => workspace.availability?.active_window);
 const upcomingWindows = computed(() => workspace.availability?.upcoming_windows ?? []);
+// Preferred-writer invitations — ready_for_staffing orders where this writer is invited
+const pendingInvitations = shallowRef<OrderSummary[]>([]);
+
+async function fetchInvitations() {
+  try {
+    const { data } = await writerApi.poolOrders();
+    const list = Array.isArray(data) ? data : (data as { results?: OrderSummary[] }).results ?? [];
+    pendingInvitations.value = list.filter(
+      (o) => o.preferred_writer_status === "invited",
+    );
+  } catch {
+    // non-critical — silently ignore
+  }
+}
+
+function fmtMoney(val: string | number | null | undefined): string {
+  if (!val) return "—";
+  const n = Number(val);
+  return isNaN(n) ? String(val) : `$${n.toFixed(2)}`;
+}
 
 function money(value: string | number | undefined | null): string {
   if (value === undefined || value === null || value === "") return "$0.00";
@@ -98,8 +121,11 @@ const isOnboarded = computed(() => onboardingStatus.value === "completed" || onb
 
 onMounted(async () => {
   await workspace.hydrate();
-  if (isOnboarded.value && !workspace.assignments.length) {
-    workspace.fetchAssignments(1, "in_progress,revision_requested").catch(() => undefined);
+  if (isOnboarded.value) {
+    if (!workspace.assignments.length) {
+      workspace.fetchAssignments(1, "in_progress,revision_requested").catch(() => undefined);
+    }
+    fetchInvitations();
   }
 });
 </script>
@@ -173,6 +199,46 @@ onMounted(async () => {
     </div>
     <div v-if="workspace.notice" class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
       {{ workspace.notice }}
+    </div>
+
+    <!-- Preferred writer invitations -->
+    <div
+      v-if="pendingInvitations.length"
+      class="overflow-hidden rounded-xl border-2 border-amber-400 bg-white"
+    >
+      <div class="flex items-center justify-between border-b border-amber-200 bg-amber-50 px-5 py-3">
+        <div class="flex items-center gap-2">
+          <Star class="h-4 w-4 text-amber-500 fill-amber-500" />
+          <span class="text-sm font-semibold text-amber-900">
+            {{ pendingInvitations.length === 1 ? "1 preferred writer invitation" : `${pendingInvitations.length} preferred writer invitations` }}
+          </span>
+        </div>
+        <span class="text-xs text-amber-700">Respond before the invitation expires</span>
+      </div>
+      <div class="divide-y divide-slate-100">
+        <RouterLink
+          v-for="order in pendingInvitations"
+          :key="order.id"
+          :to="`/writer/orders/${order.id}`"
+          class="flex items-center justify-between gap-4 px-5 py-4 hover:bg-amber-50/50 transition-colors"
+        >
+          <div class="min-w-0">
+            <p class="truncate font-semibold text-ink">{{ order.topic ?? `Order #${order.id}` }}</p>
+            <p class="mt-0.5 text-xs text-graphite">
+              #{{ order.id }}
+              <span v-if="order.academic_level_name"> · {{ order.academic_level_name }}</span>
+              <span v-if="order.base_quantity"> · {{ order.base_quantity }} {{ order.unit_type ?? "pages" }}</span>
+            </p>
+          </div>
+          <div class="shrink-0 text-right">
+            <p class="text-sm font-semibold text-ink">{{ fmtMoney(order.writer_compensation) }}</p>
+            <p v-if="order.writer_deadline" class="mt-0.5 text-xs text-graphite">
+              Due {{ new Date(order.writer_deadline).toLocaleDateString("en", { dateStyle: "medium" }) }}
+            </p>
+          </div>
+          <ChevronRight class="h-4 w-4 shrink-0 text-graphite" />
+        </RouterLink>
+      </div>
     </div>
 
     <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">

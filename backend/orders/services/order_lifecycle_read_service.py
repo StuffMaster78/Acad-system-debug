@@ -58,6 +58,8 @@ class OrderLifecycleSnapshot:
     is_revision_window_open: bool
     revision_window_days: int
 
+    pending_preferred_invitation_interest_id: Optional[int]
+
 
 class OrderLifecycleReadService:
     """
@@ -79,9 +81,13 @@ class OrderLifecycleReadService:
         cls,
         *,
         order: Order,
+        for_writer: Optional[Any] = None,
     ) -> OrderLifecycleSnapshot:
         """
         Build a consolidated lifecycle snapshot for a single order.
+
+        Pass ``for_writer`` (a User instance) to include writer-specific fields
+        such as the pending preferred-writer invitation interest ID.
         """
         current_assignment = cls.get_current_assignment(order=order)
         active_hold = cls.get_active_hold(order=order)
@@ -91,6 +97,10 @@ class OrderLifecycleReadService:
         active_dispute = cls.get_active_dispute(order=order)
         latest_adjustment = cls.get_latest_adjustment_request(order=order)
         latest_revision = cls.get_latest_revision_request(order=order)
+        pending_invitation_interest_id = cls._get_pending_invitation_interest_id(
+            order=order,
+            writer=for_writer,
+        )
 
         return OrderLifecycleSnapshot(
             order_id=order.pk,
@@ -153,6 +163,7 @@ class OrderLifecycleReadService:
                 order=order,
             ),
             revision_window_days=FREE_REVISION_WINDOW_DAYS,
+            pending_preferred_invitation_interest_id=pending_invitation_interest_id,
         )
 
     @classmethod
@@ -340,6 +351,42 @@ class OrderLifecycleReadService:
             "client",
             "preferred_writer",
         )
+
+    @staticmethod
+    def _get_pending_invitation_interest_id(
+        *,
+        order: Order,
+        writer: Optional[Any],
+    ) -> Optional[int]:
+        """
+        Return the interest_id of the writer's pending preferred-writer invitation
+        for this order, or None if the writer is not the invited preferred writer.
+        """
+        if writer is None:
+            return None
+        preferred_writer_status = getattr(order, "preferred_writer_status", None)
+        if preferred_writer_status != "invited":
+            return None
+        preferred_writer_pk = getattr(order, "preferred_writer_id", None)
+        if preferred_writer_pk != getattr(writer, "pk", None):
+            return None
+        from orders.models.orders.order_interest import OrderInterest
+        from orders.models.orders.enums import (
+            OrderInterestType,
+            OrderInterestStatus,
+        )
+        interest = (
+            OrderInterest.objects
+            .filter(
+                order=order,
+                writer=writer,
+                interest_type=OrderInterestType.PREFERRED_WRITER_INVITATION,
+                status=OrderInterestStatus.PENDING,
+            )
+            .only("id")
+            .first()
+        )
+        return interest.pk if interest is not None else None
 
     @staticmethod
     def _resolve_writer_registration_id(assignment: Any) -> Optional[str]:

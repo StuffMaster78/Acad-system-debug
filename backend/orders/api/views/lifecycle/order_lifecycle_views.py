@@ -48,7 +48,12 @@ class OrderLifecycleView(GenericAPIView):
         )
         self.check_object_permissions(request, order)
 
-        snapshot = OrderLifecycleReadService.build_snapshot(order=order)
+        user = cast(Any, request.user)
+        for_writer = user if getattr(user, "role", None) == "writer" else None
+        snapshot = OrderLifecycleReadService.build_snapshot(
+            order=order,
+            for_writer=for_writer,
+        )
         payload = asdict(snapshot) if is_dataclass(snapshot) else snapshot
         payload["available_actions"] = OrderAvailableActionsService.build_actions(
             order=order,

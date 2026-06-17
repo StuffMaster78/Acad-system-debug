@@ -10,6 +10,7 @@ export interface OrderSummary {
   assigned_writer?: number | null;
   writer_username?: string;
   preferred_writer?: number | null;
+  preferred_writer_status?: string | null;
   payment_status?: string;
   total_price?: string;
   amount_paid?: string;
@@ -107,6 +108,7 @@ export interface OrderLifecycle {
   latest_revision_status: string | null;
   is_revision_window_open: boolean;
   revision_window_days: number;
+  pending_preferred_invitation_interest_id: number | null;
   available_actions?: string[];
   /** Staff-facing reasons why certain actions are unavailable in the current lifecycle state. */
   blocked_actions?: Record<string, string>;

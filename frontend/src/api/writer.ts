@@ -116,6 +116,18 @@ export const writerApi = {
       ordersApiPath(`/staffing/interests/${interestId}/withdraw/`),
       {},
     ),
+  // Preferred-writer invitation responses
+  acceptPreferredInvitation: (interestId: number | string) =>
+    api.post<{ message: string; assignment_id: number; order_id: number }>(
+      ordersApiPath(`/staffing/interests/${interestId}/preferred-accept/`),
+      {},
+    ),
+  declinePreferredInvitation: (interestId: number | string) =>
+    api.post<{ message: string; order_id: number }>(
+      ordersApiPath(`/staffing/interests/${interestId}/preferred-decline/`),
+      {},
+    ),
+
   // Direct-assignment acceptance gate
   getAssignmentGate: (orderId: number | string) =>
     api.get<{ gate_id: number; order_id: number; status: string; assigned_at: string; assigned_by_id: number | null }>(
