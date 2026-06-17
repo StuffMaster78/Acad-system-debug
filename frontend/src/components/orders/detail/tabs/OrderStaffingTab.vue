@@ -43,6 +43,42 @@
       </dl>
     </div>
 
+    <!-- Invite preferred writer (admin only) -->
+    <div v-if="canAssign" class="rounded-lg border border-amber-200 bg-amber-50 overflow-hidden">
+      <div class="flex items-center gap-2 border-b border-amber-200 px-5 py-4">
+        <Star class="h-4 w-4 text-amber-500 shrink-0" />
+        <div>
+          <h2 class="text-sm font-semibold text-ink">Invite preferred writer</h2>
+          <p class="text-xs text-graphite mt-0.5">Send a direct invitation to a specific writer before opening to the pool.</p>
+        </div>
+      </div>
+      <div class="px-5 py-4 space-y-3">
+        <div class="flex items-center gap-2">
+          <input
+            v-model="inviteInput"
+            type="text"
+            placeholder="W-1234"
+            maxlength="12"
+            class="w-28 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+            @keyup.enter="invitePreferredWriter"
+            @input="inviteState = 'idle'; inviteError = ''; inviteNotice = ''"
+          />
+          <button
+            type="button"
+            class="rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+            :disabled="!inviteInput.trim() || inviteState === 'loading'"
+            @click="invitePreferredWriter"
+          >
+            {{ inviteState === "loading" ? "Sending…" : "Send invitation" }}
+          </button>
+        </div>
+        <p v-if="inviteNotice" class="flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
+          <CheckCircle2 class="h-3.5 w-3.5" />{{ inviteNotice }}
+        </p>
+        <p v-if="inviteError" class="text-xs text-rose-600">{{ inviteError }}</p>
+      </div>
+    </div>
+
     <!-- Bids / expressions of interest -->
     <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
       <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
@@ -116,7 +152,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import { ExternalLink, RefreshCw, Users } from "@lucide/vue";
+import { CheckCircle2, ExternalLink, RefreshCw, Star, Users } from "@lucide/vue";
 import type { OrderSummary, OrderLifecycle, OrderInterestRecord } from "@/types/orders";
 import type { UserRole } from "@/types/roles";
 import { ordersApi } from "@/api/orders";
@@ -149,6 +185,30 @@ const interests = ref<OrderInterestRecord[]>([]);
 const loadingInterests = ref(false);
 const assigning = ref<number | null>(null);
 const assignError = ref("");
+
+// Invite preferred writer (admin)
+const inviteInput = ref("");
+const inviteState = ref<"idle" | "loading" | "done" | "error">("idle");
+const inviteError = ref("");
+const inviteNotice = ref("");
+
+async function invitePreferredWriter() {
+  const rid = inviteInput.value.trim().toUpperCase();
+  if (!rid) return;
+  inviteState.value = "loading";
+  inviteError.value = "";
+  inviteNotice.value = "";
+  try {
+    await ordersApi.invitePreferredWriter(props.orderId, rid);
+    inviteNotice.value = `Invitation sent to ${rid}.`;
+    inviteState.value = "done";
+    inviteInput.value = "";
+    emit("refresh");
+  } catch (e: any) {
+    inviteError.value = e?.response?.data?.detail ?? "Failed to send invitation.";
+    inviteState.value = "error";
+  }
+}
 
 const canAssign = computed(() => props.role === "admin" || props.role === "superadmin");
 

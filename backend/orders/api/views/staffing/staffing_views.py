@@ -717,3 +717,115 @@ class ReleaseToPoolView(GenericAPIView):
             pk=order_id,
             website=user.website,
         )
+
+
+class PreferredWriterLookupView(GenericAPIView):
+    """
+    GET /orders/preferred-writer-lookup/<registration_id>/
+
+    Resolves a writer registration ID (W-XXXX) to the user PK and display
+    name expected as preferred_writer_id in order creation.
+    Accessible to any authenticated user so clients can use it from the
+    order form.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(
+        self,
+        request: Request,
+        registration_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Response:
+        from writer_management.models.writer_profile import WriterProfile
+
+        user = cast(Any, request.user)
+        profile = get_object_or_404(
+            WriterProfile.objects.select_related("account_profile__user"),
+            registration_id=registration_id,
+            writer_level__website=user.website,
+        )
+        writer_user = profile.account_profile.user
+        display_name = (
+            writer_user.get_full_name().strip()
+            or writer_user.username
+            or registration_id
+        )
+        return Response(
+            {
+                "id": writer_user.pk,
+                "registration_id": profile.registration_id,
+                "display_name": display_name,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class InvitePreferredWriterView(GenericAPIView):
+    """
+    POST /orders/<order_id>/staffing/invite-preferred/
+
+    Staff endpoint: set a preferred writer on an existing order and send
+    them an invitation.
+
+    Body: { writer_registration_id: "W-1234" }
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(
+        self,
+        request: Request,
+        order_id: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Response:
+        from django.db import transaction
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from writer_management.models.writer_profile import WriterProfile
+
+        user = cast(Any, request.user)
+        registration_id = (request.data.get("writer_registration_id") or "").strip()
+        if not registration_id:
+            return Response(
+                {"detail": "writer_registration_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        writer_profile = get_object_or_404(
+            WriterProfile.objects.select_related("account_profile__user"),
+            registration_id=registration_id,
+            writer_level__website=user.website,
+        )
+        writer_user = writer_profile.account_profile.user
+
+        try:
+            with transaction.atomic():
+                order = get_object_or_404(
+                    Order.objects.select_for_update().select_related("website"),
+                    pk=order_id,
+                    website=user.website,
+                )
+                order.preferred_writer = writer_user
+                order.save(update_fields=["preferred_writer", "updated_at"])
+
+                OrderStaffingService._invite_preferred_writer(
+                    order=order,
+                    triggered_by=request.user,
+                )
+        except DjangoValidationError as exc:
+            return Response(
+                {"detail": exc.message if hasattr(exc, "message") else str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {
+                "message": "Preferred writer invitation sent.",
+                "order_id": order_id,
+                "writer_registration_id": registration_id,
+                "preferred_writer_status": order.preferred_writer_status,
+            },
+            status=status.HTTP_200_OK,
+        )

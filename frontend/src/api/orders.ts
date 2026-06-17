@@ -67,6 +67,15 @@ export const ordersApi = {
     api.get<OrderInterestRecord[]>(ordersApiPath(`/orders/${id}/staffing/interests/`)),
   assignFromInterest: (interestId: number | string) =>
     api.post<OrderActionResponse>(ordersApiPath(`/staffing/interests/${interestId}/assign/`), {}),
+  lookupPreferredWriter: (registrationId: string) =>
+    api.get<{ id: number; registration_id: string; display_name: string }>(
+      ordersApiPath(`/preferred-writer-lookup/${registrationId}/`),
+    ),
+  invitePreferredWriter: (orderId: number | string, writerRegistrationId: string) =>
+    api.post<{ message: string; preferred_writer_status: string }>(
+      ordersApiPath(`/orders/${orderId}/staffing/invite-preferred/`),
+      { writer_registration_id: writerRegistrationId },
+    ),
   // Operational notes (staff-only)
   notes: (id: number | string) =>
     api.get<OrderNote[]>(ordersApiPath(`/orders/${id}/notes/`)),

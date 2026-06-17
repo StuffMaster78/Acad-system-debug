@@ -16,6 +16,8 @@ from orders.api.views.staffing.staffing_views import (
 from orders.api.views.staffing.staffing_views import (
     PreferredWriterAcceptView,
     PreferredWriterDeclineView,
+    PreferredWriterLookupView,
+    InvitePreferredWriterView,
     ReleaseToPoolView,
 )
 
@@ -69,5 +71,15 @@ urlpatterns = [
         "orders/<int:order_id>/staffing/release-to-pool/",
         ReleaseToPoolView.as_view(),
         name="release-to-pool",
+    ),
+    path(
+        "orders/<int:order_id>/staffing/invite-preferred/",
+        InvitePreferredWriterView.as_view(),
+        name="invite-preferred-writer",
+    ),
+    path(
+        "preferred-writer-lookup/<str:registration_id>/",
+        PreferredWriterLookupView.as_view(),
+        name="preferred-writer-lookup",
     ),
 ]

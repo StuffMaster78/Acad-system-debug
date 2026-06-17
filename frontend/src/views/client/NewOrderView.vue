@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Calculator, CheckCircle2, Clock, FileText, Loader2, Paperclip, RefreshCw, Send, X } from "@lucide/vue";
+import { Calculator, CheckCircle2, Clock, FileText, Loader2, Paperclip, RefreshCw, Send, Star, X } from "@lucide/vue";
 import ConfigSelect from "@/components/forms/ConfigSelect.vue";
 import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector.vue";
 import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
@@ -10,6 +10,7 @@ import { useFilesStore } from "@/stores/files";
 import { useOrderConfigStore } from "@/stores/orderConfig";
 import { useOrderStore } from "@/stores/orders";
 import { useWalletStore } from "@/stores/wallets";
+import { ordersApi } from "@/api/orders";
 import type { DesignQuotePayload, DiagramQuotePayload, PaperQuotePayload } from "@/types/orders";
 import { useAnalytics } from "@/composables/useAnalytics";
 
@@ -25,6 +26,31 @@ const files = useFilesStore();
 const error = ref("");
 const success = ref("");
 const paymentMethod = ref<PaymentMethod>("wallet");
+
+// Preferred writer
+const preferredWriterInput = ref("");
+const preferredWriterResolved = ref<{ id: number; registration_id: string; display_name: string } | null>(null);
+const preferredWriterState = ref<"idle" | "loading" | "found" | "not_found">("idle");
+
+async function lookupPreferredWriter() {
+  const rid = preferredWriterInput.value.trim().toUpperCase();
+  if (!rid) { preferredWriterResolved.value = null; preferredWriterState.value = "idle"; return; }
+  preferredWriterState.value = "loading";
+  try {
+    const { data } = await ordersApi.lookupPreferredWriter(rid);
+    preferredWriterResolved.value = data;
+    preferredWriterState.value = "found";
+  } catch {
+    preferredWriterResolved.value = null;
+    preferredWriterState.value = "not_found";
+  }
+}
+
+function clearPreferredWriter() {
+  preferredWriterInput.value = "";
+  preferredWriterResolved.value = null;
+  preferredWriterState.value = "idle";
+}
 const paymentDisclosureAccepted = ref(false);
 const couponCode = ref("");
 
@@ -460,6 +486,7 @@ async function submit() {
       is_urgent: deadlineHours.value <= 24,
       ...provider,
       ...(couponCode.value.trim() ? { entered_code: couponCode.value.trim() } : {}),
+      ...(preferredWriterResolved.value ? { preferred_writer_id: preferredWriterResolved.value.id } : {}),
     };
 
     let created;
@@ -755,6 +782,53 @@ watch(() => form.service_code, loadAddons);
               help="Higher levels may affect availability and price."
             />
           </div>
+
+          <!-- Preferred writer (optional) -->
+          <div class="mt-4 border-t border-slate-100 pt-4">
+            <label class="flex items-center gap-1.5 text-sm font-medium text-ink mb-1">
+              <Star class="h-3.5 w-3.5 text-amber-500" />
+              Preferred writer
+              <span class="text-xs font-normal text-graphite">(optional)</span>
+            </label>
+            <p class="text-xs text-graphite mb-2">
+              Enter a writer ID (e.g. W-1234) to request a specific writer you've worked with before.
+            </p>
+            <div class="flex items-center gap-2">
+              <input
+                v-model="preferredWriterInput"
+                type="text"
+                placeholder="W-1234"
+                maxlength="12"
+                class="w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-signal/30"
+                @keyup.enter="lookupPreferredWriter"
+                @input="preferredWriterState = 'idle'; preferredWriterResolved = null"
+              />
+              <button
+                type="button"
+                class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-graphite hover:text-ink disabled:opacity-40 transition-colors"
+                :disabled="!preferredWriterInput.trim() || preferredWriterState === 'loading'"
+                @click="lookupPreferredWriter"
+              >
+                {{ preferredWriterState === "loading" ? "Checking…" : "Verify" }}
+              </button>
+              <button
+                v-if="preferredWriterState !== 'idle'"
+                type="button"
+                class="text-xs text-graphite hover:text-ink"
+                @click="clearPreferredWriter"
+              >
+                Clear
+              </button>
+            </div>
+            <p v-if="preferredWriterState === 'found' && preferredWriterResolved" class="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
+              <CheckCircle2 class="h-3.5 w-3.5" />
+              {{ preferredWriterResolved.display_name }} ({{ preferredWriterResolved.registration_id }}) — will be invited first
+            </p>
+            <p v-if="preferredWriterState === 'not_found'" class="mt-1.5 text-xs text-rose-600">
+              Writer not found. Check the ID and try again.
+            </p>
+          </div>
+
           <p
             v-if="fieldErr('config', configSelectionError)"
             class="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
