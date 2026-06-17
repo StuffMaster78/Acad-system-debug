@@ -85,17 +85,17 @@ const guarantees = [
   <div>
 
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-brand-900 py-20 text-center">
+    <section class="relative overflow-hidden bg-claret-950 py-20 text-center">
       <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
       <div class="relative mx-auto max-w-2xl px-4 sm:px-6">
-        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">The process</p>
-        <h1 class="text-4xl font-bold text-white sm:text-5xl">
+        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-claret-300">The process</p>
+        <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">
           From brief to finished paper<br class="hidden sm:block" /> in four steps.
         </h1>
-        <p class="mx-auto mt-5 max-w-xl text-lg text-brand-200">
+        <p class="mx-auto mt-5 max-w-xl text-lg text-claret-200">
           No account needed to get a quote. No payment until you're matched with a writer. Revisions included throughout.
         </p>
-        <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-brand-300">
+        <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-claret-300">
           <span>✓ Minimum 3-hour turnaround</span>
           <span>✓ Grade or money back</span>
           <span>✓ Direct writer access</span>
@@ -137,9 +137,9 @@ const guarantees = [
     </section>
 
     <!-- ── Guarantees ─────────────────────────────────────────────────────── -->
-    <section class="bg-slate-50 py-16">
+    <section class="bg-parchment-100 py-16">
       <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <p class="mb-8 text-center text-xs font-bold uppercase tracking-widest text-brand-600">What's always included</p>
+        <p class="mb-8 text-center text-xs font-bold uppercase tracking-widest text-amber-700">What's always included</p>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div v-for="g in guarantees" :key="g.title" class="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
             <div class="mb-3 text-3xl">{{ g.emoji }}</div>
@@ -151,14 +151,14 @@ const guarantees = [
     </section>
 
     <!-- ── CTA ────────────────────────────────────────────────────────────── -->
-    <section class="bg-brand-900 py-20 text-center">
+    <section class="bg-claret-950 py-20 text-center">
       <div class="mx-auto max-w-xl px-4">
-        <h2 class="text-3xl font-bold text-white">Ready to get started?</h2>
-        <p class="mt-4 text-brand-200">Takes 2 minutes to fill in your brief. Free quote before you pay anything.</p>
-        <a :href="app.order" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+        <h2 class="font-serif text-3xl font-bold text-white">Ready to get started?</h2>
+        <p class="mt-4 text-claret-200">Takes 2 minutes to fill in your brief. Free quote before you pay anything.</p>
+        <a :href="app.order" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-claret-900 shadow-lg transition-colors hover:bg-parchment-100">
           Start my order — from $15/page
         </a>
-        <p class="mt-4 text-xs text-brand-300">No payment until you approve · Free revisions · Grade or money back</p>
+        <p class="mt-4 text-xs text-claret-300">No payment until you approve · Free revisions · Grade or money back</p>
       </div>
     </section>
 

@@ -58,16 +58,16 @@ const milestones = [
   <div>
 
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-brand-900 py-24">
+    <section class="relative overflow-hidden bg-claret-950 py-24">
       <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
       <div class="pointer-events-none absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-600 opacity-20 blur-[120px]" />
       <div class="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
-        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">Our story</p>
-        <h1 class="text-4xl font-bold leading-tight text-white sm:text-5xl">
+        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-claret-300">Our story</p>
+        <h1 class="font-serif text-4xl font-bold leading-tight text-white sm:text-5xl">
           We built the research paper service<br class="hidden sm:block" />
           we wished existed.
         </h1>
-        <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-brand-200">
+        <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-claret-200">
           Since 2019, ResearchPaperMate has connected students with verified, degree-holding researchers who write original papers from scratch — no AI, no templates, no shortcuts.
         </p>
       </div>
@@ -78,7 +78,7 @@ const milestones = [
       <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-2 divide-x divide-y divide-slate-100 md:grid-cols-4 md:divide-y-0">
           <div v-for="stat in stats" :key="stat.label" class="flex flex-col items-center py-10 px-6 text-center">
-            <span class="text-3xl font-extrabold tabular-nums text-brand-700">{{ stat.value }}</span>
+            <span class="text-3xl font-extrabold tabular-nums text-claret-700">{{ stat.value }}</span>
             <span class="mt-1 text-sm font-semibold text-slate-800">{{ stat.label }}</span>
             <span class="mt-0.5 text-xs text-slate-400">{{ stat.sub }}</span>
           </div>
@@ -91,8 +91,8 @@ const milestones = [
       <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div class="grid items-center gap-16 lg:grid-cols-2">
           <div>
-            <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-600">What we believe</p>
-            <h2 class="text-3xl font-bold leading-snug text-slate-900 sm:text-4xl">
+            <p class="mb-4 text-xs font-bold uppercase tracking-widest text-amber-700">What we believe</p>
+            <h2 class="font-serif text-3xl font-bold leading-snug text-slate-900 sm:text-4xl">
               Good research takes a real researcher — not a language model.
             </h2>
             <p class="mt-5 text-base leading-relaxed text-slate-500">
@@ -118,7 +118,7 @@ const milestones = [
       <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div class="grid items-center gap-16 lg:grid-cols-2">
           <div>
-            <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-600">Our vetting process</p>
+            <p class="mb-4 text-xs font-bold uppercase tracking-widest text-amber-700">Our vetting process</p>
             <h2 class="text-3xl font-bold text-slate-900">
               Only 2 in 100 applicants<br class="hidden sm:block" /> make the cut.
             </h2>
@@ -128,7 +128,7 @@ const milestones = [
           </div>
           <div class="space-y-5">
             <div v-for="step in vettingSteps" :key="step.n" class="flex gap-5">
-              <div class="flex size-10 shrink-0 items-center justify-center rounded-xl border-2 border-brand-200 bg-white text-sm font-extrabold text-brand-700">
+              <div class="flex size-10 shrink-0 items-center justify-center rounded-xl border-2 border-claret-200 bg-white text-sm font-extrabold text-claret-700">
                 {{ step.n }}
               </div>
               <div>
@@ -145,18 +145,18 @@ const milestones = [
     <section class="bg-white py-20">
       <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div class="mb-12 text-center">
-          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Our journey</p>
+          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-amber-700">Our journey</p>
           <h2 class="text-3xl font-bold text-slate-900">How we got here.</h2>
         </div>
         <div class="relative space-y-0">
           <!-- Vertical line -->
-          <div class="absolute left-[39px] top-4 bottom-4 w-px bg-brand-100" />
+          <div class="absolute left-[39px] top-4 bottom-4 w-px bg-amber-100" />
           <div v-for="m in milestones" :key="m.year" class="relative flex gap-6 pb-8 last:pb-0">
-            <div class="flex size-[42px] shrink-0 items-center justify-center rounded-full border-2 border-brand-200 bg-white text-xs font-extrabold text-brand-700 shadow-sm z-10">
+            <div class="flex size-[42px] shrink-0 items-center justify-center rounded-full border-2 border-claret-200 bg-white text-xs font-extrabold text-claret-700 shadow-sm z-10">
               {{ m.year.slice(2) }}'
             </div>
             <div class="pt-2">
-              <p class="text-xs font-bold text-brand-600">{{ m.year }}</p>
+              <p class="text-xs font-bold text-amber-700">{{ m.year }}</p>
               <p class="mt-0.5 text-sm leading-relaxed text-slate-600">{{ m.event }}</p>
             </div>
           </div>
@@ -165,14 +165,14 @@ const milestones = [
     </section>
 
     <!-- ── CTA ────────────────────────────────────────────────────────────── -->
-    <section class="bg-brand-900 py-20 text-center">
+    <section class="bg-claret-950 py-20 text-center">
       <div class="mx-auto max-w-xl px-4">
         <h2 class="text-3xl font-bold text-white">Work with a real researcher.</h2>
-        <p class="mt-4 text-lg text-brand-200">
+        <p class="mt-4 text-lg text-claret-200">
           Tell us your subject, level, and deadline. We'll match you with the right specialist within minutes.
         </p>
         <div class="mt-8 flex flex-wrap justify-center gap-4">
-          <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+          <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-claret-700 shadow-lg transition-colors hover:bg-brand-50">
             Start my order — from $15/page
           </a>
           <a href="/how-it-works" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">

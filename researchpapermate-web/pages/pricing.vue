@@ -52,7 +52,7 @@ const writerTiers = [
     emoji: '🔬',
     credential: 'PhD / Doctoral',
     from: '+20%',
-    fromColor: 'text-brand-600',
+    fromColor: 'text-amber-700',
     features: ['PhD-level specialists', 'Doctoral-level work', '1,000+ completed orders', 'For PhD & publication work'],
     highlight: false,
     badge: 'Premium',
@@ -79,18 +79,18 @@ const faqs = [
   <div>
 
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-brand-900 py-20 text-center">
+    <section class="relative overflow-hidden bg-claret-950 py-20 text-center">
       <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
       <div class="relative mx-auto max-w-3xl px-4 sm:px-6">
-        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-brand-300">Transparent pricing</p>
-        <h1 class="text-4xl font-bold text-white sm:text-5xl">
+        <p class="mb-4 text-xs font-bold uppercase tracking-widest text-amber-400">Transparent pricing</p>
+        <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">
           From <span class="text-amber-400">$15/page.</span><br class="hidden sm:block" />
           No surprises. No hidden fees.
         </h1>
-        <p class="mx-auto mt-5 max-w-xl text-lg text-brand-200">
+        <p class="mx-auto mt-5 max-w-xl text-lg text-claret-200">
           Your exact price is confirmed at checkout before any payment is taken. Use the calculator below to see your total instantly.
         </p>
-        <div class="mt-4 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-brand-300">
+        <div class="mt-4 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-claret-300">
           <span>✓ Plagiarism report included free</span>
           <span>✓ Revisions included free</span>
           <span>✓ Grade or money back</span>
@@ -99,9 +99,9 @@ const faqs = [
     </section>
 
     <!-- ── Live calculator ────────────────────────────────────────────────── -->
-    <section class="bg-slate-50 py-16">
+    <section class="bg-parchment-100 py-16">
       <div class="mx-auto max-w-2xl px-4 sm:px-6">
-        <p class="mb-6 text-center text-xs font-bold uppercase tracking-widest text-brand-600">Get your instant quote</p>
+        <p class="mb-6 text-center text-xs font-bold uppercase tracking-widest text-amber-700">Get your instant quote</p>
         <MultiStepOrderForm />
       </div>
     </section>
@@ -110,8 +110,8 @@ const faqs = [
     <section class="bg-white py-20">
       <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <div class="mb-12 text-center">
-          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Starting prices</p>
-          <h2 class="text-3xl font-bold text-slate-900">Price by academic level</h2>
+          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-amber-700">Starting prices</p>
+          <h2 class="font-serif text-3xl font-bold text-slate-900">Price by academic level</h2>
           <p class="mt-2 text-slate-500">Standard 14-day deadline. Deadline surcharges shown below.</p>
         </div>
 
@@ -124,7 +124,7 @@ const faqs = [
           >
             <p class="text-xs font-semibold text-slate-500">{{ level.note }}</p>
             <p class="mt-2 text-base font-bold text-slate-900">{{ level.label }}</p>
-            <p class="mt-3 text-3xl font-extrabold tabular-nums text-brand-700">${{ level.from }}</p>
+            <p class="mt-3 text-3xl font-extrabold tabular-nums text-claret-900">${{ level.from }}</p>
             <p class="text-xs text-slate-400">per page</p>
           </div>
         </div>
@@ -133,11 +133,11 @@ const faqs = [
     </section>
 
     <!-- ── Writer tiers ───────────────────────────────────────────────────── -->
-    <section class="bg-slate-50 py-20">
+    <section class="bg-parchment-100 py-20">
       <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <div class="mb-12 text-center">
-          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Writer tiers</p>
-          <h2 class="text-3xl font-bold text-slate-900">Choose your level of expertise</h2>
+          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-amber-700">Writer tiers</p>
+          <h2 class="font-serif text-3xl font-bold text-slate-900">Choose your level of expertise</h2>
           <p class="mt-2 text-slate-500">All tiers include the same guarantees. Higher tiers unlock more experienced specialists.</p>
         </div>
 
@@ -146,9 +146,9 @@ const faqs = [
             v-for="tier in writerTiers"
             :key="tier.name"
             class="relative flex flex-col rounded-2xl border bg-white p-8 shadow-sm"
-            :class="tier.highlight ? 'border-brand-400 ring-2 ring-brand-400 ring-offset-2' : 'border-slate-200'"
+            :class="tier.highlight ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-2' : 'border-slate-200'"
           >
-            <div v-if="tier.badge" class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-4 py-1 text-xs font-bold text-white shadow">
+            <div v-if="tier.badge" class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-600 px-4 py-1 text-xs font-bold text-white shadow">
               {{ tier.badge }}
             </div>
             <div class="mb-4 text-4xl">{{ tier.emoji }}</div>
@@ -157,10 +157,10 @@ const faqs = [
             <p class="mt-3 text-2xl font-extrabold" :class="tier.fromColor">{{ tier.from }}</p>
             <ul class="mt-5 flex-1 space-y-2">
               <li v-for="f in tier.features" :key="f" class="flex items-start gap-2 text-sm text-slate-600">
-                <span class="mt-0.5 text-brand-500">✓</span>{{ f }}
+                <span class="mt-0.5 text-amber-600">✓</span>{{ f }}
               </li>
             </ul>
-            <a :href="app.order" class="mt-6 block rounded-xl py-2.5 text-center text-sm font-bold transition-colors" :class="tier.highlight ? 'bg-brand-600 text-white hover:bg-brand-700' : 'border border-brand-200 text-brand-600 hover:bg-brand-50'">
+            <a :href="app.order" class="mt-6 block rounded-xl py-2.5 text-center text-sm font-bold transition-colors" :class="tier.highlight ? 'bg-amber-600 text-white hover:bg-amber-500' : 'border border-claret-200 text-claret-700 hover:bg-parchment-100'">
               Order with {{ tier.name }}
             </a>
           </div>
@@ -172,8 +172,8 @@ const faqs = [
     <section class="bg-white py-20">
       <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div class="mb-10 text-center">
-          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">Deadline pricing</p>
-          <h2 class="text-3xl font-bold text-slate-900">Rush vs. standard deadlines</h2>
+          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-amber-700">Deadline pricing</p>
+          <h2 class="font-serif text-3xl font-bold text-slate-900">Rush vs. standard deadlines</h2>
           <p class="mt-2 text-slate-500">Ordering early gets you the best price — and the best writer selection.</p>
         </div>
 
@@ -197,10 +197,10 @@ const faqs = [
     </section>
 
     <!-- ── FAQ ────────────────────────────────────────────────────────────── -->
-    <section class="bg-slate-50 py-20">
+    <section class="bg-parchment-100 py-20">
       <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div class="mb-10 text-center">
-          <h2 class="text-3xl font-bold text-slate-900">Pricing questions answered</h2>
+          <h2 class="font-serif text-3xl font-bold text-slate-900">Pricing questions answered</h2>
         </div>
         <div class="space-y-4">
           <details v-for="faq in faqs" :key="faq.q" class="group rounded-2xl border border-slate-200 bg-white">
@@ -215,11 +215,11 @@ const faqs = [
     </section>
 
     <!-- ── CTA ────────────────────────────────────────────────────────────── -->
-    <section class="bg-brand-900 py-16 text-center">
+    <section class="bg-claret-950 py-16 text-center">
       <div class="mx-auto max-w-xl px-4">
-        <h2 class="text-2xl font-bold text-white">Ready to get an exact quote?</h2>
-        <p class="mt-3 text-brand-200">Fill in your brief above — your total is confirmed before you pay anything.</p>
-        <a :href="app.order" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow transition-colors hover:bg-brand-50">
+        <h2 class="font-serif text-2xl font-bold text-white">Ready to get an exact quote?</h2>
+        <p class="mt-3 text-claret-200">Fill in your brief above — your total is confirmed before you pay anything.</p>
+        <a :href="app.order" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-claret-900 shadow transition-colors hover:bg-parchment-100">
           Start my order — from $15/page
         </a>
       </div>

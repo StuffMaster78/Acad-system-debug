@@ -93,17 +93,17 @@ const disciplines = [
   <div>
 
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-brand-900 py-20">
+    <section class="relative overflow-hidden bg-claret-950 py-20">
       <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      <div class="pointer-events-none absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-600 opacity-20 blur-[120px]" />
+      <div class="pointer-events-none absolute right-0 top-0 h-96 w-96 rounded-full bg-claret-600 opacity-20 blur-[120px]" />
 
       <div class="relative mx-auto max-w-5xl px-4 sm:px-6">
         <div class="text-center">
-          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-300">Verified student reviews</p>
-          <h1 class="text-4xl font-extrabold text-white sm:text-5xl">
+          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-claret-300">Verified student reviews</p>
+          <h1 class="font-serif text-4xl font-extrabold text-white sm:text-5xl">
             8,200+ orders reviewed.<br class="hidden sm:block" /> Across 100+ universities.
           </h1>
-          <p class="mx-auto mt-4 max-w-xl text-lg text-brand-200">
+          <p class="mx-auto mt-4 max-w-xl text-lg text-claret-200">
             Real researchers. Real grades. Real feedback from students who have handed work in.
           </p>
         </div>
@@ -125,7 +125,7 @@ const disciplines = [
               <div class="flex gap-0.5">
                 <Star v-for="i in 5" :key="i" class="h-3 w-3 fill-amber-400 text-amber-400" />
               </div>
-              <p class="text-xs text-brand-300">{{ p.count }} reviews</p>
+              <p class="text-xs text-claret-300">{{ p.count }} reviews</p>
             </div>
           </div>
         </div>
@@ -150,7 +150,7 @@ const disciplines = [
     </section>
 
     <!-- ── Masonry reviews ────────────────────────────────────────────────── -->
-    <section class="bg-slate-50 py-14">
+    <section class="bg-parchment-100 py-14">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="columns-1 gap-5 sm:columns-2 lg:columns-3 [column-fill:balance]">
           <div
@@ -187,13 +187,13 @@ const disciplines = [
     </section>
 
     <!-- ── CTA ───────────────────────────────────────────────────────────── -->
-    <section class="bg-brand-900 py-16 text-center">
+    <section class="bg-claret-950 py-16 text-center">
       <div class="mx-auto max-w-xl px-4">
-        <h2 class="text-2xl font-extrabold text-white">Work with a real researcher.</h2>
-        <p class="mt-3 text-brand-200">Research papers from $15/page. Grade or money back.</p>
+        <h2 class="font-serif text-2xl font-extrabold text-white">Work with a real researcher.</h2>
+        <p class="mt-3 text-claret-200">Research papers from $15/page. Grade or money back.</p>
         <a
           :href="app.order"
-          class="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50"
+          class="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-claret-900 shadow-lg transition-colors hover:bg-parchment-100"
         >
           Start my order <ArrowRight class="h-4 w-4" />
         </a>
