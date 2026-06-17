@@ -154,40 +154,44 @@ class CreateOrderView(GenericAPIView):
 
         Rules:
             1. Default to the authenticated user.
-            2. Allow staff to supply client_id for assisted creation.
-
-        Args:
-            request:
-                Incoming DRF request.
-            acting_user:
-                Authenticated user performing the action.
-
-        Returns:
-            Any:
-                Client user instance.
+            2. Staff may supply client_id (integer PK) OR client_email.
+               Either triggers the on-behalf permission check.
+               client_id takes precedence over client_email when both are
+               provided.
         """
         request_data = cast(dict[str, Any], request.data)
         client_id = request_data.get("client_id")
+        client_email = (request_data.get("client_email") or "").strip().lower() or None
 
-        if not client_id:
+        # No override — act as the authenticated user
+        if not client_id and not client_email:
             return acting_user
 
+        # Permission check — both lookup paths require the same permission
         can_create_on_behalf = AccountPermissionService.user_has_permission(
             user=acting_user,
             permission_code="orders.create_on_behalf",
             website=website,
         )
-
-        if client_id and not can_create_on_behalf:
+        if not can_create_on_behalf:
             raise PermissionDenied(
                 "You are not allowed to create orders for another client."
             )
 
         user_model = CreateOrderSerializer._get_user_model()
+
         if client_id:
             client = get_object_or_404(user_model, pk=client_id)
         else:
-            client = acting_user
+            # Lookup by email — scoped to this website for safety
+            client = user_model.objects.filter(
+                email__iexact=client_email,
+                website=website,
+            ).first()
+            if client is None:
+                raise PermissionDenied(
+                    f"No client found with email '{client_email}' on this site."
+                )
 
         request_website_id = getattr(website, "id", None)
         client_website_id = getattr(client, "website_id", None)
@@ -198,7 +202,7 @@ class CreateOrderView(GenericAPIView):
             and client_website_id != request_website_id
         ):
             raise PermissionDenied(
-                "Client does not belong to the resolved tenant."
+                "Client does not belong to this website."
             )
 
         return client

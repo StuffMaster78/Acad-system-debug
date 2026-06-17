@@ -1,4 +1,14 @@
 import { api, apiPath, ordersApiPath } from "./client";
+
+export interface ClientLookupResult {
+  id: number;
+  email: string;
+  username: string;
+  full_name: string;
+  role: string | null;
+  is_active: boolean;
+}
+
 import type {
   CancelOrderPayload,
   CreateOrderPayload,
@@ -67,6 +77,8 @@ export const ordersApi = {
     api.get<OrderInterestRecord[]>(ordersApiPath(`/orders/${id}/staffing/interests/`)),
   assignFromInterest: (interestId: number | string) =>
     api.post<OrderActionResponse>(ordersApiPath(`/staffing/interests/${interestId}/assign/`), {}),
+  lookupClient: (q: string) =>
+    api.get<ClientLookupResult[]>(ordersApiPath(`/client-lookup/?q=${encodeURIComponent(q)}`)),
   lookupPreferredWriter: (registrationId: string) =>
     api.get<{ id: number; registration_id: string; display_name: string }>(
       ordersApiPath(`/preferred-writer-lookup/${registrationId}/`),

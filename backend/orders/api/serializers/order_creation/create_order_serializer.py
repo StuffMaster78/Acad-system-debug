@@ -96,6 +96,12 @@ class CreateOrderSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
     )
+    client_email = serializers.EmailField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Staff: look up a client by email instead of ID.",
+    )
     client_deadline = serializers.DateTimeField()
     writer_deadline = serializers.DateTimeField(
         required=False,

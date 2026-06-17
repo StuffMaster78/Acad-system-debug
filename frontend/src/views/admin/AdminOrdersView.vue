@@ -7,10 +7,12 @@ import {
   CircleDollarSign,
   ClipboardList,
   Layers3,
+  Loader2,
   RefreshCw,
   Route,
   Search,
   Send,
+  UserPlus,
   XCircle,
 } from "@lucide/vue";
 import BaseModal from "@/components/ui/BaseModal.vue";
@@ -23,6 +25,8 @@ import {
   type ClassOrderDetailRecord,
   type SpecialOrderDetailRecord,
 } from "@/api/adminWork";
+import { ordersApi, type ClientLookupResult } from "@/api/orders";
+import { useOrderConfigStore } from "@/stores/orderConfig";
 import {
   queueDefinitions,
   useOrderOpsStore,
@@ -447,9 +451,120 @@ function firstRecordLabel(record: Record<string, unknown>) {
 }
 
 const websites = useWebsitesStore();
+const config = useOrderConfigStore();
+
+// ── Create order on behalf of client ─────────────────────────────────────────
+const showCreateForClient = ref(false);
+const clientQuery = ref("");
+const clientResults = ref<ClientLookupResult[]>([]);
+const clientLookupLoading = ref(false);
+const clientLookupError = ref("");
+const selectedClient = ref<ClientLookupResult | null>(null);
+
+const onBehalfForm = reactive({
+  topic: "",
+  order_instructions: "",
+  client_deadline: (() => {
+    const d = new Date(Date.now() + 7 * 24 * 3600 * 1000);
+    return d.toISOString().slice(0, 16);
+  })(),
+  number_of_pages: 1,
+  academic_level_id: null as number | null,
+  paper_type_id: null as number | null,
+  subject_id: null as number | null,
+});
+const onBehalfCreating = ref(false);
+const onBehalfError = ref("");
+const onBehalfSuccess = ref("");
+
+let clientLookupTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function lookupClient() {
+  const q = clientQuery.value.trim();
+  if (!q) { clientResults.value = []; return; }
+  clientLookupLoading.value = true;
+  clientLookupError.value = "";
+  try {
+    const { data } = await ordersApi.lookupClient(q);
+    clientResults.value = Array.isArray(data) ? data : [];
+    if (!clientResults.value.length) clientLookupError.value = "No matching clients found.";
+  } catch {
+    clientLookupError.value = "Lookup failed.";
+  } finally {
+    clientLookupLoading.value = false;
+  }
+}
+
+function onClientQueryInput() {
+  selectedClient.value = null;
+  clientLookupError.value = "";
+  if (clientLookupTimer) clearTimeout(clientLookupTimer);
+  clientLookupTimer = setTimeout(lookupClient, 350);
+}
+
+function selectClient(c: ClientLookupResult) {
+  selectedClient.value = c;
+  clientQuery.value = c.email;
+  clientResults.value = [];
+}
+
+function resetCreateForClient() {
+  showCreateForClient.value = false;
+  clientQuery.value = "";
+  clientResults.value = [];
+  clientLookupError.value = "";
+  selectedClient.value = null;
+  onBehalfError.value = "";
+  onBehalfSuccess.value = "";
+  onBehalfForm.topic = "";
+  onBehalfForm.order_instructions = "";
+  onBehalfForm.number_of_pages = 1;
+  onBehalfForm.academic_level_id = null;
+  onBehalfForm.paper_type_id = null;
+  onBehalfForm.subject_id = null;
+}
+
+async function submitCreateForClient() {
+  if (!selectedClient.value) { onBehalfError.value = "Select a client first."; return; }
+  if (!onBehalfForm.topic.trim()) { onBehalfError.value = "Topic is required."; return; }
+  if (!onBehalfForm.order_instructions.trim()) { onBehalfError.value = "Instructions are required."; return; }
+
+  onBehalfCreating.value = true;
+  onBehalfError.value = "";
+  onBehalfSuccess.value = "";
+  try {
+    const { data } = await ordersApi.create({
+      client_id: selectedClient.value.id,
+      topic: onBehalfForm.topic,
+      order_instructions: onBehalfForm.order_instructions,
+      client_deadline: new Date(onBehalfForm.client_deadline).toISOString(),
+      number_of_pages: onBehalfForm.number_of_pages,
+      ...(onBehalfForm.academic_level_id ? { academic_level_id: onBehalfForm.academic_level_id } : {}),
+      ...(onBehalfForm.paper_type_id ? { paper_type_id: onBehalfForm.paper_type_id } : {}),
+      ...(onBehalfForm.subject_id ? { subject_id: onBehalfForm.subject_id } : {}),
+      service_family: "paper_order",
+      service_code: "academic_writing",
+      payment_provider: "wallet",
+      payment_method_code: "wallet",
+    } as any);
+    const orderId = (data as any).order?.id ?? (data as any).id;
+    onBehalfSuccess.value = `Order #${orderId} created for ${selectedClient.value.email}.`;
+    await refreshAll();
+    if (orderId) {
+      const prefix = route.path.startsWith("/superadmin") ? "/superadmin" : "/admin";
+      setTimeout(() => { router.push(`${prefix}/orders/${orderId}`); resetCreateForClient(); }, 1200);
+    }
+  } catch (e: any) {
+    onBehalfError.value = e?.response?.data?.detail ?? "Order creation failed.";
+  } finally {
+    onBehalfCreating.value = false;
+  }
+}
+
 onMounted(() => {
   refreshAll().catch(() => undefined);
   websites.ensure();
+  config.fetchAll().catch(() => undefined);
 });
 </script>
 
@@ -464,14 +579,150 @@ onMounted(() => {
           client context, writer assignments, payment state, and operational risk.
         </p>
       </div>
-      <button
-        class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold"
-        type="button"
-        @click="refreshAll"
-      >
-        <RefreshCw class="h-4 w-4" />
-        Refresh
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white hover:bg-ink/90"
+          type="button"
+          @click="showCreateForClient = !showCreateForClient"
+        >
+          <UserPlus class="h-4 w-4" />
+          Create for client
+        </button>
+        <button
+          class="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold"
+          type="button"
+          @click="refreshAll"
+        >
+          <RefreshCw class="h-4 w-4" />
+          Refresh
+        </button>
+      </div>
+    </section>
+
+    <!-- ── Create order for client panel ──────────────────────────────────── -->
+    <section v-if="showCreateForClient" class="rounded-xl border border-ink/10 bg-white shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+        <div class="flex items-center gap-2.5">
+          <UserPlus class="h-5 w-5 text-signal" />
+          <h2 class="text-base font-semibold text-ink">Create order on behalf of client</h2>
+        </div>
+        <button class="text-graphite hover:text-ink" type="button" @click="resetCreateForClient">
+          <XCircle class="h-5 w-5" />
+        </button>
+      </div>
+
+      <div class="grid gap-6 p-6 lg:grid-cols-2">
+
+        <!-- Client search -->
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">
+              Client — email or ID
+            </label>
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
+              <input
+                v-model="clientQuery"
+                type="text"
+                placeholder="jane@example.com or client ID…"
+                class="focus-ring h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm"
+                @input="onClientQueryInput"
+              />
+              <Loader2 v-if="clientLookupLoading" class="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-graphite" />
+            </div>
+            <!-- Dropdown results -->
+            <div v-if="clientResults.length" class="mt-1 rounded-lg border border-slate-200 bg-white shadow-lg divide-y divide-slate-100">
+              <button
+                v-for="c in clientResults"
+                :key="c.id"
+                type="button"
+                class="flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50 transition-colors"
+                @click="selectClient(c)"
+              >
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-graphite">
+                  {{ (c.full_name || c.email).charAt(0).toUpperCase() }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-ink truncate">{{ c.full_name || c.username }}</p>
+                  <p class="text-xs text-graphite truncate">{{ c.email }}</p>
+                </div>
+                <span class="ml-auto shrink-0 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-graphite">#{{ c.id }}</span>
+              </button>
+            </div>
+            <p v-if="clientLookupError && !clientResults.length" class="mt-1.5 text-xs text-berry">{{ clientLookupError }}</p>
+            <!-- Selected client badge -->
+            <div v-if="selectedClient" class="mt-2 flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+              <CheckCircle2 class="h-4 w-4 text-emerald-600 shrink-0" />
+              <span class="text-sm font-semibold text-emerald-800">{{ selectedClient.full_name || selectedClient.username }}</span>
+              <span class="text-xs text-emerald-600">{{ selectedClient.email }} · #{{ selectedClient.id }}</span>
+            </div>
+          </div>
+
+          <!-- Core order fields -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Topic / title</label>
+            <input v-model="onBehalfForm.topic" type="text" placeholder="e.g. Healthcare policy literature review" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Pages</label>
+              <input v-model.number="onBehalfForm.number_of_pages" type="number" min="1" max="200" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Client deadline</label>
+              <input v-model="onBehalfForm.client_deadline" type="datetime-local" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Academic level</label>
+              <select v-model="onBehalfForm.academic_level_id" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white">
+                <option :value="null">— any level —</option>
+                <option v-for="l in config.collections.academicLevels" :key="l.id" :value="l.id">{{ l.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Paper type</label>
+              <select v-model="onBehalfForm.paper_type_id" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white">
+                <option :value="null">— any type —</option>
+                <option v-for="p in config.collections.paperTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Instructions + submit -->
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Instructions</label>
+            <textarea
+              v-model="onBehalfForm.order_instructions"
+              rows="8"
+              placeholder="Full order brief — paste from client email, ticket, or type here…"
+              class="focus-ring w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm"
+            />
+          </div>
+
+          <p v-if="onBehalfError" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">{{ onBehalfError }}</p>
+          <p v-if="onBehalfSuccess" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-signal">{{ onBehalfSuccess }}</p>
+
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="focus-ring inline-flex h-10 items-center gap-2 rounded-lg bg-ink px-5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-50"
+              :disabled="onBehalfCreating || !selectedClient || !onBehalfForm.topic.trim()"
+              @click="submitCreateForClient"
+            >
+              <Loader2 v-if="onBehalfCreating" class="h-4 w-4 animate-spin" />
+              <Send v-else class="h-4 w-4" />
+              {{ onBehalfCreating ? "Creating…" : "Create order" }}
+            </button>
+            <p class="text-xs text-graphite">Order will appear in the client's account immediately. Payment via wallet.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <p
