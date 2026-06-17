@@ -285,12 +285,6 @@ const pricingTiers = [
         <span class="h-1 w-1 rounded-full bg-claret-700"/>
       </div>
     </div>
-    <style>
-      @keyframes marquee {
-        0%   { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
-      }
-    </style>
   </section>
 
   <!-- ─── STATS BAR — warm parchment ───────────────────────────────────── -->
@@ -591,3 +585,11 @@ const pricingTiers = [
     </div>
   </section>
 </template>
+
+
+<style scoped>
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+</style>

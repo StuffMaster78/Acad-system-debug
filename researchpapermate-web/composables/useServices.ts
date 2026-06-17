@@ -316,17 +316,18 @@ export interface CmsServiceSummary {
 }
 
 export function useCmsServiceList() {
-  const { data } = useFetch<{ items: CmsServiceSummary[] }>('/api/v2/pages/', {
-    key: 'cms-service-list',
-    query: {
-      type: 'cms_service_pages.ServicePage',
-      live: true,
-      order: 'title',
-      fields: 'title,slug,service_category,pricing_from,turnaround_hours_fastest',
-      limit: 50,
-    },
-    default: () => ({ items: [] }),
-  })
+  const { data } = useAsyncData<{ items: CmsServiceSummary[] }>(
+    'cms-service-list',
+    () => $fetch<{ items: CmsServiceSummary[] }>('/api/v2/pages/', {
+      query: {
+        type: 'cms_service_pages.ServicePage',
+        order: 'title',
+        fields: 'title,slug,service_category,pricing_from,turnaround_hours_fastest',
+        limit: 20,
+      },
+    }).catch(() => ({ items: [] })),
+    { default: () => ({ items: [] }) },
+  )
 
   // Merge CMS list with static data for richer display (icon, navLabel, hero sub)
   const staticServices = services
