@@ -109,16 +109,45 @@ function severityTextClass(s: string): string {
   return map[s] ?? "text-graphite";
 }
 
+function previewAuditEvent(partial: Partial<AuditEvent> & Pick<AuditEvent, "id" | "occurred_at" | "action">): AuditEvent {
+  return {
+    website: null,
+    actor_id: null,
+    actor_role: null,
+    actor_display: null,
+    object_type: "order",
+    object_id: props.orderId,
+    object_label: `Order ${props.orderId}`,
+    portal_surface: "staff",
+    request_path: null,
+    http_method: null,
+    session_id: null,
+    status: "processed",
+    processed_at: null,
+    processing_attempts: 1,
+    correlation_id: null,
+    span_id: null,
+    severity: "info",
+    is_sensitive: false,
+    sensitivity_level: null,
+    service_name: null,
+    before_state: null,
+    after_state: null,
+    metadata: null,
+    ...partial,
+  };
+}
+
 async function load() {
   loading.value = true;
   try {
     if (auth.isPreviewSession) {
       const now = Date.now();
       entries.value = [
-        { id: "1", website: null, occurred_at: new Date(now - 1000 * 60 * 5).toISOString(), actor_id: "88", action: "order_status_changed", object_type: "order", object_id: props.orderId, status: "processed", processed_at: null, processing_attempts: 1, correlation_id: null, span_id: null, severity: "info", is_sensitive: false, sensitivity_level: null, service_name: "order_transition_service", metadata: null },
-        { id: "2", website: null, occurred_at: new Date(now - 1000 * 60 * 30).toISOString(), actor_id: null, action: "payment_confirmed", object_type: "order", object_id: props.orderId, status: "processed", processed_at: null, processing_attempts: 1, correlation_id: null, span_id: null, severity: "info", is_sensitive: false, sensitivity_level: null, service_name: "billing_service", metadata: null },
-        { id: "3", website: null, occurred_at: new Date(now - 1000 * 60 * 90).toISOString(), actor_id: "12", action: "writer_assigned", object_type: "order", object_id: props.orderId, status: "processed", processed_at: null, processing_attempts: 1, correlation_id: null, span_id: null, severity: "info", is_sensitive: false, sensitivity_level: null, service_name: "staffing_service", metadata: null },
-        { id: "4", website: null, occurred_at: new Date(now - 1000 * 60 * 120).toISOString(),actor_id: "12", action: "file_access", object_type: "order", object_id: props.orderId, status: "processed", processed_at: null, processing_attempts: 1, correlation_id: null, span_id: null, severity: "warning", is_sensitive: true, sensitivity_level: "medium", service_name: "files_service", metadata: null },
+        previewAuditEvent({ id: "1", occurred_at: new Date(now - 1000 * 60 * 5).toISOString(), actor_id: "88", actor_role: "support", actor_display: "Support #88", action: "order_status_changed", service_name: "order_transition_service" }),
+        previewAuditEvent({ id: "2", occurred_at: new Date(now - 1000 * 60 * 30).toISOString(), action: "payment_confirmed", service_name: "billing_service" }),
+        previewAuditEvent({ id: "3", occurred_at: new Date(now - 1000 * 60 * 90).toISOString(), actor_id: "12", actor_role: "admin", actor_display: "Admin #12", action: "writer_assigned", service_name: "staffing_service" }),
+        previewAuditEvent({ id: "4", occurred_at: new Date(now - 1000 * 60 * 120).toISOString(), actor_id: "12", actor_role: "admin", actor_display: "Admin #12", action: "file_access", severity: "warning", is_sensitive: true, sensitivity_level: "medium", service_name: "files_service" }),
       ];
       nextUrl.value = null;
       prevUrl.value = null;

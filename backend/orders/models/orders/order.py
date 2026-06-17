@@ -550,7 +550,18 @@ class Order(models.Model):
             str:
                 Human readable order representation.
         """
-        return f"Order #{self.pk} {self.topic}"
+        return f"Order #{self.reference} {self.topic}"
+
+    @property
+    def reference(self) -> str:
+        """
+        Return the public-facing order reference.
+
+        The database primary key remains the internal identifier. When a
+        public number has not been allocated, fall back to the primary key
+        so legacy callers keep working.
+        """
+        return self.public_order_number or str(self.pk)
 
     @property
     def status_enum(self) -> OrderStatus:

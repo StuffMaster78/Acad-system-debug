@@ -79,6 +79,32 @@ export const FALLBACK_PAPER_TYPES: PricingPaperType[] = [
   { code: 'presentation',      label: 'Presentation Notes', multiplier: 0.90 },
 ]
 
+export const FALLBACK_SUBJECTS: CfgSubject[] = [
+  { name: 'Biology',              category: 'Natural Sciences' },
+  { name: 'Chemistry',            category: 'Natural Sciences' },
+  { name: 'Physics',              category: 'Natural Sciences' },
+  { name: 'Environmental Sci.',   category: 'Natural Sciences' },
+  { name: 'Mathematics',          category: 'Mathematics & Statistics' },
+  { name: 'Statistics',           category: 'Mathematics & Statistics' },
+  { name: 'Computer Science',     category: 'Computing & Technology' },
+  { name: 'Engineering',          category: 'Computing & Technology' },
+  { name: 'Psychology',           category: 'Social Sciences' },
+  { name: 'Sociology',            category: 'Social Sciences' },
+  { name: 'Political Science',    category: 'Social Sciences' },
+  { name: 'History',              category: 'Humanities' },
+  { name: 'Literature / English', category: 'Humanities' },
+  { name: 'Philosophy',           category: 'Humanities' },
+  { name: 'Business Admin.',      category: 'Business & Economics' },
+  { name: 'Economics',            category: 'Business & Economics' },
+  { name: 'Marketing',            category: 'Business & Economics' },
+  { name: 'Accounting / Finance', category: 'Business & Economics' },
+  { name: 'Nursing',              category: 'Healthcare' },
+  { name: 'Medicine / Health',    category: 'Healthcare' },
+  { name: 'Pharmacology',         category: 'Healthcare' },
+  { name: 'Law',                  category: 'Law & Education' },
+  { name: 'Education',            category: 'Law & Education' },
+]
+
 // ── Fetch ────────────────────────────────────────────────────────────────────
 
 export async function fetchPricingConfig(): Promise<PublicPricingConfig> {
@@ -131,7 +157,7 @@ function _parse(raw: Record<string, unknown>): PublicPricingConfig {
     subjects:
       Array.isArray(raw.subjects)
         ? (raw.subjects as Record<string, unknown>[]).map(_subject)
-        : [],
+        : FALLBACK_SUBJECTS,
     work_types:
       Array.isArray(raw.work_types)
         ? (raw.work_types as Record<string, unknown>[]).map(_display)
@@ -163,7 +189,7 @@ function _fallback(): PublicPricingConfig {
     deadlines: FALLBACK_DEADLINES,
     academic_levels_display: [],
     paper_types_display: [],
-    subjects: [],
+    subjects: FALLBACK_SUBJECTS,
     work_types: [],
     formatting_styles: [],
     english_types: [],

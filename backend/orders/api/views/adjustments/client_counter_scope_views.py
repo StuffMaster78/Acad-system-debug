@@ -17,6 +17,7 @@ from orders.models import OrderAdjustmentRequest
 from orders.services.adjustment_negotiation_service import (
     AdjustmentNegotiationService,
 )
+from orders.services.order_notification_service import OrderNotificationService
 
 
 class ClientCounterScopeIncrementView(GenericAPIView):
@@ -48,6 +49,10 @@ class ClientCounterScopeIncrementView(GenericAPIView):
             countered_note=data.get("countered_note", ""),
             pricing_result=pricing_result,
             counter_pricing_snapshot=counter_pricing_snapshot,
+            countered_by=request.user,
+        )
+        OrderNotificationService.notify_adjustment_countered(
+            adjustment_request=updated,
             countered_by=request.user,
         )
 

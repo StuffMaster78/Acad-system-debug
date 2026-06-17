@@ -1,63 +1,90 @@
 <script setup lang="ts">
-/**
- * Multi-step public order form.
- *
- * Step 1 — Configure: paper type · academic level · deadline · pages
- * Step 2 — Brief: topic · instructions
- * Step 3 — Review: price summary · redirect to portal
- *
- * Options come from the backend /api/v1/pricing/public/config/ endpoint so
- * they stay in sync with whatever the admin has configured. Falls back to
- * static constants when the API is unavailable.
- */
+import { Loader2 } from '@lucide/vue'
 import {
   fetchPricingConfig,
   FALLBACK_LEVELS,
   FALLBACK_DEADLINES,
   FALLBACK_PAPER_TYPES,
+  FALLBACK_SUBJECTS,
   type PricingLevel,
   type PricingDeadline,
   type PricingPaperType,
+  type CfgSubject,
+  type CfgAddon,
 } from '~/composables/usePricingConfig'
+
+const SERVICE_TYPES = [
+  { id: 'writing',      label: 'Writing' },
+  { id: 'editing',      label: 'Editing' },
+  { id: 'proofreading', label: 'Proofreading' },
+  { id: 'rewriting',    label: 'Rewriting' },
+]
 
 type EstimateResponse = {
   total?: string | number | null
   estimated_min_price?: string | number | null
-  currency?: string
 }
 
 const app    = useAppUrl()
 const config = useRuntimeConfig()
 
-// ── Live config from backend ───────────────────────────────────────────────
-const { data: pricingConfig } = await useAsyncData('em-pricing-config', fetchPricingConfig)
+// ── Live config ────────────────────────────────────────────────────────────
+const { data: pricingConfig } = useLazyAsyncData('em-pricing-config', fetchPricingConfig)
 
 const levels     = computed<PricingLevel[]>(() => pricingConfig.value?.academic_levels ?? FALLBACK_LEVELS)
 const deadlines  = computed<PricingDeadline[]>(() => pricingConfig.value?.deadlines ?? FALLBACK_DEADLINES)
 const paperTypes = computed<PricingPaperType[]>(() => pricingConfig.value?.paper_types ?? FALLBACK_PAPER_TYPES)
+const subjects   = computed<CfgSubject[]>(() => {
+  const s = pricingConfig.value?.subjects
+  return s?.length ? s : FALLBACK_SUBJECTS
+})
+const addons = computed<CfgAddon[]>(() => pricingConfig.value?.addons ?? [])
+
+const subjectGroups = computed(() => {
+  const groups: Record<string, string[]> = {}
+  for (const s of subjects.value) {
+    if (!groups[s.category]) groups[s.category] = []
+    groups[s.category].push(s.name)
+  }
+  return groups
+})
+
+const standardDeadlines = computed(() => deadlines.value.filter(d => d.max_hours > 48))
+const expressDeadlines  = computed(() => deadlines.value.filter(d => d.max_hours <= 48))
 
 // ── Form state ─────────────────────────────────────────────────────────────
-const step         = ref<1 | 2 | 3>(1)
-const paperCode    = ref(paperTypes.value[0]?.code ?? 'essay')
-const levelCode    = ref(levels.value[1]?.code ?? levels.value[0]?.code ?? 'undergrad')
-const deadlineHrs  = ref(deadlines.value[0]?.max_hours ?? 336)
-const pages        = ref(1)
-const topic        = ref('')
-const instructions = ref('')
+const serviceType        = ref('writing')
+const paperCode          = ref<string | null>(null)
+const levelCode          = ref(FALLBACK_LEVELS[1]?.code ?? FALLBACK_LEVELS[0]?.code ?? 'undergrad')
+const deadlineHrs        = ref(FALLBACK_DEADLINES[0]?.max_hours ?? 336)
+const pages              = ref(1)
+const spacing            = ref<'double' | 'single'>('double')
+const subjectName        = ref('')
+const selectedAddonCodes = ref<string[]>([])
 
-// ── Pricing ────────────────────────────────────────────────────────────────
+watch(levels,    (lvls) => { if (lvls.length > 1) levelCode.value = lvls[1].code }, { immediate: false })
+watch(deadlines, (dls)  => { if (dls.length) deadlineHrs.value = dls[0].max_hours }, { immediate: false })
+
+const selectedLevel    = computed(() => levels.value.find(l => l.code === levelCode.value) ?? levels.value[0])
+const selectedDeadline = computed(() => deadlines.value.find(d => d.max_hours === deadlineHrs.value) ?? deadlines.value[0])
+const words            = computed(() => pages.value * (spacing.value === 'double' ? 275 : 550))
+
+// ── Live price ─────────────────────────────────────────────────────────────
 const estimate     = ref<EstimateResponse | null>(null)
 const isPricing    = ref(false)
 const hasLivePrice = ref(false)
 let   priceTimer: ReturnType<typeof setTimeout> | null = null
 
-const selectedLevel    = computed(() => levels.value.find(l => l.code === levelCode.value) ?? levels.value[0])
-const selectedDeadline = computed(() => deadlines.value.find(d => d.max_hours === deadlineHrs.value) ?? deadlines.value[0])
+const spacingMult = computed(() =>
+  spacing.value === 'single'
+    ? (pricingConfig.value?.spacing_multipliers?.single ?? 2)
+    : (pricingConfig.value?.spacing_multipliers?.double ?? 1)
+)
 
 const localPrice = computed(() => {
   const base = selectedLevel.value?.price_per_page ?? 15
   const mult = selectedDeadline.value?.multiplier ?? 1
-  return Math.ceil(base * mult * pages.value * 100) / 100
+  return Math.ceil(base * mult * spacingMult.value * pages.value * 100) / 100
 })
 
 const livePrice = computed(() => {
@@ -65,19 +92,13 @@ const livePrice = computed(() => {
   return Number.isFinite(n) && n > 0 ? n : null
 })
 
-const displayPrice = computed(() => livePrice.value ?? localPrice.value)
-const perPage      = computed(() => pages.value > 0 ? displayPrice.value / pages.value : 0)
-const words        = computed(() => pages.value * 275)
+const addonTotal = computed(() =>
+  addons.value
+    .filter(a => selectedAddonCodes.value.includes(a.addon_code))
+    .reduce((sum, a) => sum + a.flat_amount, 0)
+)
 
-const deadlineLabel = computed(() => {
-  const dl = selectedDeadline.value
-  if (!dl) return ''
-  const d = Math.floor(dl.max_hours / 24)
-  const h = dl.max_hours % 24
-  if (d === 0) return `${h}h deadline`
-  if (h === 0) return `${d}-day deadline`
-  return `${d}d ${h}h deadline`
-})
+const displayPrice = computed(() => (livePrice.value ?? localPrice.value) + addonTotal.value)
 
 async function refreshEstimate() {
   if (import.meta.server) return
@@ -94,14 +115,14 @@ async function refreshEstimate() {
           academic_level_code: levelCode.value,
           pages:               pages.value,
           deadline_hours:      deadlineHrs.value,
-          spacing:             'double',
+          spacing:             spacing.value,
         },
         credentials: 'include',
       },
     )
     hasLivePrice.value = true
   } catch {
-    estimate.value    = null
+    estimate.value     = null
     hasLivePrice.value = false
   } finally {
     isPricing.value = false
@@ -110,230 +131,213 @@ async function refreshEstimate() {
 
 function scheduleEstimate() {
   if (priceTimer) clearTimeout(priceTimer)
-  priceTimer = setTimeout(() => { void refreshEstimate() }, 300)
+  priceTimer = setTimeout(() => { void refreshEstimate() }, 350)
+}
+
+function toggleAddon(code: string) {
+  const idx = selectedAddonCodes.value.indexOf(code)
+  if (idx >= 0) selectedAddonCodes.value.splice(idx, 1)
+  else selectedAddonCodes.value.push(code)
 }
 
 onMounted(() => { void refreshEstimate() })
-watch([paperCode, levelCode, deadlineHrs, pages], scheduleEstimate)
+watch([serviceType, paperCode, levelCode, deadlineHrs, pages, spacing], scheduleEstimate)
 
-// ── Order URL (final step) ─────────────────────────────────────────────────
+// ── Order URL ──────────────────────────────────────────────────────────────
 const orderUrl = computed(() => {
-  const p = new URLSearchParams({
-    type:     paperCode.value,
-    level:    levelCode.value,
-    deadline: String(deadlineHrs.value),
-    pages:    String(pages.value),
-  })
-  if (topic.value.trim())        p.set('topic', topic.value.trim().slice(0, 200))
+  const p = new URLSearchParams({ type: serviceType.value })
+  if (levelCode.value) p.set('level', levelCode.value)
+  if (deadlineHrs.value) p.set('deadline', String(deadlineHrs.value))
+  if (pages.value > 1) p.set('pages', String(pages.value))
+  if (paperCode.value) p.set('paper', paperCode.value)
+  if (spacing.value === 'single') p.set('spacing', 'single')
+  if (subjectName.value) p.set('subject', subjectName.value)
+  if (selectedAddonCodes.value.length) p.set('addons', selectedAddonCodes.value.join(','))
   return `${app.order}?${p.toString()}`
 })
-
-// ── Step validation ────────────────────────────────────────────────────────
-const step1Valid = computed(() => !!paperCode.value && !!levelCode.value && deadlineHrs.value > 0 && pages.value >= 1)
-const step2Valid = computed(() => topic.value.trim().length >= 3)
-
-function next() {
-  if (step.value === 1 && step1Valid.value) step.value = 2
-  else if (step.value === 2 && step2Valid.value) step.value = 3
-}
-function back() {
-  if (step.value > 1) step.value = (step.value - 1) as 1 | 2 | 3
-}
 </script>
 
 <template>
   <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
 
-    <!-- Step indicator -->
-    <div class="flex border-b border-slate-100 bg-slate-50">
-      <div
-        v-for="(label, i) in ['Configure', 'Your brief', 'Review & order']"
-        :key="i"
-        class="flex flex-1 items-center justify-center gap-1.5 py-3 text-xs font-semibold transition-colors"
-        :class="step === i + 1 ? 'text-brand-700 border-b-2 border-brand-600 bg-white' : step > i + 1 ? 'text-brand-500' : 'text-slate-400'"
-      >
-        <span
-          class="flex size-5 items-center justify-center rounded-full text-[10px] font-bold"
-          :class="step > i + 1 ? 'bg-brand-600 text-white' : step === i + 1 ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'"
-        >{{ step > i + 1 ? '✓' : i + 1 }}</span>
-        <span class="hidden sm:inline">{{ label }}</span>
-      </div>
+    <!-- Header -->
+    <div class="border-b border-slate-100 bg-slate-50 px-5 py-3.5">
+      <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Get your instant price</p>
     </div>
 
-    <!-- ── Step 1: Configure ─────────────────────────────────────────────── -->
-    <div v-if="step === 1" class="p-6 space-y-5">
+    <div class="space-y-4 p-5">
 
+      <!-- Row 1: Service + Paper type -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-slate-400">Service</label>
+          <select v-model="serviceType" class="sel">
+            <option v-for="s in SERVICE_TYPES" :key="s.id" :value="s.id">{{ s.label }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-slate-400">Paper type</label>
+          <select v-model="paperCode" class="sel">
+            <option :value="null">Any type</option>
+            <option v-for="pt in paperTypes" :key="pt.code" :value="pt.code">{{ pt.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Subject area -->
       <div>
-        <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Paper type</p>
-        <div class="flex flex-wrap gap-2">
+        <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-slate-400">Subject area</label>
+        <select v-model="subjectName" class="sel">
+          <option value="">— Any subject —</option>
+          <optgroup v-for="(names, category) in subjectGroups" :key="category" :label="String(category)">
+            <option v-for="name in names" :key="name" :value="name">{{ name }}</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- Academic level -->
+      <div>
+        <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-slate-400">Academic level</label>
+        <div class="flex flex-wrap gap-1.5">
           <button
-            v-for="pt in paperTypes" :key="pt.code"
+            v-for="lvl in levels"
+            :key="lvl.code"
             type="button"
-            class="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors"
-            :class="paperCode === pt.code ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-700'"
-            @click="paperCode = pt.code"
-          >{{ pt.label }}</button>
+            class="rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors"
+            :class="levelCode === lvl.code
+              ? 'border-brand-600 bg-brand-600 text-white'
+              : 'border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-700'"
+            @click="levelCode = lvl.code"
+          >
+            {{ lvl.label }}
+          </button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <!-- Deadline + Pages + Spacing -->
+      <div class="grid grid-cols-[1fr_auto_auto] items-end gap-3">
         <div>
-          <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Academic level</p>
-          <div class="space-y-1.5">
+          <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-slate-400">Deadline</label>
+          <select v-model.number="deadlineHrs" class="sel">
+            <optgroup v-if="standardDeadlines.length" label="Standard">
+              <option v-for="dl in standardDeadlines" :key="dl.max_hours" :value="dl.max_hours">
+                {{ dl.label }}{{ dl.multiplier === 1 ? ' — best price' : ` (+${Math.round((dl.multiplier - 1) * 100)}%)` }}
+              </option>
+            </optgroup>
+            <optgroup v-if="expressDeadlines.length" label="Express (rush rates)">
+              <option v-for="dl in expressDeadlines" :key="dl.max_hours" :value="dl.max_hours">
+                {{ dl.label }} (+{{ Math.round((dl.multiplier - 1) * 100) }}%)
+              </option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div>
+          <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-slate-400">Pages</label>
+          <div class="flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 px-2">
             <button
-              v-for="lvl in levels" :key="lvl.code"
               type="button"
-              class="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors text-left"
-              :class="levelCode === lvl.code ? 'border-brand-600 bg-brand-50 font-semibold text-brand-700' : 'border-slate-200 text-slate-600 hover:border-brand-300'"
-              @click="levelCode = lvl.code"
-            >
-              <span>{{ lvl.label }}</span>
-              <span v-if="lvl.price_per_page" class="text-xs text-slate-400">from ${{ lvl.price_per_page }}/pg</span>
-            </button>
+              class="flex h-6 w-6 items-center justify-center rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+              :disabled="pages <= 1"
+              @click="pages--"
+            >−</button>
+            <span class="w-6 text-center text-sm font-bold tabular-nums text-slate-900">{{ pages }}</span>
+            <button
+              type="button"
+              class="flex h-6 w-6 items-center justify-center rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+              :disabled="pages >= 100"
+              @click="pages++"
+            >+</button>
+          </div>
+          <p class="mt-0.5 text-center text-[10px] text-slate-400">{{ words.toLocaleString() }} words</p>
+        </div>
+
+        <div>
+          <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-slate-400">Spacing</label>
+          <div class="flex h-10 overflow-hidden rounded-lg border border-slate-200">
+            <button
+              type="button"
+              class="flex-1 px-2.5 text-xs font-semibold transition-colors"
+              :class="spacing === 'double' ? 'bg-brand-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
+              @click="spacing = 'double'"
+            >Dbl</button>
+            <button
+              type="button"
+              class="flex-1 border-l border-slate-200 px-2.5 text-xs font-semibold transition-colors"
+              :class="spacing === 'single' ? 'border-brand-600 bg-brand-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
+              @click="spacing = 'single'"
+            >Sgl</button>
           </div>
         </div>
+      </div>
 
-        <div>
-          <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Deadline</p>
-          <div class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-            <button
-              v-for="dl in deadlines" :key="dl.max_hours"
-              type="button"
-              class="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors text-left"
-              :class="deadlineHrs === dl.max_hours ? 'border-brand-600 bg-brand-50 font-semibold text-brand-700' : 'border-slate-200 text-slate-600 hover:border-brand-300'"
-              @click="deadlineHrs = dl.max_hours"
-            >
-              <span>{{ dl.label }}</span>
-              <span v-if="dl.multiplier > 1" class="text-xs text-slate-400">+{{ Math.round((dl.multiplier - 1) * 100) }}%</span>
-            </button>
+      <!-- Add-ons -->
+      <div v-if="addons.length" class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+        <p class="mb-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">Optional add-ons</p>
+        <div class="grid grid-cols-2 gap-2">
+          <label
+            v-for="addon in addons.slice(0, 4)"
+            :key="addon.addon_code"
+            class="flex cursor-pointer items-start gap-2 rounded-lg border bg-white p-2 transition-colors"
+            :class="selectedAddonCodes.includes(addon.addon_code) ? 'border-brand-400 bg-brand-50' : 'border-slate-200 hover:border-slate-300'"
+          >
+            <input
+              type="checkbox"
+              class="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-brand-600"
+              :checked="selectedAddonCodes.includes(addon.addon_code)"
+              @change="toggleAddon(addon.addon_code)"
+            />
+            <div class="min-w-0">
+              <p class="text-xs font-medium leading-tight text-slate-900">{{ addon.name }}</p>
+              <p class="text-[11px] font-semibold text-brand-700">+${{ addon.flat_amount }}</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Price + CTA -->
+      <div class="rounded-xl bg-brand-50 px-4 py-3.5">
+        <div class="mb-3 flex items-end justify-between">
+          <div>
+            <p class="flex items-center gap-1.5 text-[11px] font-semibold text-brand-700">
+              {{ hasLivePrice ? 'Live price' : 'Estimated price' }}
+              <Loader2 v-if="isPricing" class="size-3 animate-spin" />
+            </p>
+            <p class="text-3xl font-extrabold tabular-nums leading-none text-brand-800">
+              ${{ displayPrice.toFixed(2) }}
+            </p>
+            <p class="mt-0.5 text-xs text-brand-600">
+              ${{ (displayPrice / Math.max(pages, 1)).toFixed(2) }}/page · {{ selectedLevel?.label }} · {{ selectedDeadline?.label }}
+            </p>
+          </div>
+          <div class="text-right text-[11px] leading-relaxed text-brand-700">
+            <p>✓ No payment until you approve</p>
+            <p>✓ Free revisions included</p>
           </div>
         </div>
-      </div>
-
-      <div>
-        <p class="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-          Pages
-          <span class="ml-1 font-normal normal-case text-slate-400">({{ words }} words, double-spaced)</span>
-        </p>
-        <div class="flex items-center gap-4">
-          <button type="button" class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-30" :disabled="pages <= 1" @click="pages--">−</button>
-          <span class="w-10 text-center text-xl font-bold tabular-nums text-slate-900">{{ pages }}</span>
-          <button type="button" class="flex size-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-30" :disabled="pages >= 100" @click="pages++">+</button>
-        </div>
-      </div>
-
-      <!-- Running price footer -->
-      <div class="flex items-center justify-between rounded-xl bg-brand-50 px-5 py-3">
-        <div>
-          <p class="text-xs text-brand-600">{{ hasLivePrice ? 'Live price' : 'Estimated price' }}</p>
-          <p class="text-2xl font-extrabold tabular-nums text-brand-700">
-            ${{ displayPrice.toFixed(2) }}
-            <span v-if="isPricing" class="ml-1 animate-pulse text-xs font-normal text-brand-400">…</span>
-          </p>
-        </div>
-        <button
-          class="rounded-xl px-5 py-2.5 text-sm font-bold transition-colors"
-          :class="step1Valid ? 'bg-brand-600 text-white hover:bg-brand-700' : 'cursor-not-allowed bg-slate-200 text-slate-400'"
-          :disabled="!step1Valid"
-          type="button"
-          @click="next"
-        >
-          Next →
-        </button>
-      </div>
-    </div>
-
-    <!-- ── Step 2: Brief ─────────────────────────────────────────────────── -->
-    <div v-else-if="step === 2" class="p-6 space-y-5">
-      <div>
-        <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">
-          Paper title / topic <span class="text-brand-600">*</span>
-        </label>
-        <input
-          v-model="topic"
-          type="text"
-          placeholder="e.g. The impact of social media on adolescent mental health"
-          maxlength="200"
-          class="h-10 w-full rounded-xl border border-slate-200 px-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-        />
-        <p v-if="topic.trim().length > 0 && topic.trim().length < 3" class="mt-1 text-xs text-red-500">Please add a bit more detail.</p>
-      </div>
-
-      <div>
-        <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">
-          Additional instructions
-          <span class="ml-1 font-normal normal-case text-slate-400">(optional — you can add more in the portal)</span>
-        </label>
-        <textarea
-          v-model="instructions"
-          rows="4"
-          placeholder="Specific requirements, formatting style, sources to include, grading rubric details…"
-          class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 resize-none"
-        />
-      </div>
-
-      <div class="flex gap-3">
-        <button type="button" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors" @click="back">← Back</button>
-        <button
-          type="button"
-          class="flex-1 rounded-xl py-2.5 text-sm font-bold transition-colors"
-          :class="step2Valid ? 'bg-brand-600 text-white hover:bg-brand-700' : 'cursor-not-allowed bg-slate-200 text-slate-400'"
-          :disabled="!step2Valid"
-          @click="next"
-        >Review order →</button>
-      </div>
-    </div>
-
-    <!-- ── Step 3: Review ────────────────────────────────────────────────── -->
-    <div v-else class="p-6 space-y-4">
-      <h3 class="text-base font-bold text-slate-900">Order summary</h3>
-
-      <dl class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-slate-50 text-sm">
-        <div class="flex justify-between px-4 py-2.5">
-          <dt class="text-slate-500">Paper type</dt>
-          <dd class="font-medium text-slate-800">{{ paperTypes.find(p => p.code === paperCode)?.label ?? paperCode }}</dd>
-        </div>
-        <div class="flex justify-between px-4 py-2.5">
-          <dt class="text-slate-500">Academic level</dt>
-          <dd class="font-medium text-slate-800">{{ selectedLevel?.label }}</dd>
-        </div>
-        <div class="flex justify-between px-4 py-2.5">
-          <dt class="text-slate-500">Deadline</dt>
-          <dd class="font-medium text-slate-800">{{ deadlineLabel }}</dd>
-        </div>
-        <div class="flex justify-between px-4 py-2.5">
-          <dt class="text-slate-500">Length</dt>
-          <dd class="font-medium text-slate-800">{{ pages }} page{{ pages > 1 ? 's' : '' }} ({{ words }} words)</dd>
-        </div>
-        <div v-if="topic.trim()" class="flex justify-between px-4 py-2.5">
-          <dt class="text-slate-500">Topic</dt>
-          <dd class="font-medium text-slate-800 text-right max-w-[60%] leading-snug">{{ topic }}</dd>
-        </div>
-      </dl>
-
-      <div class="flex items-center justify-between rounded-xl bg-brand-50 px-5 py-3">
-        <div>
-          <p class="text-xs text-brand-600">{{ hasLivePrice ? 'Live price' : 'Estimated price' }}</p>
-          <p class="text-3xl font-extrabold tabular-nums text-brand-700">${{ displayPrice.toFixed(2) }}</p>
-          <p class="text-xs text-brand-500">${{ perPage.toFixed(2) }}/page</p>
-        </div>
-        <div class="text-right text-xs text-brand-600 space-y-0.5">
-          <p>✓ Price locked at checkout</p>
-          <p>✓ Free revisions</p>
-        </div>
-      </div>
-
-      <div class="flex gap-3">
-        <button type="button" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors" @click="back">← Edit</button>
         <a
           :href="orderUrl"
-          class="flex flex-1 h-12 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700"
+          class="flex h-11 w-full items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700"
         >
-          Place my order →
+          Start my order →
         </a>
+        <p class="mt-2 text-center text-[11px] text-slate-400">
+          Price confirmed at checkout — no card needed to place
+        </p>
       </div>
-      <p class="text-center text-xs text-slate-400">No payment until you approve · Free account in 30 seconds</p>
-    </div>
 
+      <!-- Express / quote CTA -->
+      <p class="text-center text-[11px] text-slate-400">
+        Complex scope or express delivery?
+        <NuxtLink to="/quote" class="font-semibold text-brand-600 hover:underline">Get a custom quote →</NuxtLink>
+      </p>
+
+    </div>
   </div>
 </template>
+
+<style scoped>
+.sel {
+  @apply h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100;
+}
+</style>

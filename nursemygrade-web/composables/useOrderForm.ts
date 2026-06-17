@@ -9,7 +9,20 @@ export interface DeadlineOption     { id: string; label: string; sublabel: strin
 export interface SubjectOption      { id: string; label: string; category: string }
 export interface FormatOption       { id: string; label: string }
 export interface WorkTypeOption     { id: string; label: string; desc: string }
-export interface OrderTypeOption    { id: string; label: string; desc: string; examples: string; priceFrom: number; color: string; external?: string }
+export interface OrderTypeOption    {
+  id: string
+  label: string
+  tagline: string
+  desc: string
+  priceFrom: number
+  priceUnit: string
+  color: string
+  iconBg: string
+  group: 'academic' | 'visual' | 'other'
+  baseType: 'paper' | 'design' | 'diagram' | 'combo'
+  presetWorkType?: string
+  external?: string
+}
 export interface WriterTierOption   { id: string; label: string; desc: string; surcharge: number }
 export interface DesignTypeOption   { id: string; label: string; unit: string; basePrice: number }
 export interface DiagramTypeOption  { id: string; label: string; desc: string; basePrice: number }
@@ -17,12 +30,65 @@ export interface DiagramTypeOption  { id: string; label: string; desc: string; b
 // ── Static / nursing-specific data ───────────────────────────────────────────
 
 export const ORDER_TYPES: OrderTypeOption[] = [
-  { id: 'paper',      label: 'Nursing Paper',          desc: 'Essays, care plans, SOAP notes, research papers, capstone projects & more', examples: 'Care Plan · SOAP Note · Nursing Essay · Research Paper · Dissertation', priceFrom: 24, color: 'text-brand-600 bg-brand-50 border-brand-200' },
-  { id: 'design',     label: 'Slides & Visuals',       desc: 'Clinical presentations, care pathway visuals, patient-education posters & handouts', examples: 'Case presentation · Care pathway · Infographic · Conference poster', priceFrom: 20, color: 'text-violet-600 bg-violet-50 border-violet-200' },
-  { id: 'diagram',    label: 'Diagrams & Maps',        desc: 'Concept maps, pathophysiology diagrams, genograms, ecomaps & flowcharts', examples: 'Concept map · Pathophysiology · Genogram · Ecomap · Process flowchart', priceFrom: 30, color: 'text-teal-600 bg-teal-50 border-teal-200' },
-  { id: 'class',      label: 'Online Class Help',      desc: 'Full course management — all assignments, discussions, quizzes & exams', examples: 'Full semester · Individual modules · Weekly discussions · Exams', priceFrom: 0, color: 'text-green-600 bg-green-50 border-green-200', external: '/class-support' },
-  { id: 'simulation', label: 'Clinical Simulation',    desc: 'Shadow Health DCEs, iHuman virtual patients & other simulation platforms', examples: 'Tina Jones · Brian Foster · iHuman cases · ATI · Kaplan', priceFrom: 35, color: 'text-rose-600 bg-rose-50 border-rose-200', external: '/quote' },
-  { id: 'special',    label: 'Special / Custom Project', desc: 'Unusual brief that needs a tailored quote — multi-part, custom scope', examples: 'Multi-part project · Admission essay · Portfolio · Custom research', priceFrom: 0, color: 'text-amber-600 bg-amber-50 border-amber-200', external: '/quote' },
+  // ── Academic nursing writing ───────────────────────────────────────────────
+  {
+    id: 'writing', label: 'Nursing Writing', tagline: 'New paper written from scratch',
+    desc: 'Care plans, SOAP notes, nursing essays, research papers, capstone projects — anything written fresh to your brief.',
+    priceFrom: 24, priceUnit: 'page',
+    color: 'text-brand-700 bg-brand-50 border-brand-200', iconBg: 'bg-brand-100',
+    group: 'academic', baseType: 'paper', presetWorkType: 'writing',
+  },
+  {
+    id: 'editing', label: 'Editing', tagline: 'Strengthen an existing nursing draft',
+    desc: 'Improve structure, clinical accuracy, argument flow and style — your content, significantly better.',
+    priceFrom: 18, priceUnit: 'page',
+    color: 'text-blue-700 bg-blue-50 border-blue-200', iconBg: 'bg-blue-100',
+    group: 'academic', baseType: 'paper', presetWorkType: 'editing',
+  },
+  {
+    id: 'proofreading', label: 'Proofreading', tagline: 'Grammar, APA & clinical formatting',
+    desc: 'Fix grammar, APA 7 citation errors, nursing terminology consistency — without altering your clinical content.',
+    priceFrom: 12, priceUnit: 'page',
+    color: 'text-emerald-700 bg-emerald-50 border-emerald-200', iconBg: 'bg-emerald-100',
+    group: 'academic', baseType: 'paper', presetWorkType: 'proofreading',
+  },
+  {
+    id: 'rewriting', label: 'Rewriting', tagline: 'Same ideas, new wording & structure',
+    desc: 'Full clinical rewrite — restructures and rewrites your nursing paper while preserving your original evidence.',
+    priceFrom: 18, priceUnit: 'page',
+    color: 'text-violet-700 bg-violet-50 border-violet-200', iconBg: 'bg-violet-100',
+    group: 'academic', baseType: 'paper', presetWorkType: 'rewriting',
+  },
+  // ── Visual services ────────────────────────────────────────────────────────
+  {
+    id: 'design', label: 'Slides & Visuals', tagline: 'Clinical presentations & posters',
+    desc: 'Care pathway visuals, clinical presentations, patient-education posters, nursing infographics.',
+    priceFrom: 20, priceUnit: 'slide',
+    color: 'text-violet-700 bg-violet-50 border-violet-200', iconBg: 'bg-violet-100',
+    group: 'visual', baseType: 'design',
+  },
+  {
+    id: 'diagram', label: 'Diagrams & Maps', tagline: 'Concept maps, pathophysiology, genograms',
+    desc: 'Concept maps, pathophysiology diagrams, genograms, ecomaps, clinical flowcharts.',
+    priceFrom: 30, priceUnit: 'diagram',
+    color: 'text-teal-700 bg-teal-50 border-teal-200', iconBg: 'bg-teal-100',
+    group: 'visual', baseType: 'diagram',
+  },
+  // ── Other ──────────────────────────────────────────────────────────────────
+  {
+    id: 'class', label: 'Online Class Help', tagline: 'Full course or individual modules',
+    desc: 'All nursing assignments, discussions, quizzes, and exams handled — full semester or per module.',
+    priceFrom: 0, priceUnit: '',
+    color: 'text-green-700 bg-green-50 border-green-200', iconBg: 'bg-green-100',
+    group: 'other', baseType: 'paper', external: '/class-support',
+  },
+  {
+    id: 'simulation', label: 'Clinical Simulation', tagline: 'Shadow Health, iHuman, ATI — get a quote',
+    desc: 'Shadow Health DCEs, iHuman virtual patients, ATI, Kaplan — complex simulation platforms.',
+    priceFrom: 0, priceUnit: '',
+    color: 'text-rose-700 bg-rose-50 border-rose-200', iconBg: 'bg-rose-100',
+    group: 'other', baseType: 'paper', external: '/quote',
+  },
 ]
 
 // Nursing design types carry per-type base prices
@@ -242,6 +308,7 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
 
   const form = reactive({
     orderType:         ORDER_TYPES.find(t => t.id === savedDraft?.orderType) ?? ORDER_TYPES[0],
+    workTypePreset:    false as boolean,
     paperType:         STATIC_PAPER_TYPES[0],
     level:             STATIC_LEVELS[1],
     pages:             savedDraft?.pages ?? 1,
@@ -296,8 +363,8 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
 
   // ── Pricing ───────────────────────────────────────────────────────────────
 
-  const isDesign  = computed(() => form.orderType.id === 'design')
-  const isDiagram = computed(() => form.orderType.id === 'diagram')
+  const isDesign  = computed(() => form.orderType.baseType === 'design')
+  const isDiagram = computed(() => form.orderType.baseType === 'diagram')
 
   const unitLabel = computed(() => {
     if (isDesign.value)  return form.designType.unit
@@ -333,7 +400,7 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
   let _priceTimer: ReturnType<typeof setTimeout> | undefined
 
   async function _fetchEstimate() {
-    if (form.orderType.id !== 'paper') { liveTotal.value = null; return }
+    if (form.orderType.baseType !== 'paper') { liveTotal.value = null; return }
     const apiBase = import.meta.client ? (useRuntimeConfig().public.apiBase || '') : ''
     if (!apiBase) return
     isPricing.value = true

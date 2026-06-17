@@ -15,7 +15,7 @@ class OrderNumberService:
     Allocate and manage public-facing order numbers.
 
     Internal DB ids are never modified; this service only manages the
-    OrderNumberSequence counters and stamps public_order_number on orders.
+    OrderNumberSequence base offsets and stamps public_order_number on orders.
 
     Usage
     -----
@@ -30,12 +30,13 @@ class OrderNumberService:
         created_by=admin_user,
     )
 
-    # When an order is created
-    number = OrderNumberService.allocate(
+    # When order id=2 is created
+    number = OrderNumberService.build_reference_for_id(
         website=website,
+        object_id=2,
         scope="normal_order",
     )
-    # number → "GC-8567300001"
+    # number → "4918002" when seed=4918000 and prefix=""
     """
 
     @staticmethod
@@ -67,10 +68,22 @@ class OrderNumberService:
             website=website,
             scope=scope,
             period=period,
+            is_active=True,
         ).exists():
             raise ValidationError(
-                f"A sequence for {scope} / {period} already exists on this website. "
-                "Deactivate the existing one before creating a new one."
+                f"An active sequence for {scope} / {period} already exists on this website. "
+                "Deactivate it before creating a replacement."
+            )
+
+        if OrderNumberSequence.objects.filter(
+            scope=scope,
+            period=period,
+            is_active=True,
+        ).exclude(seed=seed, prefix=prefix).exists():
+            raise ValidationError(
+                f"Another active {scope} / {period} sequence uses a different "
+                "base or prefix. Use the same base across websites to avoid "
+                "leaking website origin through order numbers."
             )
 
         return OrderNumberSequence.objects.create(
@@ -86,6 +99,106 @@ class OrderNumberService:
         )
 
     @classmethod
+    def build_reference_for_id(
+        cls,
+        *,
+        website,
+        object_id: int,
+        scope: str = OrderNumberScope.NORMAL_ORDER,
+        period: str | None = None,
+    ) -> str | None:
+        """
+        Build the public reference from the configured base and object id.
+
+        This deliberately derives from the internal id after the object is
+        saved, without exposing the raw database primary key directly.
+        Example: seed=4918000 and object_id=2 produces "4918002".
+        """
+        if period is None:
+            period = timezone.now().strftime("%Y-%m")
+
+        if object_id <= 0:
+            raise ValidationError("object_id must be a positive integer.")
+
+        seq = cls.get_active_sequence(
+            website=website,
+            scope=scope,
+            period=period,
+        )
+        if seq is None:
+            return None
+
+        return seq.format_number(object_id)
+
+    @classmethod
+    @transaction.atomic
+    def stamp_order_number(
+        cls,
+        *,
+        order,
+        scope: str = OrderNumberScope.NORMAL_ORDER,
+        period: str | None = None,
+    ) -> str | None:
+        """
+        Stamp public_order_number on an already-created order.
+
+        The order primary key is the incrementing component. The configured
+        sequence seed is only an offset/base, not an independent counter.
+        """
+        if getattr(order, "public_order_number", None):
+            return order.public_order_number
+
+        public_number = cls.build_reference_for_id(
+            website=order.website,
+            object_id=order.pk,
+            scope=scope,
+            period=period,
+        )
+        if public_number is None:
+            return None
+
+        order.public_order_number = public_number
+        order.save(update_fields=["public_order_number", "updated_at"])
+        return public_number
+
+    @classmethod
+    @transaction.atomic
+    def stamp_public_number(
+        cls,
+        *,
+        instance,
+        scope: str,
+        field_name: str = "public_order_number",
+        period: str | None = None,
+    ) -> str | None:
+        """
+        Stamp a neutral public number on any persisted work item.
+
+        Used by normal orders, class orders, and special orders. The visible
+        value is derived from the configured sequence seed plus the object's
+        saved primary key, while the database id itself remains internal.
+        """
+        current_value = getattr(instance, field_name, None)
+        if current_value:
+            return current_value
+
+        public_number = cls.build_reference_for_id(
+            website=instance.website,
+            object_id=instance.pk,
+            scope=scope,
+            period=period,
+        )
+        if public_number is None:
+            return None
+
+        setattr(instance, field_name, public_number)
+        update_fields = [field_name]
+        if hasattr(instance, "updated_at"):
+            update_fields.append("updated_at")
+        instance.save(update_fields=update_fields)
+        return public_number
+
+    @classmethod
     @transaction.atomic
     def allocate(
         cls,
@@ -95,23 +208,18 @@ class OrderNumberService:
         period: str | None = None,
     ) -> str | None:
         """
-        Atomically allocate the next public order number.
+        Deprecated compatibility path.
 
-        Returns the formatted number string (e.g. "GC-8567300001") or
-        None if no active sequence exists for this website/scope/period.
-        The caller should store the returned value on the order.
+        Public order numbers are now derived from the saved order id via
+        stamp_order_number(). This method is kept to avoid breaking older
+        callers, but new code should not use it.
         """
-        if period is None:
-            period = timezone.now().strftime("%Y-%m")
-
-        try:
-            seq = OrderNumberSequence.objects.select_for_update().get(
-                website=website,
-                scope=scope,
-                period=period,
-                is_active=True,
-            )
-        except OrderNumberSequence.DoesNotExist:
+        seq = cls.get_active_sequence(
+            website=website,
+            scope=scope,
+            period=period,
+        )
+        if seq is None:
             return None
 
         number = seq.format_number(seq.next_number)

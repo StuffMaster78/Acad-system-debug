@@ -5,6 +5,7 @@ from django.urls import include, path
 from orders.api.views.order_number_views import (
     OrderNumberSequenceDetailView,
     OrderNumberSequenceListCreateView,
+    WorkReferenceLookupView,
 )
 
 urlpatterns = [
@@ -23,6 +24,11 @@ urlpatterns = [
         "number-sequences/<int:pk>/deactivate/",
         OrderNumberSequenceDetailView.as_view(),
         name="order-number-sequence-deactivate",
+    ),
+    path(
+        "reference-lookup/<str:reference>/",
+        WorkReferenceLookupView.as_view(),
+        name="work-reference-lookup",
     ),
     path("", include("orders.api.urls.staffing")),
     path("", include("orders.api.urls.reassignments")),

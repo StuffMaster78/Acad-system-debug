@@ -6,7 +6,7 @@ import {
   Search, Network, Briefcase, BookOpen, MessageSquare, FileText,
   ChevronRight, ArrowLeft, ArrowRight, Loader2, Check, Clock,
   Trophy, ShieldCheck, RefreshCw, Lock, Bot, Plus, Minus,
-  LayoutTemplate, GitBranch,
+  LayoutTemplate, GitBranch, Edit,
 } from '@lucide/vue'
 
 import {
@@ -52,8 +52,8 @@ const subjectGroups = computed(() => {
 })
 
 const step1Label = computed(() => {
-  if (form.orderType.id === 'design')  return 'Design details'
-  if (form.orderType.id === 'diagram') return 'Diagram details'
+  if (form.orderType.baseType === 'design')  return 'Design details'
+  if (form.orderType.baseType === 'diagram') return 'Diagram details'
   return 'Paper details'
 })
 
@@ -71,6 +71,12 @@ const PAPER_ICONS: Record<string, any> = {
 function selectType(ot: typeof ORDER_TYPES[0]) {
   if (ot.external) { router.push(ot.external); return }
   form.orderType = ot
+  if (ot.presetWorkType) {
+    const match = workTypes.value.find(w => w.id === ot.presetWorkType || w.label.toLowerCase().startsWith(ot.presetWorkType.toLowerCase()))
+    if (match) { form.workType = match; form.workTypePreset = true }
+  } else {
+    form.workTypePreset = false
+  }
   step.value = 1
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -115,16 +121,16 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
         <h2 class="mb-4 font-semibold text-brand-800">Your order summary</h2>
         <dl class="space-y-2 text-sm">
           <div class="flex justify-between"><dt class="text-slate-500">Order type</dt><dd class="font-medium">{{ form.orderType.label }}</dd></div>
-          <template v-if="form.orderType.id === 'paper'">
+          <template v-if="form.orderType.baseType === 'paper'">
             <div class="flex justify-between"><dt class="text-slate-500">Paper type</dt><dd class="font-medium">{{ form.paperType.label }}</dd></div>
             <div class="flex justify-between"><dt class="text-slate-500">Level</dt><dd class="font-medium">{{ form.level.label }}</dd></div>
             <div class="flex justify-between"><dt class="text-slate-500">Pages</dt><dd class="font-medium">{{ unitCount }}</dd></div>
           </template>
-          <template v-else-if="form.orderType.id === 'design'">
+          <template v-else-if="form.orderType.baseType === 'design'">
             <div class="flex justify-between"><dt class="text-slate-500">Design</dt><dd class="font-medium">{{ form.designType.label }}</dd></div>
             <div class="flex justify-between"><dt class="text-slate-500">{{ form.designType.unit }}</dt><dd class="font-medium">{{ unitCount }}</dd></div>
           </template>
-          <template v-else-if="form.orderType.id === 'diagram'">
+          <template v-else-if="form.orderType.baseType === 'diagram'">
             <div class="flex justify-between"><dt class="text-slate-500">Diagram</dt><dd class="font-medium">{{ form.diagramType.label }}</dd></div>
             <div class="flex justify-between"><dt class="text-slate-500">Diagrams</dt><dd class="font-medium">{{ unitCount }}</dd></div>
           </template>
@@ -178,39 +184,68 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
 
     <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
 
-      <!-- ══ STEP 0: Order type selection ══ -->
+      <!-- ══ STEP 0: Service Type Selection ══ -->
       <div v-if="step === 0">
         <div class="mb-8 text-center">
-          <h1 class="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">What do you need?</h1>
-          <p class="mt-3 text-slate-500">Choose a service type — we'll tailor the form and match you with the right nursing expert.</p>
+          <h1 class="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">What nursing help do you need?</h1>
+          <p class="mt-3 text-slate-500">Choose a service — we'll match you with the right BSN, MSN, or DNP expert.</p>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="mb-3 flex items-center gap-3">
+          <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Nursing writing services</span>
+          <div class="flex-1 border-t border-slate-200" />
+        </div>
+        <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <button
-            v-for="ot in ORDER_TYPES"
+            v-for="ot in ORDER_TYPES.filter(t => t.group === 'academic')"
             :key="ot.id"
             type="button"
-            class="group relative rounded-2xl border-2 bg-white p-6 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+            class="group flex flex-col rounded-2xl border-2 bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md border-slate-200 hover:border-brand-300"
+            @click="selectType(ot)"
+          >
+            <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" :class="ot.iconBg">
+              <Edit       v-if="ot.id === 'editing'"      class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Search     v-else-if="ot.id === 'proofreading'" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <RefreshCw  v-else-if="ot.id === 'rewriting'"   class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Stethoscope v-else class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+            </div>
+            <h2 class="font-bold text-slate-900">{{ ot.label }}</h2>
+            <p class="mt-0.5 text-xs font-medium" :class="ot.color.split(' ')[0]">{{ ot.tagline }}</p>
+            <p class="mt-2 flex-1 text-xs leading-relaxed text-slate-500 line-clamp-2">{{ ot.desc }}</p>
+            <div class="mt-3 flex items-center justify-between">
+              <span class="text-xs font-semibold text-brand-600">from ${{ ot.priceFrom }}/{{ ot.priceUnit }}</span>
+              <ChevronRight class="h-4 w-4 text-slate-300 transition-all group-hover:text-brand-600 group-hover:translate-x-0.5" />
+            </div>
+          </button>
+        </div>
+
+        <div class="mb-3 flex items-center gap-3">
+          <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Visual & other nursing services</span>
+          <div class="flex-1 border-t border-slate-200" />
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <button
+            v-for="ot in ORDER_TYPES.filter(t => t.group !== 'academic')"
+            :key="ot.id"
+            type="button"
+            class="group flex flex-col rounded-2xl border-2 bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
             :class="ot.external ? 'border-dashed border-slate-200 hover:border-slate-300' : 'border-slate-200 hover:border-brand-300'"
             @click="selectType(ot)"
           >
-            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border" :class="ot.color">
-              <Stethoscope    v-if="ot.id === 'paper'"      class="h-6 w-6" />
-              <LayoutTemplate v-else-if="ot.id === 'design'"      class="h-6 w-6" />
-              <GitBranch      v-else-if="ot.id === 'diagram'"     class="h-6 w-6" />
-              <BookOpen       v-else-if="ot.id === 'class'"       class="h-6 w-6" />
-              <Microscope     v-else-if="ot.id === 'simulation'"  class="h-6 w-6" />
-              <FileText       v-else                               class="h-6 w-6" />
+            <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" :class="ot.iconBg">
+              <LayoutTemplate v-if="ot.id === 'design'"      class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <GitBranch      v-else-if="ot.id === 'diagram'" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <BookOpen       v-else-if="ot.id === 'class'"   class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Microscope     v-else                          class="h-5 w-5" :class="ot.color.split(' ')[0]" />
             </div>
-            <div class="flex items-start justify-between gap-2">
-              <h2 class="font-semibold text-slate-900">{{ ot.label }}</h2>
-              <span v-if="ot.external" class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">Get quote</span>
-              <span v-else class="shrink-0 text-xs font-medium text-brand-600">from ${{ ot.priceFrom }}/page</span>
-            </div>
-            <p class="mt-1.5 text-sm text-slate-500 leading-relaxed">{{ ot.desc }}</p>
-            <p class="mt-2 text-xs text-slate-400">e.g. {{ ot.examples }}</p>
-            <div class="mt-4 flex items-center gap-1 text-xs font-semibold text-brand-600 transition-gap group-hover:gap-2">
-              {{ ot.external ? 'Request a quote →' : 'Start order →' }}
+            <h2 class="font-bold text-slate-900">{{ ot.label }}</h2>
+            <p class="mt-0.5 text-xs font-medium" :class="ot.color.split(' ')[0]">{{ ot.tagline }}</p>
+            <p class="mt-2 flex-1 text-xs leading-relaxed text-slate-500 line-clamp-2">{{ ot.desc }}</p>
+            <div class="mt-3 flex items-center justify-between">
+              <span class="text-xs font-semibold" :class="ot.external ? 'text-slate-400' : 'text-brand-600'">
+                {{ ot.external ? 'Get a quote' : `from $${ot.priceFrom}/${ot.priceUnit}` }}
+              </span>
+              <ChevronRight class="h-4 w-4 text-slate-300 transition-all group-hover:text-brand-600 group-hover:translate-x-0.5" />
             </div>
           </button>
         </div>
@@ -234,7 +269,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             <h1 class="font-serif text-2xl font-bold text-slate-900">{{ step1Label }}</h1>
 
             <!-- ── PAPER form ── -->
-            <template v-if="form.orderType.id === 'paper'">
+            <template v-if="form.orderType.baseType === 'paper'">
               <div>
                 <label class="form-label">Nursing paper type</label>
                 <div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -308,7 +343,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             </template>
 
             <!-- ── DESIGN form ── -->
-            <template v-else-if="form.orderType.id === 'design'">
+            <template v-else-if="form.orderType.baseType === 'design'">
               <div>
                 <label class="form-label">Design type</label>
                 <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -345,7 +380,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             </template>
 
             <!-- ── DIAGRAM form ── -->
-            <template v-else-if="form.orderType.id === 'diagram'">
+            <template v-else-if="form.orderType.baseType === 'diagram'">
               <div>
                 <label class="form-label">Diagram type</label>
                 <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -547,16 +582,16 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <h2 class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Order summary</h2>
               <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                <template v-if="form.orderType.id === 'paper'">
+                <template v-if="form.orderType.baseType === 'paper'">
                   <span class="text-slate-500">Paper type</span>  <span class="font-medium">{{ form.paperType.label }}</span>
                   <span class="text-slate-500">Level</span>       <span class="font-medium">{{ form.level.label }}</span>
                   <span class="text-slate-500">Pages</span>       <span class="font-medium">{{ unitCount }} × ${{ pricePerUnit }}/page</span>
                 </template>
-                <template v-else-if="form.orderType.id === 'design'">
+                <template v-else-if="form.orderType.baseType === 'design'">
                   <span class="text-slate-500">Design type</span> <span class="font-medium">{{ form.designType.label }}</span>
                   <span class="text-slate-500">{{ form.designType.unit }}</span> <span class="font-medium">{{ unitCount }} × ${{ pricePerUnit }}</span>
                 </template>
-                <template v-else-if="form.orderType.id === 'diagram'">
+                <template v-else-if="form.orderType.baseType === 'diagram'">
                   <span class="text-slate-500">Diagram type</span> <span class="font-medium">{{ form.diagramType.label }}</span>
                   <span class="text-slate-500">Diagrams</span>     <span class="font-medium">{{ unitCount }} × ${{ pricePerUnit }}</span>
                 </template>
@@ -608,18 +643,18 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
               <h3 class="mb-4 font-serif text-base font-bold text-slate-900">Price estimate</h3>
               <dl class="space-y-2 text-sm">
                 <!-- paper -->
-                <template v-if="form.orderType.id === 'paper'">
+                <template v-if="form.orderType.baseType === 'paper'">
                   <div class="flex justify-between"><dt class="text-slate-500">Paper type</dt><dd class="font-medium text-slate-700">{{ form.paperType.label }}</dd></div>
                   <div class="flex justify-between"><dt class="text-slate-500">Level</dt><dd class="font-medium text-slate-700">{{ form.level.label }}</dd></div>
                   <div class="flex justify-between"><dt class="text-slate-500">Pages</dt><dd class="font-medium text-slate-700">{{ unitCount }}</dd></div>
                 </template>
                 <!-- design -->
-                <template v-else-if="form.orderType.id === 'design'">
+                <template v-else-if="form.orderType.baseType === 'design'">
                   <div class="flex justify-between"><dt class="text-slate-500">Design type</dt><dd class="font-medium text-slate-700">{{ form.designType.label }}</dd></div>
                   <div class="flex justify-between"><dt class="text-slate-500">{{ form.designType.unit === 'slides' ? 'Slides' : form.designType.unit === 'pages' ? 'Pages' : 'Designs' }}</dt><dd class="font-medium text-slate-700">{{ unitCount }}</dd></div>
                 </template>
                 <!-- diagram -->
-                <template v-else-if="form.orderType.id === 'diagram'">
+                <template v-else-if="form.orderType.baseType === 'diagram'">
                   <div class="flex justify-between"><dt class="text-slate-500">Diagram type</dt><dd class="font-medium text-slate-700">{{ form.diagramType.label }}</dd></div>
                   <div class="flex justify-between"><dt class="text-slate-500">Software</dt><dd class="font-medium text-slate-700">{{ form.diagramSoftware.label }}</dd></div>
                   <div class="flex justify-between"><dt class="text-slate-500">Diagrams</dt><dd class="font-medium text-slate-700">{{ unitCount }}</dd></div>

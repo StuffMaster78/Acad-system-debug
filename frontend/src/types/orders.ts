@@ -1,5 +1,7 @@
 export interface OrderSummary {
   id: number;
+  public_order_number?: string | null;
+  reference?: string | null;
   topic: string;
   status: string;
   website?: number | null;
@@ -31,7 +33,29 @@ export interface OrderSummary {
   english_type_name?: string | null;
   number_of_pages?: number | string | null;
   number_of_slides?: number | string | null;
+  number_of_designs?: number | string | null;
+  number_of_diagrams?: number | string | null;
   number_of_refereces?: number | string | null;
+  selected_addon_codes?: string[];
+  addon_names?: string[];
+  additional_services?: string[] | Record<string, unknown> | null;
+  copies_of_sources_required?: boolean;
+  order_items?: Array<{
+    id: number;
+    unit_type: string;
+    item_kind: string;
+    service_family: string;
+    service_code: string;
+    topic?: string;
+    quantity: number;
+    metadata?: Record<string, unknown>;
+  }>;
+  writer_pay_breakdown?: {
+    currency: string;
+    total: string;
+    rates: Record<string, string>;
+    source: string;
+  };
   base_quantity?: number | string | null;
   unit_type?: string | null;
   spacing?: string;

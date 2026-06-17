@@ -141,6 +141,7 @@ class SpecialOrderStatusHistoryInline(admin.TabularInline):
 class SpecialOrderAdmin(admin.ModelAdmin):
     list_display = (
         "id",
+        "public_order_number",
         "title",
         "website",
         "client",
@@ -161,12 +162,14 @@ class SpecialOrderAdmin(admin.ModelAdmin):
     )
     search_fields = (
         "id",
+        "public_order_number",
         "title",
         "client__email",
         "writer__email",
         "inquiry_details",
     )
     readonly_fields = (
+        "public_order_number",
         "created_at",
         "updated_at",
         "assigned_at",

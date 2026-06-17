@@ -27,6 +27,17 @@ class ClassOrder(models.Model):
         on_delete=models.CASCADE,
         related_name="class_orders",
     )
+    public_order_number = models.CharField(
+        max_length=40,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "Admin-configured public-facing class reference. "
+            "Never equals the database primary key."
+        ),
+    )
 
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -183,7 +194,11 @@ class ClassOrder(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.title} ({self.client.pk})"
+        return f"{self.reference} - {self.title}"
+
+    @property
+    def reference(self) -> str:
+        return self.public_order_number or str(self.pk)
 
     def refresh_balance(self, *, save: bool = True) -> None:
         """

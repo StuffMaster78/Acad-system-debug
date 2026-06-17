@@ -256,6 +256,8 @@ class CreateOrderView(GenericAPIView):
         """
         return {
             "id": order.pk,
+            "public_order_number": order.public_order_number,
+            "reference": order.reference,
             "topic": order.topic,
             "status": order.status,
             "payment_status": order.payment_status,

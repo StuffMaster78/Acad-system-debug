@@ -187,6 +187,7 @@ class ClassOrderAdmin(admin.ModelAdmin):
 
     list_display = [
         "id",
+        "public_order_number",
         "title",
         "website",
         "client",
@@ -208,6 +209,7 @@ class ClassOrderAdmin(admin.ModelAdmin):
         "created_at",
     ]
     search_fields = [
+        "public_order_number",
         "title",
         "client__email",
         "client__username",
@@ -218,6 +220,7 @@ class ClassOrderAdmin(admin.ModelAdmin):
         "class_code",
     ]
     readonly_fields = [
+        "public_order_number",
         "created_at",
         "updated_at",
         "submitted_at",

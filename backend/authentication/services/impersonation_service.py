@@ -25,7 +25,8 @@ from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.models.impersonation_log import (
-    ImpersonationLog
+    ImpersonationLog,
+    Reason,
 )
 from authentication.models.impersonation_token import (
     ImpersonationToken,
@@ -329,7 +330,7 @@ class ImpersonationService:
             ip_address=get_client_ip(self.request),
             user_agent=self._get_user_agent(self.request),
             reason=reason or "Impersonation Started. No reason provided.",
-            reason_type=ImpersonationLog.Reason.SUPPORT,
+            reason_type=Reason.SUPPORT,
             reason_details=reason or "",
         )
 
@@ -456,7 +457,7 @@ class ImpersonationService:
             ip_address=get_client_ip(self.request),
             user_agent=self._get_user_agent(self.request),
             reason=reason or "Impersonation session ended.",
-            reason_type=ImpersonationLog.Reason.SUPPORT,
+            reason_type=Reason.SUPPORT,
             reason_details=reason or "",
         )
 

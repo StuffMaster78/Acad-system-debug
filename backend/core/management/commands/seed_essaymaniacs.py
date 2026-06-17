@@ -39,8 +39,15 @@ class Command(BaseCommand):
         website = self._seed_website(domain)
         self._seed_branding(website)
         self._seed_portal()
-        self._seed_cors_reminder(domain, app_domain)
 
+        # ── Comprehensive academic settings & pricing rates ───────────────
+        from django.core import management as mgmt
+        self.stdout.write(self.style.MIGRATE_HEADING("\n⚙️  Seeding academic settings (paper types, subjects, levels…)\n"))
+        mgmt.call_command("populate_academic_settings", domain)
+        self.stdout.write(self.style.MIGRATE_HEADING("\n⚙️  Seeding pricing defaults…\n"))
+        mgmt.call_command("seed_pricing_defaults", domain)
+
+        self._seed_cors_reminder(domain, app_domain)
         self.stdout.write(self.style.SUCCESS("\nDone. EssayManiacs tenant is ready.\n"))
 
     def _seed_website(self, domain: str):

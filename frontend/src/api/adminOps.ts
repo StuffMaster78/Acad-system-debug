@@ -1,4 +1,4 @@
-import { api, apiPath } from "./client";
+import { api, apiPath, ordersApiPath } from "./client";
 import type {
   CompressionStats,
   DuplicateGroup,
@@ -8,6 +8,7 @@ import type {
   RateLimitTopResponse,
   SlowEndpointResponse,
   UnifiedSearchResultGroup,
+  WorkReferenceLookupResponse,
 } from "@/types/adminOps";
 
 export const adminOpsApi = {
@@ -15,6 +16,10 @@ export const adminOpsApi = {
     api.get<UnifiedSearchResultGroup>(
       apiPath("/admin-management/unified-search/search/"),
       { params },
+    ),
+  referenceLookup: (reference: string) =>
+    api.get<WorkReferenceLookupResponse>(
+      ordersApiPath(`/reference-lookup/${encodeURIComponent(reference)}/`),
     ),
   duplicates: (params?: Record<string, unknown>) =>
     api.get<{ count: number; results: DuplicateGroup[] }>(

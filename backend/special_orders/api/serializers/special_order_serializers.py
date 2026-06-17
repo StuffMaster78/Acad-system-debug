@@ -129,6 +129,7 @@ class CreateFixedSpecialOrderSerializer(serializers.Serializer):
 
 
 class SpecialOrderListSerializer(SpecialOrderActionContractMixin, serializers.ModelSerializer):
+    reference = serializers.ReadOnlyField()
     client_name = serializers.CharField(
         source="client.get_full_name",
         read_only=True,
@@ -146,6 +147,8 @@ class SpecialOrderListSerializer(SpecialOrderActionContractMixin, serializers.Mo
         model = SpecialOrder
         fields = [
             "id",
+            "public_order_number",
+            "reference",
             "title",
             "pricing_mode",
             "status",
@@ -176,6 +179,7 @@ class SpecialOrderClientListSerializer(SpecialOrderActionContractMixin, serializ
         model = SpecialOrder
         fields = [
             "id",
+            "public_order_number",
             "reference",
             "title",
             "pricing_mode",
@@ -195,7 +199,7 @@ class SpecialOrderClientListSerializer(SpecialOrderActionContractMixin, serializ
         ]
 
     def get_reference(self, obj):
-        return f"SO-{obj.id:06d}"
+        return obj.reference
 
     def get_quoted_price(self, obj):
         return _latest_quote_amount(obj)
@@ -209,6 +213,7 @@ class SpecialOrderWriterListSerializer(SpecialOrderActionContractMixin, serializ
         model = SpecialOrder
         fields = [
             "id",
+            "public_order_number",
             "reference",
             "title",
             "inquiry_details",
@@ -227,7 +232,7 @@ class SpecialOrderWriterListSerializer(SpecialOrderActionContractMixin, serializ
         ]
 
     def get_reference(self, obj):
-        return f"SO-{obj.id:06d}"
+        return obj.reference
 
     def get_writer_compensation(self, obj):
         rule = getattr(obj, "writer_pay_rule", None)
@@ -276,6 +281,7 @@ class SpecialOrderDetailSerializer(SpecialOrderActionContractMixin, serializers.
         model = SpecialOrder
         fields = [
             "id",
+            "public_order_number",
             "reference",
             "title",
             "inquiry_details",
@@ -328,7 +334,7 @@ class SpecialOrderDetailSerializer(SpecialOrderActionContractMixin, serializers.
         return getattr(w, "name", None) or getattr(w, "domain", None)
 
     def get_reference(self, obj):
-        return f"SO-{obj.id:06d}"
+        return obj.reference
 
     def get_milestones(self, obj):
         try:
@@ -428,6 +434,7 @@ class SpecialOrderWriterDetailSerializer(SpecialOrderActionContractMixin, serial
         model = SpecialOrder
         fields = [
             "id",
+            "public_order_number",
             "reference",
             "title",
             "inquiry_details",
@@ -464,7 +471,7 @@ class SpecialOrderWriterDetailSerializer(SpecialOrderActionContractMixin, serial
         return getattr(w, "name", None) or getattr(w, "domain", None)
 
     def get_reference(self, obj):
-        return f"SO-{obj.id:06d}"
+        return obj.reference
 
     def get_writer_compensation(self, obj):
         return SpecialOrderWriterListSerializer().get_writer_compensation(obj)

@@ -12,7 +12,9 @@ from orders.models.orders.enums import OrderPaymentStatus, OrderStatus
 from orders.models.orders.enums import OrderScopeUnitType
 from orders.models.orders.order import Order
 from orders.models.orders.order_item import OrderItem
+from orders.models.orders.order_number_sequence import OrderNumberScope
 from orders.models.orders.order_timeline_event import OrderTimelineEvent
+from orders.services.order_number_service import OrderNumberService
 from orders.services.order_pricing_snapshot_service import (
     OrderPricingSnapshotService,
 )
@@ -132,7 +134,6 @@ class OrderCreationService:
             if total_price == Decimal("0.00")
             else OrderStatus.PENDING_PAYMENT
         )
-
         order = Order.objects.create(
             website=website,
             client=client,
@@ -221,6 +222,10 @@ class OrderCreationService:
                 "allow_unpaid_access",
                 False,
             ),
+        )
+        OrderNumberService.stamp_order_number(
+            order=order,
+            scope=OrderNumberScope.NORMAL_ORDER,
         )
 
         transaction.on_commit(

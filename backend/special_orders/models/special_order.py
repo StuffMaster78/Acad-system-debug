@@ -37,6 +37,17 @@ class SpecialOrder(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="special_orders",
     )
+    public_order_number = models.CharField(
+        max_length=40,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "Admin-configured public-facing special order reference. "
+            "Never equals the database primary key."
+        ),
+    )
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -149,7 +160,11 @@ class SpecialOrder(TimeStampedModel):
         ]
 
     def __str__(self) -> str:
-        return f"Special Order #{self.pk}"
+        return f"Special Order {self.reference}"
+
+    @property
+    def reference(self) -> str:
+        return self.public_order_number or str(self.pk)
 
     if TYPE_CHECKING:
         id: int

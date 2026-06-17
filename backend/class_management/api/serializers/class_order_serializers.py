@@ -42,6 +42,8 @@ class ClassOrderListSerializer(ClassOrderActionContractMixin, serializers.ModelS
         model = ClassOrder
         fields = [
             "id",
+            "public_order_number",
+            "reference",
             "title",
             "client",
             "client_name",
@@ -71,6 +73,8 @@ class ClientClassOrderListSerializer(ClassOrderActionContractMixin, serializers.
         model = ClassOrder
         fields = [
             "id",
+            "public_order_number",
+            "reference",
             "title",
             "status",
             "payment_status",
@@ -96,6 +100,8 @@ class WriterClassOrderListSerializer(ClassOrderActionContractMixin, serializers.
         model = ClassOrder
         fields = [
             "id",
+            "public_order_number",
+            "reference",
             "title",
             "status",
             "institution_name",
@@ -116,6 +122,8 @@ class ClassOrderDetailSerializer(ClassOrderActionContractMixin, serializers.Mode
         model = ClassOrder
         fields = [
             "id",
+            "public_order_number",
+            "reference",
             "website",
             "client",
             "assigned_writer",
@@ -160,6 +168,8 @@ class ClassOrderDetailSerializer(ClassOrderActionContractMixin, serializers.Mode
             "updated_at",
         ]
         read_only_fields = [
+            "public_order_number",
+            "reference",
             "website",
             "class_config",
             "status",

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.utils.timezone import now
+from decimal import Decimal
 
 from orders.models.orders import Order
 
@@ -37,7 +38,179 @@ def _apply_order_field_visibility(data, role):
         data.pop('assigned_writer', None)
         data.pop('writer_compensation', None)
 
-class OrderListSerializer(serializers.ModelSerializer):
+
+def _as_decimal(value) -> Decimal:
+    try:
+        return Decimal(str(value or "0"))
+    except Exception:
+        return Decimal("0")
+
+
+def _collect_order_items(obj):
+    try:
+        return list(obj.items.all())
+    except Exception:
+        return []
+
+
+def _payload_values(payload, *keys):
+    if not isinstance(payload, dict):
+        return []
+    values = []
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, list):
+            values.extend(value)
+        elif value not in (None, ""):
+            values.append(value)
+    return values
+
+
+class OrderBriefingFieldsMixin:
+    """
+    Computed order brief fields shared by list/detail serializers.
+
+    These fields are intentionally safe for writers: they expose scope,
+    deliverables, and writer-pay data, not client payment totals.
+    """
+
+    def _quantity_for(self, obj, *unit_types: str) -> int:
+        total = 0
+        for item in _collect_order_items(obj):
+            if item.unit_type in unit_types:
+                total += int(item.quantity or 0)
+        if total:
+            return total
+        if getattr(obj, "unit_type", None) in unit_types:
+            return int(getattr(obj, "base_quantity", 0) or 0)
+        return 0
+
+    def get_number_of_pages(self, obj) -> int:
+        return self._quantity_for(obj, "page")
+
+    def get_number_of_slides(self, obj) -> int:
+        return self._quantity_for(obj, "slide")
+
+    def get_number_of_designs(self, obj) -> int:
+        return self._quantity_for(obj, "design_concept")
+
+    def get_number_of_diagrams(self, obj) -> int:
+        return self._quantity_for(obj, "diagram")
+
+    def _current_snapshot(self, obj):
+        try:
+            return obj.pricing_snapshots.filter(is_current=True).first()
+        except Exception:
+            return None
+
+    def _pricing_payloads(self, obj) -> list[dict]:
+        payloads = []
+        current = self._current_snapshot(obj)
+        if current and isinstance(current.pricing_payload, dict):
+            payloads.append(current.pricing_payload)
+        try:
+            source_payload = getattr(obj.pricing_snapshot, "payload", None)
+            if isinstance(source_payload, dict):
+                payloads.append(source_payload)
+        except Exception:
+            pass
+        for item in _collect_order_items(obj):
+            if isinstance(item.metadata, dict):
+                payloads.append(item.metadata)
+        return payloads
+
+    def get_selected_addon_codes(self, obj) -> list[str]:
+        codes = []
+        for payload in self._pricing_payloads(obj):
+            codes.extend(
+                _payload_values(
+                    payload,
+                    "selected_addon_codes",
+                    "addon_codes",
+                    "addons",
+                )
+            )
+        normalized = []
+        for code in codes:
+            if isinstance(code, dict):
+                code = code.get("code") or code.get("addon_code") or code.get("name")
+            if code:
+                normalized.append(str(code))
+        return sorted(set(normalized))
+
+    def get_addon_names(self, obj) -> list[str]:
+        names = []
+        for payload in self._pricing_payloads(obj):
+            names.extend(_payload_values(payload, "addon_names", "addon_labels"))
+            for addon in _payload_values(payload, "addons", "selected_addons"):
+                if isinstance(addon, dict):
+                    value = addon.get("name") or addon.get("label") or addon.get("code")
+                    if value:
+                        names.append(value)
+                elif addon:
+                    names.append(addon)
+        if not names:
+            names = self.get_selected_addon_codes(obj)
+        return sorted(set(str(name).replace("_", " ") for name in names if name))
+
+    def get_copies_of_sources_required(self, obj) -> bool:
+        haystack = [
+            *(getattr(obj, "flags", None) or []),
+            *self.get_selected_addon_codes(obj),
+            *self.get_addon_names(obj),
+        ]
+        for payload in self._pricing_payloads(obj):
+            for key in ("copies_of_sources_required", "source_copies_required", "requires_source_copies"):
+                if payload.get(key) is True:
+                    return True
+            haystack.extend(str(value) for value in payload.values() if isinstance(value, str))
+        return any(
+            any(token in str(item).lower() for token in ("copy", "copies", "source file", "sources"))
+            for item in haystack
+        )
+
+    def get_order_items(self, obj) -> list[dict]:
+        return [
+            {
+                "id": item.pk,
+                "unit_type": item.unit_type,
+                "item_kind": item.item_kind,
+                "service_family": item.service_family,
+                "service_code": item.service_code,
+                "topic": item.topic,
+                "quantity": item.quantity,
+                "metadata": item.metadata,
+            }
+            for item in _collect_order_items(obj)
+        ]
+
+    def get_writer_pay_breakdown(self, obj) -> dict:
+        current = self._current_snapshot(obj)
+        total = (
+            _as_decimal(current.writer_compensation_amount)
+            if current
+            else _as_decimal(getattr(obj, "writer_compensation", 0))
+        )
+        quantities = {
+            "page": self.get_number_of_pages(obj),
+            "slide": self.get_number_of_slides(obj),
+            "design": self.get_number_of_designs(obj),
+            "diagram": self.get_number_of_diagrams(obj),
+        }
+        rates = {
+            key: str((total / Decimal(quantity)).quantize(Decimal("0.01")))
+            for key, quantity in quantities.items()
+            if quantity
+        }
+        return {
+            "currency": getattr(obj, "currency", "USD") or "USD",
+            "total": str(total.quantize(Decimal("0.01"))),
+            "rates": rates,
+            "source": "pricing_snapshot" if current else "order_summary",
+        }
+
+
+class OrderListSerializer(OrderBriefingFieldsMixin, serializers.ModelSerializer):
     """
     Lightweight serializer for order list views.
     Excludes large fields like order_instructions and style_reference_files.
@@ -64,11 +237,19 @@ class OrderListSerializer(serializers.ModelSerializer):
     type_of_work_name = serializers.CharField(source='type_of_work.name', read_only=True, allow_null=True)
     english_type_name = serializers.CharField(source='english_type.name', read_only=True, allow_null=True)
     subject_name = serializers.CharField(source='subject.name', read_only=True, allow_null=True)
+    number_of_pages = serializers.SerializerMethodField(read_only=True)
+    number_of_slides = serializers.SerializerMethodField(read_only=True)
+    number_of_designs = serializers.SerializerMethodField(read_only=True)
+    number_of_diagrams = serializers.SerializerMethodField(read_only=True)
+    addon_names = serializers.SerializerMethodField(read_only=True)
+    selected_addon_codes = serializers.SerializerMethodField(read_only=True)
+    copies_of_sources_required = serializers.SerializerMethodField(read_only=True)
+    writer_pay_breakdown = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Order
         fields = [
-            'id', 'topic', 'paper_type', 'paper_type_name', 'academic_level', 'academic_level_name',
+            'id', 'public_order_number', 'reference', 'topic', 'paper_type', 'paper_type_name', 'academic_level', 'academic_level_name',
             'formatting_style', 'formatting_style_name', 'type_of_work', 'type_of_work_name',
             'english_type', 'english_type_name', 'client_deadline', 'writer_deadline',
             'client', 'client_username', 'writer_username',
@@ -76,15 +257,18 @@ class OrderListSerializer(serializers.ModelSerializer):
             'total_price', 'writer_compensation', 'subject', 'subject_name', 'status', 'payment_status', 'flags', 'created_at', 'updated_at',
             'is_follow_up', 'is_urgent', 'website',
             'service_family', 'service_code', 'is_composite',
+            'number_of_pages', 'number_of_slides', 'number_of_designs', 'number_of_diagrams',
+            'addon_names', 'selected_addon_codes', 'copies_of_sources_required',
+            'writer_pay_breakdown',
         ]
         read_only_fields = [
-            'id', 'client_username', 'writer_username', 'total_price', 'writer_compensation',
+            'id', 'public_order_number', 'reference', 'client_username', 'writer_username', 'total_price', 'writer_compensation',
             'payment_status', 'created_at', 'updated_at',
             'flags', 'writer_deadline'
         ]
 
 
-class OrderSerializer(serializers.ModelSerializer):
+class OrderSerializer(OrderBriefingFieldsMixin, serializers.ModelSerializer):
     client_username = serializers.CharField(source='client.username', read_only=True)
     writer_username = serializers.CharField(source='assigned_writer.username', read_only=True)
     paper_type_name = serializers.CharField(source='paper_type.name', read_only=True, allow_null=True)
@@ -93,6 +277,15 @@ class OrderSerializer(serializers.ModelSerializer):
     type_of_work_name = serializers.CharField(source='type_of_work.name', read_only=True, allow_null=True)
     english_type_name = serializers.CharField(source='english_type.name', read_only=True, allow_null=True)
     subject_name = serializers.CharField(source='subject.name', read_only=True, allow_null=True)
+    number_of_pages = serializers.SerializerMethodField(read_only=True)
+    number_of_slides = serializers.SerializerMethodField(read_only=True)
+    number_of_designs = serializers.SerializerMethodField(read_only=True)
+    number_of_diagrams = serializers.SerializerMethodField(read_only=True)
+    order_items = serializers.SerializerMethodField(read_only=True)
+    addon_names = serializers.SerializerMethodField(read_only=True)
+    selected_addon_codes = serializers.SerializerMethodField(read_only=True)
+    copies_of_sources_required = serializers.SerializerMethodField(read_only=True)
+    writer_pay_breakdown = serializers.SerializerMethodField(read_only=True)
     is_unattributed = serializers.SerializerMethodField(read_only=True)
     # Fake client ID for writers viewing unattributed orders
     fake_client_id = serializers.SerializerMethodField(read_only=True)
@@ -114,7 +307,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'topic', 'order_instructions', 'paper_type', 'paper_type_name',
+            'id', 'public_order_number', 'reference', 'topic', 'order_instructions', 'paper_type', 'paper_type_name',
             'academic_level', 'academic_level_name',
             'formatting_style', 'formatting_style_name',
             'type_of_work', 'type_of_work_name',
@@ -129,9 +322,12 @@ class OrderSerializer(serializers.ModelSerializer):
             'allow_unpaid_access', 'revision_eligibility', 'style_reference_files',
             'qa_review_note', 'qa_approved_at', 'qa_returned_at',
             'service_family', 'service_code', 'is_composite',
+            'number_of_pages', 'number_of_slides', 'number_of_designs', 'number_of_diagrams',
+            'order_items', 'addon_names', 'selected_addon_codes',
+            'copies_of_sources_required', 'writer_pay_breakdown',
         ]
         read_only_fields = [
-            'id', 'client_username', 'writer_username', 'total_price', 'writer_compensation',
+            'id', 'public_order_number', 'reference', 'client_username', 'writer_username', 'total_price', 'writer_compensation',
             'payment_status', 'created_at', 'updated_at',
             'flags', 'writer_deadline', 'editing_skip_reason',
             'qa_review_note', 'qa_approved_at', 'qa_returned_at',

@@ -196,6 +196,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminOrderDetailView.vue"),
       },
       {
+        path: "adjustments",
+        name: "admin-adjustments",
+        component: () => import("@/views/admin/AdminAdjustmentInboxView.vue"),
+      },
+      {
         path: "operations",
         name: "admin-operations",
         component: () => import("@/views/admin/AdminOperationsCommandCenterView.vue"),
@@ -614,6 +619,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/editor/EditorOrderDetailView.vue"),
       },
       {
+        path: "adjustments",
+        name: "editor-adjustments",
+        component: () => import("@/views/admin/AdminAdjustmentInboxView.vue"),
+      },
+      {
         path: "writers/:id",
         name: "editor-writer-profile",
         component: () => import("@/views/admin/AdminWriterProfileView.vue"),
@@ -690,6 +700,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "orders/:id",
         name: "support-order-detail",
         component: () => import("@/views/support/SupportOrderDetailView.vue"),
+      },
+      {
+        path: "adjustments",
+        name: "support-adjustments",
+        component: () => import("@/views/admin/AdminAdjustmentInboxView.vue"),
       },
       {
         path: "classes",
@@ -808,6 +823,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "orders/:id",
         name: "superadmin-order-detail",
         component: () => import("@/views/admin/AdminOrderDetailView.vue"),
+      },
+      {
+        path: "adjustments",
+        name: "superadmin-adjustments",
+        component: () => import("@/views/admin/AdminAdjustmentInboxView.vue"),
       },
       {
         path: "classes",

@@ -41,6 +41,7 @@ from orders.models import Order, OrderAdjustmentRequest
 from orders.services.adjustment_negotiation_service import (
     AdjustmentNegotiationService,
 )
+from orders.services.order_notification_service import OrderNotificationService
 
 
 class AdjustmentCreateView(GenericAPIView):
@@ -147,6 +148,11 @@ class AdjustmentCounterView(GenericAPIView):
             notes=validated_data.get("notes", ""),
             triggered_by=request.user,
         )
+        adjustment_request.refresh_from_db()
+        OrderNotificationService.notify_adjustment_countered(
+            adjustment_request=adjustment_request,
+            countered_by=request.user,
+        )
 
         return Response(
             {
@@ -211,6 +217,11 @@ class AdjustmentAcceptView(GenericAPIView):
             notes=validated_data.get("notes", ""),
             triggered_by=request.user,
         )
+        adjustment_request.refresh_from_db()
+        OrderNotificationService.notify_adjustment_accepted(
+            adjustment_request=adjustment_request,
+            accepted_by=request.user,
+        )
 
         return Response(
             {
@@ -274,6 +285,10 @@ class AdjustmentDeclineView(GenericAPIView):
             reason=validated_data["reason"],
             triggered_by=request.user,
         )
+        OrderNotificationService.notify_adjustment_declined(
+            adjustment_request=updated_request,
+            declined_by=request.user,
+        )
 
         return Response(
             {
@@ -335,6 +350,10 @@ class AdjustmentCancelView(GenericAPIView):
             cancelled_by=request.user,
             reason=validated_data["reason"],
             triggered_by=request.user,
+        )
+        OrderNotificationService.notify_adjustment_cancelled(
+            adjustment_request=updated_request,
+            cancelled_by=request.user,
         )
 
         return Response(
@@ -459,6 +478,10 @@ class ClientAcceptScopeRequestView(GenericAPIView):
             )
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        OrderNotificationService.notify_adjustment_accepted(
+            adjustment_request=updated,
+            accepted_by=request.user,
+        )
 
         return Response(
             {
@@ -509,6 +532,11 @@ class WriterEscalateAdjustmentView(GenericAPIView):
             )
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        adjustment_request.refresh_from_db()
+        OrderNotificationService.notify_adjustment_escalated(
+            adjustment_request=adjustment_request,
+            escalated_by=request.user,
+        )
 
         return Response(
             {
@@ -560,6 +588,10 @@ class StaffResolveAdjustmentEscalationView(GenericAPIView):
             )
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        OrderNotificationService.notify_adjustment_escalation_resolved(
+            adjustment_request=updated,
+            resolved_by=request.user,
+        )
 
         return Response(
             {

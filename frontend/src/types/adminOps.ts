@@ -12,8 +12,27 @@ export interface UnifiedSearchResultGroup {
   users?: Array<Record<string, unknown>>;
   payments?: Array<Record<string, unknown>>;
   messages?: Array<Record<string, unknown>>;
+  references?: WorkReferenceLookupMatch[];
   total_results?: number;
   query?: string;
+}
+
+export interface WorkReferenceLookupMatch {
+  kind: "normal_order" | "class_order" | "special_order";
+  id: number;
+  reference: string;
+  title: string;
+  status: string;
+  website_id: number | null;
+  client_id: number | null;
+  writer_id: number | null;
+  created_at: string | null;
+}
+
+export interface WorkReferenceLookupResponse {
+  reference: string;
+  count: number;
+  matches: WorkReferenceLookupMatch[];
 }
 
 export interface DuplicateUserSummary {

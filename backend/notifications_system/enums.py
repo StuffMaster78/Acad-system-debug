@@ -54,6 +54,19 @@ class NotificationEvent(TextChoices):
     ORDER_BID_ACCEPTED = "order.bid.accepted", _("Bid Accepted")
     ORDER_BID_REJECTED = "order.bid.rejected", _("Bid Rejected")
 
+    # Order adjustment workflow — scope increases, extra services, counters,
+    # funding reminders, and staff escalation handling.
+    ORDER_ADJUSTMENT_CREATED = "order.adjustment.created", _("Order Adjustment Created")
+    ORDER_ADJUSTMENT_COUNTERED = "order.adjustment.countered", _("Order Adjustment Countered")
+    ORDER_ADJUSTMENT_ACCEPTED = "order.adjustment.accepted", _("Order Adjustment Accepted")
+    ORDER_ADJUSTMENT_DECLINED = "order.adjustment.declined", _("Order Adjustment Declined")
+    ORDER_ADJUSTMENT_CANCELLED = "order.adjustment.cancelled", _("Order Adjustment Cancelled")
+    ORDER_ADJUSTMENT_ESCALATED = "order.adjustment.escalated", _("Order Adjustment Escalated")
+    ORDER_ADJUSTMENT_ESCALATION_RESOLVED = "order.adjustment.escalation_resolved", _("Order Adjustment Escalation Resolved")
+    ORDER_ADJUSTMENT_PENDING_CLIENT_RESPONSE_REMINDER = "order.adjustment.pending_client_response_reminder", _("Order Adjustment Client Response Reminder")
+    ORDER_ADJUSTMENT_PENDING_FUNDING_REMINDER = "order.adjustment.pending_funding_reminder", _("Order Adjustment Funding Reminder")
+    ORDER_ADJUSTMENT_STAFF_VISIBILITY_REMINDER = "order.adjustment.staff_visibility_reminder", _("Order Adjustment Staff Visibility Reminder")
+
     # Cancellation request workflow
     ORDER_CANCELLATION_REQUESTED = "order.cancellation_requested", _("Cancellation Requested")
     ORDER_CANCELLATION_REJECTED = "order.cancellation_rejected", _("Cancellation Rejected")

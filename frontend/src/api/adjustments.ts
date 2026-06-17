@@ -3,6 +3,7 @@ import type {
   AdjustmentRequest,
   CreateExtraServicePayload,
   CreateScopeIncrementPayload,
+  StaffAdjustmentInboxResponse,
 } from "@/types/adjustments";
 
 const adj = (id: number | string) => ordersApiPath(`/orders/adjustments/${id}`);
@@ -14,6 +15,9 @@ export const adjustmentsApi = {
 
   getLatest: (orderId: number | string) =>
     api.get<AdjustmentRequest>(ordersApiPath(`/orders/${orderId}/adjustments/latest/`)),
+
+  inbox: (params?: Record<string, unknown>) =>
+    api.get<StaffAdjustmentInboxResponse>(ordersApiPath("/orders/adjustments/inbox/"), { params }),
 
   // --- Create (writer / staff) ---
   createScopeIncrement: (orderId: number | string, payload: CreateScopeIncrementPayload) =>

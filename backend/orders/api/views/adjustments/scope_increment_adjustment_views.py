@@ -14,6 +14,7 @@ from orders.models import Order
 from orders.services.adjustment_negotiation_service import (
     AdjustmentNegotiationService,
 )
+from orders.services.order_notification_service import OrderNotificationService
 
 
 class CreateScopeIncrementAdjustmentView(GenericAPIView):
@@ -52,6 +53,10 @@ class CreateScopeIncrementAdjustmentView(GenericAPIView):
             client_visible_note=data.get("client_visible_note", ""),
             pricing_result=pricing_result,
             source_pricing_snapshot=source_pricing_snapshot,
+        )
+        OrderNotificationService.notify_adjustment_created(
+            adjustment_request=adjustment,
+            created_by=user,
         )
 
         return Response(

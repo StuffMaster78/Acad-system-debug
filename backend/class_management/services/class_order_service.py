@@ -34,6 +34,8 @@ from notifications_system.services.notification_service import (
 from communications.services.thread_bootstrap_service import (
     CommunicationThreadBootstrapService,
 )
+from orders.models.orders.order_number_sequence import OrderNumberScope
+from orders.services.order_number_service import OrderNumberService
 
 
 class ClassOrderService:
@@ -103,6 +105,10 @@ class ClassOrderService:
             initial_client_notes=initial_client_notes,
             created_by=created_by,
             updated_by=created_by,
+        )
+        OrderNumberService.stamp_public_number(
+            instance=class_order,
+            scope=OrderNumberScope.CLASS_ORDER,
         )
 
         bootstrap_thread = partial(

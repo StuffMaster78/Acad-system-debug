@@ -4,7 +4,7 @@ definePageMeta({ ssr: false })
 import {
   FileText, PenLine, GraduationCap, Briefcase, Search, FlaskConical,
   BookOpen, BarChart3, MonitorPlay, Layout, GitBranch, Layers,
-  Sparkles, School, ChevronRight, ChevronDown,
+  Sparkles, School, ChevronRight, ChevronDown, Edit,
   Trophy, ShieldCheck, RefreshCw, Lock, Bot, MessageSquare, Clock,
   Plus, Minus, Check, ArrowLeft, ArrowRight, Loader2,
 } from '@lucide/vue'
@@ -68,6 +68,13 @@ const PAPER_ICONS: Record<string, any> = {
 function selectType(ot: typeof ORDER_TYPES[0]) {
   if (ot.external) { router.push(ot.external); return }
   form.orderType = ot
+  // Pre-set workType when a service type implies it
+  if (ot.presetWorkType) {
+    const match = workTypes.value.find(w => w.id === ot.presetWorkType || w.label.toLowerCase().startsWith(ot.presetWorkType!.toLowerCase()))
+    if (match) { form.workType = match; form.workTypePreset = true }
+  } else {
+    form.workTypePreset = false
+  }
   step.value = 1
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -166,47 +173,71 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
 
     <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
 
-      <!-- ══ STEP 0: Order Type Selection ══ -->
+      <!-- ══ STEP 0: Service Type Selection ══ -->
       <div v-if="step === 0">
         <div class="mb-8 text-center">
-          <h1 class="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">What do you need?</h1>
-          <p class="mt-3 text-slate-500">Select the type of work — we'll tailor the form and pricing to match.</p>
+          <h1 class="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">What kind of help do you need?</h1>
+          <p class="mt-3 text-slate-500">Choose the type of service — we'll tailor the form and price to match.</p>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- Academic writing services -->
+        <div class="mb-3 flex items-center gap-3">
+          <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Academic writing</span>
+          <div class="flex-1 border-t border-slate-200" />
+        </div>
+        <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <button
-            v-for="ot in ORDER_TYPES"
+            v-for="ot in ORDER_TYPES.filter(t => t.group === 'academic')"
             :key="ot.id"
             type="button"
-            class="group relative rounded-2xl border-2 bg-white p-6 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+            class="group flex flex-col rounded-2xl border-2 bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+            :class="'border-slate-200 hover:border-claret-300'"
+            @click="selectType(ot)"
+          >
+            <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" :class="ot.iconBg">
+              <Edit      v-if="ot.id === 'editing'"      class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Search    v-else-if="ot.id === 'proofreading'" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <RefreshCw v-else-if="ot.id === 'rewriting'"   class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <PenLine   v-else class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+            </div>
+            <h2 class="font-bold text-slate-900">{{ ot.label }}</h2>
+            <p class="mt-0.5 text-xs font-medium" :class="ot.color.split(' ')[0]">{{ ot.tagline }}</p>
+            <p class="mt-2 flex-1 text-xs leading-relaxed text-slate-500 line-clamp-2">{{ ot.desc }}</p>
+            <div class="mt-3 flex items-center justify-between">
+              <span class="text-xs font-semibold text-amber-700">from ${{ ot.priceFrom }}/{{ ot.priceUnit }}</span>
+              <ChevronRight class="h-4 w-4 text-slate-300 transition-all group-hover:text-amber-600 group-hover:translate-x-0.5" />
+            </div>
+          </button>
+        </div>
+
+        <!-- Visual & other services -->
+        <div class="mb-3 flex items-center gap-3">
+          <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Visual & other services</span>
+          <div class="flex-1 border-t border-slate-200" />
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <button
+            v-for="ot in ORDER_TYPES.filter(t => t.group !== 'academic')"
+            :key="ot.id"
+            type="button"
+            class="group flex flex-col rounded-2xl border-2 bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
             :class="ot.external ? 'border-dashed border-slate-200 hover:border-slate-300' : 'border-slate-200 hover:border-claret-300'"
             @click="selectType(ot)"
           >
-            <!-- Icon circle -->
-            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border" :class="ot.color">
-              <Layout    v-if="ot.id === 'design'"  class="h-6 w-6" />
-              <GitBranch v-else-if="ot.id === 'diagram'" class="h-6 w-6" />
-              <Layers    v-else-if="ot.id === 'combo'"   class="h-6 w-6" />
-              <Sparkles  v-else-if="ot.id === 'special'" class="h-6 w-6" />
-              <School    v-else-if="ot.id === 'class'"   class="h-6 w-6" />
-              <FileText  v-else class="h-6 w-6" />
+            <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" :class="ot.iconBg">
+              <Layout    v-if="ot.id === 'design'"   class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <GitBranch v-else-if="ot.id === 'diagram'" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <School    v-else-if="ot.id === 'class'"   class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Sparkles  v-else class="h-5 w-5" :class="ot.color.split(' ')[0]" />
             </div>
-
-            <div class="flex items-start justify-between gap-2">
-              <h2 class="font-semibold text-slate-900">{{ ot.label }}</h2>
-              <span v-if="ot.external" class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">Get quote</span>
-              <span v-else class="shrink-0 text-xs font-medium text-amber-700">from ${{ ot.priceFrom }}/unit</span>
-            </div>
-
-            <p class="mt-1.5 text-sm text-slate-500 leading-relaxed">{{ ot.desc }}</p>
-
-            <p class="mt-3 text-xs text-slate-400 leading-relaxed">
-              e.g. {{ ot.examples }}
-            </p>
-
-            <div class="mt-4 flex items-center gap-1 text-xs font-semibold text-amber-700 transition-colors group-hover:gap-2">
-              {{ ot.external ? 'Request a quote' : 'Start order' }}
-              <ChevronRight class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            <h2 class="font-bold text-slate-900">{{ ot.label }}</h2>
+            <p class="mt-0.5 text-xs font-medium" :class="ot.color.split(' ')[0]">{{ ot.tagline }}</p>
+            <p class="mt-2 flex-1 text-xs leading-relaxed text-slate-500 line-clamp-2">{{ ot.desc }}</p>
+            <div class="mt-3 flex items-center justify-between">
+              <span class="text-xs font-semibold" :class="ot.external ? 'text-slate-400' : 'text-amber-700'">
+                {{ ot.external ? 'Get a quote' : `from $${ot.priceFrom}/${ot.priceUnit}` }}
+              </span>
+              <ChevronRight class="h-4 w-4 text-slate-300 transition-all group-hover:text-amber-600 group-hover:translate-x-0.5" />
             </div>
           </button>
         </div>
@@ -229,11 +260,11 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
           <!-- ── STEP 1 ── -->
           <div v-show="step === 1" class="space-y-6">
             <h1 class="font-serif text-2xl font-bold text-slate-900">
-              {{ form.orderType.id === 'design' ? 'Design details' : form.orderType.id === 'diagram' ? 'Diagram details' : 'Paper details' }}
+              {{ form.orderType.baseType === 'design' ? 'Design details' : form.orderType.baseType === 'diagram' ? 'Diagram details' : form.orderType.label + ' details' }}
             </h1>
 
             <!-- PAPER / COMBO fields -->
-            <template v-if="form.orderType.id === 'paper' || form.orderType.id === 'combo'">
+            <template v-if="form.orderType.baseType === 'paper' || form.orderType.baseType === 'combo'">
               <!-- Paper type grid -->
               <div>
                 <label class="form-label">Paper type</label>
@@ -313,7 +344,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                 <p class="mt-1.5 text-xs text-slate-400">Selected: <strong class="text-slate-600">{{ form.subject.label }}</strong></p>
               </div>
               <!-- COMBO: plus component picker (appears below paper fields) -->
-              <template v-if="form.orderType.id === 'combo'">
+              <template v-if="form.orderType.baseType === 'combo'">
                 <div class="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50 p-5">
                   <div class="mb-4 flex items-center gap-2">
                     <div class="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">+</div>
@@ -407,7 +438,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
             </template>
 
             <!-- DESIGN fields (standalone — not combo) -->
-            <template v-else-if="form.orderType.id === 'design'">
+            <template v-else-if="form.orderType.baseType === 'design'">
               <div>
                 <label class="form-label">Design type</label>
                 <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -436,7 +467,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
             </template>
 
             <!-- DIAGRAM fields -->
-            <template v-else-if="form.orderType.id === 'diagram'">
+            <template v-else-if="form.orderType.baseType === 'diagram'">
               <div>
                 <label class="form-label">Diagram type</label>
                 <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -540,7 +571,8 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
-              <div>
+              <!-- Work type: hidden when pre-set at step 0 (editing/proofreading/rewriting) -->
+              <div v-if="!form.workTypePreset">
                 <label class="form-label">Type of work</label>
                 <div class="mt-2 grid grid-cols-2 gap-2">
                   <button v-for="wt in workTypes" :key="wt.id" type="button"
@@ -551,6 +583,14 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/order'
                     <p class="text-sm font-semibold">{{ wt.label }}</p>
                     <p class="text-xs" :class="form.workType.id === wt.id ? 'text-amber-200' : 'text-slate-400'">{{ wt.desc }}</p>
                   </button>
+                </div>
+              </div>
+              <!-- When pre-set: show a read-only badge instead -->
+              <div v-else class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                <Check class="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+                <div>
+                  <p class="text-xs font-semibold text-amber-900">{{ form.workType.label }}</p>
+                  <p class="text-xs text-amber-700">Selected at previous step</p>
                 </div>
               </div>
               <div>

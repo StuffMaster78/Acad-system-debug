@@ -32,6 +32,8 @@ from special_orders.integrations.discount_bridge import (
 from communications.services.thread_bootstrap_service import (
     CommunicationThreadBootstrapService,
 )
+from orders.models.orders.order_number_sequence import OrderNumberScope
+from orders.services.order_number_service import OrderNumberService
 
 
 class SpecialOrderCreationService:
@@ -83,6 +85,10 @@ class SpecialOrderCreationService:
             budget=budget,
             duration_days=duration_days,
             currency=currency,
+        )
+        OrderNumberService.stamp_public_number(
+            instance=special_order,
+            scope=OrderNumberScope.SPECIAL_ORDER,
         )
 
         bootstrap_thread = partial(
@@ -144,6 +150,10 @@ class SpecialOrderCreationService:
             currency=currency,
             predefined_config=predefined_config,
             predefined_duration=predefined_duration,
+        )
+        OrderNumberService.stamp_public_number(
+            instance=special_order,
+            scope=OrderNumberScope.SPECIAL_ORDER,
         )
 
         bootstrap_thread = partial(

@@ -9,19 +9,85 @@ export interface DeadlineOption     { id: string; label: string; sublabel: strin
 export interface SubjectOption      { id: string; label: string; category: string }
 export interface FormatOption       { id: string; label: string }
 export interface WorkTypeOption     { id: string; label: string; desc: string }
-export interface OrderTypeOption    { id: string; label: string; desc: string; examples: string; priceFrom: number; color: string; external?: string }
+export interface OrderTypeOption    {
+  id: string
+  label: string
+  tagline: string            // one-line shown under title
+  desc: string               // longer description shown on card
+  priceFrom: number
+  priceUnit: string          // 'page' | 'slide' | 'diagram' | ''
+  color: string              // Tailwind classes for icon bg + border
+  iconBg: string             // icon background accent
+  group: 'academic' | 'visual' | 'other'
+  baseType: 'paper' | 'design' | 'diagram' | 'combo'
+  presetWorkType?: string    // pre-sets form.workType when selected
+  external?: string          // routes off-site instead of to step 1
+}
 export interface DesignTypeOption   { id: string; label: string; desc: string; unit: string }
 export interface DiagramTypeOption  { id: string; label: string; desc: string }
 
 // ── Static fallback data ──────────────────────────────────────────────────────
 
 export const ORDER_TYPES: OrderTypeOption[] = [
-  { id: 'paper',   label: 'Paper & Essay',      desc: 'Research papers, essays, dissertations & more', examples: 'Research paper · Essay · Dissertation · Case study · Lab report', priceFrom: 15, color: 'text-brand-600 bg-brand-50 border-brand-200' },
-  { id: 'design',  label: 'Design',             desc: 'Slides, infographics, posters & visual assets',  examples: 'PowerPoint · Infographic · Poster · Social media', priceFrom: 20, color: 'text-purple-600 bg-purple-50 border-purple-200' },
-  { id: 'diagram', label: 'Diagrams & Charts',  desc: 'Flowcharts, ER diagrams, mind maps & more',      examples: 'Flowchart · ER diagram · Mind map · Org chart', priceFrom: 25, color: 'text-teal-600 bg-teal-50 border-teal-200' },
-  { id: 'combo',   label: 'Combo Order',        desc: 'Paper + slides or diagram components together',  examples: 'Report + infographic · Essay + presentation', priceFrom: 15, color: 'text-amber-600 bg-amber-50 border-amber-200' },
-  { id: 'special', label: 'Special Project',    desc: 'Custom work — nursing sims, coding, shadow health', examples: 'Shadow Health · iHuman · Coding project · Custom research', priceFrom: 0, color: 'text-rose-600 bg-rose-50 border-rose-200', external: '/quote' },
-  { id: 'class',   label: 'Full Class Support', desc: 'We handle your entire course — all assignments', examples: 'Weekly assignments · Exams · Discussions · Full semester', priceFrom: 0, color: 'text-green-600 bg-green-50 border-green-200', external: '/class-support' },
+  // ── Academic writing ──────────────────────────────────────────────────────
+  {
+    id: 'writing', label: 'Writing', tagline: 'Brand-new paper from scratch',
+    desc: 'Essays, research papers, dissertations, case studies, lab reports — anything written fresh to your brief.',
+    priceFrom: 15, priceUnit: 'page',
+    color: 'text-claret-700 bg-claret-50 border-claret-200', iconBg: 'bg-claret-100',
+    group: 'academic', baseType: 'paper', presetWorkType: 'writing',
+  },
+  {
+    id: 'editing', label: 'Editing', tagline: 'Strengthen an existing draft',
+    desc: 'We improve structure, argument flow, clarity, and style — your content, made significantly better.',
+    priceFrom: 12, priceUnit: 'page',
+    color: 'text-blue-700 bg-blue-50 border-blue-200', iconBg: 'bg-blue-100',
+    group: 'academic', baseType: 'paper', presetWorkType: 'editing',
+  },
+  {
+    id: 'proofreading', label: 'Proofreading', tagline: 'Grammar, spelling & formatting',
+    desc: 'Fix grammar, punctuation, citation format, and consistency without altering your voice or argument.',
+    priceFrom: 8, priceUnit: 'page',
+    color: 'text-emerald-700 bg-emerald-50 border-emerald-200', iconBg: 'bg-emerald-100',
+    group: 'academic', baseType: 'paper', presetWorkType: 'proofreading',
+  },
+  {
+    id: 'rewriting', label: 'Rewriting', tagline: 'Restructure & rewrite your content',
+    desc: 'Full rewrite of existing material — same ideas, completely new wording and structure.',
+    priceFrom: 12, priceUnit: 'page',
+    color: 'text-violet-700 bg-violet-50 border-violet-200', iconBg: 'bg-violet-100',
+    group: 'academic', baseType: 'paper', presetWorkType: 'rewriting',
+  },
+  // ── Visual services ───────────────────────────────────────────────────────
+  {
+    id: 'design', label: 'Presentations & Design', tagline: 'Slides, posters, infographics',
+    desc: 'PowerPoint, Google Slides, academic posters, infographics, PDF report layouts — visually polished.',
+    priceFrom: 20, priceUnit: 'slide',
+    color: 'text-purple-700 bg-purple-50 border-purple-200', iconBg: 'bg-purple-100',
+    group: 'visual', baseType: 'design',
+  },
+  {
+    id: 'diagram', label: 'Diagrams & Charts', tagline: 'Flowcharts, mind maps, ER diagrams',
+    desc: 'Process flows, ER diagrams, mind maps, Gantt charts, org charts — any diagram type, any tool.',
+    priceFrom: 25, priceUnit: 'diagram',
+    color: 'text-teal-700 bg-teal-50 border-teal-200', iconBg: 'bg-teal-100',
+    group: 'visual', baseType: 'diagram',
+  },
+  // ── Other ─────────────────────────────────────────────────────────────────
+  {
+    id: 'class', label: 'Online Class Support', tagline: 'Full course management',
+    desc: 'All assignments, discussions, quizzes, and exams handled for you — full semester or individual modules.',
+    priceFrom: 0, priceUnit: '',
+    color: 'text-green-700 bg-green-50 border-green-200', iconBg: 'bg-green-100',
+    group: 'other', baseType: 'paper', external: '/class-support',
+  },
+  {
+    id: 'special', label: 'Special Project', tagline: 'Custom scope — get a quote',
+    desc: 'Shadow Health, iHuman, coding projects, complex multi-part briefs — anything outside standard orders.',
+    priceFrom: 0, priceUnit: '',
+    color: 'text-rose-700 bg-rose-50 border-rose-200', iconBg: 'bg-rose-100',
+    group: 'other', baseType: 'paper', external: '/quote',
+  },
 ]
 
 export const DESIGN_TYPES: DesignTypeOption[] = [
@@ -275,6 +341,7 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
 
   const form = reactive({
     orderType:          ORDER_TYPES.find(t => t.id === savedDraft?.orderType) ?? ORDER_TYPES[0],
+    workTypePreset:     false as boolean,  // true when orderType pre-sets workType (editing/proofreading/rewriting)
     paperType:          STATIC_PAPER_TYPES[0],
     level:              STATIC_LEVELS[1],
     pages:              savedDraft?.pages ?? 1,
@@ -348,27 +415,27 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
   )
 
   const basePrice = computed(() => {
-    if (form.orderType.id === 'design')  return designBasePrice.value
-    if (form.orderType.id === 'diagram') return diagramBasePrice.value
+    if (form.orderType.baseType === 'design')  return designBasePrice.value
+    if (form.orderType.baseType === 'diagram') return diagramBasePrice.value
     return paperBasePrice.value
   })
 
   // Combo: paper cost + chosen add-on cost
   const comboPlusPrice = computed(() => {
-    if (form.orderType.id !== 'combo') return 0
+    if (form.orderType.baseType !== 'combo') return 0
     if (form.comboComponent === 'design')  return designBasePrice.value  * form.designUnits
     return diagramBasePrice.value * form.diagramCount
   })
 
   const unitCount = computed(() => {
-    if (form.orderType.id === 'design')  return form.designUnits
-    if (form.orderType.id === 'diagram') return form.diagramCount
+    if (form.orderType.baseType === 'design')  return form.designUnits
+    if (form.orderType.baseType === 'diagram') return form.diagramCount
     return form.pages
   })
 
   const unitLabel = computed(() => {
-    if (form.orderType.id === 'design')  return form.designType.unit
-    if (form.orderType.id === 'diagram') return 'diagrams'
+    if (form.orderType.baseType === 'design')  return form.designType.unit
+    if (form.orderType.baseType === 'diagram') return 'diagrams'
     return 'pages'
   })
 
@@ -386,7 +453,7 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
   let _priceTimer: ReturnType<typeof setTimeout> | undefined
 
   async function _fetchEstimate() {
-    if (form.orderType.id !== 'paper' && form.orderType.id !== 'combo') {
+    if (form.orderType.id !== 'paper' && form.orderType.baseType !== 'combo') {
       liveTotal.value = null; return
     }
     const apiBase = import.meta.client
@@ -432,7 +499,7 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
   const pricePerUnit  = computed(() => Math.ceil(totalPrice.value / Math.max(unitCount.value, 1)))
 
   const wordCount = computed(() =>
-    (form.orderType.id === 'paper' || form.orderType.id === 'combo')
+    (form.orderType.baseType === 'paper' || form.orderType.baseType === 'combo')
       ? form.pages * (form.spacing === 'double' ? 275 : 550)
       : 0
   )
@@ -511,15 +578,17 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
   // ── Validation ────────────────────────────────────────────────────────────────
 
   const step1Valid = computed(() => {
-    if (form.orderType.id === 'design')  return !!form.designType && form.designUnits >= 1 && !!form.deadline
-    if (form.orderType.id === 'diagram') return !!form.diagramType && form.diagramCount >= 1 && !!form.deadline
-    if (form.orderType.id === 'combo') {
+    const bt = form.orderType.baseType
+    if (bt === 'design')  return !!form.designType && form.designUnits >= 1 && !!form.deadline
+    if (bt === 'diagram') return !!form.diagramType && form.diagramCount >= 1 && !!form.deadline
+    if (bt === 'combo') {
       const paperOk = !!form.paperType && !!form.level && form.pages >= 1 && !!form.subject
       const plusOk  = form.comboComponent === 'design'
         ? !!form.designType && form.designUnits >= 1
         : !!form.diagramType && form.diagramCount >= 1
       return paperOk && plusOk && !!form.deadline
     }
+    // paper / writing / editing / proofreading / rewriting
     return !!form.paperType && !!form.level && form.pages >= 1 && !!form.deadline && !!form.subject
   })
 

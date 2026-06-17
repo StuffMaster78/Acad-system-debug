@@ -20,6 +20,7 @@ from orders.models import Order, OrderAdjustmentRequest
 from orders.services.adjustment_negotiation_service import (
     AdjustmentNegotiationService,
 )
+from orders.services.order_notification_service import OrderNotificationService
 
 
 class CreateExtraServiceAdjustmentView(GenericAPIView):
@@ -61,6 +62,10 @@ class CreateExtraServiceAdjustmentView(GenericAPIView):
             pricing_result=pricing_result,
             source_pricing_snapshot=source_pricing_snapshot,
         )
+        OrderNotificationService.notify_adjustment_created(
+            adjustment_request=adjustment,
+            created_by=user,
+        )
 
         return Response(
             {
@@ -90,6 +95,10 @@ class ClientAcceptExtraServiceView(GenericAPIView):
 
         updated = AdjustmentNegotiationService.client_accept_extra_service(
             adjustment_request=adjustment,
+            accepted_by=request.user,
+        )
+        OrderNotificationService.notify_adjustment_accepted(
+            adjustment_request=updated,
             accepted_by=request.user,
         )
 

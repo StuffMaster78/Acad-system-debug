@@ -85,6 +85,26 @@ export interface AdjustmentRequest {
   updated_at: string;
 }
 
+export interface StaffAdjustmentInboxItem extends AdjustmentRequest {
+  order_reference: string;
+  order_topic: string;
+  order_status: string;
+  website_id: number | null;
+  website_name: string | null;
+  client_id: number | null;
+  client_name: string;
+  writer_id: number | null;
+  writer_name: string;
+  requires_staff_attention: boolean;
+}
+
+export interface StaffAdjustmentInboxResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: StaffAdjustmentInboxItem[];
+}
+
 export interface CreateScopeIncrementPayload {
   adjustment_type: AdjustmentType;
   unit_type: ScopeUnitType;

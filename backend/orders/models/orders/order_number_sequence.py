@@ -23,9 +23,8 @@ class OrderNumberSequence(models.Model):
     website=1, scope=normal_order, period="2026-07", seed=85673, padding=7
     → order number format: 8567300001, 8567300002, …
 
-    seed is the human-chosen prefix digits.
-    next_number auto-increments on each allocation (uses SELECT FOR UPDATE).
-    The display reference is: str(seed) + str(next_number).zfill(padding)
+    seed is the human-chosen base offset.
+    The display reference is: str(seed + order.id), optionally with prefix.
     """
 
     website = models.ForeignKey(
@@ -74,15 +73,20 @@ class OrderNumberSequence(models.Model):
     )
 
     class Meta:
-        unique_together = [("website", "scope", "period")]
         ordering = ["-created_at"]
         verbose_name = "Order Number Sequence"
         verbose_name_plural = "Order Number Sequences"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["website", "scope", "period"],
+                condition=models.Q(is_active=True),
+                name="uniq_active_order_number_sequence_per_period",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.website_id} / {self.scope} / {self.period} (seed={self.seed})"
 
     def format_number(self, n: int) -> str:
-        """Return the display order number for sequence position n."""
-        padded = str(n).zfill(self.padding)
-        return f"{self.prefix}{self.seed}{padded}"
+        """Return the display order number for internal object id n."""
+        return f"{self.prefix}{self.seed + n}"

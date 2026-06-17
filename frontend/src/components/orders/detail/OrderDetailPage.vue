@@ -24,6 +24,14 @@
       <!-- Summary cards -->
       <OrderSummaryCards :order="order" :lifecycle="lifecycle" :role="role" />
 
+      <WriterOrderBriefing
+        v-if="role === 'writer'"
+        :order-id="orderId"
+        :order="order"
+        :lifecycle="lifecycle"
+        @refresh="orders.fetchOrder(orderId)"
+      />
+
       <!-- Writer actions bar — acceptance gate + dispute for writers -->
       <WriterActionsBar
         v-if="role === 'writer'"
@@ -154,6 +162,7 @@ import OrderMessagesTab from "./tabs/OrderMessagesTab.vue";
 import OrderPaymentsTab from "./tabs/OrderPaymentsTab.vue";
 import OrderStaffingTab from "./tabs/OrderStaffingTab.vue";
 import WriterActionsBar from "./WriterActionsBar.vue";
+import WriterOrderBriefing from "./WriterOrderBriefing.vue";
 import ClientCancelRequestPanel from "./ClientCancelRequestPanel.vue";
 import OrderRevisionsTab from "./tabs/OrderRevisionsTab.vue";
 import OrderAdjustmentsTab from "./tabs/OrderAdjustmentsTab.vue";

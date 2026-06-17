@@ -4,6 +4,7 @@ import { RouterLink } from "vue-router";
 import { Search } from "@lucide/vue";
 import { adminOpsApi } from "@/api/adminOps";
 import { useAuthStore } from "@/stores/auth";
+import type { WorkReferenceLookupMatch } from "@/types/adminOps";
 import type { UserRole } from "@/types/roles";
 
 const props = defineProps<{
@@ -16,6 +17,7 @@ const open = ref(false);
 const isSearching = ref(false);
 const error = ref("");
 const results = ref<Record<string, Array<Record<string, unknown>>>>({
+  references: [],
   users: [],
   orders: [],
   payments: [],
@@ -25,7 +27,7 @@ const results = ref<Record<string, Array<Record<string, unknown>>>>({
 const containerRef = ref<HTMLElement | null>(null);
 
 const groups = computed(() =>
-  ["users", "orders", "payments", "messages"]
+  ["references", "users", "orders", "payments", "messages"]
     .map((key) => ({ key, rows: results.value[key] ?? [] }))
     .filter((group) => group.rows.length),
 );
@@ -42,6 +44,7 @@ function typesForRole(): string {
 function previewResults() {
   const isAdmin = props.role === "admin" || props.role === "superadmin";
   results.value = {
+    references: [],
     ...(isAdmin
       ? { users: [{ id: 101, title: "Nadia Morgan", subtitle: "nadia@example.com · client", role: "client" }] }
       : {}),
@@ -56,15 +59,51 @@ function previewResults() {
 }
 
 function resultTitle(item: Record<string, unknown>) {
-  return String(item.title || item.full_name || item.username || item.email || item.topic || item.id || "Result");
+  if (item.reference) {
+    const title = String(item.title || item.topic || `#${item.id}`);
+    return `${String(item.reference)} · ${title}`;
+  }
+  return String(item.title || item.full_name || item.username || item.email || item.topic || item.reference || item.id || "Result");
 }
 
 function resultSubtitle(item: Record<string, unknown>) {
+  if (item.reference) {
+    const parts = [
+      referenceKindLabel(String(item.kind)),
+      item.status ? String(item.status).replace(/_/g, " ") : "",
+      item.website_id ? `website ${item.website_id}` : "",
+      item.client_id ? `client ${item.client_id}` : "",
+      item.writer_id ? `writer ${item.writer_id}` : "",
+    ].filter(Boolean);
+    return parts.join(" · ") || "Open referenced work";
+  }
   return String(item.subtitle || item.email || item.status || item.snippet || item.amount || item.role || item.reference || "Open result");
+}
+
+function groupLabel(key: string): string {
+  if (key === "references") return "Reference matches";
+  return key;
+}
+
+function referenceKindLabel(kind: string): string {
+  if (kind === "class_order") return "Class";
+  if (kind === "special_order") return "Special order";
+  return "Order";
+}
+
+function referenceKindTone(kind: unknown): string {
+  if (kind === "class_order") return "border-indigo-200 bg-indigo-50 text-indigo-700";
+  if (kind === "special_order") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-signal/20 bg-signal/10 text-signal";
 }
 
 function targetFor(group: string, item: Record<string, unknown>): string {
   if (typeof item.url === "string" && item.url.startsWith("/")) return item.url;
+  if (group === "references") {
+    if (item.kind === "class_order") return `/${props.role}/classes/${item.id}`;
+    if (item.kind === "special_order") return `/${props.role}/special-orders/${item.id}`;
+    return `/${props.role}/orders/${item.id}`;
+  }
   if (group === "orders") return `/${props.role}/orders/${item.id}`;
   if (group === "users") return props.role === "admin" || props.role === "superadmin" ? `/${props.role}/access` : `/${props.role}/activity`;
   if (group === "payments") return props.role === "admin" || props.role === "superadmin" ? `/${props.role}/payments` : `/${props.role}`;
@@ -107,7 +146,13 @@ async function runSearch() {
       types: typesForRole(),
       limit: 5,
     });
+    let referenceMatches: Array<Record<string, unknown>> = [];
+    if (["admin", "superadmin", "support", "editor"].includes(props.role)) {
+      const lookup = await adminOpsApi.referenceLookup(trimmed).catch(() => null);
+      referenceMatches = (lookup?.data.matches ?? []).map((match: WorkReferenceLookupMatch) => ({ ...match }));
+    }
     results.value = {
+      references: referenceMatches,
       users: data.users ?? [],
       orders: data.orders ?? [],
       payments: data.payments ?? [],
@@ -115,7 +160,7 @@ async function runSearch() {
     };
   } catch {
     error.value = "Search unavailable.";
-    results.value = { users: [], orders: [], payments: [], messages: [] };
+    results.value = { references: [], users: [], orders: [], payments: [], messages: [] };
   } finally {
     isSearching.value = false;
   }
@@ -156,7 +201,7 @@ async function runSearch() {
           :key="group.key"
           class="border-b border-slate-100 last:border-b-0"
         >
-          <p class="bg-slate-50 px-4 py-2 text-xs font-semibold uppercase text-graphite">{{ group.key }}</p>
+          <p class="bg-slate-50 px-4 py-2 text-xs font-semibold uppercase text-graphite">{{ groupLabel(group.key) }}</p>
           <RouterLink
             v-for="item in group.rows"
             :key="`${group.key}-${item.id ?? resultTitle(item)}`"
@@ -164,12 +209,21 @@ async function runSearch() {
             :to="targetFor(group.key, item)"
             @click="closeDropdown"
           >
-            <p class="truncate text-sm font-semibold text-ink">{{ resultTitle(item) }}</p>
+            <div class="flex items-center gap-2">
+              <span
+                v-if="group.key === 'references'"
+                class="shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                :class="referenceKindTone(item.kind)"
+              >
+                {{ referenceKindLabel(String(item.kind)) }}
+              </span>
+              <p class="min-w-0 truncate text-sm font-semibold text-ink">{{ resultTitle(item) }}</p>
+            </div>
             <p class="mt-1 truncate text-xs text-graphite">{{ resultSubtitle(item) }}</p>
           </RouterLink>
         </div>
       </div>
-      <p v-else class="px-4 py-5 text-sm text-graphite">No results yet.</p>
+      <p v-else class="px-4 py-5 text-sm text-graphite">No matching records. Try a full reference, topic, client email, or writer ID.</p>
     </section>
   </div>
 </template>

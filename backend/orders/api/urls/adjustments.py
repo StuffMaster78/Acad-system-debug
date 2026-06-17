@@ -27,8 +27,16 @@ from orders.api.views.adjustments.adjustment_detail_views import (
     AdjustmentDetailView,
     LatestOrderAdjustmentView,
 )
+from orders.api.views.adjustments.adjustment_inbox_views import StaffAdjustmentInboxView
 
 urlpatterns = [
+    # --- Staff inbox ---
+    path(
+        "orders/adjustments/inbox/",
+        StaffAdjustmentInboxView.as_view(),
+        name="order-adjustment-inbox",
+    ),
+
     # --- Create ---
     path(
         "orders/<int:order_id>/adjustments/",
