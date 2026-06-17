@@ -195,6 +195,21 @@
         <p class="mt-0.5 text-xs text-graphite">This order was assigned to you directly. Review the details below and accept or decline.</p>
       </div>
     </div>
+
+    <!-- 11. Pending cancellation (writer) -->
+    <div
+      v-if="role === 'writer' && order?.status === 'pending_cancellation'"
+      class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3"
+    >
+      <PauseCircle class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+      <div>
+        <p class="text-sm font-semibold text-amber-900">Cancellation requested — pause work</p>
+        <p class="mt-0.5 text-xs text-amber-700">
+          The client has requested to cancel this order. Our team is reviewing it.
+          Please hold off on further work until a decision is made — you'll be notified of the outcome.
+        </p>
+      </div>
+    </div>
   </section>
 </template>
 

@@ -177,8 +177,13 @@ class AdjustmentScopeApplicationService:
             adjustment_request=adjustment_request,
         )
 
-        return order
+        cls._notify_writer_scope_applied(
+            adjustment_request=adjustment_request,
+            writer_amount=writer_amount,
+            triggered_by=triggered_by,
+        )
 
+        return order
 
 
     @classmethod
@@ -266,6 +271,12 @@ class AdjustmentScopeApplicationService:
             adjustment_request=adjustment_request,
         )
 
+        cls._notify_writer_scope_applied(
+            adjustment_request=adjustment_request,
+            writer_amount=writer_amount,
+            triggered_by=triggered_by,
+        )
+
         return order
 
 
@@ -332,6 +343,52 @@ class AdjustmentScopeApplicationService:
             },
         )
 
+
+    @staticmethod
+    def _notify_writer_scope_applied(
+        *,
+        adjustment_request,
+        writer_amount: Decimal,
+        triggered_by,
+    ) -> None:
+        """
+        Notify the assigned writer that their scope/compensation was updated.
+        Swallowed silently — a notification hiccup must never roll back the apply.
+        """
+        try:
+            writer = AdjustmentScopeApplicationService._resolve_current_writer(
+                adjustment_request.order
+            )
+            if writer is None:
+                return
+            from notifications_system.services.notification_service import (
+                NotificationService,
+            )
+            NotificationService.notify(
+                event_key="wallet.writer.earning_posted",
+                recipient=writer,
+                website=adjustment_request.order.website,
+                context={
+                    "order_id": adjustment_request.order.pk,
+                    "adjustment_id": adjustment_request.pk,
+                    "adjustment_type": adjustment_request.adjustment_type or "scope_change",
+                    "amount_delta": str(writer_amount),
+                    "title": adjustment_request.title,
+                },
+                triggered_by=triggered_by,
+                priority="high",
+                is_broadcast=False,
+                is_digest=False,
+                is_silent=False,
+                digest_group=None,
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to notify writer of scope apply for adjustment_id=%s",
+                getattr(adjustment_request, "pk", None),
+                exc_info=True,
+            )
 
     @staticmethod
     def _mark_applied(
