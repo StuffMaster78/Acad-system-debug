@@ -547,7 +547,10 @@ useHead({
           <!-- Right: sticky sidebar -->
           <aside class="hidden lg:block">
             <div class="sticky top-24 space-y-6">
-              <SidebarCalculator />
+              <ClientOnly>
+                <MultiStepOrderForm />
+                <template #fallback><div class="h-96 animate-pulse rounded-2xl bg-slate-100" /></template>
+              </ClientOnly>
               <div class="flex flex-col items-center">
                 <ClientOnly>
                   <ShareButtons :title="postTitle" :url="canonicalUrl" :vertical="true" />

@@ -5,11 +5,11 @@ const services = getAll().slice(0, 5)
 
 <template>
   <aside class="space-y-6">
-    <!-- Calculator -->
+    <!-- Compact price calculator -->
     <ClientOnly>
-      <SidebarCalculator />
+      <MultiStepOrderForm />
       <template #fallback>
-        <div class="h-64 animate-pulse rounded-2xl bg-slate-100" />
+        <div class="h-96 animate-pulse rounded-2xl bg-slate-100" />
       </template>
     </ClientOnly>
 
