@@ -143,37 +143,47 @@ app.conf.beat_schedule = { # type: ignore[attr-defined]
         "task": "loyalty_management.tasks.apply_monthly_referral_bonus_decay",
         "schedule": crontab(day_of_month=1, hour=1, minute=0),
     },
-    "weekly_writer_metrics": {
-        "task": "writer_management.tasks.performance.generate_weekly_performance_snapshots",
-        "schedule": crontab(hour=3, minute=0, day_of_week="sunday"),
-    },
     # Aggregate writer performance snapshots before level evaluation.
     # Runs Sunday 23:00 so snapshots are ready for Monday level checks.
     "run_weekly_aggregation": {
         "task": "writer_management.tasks.performance_tasks.run_weekly_aggregation",
         "schedule": crontab(hour=23, minute=0, day_of_week="sunday"),
     },
+    # Batch achievement / badge evaluation — runs Monday 07:00 after aggregation.
     "run_auto_badge_awards": {
-        "task": "writer_management.tasks.badges.run_auto_badge_awards",
+        "task": "writer_management.tasks.achievement_tasks.evaluate_all_writer_achievements_task",
         "schedule": crontab(0, 7, day_of_week="monday"),
     },
     # Evaluate all writers for promotion/demotion after Sunday aggregation.
-    # Was pointing to the non-existent leveling.update_writer_levels module.
     "run_level_progression": {
         "task": "writer_management.tasks.performance_tasks.run_level_progression",
         "schedule": crontab(hour=4, minute=0, day_of_week="monday"),
     },
-    "update_composite_scores": {
-        "task": "writer_management.tasks.scoring.update_composite_scores",
-        "schedule": crontab(hour=1, minute=0, day_of_week="monday"),
+    # Writer availability maintenance
+    "cleanup-expired-availability-windows": {
+        "task": "writer_management.tasks.availability_tasks.cleanup_expired_windows",
+        "schedule": crontab(minute=0),  # every hour
     },
-    "expire_old_warnings": {
-        "task": "writer_management.tasks.warnings.expire_old_warnings",
-        "schedule": crontab(hour=0, minute=0, day_of_week="monday"),
+    "process-writer-auto-offline": {
+        "task": "writer_management.tasks.availability_tasks.process_auto_offline",
+        "schedule": crontab(minute="*/5"),
     },
-    "preload_currency_conversion_rates": {
-        "task": "writer_management.tasks.currency.preload_currency_conversion_rates",
-        "schedule": crontab(hour=0, minute=0, day_of_week="sunday"),
+    # Preferred writer invitation workflow
+    "preferred-writer-send-reminders": {
+        "task": "orders.tasks.preferred_writer_tasks.send_pending_preferred_writer_reminders",
+        "schedule": crontab(minute=0, hour="*/4"),  # every 4 hours
+    },
+    "preferred-writer-expire-invitations": {
+        "task": "orders.tasks.preferred_writer_tasks.expire_preferred_writer_invitations",
+        "schedule": crontab(minute=30),  # every hour, offset from cleanup
+    },
+    "preferred-writer-fallback-to-pool": {
+        "task": "orders.tasks.preferred_writer_tasks.fallback_expired_preferred_writer_orders_to_pool",
+        "schedule": crontab(minute=45),  # every hour, after expire step
+    },
+    "preferred-writer-staff-visibility-reminder": {
+        "task": "orders.tasks.preferred_writer_tasks.send_preferred_writer_staff_visibility_reminders",
+        "schedule": crontab(hour=9, minute=0),  # daily at 09:00
     },
     "purge-old-expired-notifications": {
         "task": "notifications_system.tasks.expiry_tasks.purge_expired_notifications_task",

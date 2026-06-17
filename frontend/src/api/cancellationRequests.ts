@@ -1,10 +1,14 @@
 import { api, ordersApiPath } from "./client";
-import type { CancellationRequest } from "@/types/cancellation";
+import type { CancellationQueueItem, CancellationRequest } from "@/types/cancellation";
 
 const base = (orderId: number | string) =>
   ordersApiPath(`/orders/${orderId}/cancellation-request`);
 
 export const cancellationRequestsApi = {
+  listPending: () =>
+    api.get<CancellationQueueItem[]>(ordersApiPath("/cancellation-requests/pending/")),
+
+
   getCurrent: (orderId: number | string) =>
     api.get<CancellationRequest>(`${base(orderId)}/`),
 

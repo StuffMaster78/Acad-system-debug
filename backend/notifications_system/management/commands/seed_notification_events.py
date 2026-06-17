@@ -41,6 +41,13 @@ USER_CANNOT_DISABLE = {
     'writer.banned',
 }
 
+# Events that are in-app only (no email channel).
+EMAIL_NOT_SUPPORTED = {
+    'order.cancellation_requested',          # staff broadcast, in-app only
+    'order.preferred_writer.fallback_to_pool',
+    'order.preferred_writer.staff_visibility_reminder',
+}
+
 # Events eligible for digest batching.
 DIGEST_ELIGIBLE = {
     'order.deadline_approaching',
@@ -122,13 +129,14 @@ class Command(BaseCommand):
             else:
                 priority = NotificationPriority.NORMAL
 
+            email_supported = event_key not in EMAIL_NOT_SUPPORTED
             config, config_created = NotificationEventConfig.objects.get_or_create(
                 event_key=event_key,
                 defaults={
                     'label': label,
-                    'supports_email': True,
+                    'supports_email': email_supported,
                     'supports_in_app': True,
-                    'default_email_enabled': True,
+                    'default_email_enabled': email_supported,
                     'default_in_app_enabled': True,
                     'priority': priority,
                     'is_mandatory': is_mandatory,

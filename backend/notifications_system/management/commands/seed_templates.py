@@ -1623,6 +1623,99 @@ DEFAULT_TEMPLATES = {
             'available_variables': ['title', 'message'],
         },
     },
+
+    # Cancellation request workflow
+    'order.cancellation_requested': {
+        # Staff-only in-app broadcast: client has requested a cancellation.
+        NotificationChannel.IN_APP: {
+            'title': 'Cancellation request — Order #{{order_id}}',
+            'message': 'A client has requested cancellation of order #{{order_id}}. Reason: {{reason}}',
+            'available_variables': ['order_id', 'requested_by_id', 'reason', 'forfeiture_pct'],
+        },
+    },
+    'order.cancellation_rejected': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your cancellation request for Order #{{order_id}} was declined',
+            'body_html': 'notifications/emails/order_status_update.html',
+            'body_text': (
+                'Your cancellation request for order #{{order_id}} has been declined. '
+                'Your order is back in progress. '
+                '{% if notes %}Staff note: {{notes}}{% endif %}'
+            ),
+            'available_variables': ['order_id', 'notes', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Cancellation request declined — Order #{{order_id}}',
+            'message': 'Your cancellation request was declined. Your order is back in progress.',
+            'available_variables': ['order_id', 'notes'],
+        },
+    },
+
+    # Writer direct-assignment acceptance gate
+    'order.assignment_accepted': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Writer accepted assignment for Order #{{order_id}}',
+            'body_html': 'notifications/emails/order_assigned.html',
+            'body_text': 'The writer (ID: {{writer_id}}) has accepted their assignment for order #{{order_id}}.',
+            'available_variables': ['order_id', 'writer_id', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Assignment accepted — Order #{{order_id}}',
+            'message': 'The writer has accepted their assignment for order #{{order_id}}.',
+            'available_variables': ['order_id', 'writer_id'],
+        },
+    },
+    'order.assignment_rejected': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Writer declined assignment for Order #{{order_id}}',
+            'body_html': 'notifications/emails/order_cancelled.html',
+            'body_text': (
+                'The writer (ID: {{writer_id}}) has declined their assignment for order #{{order_id}}. '
+                '{% if reason %}Reason: {{reason}}{% endif %} '
+                'Please reassign the order.'
+            ),
+            'available_variables': ['order_id', 'writer_id', 'reason', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Assignment declined — Order #{{order_id}}',
+            'message': 'The writer has declined order #{{order_id}}. Reassignment needed.',
+            'available_variables': ['order_id', 'writer_id', 'reason'],
+        },
+    },
+
+    # Preferred writer invitation workflow
+    'order.preferred_writer.pending_reminder': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Reminder: You have a preferred writer invitation waiting',
+            'body_html': 'notifications/emails/order_assigned.html',
+            'body_text': (
+                'You have been invited as the preferred writer for order #{{order_id}}. '
+                'Please respond before your deadline: {{writer_deadline}}.'
+            ),
+            'available_variables': ['order_id', 'interest_id', 'writer_deadline', 'user_name'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Preferred writer invitation — Order #{{order_id}}',
+            'message': 'You have a pending invitation for order #{{order_id}}. Respond before {{writer_deadline}}.',
+            'available_variables': ['order_id', 'interest_id', 'writer_deadline'],
+        },
+    },
+    'order.preferred_writer.fallback_to_pool': {
+        # Staff broadcast: preferred writer did not respond; order moved to open pool.
+        NotificationChannel.IN_APP: {
+            'title': 'Preferred writer invitation expired — Order #{{order_id}}',
+            'message': 'The preferred writer invitation for order #{{order_id}} expired. The order is now in the open pool.',
+            'available_variables': ['order_id', 'preferred_writer_id'],
+        },
+    },
+    'order.preferred_writer.staff_visibility_reminder': {
+        # Staff broadcast: order is still awaiting preferred writer response.
+        NotificationChannel.IN_APP: {
+            'title': 'Order #{{order_id}} awaiting preferred writer response',
+            'message': 'Order #{{order_id}} is still pending a response from the preferred writer.',
+            'available_variables': ['order_id', 'preferred_writer_id'],
+        },
+    },
 }
 
 

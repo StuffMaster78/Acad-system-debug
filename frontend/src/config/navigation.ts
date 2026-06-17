@@ -1,5 +1,6 @@
 import {
   Activity,
+  Ban,
   FileEdit,
   GitBranch,
   AlertTriangle,
@@ -142,6 +143,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Class Configs", to: "/admin/class-config", icon: Settings },
     { label: "SPO-Configs", to: "/admin/special-order-config", icon: Wrench },
     { label: "Disputes", to: "/admin/disputes", icon: ShieldAlert },
+    { label: "Cancellations", to: "/admin/cancellation-queue", icon: Ban },
     { label: "Reviews", to: "/admin/reviews", icon: Star },
     { label: "Writers", to: "/admin/writers", icon: Users },
     { label: "Applications", to: "/admin/writer-applications", icon: FileText },
@@ -355,6 +357,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Classes", to: "/admin/classes", icon: BookOpen },
       { label: "Special Orders", to: "/admin/special-orders", icon: Sparkles },
       { label: "Disputes", to: "/admin/disputes", icon: ShieldAlert },
+      { label: "Cancellations", to: "/admin/cancellation-queue", icon: Ban },
       { label: "Reviews", to: "/admin/reviews", icon: Star },
     ]},
     { label: "People", items: [

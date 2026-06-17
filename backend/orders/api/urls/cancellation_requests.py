@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from django.urls import path
 
+from orders.api.views.cancellation.cancellation_queue_views import (
+    PendingCancellationQueueView,
+)
 from orders.api.views.cancellation.cancellation_request_views import (
     CancellationRequestApproveView,
     CancellationRequestCreateView,
@@ -9,6 +12,11 @@ from orders.api.views.cancellation.cancellation_request_views import (
 )
 
 urlpatterns = [
+    path(
+        "cancellation-requests/pending/",
+        PendingCancellationQueueView.as_view(),
+        name="cancellation-queue-pending",
+    ),
     path(
         "orders/<int:order_id>/cancellation-request/",
         CancellationRequestCreateView.as_view(),

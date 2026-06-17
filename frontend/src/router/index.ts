@@ -453,6 +453,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminDisputesView.vue"),
       },
       {
+        path: "cancellation-queue",
+        name: "admin-cancellation-queue",
+        component: () => import("@/views/admin/AdminCancellationQueueView.vue"),
+      },
+      {
         path: "reviews",
         name: "admin-reviews",
         component: () => import("@/views/admin/AdminReviewsView.vue"),

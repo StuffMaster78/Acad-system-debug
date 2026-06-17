@@ -54,6 +54,19 @@ class NotificationEvent(TextChoices):
     ORDER_BID_ACCEPTED = "order.bid.accepted", _("Bid Accepted")
     ORDER_BID_REJECTED = "order.bid.rejected", _("Bid Rejected")
 
+    # Cancellation request workflow
+    ORDER_CANCELLATION_REQUESTED = "order.cancellation_requested", _("Cancellation Requested")
+    ORDER_CANCELLATION_REJECTED = "order.cancellation_rejected", _("Cancellation Rejected")
+
+    # Writer direct-assignment acceptance gate
+    ORDER_ASSIGNMENT_ACCEPTED = "order.assignment_accepted", _("Assignment Accepted")
+    ORDER_ASSIGNMENT_REJECTED = "order.assignment_rejected", _("Assignment Rejected")
+
+    # Preferred writer invitation workflow
+    ORDER_PREFERRED_WRITER_PENDING_REMINDER = "order.preferred_writer.pending_reminder", _("Preferred Writer Pending Reminder")
+    ORDER_PREFERRED_WRITER_FALLBACK_TO_POOL = "order.preferred_writer.fallback_to_pool", _("Preferred Writer Fallback to Pool")
+    ORDER_PREFERRED_WRITER_STAFF_VISIBILITY_REMINDER = "order.preferred_writer.staff_visibility_reminder", _("Preferred Writer Staff Visibility Reminder")
+
     # Payments / Wallet
     WALLET_CREDITED = 'wallet.credited', _('Wallet Credited')
     WALLET_DEBITED = 'wallet.debited', _('Wallet Debited')
