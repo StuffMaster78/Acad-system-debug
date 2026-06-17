@@ -20,6 +20,7 @@ from authentication.services.impersonation_service import (
     ImpersonationService,
 )
 from authentication.api.permissions.impersonation_permissions import (
+    IsImpersonatingPermission,
     NotImpersonatingPermission,
 )
 
@@ -125,11 +126,12 @@ class ImpersonationStartView(APIView):
 class ImpersonationEndView(APIView):
     """
     End an active impersonation session.
+    Requires an active impersonation — not the opposite.
     """
 
     permission_classes = [
         IsAuthenticated,
-        NotImpersonatingPermission,
+        IsImpersonatingPermission,
     ]
 
     def post(self, request, *args, **kwargs):
@@ -162,11 +164,11 @@ class ImpersonationEndView(APIView):
 class ImpersonationStatusView(APIView):
     """
     Return current impersonation state.
+    Accessible whether or not impersonation is active.
     """
 
     permission_classes = [
         IsAuthenticated,
-        NotImpersonatingPermission,
     ]
 
     def get(self, request, *args, **kwargs):

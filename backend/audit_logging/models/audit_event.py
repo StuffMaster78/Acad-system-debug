@@ -132,6 +132,71 @@ class AuditEvent(models.Model):
         blank=True,
     )
 
+    # Portal surface — which portal did this request come from?
+    # client, writer, staff, superadmin, public, system
+    portal_surface = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    # Cached role of the actor at the time of the event
+    actor_role = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    # Cached display name (e.g. "Jane Doe (jane@example.com)")
+    actor_display = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+
+    # Human-readable object label e.g. "Order #1042"
+    object_label = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+
+    # API path and HTTP method of the originating request
+    request_path = models.CharField(
+        max_length=512,
+        null=True,
+        blank=True,
+    )
+
+    http_method = models.CharField(
+        max_length=10,
+        null=True,
+        blank=True,
+    )
+
+    # Session identifier for correlating events from the same session
+    session_id = models.CharField(
+        max_length=128,
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    # Before/after snapshots for write operations
+    before_state = models.JSONField(
+        null=True,
+        blank=True,
+        default=None,
+    )
+
+    after_state = models.JSONField(
+        null=True,
+        blank=True,
+        default=None,
+    )
+
     # -------------------------
     # Trace (FIXED TYPES)
     # -------------------------
@@ -238,6 +303,15 @@ class AuditEvent(models.Model):
         "object_id",
         "ip_address",
         "user_agent",
+        "portal_surface",
+        "actor_role",
+        "actor_display",
+        "object_label",
+        "request_path",
+        "http_method",
+        "session_id",
+        "before_state",
+        "after_state",
         "metadata",
         "correlation_id",
         "span_id",

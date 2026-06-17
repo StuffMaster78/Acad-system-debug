@@ -329,13 +329,15 @@ class ImpersonationService:
             ip_address=get_client_ip(self.request),
             user_agent=self._get_user_agent(self.request),
             reason=reason or "Impersonation Started. No reason provided.",
+            reason_type=ImpersonationLog.Reason.SUPPORT,
+            reason_details=reason or "",
         )
 
         refresh = RefreshToken.for_user(token.target_user)
         refresh["impersonated_by"] = self.admin_user.pk
         refresh["is_impersonation"] = True
         refresh["website_id"] = getattr(self.website, "pk", None)
-        refresh["session_id"] = self.session.pk
+        refresh["session_id"] = getattr(self.request.session, "session_key", None)
 
         logger.info(
             "Admin %s started impersonating user %s on website %s",
@@ -454,6 +456,8 @@ class ImpersonationService:
             ip_address=get_client_ip(self.request),
             user_agent=self._get_user_agent(self.request),
             reason=reason or "Impersonation session ended.",
+            reason_type=ImpersonationLog.Reason.SUPPORT,
+            reason_details=reason or "",
         )
 
         if hasattr(self.request, "session"):

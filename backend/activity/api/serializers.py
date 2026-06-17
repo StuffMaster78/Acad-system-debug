@@ -35,8 +35,16 @@ class ActivityEventSerializer(serializers.ModelSerializer):
 
     def get_card(self, obj: ActivityEvent) -> dict[str, Any]:
         """
-        Return rendered card data for the activity event.
+        Return rendered card data personalised to the requesting viewer.
+        Falls back to viewer-blind rendering if no request context.
         """
+        request = self.context.get("request")
+        if request and getattr(request.user, "is_authenticated", False):
+            return ActivityCardRenderer.render_for_viewer(
+                event=obj,
+                viewer_id=request.user.pk,
+                viewer_role=getattr(request.user, "role", None),
+            )
         return ActivityCardRenderer.render(event=obj)
 
 

@@ -1,5 +1,6 @@
 # Orders core
 from orders.models.orders.order import Order
+from orders.models.orders.order_number_sequence import OrderNumberSequence, OrderNumberScope
 from orders.models.orders.order_scope import OrderScope
 from orders.models.orders.order_pricing_snapshot import (
     OrderPricingSnapshot,

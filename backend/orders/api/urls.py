@@ -2,7 +2,28 @@ from __future__ import annotations
 
 from django.urls import include, path
 
+from orders.api.views.order_number_views import (
+    OrderNumberSequenceDetailView,
+    OrderNumberSequenceListCreateView,
+)
+
 urlpatterns = [
+    # Order number sequences (admin-configurable public numbering)
+    path(
+        "number-sequences/",
+        OrderNumberSequenceListCreateView.as_view(),
+        name="order-number-sequence-list-create",
+    ),
+    path(
+        "number-sequences/<int:pk>/",
+        OrderNumberSequenceDetailView.as_view(),
+        name="order-number-sequence-detail",
+    ),
+    path(
+        "number-sequences/<int:pk>/deactivate/",
+        OrderNumberSequenceDetailView.as_view(),
+        name="order-number-sequence-deactivate",
+    ),
     path("", include("orders.api.urls.staffing")),
     path("", include("orders.api.urls.reassignments")),
     path("", include("orders.api.urls.submissions")),

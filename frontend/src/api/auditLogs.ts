@@ -4,21 +4,39 @@ export interface AuditEvent {
   id: string;
   website: number | null;
   occurred_at: string;
+  // Actor
   actor_id: string | null;
+  actor_role: string | null;
+  actor_display: string | null;
+  // Action
   action: string;
+  // Object
   object_type: string | null;
   object_id: string | null;
+  object_label: string | null;
+  // Request context
+  portal_surface: string | null;
+  request_path: string | null;
+  http_method: string | null;
+  session_id: string | null;
+  // Lifecycle
   status: string;
   processed_at: string | null;
   processing_attempts: number;
+  // Tracing
   correlation_id: string | null;
   span_id: string | null;
+  // Classification
   severity: string;
   is_sensitive: boolean;
   sensitivity_level: string | null;
   service_name: string | null;
+  // State diff
+  before_state: Record<string, unknown> | null;
+  after_state: Record<string, unknown> | null;
+  // Payload
   metadata: Record<string, unknown> | null;
-  // sensitive fields (staff with elevated perms)
+  // Sensitive fields (staff with elevated perms only)
   ip_address?: string | null;
   user_agent?: string | null;
   last_error?: string | null;
@@ -28,29 +46,6 @@ export interface AuditCursorPage {
   next: string | null;
   previous: string | null;
   results: AuditEvent[];
-}
-
-export interface AuditEvent {
-  id: string;
-  website: number | null;
-  occurred_at: string;
-  actor_id: string | null;
-  action: string;
-  object_type: string | null;
-  object_id: string | null;
-  status: string;
-  processed_at: string | null;
-  processing_attempts: number;
-  correlation_id: string | null;
-  span_id: string | null;
-  severity: string;
-  is_sensitive: boolean;
-  sensitivity_level: string | null;
-  service_name: string | null;
-  metadata: Record<string, unknown> | null;
-  ip_address?: string | null;
-  user_agent?: string | null;
-  last_error?: string | null;
 }
 
 export interface AuditEventFilters {

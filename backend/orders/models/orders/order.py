@@ -136,6 +136,18 @@ class Order(models.Model):
         max_length=255,
         help_text="Topic or working title of the order.",
     )
+
+    public_order_number = models.CharField(
+        max_length=40,
+        null=True,
+        blank=True,
+        unique=True,
+        db_index=True,
+        help_text=(
+            "Admin-configured public-facing order number e.g. 'GC-8567300001'. "
+            "Allocated from OrderNumberSequence. Never equals the DB pk."
+        ),
+    )
     paper_type = models.ForeignKey(
         "order_configs.PaperType",
         on_delete=models.PROTECT,

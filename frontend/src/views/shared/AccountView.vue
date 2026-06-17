@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { AlertTriangle, Camera, KeyRound, Loader2, MapPin, PenLine, Phone, Trash2, User } from "@lucide/vue";
+import { AlertTriangle, Camera, KeyRound, Loader2, MapPin, Monitor, PenLine, Phone, ShieldCheck, Trash2, User, XCircle } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
 import { authApi, type AccountDeletionState, type ProfileUpdateRequest } from "@/api/auth";
+import { sessionsApi, type LoginSession } from "@/api/sessions";
 import { useAuthStore } from "@/stores/auth";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 import type { UserRole } from "@/types/roles";
@@ -14,6 +15,67 @@ const auth = useAuthStore();
 const writerWorkspace = useWriterWorkspaceStore();
 
 const isWriter = computed(() => props.role === "writer");
+
+// ── Sessions ─────────────────────────────────────────────────────────────────
+const sessions = ref<LoginSession[]>([]);
+const sessionsLoading = ref(false);
+const sessionsError = ref("");
+const sessionsNotice = ref("");
+const revokingId = ref<number | null>(null);
+
+async function loadSessions() {
+  sessionsLoading.value = true;
+  sessionsError.value = "";
+  try {
+    const { data } = await sessionsApi.list();
+    sessions.value = Array.isArray(data) ? data : [];
+  } catch {
+    sessionsError.value = "Could not load active sessions.";
+  } finally {
+    sessionsLoading.value = false;
+  }
+}
+
+async function revokeSession(id: number) {
+  revokingId.value = id;
+  try {
+    await sessionsApi.revoke(id);
+    sessions.value = sessions.value.filter((s) => s.id !== id);
+    sessionsNotice.value = "Session revoked.";
+  } catch {
+    sessionsError.value = "Could not revoke session.";
+  } finally {
+    revokingId.value = null;
+  }
+}
+
+async function revokeAllSessions() {
+  if (!confirm("Sign out of all other sessions?")) return;
+  try {
+    await sessionsApi.revokeAll();
+    await loadSessions();
+    sessionsNotice.value = "All other sessions signed out.";
+  } catch {
+    sessionsError.value = "Could not sign out all sessions.";
+  }
+}
+
+function formatDevice(session: LoginSession): string {
+  if (session.device_name) return session.device_name;
+  const ua = session.user_agent || "";
+  if (/iPhone|iPad/.test(ua)) return "iPhone / iPad";
+  if (/Android/.test(ua)) return "Android device";
+  if (/Macintosh|Mac OS/.test(ua)) return "Mac";
+  if (/Windows/.test(ua)) return "Windows PC";
+  if (/Linux/.test(ua)) return "Linux";
+  return "Unknown device";
+}
+
+function formatDate(iso: string) {
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+}
+
+onMounted(loadSessions);
 
 // ── Avatar ──────────────────────────────────────────────────────────────────
 const avatarInputRef = ref<HTMLInputElement | null>(null);
@@ -600,6 +662,71 @@ const displayUser = computed(() => ({
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Timezone</p>
             <p class="mt-1 text-sm text-graphite">{{ auth.user?.timezone ?? profileForm.timezone }}</p>
           </div>
+        </div>
+      </section>
+
+      <!-- Active sessions -->
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div class="flex items-center gap-3">
+            <ShieldCheck class="h-5 w-5 text-signal" />
+            <h2 class="text-base font-semibold text-ink">Active sessions</h2>
+          </div>
+          <button
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:text-ink disabled:opacity-50"
+            type="button"
+            :disabled="sessionsLoading"
+            @click="loadSessions"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <p v-if="sessionsError" class="px-6 py-3 text-sm text-berry">{{ sessionsError }}</p>
+        <p v-if="sessionsNotice" class="px-6 py-3 text-sm text-signal">{{ sessionsNotice }}</p>
+
+        <div v-if="sessionsLoading" class="px-6 py-8 text-center text-sm text-graphite animate-pulse">
+          Loading sessions…
+        </div>
+
+        <div v-else-if="!sessions.length" class="px-6 py-6 text-center text-sm text-graphite">
+          No active sessions found.
+        </div>
+
+        <ul v-else class="divide-y divide-slate-100">
+          <li
+            v-for="session in sessions"
+            :key="session.id"
+            class="flex items-center gap-4 px-6 py-4"
+          >
+            <Monitor class="h-8 w-8 shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-1.5 text-graphite" />
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-ink">{{ formatDevice(session) }}</p>
+              <p class="mt-0.5 text-xs text-graphite">
+                {{ session.ip_address ?? "Unknown IP" }}
+                <span v-if="session.logged_in_at"> · Signed in {{ formatDate(session.logged_in_at) }}</span>
+              </p>
+            </div>
+            <button
+              class="focus-ring shrink-0 rounded-md border border-slate-200 p-1.5 text-graphite hover:border-rose-200 hover:text-rose-600 disabled:opacity-40 transition-colors"
+              type="button"
+              :disabled="revokingId === session.id"
+              :title="'Sign out this session'"
+              @click="revokeSession(session.id)"
+            >
+              <XCircle class="h-4 w-4" />
+            </button>
+          </li>
+        </ul>
+
+        <div v-if="sessions.length > 1" class="border-t border-slate-100 px-6 py-4">
+          <button
+            class="focus-ring inline-flex items-center gap-2 rounded-md border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+            type="button"
+            @click="revokeAllSessions"
+          >
+            Sign out all other sessions
+          </button>
         </div>
       </section>
 
