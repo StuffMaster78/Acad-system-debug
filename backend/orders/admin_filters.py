@@ -156,12 +156,11 @@ class RecentlyTransitionedFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         from django.utils import timezone
         from datetime import timedelta
-        from orders.models.orders import OrderTransitionLog
+        from orders.models.orders.order_timeline_event import OrderTimelineEvent
 
         if not self.value():
             return queryset
 
-        # Parse time period
         period_map = {
             '1h': timedelta(hours=1),
             '6h': timedelta(hours=6),
@@ -171,9 +170,8 @@ class RecentlyTransitionedFilter(admin.SimpleListFilter):
 
         cutoff = timezone.now() - period_map.get(self.value(), timedelta(hours=24))
 
-        # Get order IDs that have recent transitions
-        recent_order_ids = OrderTransitionLog.objects.filter(
-            timestamp__gte=cutoff
+        recent_order_ids = OrderTimelineEvent.objects.filter(
+            created_at__gte=cutoff
         ).values_list('order_id', flat=True).distinct()
 
         return queryset.filter(id__in=recent_order_ids)
@@ -265,12 +263,11 @@ class TransitionCountFilter(admin.SimpleListFilter):
         )
 
     def queryset(self, request, queryset):
-        from orders.models.orders import OrderTransitionLog
         from django.db.models import Count
 
-        # Annotate queryset with transition count
+        # Count timeline events (replaces deprecated OrderTransitionLog)
         queryset = queryset.annotate(
-            transition_count=Count('order_transition_logs')
+            transition_count=Count('timeline_events')
         )
 
         if self.value() == 'none':

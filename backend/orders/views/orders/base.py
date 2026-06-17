@@ -616,12 +616,12 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     ]
                 )
 
-        # Filter by recently transitioned
+        # Filter by recently transitioned (uses OrderTimelineEvent — the live replacement)
         recently_transitioned = params.get('recently_transitioned')
         if recently_transitioned:
             from django.utils import timezone
             from datetime import timedelta
-            from orders.models.orders import OrderTransitionLog
+            from orders.models.orders.order_timeline_event import OrderTimelineEvent
 
             period_map = {
                 '1h': timedelta(hours=1),
@@ -631,8 +631,8 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             }
 
             cutoff = timezone.now() - period_map.get(recently_transitioned, timedelta(hours=24))
-            recent_order_ids = OrderTransitionLog.objects.filter(
-                timestamp__gte=cutoff
+            recent_order_ids = OrderTimelineEvent.objects.filter(
+                created_at__gte=cutoff
             ).values_list('order_id', flat=True).distinct()
             base_qs = base_qs.filter(id__in=recent_order_ids)
 

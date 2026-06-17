@@ -2427,59 +2427,54 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['get'], url_path='timeline')
     def order_timeline(self, request, pk=None):
-        """Get order timeline/history."""
-        from orders.models.orders import Order, OrderTransitionLog, WriterReassignmentLog
+        """Get order timeline/history (sourced from OrderTimelineEvent)."""
+        from orders.models.orders import Order
+        from orders.models.orders.order_timeline_event import OrderTimelineEvent
         from orders.serializers import OrderSerializer
 
         order = get_object_or_404(Order, id=pk)
-
-        # Get order details
         order_serializer = OrderSerializer(order)
 
-        # Get transition logs
-        transitions = OrderTransitionLog.objects.filter(
-            order=order
-        ).select_related('user').order_by('-timestamp')
+        events = (
+            OrderTimelineEvent.objects
+            .filter(order=order)
+            .select_related('actor')
+            .order_by('-created_at')
+        )
 
-        # Get reassignment logs
-        reassignments = WriterReassignmentLog.objects.filter(
-            order=order
-        ).select_related('previous_writer', 'new_writer', 'reassigned_by').order_by('-reassigned_at')
-
-        # Combine into timeline
         timeline = []
+        for ev in events:
+            meta = ev.metadata or {}
+            event_type = ev.event_type
+            actor_name = ev.actor.username if ev.actor else 'System'
 
-        # Add transitions
-        for transition in transitions:
-            timeline.append({
-                'type': 'status_change',
-                'timestamp': transition.timestamp.isoformat() if transition.timestamp else None,
-                'user': transition.user.username if transition.user else 'System',
-                'old_status': transition.old_status,
-                'new_status': transition.new_status,
-                'action': transition.action,
-                'is_automatic': transition.is_automatic,
-                'meta': transition.meta
-            })
-
-        # Add reassignments
-        for reassignment in reassignments:
-            timeline.append({
-                'type': 'reassignment',
-                'timestamp': reassignment.reassigned_at.isoformat() if reassignment.reassigned_at else None,
-                'user': reassignment.reassigned_by.username if reassignment.reassigned_by else 'System',
-                'previous_writer': reassignment.previous_writer.username if reassignment.previous_writer else None,
-                'new_writer': reassignment.new_writer.username if reassignment.new_writer else None,
-                'reason': reassignment.reason
-            })
-
-        # Sort by timestamp descending
-        timeline.sort(key=lambda x: x['timestamp'] or '', reverse=True)
+            if event_type in ('reassigned', 'reassignment_requested', 'reassignment_rejected', 'reassignment_cancelled'):
+                timeline.append({
+                    'type': 'reassignment',
+                    'timestamp': ev.created_at.isoformat(),
+                    'user': actor_name,
+                    'previous_writer': meta.get('previous_writer'),
+                    'new_writer': meta.get('new_writer'),
+                    'reason': meta.get('reason'),
+                    'event_type': event_type,
+                    'meta': meta,
+                })
+            else:
+                timeline.append({
+                    'type': 'status_change',
+                    'timestamp': ev.created_at.isoformat(),
+                    'user': actor_name,
+                    'old_status': meta.get('old_status') or meta.get('from_status'),
+                    'new_status': meta.get('new_status') or meta.get('to_status') or event_type,
+                    'action': event_type,
+                    'is_automatic': meta.get('is_automatic', False),
+                    'meta': meta,
+                })
 
         return Response({
             'order': order_serializer.data,
             'timeline': timeline,
-            'total_events': len(timeline)
+            'total_events': len(timeline),
         })
 
 
