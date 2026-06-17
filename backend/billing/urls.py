@@ -14,6 +14,7 @@ from billing.api.views.payment_access_views import (
 )
 from billing.api.views.payment_installment_views import (
     InvoiceInstallmentListCreateView,
+    InstallmentPreparePaymentView,
     PaymentInstallmentCancelView,
     PaymentInstallmentDetailView,
 )
@@ -121,6 +122,11 @@ urlpatterns = [
         "installments/<int:installment_id>/cancel/",
         PaymentInstallmentCancelView.as_view(),
         name="billing-installment-cancel",
+    ),
+    path(
+        "installments/<int:installment_id>/prepare-payment/",
+        InstallmentPreparePaymentView.as_view(),
+        name="billing-installment-prepare-payment",
     ),
     path(
         "receipts/",

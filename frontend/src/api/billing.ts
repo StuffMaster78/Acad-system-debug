@@ -117,6 +117,22 @@ export interface CreatePaymentRequestPayload {
   recipient_name?: string;
 }
 
+export interface InstallmentScheduleItem {
+  sequence_number: number;
+  amount: string;
+  due_at: string;
+}
+
+export interface InstallmentPreparePaymentResult {
+  payment_intent_reference: string;
+  provider_data: Record<string, unknown>;
+  installment_id: number;
+  installment_sequence: number;
+  amount: string;
+  currency: string;
+  invoice_reference: string;
+}
+
 type ListResponse<T> = T[] | { count: number; next: string | null; previous: string | null; results: T[] };
 
 export const billingApi = {
@@ -145,4 +161,19 @@ export const billingApi = {
     api.post<AdminPaymentRequest>(apiPath("/billing/payment-requests/"), payload),
   issuePaymentRequest: (id: number) =>
     api.post<AdminPaymentRequest>(apiPath(`/billing/payment-requests/${id}/issue/`), {}),
+
+  // Installment schedule management (admin)
+  invoiceInstallments: (invoiceId: number) =>
+    api.get<Installment[]>(apiPath(`/billing/invoices/${invoiceId}/installments/`)),
+  createInstallmentSchedule: (invoiceId: number, schedule: InstallmentScheduleItem[]) =>
+    api.post<Installment[]>(apiPath(`/billing/invoices/${invoiceId}/installments/`), { schedule }),
+  cancelInstallment: (installmentId: number) =>
+    api.post<Installment>(apiPath(`/billing/installments/${installmentId}/cancel/`), {}),
+
+  // Installment payment (client + admin)
+  prepareInstallmentPayment: (installmentId: number, provider: string) =>
+    api.post<InstallmentPreparePaymentResult>(
+      apiPath(`/billing/installments/${installmentId}/prepare-payment/`),
+      { provider },
+    ),
 };

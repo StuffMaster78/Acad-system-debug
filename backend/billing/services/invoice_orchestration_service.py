@@ -30,6 +30,7 @@ from billing.services.receipt_orchestration_service import (
 from billing.services.reminder_orchestration_service import (
     ReminderOrchestrationService,
 )
+from billing.models.installment import PaymentInstallment
 from billing.services.installment_allocation_service import (
     InstallmentAllocationService,
 )
@@ -421,6 +422,99 @@ class InvoiceOrchestrationService:
                 context={
                     "invoice_id": updated_invoice.pk,
                     "invoice_reference": updated_invoice.reference,
+                    "payment_intent_reference": payment_intent.reference,
+                    "provider": provider,
+                },
+            )
+
+        return InvoiceIntentPreparationResult(
+            invoice=updated_invoice,
+            payment_intent=payment_intent,
+            provider_data=provider_data,
+            created=True,
+        )
+
+    @classmethod
+    @transaction.atomic
+    def create_payment_intent_for_installment(
+        cls,
+        *,
+        installment: PaymentInstallment,
+        provider: str,
+        triggered_by=None,
+    ) -> InvoiceIntentPreparationResult:
+        """
+        Create a payment intent sized to a single installment's remaining balance.
+
+        Unlike create_payment_intent_for_invoice, this always creates a fresh
+        intent (bypassing the existing-intent cache) so each installment payment
+        gets its own Stripe/wallet charge.  The new reference is stored on the
+        invoice so that apply_verified_invoice_payment can validate it.
+
+        When the payment is later verified, apply_verified_invoice_payment
+        receives total_amount == installment remaining balance, marks the invoice
+        partially_paid (or paid if this is the last installment), and
+        InstallmentAllocationService distributes the amount sequentially.
+
+        Args:
+            installment: The installment the client wants to pay.
+            provider: Payment provider key (e.g. "stripe", "wallet").
+            triggered_by: Optional actor.
+
+        Returns:
+            InvoiceIntentPreparationResult
+
+        Raises:
+            ValidationError: If the installment or invoice is not payable.
+        """
+        if installment.cancelled_at is not None:
+            raise ValidationError("Cancelled installments cannot be paid.")
+        if installment.paid_at is not None:
+            raise ValidationError("This installment is already fully paid.")
+
+        remaining = installment.amount - installment.amount_paid
+        if remaining <= Decimal("0"):
+            raise ValidationError("No remaining balance on this installment.")
+
+        invoice = installment.invoice
+        cls._validate_invoice_for_payment(invoice=invoice)
+
+        create_result = PaymentIntentService.create_intent(
+            client=invoice.client,
+            provider=provider,
+            purpose=PaymentIntentPurpose.INVOICE,
+            amount=remaining,
+            currency=invoice.currency,
+            payable=invoice,
+            metadata={
+                "invoice_id": invoice.pk,
+                "invoice_reference": invoice.reference,
+                "installment_id": installment.pk,
+                "installment_sequence": installment.sequence_number,
+                "installment_amount": str(installment.amount),
+                "installment_remaining": str(remaining),
+            },
+        )
+
+        payment_intent = create_result["payment_intent"]
+        provider_data = create_result["provider_data"]
+
+        updated_invoice = InvoiceService.attach_payment_intent_reference(
+            invoice=invoice,
+            payment_intent_reference=payment_intent.reference,
+        )
+
+        if triggered_by and updated_invoice.client:
+            NotificationService.notify(
+                event_key="billing.installment.payment_intent_created",
+                recipient=updated_invoice.client,
+                website=updated_invoice.website,
+                triggered_by=triggered_by,
+                is_silent=True,
+                context={
+                    "invoice_id": updated_invoice.pk,
+                    "installment_id": installment.pk,
+                    "installment_sequence": installment.sequence_number,
                     "payment_intent_reference": payment_intent.reference,
                     "provider": provider,
                 },

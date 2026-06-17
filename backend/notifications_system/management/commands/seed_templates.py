@@ -1624,6 +1624,98 @@ DEFAULT_TEMPLATES = {
         },
     },
 
+    # Billing — installment lifecycle events
+    'billing.installment.upcoming': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Upcoming installment due — {{invoice_reference}}',
+            'body_html': 'notifications/emails/payment_reminder.html',
+            'body_text': (
+                'Instalment {{installment_sequence}} of {{invoice_reference}} '
+                '({{amount}} {{currency}}) is due on {{due_at}}. '
+                'Log in to complete your payment.'
+            ),
+            'available_variables': [
+                'invoice_id', 'invoice_reference', 'installment_id',
+                'installment_sequence', 'amount', 'currency', 'due_at', 'user_name',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Installment due soon — {{invoice_reference}}',
+            'message': 'Instalment {{installment_sequence}} of {{amount}} is due on {{due_at}}.',
+            'available_variables': [
+                'invoice_reference', 'installment_sequence', 'amount', 'due_at',
+            ],
+        },
+    },
+    'billing.installment.due': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Installment overdue — {{invoice_reference}}',
+            'body_html': 'notifications/emails/payment_reminder.html',
+            'body_text': (
+                'Instalment {{installment_sequence}} of {{invoice_reference}} '
+                '({{amount}} {{currency}}) was due on {{due_at}} and is now overdue. '
+                'Please complete your payment as soon as possible.'
+            ),
+            'available_variables': [
+                'invoice_id', 'invoice_reference', 'installment_id',
+                'installment_sequence', 'amount', 'currency', 'due_at', 'user_name',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Installment overdue — {{invoice_reference}}',
+            'message': 'Instalment {{installment_sequence}} of {{amount}} was due on {{due_at}}.',
+            'available_variables': [
+                'invoice_reference', 'installment_sequence', 'amount', 'due_at',
+            ],
+        },
+    },
+    'billing.invoice.issued': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Invoice {{invoice_reference}} issued — {{amount}} {{currency}}',
+            'body_html': 'notifications/emails/payment_reminder.html',
+            'body_text': (
+                'Invoice {{invoice_reference}} for {{amount}} {{currency}} '
+                'has been issued and is due on {{invoice_due_at}}. '
+                'Log in to view and pay your invoice.'
+            ),
+            'available_variables': [
+                'invoice_id', 'invoice_reference', 'invoice_title',
+                'invoice_amount', 'invoice_currency', 'invoice_due_at',
+                'payment_intent_reference', 'provider', 'user_name',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Invoice issued — {{invoice_reference}}',
+            'message': 'Invoice {{invoice_reference}} for {{invoice_amount}} {{invoice_currency}} is due on {{invoice_due_at}}.',
+            'available_variables': [
+                'invoice_id', 'invoice_reference', 'invoice_amount', 'invoice_due_at',
+            ],
+        },
+    },
+    'billing.invoice.settled': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Payment confirmed — {{invoice_reference}}',
+            'body_html': 'notifications/emails/payment_received.html',
+            'body_text': (
+                'Your payment of {{settled_amount}} {{invoice_currency}} '
+                'for invoice {{invoice_reference}} has been received. '
+                '{% if fully_settled %}Your invoice is now fully paid.{% else %}'
+                'Partial payment applied — remaining balance still due.{% endif %}'
+            ),
+            'available_variables': [
+                'invoice_id', 'invoice_reference', 'invoice_amount', 'invoice_currency',
+                'settled_amount', 'invoice_status', 'fully_settled', 'user_name',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Payment received — {{invoice_reference}}',
+            'message': '{{settled_amount}} {{invoice_currency}} received for invoice {{invoice_reference}}.',
+            'available_variables': [
+                'invoice_reference', 'settled_amount', 'invoice_currency', 'fully_settled',
+            ],
+        },
+    },
+
     # Cancellation request workflow
     'order.cancellation_requested': {
         # Staff-only in-app broadcast: client has requested a cancellation.

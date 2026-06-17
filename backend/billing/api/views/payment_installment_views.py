@@ -180,3 +180,80 @@ class PaymentInstallmentCancelView(APIView):
 
         output = PaymentInstallmentReadSerializer(updated_installment)
         return Response(output.data, status=status.HTTP_200_OK)
+
+
+class InstallmentPreparePaymentView(APIView):
+    """
+    POST /billing/installments/<id>/prepare-payment/
+
+    Create a payment intent sized to this installment's remaining balance.
+    The client uses the returned payment_intent_reference to complete payment
+    via Stripe or wallet. When verified, the amount is automatically allocated
+    to this installment (and any subsequent ones if it covers them).
+
+    Body: { "provider": "stripe" | "wallet" }
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request: Request, installment_id: int) -> Response:
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from billing.services.invoice_orchestration_service import (
+            InvoiceOrchestrationService,
+        )
+
+        website = get_request_website(request)
+        provider = (request.data.get("provider") or "").strip()
+        if not provider:
+            return Response(
+                {"detail": "provider is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        installment = get_object_or_404(
+            PaymentInstallment.objects.select_related(
+                "invoice__client",
+                "invoice__website",
+            ),
+            pk=installment_id,
+            website=website,
+        )
+
+        # Clients may only pay their own invoices
+        invoice = installment.invoice
+        if (
+            hasattr(invoice, "client_id")
+            and invoice.client_id is not None
+            and invoice.client_id != request.user.pk
+            and not getattr(request.user, "is_staff", False)
+        ):
+            return Response(
+                {"detail": "You do not have permission to pay this installment."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            result = InvoiceOrchestrationService.create_payment_intent_for_installment(
+                installment=installment,
+                provider=provider,
+                triggered_by=request.user,
+            )
+        except DjangoValidationError as exc:
+            return Response(
+                {"detail": exc.message if hasattr(exc, "message") else str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        remaining = installment.amount - installment.amount_paid
+        return Response(
+            {
+                "payment_intent_reference": result.payment_intent.reference,
+                "provider_data": result.provider_data,
+                "installment_id": installment.pk,
+                "installment_sequence": installment.sequence_number,
+                "amount": str(remaining),
+                "currency": invoice.currency,
+                "invoice_reference": invoice.reference,
+            },
+            status=status.HTTP_200_OK,
+        )

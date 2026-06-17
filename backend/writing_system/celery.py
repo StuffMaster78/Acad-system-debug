@@ -380,6 +380,23 @@ app.conf.beat_schedule = { # type: ignore[attr-defined]
         'task': 'notifications_system.tasks.maintenance.cleanup_processed_outbox',
         'schedule': crontab(hour=3, minute=30),
     },
+    # ── Billing reminders ──────────────────────────────────────────────────────
+    # Schedule upcoming-installment reminders 2 days ahead — runs daily.
+    "billing-schedule-upcoming-installment-reminders": {
+        "task": "billing.tasks.schedule_upcoming_installment_reminders",
+        "schedule": crontab(hour=6, minute=0),
+    },
+    # Mark overdue installments and schedule due reminders — runs daily.
+    "billing-schedule-due-installment-reminders": {
+        "task": "billing.tasks.schedule_due_installment_reminders",
+        "schedule": crontab(hour=6, minute=15),
+    },
+    # Dispatch pending billing reminders that are now due — runs hourly.
+    "billing-dispatch-due-reminders": {
+        "task": "billing.tasks.dispatch_due_billing_reminders",
+        "schedule": crontab(minute=20),
+    },
+
     "weekly-writer-rewards": {
         "task": (
             "writer_compensation.tasks.reward_tasks."

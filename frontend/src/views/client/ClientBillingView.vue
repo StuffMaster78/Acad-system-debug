@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  CreditCard,
   FileText,
   Loader2,
   Receipt,
@@ -22,6 +23,42 @@ const expandedInvoice = ref<number | null>(null);
 const paymentRequests = ref<ClientPaymentRequest[]>([]);
 const prLoading = ref(false);
 const prError = ref("");
+
+// Installment payment
+const payingInstallmentId = ref<number | null>(null);
+const installmentPayError = ref<Record<number, string>>({});
+
+async function payInstallment(installmentId: number, invoiceId: number) {
+  payingInstallmentId.value = installmentId;
+  installmentPayError.value = { ...installmentPayError.value, [installmentId]: "" };
+  try {
+    const { data } = await billingApi.prepareInstallmentPayment(installmentId, "stripe");
+    if (data.provider_data && (data.provider_data as { checkout_url?: string }).checkout_url) {
+      window.location.href = (data.provider_data as { checkout_url: string }).checkout_url;
+    } else {
+      await fetchInvoices();
+    }
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    installmentPayError.value = { ...installmentPayError.value, [installmentId]: detail ?? "Payment failed. Please try again." };
+  } finally {
+    payingInstallmentId.value = null;
+  }
+}
+
+async function payInstallmentFromWallet(installmentId: number) {
+  payingInstallmentId.value = installmentId;
+  installmentPayError.value = { ...installmentPayError.value, [installmentId]: "" };
+  try {
+    await billingApi.prepareInstallmentPayment(installmentId, "wallet");
+    await fetchInvoices();
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    installmentPayError.value = { ...installmentPayError.value, [installmentId]: detail ?? "Payment failed. Please try again." };
+  } finally {
+    payingInstallmentId.value = null;
+  }
+}
 
 async function fetchInvoices() {
   invoicesLoading.value = true;
@@ -243,7 +280,8 @@ onMounted(refresh);
                       <span v-if="inst.paid_at"> · Paid {{ date(inst.paid_at) }}</span>
                     </p>
                   </div>
-                  <div class="text-right">
+                  <div class="flex items-center gap-3">
+                    <div class="text-right">
                     <p class="font-semibold text-ink">{{ money(inst.amount, inv.currency) }}</p>
                     <p
                       v-if="inst.is_paid"
@@ -257,6 +295,28 @@ onMounted(refresh);
                       v-else-if="inst.is_partially_paid"
                       class="mt-0.5 text-xs text-graphite"
                     >{{ money(inst.remaining_amount, inv.currency) }} left</p>
+                  </div>
+                    <!-- Pay buttons for pending installments -->
+                    <div v-if="!inst.is_paid && !inst.cancelled_at" class="flex flex-col gap-1.5 shrink-0">
+                      <button
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-signal px-3 py-1.5 text-xs font-semibold text-white hover:bg-signal/90 disabled:opacity-50 transition-colors"
+                        type="button"
+                        :disabled="payingInstallmentId === inst.id"
+                        @click="payInstallment(inst.id, inv.id)"
+                      >
+                        <CreditCard class="h-3 w-3" />
+                        {{ payingInstallmentId === inst.id ? "Processing…" : "Pay by card" }}
+                      </button>
+                      <button
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-graphite hover:text-ink disabled:opacity-50 transition-colors"
+                        type="button"
+                        :disabled="payingInstallmentId === inst.id"
+                        @click="payInstallmentFromWallet(inst.id)"
+                      >
+                        Wallet
+                      </button>
+                      <p v-if="installmentPayError[inst.id]" class="text-xs text-rose-600 max-w-[140px] text-right">{{ installmentPayError[inst.id] }}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -277,6 +337,25 @@ onMounted(refresh);
                   <p class="mt-0.5 text-xs text-amber-700">
                     Due {{ date(inv.next_installment.due_at) }} · Instalment {{ inv.next_installment.sequence_number }}
                   </p>
+                </div>
+                <div class="shrink-0 flex flex-col gap-1.5">
+                  <button
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                    type="button"
+                    :disabled="payingInstallmentId === inv.next_installment.id"
+                    @click="payInstallment(inv.next_installment.id, inv.id)"
+                  >
+                    <CreditCard class="h-3 w-3" />
+                    {{ payingInstallmentId === inv.next_installment.id ? "Processing…" : "Pay by card" }}
+                  </button>
+                  <button
+                    class="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+                    type="button"
+                    :disabled="payingInstallmentId === inv.next_installment.id"
+                    @click="payInstallmentFromWallet(inv.next_installment.id)"
+                  >
+                    Pay from wallet
+                  </button>
                 </div>
               </div>
             </div>

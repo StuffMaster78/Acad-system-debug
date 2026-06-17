@@ -62,6 +62,12 @@ class NotificationEvent(TextChoices):
     ORDER_ASSIGNMENT_ACCEPTED = "order.assignment_accepted", _("Assignment Accepted")
     ORDER_ASSIGNMENT_REJECTED = "order.assignment_rejected", _("Assignment Rejected")
 
+    # Billing — installment lifecycle events
+    BILLING_INSTALLMENT_DUE = "billing.installment.due", _("Installment Due")
+    BILLING_INSTALLMENT_UPCOMING = "billing.installment.upcoming", _("Installment Upcoming")
+    BILLING_INVOICE_SETTLED = "billing.invoice.settled", _("Invoice Settled")
+    BILLING_INVOICE_ISSUED = "billing.invoice.issued", _("Invoice Issued")
+
     # Preferred writer invitation workflow
     ORDER_PREFERRED_WRITER_PENDING_REMINDER = "order.preferred_writer.pending_reminder", _("Preferred Writer Pending Reminder")
     ORDER_PREFERRED_WRITER_FALLBACK_TO_POOL = "order.preferred_writer.fallback_to_pool", _("Preferred Writer Fallback to Pool")

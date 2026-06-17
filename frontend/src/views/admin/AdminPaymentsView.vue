@@ -25,6 +25,7 @@ import {
   type AdminPaymentRequest,
   type CreateInvoicePayload,
   type CreatePaymentRequestPayload,
+  type Installment,
 } from "@/api/billing";
 
 const payments = useAdminPaymentsStore();
@@ -157,6 +158,72 @@ async function issuePaymentRequest(pr: AdminPaymentRequest) {
     billingError.value = detail ?? "Issue failed.";
   } finally {
     billingMutating.value = false;
+  }
+}
+// ─── Installment schedule management ─────────────────────────────────────────
+const scheduleInvoiceId = ref<number | null>(null);
+const scheduleInstallments = ref<Installment[]>([]);
+const scheduleLoading = ref(false);
+const scheduleError = ref("");
+const scheduleSuccess = ref("");
+
+// Schedule builder form
+const scheduleForm = ref({ count: 2, first_due: "", interval_days: 30 });
+const scheduleSaving = ref(false);
+
+async function openSchedulePanel(inv: AdminInvoice) {
+  if (scheduleInvoiceId.value === inv.id) { scheduleInvoiceId.value = null; return; }
+  scheduleInvoiceId.value = inv.id;
+  scheduleError.value = "";
+  scheduleInstallments.value = [];
+  scheduleLoading.value = true;
+  // Pre-fill first_due from invoice due_at
+  scheduleForm.value.first_due = inv.due_at
+    ? new Date(new Date(inv.due_at).getTime() - (scheduleForm.value.count - 1) * scheduleForm.value.interval_days * 86400000)
+        .toISOString().slice(0, 10)
+    : "";
+  try {
+    const { data } = await billingApi.invoiceInstallments(inv.id);
+    scheduleInstallments.value = Array.isArray(data) ? data : [];
+  } catch {
+    scheduleError.value = "Could not load installments.";
+  } finally {
+    scheduleLoading.value = false;
+  }
+}
+
+function buildSchedule(inv: AdminInvoice): { sequence_number: number; amount: string; due_at: string }[] {
+  const count = Math.max(1, scheduleForm.value.count);
+  const totalCents = Math.round(Number(inv.amount) * 100);
+  const baseAmount = (Math.floor(totalCents / count) / 100).toFixed(2);
+  const remainder = ((totalCents - Math.floor(totalCents / count) * count) / 100).toFixed(2);
+  const firstDue = new Date(scheduleForm.value.first_due);
+  const items = [];
+  for (let i = 0; i < count; i++) {
+    const due = new Date(firstDue.getTime() + i * scheduleForm.value.interval_days * 86400000);
+    const amount = i === count - 1
+      ? (Number(baseAmount) + Number(remainder)).toFixed(2)
+      : baseAmount;
+    items.push({ sequence_number: i + 1, amount, due_at: due.toISOString() });
+  }
+  return items;
+}
+
+async function saveSchedule(inv: AdminInvoice) {
+  if (!scheduleForm.value.first_due) { scheduleError.value = "Set the first due date."; return; }
+  scheduleSaving.value = true;
+  scheduleError.value = "";
+  scheduleSuccess.value = "";
+  try {
+    const schedule = buildSchedule(inv);
+    const { data } = await billingApi.createInstallmentSchedule(inv.id, schedule);
+    scheduleInstallments.value = Array.isArray(data) ? data : [];
+    scheduleSuccess.value = `Schedule created: ${scheduleInstallments.value.length} installments.`;
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    scheduleError.value = detail ?? "Failed to create schedule.";
+  } finally {
+    scheduleSaving.value = false;
   }
 }
 // ─── End Billing ─────────────────────────────────────────────────────────────
@@ -618,27 +685,101 @@ onMounted(() => {
                 <th class="px-3 py-2" />
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="inv in invoices" :key="inv.id" class="hover:bg-slate-50">
-                <td class="px-3 py-2 font-mono text-xs text-graphite">{{ inv.reference }}</td>
-                <td class="px-3 py-2 font-medium text-ink">{{ inv.title }}</td>
-                <td class="px-3 py-2 text-graphite">{{ inv.recipient_email ?? "—" }}</td>
-                <td class="px-3 py-2 font-semibold text-ink">{{ formatAmount(inv.amount, inv.currency) }}</td>
-                <td class="px-3 py-2"><StatusPill :label="inv.status" :tone="statusTone(inv.status)" /></td>
-                <td class="px-3 py-2 text-graphite">{{ inv.due_at ? formatDate(inv.due_at) : "—" }}</td>
-                <td class="px-3 py-2">
-                  <button
-                    v-if="inv.status === 'draft'"
-                    class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
-                    type="button"
-                    :disabled="billingMutating"
-                    @click="issueInvoice(inv)"
-                  >
-                    <Send class="h-3.5 w-3.5" />
-                    Issue
-                  </button>
-                </td>
-              </tr>
+            <tbody>
+              <template v-for="inv in invoices" :key="inv.id">
+                <tr class="hover:bg-slate-50 border-t border-slate-100">
+                  <td class="px-3 py-2 font-mono text-xs text-graphite">{{ inv.reference }}</td>
+                  <td class="px-3 py-2 font-medium text-ink">{{ inv.title }}</td>
+                  <td class="px-3 py-2 text-graphite">{{ inv.recipient_email ?? "—" }}</td>
+                  <td class="px-3 py-2 font-semibold text-ink">{{ formatAmount(inv.amount, inv.currency) }}</td>
+                  <td class="px-3 py-2"><StatusPill :label="inv.status" :tone="statusTone(inv.status)" /></td>
+                  <td class="px-3 py-2 text-graphite">{{ inv.due_at ? formatDate(inv.due_at) : "—" }}</td>
+                  <td class="px-3 py-2">
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        v-if="inv.status === 'draft'"
+                        class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
+                        type="button"
+                        :disabled="billingMutating"
+                        @click="issueInvoice(inv)"
+                      >
+                        <Send class="h-3.5 w-3.5" />
+                        Issue
+                      </button>
+                      <button
+                        class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-semibold hover:bg-slate-50"
+                        :class="scheduleInvoiceId === inv.id ? 'bg-slate-100' : ''"
+                        type="button"
+                        @click="openSchedulePanel(inv)"
+                      >
+                        <CalendarClock class="h-3.5 w-3.5" />
+                        Installments
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <!-- Installment schedule panel -->
+                <tr v-if="scheduleInvoiceId === inv.id">
+                  <td colspan="7" class="p-0">
+                    <div class="border-t border-slate-100 bg-slate-50 px-5 py-4 space-y-4">
+                      <p class="text-sm font-semibold text-ink">Installment schedule — {{ inv.reference }}</p>
+                      <p v-if="scheduleError" class="text-xs text-rose-600">{{ scheduleError }}</p>
+                      <p v-if="scheduleSuccess" class="text-xs text-emerald-700">{{ scheduleSuccess }}</p>
+
+                      <!-- Existing installments -->
+                      <div v-if="scheduleLoading" class="text-xs text-graphite animate-pulse">Loading…</div>
+                      <div v-else-if="scheduleInstallments.length" class="space-y-1">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Current schedule</p>
+                        <div
+                          v-for="inst in scheduleInstallments"
+                          :key="inst.id"
+                          class="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-xs"
+                        >
+                          <span class="font-medium text-ink">#{{ inst.sequence_number }}</span>
+                          <span class="text-graphite">Due {{ inst.due_at ? new Date(inst.due_at).toLocaleDateString() : '—' }}</span>
+                          <span class="font-semibold text-ink">{{ formatAmount(inst.amount, inv.currency) }}</span>
+                          <span
+                            class="rounded-full px-2 py-0.5 font-semibold"
+                            :class="inst.paid_at ? 'bg-emerald-100 text-emerald-700' : inst.cancelled_at ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700'"
+                          >{{ inst.paid_at ? 'Paid' : inst.cancelled_at ? 'Cancelled' : 'Pending' }}</span>
+                        </div>
+                      </div>
+
+                      <!-- Create schedule form -->
+                      <div class="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-graphite">
+                          {{ scheduleInstallments.length ? 'Replace schedule' : 'Create schedule' }}
+                        </p>
+                        <div class="flex flex-wrap items-end gap-3">
+                          <label class="block">
+                            <span class="text-xs text-graphite">Installments</span>
+                            <input v-model.number="scheduleForm.count" type="number" min="2" max="24" class="focus-ring mt-1 h-9 w-20 rounded-md border border-slate-200 px-2 text-sm" />
+                          </label>
+                          <label class="block">
+                            <span class="text-xs text-graphite">First due date</span>
+                            <input v-model="scheduleForm.first_due" type="date" class="focus-ring mt-1 h-9 rounded-md border border-slate-200 px-2 text-sm" />
+                          </label>
+                          <label class="block">
+                            <span class="text-xs text-graphite">Interval (days)</span>
+                            <input v-model.number="scheduleForm.interval_days" type="number" min="1" class="focus-ring mt-1 h-9 w-20 rounded-md border border-slate-200 px-2 text-sm" />
+                          </label>
+                          <button
+                            type="button"
+                            class="focus-ring rounded-md bg-ink px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                            :disabled="scheduleSaving || !scheduleForm.first_due"
+                            @click="saveSchedule(inv)"
+                          >
+                            {{ scheduleSaving ? 'Saving…' : 'Save schedule' }}
+                          </button>
+                        </div>
+                        <p class="text-xs text-graphite">
+                          Each installment: ~{{ formatAmount(Number(inv.amount) / scheduleForm.count, inv.currency) }} over {{ scheduleForm.count }} payments every {{ scheduleForm.interval_days }} days.
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
