@@ -30,7 +30,6 @@ export default defineNuxtConfig({
         '/faq',
         '/about',
         '/contact',
-        '/order',
         '/apply',
         '/blog',
         '/services',
