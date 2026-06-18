@@ -158,15 +158,7 @@ const orderUrl = computed(() => {
   return `/order?${p.toString()}`
 })
 
-function shortLabel(label: string): string {
-  if (/high.school/i.test(label))                      return 'HS'
-  if (/1.?2|fresh|soph/i.test(label))                  return 'UG 1-2'
-  if (/3.?4|jun|sen/i.test(label))                     return 'UG 3-4'
-  if (/master|grad/i.test(label))                      return 'MA'
-  if (/phd|doc/i.test(label))                          return 'PhD'
-  if (/college|assoc/i.test(label))                    return 'Col'
-  return label.slice(0, 5)
-}
+
 </script>
 
 <template>
@@ -215,23 +207,14 @@ function shortLabel(label: string): string {
         </div>
       </div>
 
-      <!-- Academic level — compact segments, unique to GradeCrest -->
+      <!-- Academic level — dropdown -->
       <div>
-        <label class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-white/40">Academic level</label>
-        <div class="flex flex-wrap gap-1">
-          <button
-            v-for="lvl in levels"
-            :key="lvl.code"
-            type="button"
-            class="rounded px-2.5 py-1.5 text-[10px] font-bold transition-all"
-            :class="levelCode === lvl.code
-              ? 'bg-forest-800 text-gold-300 ring-1 ring-gold-500/40'
-              : 'text-white/40 hover:bg-white/5 hover:text-white/70'"
-            @click="levelCode = lvl.code"
-          >
-            {{ shortLabel(lvl.label) }}
-          </button>
-        </div>
+        <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/40">Academic level</label>
+        <select v-model="levelCode" class="sel">
+          <option v-for="lvl in levels" :key="lvl.code" :value="lvl.code">
+            {{ lvl.label }}{{ lvl.price_per_page ? ` — from $${lvl.price_per_page}/pg` : '' }}
+          </option>
+        </select>
       </div>
 
       <!-- Deadline + Pages + Spacing -->
