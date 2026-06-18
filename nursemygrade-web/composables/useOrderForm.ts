@@ -240,7 +240,7 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
     if (display?.length) {
       return display.map((d, i) => {
         const pricingMatch = pricing?.find(p => p.label.toLowerCase() === d.name.toLowerCase()) ?? pricing?.[i]
-        return { id: d.name, label: d.name, basePrice: pricingMatch?.price_per_page ?? STATIC_LEVELS[i]?.basePrice ?? 24, note: d.description ?? '' }
+        return { id: pricingMatch?.code ?? d.name, label: d.name, basePrice: pricingMatch?.price_per_page ?? STATIC_LEVELS[i]?.basePrice ?? 24, note: d.description ?? '' }
       })
     }
     if (pricing?.length) {
@@ -251,8 +251,15 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
 
   const paperTypes = computed<PaperTypeOption[]>(() => {
     const display = cfg?.value?.paper_types_display
+    const pricing = cfg?.value?.paper_types
     if (display?.length) {
-      return display.map((d, i) => ({ id: d.name, label: d.name, icon: STATIC_PAPER_TYPES[i]?.icon ?? 'FileText' }))
+      return display.map((d, i) => {
+        const pricingMatch = pricing?.find(p => p.label.toLowerCase() === d.name.toLowerCase()) ?? pricing?.[i]
+        return { id: pricingMatch?.code ?? d.name, label: d.name, icon: STATIC_PAPER_TYPES[i]?.icon ?? 'FileText' }
+      })
+    }
+    if (pricing?.length) {
+      return pricing.map((p, i) => ({ id: p.code, label: p.label, icon: STATIC_PAPER_TYPES[i]?.icon ?? 'FileText' }))
     }
     return STATIC_PAPER_TYPES
   })
@@ -466,7 +473,9 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
       diagramType: form.diagramType.label, diagramSoftware: form.diagramSoftware.label,
       diagramCount: form.diagramCount, topic: form.topic, instructions: form.instructions,
       workType: form.workType.label, formatStyle: form.formatStyle.label,
+      englishType: form.englishType.label,
       references: form.references, discountCode: form.discountCode,
+      selectedAddonIds: form.selectedAddonIds,
       estimatedPrice: totalPrice.value, savedAt: new Date().toISOString(),
     }))
   }

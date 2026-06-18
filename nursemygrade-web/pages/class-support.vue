@@ -1,11 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-import {
-  School, Calendar, BookOpen, GraduationCap,
-  ChevronRight, ArrowLeft, Loader2, Check, Star, Shield,
-} from '@lucide/vue'
-
 const auth = useRpmAuthStore()
 
 const COMPLEXITY = [
@@ -94,7 +89,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/class-suppo
   <div v-if="submitted" class="grid min-h-[calc(100vh-4rem)] place-items-center px-4 py-16">
     <div class="w-full max-w-lg text-center">
       <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
-        <Check class="h-10 w-10 text-emerald-600" />
+        <Icon name="check" class="h-10 w-10 text-emerald-600" />
       </div>
       <h1 class="font-serif text-3xl font-bold text-slate-900">Class support request received!</h1>
       <p class="mt-4 text-slate-600 leading-relaxed">
@@ -111,16 +106,16 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/class-suppo
     <div class="bg-gradient-to-br from-brand-900 to-brand-700 py-12 text-center">
       <div class="section py-0">
         <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
-          <School class="h-7 w-7 text-white" />
+          <Icon name="school" class="h-7 w-7 text-white" />
         </div>
         <h1 class="font-serif text-3xl font-bold text-white sm:text-4xl">Online Nursing Class Help</h1>
         <p class="mx-auto mt-3 max-w-xl text-brand-100">
           One dedicated nursing expert handles your entire course — every assignment, discussion, quiz, and exam — so you can focus on clinical hours.
         </p>
         <div class="mt-5 flex flex-wrap justify-center gap-6 text-sm text-brand-200">
-          <span class="flex items-center gap-1.5"><Star class="h-4 w-4" /> Dedicated writer, whole semester</span>
-          <span class="flex items-center gap-1.5"><Shield class="h-4 w-4" /> Fully confidential</span>
-          <span class="flex items-center gap-1.5"><Calendar class="h-4 w-4" /> Instalment-friendly payments</span>
+          <span class="flex items-center gap-1.5"><Icon name="star" class="h-4 w-4" /> Dedicated writer, whole semester</span>
+          <span class="flex items-center gap-1.5"><Icon name="shield" class="h-4 w-4" /> Fully confidential</span>
+          <span class="flex items-center gap-1.5"><Icon name="calendar" class="h-4 w-4" /> Instalment-friendly payments</span>
         </div>
       </div>
     </div>
@@ -132,7 +127,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/class-suppo
         <div v-for="(s, i) in [{ n: 1, label: 'Class details' }, { n: 2, label: 'Your account' }]" :key="s.n" class="flex items-center gap-2">
           <div class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"
             :class="step === s.n ? 'bg-green-700 text-white' : step > s.n ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'">
-            <Check v-if="step > s.n" class="h-3.5 w-3.5" />
+            <Icon v-if="step > s.n" name="check" class="h-3.5 w-3.5" />
             <span v-else>{{ s.n }}</span>
           </div>
           <span class="text-sm" :class="step === s.n ? 'font-semibold text-slate-900' : 'text-slate-400'">{{ s.label }}</span>
@@ -172,11 +167,11 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/class-suppo
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="form-label"><Calendar class="inline h-3.5 w-3.5 mr-1" />Start date</label>
+            <label class="form-label"><Icon name="calendar" class="inline h-3.5 w-3.5 mr-1" />Start date</label>
             <input v-model="form.starts" type="date" class="form-input mt-1.5" />
           </div>
           <div>
-            <label class="form-label"><Calendar class="inline h-3.5 w-3.5 mr-1" />End date</label>
+            <label class="form-label"><Icon name="calendar" class="inline h-3.5 w-3.5 mr-1" />End date</label>
             <input v-model="form.ends" type="date" class="form-input mt-1.5" />
           </div>
         </div>
@@ -239,7 +234,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/class-suppo
             class="inline-flex items-center gap-2 rounded-xl bg-green-700 px-8 py-3 font-semibold text-white shadow hover:bg-green-800 disabled:opacity-50 transition-colors"
             :disabled="!step1Valid" @click="step = 2"
           >
-            Continue <ChevronRight class="h-4 w-4" />
+            Continue <Icon name="chevron-right" class="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -263,12 +258,12 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/class-suppo
         </div>
 
         <div class="flex justify-between">
-          <button type="button" class="btn-outline flex items-center gap-2 px-6 py-2.5" @click="step = 1"><ArrowLeft class="h-4 w-4" /> Back</button>
+          <button type="button" class="btn-outline flex items-center gap-2 px-6 py-2.5" @click="step = 1"><Icon name="arrow-left" class="h-4 w-4" /> Back</button>
           <button type="button"
             class="inline-flex items-center gap-2 rounded-xl bg-green-700 px-8 py-3 font-semibold text-white shadow hover:bg-green-800 disabled:opacity-50 transition-colors"
             :disabled="!step2Valid || submitting" @click="submit"
           >
-            <Loader2 v-if="submitting" class="h-4 w-4 animate-spin" />
+            <Icon v-if="submitting" name="loader-2" class="h-4 w-4 animate-spin" />
             {{ submitting ? 'Submitting…' : 'Submit request & create account' }}
           </button>
         </div>

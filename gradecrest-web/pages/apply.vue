@@ -8,6 +8,14 @@ import { markRaw } from 'vue'
 
 const app = useAppUrl()
 
+function selectResume(event: Event) {
+  resumeFile.value = (event.target as HTMLInputElement).files?.[0] ?? null
+}
+
+function selectSample(event: Event) {
+  sampleFile.value = (event.target as HTMLInputElement).files?.[0] ?? null
+}
+
 useSeoMeta({
   title: 'Become a GradeCrest Writer — Apply Today | Academic Writing Jobs',
   description: 'Join GradeCrest as a freelance academic writer. Competitive per-page rates, flexible hours, 100+ subjects. Apply with your postgraduate degree and writing sample.',
@@ -336,8 +344,8 @@ function scrollToForm() { formSection.value?.scrollIntoView({ behavior: 'smooth'
             </label>
 
             <!-- File uploads -->
-            <input ref="resumeInput" type="file" accept=".pdf,.doc,.docx" class="hidden" @change="e => resumeFile = (e.target as HTMLInputElement).files?.[0] ?? null" />
-            <input ref="sampleInput" type="file" accept=".pdf,.doc,.docx" class="hidden" @change="e => sampleFile = (e.target as HTMLInputElement).files?.[0] ?? null" />
+            <input ref="resumeInput" type="file" accept=".pdf,.doc,.docx" class="hidden" @change="selectResume" />
+            <input ref="sampleInput" type="file" accept=".pdf,.doc,.docx" class="hidden" @change="selectSample" />
 
             <div class="grid sm:grid-cols-2 gap-4">
               <div class="space-y-1.5">

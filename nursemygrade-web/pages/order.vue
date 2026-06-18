@@ -2,15 +2,8 @@
 definePageMeta({ ssr: false })
 
 import {
-  ClipboardList, Stethoscope, PenLine, Microscope, GraduationCap,
-  Search, Network, Briefcase, BookOpen, MessageSquare, FileText,
-  ChevronRight, ArrowLeft, ArrowRight, Loader2, Check, Clock,
-  Trophy, ShieldCheck, RefreshCw, Lock, Bot, Plus, Minus,
-  LayoutTemplate, GitBranch, Edit,
-} from '@lucide/vue'
-
-import {
   ORDER_TYPES, WRITER_TIERS, DESIGN_TYPES, DIAGRAM_TYPES, DIAGRAM_SOFTWARE,
+  STATIC_LEVELS, STATIC_PAPER_TYPES,
 } from '~/composables/useOrderForm'
 import type { PublicPricingConfig } from '~/composables/usePricingConfig'
 import { fetchPricingConfig } from '~/composables/usePricingConfig'
@@ -34,6 +27,10 @@ const serverError   = ref<string | null>(null)
 const showDiscount  = ref(false)
 const subjectSearch = ref('')
 
+function normalized(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
 onMounted(async () => {
   cfg.value = await fetchPricingConfig()
   const q = route.query
@@ -52,7 +49,26 @@ onMounted(async () => {
   }
 
   if (q.level) {
-    const lvl = levels.value.find(l => l.id === String(q.level))
+    const requested = String(q.level)
+    const staticLevel = STATIC_LEVELS.find(l => l.id === requested)
+    const aliases: Record<string, string[]> = {
+      adn_lpn: ['associate', 'certificate', 'diploma'],
+      bsn_1_2: ['bsn', 'bachelor', 'undergraduate'],
+      bsn_3_4: ['bsn', 'bachelor', 'undergraduate'],
+      msn: ['msn', 'master', 'graduate'],
+      dnp_phd: ['dnp', 'phd', 'doctor'],
+    }
+    const terms = [staticLevel?.label, ...(aliases[requested] ?? [])].filter(Boolean).map(v => normalized(String(v)))
+    const directMatch = levels.value.find(l =>
+      l.id === requested || normalized(l.label) === normalized(requested),
+    )
+    const aliasMatch = terms
+      .map(term => levels.value.find((l) => {
+        const label = normalized(l.label)
+        return label === term || label.split(' ').includes(term)
+      }))
+      .find(Boolean)
+    const lvl = directMatch ?? aliasMatch
     if (lvl) form.level = lvl
   }
   if (q.deadline) {
@@ -64,7 +80,14 @@ onMounted(async () => {
     if (pg >= 1 && pg <= 100) form.pages = pg
   }
   if (q.paper) {
-    const pt = paperTypes.value.find(p => p.id === String(q.paper))
+    const requested = String(q.paper)
+    const staticPaper = STATIC_PAPER_TYPES.find(p => p.id === requested)
+    const term = normalized(staticPaper?.label ?? requested)
+    const pt = paperTypes.value.find(p =>
+      p.id === requested
+      || normalized(p.label) === normalized(requested)
+      || normalized(p.label).includes(term),
+    )
     if (pt) form.paperType = pt
   }
   if (q.subject) {
@@ -103,8 +126,9 @@ const steps = computed(() => [
 function selectType(ot: typeof ORDER_TYPES[0]) {
   if (ot.external) { router.push(ot.external); return }
   form.orderType = ot
-  if (ot.presetWorkType) {
-    const match = workTypes.value.find(w => w.id === ot.presetWorkType || w.label.toLowerCase().startsWith(ot.presetWorkType.toLowerCase()))
+  const presetWorkType = ot.presetWorkType
+  if (presetWorkType) {
+    const match = workTypes.value.find(w => w.id === presetWorkType || w.label.toLowerCase().startsWith(presetWorkType.toLowerCase()))
     if (match) { form.workType = match; form.workTypePreset = true }
   } else {
     form.workTypePreset = false
@@ -142,7 +166,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
   <div v-if="submitted" class="grid min-h-[calc(100vh-4rem)] place-items-center px-4 py-16">
     <div class="w-full max-w-lg text-center">
       <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-brand-100">
-        <Check class="h-10 w-10 text-brand-600" />
+        <Icon name="check" class="h-10 w-10 text-brand-600" />
       </div>
       <h1 class="font-serif text-3xl font-bold text-slate-900">Check your inbox</h1>
       <p class="mt-4 text-slate-600 leading-relaxed">
@@ -167,6 +191,12 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             <div class="flex justify-between"><dt class="text-slate-500">Diagrams</dt><dd class="font-medium">{{ unitCount }}</dd></div>
           </template>
           <div class="flex justify-between"><dt class="text-slate-500">Deadline</dt><dd class="font-medium">{{ form.deadline.label }} — {{ deadlineDate }}</dd></div>
+          <template v-if="form.selectedAddonIds.length">
+            <div v-for="a in addons.filter(a => form.selectedAddonIds.includes(a.id))" :key="a.id" class="flex justify-between">
+              <dt class="text-slate-500">{{ a.name }}</dt>
+              <dd class="font-medium text-brand-700">+${{ a.flat_amount }}</dd>
+            </div>
+          </template>
           <div class="flex justify-between border-t border-brand-200 pt-2">
             <dt class="font-semibold text-brand-800">Estimated total</dt>
             <dd class="text-lg font-bold text-brand-700">${{ totalPrice }}</dd>
@@ -185,7 +215,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <button type="button" class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-brand-600 transition-colors" @click="goBack">
-              <ArrowLeft class="h-4 w-4" />
+              <Icon name="arrow-left" class="h-4 w-4" />
               <span class="hidden sm:inline">{{ step === 1 ? 'Order types' : 'Back' }}</span>
             </button>
             <div class="h-4 w-px bg-slate-200" />
@@ -197,7 +227,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
                 <div class="flex items-center gap-1.5">
                   <div class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors"
                     :class="step === s.n ? 'bg-brand-700 text-white' : step > s.n ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-400'">
-                    <Check v-if="step > s.n" class="h-3 w-3" />
+                    <Icon v-if="step > s.n" name="check" class="h-3 w-3" />
                     <span v-else>{{ s.n }}</span>
                   </div>
                   <span class="text-xs" :class="step === s.n ? 'font-semibold text-slate-900' : 'text-slate-400'">{{ s.label }}</span>
@@ -236,17 +266,17 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             @click="selectType(ot)"
           >
             <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" :class="ot.iconBg">
-              <Edit       v-if="ot.id === 'editing'"      class="h-5 w-5" :class="ot.color.split(' ')[0]" />
-              <Search     v-else-if="ot.id === 'proofreading'" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
-              <RefreshCw  v-else-if="ot.id === 'rewriting'"   class="h-5 w-5" :class="ot.color.split(' ')[0]" />
-              <Stethoscope v-else class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Icon v-if="ot.id === 'editing'" name="edit" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Icon v-else-if="ot.id === 'proofreading'" name="search" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Icon v-else-if="ot.id === 'rewriting'" name="refresh-cw" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Icon v-else name="stethoscope" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
             </div>
             <h2 class="font-bold text-slate-900">{{ ot.label }}</h2>
             <p class="mt-0.5 text-xs font-medium" :class="ot.color.split(' ')[0]">{{ ot.tagline }}</p>
             <p class="mt-2 flex-1 text-xs leading-relaxed text-slate-500 line-clamp-2">{{ ot.desc }}</p>
             <div class="mt-3 flex items-center justify-between">
               <span class="text-xs font-semibold text-brand-600">from ${{ ot.priceFrom }}/{{ ot.priceUnit }}</span>
-              <ChevronRight class="h-4 w-4 text-slate-300 transition-all group-hover:text-brand-600 group-hover:translate-x-0.5" />
+              <Icon name="chevron-right" class="h-4 w-4 text-slate-300 transition-all group-hover:text-brand-600 group-hover:translate-x-0.5" />
             </div>
           </button>
         </div>
@@ -265,10 +295,10 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             @click="selectType(ot)"
           >
             <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" :class="ot.iconBg">
-              <LayoutTemplate v-if="ot.id === 'design'"      class="h-5 w-5" :class="ot.color.split(' ')[0]" />
-              <GitBranch      v-else-if="ot.id === 'diagram'" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
-              <BookOpen       v-else-if="ot.id === 'class'"   class="h-5 w-5" :class="ot.color.split(' ')[0]" />
-              <Microscope     v-else                          class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Icon v-if="ot.id === 'design'" name="layout" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Icon v-else-if="ot.id === 'diagram'" name="git-branch" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Icon v-else-if="ot.id === 'class'" name="book-open" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
+              <Icon v-else name="microscope" class="h-5 w-5" :class="ot.color.split(' ')[0]" />
             </div>
             <h2 class="font-bold text-slate-900">{{ ot.label }}</h2>
             <p class="mt-0.5 text-xs font-medium" :class="ot.color.split(' ')[0]">{{ ot.tagline }}</p>
@@ -277,16 +307,16 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
               <span class="text-xs font-semibold" :class="ot.external ? 'text-slate-400' : 'text-brand-600'">
                 {{ ot.external ? 'Get a quote' : `from $${ot.priceFrom}/${ot.priceUnit}` }}
               </span>
-              <ChevronRight class="h-4 w-4 text-slate-300 transition-all group-hover:text-brand-600 group-hover:translate-x-0.5" />
+              <Icon name="chevron-right" class="h-4 w-4 text-slate-300 transition-all group-hover:text-brand-600 group-hover:translate-x-0.5" />
             </div>
           </button>
         </div>
 
         <div class="mt-10 flex flex-wrap justify-center gap-6 text-sm text-slate-500">
-          <span class="flex items-center gap-1.5"><Stethoscope class="h-4 w-4 text-brand-500" /> BSN, MSN & DNP writers</span>
-          <span class="flex items-center gap-1.5"><ShieldCheck class="h-4 w-4 text-green-500" /> Free Turnitin report</span>
-          <span class="flex items-center gap-1.5"><RefreshCw class="h-4 w-4 text-amber-500" /> Unlimited revisions</span>
-          <span class="flex items-center gap-1.5"><Lock class="h-4 w-4 text-slate-400" /> Secure & confidential</span>
+          <span class="flex items-center gap-1.5"><Icon name="stethoscope" class="h-4 w-4 text-brand-500" /> BSN, MSN & DNP writers</span>
+          <span class="flex items-center gap-1.5"><Icon name="shield-check" class="h-4 w-4 text-green-500" /> Free Turnitin report</span>
+          <span class="flex items-center gap-1.5"><Icon name="refresh-cw" class="h-4 w-4 text-amber-500" /> Unlimited revisions</span>
+          <span class="flex items-center gap-1.5"><Icon name="lock" class="h-4 w-4 text-slate-400" /> Secure & confidential</span>
         </div>
       </div>
 
@@ -315,23 +345,19 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
 
               <div>
                 <label class="form-label">Program level</label>
-                <div class="mt-2 flex flex-wrap gap-2">
-                  <button v-for="l in levels" :key="l.id" type="button"
-                    class="rounded-lg border px-3 py-2 text-sm transition-all"
-                    :class="form.level.id === l.id ? 'border-brand-600 bg-brand-600 text-white font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'"
-                    @click="form.level = l"
-                  >{{ l.label }}</button>
-                </div>
-                <p class="mt-1.5 text-xs text-slate-400">{{ form.level.note }}</p>
+                <select v-model="form.level" class="form-input mt-2">
+                  <option v-for="l in levels" :key="l.id" :value="l">{{ l.label }}</option>
+                </select>
+                <p v-if="form.level.note" class="mt-1.5 text-xs text-slate-400">{{ form.level.note }}</p>
               </div>
 
               <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label class="form-label">Number of pages</label>
                   <div class="mt-2 flex items-center gap-4">
-                    <button type="button" class="stepper-btn" :disabled="form.pages <= 1" @click="form.pages = Math.max(1, form.pages - 1)"><Minus class="h-4 w-4" /></button>
+                    <button type="button" class="stepper-btn" :disabled="form.pages <= 1" @click="form.pages = Math.max(1, form.pages - 1)"><Icon name="minus" class="h-4 w-4" /></button>
                     <span class="w-8 text-center text-lg font-bold text-slate-900">{{ form.pages }}</span>
-                    <button type="button" class="stepper-btn" @click="form.pages++"><Plus class="h-4 w-4" /></button>
+                    <button type="button" class="stepper-btn" @click="form.pages++"><Icon name="plus" class="h-4 w-4" /></button>
                     <span class="text-sm text-slate-500">≈ {{ wordCount.toLocaleString() }} words</span>
                   </div>
                 </div>
@@ -352,7 +378,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
                 <label class="form-label">Nursing subject / speciality</label>
                 <div class="relative mt-2">
                   <input v-model="subjectSearch" type="text" class="form-input" style="padding-left:2.25rem" placeholder="Search a nursing subject…" />
-                  <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Icon name="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
                 <div class="mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white">
                   <template v-for="(subjects, category) in subjectGroups" :key="category">
@@ -363,7 +389,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
                       @click="form.subject = s; subjectSearch = ''"
                     >
                       {{ s.label }}
-                      <Check v-if="form.subject.id === s.id" class="h-4 w-4 text-brand-600" />
+                      <Icon v-if="form.subject.id === s.id" name="check" class="h-4 w-4 text-brand-600" />
                     </button>
                   </template>
                 </div>
@@ -390,21 +416,17 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
               <div>
                 <label class="form-label">{{ form.designType.unit === 'slides' ? 'Number of slides' : form.designType.unit === 'pages' ? 'Number of pages' : 'Number of designs' }}</label>
                 <div class="mt-2 flex items-center gap-4">
-                  <button type="button" class="stepper-btn" :disabled="form.designUnits <= 1" @click="form.designUnits = Math.max(1, form.designUnits - 1)"><Minus class="h-4 w-4" /></button>
+                  <button type="button" class="stepper-btn" :disabled="form.designUnits <= 1" @click="form.designUnits = Math.max(1, form.designUnits - 1)"><Icon name="minus" class="h-4 w-4" /></button>
                   <span class="w-10 text-center text-xl font-bold text-slate-900">{{ form.designUnits }}</span>
-                  <button type="button" class="stepper-btn" @click="form.designUnits++"><Plus class="h-4 w-4" /></button>
+                  <button type="button" class="stepper-btn" @click="form.designUnits++"><Icon name="plus" class="h-4 w-4" /></button>
                 </div>
               </div>
 
               <div>
                 <label class="form-label">Program level <span class="ml-1 font-normal text-slate-400">(optional — helps match the right writer)</span></label>
-                <div class="mt-2 flex flex-wrap gap-2">
-                  <button v-for="l in levels" :key="l.id" type="button"
-                    class="rounded-lg border px-3 py-2 text-sm transition-all"
-                    :class="form.level.id === l.id ? 'border-violet-600 bg-violet-600 text-white font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-violet-300'"
-                    @click="form.level = l"
-                  >{{ l.label }}</button>
-                </div>
+                <select v-model="form.level" class="form-input mt-2">
+                  <option v-for="l in levels" :key="l.id" :value="l">{{ l.label }}</option>
+                </select>
               </div>
             </template>
 
@@ -428,9 +450,9 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
                 <div>
                   <label class="form-label">Number of diagrams</label>
                   <div class="mt-2 flex items-center gap-4">
-                    <button type="button" class="stepper-btn" :disabled="form.diagramCount <= 1" @click="form.diagramCount = Math.max(1, form.diagramCount - 1)"><Minus class="h-4 w-4" /></button>
+                    <button type="button" class="stepper-btn" :disabled="form.diagramCount <= 1" @click="form.diagramCount = Math.max(1, form.diagramCount - 1)"><Icon name="minus" class="h-4 w-4" /></button>
                     <span class="w-10 text-center text-xl font-bold text-slate-900">{{ form.diagramCount }}</span>
-                    <button type="button" class="stepper-btn" @click="form.diagramCount++"><Plus class="h-4 w-4" /></button>
+                    <button type="button" class="stepper-btn" @click="form.diagramCount++"><Icon name="plus" class="h-4 w-4" /></button>
                   </div>
                 </div>
                 <div>
@@ -443,13 +465,9 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
 
               <div>
                 <label class="form-label">Program level <span class="ml-1 font-normal text-slate-400">(optional)</span></label>
-                <div class="mt-2 flex flex-wrap gap-2">
-                  <button v-for="l in levels" :key="l.id" type="button"
-                    class="rounded-lg border px-3 py-2 text-sm transition-all"
-                    :class="form.level.id === l.id ? 'border-teal-600 bg-teal-600 text-white font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300'"
-                    @click="form.level = l"
-                  >{{ l.label }}</button>
-                </div>
+                <select v-model="form.level" class="form-input mt-2">
+                  <option v-for="l in levels" :key="l.id" :value="l">{{ l.label }}</option>
+                </select>
               </div>
             </template>
 
@@ -468,7 +486,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
                 </button>
               </div>
               <p class="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-                <Clock class="h-3.5 w-3.5" />
+                <Icon name="clock" class="h-3.5 w-3.5" />
                 Delivery by <strong>{{ deadlineDate }}</strong>
               </p>
             </div>
@@ -490,7 +508,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
 
             <div class="flex justify-end pt-2">
               <button type="button" class="btn-primary flex items-center gap-2 px-8 py-3 disabled:opacity-50" :disabled="!step1Valid" @click="goNext">
-                Continue <ArrowRight class="h-4 w-4" />
+                Continue <Icon name="arrow-right" class="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -515,42 +533,33 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
               <p class="mt-1 text-xs text-slate-400">{{ form.instructions.length }} characters · The more detail, the better the clinical accuracy</p>
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-3">
               <div>
                 <label class="form-label">Type of work</label>
-                <div class="mt-2 grid grid-cols-2 gap-2">
-                  <button v-for="wt in workTypes" :key="wt.id" type="button"
-                    class="rounded-xl border px-3 py-2.5 text-left transition-colors"
-                    :class="form.workType.id === wt.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white hover:border-brand-300'"
-                    @click="form.workType = wt"
-                  >
-                    <p class="text-sm font-semibold">{{ wt.label }}</p>
-                    <p class="text-xs" :class="form.workType.id === wt.id ? 'text-brand-200' : 'text-slate-400'">{{ wt.desc }}</p>
-                  </button>
-                </div>
+                <select v-model="form.workType" class="form-input mt-2">
+                  <option v-for="wt in workTypes" :key="wt.id" :value="wt">{{ wt.label }}</option>
+                </select>
               </div>
               <div>
                 <label class="form-label">Citation style</label>
                 <select v-model="form.formatStyle" class="form-input mt-2">
                   <option v-for="f in formattingStyles" :key="f.id" :value="f">{{ f.label }}</option>
                 </select>
-                <label class="form-label mt-4">English variant</label>
-                <div class="mt-2 flex gap-2">
-                  <button v-for="et in englishTypes" :key="et.id" type="button"
-                    class="flex-1 rounded-lg border py-2 text-sm font-medium transition-colors"
-                    :class="form.englishType.id === et.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'"
-                    @click="form.englishType = et"
-                  >{{ et.label }}</button>
-                </div>
+              </div>
+              <div>
+                <label class="form-label">English variant</label>
+                <select v-model="form.englishType" class="form-input mt-2">
+                  <option v-for="et in englishTypes" :key="et.id" :value="et">{{ et.label }}</option>
+                </select>
               </div>
             </div>
 
             <div>
               <label class="form-label">Number of references needed</label>
               <div class="mt-2 flex items-center gap-4">
-                <button type="button" class="stepper-btn" :disabled="form.references <= 0" @click="form.references = Math.max(0, form.references - 1)"><Minus class="h-4 w-4" /></button>
+                <button type="button" class="stepper-btn" :disabled="form.references <= 0" @click="form.references = Math.max(0, form.references - 1)"><Icon name="minus" class="h-4 w-4" /></button>
                 <span class="w-10 text-center font-bold text-slate-900">{{ form.references || 'Any' }}</span>
-                <button type="button" class="stepper-btn" @click="form.references++"><Plus class="h-4 w-4" /></button>
+                <button type="button" class="stepper-btn" @click="form.references++"><Icon name="plus" class="h-4 w-4" /></button>
               </div>
               <p class="mt-1 text-xs text-slate-400">Set to 0 for "as many as needed"</p>
             </div>
@@ -597,9 +606,9 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             </div>
 
             <div class="flex justify-between pt-2">
-              <button type="button" class="btn-outline flex items-center gap-2 px-6 py-2.5" @click="goBack"><ArrowLeft class="h-4 w-4" /> Back</button>
+              <button type="button" class="btn-outline flex items-center gap-2 px-6 py-2.5" @click="goBack"><Icon name="arrow-left" class="h-4 w-4" /> Back</button>
               <button type="button" class="btn-primary flex items-center gap-2 px-8 py-3 disabled:opacity-50" :disabled="!step2Valid" @click="goNext">
-                Continue <ArrowRight class="h-4 w-4" />
+                Continue <Icon name="arrow-right" class="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -654,9 +663,9 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             </div>
 
             <div class="flex justify-between pt-2">
-              <button type="button" class="btn-outline flex items-center gap-2 px-6 py-2.5" @click="goBack"><ArrowLeft class="h-4 w-4" /> Back</button>
+              <button type="button" class="btn-outline flex items-center gap-2 px-6 py-2.5" @click="goBack"><Icon name="arrow-left" class="h-4 w-4" /> Back</button>
               <button type="button" class="btn-primary flex items-center gap-2 px-8 py-3.5 text-base disabled:opacity-50" :disabled="!step3Valid || submitting" @click="submitOrder">
-                <Loader2 v-if="submitting" class="h-4 w-4 animate-spin" />
+                <Icon v-if="submitting" name="loader-2" class="h-4 w-4 animate-spin" />
                 {{ submitting ? 'Creating account…' : 'Place order & create account' }}
               </button>
             </div>
@@ -701,12 +710,12 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             <div class="rounded-2xl border border-slate-100 bg-white p-5">
               <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Every order includes</h3>
               <ul class="space-y-2.5 text-sm">
-                <li class="flex items-center gap-2.5 text-slate-600"><Trophy class="h-4 w-4 shrink-0 text-amber-500" /> Grade or money back</li>
-                <li class="flex items-center gap-2.5 text-slate-600"><Stethoscope class="h-4 w-4 shrink-0 text-brand-500" /> Written by BSN/MSN/DNP nurse</li>
-                <li class="flex items-center gap-2.5 text-slate-600"><ShieldCheck class="h-4 w-4 shrink-0 text-green-500" /> Free Turnitin report</li>
-                <li class="flex items-center gap-2.5 text-slate-600"><Bot class="h-4 w-4 shrink-0 text-blue-500" /> Zero AI content</li>
-                <li class="flex items-center gap-2.5 text-slate-600"><RefreshCw class="h-4 w-4 shrink-0 text-purple-500" /> Unlimited revisions</li>
-                <li class="flex items-center gap-2.5 text-slate-600"><Lock class="h-4 w-4 shrink-0 text-slate-400" /> Secure payment &amp; escrow</li>
+                <li class="flex items-center gap-2.5 text-slate-600"><Icon name="trophy" class="h-4 w-4 shrink-0 text-amber-500" /> Grade or money back</li>
+                <li class="flex items-center gap-2.5 text-slate-600"><Icon name="stethoscope" class="h-4 w-4 shrink-0 text-brand-500" /> Written by BSN/MSN/DNP nurse</li>
+                <li class="flex items-center gap-2.5 text-slate-600"><Icon name="shield-check" class="h-4 w-4 shrink-0 text-green-500" /> Free Turnitin report</li>
+                <li class="flex items-center gap-2.5 text-slate-600"><Icon name="bot" class="h-4 w-4 shrink-0 text-blue-500" /> Zero AI content</li>
+                <li class="flex items-center gap-2.5 text-slate-600"><Icon name="refresh-cw" class="h-4 w-4 shrink-0 text-purple-500" /> Unlimited revisions</li>
+                <li class="flex items-center gap-2.5 text-slate-600"><Icon name="lock" class="h-4 w-4 shrink-0 text-slate-400" /> Secure payment &amp; escrow</li>
               </ul>
             </div>
           </div>

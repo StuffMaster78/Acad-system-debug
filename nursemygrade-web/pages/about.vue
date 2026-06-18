@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Bot, CheckCircle2, Lock, MessageSquare, Stethoscope, Users } from '@lucide/vue'
-
 const app = useAppUrl()
 
 const heroStats = [
@@ -35,28 +33,28 @@ const vettingSteps = [
 
 const values = [
   {
-    icon: Stethoscope,
+    icon: 'stethoscope',
     bg: 'bg-brand-100',
     fg: 'text-brand-600',
     title: 'Real nurses, real expertise',
     desc: 'Every writer holds an active nursing qualification. BSN is the floor — MSN and DNP writers handle graduate and doctoral work.',
   },
   {
-    icon: Users,
+    icon: 'users',
     bg: 'bg-amber-100',
     fg: 'text-amber-600',
     title: 'Academic integrity',
     desc: 'We provide model and reference papers for study. Every order includes an academic-use acknowledgement and a legal-use disclosure.',
   },
   {
-    icon: Lock,
+    icon: 'lock',
     bg: 'bg-green-100',
     fg: 'text-green-600',
     title: 'Privacy by design',
     desc: "Your name, email, school, and order details are never sold or shared. We store only what's needed to fulfil your order.",
   },
   {
-    icon: MessageSquare,
+    icon: 'message-square',
     bg: 'bg-purple-100',
     fg: 'text-purple-600',
     title: 'Real human support',
@@ -142,7 +140,7 @@ useHead({
           <div class="grid gap-4 sm:grid-cols-2">
             <div v-for="v in values" :key="v.title" class="card">
               <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" :class="v.bg">
-                <component :is="v.icon" class="h-5 w-5" :class="v.fg" />
+                <Icon :name="v.icon" class="h-5 w-5" :class="v.fg" />
               </div>
               <h3 class="font-semibold text-slate-900">{{ v.title }}</h3>
               <p class="mt-2 text-sm text-slate-500 leading-relaxed">{{ v.desc }}</p>
@@ -211,21 +209,21 @@ useHead({
         <div class="grid gap-6 sm:grid-cols-3 text-center">
           <div>
             <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100">
-              <CheckCircle2 class="h-6 w-6 text-green-600" />
+              <Icon name="check-circle-2" class="h-6 w-6 text-green-600" />
             </div>
             <h3 class="font-semibold text-slate-900">Clinically accurate, original work</h3>
             <p class="mt-1 text-sm text-slate-500">Written from scratch by a nurse in your subject area. Plagiarism report included on every order.</p>
           </div>
           <div>
             <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100">
-              <Bot class="h-6 w-6 text-blue-600" />
+              <Icon name="bot" class="h-6 w-6 text-blue-600" />
             </div>
             <h3 class="font-semibold text-slate-900">Zero AI — nurse-written only</h3>
             <p class="mt-1 text-sm text-slate-500">All work is 100% written by a real nurse. AI-detection report available on request, free of charge.</p>
           </div>
           <div>
             <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100">
-              <Lock class="h-6 w-6 text-brand-600" />
+              <Icon name="lock" class="h-6 w-6 text-brand-600" />
             </div>
             <h3 class="font-semibold text-slate-900">Private by default</h3>
             <p class="mt-1 text-sm text-slate-500">Your identity, school, and order details are never disclosed. Payment handled by a regulated third party.</p>

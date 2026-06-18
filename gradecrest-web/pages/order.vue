@@ -8,7 +8,7 @@ import {
 import {
   fetchPricingConfig,
   FALLBACK_LEVELS, FALLBACK_DEADLINES, FALLBACK_PAPER_TYPES,
-  type PricingLevel, type PricingDeadline, type PricingPaperType,
+  type CfgAddon, type PricingLevel, type PricingDeadline, type PricingPaperType,
 } from '~/composables/usePricingConfig'
 
 definePageMeta({ ssr: false })
@@ -32,7 +32,7 @@ const cfgSubjects        = ref<{ name: string; category: string }[]>([])
 const cfgWorkTypes       = ref<{ name: string; description?: string }[]>([])
 const cfgFormattingStyles = ref<{ name: string }[]>([])
 const cfgEnglishTypes    = ref<{ name: string; code: string }[]>([])
-const gcAddons           = ref<{ id: number; addon_code: string; name: string; description: string; flat_amount: string }[]>([])
+const gcAddons           = ref<CfgAddon[]>([])
 
 const GC_DRAFT_KEY = 'gc_order_draft'
 const savedDraft = import.meta.client
@@ -116,7 +116,7 @@ onMounted(async () => {
   cfgWorkTypes.value         = cfg.work_types
   cfgFormattingStyles.value  = cfg.formatting_styles
   cfgEnglishTypes.value      = cfg.english_types
-  gcAddons.value             = cfg.addons as typeof gcAddons.value
+  gcAddons.value             = cfg.addons
 
   if (!savedDraft) {
     levelCode.value   = cfg.academic_levels[1]?.code ?? cfg.academic_levels[0]?.code ?? 'undergrad'
@@ -161,9 +161,12 @@ onMounted(async () => {
   if (q.work_type && STATIC_WORK_TYPES.some(w => w.id === String(q.work_type))) workTypeId.value = String(q.work_type)
   if (q.spacing === 'single') spacing.value = 'single'
   if (q.format_style) formatStyleId.value = String(q.format_style)
-  if (q.addons) {
-    const codes = String(q.addons).split(',').filter(Boolean)
-    const ids = (cfg.addons as typeof gcAddons.value).filter(a => codes.includes(a.addon_code)).map(a => a.id)
+  if (q.topic) topic.value = String(q.topic).trim().slice(0, 200)
+  if (q.instructions) instructions.value = String(q.instructions).trim().slice(0, 2000)
+  const addonCodes = q.addons ?? q.addon_codes
+  if (addonCodes) {
+    const codes = String(addonCodes).split(',').filter(Boolean)
+    const ids = cfg.addons.filter(a => codes.includes(a.addon_code)).map(a => a.id)
     if (ids.length) selectedAddonIds.value.push(...ids)
   }
 })
@@ -344,7 +347,7 @@ const portalUrl = computed(() => {
   if (isDesign.value)  { p.design_type = designTypeId.value;  p.quantity = String(units.value) }
   if (isDiagram.value) { p.diagram_type = diagramTypeId.value; p.quantity = String(units.value) }
   if (topic.value.trim())        p.topic        = topic.value.trim().slice(0, 200)
-  if (instructions.value.trim()) p.instructions = instructions.value.trim().slice(0, 500)
+  if (instructions.value.trim()) p.instructions = instructions.value.trim().slice(0, 2000)
   if (selectedAddonIds.value.length) {
     const codes = gcAddons.value.filter(a => selectedAddonIds.value.includes(a.id)).map(a => a.addon_code)
     if (codes.length) p.addon_codes = codes.join(',')
