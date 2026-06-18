@@ -217,7 +217,18 @@ export const Loader2 = createIcon('Loader2', [
   ['path', { d: 'M21 12a9 9 0 1 1-6.219-8.56' }],
 ])
 
+export const ShieldCheck = createIcon('ShieldCheck', [
+  ['path', { d: 'M20 13c0 5-3.5 7.5-7.3 8.8a2 2 0 0 1-1.4 0C7.5 20.5 4 18 4 13V6a2 2 0 0 1 1.1-1.8l6-2.7a2 2 0 0 1 1.8 0l6 2.7A2 2 0 0 1 20 6z' }],
+  ['path', { d: 'm9 12 2 2 4-4' }],
+])
+
 export const LayoutTemplate = createIcon('LayoutTemplate', [
   ['rect', { x: 2, y: 3, width: 20, height: 14, rx: 2 }],
   ['path', { d: 'M2 17h20M2 21h20' }],
+])
+
+export const Layers = createIcon('Layers', [
+  ['path', { d: 'M12 2 2 7l10 5 10-5-10-5z' }],
+  ['path', { d: 'M2 17l10 5 10-5' }],
+  ['path', { d: 'M2 12l10 5 10-5' }],
 ])
