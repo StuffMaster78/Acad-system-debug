@@ -73,10 +73,10 @@ const chartsLoading = ref(false);
 
 function buildRevenueOption(d: ChartData): EChartsOption {
   return {
-    tooltip: { trigger: "axis" },
-    legend: { data: d.series.map((s) => s.name), bottom: 0 },
-    grid: { left: 60, right: 60, top: 20, bottom: 40 },
-    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10 } },
+    tooltip: { trigger: "axis", confine: true },
+    legend: { data: d.series.map((s) => s.name), bottom: 8, type: "scroll" },
+    grid: { left: 12, right: 12, top: 24, bottom: 60, containLabel: true },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10, hideOverlap: true } },
     yAxis: [
       { type: "value", name: "$", axisLabel: { formatter: (v: number) => `$${(v / 1000).toFixed(0)}k` } },
       { type: "value", name: "Orders", splitLine: { show: false } },
@@ -97,10 +97,10 @@ function buildRevenueOption(d: ChartData): EChartsOption {
 function buildOrdersOption(d: ChartData): EChartsOption {
   const palette = ["#94a3b8","#3b82f6","#f59e0b","#10b981","#6366f1","#ef4444"];
   return {
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    legend: { data: d.series.map((s) => s.name), bottom: 0, type: "scroll" },
-    grid: { left: 50, right: 20, top: 20, bottom: 50 },
-    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10 } },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true },
+    legend: { data: d.series.map((s) => s.name), bottom: 8, type: "scroll" },
+    grid: { left: 12, right: 12, top: 24, bottom: 60, containLabel: true },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10, hideOverlap: true } },
     yAxis: { type: "value" },
     series: d.series.map((s, i) => ({
       name: s.name,
@@ -114,10 +114,10 @@ function buildOrdersOption(d: ChartData): EChartsOption {
 
 function buildClientsOption(d: ChartData): EChartsOption {
   return {
-    tooltip: { trigger: "axis" },
-    legend: { data: d.series.map((s) => s.name), bottom: 0 },
-    grid: { left: 50, right: 20, top: 20, bottom: 40 },
-    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10 } },
+    tooltip: { trigger: "axis", confine: true },
+    legend: { data: d.series.map((s) => s.name), bottom: 8, type: "scroll" },
+    grid: { left: 12, right: 12, top: 24, bottom: 60, containLabel: true },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 10, hideOverlap: true } },
     yAxis: { type: "value" },
     series: d.series.map((s, i) => ({
       name: s.name,

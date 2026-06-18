@@ -126,10 +126,10 @@ const revenueTrendOption = computed<EChartsOption>(() => {
   const rows = revenueRows.value;
   if (!rows.length) return {};
   return {
-    tooltip: { trigger: "axis" },
-    legend: { data: ["Revenue", "Expenses", "Net"], bottom: 0 },
-    grid: { left: 60, right: 20, top: 10, bottom: 40 },
-    xAxis: { type: "category", data: rows.map((r) => r.month || r.period || ""), axisLabel: { rotate: 30, fontSize: 10 } },
+    tooltip: { trigger: "axis", confine: true },
+    legend: { data: ["Revenue", "Expenses", "Net"], bottom: 8, type: "scroll" },
+    grid: { left: 12, right: 12, top: 24, bottom: 60, containLabel: true },
+    xAxis: { type: "category", data: rows.map((r) => r.month || r.period || ""), axisLabel: { rotate: 30, fontSize: 10, hideOverlap: true } },
     yAxis: { type: "value", axisLabel: { formatter: (v: number) => `$${(v / 1000).toFixed(0)}k` } },
     series: [
       { name: "Revenue", type: "line", data: rows.map((r) => Number(r.revenue?.total ?? 0)), smooth: true, itemStyle: { color: "#7c3aed" }, lineStyle: { color: "#7c3aed", width: 2 }, areaStyle: { color: "rgba(124,58,237,0.07)" } },
@@ -143,11 +143,11 @@ const websiteChartOption = computed<EChartsOption>(() => {
   if (!websiteChart.value) return {};
   const d = websiteChart.value;
   return {
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    grid: { left: 130, right: 40, top: 10, bottom: 30 },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true },
+    grid: { left: 12, right: 32, top: 10, bottom: 12, containLabel: true },
     xAxis: { type: "value", axisLabel: { formatter: (v: number) => `$${(v / 1000).toFixed(0)}k` } },
-    yAxis: { type: "category", data: [...d.labels].reverse(), axisLabel: { fontSize: 11 } },
-    series: [{ name: "Revenue", type: "bar", data: [...d.series[0].data].reverse(), itemStyle: { color: "#7c3aed" } }],
+    yAxis: { type: "category", data: [...d.labels].reverse(), axisLabel: { fontSize: 11, width: 120, overflow: "truncate" } },
+    series: [{ name: "Revenue", type: "bar", data: [...d.series[0].data].reverse(), itemStyle: { color: "#7c3aed" }, barMaxWidth: 32 }],
   };
 });
 

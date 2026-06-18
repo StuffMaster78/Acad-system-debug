@@ -30,11 +30,11 @@ const weeklyChartOption = computed<EChartsOption>(() => {
   const weeks = weeklyTasks.value;
   if (!weeks.length) return {};
   return {
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    grid: { left: 80, right: 20, top: 10, bottom: 20 },
-    xAxis: { type: "value" },
-    yAxis: { type: "category", data: weeks.map((w) => w.week ?? ""), axisLabel: { fontSize: 11 } },
-    series: [{ name: "Tasks", type: "bar", data: weeks.map((w) => w.count), itemStyle: { color: "#0ea5e9" } }],
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true },
+    grid: { left: 12, right: 24, top: 10, bottom: 12, containLabel: true },
+    xAxis: { type: "value", minInterval: 1 },
+    yAxis: { type: "category", data: weeks.map((w) => w.week ?? ""), axisLabel: { fontSize: 11, width: 90, overflow: "truncate" } },
+    series: [{ name: "Tasks", type: "bar", data: weeks.map((w) => w.count), itemStyle: { color: "#0ea5e9" }, barMaxWidth: 28 }],
   };
 });
 
@@ -42,14 +42,17 @@ const statusChartOption = computed<EChartsOption>(() => {
   const entries = statusBreakdown.value;
   if (!entries.length) return {};
   return {
-    tooltip: { trigger: "item" },
-    legend: { bottom: 0, type: "scroll" },
+    tooltip: { trigger: "item", confine: true, formatter: "{b}: {c} ({d}%)" },
+    legend: { bottom: 8, type: "scroll" },
     series: [{
       name: "Tasks",
       type: "pie",
       radius: ["40%", "70%"],
+      center: ["50%", "44%"],
       data: entries.map(([name, value]) => ({ name, value })),
-      label: { formatter: "{b}: {c}" },
+      label: { show: false },
+      labelLine: { show: false },
+      emphasis: { label: { show: true, fontWeight: "bold", fontSize: 12, formatter: "{b}: {c}" } },
     }],
   };
 });

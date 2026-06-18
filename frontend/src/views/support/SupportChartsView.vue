@@ -38,12 +38,15 @@ const queueBreakdown = computed(() => {
 const statusChartOption = computed<EChartsOption>(() => {
   if (!statusBreakdown.value.length) return {};
   return {
-    tooltip: { trigger: "item" },
-    legend: { bottom: 0, type: "scroll" },
+    tooltip: { trigger: "item", confine: true, formatter: "{b}: {c} ({d}%)" },
+    legend: { bottom: 8, type: "scroll" },
     series: [{
       name: "Tickets", type: "pie", radius: ["45%", "72%"],
+      center: ["50%", "44%"],
       data: statusBreakdown.value,
-      label: { formatter: "{b}: {c}" },
+      label: { show: false },
+      labelLine: { show: false },
+      emphasis: { label: { show: true, fontWeight: "bold", fontSize: 12, formatter: "{b}: {c}" } },
       itemStyle: { borderRadius: 4 },
     }],
   };
@@ -53,12 +56,15 @@ const priorityChartOption = computed<EChartsOption>(() => {
   if (!priorityBreakdown.value.length) return {};
   const palette = ["#ef4444", "#f97316", "#f59e0b", "#94a3b8"];
   return {
-    tooltip: { trigger: "item" },
-    legend: { bottom: 0 },
+    tooltip: { trigger: "item", confine: true, formatter: "{b}: {c} ({d}%)" },
+    legend: { bottom: 8, type: "scroll" },
     series: [{
       name: "Priority", type: "pie", radius: ["45%", "72%"],
+      center: ["50%", "44%"],
       data: priorityBreakdown.value.map((d, i) => ({ ...d, itemStyle: { color: palette[i] } })),
-      label: { formatter: "{b}: {c}" },
+      label: { show: false },
+      labelLine: { show: false },
+      emphasis: { label: { show: true, fontWeight: "bold", fontSize: 12, formatter: "{b}: {c}" } },
       itemStyle: { borderRadius: 4 },
     }],
   };
@@ -67,11 +73,11 @@ const priorityChartOption = computed<EChartsOption>(() => {
 const queueChartOption = computed<EChartsOption>(() => {
   if (!queueBreakdown.value.length) return {};
   return {
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    grid: { left: 100, right: 20, top: 10, bottom: 20 },
-    xAxis: { type: "value" },
-    yAxis: { type: "category", data: queueBreakdown.value.map((d) => d.name), axisLabel: { fontSize: 11 } },
-    series: [{ name: "Tickets", type: "bar", data: queueBreakdown.value.map((d) => d.value), itemStyle: { color: "#6366f1" } }],
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true },
+    grid: { left: 12, right: 24, top: 10, bottom: 12, containLabel: true },
+    xAxis: { type: "value", minInterval: 1 },
+    yAxis: { type: "category", data: queueBreakdown.value.map((d) => d.name), axisLabel: { fontSize: 11, width: 110, overflow: "truncate" } },
+    series: [{ name: "Tickets", type: "bar", data: queueBreakdown.value.map((d) => d.value), itemStyle: { color: "#6366f1" }, barMaxWidth: 28 }],
   };
 });
 

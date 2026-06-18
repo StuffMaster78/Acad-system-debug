@@ -28,10 +28,10 @@ const spendingOption = computed<EChartsOption>(() => {
   const d = spending.value;
   if (!d) return {};
   return {
-    tooltip: { trigger: "axis" },
-    legend: { data: d.series.map((s) => s.name), bottom: 0 },
-    grid: { left: 64, right: 48, top: 16, bottom: 44 },
-    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 11 } },
+    tooltip: { trigger: "axis", confine: true },
+    legend: { data: d.series.map((s) => s.name), bottom: 8, type: "scroll" },
+    grid: { left: 12, right: 12, top: 24, bottom: 60, containLabel: true },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 11, hideOverlap: true } },
     yAxis: [
       { type: "value", axisLabel: { formatter: (v: number) => `$${v.toFixed(0)}` } },
       { type: "value", splitLine: { show: false } },
@@ -54,11 +54,15 @@ const orderStatusOption = computed<EChartsOption>(() => {
   })).filter((d) => d.value > 0);
   if (!data.length) return {};
   return {
-    tooltip: { trigger: "item" },
-    legend: { bottom: 0 },
+    tooltip: { trigger: "item", confine: true, formatter: "{b}: {c} ({d}%)" },
+    legend: { bottom: 8, type: "scroll" },
     series: [{
-      name: "Orders", type: "pie", radius: ["45%", "75%"], data,
-      label: { formatter: "{b}: {c}" },
+      name: "Orders", type: "pie", radius: ["45%", "72%"],
+      center: ["50%", "45%"],
+      data,
+      label: { show: false },
+      labelLine: { show: false },
+      emphasis: { label: { show: true, fontWeight: "bold", fontSize: 12, formatter: "{b}: {c}" } },
       itemStyle: { borderRadius: 4 },
     }],
   };

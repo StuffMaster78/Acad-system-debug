@@ -28,10 +28,10 @@ const earningsOption = computed<EChartsOption>(() => {
   const d = earnings.value;
   if (!d) return {};
   return {
-    tooltip: { trigger: "axis" },
-    legend: { data: d.series.map((s) => s.name), bottom: 0 },
-    grid: { left: 64, right: 48, top: 16, bottom: 44 },
-    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 11 } },
+    tooltip: { trigger: "axis", confine: true },
+    legend: { data: d.series.map((s) => s.name), bottom: 8, type: "scroll" },
+    grid: { left: 12, right: 12, top: 24, bottom: 60, containLabel: true },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 11, hideOverlap: true } },
     yAxis: [
       { type: "value", axisLabel: { formatter: (v: number) => `$${v.toFixed(0)}` } },
       { type: "value", splitLine: { show: false } },

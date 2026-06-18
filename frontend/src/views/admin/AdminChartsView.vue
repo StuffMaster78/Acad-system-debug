@@ -24,10 +24,10 @@ const compareMetric = ref<"revenue" | "orders" | "clients">("revenue");
 
 function revenueOption(d: ChartData): EChartsOption {
   return {
-    tooltip: { trigger: "axis" },
-    legend: { data: d.series.map((s) => s.name), bottom: 0 },
-    grid: { left: 64, right: 56, top: 16, bottom: 44 },
-    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 11 } },
+    tooltip: { trigger: "axis", confine: true },
+    legend: { data: d.series.map((s) => s.name), bottom: 8, type: "scroll" },
+    grid: { left: 12, right: 12, top: 24, bottom: 60, containLabel: true },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 11, hideOverlap: true } },
     yAxis: [
       { type: "value", axisLabel: { formatter: (v: number) => `$${(v / 1000).toFixed(0)}k` } },
       { type: "value", splitLine: { show: false } },
@@ -45,10 +45,10 @@ function revenueOption(d: ChartData): EChartsOption {
 function ordersOption(d: ChartData): EChartsOption {
   const palette = ["#94a3b8", "#3b82f6", "#f59e0b", "#10b981", "#6366f1", "#ef4444"];
   return {
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    legend: { data: d.series.map((s) => s.name), bottom: 0, type: "scroll" },
-    grid: { left: 48, right: 16, top: 16, bottom: 52 },
-    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 11 } },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true },
+    legend: { data: d.series.map((s) => s.name), bottom: 8, type: "scroll" },
+    grid: { left: 12, right: 12, top: 24, bottom: 60, containLabel: true },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 11, hideOverlap: true } },
     yAxis: { type: "value" },
     series: d.series.map((s, i) => ({
       name: s.name, type: "bar", stack: "orders", data: s.data,
@@ -59,10 +59,10 @@ function ordersOption(d: ChartData): EChartsOption {
 
 function clientsOption(d: ChartData): EChartsOption {
   return {
-    tooltip: { trigger: "axis" },
-    legend: { data: d.series.map((s) => s.name), bottom: 0 },
-    grid: { left: 48, right: 16, top: 16, bottom: 44 },
-    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 11 } },
+    tooltip: { trigger: "axis", confine: true },
+    legend: { data: d.series.map((s) => s.name), bottom: 8, type: "scroll" },
+    grid: { left: 12, right: 12, top: 24, bottom: 60, containLabel: true },
+    xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 30, fontSize: 11, hideOverlap: true } },
     yAxis: { type: "value" },
     series: d.series.map((s, i) => ({
       name: s.name, type: s.type, data: s.data, smooth: true,
@@ -75,11 +75,11 @@ function clientsOption(d: ChartData): EChartsOption {
 
 function websiteOption(d: ChartData): EChartsOption {
   return {
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    grid: { left: 140, right: 40, top: 16, bottom: 24 },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true },
+    grid: { left: 12, right: 32, top: 12, bottom: 12, containLabel: true },
     xAxis: { type: "value", axisLabel: { formatter: (v: number) => `$${(v / 1000).toFixed(0)}k` } },
-    yAxis: { type: "category", data: [...d.labels].reverse(), axisLabel: { fontSize: 11 } },
-    series: [{ name: "Revenue", type: "bar", data: [...d.series[0].data].reverse(), itemStyle: { color: "#7c3aed" } }],
+    yAxis: { type: "category", data: [...d.labels].reverse(), axisLabel: { fontSize: 11, width: 120, overflow: "truncate" } },
+    series: [{ name: "Revenue", type: "bar", data: [...d.series[0].data].reverse(), itemStyle: { color: "#7c3aed" }, barMaxWidth: 32 }],
   };
 }
 
@@ -97,8 +97,8 @@ const comparisonOption = computed<EChartsOption>(() => {
   if (!d) return {};
   const palette = ["#cbd5e1", "#7c3aed"];
   return {
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    grid: { left: 48, right: 16, top: 16, bottom: 32 },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true },
+    grid: { left: 12, right: 12, top: 44, bottom: 24, containLabel: true },
     xAxis: { type: "category", data: d.labels, axisLabel: { fontSize: 12 } },
     yAxis: { type: "value", axisLabel: {
       formatter: compareMetric.value === "revenue"
