@@ -31,6 +31,7 @@ interface Block { type: string; value: unknown }
 
 interface ArticleDetail {
   id: number
+  content_type_id: number
   meta: {
     slug: string
     first_published_at: string
@@ -51,6 +52,8 @@ interface ArticleDetail {
   canonical_published_at: string | null
   last_substantive_update: string | null
   reviewer?: { name: string; credentials?: string } | null
+  views_count?: number
+  likes_count?: number
 }
 
 const { data: article, error } = await useAsyncData<ArticleDetail | null>(
@@ -176,6 +179,45 @@ onMounted(() => {
   onUnmounted(() => window.removeEventListener('scroll', check))
 })
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }) }
+
+// ── Engagement: view tracking + helpful reaction ──────────────────────────
+const helpfulState = ref<'idle' | 'yes' | 'no'>('idle')
+const viewsDisplay = ref(article.value?.views_count ?? 0)
+
+onMounted(async () => {
+  const a = article.value
+  if (!a?.id || !a.content_type_id) return
+  const base = config.public.apiBase || ''
+  if (!base) return
+
+  // Track this page view (fire-and-forget)
+  try {
+    await $fetch(`${base}/cms-api/engagement/track-view/`, {
+      method: 'POST',
+      body: { content_type_id: a.content_type_id, object_id: a.id },
+    })
+    viewsDisplay.value = (a.views_count ?? 0) + 1
+  } catch { /* non-critical */ }
+})
+
+async function markHelpful(helpful: boolean) {
+  if (helpfulState.value !== 'idle') return
+  const a = article.value
+  if (!a?.id || !a.content_type_id) return
+  const base = config.public.apiBase || ''
+  if (!base) return
+  helpfulState.value = helpful ? 'yes' : 'no'
+  try {
+    await $fetch(`${base}/cms-api/engagement/react/`, {
+      method: 'POST',
+      body: {
+        content_type_id: a.content_type_id,
+        object_id: a.id,
+        reaction_type: helpful ? 'thumbs_up' : 'thumbs_down',
+      },
+    })
+  } catch { /* non-critical */ }
+}
 
 // Sharing
 const pageUrl = computed(() => `https://gradecrest.com/blog/${slug}`)
@@ -396,6 +438,34 @@ const tags             = computed(() => article.value?.tag_names ?? [])
                   <Printer class="size-3.5" />
                   Print
                 </button>
+              </div>
+
+              <!-- Views + Was this helpful? -->
+              <div class="mt-8 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 flex flex-wrap items-center justify-between gap-4 print:hidden">
+                <p v-if="viewsDisplay" class="text-xs text-slate-400">
+                  <span class="font-semibold text-slate-600">{{ viewsDisplay.toLocaleString() }}</span> readers found this article
+                </p>
+                <div class="flex items-center gap-3 ml-auto">
+                  <span class="text-xs font-semibold text-slate-500">Was this helpful?</span>
+                  <button
+                    class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
+                    :class="helpfulState === 'yes' ? 'border-gc-400 bg-gc-50 text-gc-700' : 'border-slate-200 text-slate-500 hover:border-gc-300 hover:text-gc-600'"
+                    :disabled="helpfulState !== 'idle'"
+                    @click="markHelpful(true)"
+                  >
+                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>
+                    {{ helpfulState === 'yes' ? 'Thanks!' : 'Yes' }}
+                  </button>
+                  <button
+                    class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
+                    :class="helpfulState === 'no' ? 'border-rose-300 bg-rose-50 text-rose-600' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'"
+                    :disabled="helpfulState !== 'idle'"
+                    @click="markHelpful(false)"
+                  >
+                    <svg class="size-3.5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>
+                    No
+                  </button>
+                </div>
               </div>
 
               <!-- Author card -->

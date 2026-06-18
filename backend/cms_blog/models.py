@@ -306,6 +306,9 @@ class BlogPostPage(Page):
         APIField("tag_names"),
         APIField("thumbnail", serializer=_ThumbnailSerializer()),
         APIField("category_name", serializer=_CategoryNameSerializer()),
+        APIField("views_count"),
+        APIField("likes_count"),
+        APIField("content_type_id"),
     ]
 
     @property
@@ -339,6 +342,31 @@ class BlogPostPage(Page):
     @property
     def tag_names(self) -> list[str]:
         return [t.name for t in self.tags.all()]
+
+    @property
+    def views_count(self) -> int:
+        from django.contrib.contenttypes.models import ContentType
+        from cms_engagement.models import EngagementSummary
+        try:
+            ct = ContentType.objects.get_for_model(self.__class__)
+            return EngagementSummary.objects.get(content_type=ct, object_id=self.pk).total_views
+        except Exception:
+            return 0
+
+    @property
+    def likes_count(self) -> int:
+        from django.contrib.contenttypes.models import ContentType
+        from cms_engagement.models import EngagementSummary
+        try:
+            ct = ContentType.objects.get_for_model(self.__class__)
+            return EngagementSummary.objects.get(content_type=ct, object_id=self.pk).thumbs_up_count
+        except Exception:
+            return 0
+
+    @property
+    def content_type_id(self) -> int:
+        from django.contrib.contenttypes.models import ContentType
+        return ContentType.objects.get_for_model(self.__class__).pk
 
     class Meta:
         verbose_name = "Blog Post"

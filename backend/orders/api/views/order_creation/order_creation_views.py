@@ -9,7 +9,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404  # noqa: F401 kept for possible future use
 
 from orders.api.permissions.order_creation_permissions import (
     CanAccessOrderCreation,
@@ -181,7 +181,14 @@ class CreateOrderView(GenericAPIView):
         user_model = CreateOrderSerializer._get_user_model()
 
         if client_id:
-            client = get_object_or_404(user_model, pk=client_id)
+            # Filter by website immediately to prevent cross-tenant resolution.
+            # A missing or null website_id on the user record is treated as a
+            # mismatch — legitimate clients should always be website-scoped.
+            client = user_model.objects.filter(pk=client_id, website=website).first()
+            if client is None:
+                raise PermissionDenied(
+                    "Client not found on this site."
+                )
         else:
             # Lookup by email — scoped to this website for safety
             client = user_model.objects.filter(
@@ -192,18 +199,6 @@ class CreateOrderView(GenericAPIView):
                 raise PermissionDenied(
                     f"No client found with email '{client_email}' on this site."
                 )
-
-        request_website_id = getattr(website, "id", None)
-        client_website_id = getattr(client, "website_id", None)
-
-        if (
-            client_website_id is not None
-            and request_website_id is not None
-            and client_website_id != request_website_id
-        ):
-            raise PermissionDenied(
-                "Client does not belong to this website."
-            )
 
         return client
 

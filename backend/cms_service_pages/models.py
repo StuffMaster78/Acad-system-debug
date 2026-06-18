@@ -182,6 +182,14 @@ class ServicePage(Page):
             "Drives Schema.org dateModified and freshness alerts."
         ),
     )
+    og_image = models.ForeignKey(
+        "wagtailimages.Image",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text="Social-sharing image for this service page. Overrides the tenant-level default OG image.",
+    )
 
     # --- Panels ---
     content_panels = Page.content_panels + [
@@ -225,6 +233,7 @@ class ServicePage(Page):
 
     settings_panels = Page.settings_panels + [
         FieldPanel("last_substantive_update"),
+        FieldPanel("og_image"),
     ]
 
     # --- Subpage rules ---
@@ -257,7 +266,17 @@ class ServicePage(Page):
         APIField("reviewer"),
         APIField("body"),
         APIField("last_substantive_update"),
+        APIField("og_image_url"),
     ]
+
+    @property
+    def og_image_url(self) -> str | None:
+        if not self.og_image:
+            return None
+        try:
+            return self.og_image.get_rendition("fill-1200x630").url
+        except Exception:
+            return None
 
     class Meta:
         verbose_name = "Service Page"

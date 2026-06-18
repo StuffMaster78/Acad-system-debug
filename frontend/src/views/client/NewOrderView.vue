@@ -255,6 +255,32 @@ const DEADLINE_HOURS: Record<string, number> = {
   '14d': 336, '7d': 168, '5d': 120, '3d': 72, '24h': 24, '12h': 12, '6h': 6,
 };
 
+// Marketing funnel order_type → portal service mode
+const ORDER_TYPE_TO_MODE: Partial<Record<string, ServiceMode>> = {
+  paper:   'paper',
+  combo:   'combo_paper_design',
+  design:  'design',
+  diagram: 'diagram',
+};
+
+// work_type string key → candidate names in config.collections.typesOfWork
+const WORK_TYPE_NAMES: Record<string, string[]> = {
+  writing:      ['Writing', 'Original Writing', 'Academic Writing'],
+  editing:      ['Editing', 'Proofreading & Editing', 'Editing & Proofreading'],
+  rewriting:    ['Rewriting', 'Paraphrasing', 'Rewrite'],
+  proofreading: ['Proofreading'],
+};
+
+// format_style key → candidate names in config.collections.formattingStyles
+const FORMAT_STYLE_NAMES: Record<string, string[]> = {
+  apa7:      ['APA 7th', 'APA', 'APA 7th Edition'],
+  mla9:      ['MLA 9th', 'MLA', 'MLA 9th Edition'],
+  chicago17: ['Chicago 17th', 'Chicago', 'Chicago 17th Edition'],
+  harvard:   ['Harvard'],
+  ieee:      ['IEEE'],
+  none:      ['Not required', 'None', 'No specific style'],
+};
+
 // Marketing-site keys → ordered candidate names in the portal's config.
 // Exact match wins; falls back to starts-with so "Bachelor's" matches "Bachelor".
 const LEVEL_NAMES: Record<string, string[]> = {
@@ -305,29 +331,82 @@ function matchOption(items: typeof config.collections.academicLevels, candidates
 function applyUrlParams() {
   const q = route.query;
 
-  const pages = parseInt(String(q.pages ?? ''), 10);
-  if (!isNaN(pages) && pages >= 1 && pages <= 100) form.pages = pages;
+  // ── Service / order type ────────────────────────────────────────────────
+  const orderTypeParam = String(q.order_type ?? '');
+  if (orderTypeParam && ORDER_TYPE_TO_MODE[orderTypeParam]) {
+    serviceMode.value = ORDER_TYPE_TO_MODE[orderTypeParam]!;
+  }
 
+  // ── Pages / quantity ────────────────────────────────────────────────────
+  const pages = parseInt(String(q.pages ?? ''), 10);
+  if (!isNaN(pages) && pages >= 1 && pages <= 200) form.pages = pages;
+
+  // ── Slides (combo / design) ─────────────────────────────────────────────
+  const slidesParam = parseInt(String(q.slides ?? ''), 10);
+  if (!isNaN(slidesParam) && slidesParam >= 1 && slidesParam <= 200) {
+    designForm.slides = slidesParam;
+  }
+
+  // ── Topic ───────────────────────────────────────────────────────────────
   const topic = String(q.topic ?? '').trim().slice(0, 300);
   if (topic) form.topic = topic;
 
+  // ── Instructions ────────────────────────────────────────────────────────
+  const instructions = String(q.instructions ?? '').trim().slice(0, 2000);
+  if (instructions) form.order_instructions = instructions;
+
+  // ── Spacing ─────────────────────────────────────────────────────────────
+  const spacingParam = String(q.spacing ?? '');
+  if (spacingParam === 'single' || spacingParam === 'double') form.spacing = spacingParam;
+
+  // ── Academic level ──────────────────────────────────────────────────────
   const levelKey = String(q.level ?? '');
   if (levelKey && LEVEL_NAMES[levelKey]) {
     const id = matchOption(config.collections.academicLevels, LEVEL_NAMES[levelKey]);
     if (id !== null) form.academic_level_id = id;
   }
 
+  // ── Paper type ──────────────────────────────────────────────────────────
   const typeKey = String(q.type ?? '');
   if (typeKey && TYPE_NAMES[typeKey]) {
     const id = matchOption(config.collections.paperTypes, TYPE_NAMES[typeKey]);
     if (id !== null) form.paper_type_id = id;
   }
 
+  // ── Work type (type_of_work) ────────────────────────────────────────────
+  const workTypeKey = String(q.work_type ?? '');
+  if (workTypeKey && WORK_TYPE_NAMES[workTypeKey]) {
+    const id = matchOption(config.collections.typesOfWork as typeof config.collections.academicLevels, WORK_TYPE_NAMES[workTypeKey]);
+    if (id !== null) form.type_of_work_id = id;
+  }
+
+  // ── Subject ─────────────────────────────────────────────────────────────
+  const subjectParam = String(q.subject ?? '').trim();
+  if (subjectParam) {
+    const id = matchOption(config.collections.subjects as typeof config.collections.academicLevels, [subjectParam]);
+    if (id !== null) form.subject_id = id;
+  }
+
+  // ── Formatting style ────────────────────────────────────────────────────
+  const formatKey = String(q.format_style ?? '');
+  if (formatKey && FORMAT_STYLE_NAMES[formatKey]) {
+    const id = matchOption(config.collections.formattingStyles as typeof config.collections.academicLevels, FORMAT_STYLE_NAMES[formatKey]);
+    if (id !== null) form.formatting_style_id = id;
+  }
+
+  // ── Deadline ────────────────────────────────────────────────────────────
   const deadlineRaw = String(q.deadline ?? '');
   // Accept either a shorthand key ('14d', '24h') or numeric hours ('336', '24').
   const hours = DEADLINE_HOURS[deadlineRaw] ?? (parseInt(deadlineRaw, 10) || 0);
   if (hours > 0) {
     form.client_deadline = new Date(Date.now() + hours * 3600 * 1000).toISOString().slice(0, 16);
+  }
+
+  // ── Add-on codes ────────────────────────────────────────────────────────
+  const addonCodesParam = String(q.addon_codes ?? '');
+  if (addonCodesParam) {
+    const codes = addonCodesParam.split(',').map(c => c.trim()).filter(Boolean);
+    if (codes.length) selectedAddonCodes.value = codes;
   }
 }
 
