@@ -562,7 +562,7 @@ const serviceFromCms = (page: CmsServicePage): ServiceView => {
     faqs: faqs.length ? faqs : fallbackService.faqs,
     related: page.related_services.map(service => service.slug),
     ctaText: page.primary_cta_text || 'Order now',
-    ctaUrl: page.primary_cta_url || app.order,
+    ctaUrl: page.primary_cta_url || '/order',
   }
 }
 
@@ -572,7 +572,7 @@ const svc = computed(() => cmsService.value ? serviceFromCms(cmsService.value) :
 // The /order page reads ?service= on mount and skips to step 1.
 const ctaOrderUrl = computed(() => {
   const override = svc.value.ctaUrl
-  if (override && override !== app.order) return override
+  if (override && override !== '/order') return override
   return `/order?service=${encodeURIComponent(slug)}`
 })
 

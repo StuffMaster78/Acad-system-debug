@@ -173,7 +173,7 @@ const faqs = [
       <div class="relative mx-auto max-w-xl px-4 space-y-5">
         <h2 class="text-2xl font-bold text-white">Ready to place your order?</h2>
         <p class="text-slate-300 text-sm">The calculator shows your exact price. No surprises at checkout.</p>
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+        <a href="/order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
           Place your order <ArrowRight class="size-4" />
         </a>
       </div>

@@ -112,7 +112,7 @@ const tierColor = { Expert: 'text-gc-700 bg-gc-50', Advanced: 'text-amber-700 bg
             </div>
             <div class="mt-3 flex items-center justify-between">
               <span class="rounded-full px-2.5 py-0.5 text-[11px] font-semibold" :class="tierColor[w.tier as keyof typeof tierColor]">{{ w.tier }}</span>
-              <a :href="app.order" class="text-xs font-semibold text-gc-600 hover:text-gc-700 transition-colors flex items-center gap-1">
+              <a href="/order" class="text-xs font-semibold text-gc-600 hover:text-gc-700 transition-colors flex items-center gap-1">
                 Hire <ArrowRight class="size-3" />
               </a>
             </div>

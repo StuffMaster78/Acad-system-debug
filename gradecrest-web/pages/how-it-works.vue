@@ -109,7 +109,7 @@ const guarantees = [
         </div>
       </div>
       <div class="mt-10 text-center">
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+        <a href="/order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
           Place your order now <ArrowRight class="size-4" />
         </a>
       </div>

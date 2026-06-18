@@ -26,7 +26,7 @@ function heading(v: unknown) {
 }
 
 function ctaUrl(raw: string): string {
-  if (!raw) return app.order
+  if (!raw) return '/order'
   if (raw.startsWith('http') || raw.startsWith('/')) return raw
   return raw
 }

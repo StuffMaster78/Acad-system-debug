@@ -428,7 +428,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
                       Get your paper written by a human expert — grade guaranteed, zero AI content.
                     </p>
                     <a
-                      :href="app.order"
+                      href="/order"
                       class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors"
                     >
                       Place your order <ArrowRight class="size-4" />
@@ -482,7 +482,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
                     <li>✓ Grade or money back</li>
                     <li>✓ From $13/page</li>
                   </ul>
-                  <a :href="app.order" class="block rounded-xl bg-white text-gc-700 font-bold text-sm py-2.5 text-center hover:bg-gc-50 transition-colors">
+                  <a href="/order" class="block rounded-xl bg-white text-gc-700 font-bold text-sm py-2.5 text-center hover:bg-gc-50 transition-colors">
                     Order now →
                   </a>
                 </div>
@@ -536,7 +536,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
         <p class="text-xs font-bold text-ink leading-none">Need help with your paper?</p>
         <p class="text-xs text-graphite mt-0.5 truncate">Human-written · Grade guaranteed</p>
       </div>
-      <a :href="app.order" class="shrink-0 rounded-xl bg-gc-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+      <a href="/order" class="shrink-0 rounded-xl bg-gc-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
         Order now
       </a>
     </div>

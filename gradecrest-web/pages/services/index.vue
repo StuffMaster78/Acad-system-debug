@@ -146,7 +146,7 @@ const visibleCategories = computed(() => cmsCategories.value.length ? cmsCategor
       <div class="mx-auto max-w-xl px-4 space-y-4">
         <h2 class="text-xl font-bold text-ink">Not sure which service you need?</h2>
         <p class="text-sm text-graphite">Place an order and describe your assignment — we'll match you with the right expert.</p>
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+        <a href="/order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
           Place your order <ArrowRight class="size-4" />
         </a>
       </div>

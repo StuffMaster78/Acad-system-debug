@@ -130,7 +130,7 @@ const filtered = computed(() =>
           <!-- Empty state -->
           <div v-if="!filtered.length" class="text-center py-20 space-y-4">
             <p class="text-graphite text-sm">No articles published yet — check back soon.</p>
-            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-6 py-3 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+            <a href="/order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-6 py-3 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
               Place an order <ArrowRight class="size-4" />
             </a>
           </div>
@@ -238,7 +238,7 @@ const filtered = computed(() =>
       <div class="mx-auto max-w-xl px-4 space-y-4">
         <h2 class="text-xl font-bold text-ink">Ready to get expert help?</h2>
         <p class="text-sm text-graphite">Human-written papers, grade guaranteed, from $13/page.</p>
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+        <a href="/order" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
           Place your order <ArrowRight class="size-4" />
         </a>
       </div>

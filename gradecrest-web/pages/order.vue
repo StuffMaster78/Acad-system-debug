@@ -32,6 +32,13 @@ const cfgWorkTypes       = ref<{ name: string; description?: string }[]>([])
 const cfgFormattingStyles = ref<{ name: string }[]>([])
 const cfgEnglishTypes    = ref<{ name: string; code: string }[]>([])
 const gcAddons           = ref<{ id: number; addon_code: string; name: string; description: string; flat_amount: string }[]>([])
+
+// Draft must be declared before any ref that reads it (SSR runs setup top-to-bottom)
+const GC_DRAFT_KEY = 'gc_order_draft'
+const savedDraft = import.meta.client
+  ? (() => { try { return JSON.parse(localStorage.getItem(GC_DRAFT_KEY) ?? 'null') } catch { return null } })()
+  : null
+
 const selectedAddonIds   = ref<number[]>((savedDraft?.selectedAddonIds as number[]) ?? [])
 const gcAddonTotal       = computed(() =>
   gcAddons.value
@@ -79,11 +86,6 @@ const workTypes = computed(() =>
     ? cfgWorkTypes.value.map(w => ({ id: w.name, label: w.name }))
     : STATIC_WORK_TYPES
 )
-
-const GC_DRAFT_KEY = 'gc_order_draft'
-const savedDraft = import.meta.client
-  ? (() => { try { return JSON.parse(localStorage.getItem(GC_DRAFT_KEY) ?? 'null') } catch { return null } })()
-  : null
 
 onMounted(async () => {
   const cfg        = await fetchPricingConfig()
