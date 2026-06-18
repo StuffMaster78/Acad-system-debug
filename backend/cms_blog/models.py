@@ -308,7 +308,7 @@ class BlogPostPage(Page):
         APIField("category_name", serializer=_CategoryNameSerializer()),
         APIField("views_count"),
         APIField("likes_count"),
-        APIField("content_type_id"),
+        APIField("page_content_type_id"),
     ]
 
     @property
@@ -364,7 +364,7 @@ class BlogPostPage(Page):
             return 0
 
     @property
-    def content_type_id(self) -> int:
+    def page_content_type_id(self) -> int:
         from django.contrib.contenttypes.models import ContentType
         return ContentType.objects.get_for_model(self.__class__).pk
 

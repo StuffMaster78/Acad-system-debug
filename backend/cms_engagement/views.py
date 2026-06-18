@@ -13,6 +13,20 @@ Public endpoints for the engagement bar on the public site:
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import permissions, status
 from rest_framework.response import Response
+from wagtail.models import Site as WagtailSite
+
+
+def _resolve_site(request):
+    """Return request.site if set by Wagtail middleware; fall back to default site.
+
+    The Wagtail SiteMiddleware resolves the site from the Host header. When the
+    frontend calls from a different origin (e.g. localhost:3000 → localhost:8000),
+    the header may not match any configured site, leaving request.site as None.
+    """
+    site = getattr(request, "site", None)
+    if site is None:
+        site = WagtailSite.objects.filter(is_default_site=True).first() or WagtailSite.objects.first()
+    return site
 from rest_framework.views import APIView
 
 from cms_engagement.models import (
@@ -108,7 +122,7 @@ class TrackPageView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        site = getattr(request, "site", None)
+        site = _resolve_site(request)
         session_id = request.session.session_key or ""
 
         # Update existing view in same session, or create new
@@ -175,7 +189,7 @@ class ReactToPage(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        site = getattr(request, "site", None)
+        site = _resolve_site(request)
 
         # Find existing reaction by user or session
         lookup = {
@@ -238,7 +252,7 @@ class SharePage(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        site = getattr(request, "site", None)
+        site = _resolve_site(request)
 
         PageShare.objects.create(
             content_type_id=ct_id,

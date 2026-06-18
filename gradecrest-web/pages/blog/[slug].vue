@@ -31,7 +31,7 @@ interface Block { type: string; value: unknown }
 
 interface ArticleDetail {
   id: number
-  content_type_id: number
+  page_content_type_id: number
   meta: {
     slug: string
     first_published_at: string
@@ -186,7 +186,7 @@ const viewsDisplay = ref(article.value?.views_count ?? 0)
 
 onMounted(async () => {
   const a = article.value
-  if (!a?.id || !a.content_type_id) return
+  if (!a?.id || !a.page_content_type_id) return
   const base = config.public.apiBase || ''
   if (!base) return
 
@@ -194,7 +194,7 @@ onMounted(async () => {
   try {
     await $fetch(`${base}/cms-api/engagement/track-view/`, {
       method: 'POST',
-      body: { content_type_id: a.content_type_id, object_id: a.id },
+      body: { content_type_id: a.page_content_type_id, object_id: a.id },
     })
     viewsDisplay.value = (a.views_count ?? 0) + 1
   } catch { /* non-critical */ }
@@ -203,7 +203,7 @@ onMounted(async () => {
 async function markHelpful(helpful: boolean) {
   if (helpfulState.value !== 'idle') return
   const a = article.value
-  if (!a?.id || !a.content_type_id) return
+  if (!a?.id || !a.page_content_type_id) return
   const base = config.public.apiBase || ''
   if (!base) return
   helpfulState.value = helpful ? 'yes' : 'no'
@@ -211,7 +211,7 @@ async function markHelpful(helpful: boolean) {
     await $fetch(`${base}/cms-api/engagement/react/`, {
       method: 'POST',
       body: {
-        content_type_id: a.content_type_id,
+        content_type_id: a.page_content_type_id,
         object_id: a.id,
         reaction_type: helpful ? 'thumbs_up' : 'thumbs_down',
       },
