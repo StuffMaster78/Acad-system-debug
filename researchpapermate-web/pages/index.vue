@@ -45,9 +45,9 @@ const services = [
   { title: 'Case Studies',     href: '/services/case-studies',     badge: null,           desc: 'In-depth analysis with structured arguments, evidence and clear recommendations.' },
   { title: 'Data Analysis',    href: '/services/data-analysis',    badge: null,           desc: 'SPSS, R, Python or Excel — full written interpretation and methodology.' },
   { title: 'Lab Reports',      href: '/services/lab-reports',      badge: null,           desc: 'Structured write-ups with correct methodology, results and discussion sections.' },
-  { title: 'Literature Reviews', href: '/services/literature-review', badge: null,        desc: 'Systematic, narrative, and scoping reviews. Themes, gaps, synthesis.' },
-  { title: 'Nursing Research', href: '/services/nursing-research', badge: null,           desc: 'PICOT, SOAP, NCP, clinical case studies — specialist nursing writers.' },
-  { title: 'Admission Essays', href: '/services/admission-essays', badge: null,           desc: 'Personal statements and application essays that stand out to admissions committees.' },
+  { title: 'Literature Reviews', href: '/services/literature-reviews', badge: null,        desc: 'Systematic, narrative, and scoping reviews. Themes, gaps, synthesis.' },
+  { title: 'Nursing Research', href: '/services/research-papers', badge: null,              desc: 'PICOT, SOAP, NCP, clinical case studies — specialist nursing writers.' },
+  { title: 'Admission Essays', href: '/services/essays', badge: null,                       desc: 'Personal statements and application essays that stand out to admissions committees.' },
 ]
 
 // ── Researchers ───────────────────────────────────────────────────────────────

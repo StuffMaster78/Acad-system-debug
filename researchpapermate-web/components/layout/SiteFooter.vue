@@ -7,7 +7,7 @@ const cmsServices = useCmsServiceList()
 const staticServicesA = [
   { label: 'Research Papers',     href: '/services/research-papers'   },
   { label: 'Essays',              href: '/services/essays'            },
-  { label: 'Literature Reviews',  href: '/services/literature-review' },
+  { label: 'Literature Reviews',  href: '/services/literature-reviews' },
   { label: 'Dissertations',       href: '/services/dissertations'     },
   { label: 'Systematic Reviews',  href: '/services/systematic-review' },
   { label: 'Data Analysis',       href: '/services/data-analysis'     },
@@ -19,8 +19,8 @@ const staticServicesB = [
   { label: 'Capstone Projects',   href: '/services/capstone-projects' },
   { label: 'SPSS Analysis',       href: '/services/spss-analysis'     },
   { label: 'Thesis Writing',      href: '/services/thesis-writing'    },
-  { label: 'Nursing Research',    href: '/services/nursing-research'  },
-  { label: 'Admission Essays',    href: '/services/admission-essays'  },
+  { label: 'Nursing Research',    href: '/services/research-papers'   },
+  { label: 'Admission Essays',    href: '/services/essays'            },
   { label: 'Editing & Proofread', href: '/services/editing'           },
 ]
 
