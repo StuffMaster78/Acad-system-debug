@@ -21,6 +21,7 @@ export default defineNuxtConfig({
   nitro: {
     prerender: {
       crawlLinks: true,
+      ignore: ['/order', '/order/**'],
       routes: [
         '/',
         '/pricing',
