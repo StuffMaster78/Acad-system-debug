@@ -75,7 +75,7 @@ const cmsToc = computed(() => extractToc(cmsArticle.value?.body ?? []))
 const tocOpen = ref(false)
 onMounted(() => { tocOpen.value = window.innerWidth >= 1024 })
 
-const { stats, myReact, bookmarked, ready, react, toggleBookmark, reactionCount, fmtCount } =
+const { pageId, stats, myReact, bookmarked, ready, react, toggleBookmark, reactionCount, fmtCount } =
   useEngagement(slug)
 
 const reactions: { type: 'helpful' | 'love' | 'insightful'; emoji: string; label: string }[] = [
@@ -170,7 +170,10 @@ useSeoMeta({
   ogType:               'article',
   articlePublishedTime: postDate,
   articleModifiedTime:  postModified,
-  articleAuthor:        computed(() => cmsArticle.value?.author_name || staticPost?.author?.name),
+  articleAuthor:        computed(() => {
+    const author = cmsArticle.value?.author_name || staticPost?.author?.name
+    return author ? [author] : undefined
+  }),
 })
 
 const ldScripts = computed(() => {

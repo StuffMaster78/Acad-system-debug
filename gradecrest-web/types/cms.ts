@@ -8,6 +8,7 @@ export interface CmsServicePageListItem {
   id: number
   title: string
   slug: string
+  nav_label?: string
   url?: string
   template_key: string
   search_description?: string

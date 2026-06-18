@@ -20,7 +20,7 @@ export default defineNuxtConfig({
         '/legal/terms',
         '/legal/refunds',
       ],
-      failOnError: false,
+      failOnError: true,
     },
     devProxy: {
       '/api/v1': {
@@ -45,7 +45,6 @@ export default defineNuxtConfig({
 
   sitemap: {
     exclude: ['/login', '/auth/**'],
-    sources: ['/api/_sitemap-urls'],
   },
 
   runtimeConfig: {

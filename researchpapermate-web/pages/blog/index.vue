@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ArrowRight, Calendar, Clock } from '@lucide/vue'
-
 const app = useAppUrl()
 
 useSeoMeta({
@@ -72,7 +70,16 @@ function normCms(p: CmsPost): Post {
   return { slug: p.meta.slug, title: p.title, excerpt: p.excerpt, category: p.category_name || '', readingTime: p.reading_time_minutes || 1, publishedAt: p.meta.first_published_at, thumbnail: p.thumbnail?.url ?? null, fromCms: true }
 }
 function normStatic(p: ReturnType<typeof getAll>[0]): Post {
-  return { slug: p.slug, title: p.title, excerpt: p.excerpt, category: p.category, readingTime: p.readingTime, publishedAt: p.publishedAt, thumbnail: null, fromCms: false }
+  return {
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    category: p.category,
+    readingTime: Number.parseInt(p.readTime, 10) || 1,
+    publishedAt: p.date,
+    thumbnail: null,
+    fromCms: false,
+  }
 }
 
 const allPosts = computed<Post[]>(() =>
@@ -167,7 +174,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
           <div v-if="!filtered.length" class="space-y-4 py-20 text-center">
             <p class="text-sm text-slate-500">No articles yet — check back soon.</p>
             <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-3 text-sm font-bold text-white hover:bg-amber-600 transition-colors">
-              Place an order <ArrowRight class="h-4 w-4" />
+              Place an order <Icon name="arrow-right" class="h-4 w-4" />
             </a>
           </div>
 
@@ -187,13 +194,13 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
               <div class="flex flex-1 flex-col justify-center space-y-3 p-6 sm:p-8">
                 <div class="flex items-center gap-3 text-xs text-slate-500">
                   <span v-if="featured.category" class="rounded-full px-2.5 py-0.5 font-semibold" :class="catColor(featured.category)">{{ featured.category }}</span>
-                  <span class="flex items-center gap-1"><Clock class="h-3 w-3" />{{ featured.readingTime }} min read</span>
+                  <span class="flex items-center gap-1"><Icon name="clock" class="h-3 w-3" />{{ featured.readingTime }} min read</span>
                 </div>
                 <h2 class="text-xl font-bold leading-snug text-slate-900 transition-colors group-hover:text-claret-700">{{ featured.title }}</h2>
                 <p v-if="featured.excerpt" class="line-clamp-3 text-sm leading-relaxed text-slate-500">{{ featured.excerpt }}</p>
                 <div class="flex items-center gap-4 pt-1">
-                  <span class="flex items-center gap-1 text-xs text-slate-400"><Calendar class="h-3 w-3" />{{ formatDate(featured.publishedAt) }}</span>
-                  <span class="flex items-center gap-1 text-xs font-semibold text-brand-600 group-hover:underline">Read article <ArrowRight class="h-3 w-3" /></span>
+                  <span class="flex items-center gap-1 text-xs text-slate-400"><Icon name="calendar" class="h-3 w-3" />{{ formatDate(featured.publishedAt) }}</span>
+                  <span class="flex items-center gap-1 text-xs font-semibold text-brand-600 group-hover:underline">Read article <Icon name="arrow-right" class="h-3 w-3" /></span>
                 </div>
               </div>
             </NuxtLink>
@@ -215,13 +222,13 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
                 <div class="flex flex-1 flex-col space-y-2.5 p-5">
                   <div class="flex items-center gap-2.5 text-xs text-slate-500">
                     <span v-if="post.category" class="rounded-full px-2.5 py-0.5 font-semibold" :class="catColor(post.category)">{{ post.category }}</span>
-                    <span v-if="post.readingTime" class="flex items-center gap-1"><Clock class="h-3 w-3" />{{ post.readingTime }} min</span>
+                    <span v-if="post.readingTime" class="flex items-center gap-1"><Icon name="clock" class="h-3 w-3" />{{ post.readingTime }} min</span>
                   </div>
                   <h2 class="line-clamp-2 flex-1 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-claret-700">{{ post.title }}</h2>
                   <p v-if="post.excerpt" class="line-clamp-2 text-xs leading-relaxed text-slate-500">{{ post.excerpt }}</p>
                   <div class="flex items-center justify-between border-t border-slate-100 pt-1.5">
-                    <span class="flex items-center gap-1 text-xs text-slate-400"><Calendar class="h-3 w-3" />{{ formatDate(post.publishedAt) }}</span>
-                    <ArrowRight class="h-3.5 w-3.5 text-brand-600 opacity-0 transition-opacity group-hover:opacity-100" />
+                    <span class="flex items-center gap-1 text-xs text-slate-400"><Icon name="calendar" class="h-3 w-3" />{{ formatDate(post.publishedAt) }}</span>
+                    <Icon name="arrow-right" class="h-3.5 w-3.5 text-brand-600 opacity-0 transition-opacity group-hover:opacity-100" />
                   </div>
                 </div>
               </NuxtLink>
@@ -250,7 +257,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
         <h2 class="text-xl font-bold text-slate-900">Need your research paper written?</h2>
         <p class="text-sm text-slate-500">Master's and PhD writers, 100+ subjects. Properly cited, from $15/page.</p>
         <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-8 py-3.5 text-sm font-bold text-white transition-colors hover:bg-amber-600">
-          Place my order <ArrowRight class="h-4 w-4" />
+          Place my order <Icon name="arrow-right" class="h-4 w-4" />
         </a>
       </div>
     </section>

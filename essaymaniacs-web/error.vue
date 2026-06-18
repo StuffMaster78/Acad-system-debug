@@ -35,6 +35,10 @@ const suggestions = computed(() => {
 function handleError() {
   clearError({ redirect: '/' })
 }
+
+function goBack() {
+  window.history.back()
+}
 </script>
 
 <template>
@@ -75,7 +79,7 @@ function handleError() {
           </button>
           <button
             class="inline-flex h-11 items-center rounded-lg border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-            @click="() => history.back()"
+            @click="goBack"
           >
             ← Go back
           </button>

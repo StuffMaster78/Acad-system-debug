@@ -187,7 +187,10 @@ useSeoMeta({
   ogType:               'article',
   articlePublishedTime: postDate,
   articleModifiedTime:  postModified,
-  articleAuthor:        computed(() => cmsArticle.value?.author_name || staticPost?.author?.name),
+  articleAuthor:        computed(() => {
+    const author = cmsArticle.value?.author_name || staticPost?.author?.name
+    return author ? [author] : undefined
+  }),
 })
 
 const ldScripts = computed(() => {

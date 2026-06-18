@@ -31,7 +31,7 @@ export default defineNuxtConfig({
         '/register',
         '/auth/magic-link',
       ],
-      failOnError: false,
+      failOnError: true,
     },
     // Dev: proxy /api/v1/* to Django so the Host header is localhost:3000
     // (matches the Website/PortalDefinition records seeded for local dev).

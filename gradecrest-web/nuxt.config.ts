@@ -14,8 +14,6 @@ export default defineNuxtConfig({
   // - Service pages rendered per-request so Wagtail edits go live immediately
   routeRules: {
     '/services/**': { isr: 3600 },
-    '/blog/**':     { ssr: true },
-    '/blog':        { ssr: true },
   },
 
   nitro: {
@@ -80,7 +78,6 @@ export default defineNuxtConfig({
   },
 
   sitemap: {
-    hostname: 'https://gradecrest.com',
     exclude: ['/auth/**', '/legal/**'],
     // Pulls all 160 CMS service page slugs at build/generate time
     sources: ['/api/__sitemap__/services'],

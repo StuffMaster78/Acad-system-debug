@@ -61,7 +61,7 @@ const CATEGORIES = [
             <p class="text-sm font-bold text-slate-900">We use cookies</p>
             <p class="mt-0.5 text-sm leading-relaxed text-slate-500">
               Necessary cookies keep the site secure. Optional cookies help us improve your experience and measure what's working.
-              <NuxtLink to="/privacy" class="font-medium text-brand-600 hover:underline">Privacy policy →</NuxtLink>
+              <NuxtLink to="/legal/privacy" class="font-medium text-brand-600 hover:underline">Privacy policy →</NuxtLink>
             </p>
           </div>
           <div class="flex shrink-0 flex-wrap gap-2">

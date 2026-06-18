@@ -51,7 +51,7 @@ export default defineNuxtConfig({
         '/services/postgrad-nursing',
         '/services/health-medical-writers',
       ],
-      failOnError: false,
+      failOnError: true,
     },
     devProxy: {
       '/api/v1': {

@@ -96,8 +96,9 @@ const steps = [
 function selectType(ot: typeof ORDER_TYPES[0]) {
   if (ot.external) { router.push(ot.external); return }
   form.orderType = ot
-  if (ot.presetWorkType) {
-    const match = workTypes.value.find(w => w.id === ot.presetWorkType || w.label.toLowerCase().startsWith(ot.presetWorkType.toLowerCase()))
+  const presetWorkType = ot.presetWorkType
+  if (presetWorkType) {
+    const match = workTypes.value.find(w => w.id === presetWorkType || w.label.toLowerCase().startsWith(presetWorkType.toLowerCase()))
     if (match) { form.workType = match; form.workTypePreset = true }
   } else {
     form.workTypePreset = false
