@@ -243,7 +243,7 @@ const faqs = [
       <p class="section-sub text-center">Pick your nursing level and deadline — see your exact price instantly.</p>
       <div class="mt-10">
         <ClientOnly>
-          <OrderCalculator />
+          <MultiStepOrderForm />
           <template #fallback><div class="h-72 animate-pulse rounded-2xl bg-slate-100" /></template>
         </ClientOnly>
       </div>

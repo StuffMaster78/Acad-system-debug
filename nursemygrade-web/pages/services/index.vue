@@ -287,7 +287,7 @@ useHead({
         <p class="section-sub text-center">Pick your level and deadline — see your nursing paper price in seconds.</p>
         <div class="mt-10">
           <ClientOnly>
-            <OrderCalculator />
+            <MultiStepOrderForm />
             <template #fallback><div class="h-72 animate-pulse rounded-2xl bg-slate-100" /></template>
           </ClientOnly>
         </div>

@@ -474,6 +474,12 @@ const tags             = computed(() => article.value?.tag_names ?? [])
                   </nav>
                 </div>
 
+                <!-- Compact price calculator -->
+                <ClientOnly>
+                  <PricingCalculator />
+                  <template #fallback><div class="h-96 animate-pulse rounded-2xl bg-forest-900/40" /></template>
+                </ClientOnly>
+
                 <!-- Sidebar Order CTA -->
                 <div class="rounded-2xl bg-gc-600 p-5 text-white space-y-3">
                   <p class="font-bold text-sm leading-snug">Get your paper written by an expert</p>

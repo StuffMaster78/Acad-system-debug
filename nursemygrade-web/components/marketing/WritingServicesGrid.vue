@@ -94,7 +94,7 @@ const serviceLinks = [
           <h3 class="font-serif text-xl font-bold text-slate-900 mb-1">Get an instant price</h3>
           <p class="text-sm text-slate-500 mb-6">Select your paper type, level, and deadline — see your price in seconds.</p>
           <ClientOnly>
-            <OrderCalculator />
+            <MultiStepOrderForm />
             <template #fallback>
               <div class="h-56 animate-pulse rounded-xl bg-slate-100" />
             </template>
