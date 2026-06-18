@@ -35,8 +35,9 @@ class AuthorViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             from cms_blog.models import BlogPostPage
             from cms_blog.serializers import BlogPostListSerializer
+            from cms_engagement.utils import prefetch_engagement
 
-            posts = (
+            posts = prefetch_engagement(
                 BlogPostPage.objects.live()
                 .filter(primary_author=author)
                 .order_by("-first_published_at")[:20]

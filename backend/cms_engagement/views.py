@@ -8,26 +8,26 @@ Public endpoints for the engagement bar on the public site:
 - Track a page view (JS beacon endpoint)
 - Track a share
 - Bookmark (authenticated only)
+
+ID resolution
+─────────────
+All write endpoints accept two formats so that different marketing
+frontends can call them without needing a content-type lookup:
+
+  GradeCrest format  { content_type_id, object_id }
+  NMG/EM/RPM format  { page_id }   ← Wagtail page PK, resolved here
+
+Reaction types
+──────────────
+Canonical (stored):  thumbs_up | thumbs_down | love | useful
+NMG/EM/RPM aliases:  helpful → thumbs_up | insightful → useful
 """
 
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import permissions, status
 from rest_framework.response import Response
-from wagtail.models import Site as WagtailSite
-
-
-def _resolve_site(request):
-    """Return request.site if set by Wagtail middleware; fall back to default site.
-
-    The Wagtail SiteMiddleware resolves the site from the Host header. When the
-    frontend calls from a different origin (e.g. localhost:3000 → localhost:8000),
-    the header may not match any configured site, leaving request.site as None.
-    """
-    site = getattr(request, "site", None)
-    if site is None:
-        site = WagtailSite.objects.filter(is_default_site=True).first() or WagtailSite.objects.first()
-    return site
 from rest_framework.views import APIView
+from wagtail.models import Site as WagtailSite
 
 from cms_engagement.models import (
     EngagementSummary,
@@ -39,12 +39,95 @@ from cms_engagement.models import (
 from cms_engagement.serializers import EngagementSummarySerializer
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _resolve_site(request):
+    """Return request.site; fall back to the default Wagtail site.
+
+    Wagtail's SiteMiddleware maps the Host header to a site.  When the
+    frontend calls from a different origin (e.g. :3000 → :8000), the
+    header may not match and request.site is None.
+    """
+    site = getattr(request, "site", None)
+    if site is None:
+        site = (
+            WagtailSite.objects.filter(is_default_site=True).first()
+            or WagtailSite.objects.first()
+        )
+    return site
+
+
+def _session_key(request) -> str:
+    """Return a stable anonymous session key, creating one when needed."""
+    if not request.session.session_key:
+        request.session.create()
+    return request.session.session_key or ""
+
+
+def _resolve_ids(data: dict) -> tuple[int | None, int | None]:
+    """Resolve (content_type_id, object_id) from a request data dict.
+
+    Accepts:
+      { content_type_id, object_id }   — GradeCrest / direct format
+      { page_id }                       — Wagtail page PK shortcut
+    """
+    ct_id  = data.get("content_type_id")
+    obj_id = data.get("object_id")
+    if ct_id and obj_id:
+        return int(ct_id), int(obj_id)
+
+    page_id = data.get("page_id")
+    if page_id:
+        try:
+            from wagtail.models import Page
+            page = Page.objects.get(pk=int(page_id)).specific
+            ct = ContentType.objects.get_for_model(page.__class__)
+            return ct.pk, page.pk
+        except Exception:
+            pass
+
+    return None, None
+
+
+# Canonical stored values; aliases let NMG/EM/RPM send friendlier names.
+_REACTION_ALIASES: dict[str, str] = {
+    "helpful":    "thumbs_up",
+    "insightful": "useful",
+}
+_VALID_REACTIONS = {"thumbs_up", "thumbs_down", "love", "useful"}
+
+
+def _canonical_reaction(raw: str) -> str:
+    return _REACTION_ALIASES.get(raw, raw)
+
+
+def _composable_stats(data: dict) -> dict:
+    """Add composable-friendly aliases to a serializer response dict.
+
+    The NMG / EM / RPM useEngagement composable reads:
+      stats.views        → total_views
+      stats.shares       → total_shares
+      stats.reactions    → [{type, count}, …]  (using composable type names)
+    """
+    data["views"]  = data.get("total_views", 0)
+    data["shares"] = data.get("total_shares", 0)
+    data["reactions"] = [
+        {"type": "helpful",    "count": data.get("thumbs_up_count",   0)},
+        {"type": "love",       "count": data.get("love_count",         0)},
+        {"type": "insightful", "count": data.get("useful_count",       0)},
+    ]
+    return data
+
+
+# ── Views ─────────────────────────────────────────────────────────────────────
+
 class PageEngagementView(APIView):
     """
     GET /cms-api/engagement/page/<content_type_id>/<object_id>/
     GET /cms-api/engagement/page/?page_id=<wagtail_page_id>
 
-    Returns engagement summary. The ?page_id shortcut resolves the content_type automatically.
+    Returns engagement summary. The ?page_id shortcut resolves the
+    content_type automatically.
     """
 
     permission_classes = [permissions.AllowAny]
@@ -57,22 +140,18 @@ class PageEngagementView(APIView):
                     {"error": "Provide path params or ?page_id"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            try:
-                from wagtail.models import Page
-                from django.contrib.contenttypes.models import ContentType as CT
-                page = Page.objects.get(pk=int(page_id)).specific
-                content_type_id = CT.objects.get_for_model(page).id
-                object_id = page.pk
-            except Exception:
+            ct_id, obj_id = _resolve_ids({"page_id": page_id})
+            if not ct_id:
                 return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+            content_type_id, object_id = ct_id, obj_id
+
         try:
             summary = EngagementSummary.objects.get(
                 content_type_id=content_type_id,
                 object_id=object_id,
             )
-            data = EngagementSummarySerializer(summary).data
+            data = dict(EngagementSummarySerializer(summary).data)
 
-            # Add user's own reaction if authenticated
             if request.user.is_authenticated:
                 user_reaction = PageReaction.objects.filter(
                     content_type_id=content_type_id,
@@ -87,56 +166,47 @@ class PageEngagementView(APIView):
                     user=request.user,
                 ).exists()
 
-            return Response(data)
+            return Response(_composable_stats(data))
 
         except EngagementSummary.DoesNotExist:
-            return Response({
+            return Response(_composable_stats({
                 "total_views": 0, "unique_views": 0,
                 "thumbs_up_count": 0, "thumbs_down_count": 0,
                 "love_count": 0, "useful_count": 0,
                 "total_shares": 0, "engagement_score": 0,
-            })
+            }))
 
 
 class TrackPageView(APIView):
     """POST /cms-api/engagement/track-view/
-    Called by JS beacon on page load.
 
-    Body: {
-        "content_type_id": 42,
-        "object_id": 123,
-        "time_on_page": 45, (optional, updated via beacon)
-        "scroll_depth": 72 (optional, updated via beacon)
-    }
+    Body (either format):
+      { content_type_id, object_id, time_on_page?, scroll_depth? }
+      { page_id, time_on_page?, scroll_depth? }
     """
 
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        ct_id = request.data.get("content_type_id")
-        obj_id = request.data.get("object_id")
-
+        ct_id, obj_id = _resolve_ids(request.data)
         if not ct_id or not obj_id:
             return Response(
-                {"error": "content_type_id and object_id required"},
+                {"error": "Provide content_type_id+object_id or page_id"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        site = _resolve_site(request)
-        session_id = request.session.session_key or ""
+        site       = _resolve_site(request)
+        session_id = _session_key(request)
+        time_on_page = request.data.get("time_on_page", 0)
+        scroll_depth = request.data.get("scroll_depth", 0)
 
-        # Update existing view in same session, or create new
         existing = PageView.objects.filter(
             content_type_id=ct_id,
             object_id=obj_id,
             session_id=session_id,
         ).order_by("-created_at").first()
 
-        time_on_page = request.data.get("time_on_page", 0)
-        scroll_depth = request.data.get("scroll_depth", 0)
-
         if existing:
-            # Update engagement depth
             if time_on_page:
                 existing.time_on_page = max(existing.time_on_page, int(time_on_page))
             if scroll_depth:
@@ -162,93 +232,79 @@ class ReactToPage(APIView):
     """POST /cms-api/engagement/react/
     Toggle a reaction on a page.
 
-    Body: {
-        "content_type_id": 42,
-        "object_id": 123,
-        "reaction_type": "thumbs_up"
-    }
+    Body (either format):
+      { content_type_id, object_id, reaction_type }
+      { page_id, reaction_type }
+      { page_id, reaction }          ← NMG/EM/RPM composable alias
     """
 
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        ct_id = request.data.get("content_type_id")
-        obj_id = request.data.get("object_id")
-        reaction_type = request.data.get("reaction_type")
-
-        if not all([ct_id, obj_id, reaction_type]):
+        ct_id, obj_id = _resolve_ids(request.data)
+        if not ct_id or not obj_id:
             return Response(
-                {"error": "content_type_id, object_id, and reaction_type required"},
+                {"error": "Provide content_type_id+object_id or page_id"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        valid_types = ["thumbs_up", "thumbs_down", "love", "useful"]
-        if reaction_type not in valid_types:
+        raw_type = request.data.get("reaction_type") or request.data.get("reaction", "")
+        reaction_type = _canonical_reaction(str(raw_type))
+        if reaction_type not in _VALID_REACTIONS:
             return Response(
-                {"error": f"reaction_type must be one of: {valid_types}"},
+                {"error": f"reaction_type must be one of: {sorted(_VALID_REACTIONS)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         site = _resolve_site(request)
 
-        # Find existing reaction by user or session
-        lookup = {
-            "content_type_id": ct_id,
-            "object_id": obj_id,
-        }
+        lookup: dict = {"content_type_id": ct_id, "object_id": obj_id}
         if request.user.is_authenticated:
             lookup["user"] = request.user
         else:
-            lookup["session_id"] = request.session.session_key or ""
+            lookup["session_id"] = _session_key(request)
 
         existing = PageReaction.objects.filter(**lookup).first()
 
         if existing:
             if existing.reaction_type == reaction_type:
-                # Toggle off
                 existing.delete()
                 return Response({"status": "removed", "reaction_type": None})
-            else:
-                # Change reaction
-                existing.reaction_type = reaction_type
-                existing.save(update_fields=["reaction_type"])
-                return Response({"status": "changed", "reaction_type": reaction_type})
-        else:
-            PageReaction.objects.create(
-                content_type_id=ct_id,
-                object_id=obj_id,
-                site=site,
-                user=request.user if request.user.is_authenticated else None,
-                session_id=request.session.session_key or "",
-                reaction_type=reaction_type,
-            )
-            return Response(
-                {"status": "added", "reaction_type": reaction_type},
-                status=status.HTTP_201_CREATED,
-            )
+            existing.reaction_type = reaction_type
+            existing.save(update_fields=["reaction_type"])
+            return Response({"status": "changed", "reaction_type": reaction_type})
+
+        PageReaction.objects.create(
+            content_type_id=ct_id,
+            object_id=obj_id,
+            site=site,
+            user=request.user if request.user.is_authenticated else None,
+            session_id="" if request.user.is_authenticated else _session_key(request),
+            reaction_type=reaction_type,
+        )
+        return Response(
+            {"status": "added", "reaction_type": reaction_type},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class SharePage(APIView):
     """POST /cms-api/engagement/share/
-    Track a share-button click.
 
-    Body: {
-        "content_type_id": 42,
-        "object_id": 123,
-        "platform": "twitter"
-    }
+    Body (either format):
+      { content_type_id, object_id, platform }
+      { page_id, platform }
     """
 
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        ct_id = request.data.get("content_type_id")
-        obj_id = request.data.get("object_id")
+        ct_id, obj_id = _resolve_ids(request.data)
         platform = request.data.get("platform")
 
-        if not all([ct_id, obj_id, platform]):
+        if not ct_id or not obj_id or not platform:
             return Response(
-                {"error": "content_type_id, object_id, and platform required"},
+                {"error": "Provide (content_type_id+object_id or page_id) and platform"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -267,21 +323,20 @@ class SharePage(APIView):
 
 
 class BookmarkPage(APIView):
-    """POST /cms-api/engagement/bookmark/
-    Toggle bookmark (authenticated only).
+    """POST /cms-api/engagement/bookmark/ — toggle (authenticated only).
 
-    Body: {"content_type_id": 42, "object_id": 123}
+    Body (either format):
+      { content_type_id, object_id }
+      { page_id }
     """
 
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        ct_id = request.data.get("content_type_id")
-        obj_id = request.data.get("object_id")
-
-        if not all([ct_id, obj_id]):
+        ct_id, obj_id = _resolve_ids(request.data)
+        if not ct_id or not obj_id:
             return Response(
-                {"error": "content_type_id and object_id required"},
+                {"error": "Provide content_type_id+object_id or page_id"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

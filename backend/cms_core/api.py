@@ -18,6 +18,9 @@ Usage in frontend:
 
 from rest_framework.permissions import AllowAny
 
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import IntegerField, OuterRef, Subquery, Value
+from django.db.models.functions import Coalesce
 from wagtail.api.v2.views import PagesAPIViewSet
 from wagtail.api.v2.router import WagtailAPIRouter
 from wagtail.images.api.v2.views import ImagesAPIViewSet
@@ -43,6 +46,33 @@ class TenantFilteredPagesAPIViewSet(PagesAPIViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+
+        # BlogPostPage exposes materialized engagement counters as API fields.
+        # Annotate them in the listing query so requesting fields=* does not
+        # execute two EngagementSummary lookups for every article.
+        from cms_blog.models import BlogPostPage
+
+        if qs.model is BlogPostPage:
+            from cms_engagement.models import EngagementSummary
+
+            content_type_id = ContentType.objects.get_for_model(BlogPostPage).pk
+            summaries = EngagementSummary.objects.filter(
+                content_type_id=content_type_id,
+                object_id=OuterRef("pk"),
+            )
+            qs = qs.annotate(
+                engagement_views_count=Coalesce(
+                    Subquery(summaries.values("total_views")[:1]),
+                    Value(0),
+                    output_field=IntegerField(),
+                ),
+                engagement_likes_count=Coalesce(
+                    Subquery(summaries.values("thumbs_up_count")[:1]),
+                    Value(0),
+                    output_field=IntegerField(),
+                ),
+            )
+
         site_id = self.request.query_params.get("site")
         if site_id:
             from wagtail.models import Site

@@ -345,6 +345,15 @@ class BlogPostPage(Page):
 
     @property
     def views_count(self) -> int:
+        annotated = getattr(self, "engagement_views_count", None)
+        if annotated is not None:
+            return annotated
+        if getattr(self, "_engagement_prefetched", False):
+            cached = getattr(self, "_cached_engagement", None)
+            return cached.total_views if cached is not None else 0
+        cached = getattr(self, "_cached_engagement", None)
+        if cached is not None:
+            return cached.total_views
         from django.contrib.contenttypes.models import ContentType
         from cms_engagement.models import EngagementSummary
         try:
@@ -355,6 +364,15 @@ class BlogPostPage(Page):
 
     @property
     def likes_count(self) -> int:
+        annotated = getattr(self, "engagement_likes_count", None)
+        if annotated is not None:
+            return annotated
+        if getattr(self, "_engagement_prefetched", False):
+            cached = getattr(self, "_cached_engagement", None)
+            return cached.thumbs_up_count if cached is not None else 0
+        cached = getattr(self, "_cached_engagement", None)
+        if cached is not None:
+            return cached.thumbs_up_count
         from django.contrib.contenttypes.models import ContentType
         from cms_engagement.models import EngagementSummary
         try:

@@ -197,15 +197,19 @@ class ServicePageSchemaOrgSerializer(serializers.Serializer):
 
         # Pricing
         if page.pricing_from:
-            schema["offers"] = {
-                "@type": "Offer",
-                "priceCurrency": "USD",
-                "price": str(page.pricing_from),
-            }
             if page.pricing_to:
-                schema["offers"]["highPrice"] = str(page.pricing_to)
-                schema["offers"]["@type"] = "AggregateOffer"
-                schema["offers"]["lowPrice"] = str(page.pricing_from)
+                schema["offers"] = {
+                    "@type": "AggregateOffer",
+                    "priceCurrency": "USD",
+                    "lowPrice": str(page.pricing_from),
+                    "highPrice": str(page.pricing_to),
+                }
+            else:
+                schema["offers"] = {
+                    "@type": "Offer",
+                    "priceCurrency": "USD",
+                    "price": str(page.pricing_from),
+                }
 
         # Provider (from tenant settings)
         try:

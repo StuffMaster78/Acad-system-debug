@@ -58,7 +58,8 @@ class ContentPillarViewSet(viewsets.ReadOnlyModelViewSet):
         pillar = self.get_object()
         from cms_blog.serializers import BlogPostListSerializer
 
-        posts = pillar.spoke_posts.order_by("-first_published_at")[:50]
+        from cms_engagement.utils import prefetch_engagement
+        posts = prefetch_engagement(pillar.spoke_posts.order_by("-first_published_at")[:50])
         serializer = BlogPostListSerializer(posts, many=True)
         return Response(serializer.data)
 
