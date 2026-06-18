@@ -97,11 +97,64 @@ onMounted(async () => {
   cfgEnglishTypes.value      = cfg.english_types
   gcAddons.value             = cfg.addons as typeof gcAddons.value
 
-  // Restore from draft first, then apply config defaults for IDs not in draft
+  // Apply config defaults when there's no saved draft
   if (!savedDraft) {
     levelCode.value   = cfg.academic_levels[1]?.code ?? cfg.academic_levels[0]?.code ?? 'undergrad'
     deadlineHrs.value = cfg.deadlines[0]?.max_hours ?? 336
     paperCode.value   = cfg.paper_types[0]?.code ?? 'essay'
+  }
+
+  // ── Query param pre-fill (service page CTAs + compact calculator) ─────────
+  const q = route.query
+
+  // ?service=essay-writing — from service page CTAs
+  const serviceSlug = q.service as string | undefined
+  if (serviceSlug) {
+    const mappedCode = SERVICE_TO_PAPER[serviceSlug]
+    if (mappedCode) paperCode.value = mappedCode
+    orderTypeId.value = 'paper'
+    step.value = 1
+  }
+
+  // ?type=writing|editing|proofreading|rewriting|design|diagram — from calculator
+  const qtype = String(q.type ?? '')
+  if (qtype && !serviceSlug) {
+    if (['writing', 'editing', 'proofreading', 'rewriting'].includes(qtype)) {
+      orderTypeId.value = 'paper'
+      workTypeId.value  = qtype
+    } else if (qtype === 'design') {
+      orderTypeId.value = 'design'
+    } else if (qtype === 'diagram') {
+      orderTypeId.value = 'diagram'
+    }
+    if (qtype !== '') step.value = 1
+  }
+
+  if (q.level) {
+    if (cfg.academic_levels.some(l => l.code === String(q.level)))
+      levelCode.value = String(q.level)
+  }
+  if (q.deadline) {
+    const hrs = Number(q.deadline)
+    if (cfg.deadlines.some(d => d.max_hours === hrs)) deadlineHrs.value = hrs
+  }
+  if (q.pages) {
+    const pg = Number(q.pages)
+    if (pg >= 1 && pg <= 100) units.value = pg
+  }
+  if (q.paper) {
+    if (cfg.paper_types.some(p => p.code === String(q.paper)))
+      paperCode.value = String(q.paper)
+  }
+  // subject: stored by name (subjects use name as id in this form)
+  if (q.subject) subjectId.value = String(q.subject)
+  if (q.spacing === 'single') spacing.value = 'single'
+  if (q.addons) {
+    const codes = String(q.addons).split(',').filter(Boolean)
+    const ids = (cfg.addons as typeof gcAddons.value)
+      .filter(a => codes.includes(a.addon_code))
+      .map(a => a.id)
+    if (ids.length) selectedAddonIds.value.push(...ids)
   }
 })
 
@@ -241,17 +294,7 @@ const SERVICE_TO_PAPER: Record<string, string> = {
 }
 
 watch([orderTypeId, paperCode, levelCode, deadlineHrs, units, spacing], scheduleEstimate)
-onMounted(() => {
-  // Pre-fill from service page CTA (?service=essay-writing)
-  const serviceSlug = route.query.service as string | undefined
-  if (serviceSlug) {
-    const mappedCode = SERVICE_TO_PAPER[serviceSlug]
-    if (mappedCode) paperCode.value = mappedCode
-    orderTypeId.value = 'paper'
-    step.value = 1
-  }
-  void refreshEstimate()
-})
+onMounted(() => { void refreshEstimate() })
 
 // ── Portal redirect URL ────────────────────────────────────────────────────
 const portalUrl = computed(() => {

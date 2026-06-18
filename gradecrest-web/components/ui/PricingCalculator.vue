@@ -147,13 +147,14 @@ watch([serviceType, paperCode, levelCode, deadlineHrs, pages, spacing], schedule
 
 const orderUrl = computed(() => {
   const p = new URLSearchParams({ type: serviceType.value })
-  if (levelCode.value)  p.set('level', levelCode.value)
+  if (levelCode.value)   p.set('level', levelCode.value)
   if (deadlineHrs.value) p.set('deadline', String(deadlineHrs.value))
-  if (pages.value > 1)  p.set('pages', String(pages.value))
-  if (paperCode.value)  p.set('paper', paperCode.value)
+  if (pages.value > 1)   p.set('pages', String(pages.value))
+  if (paperCode.value)   p.set('paper', paperCode.value)
   if (spacing.value === 'single') p.set('spacing', 'single')
   if (subjectName.value) p.set('subject', subjectName.value)
   if (selectedAddonCodes.value.length) p.set('addons', selectedAddonCodes.value.join(','))
+  // Point to GradeCrest's own full order form, not the external portal
   return `/order?${p.toString()}`
 })
 
