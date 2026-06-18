@@ -46,8 +46,27 @@ class Command(BaseCommand):
         website = self._seed_website(domain)
         self._seed_branding(website)
         self._seed_portal()
-        self._seed_cors_reminder(domain, app_domain)
 
+        from django.core import management as mgmt
+
+        # ── Academic settings & pricing rates ─────────────────────────────
+        self.stdout.write(self.style.MIGRATE_HEADING("\n⚙️  Seeding academic settings…\n"))
+        mgmt.call_command("populate_academic_settings", domain)
+        self.stdout.write(self.style.MIGRATE_HEADING("\n⚙️  Seeding pricing defaults…\n"))
+        mgmt.call_command("seed_pricing_defaults", domain)
+
+        # ── Wagtail blog + service pages (needs setup_tenants first) ──────
+        for cmd in ("seed_gradecrest_blog", "seed_gradecrest_services", "seed_gradecrest_redirects"):
+            self.stdout.write(self.style.MIGRATE_HEADING(f"\n📄  Running {cmd}…\n"))
+            try:
+                mgmt.call_command(cmd)
+            except Exception as exc:
+                self.stdout.write(self.style.WARNING(f" ⚠️  {cmd} skipped — run setup_tenants first ({exc})\n"))
+
+        # ── Announcement bar ──────────────────────────────────────────────
+        self._seed_promo_bar(domain, code="GRADE15", message="Get 10% off your first order", suffix="Use code GRADE15")
+
+        self._seed_cors_reminder(domain, app_domain)
         self.stdout.write(self.style.SUCCESS("\nDone. GradeCrest tenant is ready.\n"))
 
     # ----------------------------------------------------------------
@@ -119,6 +138,25 @@ class Command(BaseCommand):
             },
         )
         self._log("PortalDefinition (client_portal)", portal.domain, created)
+
+    def _seed_promo_bar(self, domain: str, *, code: str, message: str, suffix: str):
+        bare = domain.replace("https://", "").replace("http://", "").split(":")[0]
+        try:
+            from wagtail.models import Site
+            from cms_core.models import TenantSEOSettings
+            site = Site.objects.filter(hostname=bare).first()
+            if not site:
+                self.stdout.write(self.style.WARNING(f" ⚠️  Promo bar skipped — no Wagtail Site for {bare} (run setup_tenants first)\n"))
+                return
+            settings = TenantSEOSettings.for_site(site)
+            settings.promo_bar_enabled = True
+            settings.promo_code        = code
+            settings.promo_message     = message
+            settings.promo_suffix      = suffix
+            settings.save()
+            self.stdout.write(f"  Updated  TenantSEOSettings (promo bar): {code}")
+        except Exception as exc:
+            self.stdout.write(self.style.WARNING(f" ⚠️  Promo bar skipped: {exc}\n"))
 
     def _seed_cors_reminder(self, domain: str, app_domain: str):
         bare     = domain.replace("https://", "").replace("http://", "")

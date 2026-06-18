@@ -107,8 +107,8 @@ const lastChanged = computed(() => {
           :class="scopeColors[section.requiredScope]"
         >{{ scopeLabel[section.requiredScope] }}</span>
 
-        <span v-if="section.pendingBackend" class="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-graphite">
-          Pending backend
+        <span v-if="section.pendingBackend" class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-graphite">
+          Coming soon
         </span>
 
         <span v-if="isReadonly" class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] text-graphite">

@@ -15,6 +15,7 @@ export interface PricingSpacingMultipliers {
 export interface CfgDisplayOption { name: string; description?: string }
 export interface CfgSubject       { name: string; category: string }
 export interface CfgEnglishType   { name: string; code: string }
+export interface CfgAddon         { id: number; addon_code: string; name: string; description: string; flat_amount: number }
 
 export interface PublicPricingConfig {
   currency: string
@@ -31,7 +32,33 @@ export interface PublicPricingConfig {
   work_types: CfgDisplayOption[]
   formatting_styles: CfgDisplayOption[]
   english_types: CfgEnglishType[]
+  addons: CfgAddon[]
 }
+
+export const FALLBACK_SUBJECTS: CfgSubject[] = [
+  { name: 'Biology',              category: 'Natural Sciences' },
+  { name: 'Chemistry',            category: 'Natural Sciences' },
+  { name: 'Physics',              category: 'Natural Sciences' },
+  { name: 'Environmental Sci.',   category: 'Natural Sciences' },
+  { name: 'Mathematics',          category: 'Mathematics & Statistics' },
+  { name: 'Statistics',           category: 'Mathematics & Statistics' },
+  { name: 'Computer Science',     category: 'Computing & Technology' },
+  { name: 'Engineering',          category: 'Computing & Technology' },
+  { name: 'Psychology',           category: 'Social Sciences' },
+  { name: 'Sociology',            category: 'Social Sciences' },
+  { name: 'Political Science',    category: 'Social Sciences' },
+  { name: 'History',              category: 'Humanities' },
+  { name: 'Literature / English', category: 'Humanities' },
+  { name: 'Philosophy',           category: 'Humanities' },
+  { name: 'Business Admin.',      category: 'Business & Economics' },
+  { name: 'Economics',            category: 'Business & Economics' },
+  { name: 'Marketing',            category: 'Business & Economics' },
+  { name: 'Accounting / Finance', category: 'Business & Economics' },
+  { name: 'Nursing',              category: 'Healthcare' },
+  { name: 'Medicine / Health',    category: 'Healthcare' },
+  { name: 'Law',                  category: 'Law & Education' },
+  { name: 'Education',            category: 'Law & Education' },
+]
 
 const KEY_TO_HOURS: Record<string, number> = {
   '14d': 336, '7d': 168, '5d': 120, '3d': 72, '24h': 24, '12h': 12, '6h': 6,
@@ -74,10 +101,11 @@ function _parse(raw: Record<string, unknown>): PublicPricingConfig {
     deadlines:        Array.isArray(raw.deadlines) && raw.deadlines.length ? (raw.deadlines as Record<string, unknown>[]).map(_deadline) : FALLBACK_DEADLINES,
     academic_levels_display: Array.isArray(raw.academic_levels_display) ? (raw.academic_levels_display as Record<string, unknown>[]).map(_display) : [],
     paper_types_display:     Array.isArray(raw.paper_types_display) ? (raw.paper_types_display as Record<string, unknown>[]).map(_display) : [],
-    subjects:           Array.isArray(raw.subjects) ? (raw.subjects as Record<string, unknown>[]).map(r => ({ name: String(r.name ?? ''), category: String(r.category ?? 'General') })) : [],
+    subjects:           Array.isArray(raw.subjects) && raw.subjects.length ? (raw.subjects as Record<string, unknown>[]).map(r => ({ name: String(r.name ?? ''), category: String(r.category ?? 'General') })) : FALLBACK_SUBJECTS,
     work_types:         Array.isArray(raw.work_types) ? (raw.work_types as Record<string, unknown>[]).map(_display) : [],
     formatting_styles:  Array.isArray(raw.formatting_styles) ? (raw.formatting_styles as Record<string, unknown>[]).map(_display) : [],
     english_types:      Array.isArray(raw.english_types) ? (raw.english_types as Record<string, unknown>[]).map(r => ({ name: String(r.name ?? ''), code: String(r.code ?? '') })) : [],
+    addons:             Array.isArray(raw.addons) ? (raw.addons as Record<string, unknown>[]).map(r => ({ id: Number(r.id ?? 0), addon_code: String(r.addon_code ?? ''), name: String(r.name ?? ''), description: String(r.description ?? ''), flat_amount: Number(r.flat_amount ?? 0) })) : [],
   }
 }
 
@@ -86,7 +114,7 @@ function _fallback(): PublicPricingConfig {
     currency: 'USD', base_price_per_page: null, base_price_per_slide: null, base_price_per_diagram: null,
     spacing_multipliers: { double: 1, single: 2 },
     academic_levels: FALLBACK_LEVELS, paper_types: FALLBACK_PAPER_TYPES, deadlines: FALLBACK_DEADLINES,
-    academic_levels_display: [], paper_types_display: [], subjects: [], work_types: [], formatting_styles: [], english_types: [],
+    academic_levels_display: [], paper_types_display: [], subjects: FALLBACK_SUBJECTS, work_types: [], formatting_styles: [], english_types: [], addons: [],
   }
 }
 

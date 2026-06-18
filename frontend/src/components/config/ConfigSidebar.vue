@@ -111,7 +111,7 @@ function isSectionVisible(domain: ConfigDomainMeta, sectionKey: string) {
               <span
                 v-else-if="section.pendingBackend"
                 class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[9px] text-graphite"
-              >WIP</span>
+              >Soon</span>
               <!-- CRUD badge -->
               <span
                 v-else-if="section.isCrud"

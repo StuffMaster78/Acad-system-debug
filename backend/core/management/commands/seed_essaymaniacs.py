@@ -40,12 +40,20 @@ class Command(BaseCommand):
         self._seed_branding(website)
         self._seed_portal()
 
-        # ── Comprehensive academic settings & pricing rates ───────────────
         from django.core import management as mgmt
-        self.stdout.write(self.style.MIGRATE_HEADING("\n⚙️  Seeding academic settings (paper types, subjects, levels…)\n"))
+
+        self.stdout.write(self.style.MIGRATE_HEADING("\n⚙️  Seeding academic settings…\n"))
         mgmt.call_command("populate_academic_settings", domain)
         self.stdout.write(self.style.MIGRATE_HEADING("\n⚙️  Seeding pricing defaults…\n"))
         mgmt.call_command("seed_pricing_defaults", domain)
+
+        self.stdout.write(self.style.MIGRATE_HEADING("\n📄  Seeding blog content…\n"))
+        try:
+            mgmt.call_command("seed_essaymaniacs_blog")
+        except Exception as exc:
+            self.stdout.write(self.style.WARNING(f" ⚠️  Blog seed skipped — run setup_tenants first ({exc})\n"))
+
+        self._seed_promo_bar(domain, code="ESSAY15", message="Get 10% off your first order", suffix="Use code ESSAY15")
 
         self._seed_cors_reminder(domain, app_domain)
         self.stdout.write(self.style.SUCCESS("\nDone. EssayManiacs tenant is ready.\n"))
@@ -107,6 +115,25 @@ class Command(BaseCommand):
             },
         )
         self._log("PortalDefinition (client_portal)", portal.domain, created)
+
+    def _seed_promo_bar(self, domain: str, *, code: str, message: str, suffix: str):
+        bare = domain.replace("https://", "").replace("http://", "").split(":")[0]
+        try:
+            from wagtail.models import Site
+            from cms_core.models import TenantSEOSettings
+            site = Site.objects.filter(hostname=bare).first()
+            if not site:
+                self.stdout.write(self.style.WARNING(f" ⚠️  Promo bar skipped — no Wagtail Site for {bare} (run setup_tenants first)\n"))
+                return
+            settings = TenantSEOSettings.for_site(site)
+            settings.promo_bar_enabled = True
+            settings.promo_code        = code
+            settings.promo_message     = message
+            settings.promo_suffix      = suffix
+            settings.save()
+            self.stdout.write(f"  Updated  TenantSEOSettings (promo bar): {code}")
+        except Exception as exc:
+            self.stdout.write(self.style.WARNING(f" ⚠️  Promo bar skipped: {exc}\n"))
 
     def _seed_cors_reminder(self, domain: str, app_domain: str):
         bare     = domain.replace("https://", "").replace("http://", "")
