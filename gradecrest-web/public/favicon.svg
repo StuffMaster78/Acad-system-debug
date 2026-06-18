@@ -1,4 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#4f46e5"/>
-  <text x="256" y="352" font-family="system-ui, -apple-system, sans-serif" font-size="300" font-weight="800" fill="white" text-anchor="middle">G</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- GradeCrest: dark forest bg, gold G, green cap line -->
+  <rect width="32" height="32" rx="7" fill="#0a2e1a"/>
+  <!-- graduation cap accent: board + tassel dot -->
+  <rect x="8" y="5" width="16" height="2.5" rx="1.25" fill="#16a34a"/>
+  <circle cx="24" cy="5" r="1.5" fill="#fbbf24"/>
+  <!-- Bold G -->
+  <text x="16" y="26" font-family="system-ui,-apple-system,sans-serif" font-size="20" font-weight="900" fill="#fbbf24" text-anchor="middle">G</text>
 </svg>

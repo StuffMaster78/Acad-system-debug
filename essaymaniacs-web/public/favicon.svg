@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- EssayManiacs: violet bg, white E, pen-nib accent -->
+  <rect width="32" height="32" rx="7" fill="#5b21b6"/>
+  <!-- Pen-nib (top-right): angled line + tip dot -->
+  <line x1="21" y1="5" x2="28" y2="12" stroke="#c4b5fd" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="21" y1="5" x2="19" y2="12" stroke="#c4b5fd" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="21" cy="13" r="1.5" fill="#c4b5fd"/>
+  <!-- Bold E -->
+  <text x="13" y="26" font-family="system-ui,-apple-system,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">E</text>
+</svg>

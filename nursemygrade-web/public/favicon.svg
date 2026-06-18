@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- NurseMyGrade: teal bg, white N, red medical cross badge -->
+  <rect width="32" height="32" rx="7" fill="#115e59"/>
+  <!-- Medical cross (top-right badge) -->
+  <rect x="21" y="4"  width="3" height="9" rx="1.5" fill="#f87171"/>
+  <rect x="18.5" y="6.5" width="8" height="4" rx="2" fill="#f87171"/>
+  <!-- Bold N -->
+  <text x="14" y="26" font-family="system-ui,-apple-system,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">N</text>
+</svg>
