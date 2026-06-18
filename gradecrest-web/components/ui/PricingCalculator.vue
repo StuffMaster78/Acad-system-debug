@@ -349,7 +349,7 @@ function shortLabel(label: string): string {
 
       <p class="text-center text-[10px] text-white/25">
         Complex scope?
-        <NuxtLink to="/quote" class="font-semibold text-gold-400/60 transition-colors hover:text-gold-300">Request a custom quote →</NuxtLink>
+        <NuxtLink to="/contact" class="font-semibold text-gold-400/60 transition-colors hover:text-gold-300">Request a custom quote →</NuxtLink>
       </p>
 
     </div>

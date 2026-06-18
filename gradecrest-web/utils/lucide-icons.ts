@@ -212,3 +212,12 @@ export const Users = createIcon('Users', [
 export const Zap = createIcon('Zap', [
   ['path', { d: 'M13 2 3 14h9l-1 8 10-12h-9z' }],
 ])
+
+export const Loader2 = createIcon('Loader2', [
+  ['path', { d: 'M21 12a9 9 0 1 1-6.219-8.56' }],
+])
+
+export const LayoutTemplate = createIcon('LayoutTemplate', [
+  ['rect', { x: 2, y: 3, width: 20, height: 14, rx: 2 }],
+  ['path', { d: 'M2 17h20M2 21h20' }],
+])
