@@ -1,40 +1,14 @@
 from __future__ import annotations
 
-from typing import Dict, Set
-
 from django.core.exceptions import ValidationError
 
+from orders.workflows.order_transition_workflow import (
+    OrderTransitionWorkflow,
+)
 
-ALLOWED_PRIMARY_STATUS_TRANSITIONS: Dict[str, Set[str]] = {
-    "ready_for_staffing": {
-        "in_progress",
-        "on_hold",
-        "cancelled",
-        "pending_writer_acceptance",
-    },
-    "pending_writer_acceptance": {
-        "in_progress",
-        "ready_for_staffing",
-        "cancelled",
-    },
-    "in_progress": {
-        "submitted",
-        "on_hold",
-        "ready_for_staffing",
-        "cancelled",
-        "pending_cancellation",
-    },
-    "on_hold": {
-        "in_progress",
-        "ready_for_staffing",
-        "cancelled",
-        "pending_cancellation",
-    },
-    "pending_cancellation": {"cancelled", "in_progress", "ready_for_staffing"},
-    "submitted": {"completed", "in_progress", "on_hold", "cancelled"},
-    "completed": {"in_progress", "archived", "cancelled"},
-    "cancelled": set(),
-    "archived": set(),
+ALLOWED_PRIMARY_STATUS_TRANSITIONS: dict[str, set[str]] = {
+    status.value: {next_status.value for next_status in allowed}
+    for status, allowed in OrderTransitionWorkflow.TRANSITIONS.items()
 }
 
 

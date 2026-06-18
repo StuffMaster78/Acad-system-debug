@@ -31,6 +31,26 @@ describe("auth store — state management", () => {
     expect(auth.user?.email).toBe("admin@test.com");
   });
 
+  it("restores fresh server tokens after impersonation", () => {
+    const auth = useAuthStore();
+    auth.adoptSession(MOCK_TOKENS, MOCK_USER);
+    auth.adoptSession(
+      { access: "impersonated-access", refresh: "impersonated-refresh" },
+      { ...MOCK_USER, id: 2, email: "client@test.com", role: "client" },
+    );
+
+    auth.restoreFromImpersonation({
+      access: "fresh-admin-access",
+      refresh: "fresh-admin-refresh",
+      user: MOCK_USER,
+    });
+
+    expect(auth.accessToken).toBe("fresh-admin-access");
+    expect(auth.refresh).toBe("fresh-admin-refresh");
+    expect(auth.user).toEqual(MOCK_USER);
+    expect(auth.isImpersonating).toBe(false);
+  });
+
   it("clearSession resets to unauthenticated", () => {
     const auth = useAuthStore();
     auth.adoptSession(MOCK_TOKENS, MOCK_USER);

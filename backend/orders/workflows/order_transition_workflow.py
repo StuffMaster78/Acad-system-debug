@@ -36,34 +36,64 @@ class OrderTransitionWorkflow:
             OrderStatus.IN_PROGRESS,
             OrderStatus.ON_HOLD,
             OrderStatus.CANCELLED,
+            OrderStatus.PENDING_WRITER_ACCEPTANCE,
+        },
+        OrderStatus.PENDING_WRITER_ACCEPTANCE: {
+            OrderStatus.IN_PROGRESS,
+            OrderStatus.READY_FOR_STAFFING,
+            OrderStatus.CANCELLED,
         },
         OrderStatus.IN_PROGRESS: {
             OrderStatus.QA_REVIEW,
+            OrderStatus.UNDER_EDITING,
             OrderStatus.SUBMITTED,
             OrderStatus.ON_HOLD,
+            OrderStatus.READY_FOR_STAFFING,
             OrderStatus.DISPUTED,
             OrderStatus.CANCELLED,
+            OrderStatus.PENDING_CANCELLATION,
         },
         OrderStatus.ON_HOLD: {
             OrderStatus.READY_FOR_STAFFING,
             OrderStatus.IN_PROGRESS,
             OrderStatus.CANCELLED,
+            OrderStatus.PENDING_CANCELLATION,
+        },
+        OrderStatus.PENDING_CANCELLATION: {
+            OrderStatus.CANCELLED,
+            OrderStatus.IN_PROGRESS,
+            OrderStatus.READY_FOR_STAFFING,
         },
         OrderStatus.QA_REVIEW: {
             OrderStatus.IN_PROGRESS,
+            OrderStatus.UNDER_EDITING,
             OrderStatus.SUBMITTED,
             OrderStatus.DISPUTED,
             OrderStatus.CANCELLED,
+        },
+        OrderStatus.UNDER_EDITING: {
+            OrderStatus.IN_PROGRESS,
+            OrderStatus.QA_REVIEW,
+            OrderStatus.SUBMITTED,
+            OrderStatus.REVISION_REQUESTED,
+            OrderStatus.ON_HOLD,
+            OrderStatus.CANCELLED,
+            OrderStatus.PENDING_CANCELLATION,
         },
         OrderStatus.SUBMITTED: {
             OrderStatus.COMPLETED,
             OrderStatus.DISPUTED,
             OrderStatus.IN_PROGRESS,
+            OrderStatus.REVISION_REQUESTED,
+            OrderStatus.ON_HOLD,
             OrderStatus.CANCELLED,
         },
         OrderStatus.COMPLETED: {
             OrderStatus.ARCHIVED,
             OrderStatus.DISPUTED,
+            OrderStatus.IN_PROGRESS,
+            OrderStatus.REVISION_REQUESTED,
+            OrderStatus.CANCELLED,
         },
         OrderStatus.DISPUTED: {
             OrderStatus.IN_PROGRESS,
@@ -71,12 +101,20 @@ class OrderTransitionWorkflow:
             OrderStatus.COMPLETED,
             OrderStatus.CANCELLED,
         },
+        OrderStatus.REVISION_REQUESTED: {
+            OrderStatus.IN_PROGRESS,
+            OrderStatus.UNDER_EDITING,
+            OrderStatus.SUBMITTED,
+            OrderStatus.CANCELLED,
+        },
         OrderStatus.CANCELLED: set(),
+        OrderStatus.REFUNDED: set(),
         OrderStatus.ARCHIVED: set(),
     }
 
     TERMINAL_STATUSES = {
         OrderStatus.CANCELLED,
+        OrderStatus.REFUNDED,
         OrderStatus.ARCHIVED,
     }
 

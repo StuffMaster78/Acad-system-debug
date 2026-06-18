@@ -81,6 +81,20 @@ export interface ImpersonationStartResponse {
   expires_in: number;
 }
 
+export interface ImpersonationEndResponse {
+  access_token?: string;
+  refresh_token?: string;
+  user?: {
+    id: number;
+    email: string;
+    username?: string;
+    full_name?: string;
+    role: UserRole;
+  };
+  message: string;
+  close_tab: boolean;
+}
+
 export interface ImpersonationStatusResponse {
   is_impersonating: boolean;
   impersonator?: Record<string, unknown> | null;

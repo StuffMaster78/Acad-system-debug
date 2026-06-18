@@ -28,10 +28,28 @@ class OrderTransitionWorkflowTests(SimpleTestCase):
             next_status=OrderStatus.QA_REVIEW,
         )
 
+    def test_in_progress_can_move_to_editing(self) -> None:
+        OrderTransitionWorkflow.ensure_can_transition(
+            current_status=OrderStatus.IN_PROGRESS,
+            next_status=OrderStatus.UNDER_EDITING,
+        )
+
     def test_qa_review_can_move_to_submitted(self) -> None:
         OrderTransitionWorkflow.ensure_can_transition(
             current_status=OrderStatus.QA_REVIEW,
             next_status=OrderStatus.SUBMITTED,
+        )
+
+    def test_editing_can_move_to_submitted(self) -> None:
+        OrderTransitionWorkflow.ensure_can_transition(
+            current_status=OrderStatus.UNDER_EDITING,
+            next_status=OrderStatus.SUBMITTED,
+        )
+
+    def test_editing_can_request_revision(self) -> None:
+        OrderTransitionWorkflow.ensure_can_transition(
+            current_status=OrderStatus.UNDER_EDITING,
+            next_status=OrderStatus.REVISION_REQUESTED,
         )
 
     def test_submitted_can_move_to_completed(self) -> None:

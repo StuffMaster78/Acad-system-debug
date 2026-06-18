@@ -20,7 +20,10 @@ from orders.order_enums import OrderFlags, OrderStatus
 from orders.permissions import IsAdminOrSuperAdmin, IsOrderOwnerOrSupport
 from orders.serializers.orders import OrderSerializer
 from payments_processor.models import PaymentIntent
-from orders.exceptions import InvalidTransitionError
+from orders.exceptions import (
+    AlreadyInTargetStatusError,
+    InvalidTransitionError,
+)
 from orders.services.old_services.order_deletion_service import (
     ALLOWED_STAFF_ROLES,
     OrderDeletionService,
@@ -1820,7 +1823,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             "metadata": {}
         }
         """
-        order = get_object_or_404(Order, pk=pk)
+        order = self.get_object()
 
         if request.method == "GET":
             # Return available transitions
@@ -1854,8 +1857,22 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        user_role = getattr(request.user, "role", None)
+        if not (
+            request.user.is_superuser
+            or user_role in {"admin", "superadmin", "support"}
+        ):
+            return Response(
+                {
+                    "detail": (
+                        "Only support or administrative staff may use "
+                        "the generic status transition endpoint."
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         # Check if user has permission (admin/superadmin/support can skip checks)
-        user_role = getattr(request.user, 'role', None)
         if user_role not in ['admin', 'superadmin', 'support']:
             skip_payment_check = False
 
@@ -1886,7 +1903,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 },
                 status=status.HTTP_200_OK
             )
-        except InvalidTransitionError as e:
+        except (AlreadyInTargetStatusError, InvalidTransitionError) as e:
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
@@ -1907,7 +1924,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         """
         Get list of available status transitions for an order.
         """
-        order = get_object_or_404(Order, pk=pk)
+        order = self.get_object()
 
         from orders.services.transition_helper import OrderTransitionHelper
         available = OrderTransitionHelper.get_available_transitions(order)

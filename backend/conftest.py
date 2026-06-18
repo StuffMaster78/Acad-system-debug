@@ -9,8 +9,25 @@ This module provides:
 """
 import pytest
 from django.conf import settings
+
+# The development container exports a short SECRET_KEY and keeps
+# DJANGO_SETTINGS_MODULE pointed at the environment-selecting settings module.
+# PyJWT correctly warns when HS256 receives fewer than 32 bytes. Configure a
+# strong, deterministic key for pytest before SimpleJWT is imported so test
+# tokens never inherit development credentials or emit insecure-key warnings.
+TEST_JWT_SIGNING_KEY = (
+    "writing-system-pytest-jwt-signing-key-"
+    "replace-only-in-tests-2026"
+)
+settings.SECRET_KEY = TEST_JWT_SIGNING_KEY
+settings.SIMPLE_JWT = {
+    **settings.SIMPLE_JWT,
+    "SIGNING_KEY": TEST_JWT_SIGNING_KEY,
+}
+
 from django.test import Client
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.state import token_backend
 from rest_framework_simplejwt.tokens import RefreshToken
 from websites.models.websites import Website
 from decimal import Decimal
@@ -18,6 +35,12 @@ from django.contrib.auth import get_user_model
 from wagtail.models import Page, Site
 
 User = get_user_model()
+
+# Django may import SimpleJWT while populating installed apps, before pytest
+# imports this conftest module. Update the already-created backend as well as
+# settings so both newly created and cached token backends use the test key.
+token_backend.signing_key = TEST_JWT_SIGNING_KEY
+token_backend.verifying_key = TEST_JWT_SIGNING_KEY
 
 
 
@@ -28,23 +51,16 @@ User = get_user_model()
 @pytest.fixture(scope="session")
 def django_db_setup(django_db_setup, django_db_blocker):
     """Set up test database once per session."""
-    import os
-    from django.conf import settings
     from django.db import connection
 
     with django_db_blocker.unblock():
-        # Ensure migrations are run first
-        from django.core.management import call_command
+        # pytest-django's django_db_setup dependency has already created and
+        # migrated the test database. Running migrate again here can replay
+        # operations while the reusable database is still being finalized,
+        # leaving partially applied migrations and duplicate-column failures.
+        # Keep only the project-specific cleanup and seed work below.
 
-        # Run migrations on test database
-        try:
-            call_command('migrate', verbosity=0, interactive=False, run_syncdb=False)
-        except Exception as e:
-            # If migrations fail, try to continue anyway
-            print(f"Migration warning: {e}")
-
-        # Fix corrupted content types IMMEDIATELY after migrations
-        # This must happen before any model operations
+        # Fix corrupted content types before test model operations.
         try:
             # Delete corrupted content types using raw SQL
             with connection.cursor() as cursor:
@@ -786,4 +802,3 @@ def test_pillar(tenant_site, test_service_page, test_blog_post):
     test_blog_post.save()
 
     return pillar
-

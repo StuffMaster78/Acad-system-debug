@@ -26,6 +26,30 @@ class OrderStatusTransitionPolicyTests(SimpleTestCase):
             to_status="submitted",
         )
 
+    def test_validate_status_transition_allows_in_progress_to_qa_review(
+        self,
+    ) -> None:
+        validate_status_transition(
+            from_status="in_progress",
+            to_status="qa_review",
+        )
+
+    def test_validate_status_transition_allows_in_progress_to_editing(
+        self,
+    ) -> None:
+        validate_status_transition(
+            from_status="in_progress",
+            to_status="under_editing",
+        )
+
+    def test_validate_status_transition_allows_editing_to_submitted(
+        self,
+    ) -> None:
+        validate_status_transition(
+            from_status="under_editing",
+            to_status="submitted",
+        )
+
     def test_validate_status_transition_allows_submitted_to_completed(
         self,
     ) -> None:

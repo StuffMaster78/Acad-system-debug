@@ -5,6 +5,7 @@ import type {
   BlacklistedEmailRecord,
   DuplicateAccountGroup,
   DuplicateStatsResponse,
+  ImpersonationEndResponse,
   ImpersonationStartResponse,
   ImpersonationStatusResponse,
   ImpersonationTokenResponse,
@@ -115,7 +116,7 @@ export const adminAccessApi = {
       { token, reason },
     ),
   endImpersonation: (reason: string, close_tab = false) =>
-    api.post(
+    api.post<ImpersonationEndResponse>(
       apiPath("/auth/impersonation/end/"),
       { reason, close_tab },
     ),

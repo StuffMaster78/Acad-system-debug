@@ -135,15 +135,31 @@ export const useAuthStore = defineStore("auth", () => {
     persist(tokens, nextUser);
   }
 
-  function restoreFromImpersonation() {
+  function restoreFromImpersonation(serverSession?: {
+    access: string;
+    refresh: string;
+    user: AuthUser;
+  }) {
     const raw = window.localStorage.getItem(IMPERSONATION_ORIGIN_KEY);
+    window.localStorage.removeItem(IMPERSONATION_ORIGIN_KEY);
+
+    if (serverSession) {
+      persist(
+        {
+          access: serverSession.access,
+          refresh: serverSession.refresh,
+        },
+        serverSession.user,
+      );
+      return;
+    }
+
     if (!raw) return;
     const origin = JSON.parse(raw) as {
       access: string;
       refresh: string;
       user: AuthUser;
     };
-    window.localStorage.removeItem(IMPERSONATION_ORIGIN_KEY);
     persist({ access: origin.access, refresh: origin.refresh }, origin.user);
   }
 

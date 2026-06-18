@@ -22,6 +22,21 @@ def is_impersonating(request) -> bool:
     """
     Return whether the current request is impersonated.
     """
+    auth = getattr(request, "auth", None)
+    try:
+        if auth and auth.get("is_impersonation", False):
+            return True
+    except (AttributeError, TypeError):
+        pass
+
+    session = getattr(request, "session", None)
+    if session is not None:
+        try:
+            if session.get("is_impersonating", False):
+                return True
+        except (AttributeError, TypeError):
+            pass
+
     return bool(
         get_impersonation_context(request).get(
             "is_impersonating",

@@ -31,9 +31,11 @@ from authentication.models.impersonation_log import (
 from authentication.models.impersonation_token import (
     ImpersonationToken,
 )
+from authentication.models.login_session import LoginSession
 from authentication.services.account_access_policy_service import (
     AccountAccessPolicyService,
 )
+from authentication.services.login_session_service import LoginSessionService
 from authentication.services.token_service import TokenService
 from authentication.utils.ip import get_client_ip
 from websites.utils import get_current_website
@@ -321,6 +323,16 @@ class ImpersonationService:
 
         token.mark_as_used()
 
+        impersonation_session, _raw_session_token = (
+            LoginSessionService.start_session(
+                user=token.target_user,
+                website=self.website,
+                ip=get_client_ip(self.request),
+                user_agent=self._get_user_agent(self.request),
+                session_type=LoginSession.SessionType.IMPERSONATION,
+            )
+        )
+
         ImpersonationLog.objects.create(
             admin_user=self.admin_user,
             target_user=token.target_user,
@@ -336,9 +348,19 @@ class ImpersonationService:
 
         refresh = RefreshToken.for_user(token.target_user)
         refresh["impersonated_by"] = self.admin_user.pk
+        refresh["impersonated_user_id"] = token.target_user.pk
         refresh["is_impersonation"] = True
         refresh["website_id"] = getattr(self.website, "pk", None)
-        refresh["session_id"] = getattr(self.request.session, "session_key", None)
+        refresh["session_id"] = impersonation_session.pk
+
+        original_session_id = None
+        if hasattr(self.request, "auth"):
+            try:
+                original_session_id = self.request.auth.get("session_id")
+            except (AttributeError, TypeError):
+                original_session_id = None
+        if original_session_id is not None:
+            refresh["original_session_id"] = original_session_id
 
         logger.info(
             "Admin %s started impersonating user %s on website %s",
@@ -436,6 +458,15 @@ class ImpersonationService:
                 self.SESSION_TARGET_USER_ID,
             )
 
+        if not target_user_id and hasattr(self.request, "auth"):
+            try:
+                target_user_id = (
+                    self.request.auth.get("impersonated_user_id")
+                    or self.request.auth.get("user_id")
+                )
+            except (AttributeError, TypeError):
+                target_user_id = None
+
         if not target_user_id:
             raise PermissionDenied(
                 "No impersonated user context found."
@@ -474,6 +505,26 @@ class ImpersonationService:
             self.request.session.pop(self.SESSION_STARTED_AT, None)
             self.request.session.save()
 
+        impersonation_session_id = None
+        original_session_id = None
+        if hasattr(self.request, "auth"):
+            try:
+                impersonation_session_id = self.request.auth.get("session_id")
+                original_session_id = self.request.auth.get(
+                    "original_session_id",
+                )
+            except (AttributeError, TypeError):
+                impersonation_session_id = None
+                original_session_id = None
+
+        if impersonation_session_id is not None:
+            LoginSessionService.revoke_session(
+                user=current_user,
+                session_id=impersonation_session_id,
+                website=self.website,
+                revoked_by=original_admin,
+            )
+
         logger.info(
             "Admin %s ended impersonation of user %s on website %s "
             "(close_tab=%s)",
@@ -502,6 +553,30 @@ class ImpersonationService:
 
         refresh = RefreshToken.for_user(original_admin)
         refresh["website_id"] = getattr(self.website, "pk", None)
+
+        original_session = None
+        if original_session_id is not None:
+            try:
+                original_session = LoginSessionService.get_session_by_id(
+                    session_id=int(original_session_id),
+                    user=original_admin,
+                    website=self.website,
+                )
+            except (TypeError, ValueError):
+                original_session = None
+
+        if original_session is None:
+            original_session, _raw_session_token = (
+                LoginSessionService.start_session(
+                    user=original_admin,
+                    website=self.website,
+                    ip=get_client_ip(self.request),
+                    user_agent=self._get_user_agent(self.request),
+                    session_type=LoginSession.SessionType.PASSWORD,
+                )
+            )
+
+        refresh["session_id"] = original_session.pk
 
         return {
             "access_token": str(refresh.access_token),

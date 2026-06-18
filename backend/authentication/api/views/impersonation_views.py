@@ -19,6 +19,7 @@ from authentication.api.serializers.impersonation_serializers import (
 from authentication.services.impersonation_service import (
     ImpersonationService,
 )
+from websites.utils import get_current_website
 from authentication.api.permissions.impersonation_permissions import (
     IsImpersonatingPermission,
     NotImpersonatingPermission,
@@ -47,7 +48,7 @@ class ImpersonationCreateTokenView(APIView):
             serializer.validated_data,
         )
 
-        website = getattr(request, "website", None)
+        website = get_current_website(request)
         if website is None:
             return Response(
                 {"detail": "Website context is required."},

@@ -623,8 +623,21 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
         ui.toast("Preview impersonation ended.", "info");
         return;
       }
-      await adminAccessApi.endImpersonation(endReason);
-      auth.restoreFromImpersonation();
+      const { data } = await adminAccessApi.endImpersonation(endReason);
+      if (data.access_token && data.refresh_token && data.user) {
+        auth.restoreFromImpersonation({
+          access: data.access_token,
+          refresh: data.refresh_token,
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+            full_name: data.user.full_name,
+            role: data.user.role,
+          },
+        });
+      } else {
+        auth.restoreFromImpersonation();
+      }
       impersonationStatus.value = { is_impersonating: false, impersonator: null };
       ui.toast("Impersonation ended. Your session has been restored.", "success");
     } catch {
