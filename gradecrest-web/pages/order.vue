@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { type Component } from 'vue'
 import {
   ArrowLeft, ArrowRight, Bot, Check, CheckCircle2, Clock,
   FileText, GraduationCap, LayoutTemplate, Lock, MessageSquare,
@@ -160,13 +161,16 @@ onMounted(async () => {
   }
 })
 
-// ── Order types ────────────────────────────────────────────────────────────
+// ── Order types — icons stored as string keys to avoid SSR serialisation errors ─
+const ORDER_TYPE_ICONS: Record<string, Component> = {
+  FileText, LayoutTemplate, Zap, GraduationCap, MessageSquare,
+}
 const ORDER_TYPES = [
-  { id: 'paper',   icon: FileText,       label: 'Paper & Essay',      desc: 'Essays, research papers, dissertations, case studies & coursework',   from: 13, color: 'brand' },
-  { id: 'design',  icon: LayoutTemplate, label: 'Slides & Design',    desc: 'PowerPoint presentations, infographics, posters & visual assets',      from: 20, color: 'violet' },
-  { id: 'diagram', icon: Zap,            label: 'Diagrams & Charts',  desc: 'Flowcharts, ER diagrams, mind maps, Gantt charts & org charts',        from: 25, color: 'teal' },
-  { id: 'class',   icon: GraduationCap,  label: 'Full Class Support', desc: 'Assignments, quizzes, discussions & full-semester course management',   from: 0,  color: 'green', external: '/class-support' },
-  { id: 'special', icon: MessageSquare,  label: 'Special Project',    desc: 'Custom work — nursing sims, coding assignments, shadow health & more', from: 0,  color: 'rose',  external: '/quote' },
+  { id: 'paper',   iconKey: 'FileText',       label: 'Paper & Essay',      desc: 'Essays, research papers, dissertations, case studies & coursework',   from: 13, color: 'brand' },
+  { id: 'design',  iconKey: 'LayoutTemplate', label: 'Slides & Design',    desc: 'PowerPoint presentations, infographics, posters & visual assets',      from: 20, color: 'violet' },
+  { id: 'diagram', iconKey: 'Zap',            label: 'Diagrams & Charts',  desc: 'Flowcharts, ER diagrams, mind maps, Gantt charts & org charts',        from: 25, color: 'teal' },
+  { id: 'class',   iconKey: 'GraduationCap',  label: 'Full Class Support', desc: 'Assignments, quizzes, discussions & full-semester course management',   from: 0,  color: 'green', external: '/class-support' },
+  { id: 'special', iconKey: 'MessageSquare',  label: 'Special Project',    desc: 'Custom work — nursing sims, coding assignments, shadow health & more', from: 0,  color: 'rose',  external: '/quote' },
 ]
 
 const DESIGN_TYPES = [
@@ -392,7 +396,7 @@ const colors = computed(() => colorMap[orderType.value.color] ?? colorMap.brand)
             :class="colorMap[ot.color].pill"
             @click="selectType(ot.id, ot.external)"
           >
-            <component :is="ot.icon" class="h-7 w-7" />
+            <component :is="ORDER_TYPE_ICONS[ot.iconKey]" class="h-7 w-7" />
             <div>
               <p class="font-bold text-slate-900">{{ ot.label }}</p>
               <p class="mt-0.5 text-xs text-slate-500 leading-relaxed">{{ ot.desc }}</p>
@@ -418,7 +422,7 @@ const colors = computed(() => colorMap[orderType.value.color] ?? colorMap.brand)
       <div v-else-if="step === 1" class="py-8">
         <div class="mb-6">
           <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold" :class="colors.pill">
-            <component :is="orderType.icon" class="h-4 w-4" /> {{ orderType.label }}
+            <component :is="ORDER_TYPE_ICONS[orderType.iconKey]" class="h-4 w-4" /> {{ orderType.label }}
           </span>
           <h2 class="mt-3 text-2xl font-extrabold text-slate-900">Configure your order</h2>
         </div>
