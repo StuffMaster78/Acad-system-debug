@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { filesApi, type DeliveryGuardError, type FileAttachment, type FilePurpose } from "@/api/files";
 import { useAuthStore } from "@/stores/auth";
@@ -19,6 +19,9 @@ export const useFilesStore = defineStore("files", () => {
   const error = ref("");
   const notice = ref("");
   const deliveryBlocked = ref<DeliveryGuardError | null>(null);
+  const newFileCount = computed(
+    () => attachments.value.filter((attachment) => attachment.is_new_for_user).length,
+  );
 
   async function fetchOrderAttachments(orderId: number | string) {
     isLoadingAttachments.value = true;
@@ -190,7 +193,18 @@ export const useFilesStore = defineStore("files", () => {
     deliveryBlocked.value = null;
     try {
       const { data } = await filesApi.orderFileDownload(orderId, attachmentId);
-      if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
+      if (data.url) {
+        const idx = attachments.value.findIndex(
+          (attachment) => attachment.id === Number(attachmentId),
+        );
+        if (idx !== -1) {
+          attachments.value[idx] = {
+            ...attachments.value[idx],
+            is_new_for_user: false,
+          };
+        }
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       const responseData = (err as { response?: { data?: unknown } })?.response?.data as DeliveryGuardError | undefined;
@@ -243,6 +257,7 @@ export const useFilesStore = defineStore("files", () => {
     error,
     notice,
     deliveryBlocked,
+    newFileCount,
     fetchOrderAttachments,
     addToQueue,
     removeFromQueue,

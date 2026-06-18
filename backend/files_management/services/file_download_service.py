@@ -12,6 +12,7 @@ from files_management.services.file_delivery_guard_service import (
     FileDeliveryGuardService,
     GUARDED_PURPOSES,
 )
+from files_management.models.file_download_receipt import FileDownloadReceipt
 from files_management.signals import file_first_downloaded
 from files_management.storage import SignedUrlBuilder
 
@@ -73,19 +74,27 @@ class FileDownloadService:
             )
 
         if attachment.managed_file:
-            return cls._get_managed_file_download_url(
+            download_url = cls._get_managed_file_download_url(
                 user=user,
                 attachment=attachment,
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
+        elif attachment.external_link:
+            download_url = attachment.external_link.url
+        else:
+            raise FileNotAvailable(
+                "Attachment has no downloadable source."
+            )
 
-        if attachment.external_link:
-            return attachment.external_link.url
-
-        raise FileNotAvailable(
-            "Attachment has no downloadable source."
+        # Clear this attachment's "new" state only for the requesting user.
+        # This applies to both uploaded files and approved external links.
+        FileDownloadReceipt.objects.get_or_create(
+            attachment=attachment,
+            user=user,
         )
+
+        return download_url
 
     @classmethod
     def _get_managed_file_download_url(
@@ -118,7 +127,7 @@ class FileDownloadService:
             user_agent=user_agent,
         )
 
-        # Stamp first download timestamp and fire signal once.
+        # Stamp global first-download timestamp once.
         if attachment.first_downloaded_at is None:
             attachment.first_downloaded_at = timezone.now()
             attachment.save(update_fields=["first_downloaded_at", "updated_at"])

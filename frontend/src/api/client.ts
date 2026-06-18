@@ -63,9 +63,33 @@ export function ordersApiPath(path: string): string {
   return `${ordersPrefix}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+const ANONYMOUS_AUTH_ENDPOINTS = [
+  "/auth/login/",
+  "/auth/register/",
+  "/auth/register/confirm/",
+  "/auth/register/resend/",
+  "/auth/token/refresh/",
+  "/auth/password/reset/request/",
+  "/auth/password/reset/confirm/",
+  "/auth/password/reset/validate-token/",
+  "/auth/unlock/request/",
+  "/auth/unlock/confirm/",
+  "/auth/magic-link/request/",
+  "/auth/magic-link/confirm/",
+];
+
+export function isAnonymousAuthRequest(url?: string): boolean {
+  if (!url) return false;
+  const path = url.split("?")[0].replace(/\/+$/, "/");
+  return ANONYMOUS_AUTH_ENDPOINTS.some((endpoint) => path.endsWith(endpoint));
+}
+
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const auth = useAuthStore();
-  if (auth.accessToken) {
+  // A stale access token must never poison anonymous authentication flows.
+  // DRF authenticates before checking AllowAny, so an invalid Authorization
+  // header makes a valid login fail with token_not_valid.
+  if (auth.accessToken && !isAnonymousAuthRequest(config.url)) {
     config.headers.Authorization = `Bearer ${auth.accessToken}`;
   }
   config.headers["X-Device-Fingerprint"] = DEVICE_FINGERPRINT;
@@ -81,9 +105,9 @@ api.interceptors.response.use(
       | undefined;
 
     if (error.response?.status === 401 && original && !original._retry) {
-      // Never intercept 401s from the login endpoint — those are credential failures
-      // and must propagate to the login form so the error message can render.
-      if (original.url?.includes("/auth/login") || original.url?.includes("/auth/auth/login")) {
+      // Anonymous auth failures belong to their form (bad credentials, expired
+      // reset token, invalid magic link, etc.), not the refresh-token flow.
+      if (isAnonymousAuthRequest(original.url)) {
         return Promise.reject(error);
       }
 

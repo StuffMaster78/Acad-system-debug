@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from files_management.exceptions import FileManagementError
 from files_management.enums import FilePurpose, FileVisibility
+from files_management.models.file_download_receipt import FileDownloadReceipt
 from files_management.selectors import FileAttachmentSelector
 from files_management.services import FileDeletionService
 from orders.api.serializers.files.order_file_serializers import (
@@ -175,10 +176,24 @@ class OrderFileListView(OrderFileBaseView):
                 visibility=FileVisibility.INTERNAL_ONLY,
             )
 
+        # Prefetch per-user download receipts in one query so the serializer
+        # can compute is_new_for_user without an extra hit per file.
+        attachment_list = list(attachments)
+        if request.user.is_authenticated and attachment_list:
+            downloaded_ids = set(
+                FileDownloadReceipt.objects.filter(
+                    attachment_id__in=[a.id for a in attachment_list],
+                    user=request.user,
+                ).values_list("attachment_id", flat=True)
+            )
+        else:
+            downloaded_ids = set()
+
         return Response(
             OrderFileAttachmentSerializer(
-                attachments,
+                attachment_list,
                 many=True,
+                context={"request": request, "downloaded_attachment_ids": downloaded_ids},
             ).data
         )
 

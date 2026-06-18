@@ -62,6 +62,7 @@ export interface FileAttachment {
   delivery_status?: DeliveryStatus;
   submitted_at?: string | null;
   first_downloaded_at?: string | null;
+  is_new_for_user?: boolean;
   display_name?: string;
   managed_file?: ManagedFile | null;
   external_link?: ExternalFileLink | null;

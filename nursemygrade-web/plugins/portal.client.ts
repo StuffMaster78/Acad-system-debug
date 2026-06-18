@@ -1,4 +1,4 @@
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin(() => {
   const store = usePortalStore()
-  await store.fetch()
+  onNuxtReady(() => void store.fetch())
 })

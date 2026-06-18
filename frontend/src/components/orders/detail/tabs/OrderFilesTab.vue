@@ -347,6 +347,9 @@ const FileTile = defineComponent({
         h("div", { class: "min-w-0 flex-1 space-y-0.5" }, [
           h("p", { class: "truncate text-sm font-medium text-ink" }, name),
           h("div", { class: "flex flex-wrap items-center gap-2 text-xs text-graphite" }, [
+            att.is_new_for_user
+              ? h("span", { class: "rounded-full bg-saffron px-2 py-0.5 text-[10px] font-bold text-white" }, "New")
+              : null,
             // Purpose badge
             h("span", { class: "rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium capitalize" }, purposeLabel(att.purpose)),
             // Visibility badge
@@ -364,14 +367,14 @@ const FileTile = defineComponent({
         // Actions
         h("div", { class: "flex shrink-0 items-center gap-1.5" }, [
           // Download / open link
-          isLink
-            ? h("a", { href: att.external_link?.url, target: "_blank", class: "focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-graphite hover:border-slate-300 hover:text-ink" },
-                h(ExternalLink, { class: "h-3.5 w-3.5" }))
-            : h("button", {
-                class: "focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-graphite hover:border-slate-300 hover:text-ink disabled:opacity-40",
-                disabled: isDownloading,
-                onClick: () => emit("download", att.id),
-              }, isDownloading ? h(Loader2, { class: "h-3.5 w-3.5 animate-spin" }) : h(Download, { class: "h-3.5 w-3.5" })),
+          h("button", {
+            class: "focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-graphite hover:border-slate-300 hover:text-ink disabled:opacity-40",
+            disabled: isDownloading,
+            title: isLink ? "Open link" : "Download file",
+            onClick: () => emit("download", att.id),
+          }, isDownloading
+            ? h(Loader2, { class: "h-3.5 w-3.5 animate-spin" })
+            : h(isLink ? ExternalLink : Download, { class: "h-3.5 w-3.5" })),
 
           // Submit final (writer only)
           props.showSubmitFinal && att.delivery_status === "pending" ?

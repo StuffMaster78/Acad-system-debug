@@ -17,7 +17,13 @@
       <span class="relative">
         {{ TAB_LABELS[tab] }}
         <span
-          v-if="hasDot(tab)"
+          v-if="tabCount(tab)"
+          class="ml-1 inline-flex min-w-4 items-center justify-center rounded-full bg-saffron px-1 text-[10px] font-bold leading-4 text-white"
+        >
+          {{ tabCount(tab) > 99 ? "99+" : tabCount(tab) }}
+        </span>
+        <span
+          v-else-if="hasDot(tab)"
           class="absolute -right-2 -top-0.5 h-1.5 w-1.5 rounded-full bg-saffron"
         />
       </span>
@@ -48,6 +54,7 @@ const props = defineProps<{
   modelValue: string;
   order?: OrderSummary | null;
   lifecycle?: OrderLifecycle | null;
+  counts?: Partial<Record<string, number>>;
 }>();
 
 const emit = defineEmits<{ (e: "update:modelValue", tab: string): void }>();
@@ -78,5 +85,9 @@ function hasDot(tab: string): boolean {
   if (tab !== "adjustments") return false;
   const s = props.lifecycle?.latest_adjustment_status;
   return !!s && ADJUSTMENT_PENDING.has(s);
+}
+
+function tabCount(tab: string): number {
+  return Math.max(0, props.counts?.[tab] ?? 0);
 }
 </script>

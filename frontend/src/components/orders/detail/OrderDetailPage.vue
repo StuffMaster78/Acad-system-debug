@@ -53,7 +53,13 @@
       />
 
       <!-- Tab navigation -->
-      <OrderTabs :role="role" :order="order" :lifecycle="lifecycle" v-model="activeTab" />
+      <OrderTabs
+        :role="role"
+        :order="order"
+        :lifecycle="lifecycle"
+        :counts="{ files: files.newFileCount }"
+        v-model="activeTab"
+      />
 
       <!-- Tab content -->
       <div class="min-h-64">

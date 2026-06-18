@@ -7,10 +7,9 @@ export function useApi() {
     onRequest({ options }) {
       const csrf = useCookie('csrftoken')
       if (csrf.value) {
-        options.headers = {
-          ...options.headers,
-          'X-CSRFToken': csrf.value,
-        }
+        const headers = new Headers(options.headers)
+        headers.set('X-CSRFToken', csrf.value)
+        options.headers = headers
       }
     },
   })
