@@ -17,13 +17,13 @@ class Command(BaseCommand):
     PORTALS = [
         {
             "code": "internal_admin",
-            "name": "Internal Admin",
-            "domain": "ordermanagement.com",
+            "name": "Writers Creek — Staff Portal",
+            "domain": "admin.writerscreek.com",
         },
         {
             "code": "writer_portal",
-            "name": "Writer Portal",
-            "domain": "writers.ordermanagement.com",
+            "name": "Writers Creek — Writer Portal",
+            "domain": "app.writerscreek.com",
         },
         {
             "code": "client_portal",

@@ -21,8 +21,8 @@ def check_email_provider_configured(app_configs, **kwargs):
                 'DEFAULT_EMAIL_PROVIDER is not configured. '
                 'Emails will be printed to console only.',
                 hint=(
-                    "Set DEFAULT_EMAIL_PROVIDER to 'sendgrid', 'mailgun', "
-                    "or 'ses' in your settings."
+                    "Set DEFAULT_EMAIL_PROVIDER to 'resend', 'sendgrid', "
+                    "'mailgun', or 'ses' in your settings."
                 ),
                 id='notifications_system.W001',
             )

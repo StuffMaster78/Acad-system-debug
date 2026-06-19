@@ -1,7 +1,35 @@
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+
+const rootDir = fileURLToPath(new URL('.', import.meta.url))
+const patchNuxtSiteConfig = fileURLToPath(
+  new URL('../scripts/patch-nuxt-site-config.mjs', import.meta.url),
+)
+
 export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/sitemap'],
 
   compatibilityDate: '2026-06-09',
+
+  hooks: {
+    // RPM's static-generation stack externalizes this package into a fresh
+    // generated scope after `predev`; repair its Nuxt private import map
+    // before Nitro reloads the compiled server.
+    'build:done': () => {
+      execFileSync(process.execPath, [patchNuxtSiteConfig], {
+        cwd: rootDir,
+        stdio: 'inherit',
+      })
+    },
+  },
+
+  vite: {
+    ssr: {
+      // Vite otherwise externalizes this module into .nuxt/dist/server without
+      // its package.json, so Node cannot resolve Nuxt's private import map.
+      noExternal: ['nuxt-site-config'],
+    },
+  },
 
   // SSG: pnpm build → .output/public/ → serve with nginx
   nitro: {

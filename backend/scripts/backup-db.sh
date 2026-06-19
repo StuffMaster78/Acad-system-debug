@@ -2,7 +2,8 @@
 # =============================================================================
 # Database Backup Script
 #
-# Dumps the PostgreSQL database, compresses it, and uploads to S3/DO Spaces.
+# Dumps the PostgreSQL database, compresses and encrypts it, then uploads it to
+# S3/DO Spaces.
 # Keeps the last N local backups and enforces retention in S3.
 #
 # Environment variables (required):
@@ -10,6 +11,7 @@
 #   POSTGRES_USER_NAME    DB user
 #   POSTGRES_PASSWORD     DB password
 #   POSTGRES_DB_NAME      DB name
+#   BACKUP_ENCRYPTION_KEY Strong passphrase used for AES-256 encryption
 #   AWS_ACCESS_KEY_ID     S3 / DO Spaces key
 #   AWS_SECRET_ACCESS_KEY S3 / DO Spaces secret
 #   AWS_STORAGE_BUCKET_NAME  Bucket name
@@ -29,7 +31,8 @@
 #     /app/scripts/backup-db.sh
 # =============================================================================
 
-set -e
+set -eu
+set -o pipefail
 
 # ── Configuration ─────────────────────────────────────────────────
 BACKUP_LOCAL_DIR="${BACKUP_LOCAL_DIR:-/backups}"
@@ -43,11 +46,11 @@ DB_USER="${POSTGRES_USER_NAME}"
 DB_NAME="${POSTGRES_DB_NAME}"
 
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
-FILENAME="${DB_NAME}_${TIMESTAMP}.sql.gz"
+FILENAME="${DB_NAME}_${TIMESTAMP}.sql.gz.enc"
 LOCAL_PATH="${BACKUP_LOCAL_DIR}/${FILENAME}"
 
 # ── Validate required vars ─────────────────────────────────────────
-for var in POSTGRES_USER_NAME POSTGRES_PASSWORD POSTGRES_DB_NAME; do
+for var in POSTGRES_USER_NAME POSTGRES_PASSWORD POSTGRES_DB_NAME BACKUP_ENCRYPTION_KEY; do
     eval val=\$$var
     if [ -z "$val" ]; then
         echo "[ERROR] Required variable $var is not set." >&2
@@ -59,7 +62,7 @@ mkdir -p "$BACKUP_LOCAL_DIR"
 
 echo "[$(date)] Starting backup of ${DB_NAME} on ${DB_HOST}:${DB_PORT}"
 
-# ── Dump + compress ────────────────────────────────────────────────
+# ── Dump + compress + encrypt ──────────────────────────────────────
 PGPASSWORD="$POSTGRES_PASSWORD" pg_dump \
     -h "$DB_HOST" \
     -p "$DB_PORT" \
@@ -68,7 +71,10 @@ PGPASSWORD="$POSTGRES_PASSWORD" pg_dump \
     --format=plain \
     --no-owner \
     --no-acl \
-    | gzip -9 > "$LOCAL_PATH"
+    | gzip -9 \
+    | openssl enc -aes-256-cbc -salt -pbkdf2 \
+        -pass env:BACKUP_ENCRYPTION_KEY \
+        -out "$LOCAL_PATH"
 
 BACKUP_SIZE="$(du -sh "$LOCAL_PATH" | cut -f1)"
 echo "[$(date)] Backup created: $LOCAL_PATH ($BACKUP_SIZE)"
@@ -105,7 +111,8 @@ if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ] && [ -n "$AWS_
             $ENDPOINT_FLAG \
             | awk '{print $4}' \
             | while read -r KEY; do
-                FILE_DATE="${KEY%%_*}"  # extract YYYYMMDD prefix
+                FILE_DATE="${KEY#${DB_NAME}_}"
+                FILE_DATE="${FILE_DATE%%_*}"  # extract YYYYMMDD prefix
                 # Compare dates in YYYYMMDD format
                 if [ -n "$FILE_DATE" ] && [ "$FILE_DATE" \< "$(echo "$CUTOFF_DATE" | cut -c1-10 | tr -d '-')" ]; then
                     echo "[$(date)] Deleting old backup: $KEY"
@@ -122,11 +129,11 @@ fi
 
 # ── Local retention: keep last N backups ───────────────────────────
 echo "[$(date)] Pruning local backups (keeping last ${BACKUP_LOCAL_KEEP})..."
-ls -1t "${BACKUP_LOCAL_DIR}/${DB_NAME}_"*.sql.gz 2>/dev/null \
+ls -1t "${BACKUP_LOCAL_DIR}/${DB_NAME}_"*.sql.gz.enc 2>/dev/null \
     | tail -n "+$((BACKUP_LOCAL_KEEP + 1))" \
     | xargs -r rm -f
 
-REMAINING="$(ls -1 "${BACKUP_LOCAL_DIR}/${DB_NAME}_"*.sql.gz 2>/dev/null | wc -l | tr -d ' ')"
+REMAINING="$(ls -1 "${BACKUP_LOCAL_DIR}/${DB_NAME}_"*.sql.gz.enc 2>/dev/null | wc -l | tr -d ' ')"
 echo "[$(date)] Local backups remaining: ${REMAINING}"
 
 echo "[$(date)] Backup complete: $FILENAME ($BACKUP_SIZE)"

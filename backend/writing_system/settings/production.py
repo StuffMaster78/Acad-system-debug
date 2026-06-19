@@ -83,17 +83,28 @@ CORS_ALLOW_ALL_ORIGINS = False
 SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", ".writerscreek.com")
 CSRF_COOKIE_DOMAIN    = env("CSRF_COOKIE_DOMAIN",    ".writerscreek.com")
 
+DEFAULT_EMAIL_PROVIDER = env("DEFAULT_EMAIL_PROVIDER", "resend").lower()
+RESEND_API_KEY = env("RESEND_API_KEY", "")
+RESEND_WEBHOOK_SECRET = env("RESEND_WEBHOOK_SECRET", "")
 SENDGRID_API_KEY = env("SENDGRID_API_KEY", "")
-if module_available("anymail") and SENDGRID_API_KEY: # noqa: F405
+
+if module_available("anymail") and DEFAULT_EMAIL_PROVIDER == "resend" and RESEND_API_KEY: # noqa: F405
+    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+    ANYMAIL = {"RESEND_API_KEY": RESEND_API_KEY}
+    DEFAULT_EMAIL_CONFIG = {"api_key": RESEND_API_KEY}
+elif module_available("anymail") and DEFAULT_EMAIL_PROVIDER == "sendgrid" and SENDGRID_API_KEY: # noqa: F405
     EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
-    ANYMAIL = {
-        "SENDGRID_API_KEY": SENDGRID_API_KEY,
-    }
+    ANYMAIL = {"SENDGRID_API_KEY": SENDGRID_API_KEY}
+    DEFAULT_EMAIL_CONFIG = {"api_key": SENDGRID_API_KEY}
 else:
     EMAIL_BACKEND = env(
         "EMAIL_BACKEND",
         "django.core.mail.backends.smtp.EmailBackend",
     )
+    DEFAULT_EMAIL_CONFIG = {}
+
+TURNSTILE_ENABLED = env_bool("TURNSTILE_ENABLED", False)
+TURNSTILE_SECRET_KEY = env("TURNSTILE_SECRET_KEY", "")
 
 STORAGE_BACKEND = env("STORAGE_BACKEND", "s3")
 USE_S3 = env_bool("USE_S3", True)
@@ -112,8 +123,9 @@ if USE_S3:
 
     if STORAGE_BACKEND == "do_spaces":
         DO_SPACES_REGION = env("DO_SPACES_REGION", "nyc3")
-        AWS_S3_ENDPOINT_URL = (
-            f"https://{DO_SPACES_REGION}.digitaloceanspaces.com"
+        AWS_S3_ENDPOINT_URL = env(
+            "AWS_S3_ENDPOINT_URL",
+            f"https://{DO_SPACES_REGION}.digitaloceanspaces.com",
         )
         AWS_S3_REGION_NAME = DO_SPACES_REGION
         AWS_S3_CUSTOM_DOMAIN = env("DO_SPACES_CDN_ENDPOINT", "")

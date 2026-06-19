@@ -88,6 +88,7 @@ __pycache__/
 .Python
 build/
 dist/
+/writerscreek-web/dist
 *.egg-info/
 *.egg
 MANIFEST

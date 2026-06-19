@@ -43,7 +43,7 @@ function normalizeApiOrigin(value: string): string {
 
 export const apiBaseOrigin = rawApiBaseUrl.trim()
   ? normalizeApiOrigin(rawApiBaseUrl)
-  : "http://localhost:8000";
+  : window.location.origin;
 export const apiBasePrefix = apiPrefix;
 
 export const api: AxiosInstance = axios.create({

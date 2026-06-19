@@ -118,6 +118,7 @@ def _verify_sns_signature(body: dict) -> bool:
 SENDGRID_SUPPRESS_EVENTS = {'bounce', 'spamreport', 'unsubscribe', 'group_unsubscribe'}
 MAILGUN_SUPPRESS_EVENTS = {'bounced', 'complained', 'unsubscribed'}
 SES_SUPPRESS_TYPES = {'Bounce', 'Complaint'}
+RESEND_SUPPRESS_EVENTS = {'email.bounced', 'email.complained'}
 
 
 def _reason_from_sendgrid(event_type: str) -> str:
@@ -145,6 +146,42 @@ def _reason_from_ses(notification_type: str, bounce_type: str = '') -> str:
     if bounce_type == 'Permanent':
         return SuppressionReason.BOUNCE_HARD
     return SuppressionReason.BOUNCE_SOFT
+
+
+def _verify_resend_signature(
+    *,
+    secret: str,
+    body: bytes,
+    message_id: str,
+    timestamp: str,
+    signature_header: str,
+) -> bool:
+    """Verify Resend's Standard Webhooks (Svix-compatible) signature."""
+    try:
+        timestamp_int = int(timestamp)
+        if abs(int(time.time()) - timestamp_int) > 300:
+            return False
+
+        encoded_secret = secret.removeprefix("whsec_")
+        signing_key = base64.b64decode(encoded_secret)
+        signed_payload = (
+            f"{message_id}.{timestamp}.{body.decode('utf-8')}"
+        ).encode("utf-8")
+        expected = base64.b64encode(
+            hmac.new(signing_key, signed_payload, hashlib.sha256).digest()
+        ).decode("ascii")
+
+        signatures = [
+            item.split(",", 1)[1]
+            for item in signature_header.split()
+            if item.startswith("v1,")
+        ]
+        return any(
+            hmac.compare_digest(expected, candidate)
+            for candidate in signatures
+        )
+    except (TypeError, ValueError, UnicodeDecodeError):
+        return False
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -396,5 +433,87 @@ class MailgunWebhookView(View):
                 logger.exception("MailgunWebhook: failed to suppress %s: %s", email, exc)
         else:
             webhook_event.mark_ignored()
+
+        return HttpResponse(status=200)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ResendWebhookView(View):
+    """Receive signed Resend delivery events and maintain suppressions."""
+
+    def post(self, request):
+        secret = getattr(settings, "RESEND_WEBHOOK_SECRET", "")
+        message_id = request.headers.get("svix-id", "")
+        timestamp = request.headers.get("svix-timestamp", "")
+        signature = request.headers.get("svix-signature", "")
+
+        if not secret:
+            logger.error("ResendWebhookView: RESEND_WEBHOOK_SECRET is not configured.")
+            return HttpResponseForbidden("Webhook is not configured.")
+        if not _verify_resend_signature(
+            secret=secret,
+            body=request.body,
+            message_id=message_id,
+            timestamp=timestamp,
+            signature_header=signature,
+        ):
+            logger.warning("ResendWebhookView: signature verification failed.")
+            return HttpResponseForbidden("Invalid signature.")
+
+        try:
+            event = json.loads(request.body)
+        except json.JSONDecodeError:
+            return HttpResponse(status=400)
+
+        event_type = event.get("type", "")
+        data = event.get("data", {})
+        recipients = data.get("to", [])
+        if isinstance(recipients, str):
+            recipients = [recipients]
+
+        if not recipients:
+            ProviderWebhookEvent.objects.create(
+                provider="resend",
+                event_type=event_type,
+                provider_event_id=message_id,
+                raw_payload=event,
+                status=ProviderWebhookEvent.IGNORED,
+            )
+            return HttpResponse(status=200)
+
+        for recipient in recipients:
+            email = str(recipient).lower().strip()
+            webhook_event = ProviderWebhookEvent.objects.create(
+                provider="resend",
+                event_type=event_type,
+                email=email,
+                provider_event_id=message_id,
+                raw_payload=event,
+            )
+            if event_type not in RESEND_SUPPRESS_EVENTS or not email:
+                webhook_event.mark_ignored()
+                continue
+
+            reason = (
+                SuppressionReason.COMPLAINT
+                if event_type == "email.complained"
+                else SuppressionReason.BOUNCE_HARD
+            )
+            try:
+                EmailSuppression.suppress(
+                    email=email,
+                    reason=reason,
+                    provider="resend",
+                    provider_event_id=message_id,
+                    raw_payload=event,
+                )
+                webhook_event.mark_processed()
+            except Exception as exc:
+                webhook_event.mark_failed(str(exc))
+                logger.exception(
+                    "ResendWebhookView: failed to suppress %s: %s",
+                    email,
+                    exc,
+                )
 
         return HttpResponse(status=200)

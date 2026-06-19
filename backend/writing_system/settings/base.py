@@ -226,6 +226,7 @@ MIDDLEWARE = [
     "core.middleware.portal_tenant_resolver.PortalTenantResolverMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "core.middleware.turnstile.TurnstileMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     (

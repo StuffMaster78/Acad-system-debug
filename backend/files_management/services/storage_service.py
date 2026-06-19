@@ -63,8 +63,8 @@ class StorageService:
             "s3",
             region_name=bucket.spaces_region,
             endpoint_url=f"https://{bucket.spaces_region}.digitaloceanspaces.com",
-            aws_access_key_id=getattr(settings, "DO_SPACES_KEY", ""),
-            aws_secret_access_key=getattr(settings, "DO_SPACES_SECRET", ""),
+            aws_access_key_id=getattr(settings, "AWS_ACCESS_KEY_ID", ""),
+            aws_secret_access_key=getattr(settings, "AWS_SECRET_ACCESS_KEY", ""),
             config=Config(signature_version="s3v4"),
         )
 

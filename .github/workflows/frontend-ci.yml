@@ -5,65 +5,89 @@ on:
     branches: [main, develop, 'feature/**', 'codex/**']
     paths:
       - 'frontend/**'
+      - '*-web/**'
       - '.github/workflows/frontend-ci.yml'
   pull_request:
     branches: [main, develop]
     paths:
       - 'frontend/**'
+      - '*-web/**'
+      - '.github/workflows/frontend-ci.yml'
   workflow_dispatch:
 
 jobs:
   frontend-checks:
-    name: Frontend Checks
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Portal
+            directory: frontend
+            tests: true
+            node: '22'
+            pnpm: '11.5.0'
+          - name: EssayManiacs
+            directory: essaymaniacs-web
+            tests: false
+            node: '20'
+            pnpm: '9.15.9'
+          - name: GradeCrest
+            directory: gradecrest-web
+            tests: false
+            node: '20'
+            pnpm: '9.15.9'
+          - name: NurseMyGrade
+            directory: nursemygrade-web
+            tests: false
+            node: '20'
+            pnpm: '9.15.9'
+          - name: ResearchPaperMate
+            directory: researchpapermate-web
+            tests: false
+            node: '20'
+            pnpm: '9.15.9'
+          - name: WritersCreek
+            directory: writerscreek-web
+            tests: false
+            node: '20'
+            pnpm: '9.15.9'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        # version is read from package.json "packageManager" field
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
         with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-
+          version: ${{ matrix.pnpm }}
+
+      - name: Setup Node and pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.directory }}/pnpm-lock.yaml
 
       - name: Install dependencies
-        working-directory: ./frontend
+        working-directory: ${{ matrix.directory }}
         run: pnpm install --frozen-lockfile
 
-      - name: TypeScript type check
-        working-directory: ./frontend
+      - name: Typecheck
+        working-directory: ${{ matrix.directory }}
         run: pnpm typecheck
 
-      - name: Build
-        working-directory: ./frontend
-        env:
-          VITE_API_BASE_URL: /api/v1
-        run: pnpm build
-
-      - name: Run tests
-        working-directory: ./frontend
+      - name: Test portal
+        if: matrix.tests
+        working-directory: ${{ matrix.directory }}
         run: pnpm test
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/main'
-        with:
-          name: frontend-dist
-          path: frontend/dist/
-          retention-days: 7
+      - name: Production build
+        working-directory: ${{ matrix.directory }}
+        env:
+          VITE_API_BASE_URL: ''
+          NUXT_PUBLIC_API_BASE: http://localhost:8000
+          NUXT_PUBLIC_APP_URL: http://localhost:5173
+          NUXT_PUBLIC_STAFF_URL: http://localhost:5173
+        run: pnpm build

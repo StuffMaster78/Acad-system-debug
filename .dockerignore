@@ -37,10 +37,16 @@ db.sqlite3-journal
 
 # Node
 node_modules/
+**/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.nuxt/
+**/.nuxt/
+.output/
+**/.output/
+**/dist/
 
 # IDEs
 .vscode/
@@ -67,8 +73,10 @@ docs/
 
 # Testing
 .pytest_cache/
+**/.pytest_cache/
 .coverage
 htmlcov/
+**/htmlcov/
 .tox/
 .hypothesis/
 
@@ -76,6 +84,8 @@ htmlcov/
 *.bak
 *.tmp
 .cache/
+**/.cache/
 .venv/
+**/.venv/
 venv/
 ENV/

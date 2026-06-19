@@ -7,29 +7,45 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Git tag or SHA to deploy (e.g. v1.2.3)'
+        description: Git tag or SHA to deploy
         required: true
         type: string
 
-# Required GitHub Secrets:
-#   PROD_SSH_HOST          — server hostname or IP
-#   PROD_SSH_USER          — SSH user (e.g. deploy)
-#   PROD_SSH_KEY           — private SSH key (PEM)
-#   PROD_DEPLOY_PATH       — absolute path on server (e.g. /opt/writing-system)
-#   PROD_ENV_FILE          — full contents of the production .env file
+permissions:
+  contents: read
+  packages: write
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: false   # never cancel a running production deploy
+  cancel-in-progress: false
 
 jobs:
-  # ----------------------------------------------------------------
-  # 1. CI gate — run tests before deploying
-  # ----------------------------------------------------------------
-  ci-gate:
-    name: CI Gate
+  release:
+    name: Resolve release
     runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.release.outputs.ref }}
+      sha: ${{ steps.release.outputs.sha }}
+      image_prefix: ${{ steps.release.outputs.image_prefix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version || github.ref }}
+          fetch-depth: 0
 
+      - id: release
+        name: Resolve immutable release identifiers
+        shell: bash
+        run: |
+          owner="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "image_prefix=ghcr.io/${owner}/writing-platform" >> "$GITHUB_OUTPUT"
+
+  backend-gate:
+    name: Backend release gate
+    needs: release
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:15
@@ -56,18 +72,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.ref }}
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip
 
-      - name: Install backend deps
-        working-directory: ./backend
-        run: pip install -r requirements.txt pytest pytest-django
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
 
-      - name: Django system check
-        working-directory: ./backend
+      - name: Check Django and migration state
+        working-directory: backend
         env:
           DJANGO_SETTINGS_MODULE: writing_system.settings_test
           SECRET_KEY: ci-gate-secret
@@ -76,10 +94,12 @@ jobs:
           POSTGRES_PASSWORD: ci_pass
           DB_HOST: localhost
           REDIS_URL: redis://localhost:6379/0
-        run: python manage.py check --settings=writing_system.settings_test
+        run: |
+          python manage.py check --settings=writing_system.settings_test
+          python manage.py makemigrations --check --dry-run
 
       - name: Run backend tests
-        working-directory: ./backend
+        working-directory: backend
         env:
           DJANGO_SETTINGS_MODULE: writing_system.settings_test
           SECRET_KEY: ci-gate-secret
@@ -88,33 +108,169 @@ jobs:
           POSTGRES_PASSWORD: ci_pass
           DB_HOST: localhost
           REDIS_URL: redis://localhost:6379/0
-        run: pytest -x -q
+        run: pytest -q
+
+  frontend-gate:
+    name: ${{ matrix.name }} release gate
+    needs: release
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Portal
+            directory: frontend
+            tests: true
+            node: '22'
+            pnpm: '11.5.0'
+          - name: EssayManiacs
+            directory: essaymaniacs-web
+            tests: false
+            node: '20'
+            pnpm: '9.15.9'
+          - name: GradeCrest
+            directory: gradecrest-web
+            tests: false
+            node: '20'
+            pnpm: '9.15.9'
+          - name: NurseMyGrade
+            directory: nursemygrade-web
+            tests: false
+            node: '20'
+            pnpm: '9.15.9'
+          - name: ResearchPaperMate
+            directory: researchpapermate-web
+            tests: false
+            node: '20'
+            pnpm: '9.15.9'
+          - name: WritersCreek
+            directory: writerscreek-web
+            tests: false
+            node: '20'
+            pnpm: '9.15.9'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.ref }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ matrix.pnpm }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.directory }}/pnpm-lock.yaml
 
-      - uses: pnpm/action-setup@v4
-        # version is read from package.json "packageManager" field
-
-      - name: Install frontend deps
-        working-directory: ./frontend
+      - name: Install dependencies
+        working-directory: ${{ matrix.directory }}
         run: pnpm install --frozen-lockfile
 
-      - name: Frontend type check + build
-        working-directory: ./frontend
+      - name: Typecheck and build
+        working-directory: ${{ matrix.directory }}
         env:
-          VITE_API_BASE_URL: /api/v1
+          VITE_API_BASE_URL: ''
+          NUXT_PUBLIC_API_BASE: http://localhost:8000
+          NUXT_PUBLIC_APP_URL: http://localhost:5173
+          NUXT_PUBLIC_STAFF_URL: http://localhost:5173
         run: |
           pnpm typecheck
           pnpm build
 
-  # ----------------------------------------------------------------
-  # 2. Deploy to production server via SSH
-  # ----------------------------------------------------------------
+      - name: Run portal tests
+        if: matrix.tests
+        working-directory: ${{ matrix.directory }}
+        run: pnpm test
+
+  build-images:
+    name: Build ${{ matrix.name }} image
+    needs: [release, backend-gate, frontend-gate]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            context: backend
+            dockerfile: Dockerfile
+            image: backend
+            build_args: DJANGO_ENV=production
+          - name: portal
+            context: frontend
+            dockerfile: Dockerfile
+            image: portal
+            build_args: VITE_API_BASE_URL=
+          - name: writerscreek
+            context: .
+            dockerfile: writerscreek-web/Dockerfile
+            image: writerscreek
+            build_args: |
+              NUXT_PUBLIC_API_BASE=https://writerscreek.com
+              NUXT_PUBLIC_APP_URL=https://app.writerscreek.com
+              NUXT_PUBLIC_STAFF_URL=https://admin.writerscreek.com
+              NUXT_PUBLIC_SITE_URL=https://writerscreek.com
+          - name: gradecrest
+            context: .
+            dockerfile: gradecrest-web/Dockerfile
+            image: gradecrest
+            build_args: |
+              NUXT_PUBLIC_API_BASE=https://gradecrest.com
+              NUXT_PUBLIC_APP_URL=https://app.gradecrest.com
+              NUXT_PUBLIC_SITE_URL=https://gradecrest.com
+          - name: nursemygrade
+            context: .
+            dockerfile: nursemygrade-web/Dockerfile
+            image: nursemygrade
+            build_args: |
+              NUXT_PUBLIC_API_BASE=https://nursemygrade.com
+              NUXT_PUBLIC_APP_URL=https://app.nursemygrade.com
+              NUXT_PUBLIC_SITE_URL=https://nursemygrade.com
+          - name: essaymaniacs
+            context: .
+            dockerfile: essaymaniacs-web/Dockerfile
+            image: essaymaniacs
+            build_args: |
+              NUXT_PUBLIC_API_BASE=https://essaymaniacs.com
+              NUXT_PUBLIC_APP_URL=https://app.essaymaniacs.com
+              NUXT_PUBLIC_SITE_URL=https://essaymaniacs.com
+          - name: researchpapermate
+            context: .
+            dockerfile: researchpapermate-web/Dockerfile
+            image: researchpapermate
+            build_args: |
+              NUXT_PUBLIC_API_BASE=https://researchpapermate.com
+              NUXT_PUBLIC_APP_URL=https://app.researchpapermate.com
+              NUXT_PUBLIC_SITE_URL=https://researchpapermate.com
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.ref }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          build-args: ${{ matrix.build_args }}
+          tags: ${{ needs.release.outputs.image_prefix }}-${{ matrix.image }}:${{ needs.release.outputs.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
   deploy:
-    name: Deploy to Production
-    needs: ci-gate
+    name: Deploy immutable release
+    needs: [release, build-images]
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -122,90 +278,60 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.ref }}
 
-      - name: Write .env file to runner
+      - name: Assemble release environment
+        shell: bash
+        env:
+          PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
         run: |
-          echo "${{ secrets.PROD_ENV_FILE }}" > .env.production
-          chmod 600 .env.production
+          printf '%s\n' "$PROD_ENV_FILE" > .env.next
+          cat >> .env.next <<EOF
+          BACKEND_IMAGE=${{ needs.release.outputs.image_prefix }}-backend:${{ needs.release.outputs.sha }}
+          PORTAL_IMAGE=${{ needs.release.outputs.image_prefix }}-portal:${{ needs.release.outputs.sha }}
+          WRITERSCREEK_IMAGE=${{ needs.release.outputs.image_prefix }}-writerscreek:${{ needs.release.outputs.sha }}
+          GRADECREST_IMAGE=${{ needs.release.outputs.image_prefix }}-gradecrest:${{ needs.release.outputs.sha }}
+          NURSEMYGRADE_IMAGE=${{ needs.release.outputs.image_prefix }}-nursemygrade:${{ needs.release.outputs.sha }}
+          ESSAYMANIACS_IMAGE=${{ needs.release.outputs.image_prefix }}-essaymaniacs:${{ needs.release.outputs.sha }}
+          RESEARCHPAPERMATE_IMAGE=${{ needs.release.outputs.image_prefix }}-researchpapermate:${{ needs.release.outputs.sha }}
+          PRIMARY_DOMAIN=${{ vars.PROD_DOMAIN }}
+          EOF
+          chmod 600 .env.next
 
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.PROD_SSH_KEY }}
 
-      - name: Add server to known_hosts
+      - name: Trust production host
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -t rsa,ed25519 ${{ secrets.PROD_SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -t rsa,ed25519 "${{ secrets.PROD_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Copy .env to server
-        run: |
-          scp .env.production \
-            ${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}:${{ secrets.PROD_DEPLOY_PATH }}/.env
-
-      - name: Purge .env from runner
-        if: always()
-        run: |
-          rm -f .env.production
-          echo "Env file removed from runner."
-
-      - name: Deploy
+      - name: Authenticate production host to GHCR
         env:
-          HOST: ${{ secrets.PROD_SSH_HOST }}
-          USER: ${{ secrets.PROD_SSH_USER }}
-          PATH: ${{ secrets.PROD_DEPLOY_PATH }}
-          REF: ${{ github.ref_name }}
+          GHCR_DEPLOY_TOKEN: ${{ secrets.GHCR_DEPLOY_TOKEN }}
         run: |
-          ssh $USER@$HOST bash -s << 'ENDSSH'
-            set -euo pipefail
+          printf '%s' "$GHCR_DEPLOY_TOKEN" |
+            ssh "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}" \
+              "docker login ghcr.io --username '${{ github.repository_owner }}' --password-stdin"
 
-            cd ${{ secrets.PROD_DEPLOY_PATH }}
+      - name: Upload release environment
+        run: |
+          scp .env.next \
+            "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}:${{ secrets.PROD_DEPLOY_PATH }}/.env.next"
 
-            echo "==> Pulling latest code ($REF)"
+      - name: Deploy and verify
+        run: |
+          ssh "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}" bash -s <<'ENDSSH'
+            set -Eeuo pipefail
+            cd "${{ secrets.PROD_DEPLOY_PATH }}"
             git fetch --tags origin
-            git checkout ${{ github.ref_name }}
-            git pull origin ${{ github.ref_name }} || true
-
-            echo "==> Building images"
-            docker compose \
-              -f docker-compose.yml \
-              -f docker-compose.prod.yml \
-              build --no-cache web celery beat
-
-            echo "==> Starting / updating services"
-            docker compose \
-              -f docker-compose.yml \
-              -f docker-compose.prod.yml \
-              up -d --remove-orphans
-
-            echo "==> Waiting for web to become healthy"
-            for i in $(seq 1 12); do
-              STATUS=$(docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-                ps --format json web 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health',''))" 2>/dev/null || echo "")
-              if [ "$STATUS" = "healthy" ]; then
-                echo "Web service is healthy."
-                break
-              fi
-              echo "Waiting... ($i/12)"
-              sleep 10
-            done
-
-            echo "==> Pruning old images"
-            docker image prune -f
-
-            echo "==> Deploy complete"
+            git checkout --detach "${{ needs.release.outputs.ref }}"
+            PRIMARY_DOMAIN="${{ vars.PROD_DOMAIN }}" ./scripts/deploy-production.sh
           ENDSSH
 
-      - name: Post-deploy health check
-        run: |
-          sleep 5
-          curl --fail --silent --max-time 10 \
-            https://${{ vars.PROD_DOMAIN }}/health/live/ \
-            || (echo "Health check failed" && exit 1)
-
-      - name: Notify on failure
-        if: failure()
-        run: |
-          echo "::error::Production deploy failed for ${{ github.ref_name }}"
-          # Add Slack/email notification here if needed
+      - name: Remove local release environment
+        if: always()
+        run: rm -f .env.next

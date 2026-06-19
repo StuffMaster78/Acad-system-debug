@@ -75,6 +75,20 @@ jobs:
           REDIS_PORT: 6379
         run: python manage.py check --settings=writing_system.settings_test
 
+      - name: Check migration drift
+        working-directory: ./backend
+        env:
+          DJANGO_SETTINGS_MODULE: writing_system.settings_test
+          SECRET_KEY: ci-test-secret-key
+          POSTGRES_DB_NAME: ci_test_db
+          POSTGRES_USER_NAME: ci_test_user
+          POSTGRES_PASSWORD: ci_test_password
+          DB_HOST: localhost
+          DB_PORT: 5432
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: python manage.py makemigrations --check --dry-run
+
       - name: Check formatting
         working-directory: ./backend
         run: |

@@ -32,6 +32,7 @@ class EmailService:
             GlobalNotificationSystemSettings,
         )
         from notifications_system.backends.providers.sendgrid import SendGridBackend
+        from notifications_system.backends.providers.resend import ResendBackend
         from notifications_system.backends.providers.mailgun import MailgunBackend
         from notifications_system.backends.providers.ses import SESBackend
 
@@ -53,6 +54,7 @@ class EmailService:
             config = getattr(settings, 'DEFAULT_EMAIL_CONFIG', {})
 
         backend_map = {
+            'resend': ResendBackend,
             'sendgrid': SendGridBackend,
             'mailgun': MailgunBackend,
             'ses': SESBackend,

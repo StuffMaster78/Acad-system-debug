@@ -1,21 +1,21 @@
 # =============================================================================
 # Writing System Platform - Frontend Dockerfile
 # Multi-stage: builder compiles Vue/TS, runner serves via nginx
-# Node 20 LTS | Vue 3 + Vite | pnpm
+# Node 22 LTS | Vue 3 + Vite | pnpm
 # =============================================================================
 
 # Stage 1: dependency installer
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 
 RUN corepack enable pnpm
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Stage 2: builder
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 RUN corepack enable pnpm
 
@@ -24,9 +24,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# VITE_API_BASE_URL is injected at build time via --build-arg
-# In production: docker build --build-arg VITE_API_BASE_URL=https://api.yourdomain.com
-ARG VITE_API_BASE_URL=/api/v1
+# The production portal is served on several domains. Keep this empty so the
+# browser uses its current origin for API and WebSocket traffic.
+ARG VITE_API_BASE_URL=
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 RUN pnpm build

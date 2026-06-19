@@ -30,7 +30,7 @@ if [ "${DJANGO_ENV:-development}" = "production" ]; then
   check_required ALLOWED_HOSTS
 
   # Warn (don't fail) on missing optional-but-recommended vars
-  for warn_var in SENTRY_DSN SENDGRID_API_KEY AWS_STORAGE_BUCKET_NAME; do
+  for warn_var in SENTRY_DSN RESEND_API_KEY AWS_STORAGE_BUCKET_NAME; do
     val="$(eval echo "\$$warn_var")"
     if [ -z "$val" ]; then
       echo "[entrypoint] WARN: '$warn_var' is not set — some features may be unavailable." >&2
@@ -47,7 +47,7 @@ fi
 # ── Web-only preparation (migrations + static) ────────────────────────────────
 should_prepare_web="false"
 
-if [ "$1" = "gunicorn" ]; then
+if [ "$1" = "gunicorn" ] || [ "$1" = "daphne" ]; then
     should_prepare_web="true"
 elif [ "$1" = "python" ] && [ "$2" = "manage.py" ] && [ "$3" = "runserver" ]; then
     should_prepare_web="true"

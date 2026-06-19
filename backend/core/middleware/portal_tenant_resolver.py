@@ -89,6 +89,10 @@ class PortalTenantResolverMiddleware(MiddlewareMixin):
                 request.portal = PortalDefinition.objects.filter(
                     code="internal_admin"
                 ).first()
+            elif host in ("app.writerscreek.com",):
+                request.portal = PortalDefinition.objects.filter(
+                    code="writer_portal"
+                ).first()
             elif host in ("writerscreek.com", "www.writerscreek.com"):
                 request.portal = PortalDefinition.objects.filter(
                     code="writer_portal"

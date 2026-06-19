@@ -22,8 +22,8 @@ from notifications_system.views.admin_views import (
     AdminDeliveryLogViewSet,
     AdminNotificationLogViewSet,
 )
-from django.urls import path
 from notifications_system.views.webhooks import (
+    ResendWebhookView,
     SendgridWebhookView,
     SESWebhookView,
     MailgunWebhookView,
@@ -101,10 +101,13 @@ urlpatterns = [
 ]
 
 webhook_urlpatterns = [
+    path('webhooks/resend/', ResendWebhookView.as_view(), name='webhook-resend'),
     path('webhooks/sendgrid/', SendgridWebhookView.as_view(), name='webhook-sendgrid'),
     path('webhooks/ses/', SESWebhookView.as_view(), name='webhook-ses'),
     path('webhooks/mailgun/', MailgunWebhookView.as_view(), name='webhook-mailgun'),
 ]
+
+urlpatterns += webhook_urlpatterns
 
 ## Complete endpoint reference
 # ```

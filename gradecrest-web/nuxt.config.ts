@@ -9,6 +9,14 @@ export default defineNuxtConfig({
     '@lucide/vue': fileURLToPath(new URL('./utils/lucide-icons.ts', import.meta.url)),
   },
 
+  vite: {
+    ssr: {
+      // Vite otherwise externalizes this module into .nuxt/dist/server without
+      // its package.json, so Node cannot resolve Nuxt's private import map.
+      noExternal: ['nuxt-site-config'],
+    },
+  },
+
   // Hybrid rendering:
   // - Static marketing pages pre-rendered at build time (fast, cacheable)
   // - Service pages rendered per-request so Wagtail edits go live immediately

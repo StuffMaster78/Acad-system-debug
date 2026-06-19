@@ -9,10 +9,18 @@ WORKDIR /app
 
 RUN npm install -g pnpm@9
 
-COPY package.json pnpm-lock.yaml ./
+COPY gradecrest-web/package.json gradecrest-web/pnpm-lock.yaml ./
+COPY scripts/patch-nuxt-site-config.mjs /scripts/patch-nuxt-site-config.mjs
 RUN pnpm install --frozen-lockfile
 
-COPY . .
+ARG NUXT_PUBLIC_API_BASE=https://gradecrest.com
+ARG NUXT_PUBLIC_APP_URL=https://app.gradecrest.com
+ARG NUXT_PUBLIC_SITE_URL=https://gradecrest.com
+ENV NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
+ENV NUXT_PUBLIC_APP_URL=${NUXT_PUBLIC_APP_URL}
+ENV NUXT_PUBLIC_SITE_URL=${NUXT_PUBLIC_SITE_URL}
+
+COPY gradecrest-web/ .
 RUN pnpm run build
 
 # ── Runner ────────────────────────────────────────────────────────────────────

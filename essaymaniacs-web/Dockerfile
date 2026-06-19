@@ -9,23 +9,29 @@ WORKDIR /app
 
 RUN npm install -g pnpm@9
 
-COPY package.json pnpm-lock.yaml ./
+COPY essaymaniacs-web/package.json essaymaniacs-web/pnpm-lock.yaml ./
+COPY scripts/patch-nuxt-site-config.mjs /scripts/patch-nuxt-site-config.mjs
 RUN pnpm install --frozen-lockfile
 
-COPY . .
+ARG NUXT_PUBLIC_API_BASE=https://essaymaniacs.com
+ARG NUXT_PUBLIC_APP_URL=https://app.essaymaniacs.com
+ARG NUXT_PUBLIC_SITE_URL=https://essaymaniacs.com
+ENV NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
+ENV NUXT_PUBLIC_APP_URL=${NUXT_PUBLIC_APP_URL}
+ENV NUXT_PUBLIC_SITE_URL=${NUXT_PUBLIC_SITE_URL}
+
+COPY essaymaniacs-web/ .
 RUN pnpm run build
 
 # ── Runner ────────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
-WORKDIR /app
+FROM nginx:1.27-alpine AS runner
 
-RUN addgroup -S nuxt && adduser -S -G nuxt nuxt
+RUN rm /etc/nginx/conf.d/default.conf
+COPY essaymaniacs-web/nginx.container.conf /etc/nginx/conf.d/site.conf
+COPY --from=builder /app/.output/public /usr/share/nginx/html
 
-COPY --from=builder --chown=nuxt:nuxt /app/.output ./.output
-
-USER nuxt
-
-ENV HOST=0.0.0.0 PORT=3000 NODE_ENV=production
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/health || exit 1
 
-CMD ["node", ".output/server/index.mjs"]
+CMD ["nginx", "-g", "daemon off;"]
