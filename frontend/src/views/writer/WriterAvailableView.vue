@@ -6,10 +6,13 @@ import {
   Clock3,
   DollarSign,
   FileText,
+  GraduationCap,
   Loader2,
+  Quote,
   RefreshCw,
   Search,
   Send,
+  Tag,
   Zap,
 } from "@lucide/vue";
 import Pagination from "@/components/ui/Pagination.vue";
@@ -231,6 +234,21 @@ onMounted(() => {
           </div>
 
           <dl class="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            <div v-if="order.subject_name || order.subject" class="flex items-center gap-1.5 text-graphite">
+              <GraduationCap class="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <dt class="sr-only">Subject</dt>
+              <dd>{{ order.subject_name ?? order.subject }}</dd>
+            </div>
+            <div v-if="order.paper_type_name || order.paper_type" class="flex items-center gap-1.5 text-graphite">
+              <Tag class="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <dt class="sr-only">Paper type</dt>
+              <dd>{{ order.paper_type_name ?? order.paper_type }}</dd>
+            </div>
+            <div v-if="order.formatting_style_name || order.formatting_style" class="flex items-center gap-1.5 text-graphite">
+              <Quote class="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <dt class="sr-only">Citation</dt>
+              <dd>{{ order.formatting_style_name ?? order.formatting_style }}</dd>
+            </div>
             <div v-if="order.academic_level" class="flex items-center gap-1.5 text-graphite">
               <BookOpen class="h-3.5 w-3.5 shrink-0 text-slate-400" />
               <dt class="sr-only">Level</dt>
@@ -285,8 +303,43 @@ onMounted(() => {
             </button>
           </div>
 
-          <!-- Expanded: bid form -->
+          <!-- Expanded: full spec summary + bid form -->
           <div v-else class="space-y-3">
+            <!-- Full order spec recap so writers have all info before pricing -->
+            <div class="rounded-md border border-slate-100 bg-slate-50 p-3 text-sm">
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Order specifications</p>
+              <dl class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-3">
+                <div v-if="order.paper_type_name ?? order.paper_type">
+                  <dt class="text-graphite">Paper type</dt>
+                  <dd class="font-medium text-ink">{{ order.paper_type_name ?? order.paper_type }}</dd>
+                </div>
+                <div v-if="order.subject_name ?? order.subject">
+                  <dt class="text-graphite">Subject</dt>
+                  <dd class="font-medium text-ink">{{ order.subject_name ?? order.subject }}</dd>
+                </div>
+                <div v-if="order.academic_level">
+                  <dt class="text-graphite">Academic level</dt>
+                  <dd class="font-medium text-ink">{{ order.academic_level }}</dd>
+                </div>
+                <div>
+                  <dt class="text-graphite">Pages / qty</dt>
+                  <dd class="font-medium text-ink">{{ pagesLabel(order) }}</dd>
+                </div>
+                <div v-if="order.formatting_style_name ?? order.formatting_style">
+                  <dt class="text-graphite">Citation</dt>
+                  <dd class="font-medium text-ink">{{ order.formatting_style_name ?? order.formatting_style }}</dd>
+                </div>
+                <div v-if="order.number_of_refereces">
+                  <dt class="text-graphite">Sources</dt>
+                  <dd class="font-medium text-ink">{{ order.number_of_refereces }}</dd>
+                </div>
+              </dl>
+              <div v-if="order.order_instructions ?? order.instructions" class="mt-2 border-t border-slate-200 pt-2">
+                <dt class="mb-1 text-xs text-graphite">Instructions</dt>
+                <dd class="line-clamp-3 text-xs leading-5 text-ink">{{ order.order_instructions ?? order.instructions }}</dd>
+              </div>
+            </div>
+
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Your Bid</p>
 
             <div class="grid grid-cols-2 gap-3">
