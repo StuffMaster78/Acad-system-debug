@@ -1032,10 +1032,24 @@ class OrderStaffingService:
             OrderAssignment:
                 Created assignment record.
         """
+        # OrderAssignment.writer is a FK to WriterProfile (not User).
+        # Views pass request.user; resolve the WriterProfile here if needed.
+        writer_profile = writer
+        if not hasattr(writer, 'account_profile'):
+            from writer_management.models import WriterProfile as _WP
+            writer_profile = (
+                _WP.objects
+                .filter(account_profile__user=writer, account_profile__website=order.website)
+                .first()
+                or _WP.objects.filter(account_profile__user=writer).first()
+            )
+            if writer_profile is None:
+                raise ValidationError("WriterProfile not found for this user.")
+
         return OrderAssignment.objects.create(
             website=order.website,
             order=order,
-            writer=writer,
+            writer=writer_profile,
             assigned_by=assigned_by,
             source=source,
             status=ORDER_ASSIGNMENT_STATUS_ACTIVE,

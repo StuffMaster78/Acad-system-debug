@@ -45,8 +45,20 @@ class CanSubmitOrder(BaseSubmissionTenantPermission):
         if assignments is None:
             return False
 
+        # OrderAssignment.writer is a FK to WriterProfile, not User.
+        from writer_management.models import WriterProfile
+        website = getattr(request, "website", None)
+        writer_profile = (
+            WriterProfile.objects
+            .filter(account_profile__user=request.user, account_profile__website=website)
+            .first()
+            or WriterProfile.objects.filter(account_profile__user=request.user).first()
+        )
+        if writer_profile is None:
+            return False
+
         return assignments.filter(
-            writer=request.user,
+            writer=writer_profile,
             is_current=True,
         ).exists()
 
@@ -54,11 +66,15 @@ class CanSubmitOrder(BaseSubmissionTenantPermission):
 class CanCompleteOrder(BaseSubmissionTenantPermission):
     """
     Client owner or permitted internal user can complete the order.
+    Authorization is handled entirely in has_object_permission below
+    (client-owner check OR staff manage_completion permission).
+    required_permission is intentionally omitted so clients are not blocked
+    before reaching object-level checks.
     """
 
     message = "You are not allowed to complete this order."
 
-    required_permission = "orders.complete_order"
+    required_permission = None
 
     def has_object_permission( # type: ignore[override]
         self,

@@ -216,9 +216,29 @@ class OrderStaffingService:
                 ]
             )
 
+        # OrderAssignment.writer is a FK to WriterProfile, not User.
+        # When the view passes request.user (a User), resolve the profile.
+        writer_profile = writer
+        if not hasattr(writer, 'account_profile'):
+            from writer_management.models import WriterProfile
+            writer_profile = (
+                WriterProfile.objects
+                .filter(account_profile__user=writer, account_profile__website=locked_order.website)
+                .first()
+            )
+            if writer_profile is None:
+                writer_profile = (
+                    WriterProfile.objects
+                    .filter(account_profile__user=writer)
+                    .first()
+                )
+            if writer_profile is None:
+                from django.core.exceptions import ValidationError
+                raise ValidationError("Writer profile not found for this user.")
+
         assignment = OrderStaffingStore.create_assignment(
             order=locked_order,
-            writer=writer,
+            writer=writer_profile,
             assigned_by=triggered_by or writer,
             source=ORDER_ASSIGNMENT_SOURCE_SELF_TAKE,
             source_interest=existing_interest,
@@ -226,7 +246,7 @@ class OrderStaffingService:
 
         cls.sync_order_writer_communications(
             order=locked_order,
-            new_writer=writer,
+            new_writer=writer_profile,
             old_writer=None,
             actor=triggered_by or writer,
         )

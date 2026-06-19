@@ -117,7 +117,19 @@ class OrderSubmissionService:
                 "A current assignment is required for submission."
             )
 
-        if current_assignment.writer != submitted_by:
+        # current_assignment.writer is a WriterProfile; submitted_by may be a User.
+        # Resolve WriterProfile from User so the comparison works correctly.
+        submitted_by_profile = submitted_by
+        if not hasattr(submitted_by, 'account_profile'):
+            from writer_management.models import WriterProfile as _WP
+            submitted_by_profile = (
+                _WP.objects
+                .filter(account_profile__user=submitted_by, account_profile__website=locked_order.website)
+                .first()
+                or _WP.objects.filter(account_profile__user=submitted_by).first()
+            )
+
+        if current_assignment.writer != submitted_by_profile:
             raise ValidationError(
                 "Only the current assigned writer can submit the order."
             )
