@@ -232,7 +232,7 @@ export function useDashboardData(role: UserRole) {
         comms.loadInboxThreads(),
         api
           .get<{ loyalty_points?: number; tier?: string }>(
-            apiPath("/loyalty-management/client/summary/"),
+            apiPath("/loyalty-management/loyalty/summary/"),
           )
           .then(({ data }) => {
             loyaltyPoints.value = data.loyalty_points ?? 0;

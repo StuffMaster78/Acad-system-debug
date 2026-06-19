@@ -9,7 +9,6 @@ from django.db.models import Q, QuerySet
 # Bundled into one constant so all selectors stay in sync.
 ORDER_LIST_SELECT_RELATED = (
     "client",
-    "assigned_writer",
     "preferred_writer",
     "website",
     "paper_type",

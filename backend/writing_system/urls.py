@@ -62,6 +62,7 @@ urlpatterns = [
     path("api-auth/", include("rest_framework.urls")),
 
     # ── Orders & fulfilment ────────────────────────────────────────────────────
+    path("api/v1/bids/", include("orders.api.urls.bids")),   # writer bid management
     path("api/v1/orders/", include("orders.urls")),
     path("api/v1/order-configs/", include("order_configs.urls")),
 path("api/v1/special-orders/", include("special_orders.urls")),

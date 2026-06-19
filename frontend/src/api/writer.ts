@@ -63,11 +63,11 @@ export interface AdvanceRecord {
 
 export const writerApi = {
   poolOrders: (params?: Record<string, unknown>) =>
-    api.get<ListResponse<OrderSummary>>(apiPath("/orders/"), {
+    api.get<ListResponse<OrderSummary>>(ordersApiPath("/orders/"), {
       params: { status: "ready_for_staffing", ...params },
     }),
   assignments: (params?: Record<string, unknown>) =>
-    api.get<ListResponse<OrderSummary>>(apiPath("/orders/"), { params }),
+    api.get<ListResponse<OrderSummary>>(ordersApiPath("/orders/"), { params }),
   submitOrder: (orderId: number | string, payload: Record<string, unknown>) =>
     api.post<{ message: string; status?: string }>(
       ordersApiPath(`/orders/${orderId}/submit/`),
