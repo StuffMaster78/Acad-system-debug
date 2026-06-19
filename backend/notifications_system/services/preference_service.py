@@ -238,7 +238,6 @@ class PreferenceService:
         profile = NotificationPreferenceProfile.objects.filter(
             website=website,
             is_default=True,
-            is_active=True,
         ).first()
 
         if not profile:
@@ -246,7 +245,6 @@ class PreferenceService:
             profile = NotificationPreferenceProfile.objects.filter(
                 website__isnull=True,
                 is_default=True,
-                is_active=True,
             ).first()
 
         if profile:

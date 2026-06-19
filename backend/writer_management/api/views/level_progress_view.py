@@ -23,9 +23,20 @@ class WriterLevelProgressView(APIView):
         from writer_management.models.writer_level import WriterLevel
 
         try:
-            profile = WriterProfile.objects.select_related(
+            # A writer may have multiple AccountProfiles (one per tenant) and thus
+            # multiple WriterProfile records. Prefer the one that matches the request
+            # website; fall back to the first available profile.
+            website = getattr(request, "website", None)
+            qs = WriterProfile.objects.select_related(
                 "writer_level",
-            ).get(account_profile__user=request.user)
+                "account_profile__website",
+            ).filter(account_profile__user=request.user)
+            if website is not None:
+                profile = qs.filter(account_profile__website=website).first()
+            else:
+                profile = qs.first()
+            if profile is None:
+                raise WriterProfile.DoesNotExist
         except WriterProfile.DoesNotExist:
             return Response({"detail": "Writer profile not found."}, status=404)
 

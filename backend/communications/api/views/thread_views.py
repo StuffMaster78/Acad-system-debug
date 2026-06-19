@@ -101,65 +101,50 @@ class CommunicationThreadViewSet(ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["get"])
-    def messages(self, request, pk=None):
-        """
-        Return messages for a thread.
-        """
-        thread = self.get_object()
-
-        CommunicationThreadGuardService.enforce_can_view_thread(
-            user=request.user,
-            website=getattr(request, "website", thread.website),
-            thread=thread,
-        )
-
-        queryset = CommunicationMessageSelector.visible_for_thread(
-            website=thread.website,
-            user=request.user,
-            thread=thread,
-        )
-
-        paginator = CommunicationMessageCursorPagination()
-        page = paginator.paginate_queryset(queryset, request)
-
-        if page is not None:
-            serializer = CommunicationMessageSerializer(page, many=True)
-            return paginator.get_paginated_response(serializer.data)
-
-        serializer = CommunicationMessageSerializer(queryset, many=True)
-        return Response(serializer.data)
-
     @action(
         detail=True,
-        methods=["post"],
+        methods=["get", "post"],
         url_path="messages",
         throttle_classes=[CommunicationMessageSendThrottle],
     )
-    def create_message(self, request, pk=None):
+    def messages(self, request, pk=None):
         """
-        Create a message in a thread.
+        GET  — list paginated messages for a thread.
+        POST — send a new message to the thread.
         """
         thread = self.get_object()
 
+        if request.method == "GET":
+            CommunicationThreadGuardService.enforce_can_view_thread(
+                user=request.user,
+                website=getattr(request, "website", thread.website),
+                thread=thread,
+            )
+            queryset = CommunicationMessageSelector.visible_for_thread(
+                website=thread.website,
+                user=request.user,
+                thread=thread,
+            )
+            paginator = CommunicationMessageCursorPagination()
+            page = paginator.paginate_queryset(queryset, request)
+            if page is not None:
+                serializer = CommunicationMessageSerializer(page, many=True)
+                return paginator.get_paginated_response(serializer.data)
+            return Response(CommunicationMessageSerializer(queryset, many=True).data)
+
+        # POST
         CommunicationThreadGuardService.enforce_can_send_message(
             user=request.user,
             website=getattr(request, "website", thread.website),
             thread=thread,
         )
-
         serializer = CommunicationMessageCreateSerializer(
             data=request.data,
-            context={
-                "request": request,
-                "thread": thread,
-            },
+            context={"request": request, "thread": thread},
         )
         serializer.is_valid(raise_exception=True)
         message = serializer.save()
-
-        output = CommunicationMessageSerializer(message)
-        return Response(output.data, status=status.HTTP_201_CREATED)
+        return Response(CommunicationMessageSerializer(message).data, status=status.HTTP_201_CREATED)
 
     @action(
         detail=True,

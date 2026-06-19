@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onErrorCaptured, ref, watch, watchEffect } from "vue";
+import { computed, onErrorCaptured, ref, watch, watchEffect } from "vue";
 import { RouterView, useRouter } from "vue-router";
 import ToastContainer from "@/components/ui/ToastContainer.vue";
 import CookieConsentBanner from "@/components/privacy/CookieConsentBanner.vue";
@@ -7,12 +7,18 @@ import { usePortalContextStore } from "@/stores/portalContext";
 import { injectGa4Script, useAnalytics } from "@/composables/useAnalytics";
 import { useCookieConsent } from "@/composables/useCookieConsent";
 import { captureUtmFromUrl } from "@/composables/useUtm";
+import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
 const fatalError = ref<{ message: string } | null>(null);
 const portalCtx = usePortalContextStore();
+const auth = useAuthStore();
 const { pageView } = useAnalytics();
 const consent = useCookieConsent();
+// Only show the consent banner for unauthenticated visitors. Once a user
+// is logged in their session cookies are necessary/functional, so the
+// GDPR banner is not applicable in the authenticated portal context.
+const showConsentBanner = computed(() => !auth.isAuthenticated && consent.bannerOpen.value);
 
 consent.init().then(() => {
   if (consent.marketingAllowed.value) captureUtmFromUrl();
@@ -81,6 +87,6 @@ function reload() {
   <template v-else>
     <RouterView />
     <ToastContainer />
-    <CookieConsentBanner />
+    <CookieConsentBanner v-if="showConsentBanner" />
   </template>
 </template>

@@ -53,7 +53,8 @@ class PaymentWindowSerializer(serializers.ModelSerializer):
         return obj.is_locked
 
     def get_is_editable(self, obj) -> bool:
-        return obj.is_editable
+        # PaymentWindow uses accepts_events (open + not explicitly locked)
+        return obj.accepts_events
 
 
 class PaymentWindowCreateSerializer(serializers.Serializer):
