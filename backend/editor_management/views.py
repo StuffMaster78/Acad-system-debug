@@ -480,6 +480,34 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        # Bootstrap unclaimed task assignments for any under_editing orders that
+        # were moved there outside the normal submission flow (e.g. seed data,
+        # manual status changes).  This is cheap: the bulk_create ignores
+        # conflicts, and most calls find nothing to do.
+        from orders.models.orders import Order as _Order
+        orphan_order_ids = list(
+            _Order.objects.filter(
+                website=profile.website,
+                status=OrderStatus.UNDER_EDITING.value,
+            ).exclude(
+                editor_assignment__isnull=False
+            ).values_list('pk', flat=True)[:100]
+        )
+        if orphan_order_ids:
+            orphan_orders = _Order.objects.filter(pk__in=orphan_order_ids)
+            EditorTaskAssignment.objects.bulk_create(
+                [
+                    EditorTaskAssignment(
+                        order=o,
+                        assignment_type='auto',
+                        review_status='unclaimed',
+                        assigned_at=now(),
+                    )
+                    for o in orphan_orders
+                ],
+                ignore_conflicts=True,
+            )
+
         # Get query parameters for filtering
         deadline_filter = request.query_params.get('deadline', None) # 'urgent', 'upcoming', 'all'
         pages_min = request.query_params.get('pages_min', None)
@@ -496,7 +524,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
         ).filter(
             order__website=profile.website,
             order__status=OrderStatus.UNDER_EDITING.value
-        ).select_related('order', 'order__client', 'order__writer')
+        ).select_related('order', 'order__client')
 
         # Filter by deadline
         if deadline_filter == 'urgent':
@@ -648,10 +676,11 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
         )
 
         try:
+            review_data = {k: v for k, v in serializer.validated_data.items() if k != 'task_id'}
             review = EditorReviewService.submit_review(
                 task_assignment=task,
                 editor=profile,
-                **serializer.validated_data
+                **review_data
             )
             review_serializer = EditorReviewSubmissionSerializer(review)
             return Response(review_serializer.data, status=status.HTTP_201_CREATED)

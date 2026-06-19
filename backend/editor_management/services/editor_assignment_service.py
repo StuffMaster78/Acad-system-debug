@@ -119,7 +119,7 @@ class EditorAssignmentService:
 
         # Log action
         AuditService.record(
-            action="Editor task auto-assigned",
+            action="editor.task.auto_assigned",
             actor=None, # System action
             obj=order,
             website=website,
@@ -207,7 +207,7 @@ class EditorAssignmentService:
         # Log action
         AuditService.record(
             actor=assigned_by,
-            action="Editor task manually assigned",
+            action="editor.task.manually_assigned",
             obj=order,
             website=order.website,
             metadata={
@@ -313,7 +313,7 @@ class EditorAssignmentService:
 
         AuditService.record(
             actor=editor.user,
-            action="Editor claimed task",
+            action="editor.task.claimed",
             obj=order,
             website=order.website,
             metadata={
