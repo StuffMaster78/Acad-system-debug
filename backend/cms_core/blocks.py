@@ -94,6 +94,20 @@ class ImageBlock(StructBlock):
         help_text="How the image is displayed on the page",
     )
 
+    def get_api_representation(self, value, context=None):
+        result = super().get_api_representation(value, context=context)
+        # super() leaves image as a PK integer; replace with a URL dict so the
+        # frontend BlockRenderer can do block.value.image.url
+        image = value.get("image") if value else None
+        if image:
+            try:
+                result["image"] = {"url": image.get_rendition("width-1200").url}
+            except Exception:
+                result["image"] = {
+                    "url": getattr(getattr(image, "file", None), "url", None)
+                }
+        return result
+
     class Meta:
         icon = "image"
         label = "Image"
