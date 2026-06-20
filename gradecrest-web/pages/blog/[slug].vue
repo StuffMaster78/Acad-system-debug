@@ -25,8 +25,8 @@ const gcInlineCta = `
 </div>`
 const slug   = route.params.slug as string
 const config = useRuntimeConfig()
-const apiBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
-const ssrHeaders = import.meta.server ? { Host: (config as any).siteHostname ?? 'gradecrest.com' } : undefined
+const apiBase     = config.public.apiBase || ''
+const wagtailBase = `${apiBase}/wagtail`
 
 interface Block { type: string; value: unknown }
 
@@ -62,8 +62,8 @@ const { data: article, error } = await useAsyncData<ArticleDetail | null>(
   async () => {
     try {
       const res = await $fetch<{ items: ArticleDetail[] }>(
-        `${apiBase}/api/v2/pages/`,
-        { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' }, headers: ssrHeaders },
+        `${wagtailBase}/api/v2/pages/`,
+        { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' } },
       )
       return res.items?.[0] ?? null
     } catch { return null }
@@ -76,7 +76,7 @@ const { data: connectedPosts } = await useAsyncData<ArticleDetail[]>(
   async () => {
     try {
       const res = await $fetch<{ items: ArticleDetail[] }>(
-        `${apiBase}/api/v2/pages/`,
+        `${wagtailBase}/api/v2/pages/`,
         { params: { type: 'cms_blog.BlogPostPage', fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name', order: '-first_published_at', limit: 4 }, headers: ssrHeaders },
       )
       return (res.items ?? []).filter(p => p.meta?.slug !== slug).slice(0, 3)

@@ -26,10 +26,11 @@ interface BlogPost {
 }
 
 const config = useRuntimeConfig()
-const apiBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
-// SSR: inject Host so Wagtail resolves the correct site (domain must be in ALLOWED_HOSTS).
-// Browser: requests go through the devProxy which adds the same header.
-const ssrHeaders = import.meta.server ? { Host: (config as any).siteHostname ?? 'gradecrest.com' } : undefined
+// All Wagtail calls go through /wagtail/... — a Nitro server route that
+// uses Node.js http.request() to inject Host: gradecrest.com (the Fetch
+// API treats Host as a forbidden header and silently drops it).
+const apiBase = config.public.apiBase || ''
+const wagtailBase = `${apiBase}/wagtail`
 const PAGE_SIZE = 12
 
 const page     = ref(1)
@@ -52,8 +53,8 @@ async function loadPage(p: number, cat?: string) {
     }
     if (cat && cat !== 'All') params.category_name = cat
     const res = await $fetch<{ meta: { total_count: number }; items: BlogPost[] }>(
-      `${apiBase}/api/v2/pages/`,
-      { params, headers: ssrHeaders },
+      `${wagtailBase}/api/v2/pages/`,
+      { params },
     )
     total.value = res?.meta?.total_count ?? 0
     posts.value = res.items ?? []
@@ -69,8 +70,8 @@ async function loadPage(p: number, cat?: string) {
 const { data: allForCats } = await useAsyncData('gc-blog-cats', async () => {
   try {
     const res = await $fetch<{ items: BlogPost[] }>(
-      `${apiBase}/api/v2/pages/`,
-      { params: { type: 'cms_blog.BlogPostPage', fields: 'category_name', limit: 500 }, headers: ssrHeaders },
+      `${wagtailBase}/api/v2/pages/`,
+      { params: { type: 'cms_blog.BlogPostPage', fields: 'category_name', limit: 500 } },
     )
     return res.items ?? []
   } catch { return [] }
