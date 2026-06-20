@@ -44,6 +44,21 @@ class HeadingBlock(StructBlock):
         choices=[("h2", "H2"), ("h3", "H3"), ("h4", "H4")],
         default="h2",
     )
+    subtitle = CharBlock(
+        max_length=300,
+        required=False,
+        help_text="Optional sub-line shown below the heading",
+    )
+    accent = ChoiceBlock(
+        choices=[
+            ("none",      "None"),
+            ("bar",       "Left colour bar"),
+            ("underline", "Underline accent"),
+            ("badge",     "Section badge"),
+        ],
+        default="none",
+        required=False,
+    )
 
     class Meta:
         icon = "title"
@@ -513,6 +528,124 @@ class EmbedBlock(StructBlock):
 # ===========================================================================
 # KEY TAKEAWAYS BLOCK (shared)
 # ===========================================================================
+
+# ===========================================================================
+# STYLED LIST BLOCKS — multiple visual variants selectable by the writer
+# ===========================================================================
+
+class IconListBlock(StructBlock):
+    """
+    Bulleted list with a selectable icon and layout.
+
+    icon choices apply to every item in the list — keeps the list visually
+    consistent. style controls whether items render inline, as cards, or in
+    a two-column grid.
+    """
+    icon = ChoiceBlock(
+        choices=[
+            ("check",     "✓  Checkmark"),
+            ("arrow",     "→  Arrow"),
+            ("star",      "★  Star"),
+            ("lightning", "⚡  Lightning"),
+            ("shield",    "🛡  Shield"),
+            ("dot",       "●  Dot"),
+        ],
+        default="check",
+    )
+    style = ChoiceBlock(
+        choices=[
+            ("simple", "Simple — inline list"),
+            ("cards",  "Cards — each item in a bordered card"),
+            ("grid",   "Grid — two-column"),
+        ],
+        default="simple",
+    )
+    items = ListBlock(
+        RichTextBlock(features=["bold", "italic", "link"]),
+        min_num=2,
+        max_num=20,
+    )
+
+    class Meta:
+        icon = "list-ul"
+        label = "Icon List"
+
+
+class NumberedItemBlock(StructBlock):
+    """One item in a NumberedListBlock."""
+    title = CharBlock(max_length=200)
+    description = RichTextBlock(
+        features=["bold", "italic", "link"],
+        required=False,
+        help_text="Optional detail shown below the title",
+    )
+
+    class Meta:
+        icon = "order"
+        label = "Item"
+
+
+class NumberedListBlock(StructBlock):
+    """
+    Ordered list with three distinct visual styles:
+    - counter: large faded number beside text (editorial feel)
+    - badge: filled circle numbered badge (classic)
+    - steps: vertically connected flow with a guide line (how-it-works)
+    """
+    style = ChoiceBlock(
+        choices=[
+            ("counter", "Counter — large faded numbers"),
+            ("badge",   "Badge — filled numbered circles"),
+            ("steps",   "Steps — connected vertical flow"),
+        ],
+        default="badge",
+    )
+    heading = CharBlock(max_length=200, required=False)
+    items = ListBlock(NumberedItemBlock(), min_num=2, max_num=20)
+
+    class Meta:
+        icon = "order"
+        label = "Numbered List"
+
+
+class ProConBlock(StructBlock):
+    """
+    Two-column pros / cons comparison.
+    Green column for pros, red column for cons.
+    """
+    heading    = CharBlock(max_length=200, required=False)
+    pro_heading = CharBlock(max_length=80, default="Pros")
+    con_heading = CharBlock(max_length=80, default="Cons")
+    pros = ListBlock(CharBlock(max_length=300), min_num=1, max_num=10)
+    cons = ListBlock(CharBlock(max_length=300), min_num=1, max_num=10)
+
+    class Meta:
+        icon = "pick"
+        label = "Pro / Con"
+
+
+class ChipsBlock(StructBlock):
+    """
+    Pill/chip-style tag list — ideal for quick-scan fact lists,
+    subject tags, feature highlights, or keyword lists.
+    """
+    heading = CharBlock(max_length=200, required=False)
+    items = ListBlock(CharBlock(max_length=120), min_num=3, max_num=30)
+    color = ChoiceBlock(
+        choices=[
+            ("brand",  "Brand"),
+            ("green",  "Green"),
+            ("amber",  "Amber"),
+            ("purple", "Purple"),
+            ("slate",  "Slate"),
+        ],
+        default="brand",
+    )
+
+    class Meta:
+        icon = "tag"
+        label = "Chips / Tags"
+
 
 class KeyTakeawaysBlock(StructBlock):
     """
@@ -1089,6 +1222,10 @@ BLOG_BLOCKS = StreamBlock([
     ("paragraph", ParagraphBlock()),
     ("image", ImageBlock()),
     ("list", ListBlock_()),
+    ("icon_list", IconListBlock()),
+    ("numbered_list", NumberedListBlock()),
+    ("pro_con", ProConBlock()),
+    ("chips", ChipsBlock()),
     ("checklist", ChecklistBlock()),
     ("quote", QuoteBlock()),
     ("callout", CalloutBlock()),
@@ -1121,6 +1258,10 @@ SERVICE_PAGE_BLOCKS = StreamBlock([
     ("paragraph", ParagraphBlock()),
     ("image", ImageBlock()),
     ("list", ListBlock_()),
+    ("icon_list", IconListBlock()),
+    ("numbered_list", NumberedListBlock()),
+    ("pro_con", ProConBlock()),
+    ("chips", ChipsBlock()),
     ("checklist", ChecklistBlock()),
     ("feature_grid", FeatureGridBlock()),
     ("how_it_works", HowItWorksBlock()),

@@ -115,6 +115,122 @@ const CALLOUT_STYLES: Record<string, string> = {
         </div>
       </template>
 
+      <!-- icon_list -->
+      <template v-else-if="block.type === 'icon_list'">
+        <div
+          v-if="(block.value as any).style === 'grid'"
+          class="grid gap-3 sm:grid-cols-2"
+        >
+          <div v-for="(item, i) in (block.value as any).items || []" :key="i"
+            class="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/40 p-4">
+            <Icon :name="{ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' }[(block.value as any).icon] || 'check-circle'"
+              class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
+            <div class="text-sm text-slate-700 leading-relaxed" v-html="item" />
+          </div>
+        </div>
+        <div v-else-if="(block.value as any).style === 'cards'" class="space-y-2">
+          <div v-for="(item, i) in (block.value as any).items || []" :key="i"
+            class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 px-5 py-4">
+            <Icon :name="{ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' }[(block.value as any).icon] || 'check-circle'"
+              class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
+            <div class="text-sm text-slate-700 leading-relaxed" v-html="item" />
+          </div>
+        </div>
+        <ul v-else class="space-y-3">
+          <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex items-start gap-3 text-sm text-slate-700">
+            <Icon :name="{ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' }[(block.value as any).icon] || 'check-circle'"
+              class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
+            <div class="leading-relaxed" v-html="item" />
+          </li>
+        </ul>
+      </template>
+
+      <!-- numbered_list -->
+      <template v-else-if="block.type === 'numbered_list'">
+        <div class="space-y-4">
+          <h3 v-if="(block.value as any).heading" class="font-serif text-xl font-bold text-slate-900">{{ (block.value as any).heading }}</h3>
+          <!-- steps -->
+          <ol v-if="(block.value as any).style === 'steps'" class="space-y-0">
+            <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white z-10">{{ i + 1 }}</span>
+                <div v-if="i < ((block.value as any).items || []).length - 1" class="w-0.5 flex-1 bg-brand-200 my-1" />
+              </div>
+              <div class="pb-6 min-w-0">
+                <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
+                <div v-if="item.description" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="item.description" />
+              </div>
+            </li>
+          </ol>
+          <!-- counter -->
+          <ol v-else-if="(block.value as any).style === 'counter'" class="space-y-6">
+            <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex gap-4 items-start">
+              <span class="text-5xl font-black text-brand-100 leading-none w-14 shrink-0 text-right tabular-nums select-none">{{ String(i + 1).padStart(2, '0') }}</span>
+              <div class="pt-1 min-w-0">
+                <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
+                <div v-if="item.description" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="item.description" />
+              </div>
+            </li>
+          </ol>
+          <!-- badge (default) -->
+          <ol v-else class="space-y-4">
+            <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex gap-4 items-start">
+              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-brand-600 text-xs font-bold text-brand-600 mt-0.5">{{ i + 1 }}</span>
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
+                <div v-if="item.description" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="item.description" />
+              </div>
+            </li>
+          </ol>
+        </div>
+      </template>
+
+      <!-- pro_con -->
+      <template v-else-if="block.type === 'pro_con'">
+        <div class="space-y-4">
+          <h3 v-if="(block.value as any).heading" class="font-serif text-xl font-bold text-slate-900">{{ (block.value as any).heading }}</h3>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+              <p class="mb-3 text-sm font-bold text-emerald-800">{{ (block.value as any).pro_heading || 'Pros' }}</p>
+              <ul class="space-y-2">
+                <li v-for="(pro, i) in (block.value as any).pros || []" :key="i" class="flex items-start gap-2 text-sm text-emerald-900">
+                  <Icon name="check-circle" class="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />
+                  {{ pro }}
+                </li>
+              </ul>
+            </div>
+            <div class="rounded-2xl border border-red-200 bg-red-50 p-5">
+              <p class="mb-3 text-sm font-bold text-red-800">{{ (block.value as any).con_heading || 'Cons' }}</p>
+              <ul class="space-y-2">
+                <li v-for="(con, i) in (block.value as any).cons || []" :key="i" class="flex items-start gap-2 text-sm text-red-900">
+                  <Icon name="x-circle" class="h-4 w-4 shrink-0 mt-0.5 text-red-400" />
+                  {{ con }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- chips -->
+      <template v-else-if="block.type === 'chips'">
+        <div class="space-y-3">
+          <p v-if="(block.value as any).heading" class="font-semibold text-slate-900">{{ (block.value as any).heading }}</p>
+          <div class="flex flex-wrap gap-2">
+            <span v-for="(chip, i) in (block.value as any).items || []" :key="i"
+              class="rounded-full border px-3 py-1.5 text-xs font-medium"
+              :class="{
+                'border-brand-200 bg-brand-50 text-brand-700': (block.value as any).color === 'brand' || !(block.value as any).color,
+                'border-emerald-200 bg-emerald-50 text-emerald-700': (block.value as any).color === 'green',
+                'border-amber-200 bg-amber-50 text-amber-700': (block.value as any).color === 'amber',
+                'border-violet-200 bg-violet-50 text-violet-700': (block.value as any).color === 'purple',
+                'border-slate-200 bg-slate-50 text-slate-600': (block.value as any).color === 'slate',
+              }"
+            >{{ chip }}</span>
+          </div>
+        </div>
+      </template>
+
       <!-- quote -->
       <template v-else-if="block.type === 'quote'">
         <blockquote class="border-l-4 border-brand-300 pl-6 py-1">
@@ -318,8 +434,82 @@ const CALLOUT_STYLES: Record<string, string> = {
         <hr class="border-slate-200" />
       </template>
 
+      <!-- table — bidirectional scroll, sticky header + first column -->
+      <template v-else-if="block.type === 'table'">
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <p v-if="(block.value as any).table_caption" class="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-600">
+            {{ (block.value as any).table_caption }}
+          </p>
+          <div class="max-h-[28rem] overflow-x-auto overflow-y-auto">
+            <table class="min-w-full text-left text-sm">
+              <thead v-if="(block.value as any).first_row_is_table_header && (block.value as any).data?.length" class="sticky top-0 z-10">
+                <tr>
+                  <th
+                    v-for="(cell, ci) in (block.value as any).data[0]"
+                    :key="ci"
+                    class="whitespace-nowrap bg-brand-50 px-4 py-3 font-semibold text-brand-900 border-b border-brand-100"
+                    :class="ci === 0 && (block.value as any).first_col_is_header ? 'sticky left-0 z-20 bg-brand-100' : ''"
+                  >{{ cell }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr
+                  v-for="(row, ri) in (block.value as any).first_row_is_table_header
+                    ? ((block.value as any).data || []).slice(1)
+                    : ((block.value as any).data || [])"
+                  :key="ri"
+                  class="hover:bg-slate-50 transition-colors"
+                >
+                  <td
+                    v-for="(cell, ci) in row"
+                    :key="ci"
+                    class="px-4 py-3 text-slate-700 align-top"
+                    :class="ci === 0 && (block.value as any).first_col_is_header
+                      ? 'sticky left-0 z-10 bg-white font-semibold text-slate-900 border-r border-slate-100'
+                      : ''"
+                  >{{ cell }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+
       <!-- fallback: unknown block type — silently skip -->
 
     </template>
   </div>
 </template>
+
+<style scoped>
+/* Prose tables from scraped paragraph HTML — bidirectional scroll */
+:deep(.prose table),
+:deep(table) {
+  display: block;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 28rem;
+  border-collapse: collapse;
+  width: max-content;
+  max-width: 100%;
+}
+:deep(.prose th), :deep(th) {
+  position: sticky;
+  top: 0;
+  background: #f0fdfa;
+  font-weight: 600;
+  color: #134e4a;
+  padding: 0.625rem 1rem;
+  border: 1px solid #ccfbf1;
+  white-space: nowrap;
+  z-index: 1;
+}
+:deep(.prose td), :deep(td) {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  vertical-align: top;
+  font-size: 0.875rem;
+}
+:deep(.prose tr:hover), :deep(tr:hover) { background: #f8fafc; }
+</style>
