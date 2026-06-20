@@ -9,6 +9,11 @@ from django.utils import timezone
 from discounts.constants import DiscountOrigin, DiscountType
 
 
+class DiscountManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
 class Discount(models.Model):
     """
     Client facing discount code.
@@ -87,6 +92,14 @@ class Discount(models.Model):
     is_active = models.BooleanField(default=True)
     is_archived = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="deleted_discounts",
+    )
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -105,6 +118,9 @@ class Discount(models.Model):
 
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = DiscountManager()
+    all_objects = models.Manager()
 
     class Meta:
         ordering = ("-created_at",)

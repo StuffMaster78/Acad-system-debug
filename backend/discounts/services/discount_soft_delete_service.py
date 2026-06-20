@@ -40,15 +40,17 @@ class DiscountSoftDeleteService:
 
         if discount.is_deleted:
             logger.warning(
-                f"Discount {discount.code} is already soft deleted."
+                f"Discount {discount.discount_code} is already soft deleted."
             )
             return
 
+        now = timezone.now()
         discount.is_deleted = True
-        discount.deleted_at = timezone.now()
-        discount.save(update_fields=["is_deleted", "deleted_at"])
+        discount.deleted_at = now
+        discount.deleted_by = self.user
+        discount.save(update_fields=["is_deleted", "deleted_at", "deleted_by"])
         logger.info(
-            f"User {self.user.username} soft deleted discount {discount.code} at {discount.deleted_at}."
+            f"User {self.user.username} soft deleted discount {discount.discount_code} at {now}."
         )
 
     def hard_delete_discount(self, discount):
@@ -68,13 +70,13 @@ class DiscountSoftDeleteService:
 
         if not discount.is_deleted:
             logger.warning(
-                f"Discount {discount.code} must be soft deleted before hard delete."
+                f"Discount {discount.discount_code} must be soft deleted before hard delete."
             )
             return
 
         discount.delete()
         logger.info(
-            f"User {self.user.username} hard deleted discount {discount.code} at {timezone.now()}."
+            f"User {self.user.username} hard deleted discount {discount.discount_code} at {timezone.now()}."
         )
 
     def soft_delete_discounts(self, queryset):
@@ -94,7 +96,7 @@ class DiscountSoftDeleteService:
             logger.warning("No discounts found to soft delete.")
             return
 
-        count = queryset.update(is_deleted=True)
+        count = queryset.update(is_deleted=True, deleted_at=timezone.now())
         logger.info(f"Soft deleted {count} discounts.")
 
     def hard_delete_discounts(self, queryset):
@@ -134,15 +136,16 @@ class DiscountSoftDeleteService:
             raise PermissionDenied("Only admins can restore discounts.")
 
         if not discount.is_deleted:
-            logger.warning(f"Discount {discount.code} is not deleted.")
+            logger.warning(f"Discount {discount.discount_code} is not deleted.")
             return
 
         discount.is_deleted = False
         discount.deleted_at = None
-        discount.save(update_fields=["is_deleted", "deleted_at"])
+        discount.deleted_by = None
+        discount.save(update_fields=["is_deleted", "deleted_at", "deleted_by"])
 
         logger.info(
-            f"User {self.user.username} restored discount {discount.code} at {timezone.now()}."
+            f"User {self.user.username} restored discount {discount.discount_code} at {timezone.now()}."
         )
 
     def restore_discounts(self, queryset):
@@ -164,5 +167,5 @@ class DiscountSoftDeleteService:
             logger.warning("No soft-deleted discounts found to restore.")
             return
 
-        count = soft_deleted_qs.update(is_deleted=False)
+        count = soft_deleted_qs.update(is_deleted=False, deleted_at=None, deleted_by=None)
         logger.info(f"Restored {count} discounts.")
